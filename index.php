@@ -93,8 +93,8 @@ sfc_render_header($context, 'landing');
           </div>
           <span class="hero-node-badge" id="heroNodeBadge">Looking toward Poro Point</span>
         </div>
-        <h1>Where the city turns into an investment thesis.</h1>
-        <p id="heroFocusSummary">Throughput, corridor fit, and land scale rise to the front of the city frame. Poro Point holds the center of the current spatial read.</p>
+        <h1>Where City Maps Become Investment Roadmaps.</h1>
+        <p id="heroFocusSummary">Infrastructure access, zoning alignment, and property scale dictate the true value of a location. Right now, all data points to Poro Point as the anchor of San Fernando's economic heat map.</p>
 
         <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city read">
           <span class="hero-sentiment-label">Live city read</span>

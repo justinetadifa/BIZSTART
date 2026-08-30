@@ -2359,7 +2359,8 @@ const LANDING_HERO_FOCUSES = {
     railLabel: "Logistics",
     accent: "#6366f1",
     accentRgb: "99, 102, 241",
-    summary: "Throughput, corridor fit, and land scale rise to the front of the city frame.",
+    summary: "Infrastructure access, zoning alignment, and property scale dictate the true value of a location. Right now, all data points to",
+    suffix: "as the anchor of San Fernando's economic heat map.",
     tickerMeta: "Freight",
     defaultNode: "poro-point",
     nodes: ["poro-point"],
@@ -2987,7 +2988,7 @@ function landingHeroState(properties, votesMap, focusKey, nodeKey = null) {
     nodeBadge: `Looking toward ${node.label}`,
     metricMeta: `${focus.railLabel} / ${node.label}`,
     tickerMeta: `${focus.railLabel} lens`,
-    focusSummary: `${focus.summary} ${node.label} holds the center of the current spatial read.`,
+    focusSummary: `${focus.summary} ${node.label} ${focus.suffix || "holds the center of the current spatial read."}`,
     metricSummary: leader
       ? `${leader.name} is the clearest opportunity currently visible at ${node.label}.`
       : `${node.label} is waiting for live listings.`,
