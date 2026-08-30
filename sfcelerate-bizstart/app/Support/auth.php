@@ -89,6 +89,32 @@ function sfc_register_investor(string $name, string $email, string $password, st
     return $user;
 }
 
+function sfc_register_seller(string $name, string $email, string $password, string $confirmPassword): array
+{
+    sfc_start_session();
+
+    $name = trim($name);
+    $email = strtolower(trim($email));
+
+    if ($name === '') {
+        throw new InvalidArgumentException('Your full name is required.');
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('A valid email address is required.');
+    }
+    if (strlen($password) < 8) {
+        throw new InvalidArgumentException('Password must be at least 8 characters.');
+    }
+    if ($password !== $confirmPassword) {
+        throw new InvalidArgumentException('Password confirmation does not match.');
+    }
+
+    $user = sfc_user_repository()->create('seller', $name, $email, $password);
+    $_SESSION['sfc_user'] = sfc_user_session_payload($user);
+
+    return $user;
+}
+
 function sfc_logout(): void
 {
     sfc_start_session();
