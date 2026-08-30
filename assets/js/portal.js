@@ -1,5 +1,6 @@
 import { api } from "./api.js";
 import { initNotificationCenter } from "./notifications.js";
+import { initInvestorAcademy } from "./academy.js";
 import {
   DEFAULT_INVESTMENT_LENS,
   DEFAULT_WEIGHTS,
@@ -8027,6 +8028,7 @@ async function boot() {
   initPortalMenu();
   initStudioMotion();
   initNotificationCenter();
+  initInvestorAcademy();
   await ensureFavoriteIdsLoaded();
   if (page === "landing") initHeroStage();
   if (page === "landing") initLandingChrome();

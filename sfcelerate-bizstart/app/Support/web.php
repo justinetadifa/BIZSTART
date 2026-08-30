@@ -198,10 +198,13 @@ function sfc_render_header(array $context, string $active = ''): void
     ?>
   <header class="site-header">
     <div class="site-shell nav-shell">
-      <a href="<?= htmlspecialchars(sfc_path('/index.php'), ENT_QUOTES, 'UTF-8') ?>" class="brand-link">
+      <a href="<?= htmlspecialchars(sfc_path('/index.php'), ENT_QUOTES, 'UTF-8') ?>" class="brand-link" id="brandAcademyTrigger" title="Tap to open Investor Academy & Business Crash Course">
         <span class="brand-mark"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc.png" alt="SFCelerate" class="brand-logo"></span>
         <span class="brand-copy">
-          <span class="brand-title">SFCelerate BizStart</span>
+          <span class="brand-title">
+            SFCelerate BizStart
+            <span class="brand-academy-badge" title="Tap to open Investor & Business Crash Course">🎓 Learn Basics</span>
+          </span>
           <span class="brand-subtitle">San Fernando Opportunity Platform</span>
         </span>
       </a>
