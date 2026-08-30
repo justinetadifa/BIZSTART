@@ -1,131 +1,210 @@
-# SFCelerate BizStart
+# 🏙️ SFCelerate BizStart
 
-XAMPP-ready property discovery and investment workflow app built with:
+<div align="center">
 
-- Apache
-- PHP
-- MySQL
-- JavaScript
-- JSON
+[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Leaflet.js](https://img.shields.io/badge/Leaflet-1.9.4-199900?style=for-the-badge&logo=leaflet&logoColor=white)](https://leafletjs.com/)
+[![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-Live_Tiles-7EBC6F?style=for-the-badge&logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-## What changed
+**Spatial Intelligence, Due Diligence, and Investment Decision Platform for San Fernando, La Union.**
 
-The old React/Vite + Node/Express + Prisma setup has been replaced with a PHP/MySQL application.
+[Features](#-key-features) • [Installation](#-getting-started) • [Demo Credentials](#-demo-accounts) • [Architecture](#-project-structure) • [API Reference](#-api-endpoints)
 
-Reusable material preserved from the previous repository:
+</div>
 
-- listing images in [`assets/images`](./assets/images)
-- the original single-file prototype in [`docs/prototype-reference.html`](./docs/prototype-reference.html)
-- seeded copy/data in [`data/meta.json`](./data/meta.json), [`data/properties.json`](./data/properties.json), and [`data/sample-data.json`](./data/sample-data.json)
+---
 
-## New structure
+## 📖 Overview
 
-- [`index.php`](./index.php): landing page
-- [`admin-login.php`](./admin-login.php): admin entry
-- [`investor-login.php`](./investor-login.php): investor entry
-- [`admin-dashboard.php`](./admin-dashboard.php): admin workspace
-- [`admin-properties.php`](./admin-properties.php): admin inventory CRUD workspace
-- [`investor-dashboard.php`](./investor-dashboard.php): investor workspace
-- [`property-explorer.php`](./property-explorer.php): dedicated explorer and map fallback
-- [`property-details.php`](./property-details.php): dedicated property detail screen
-- [`compare-decision.php`](./compare-decision.php): investor compare and recommendation screen
-- [`api`](./api): PHP JSON endpoints
-- [`app`](./app): config, database bootstrap, repositories, seed support
-- [`assets`](./assets): CSS, JavaScript, images, icons
-- [`database/schema.sql`](./database/schema.sql): MySQL schema
-- [`database/seed.sql`](./database/seed.sql): sample rows only
-- [`database/setup.sql`](./database/setup.sql): schema + sample rows in one import
+**SFCelerate BizStart** is a full-featured spatial intelligence and investment acceleration platform tailored for the City of San Fernando, La Union. It connects investors, property sellers, city planners, and residents by transforming raw land and commercial real estate data into actionable investment intelligence.
 
-## Codex handoff context
+The platform provides interactive map exploration, sector-specific investment lens scoring, crowdsourced local demand voting, due diligence tracking, and multi-property comparison matrices.
 
-For future Codex chats or account handoff, use:
+---
 
-- [`docs/CODEX_CONTEXT.md`](./docs/CODEX_CONTEXT.md)
+## ✨ Key Features
 
-## Local setup with XAMPP
+### 🗺️ Spatial Intelligence & Live Property Explorer
+* **Interactive Leaflet + OpenStreetMap**: Explore properties with cluster markers, interactive bounding, and corridor overlays (Highway, Coastal, Downtown).
+* **Opportunity Spotlight**: Instant deep dive into highlighted opportunities with spatial metrics and live neighborhood demand.
+* **Google Earth KML Export**: 3D spatial validation and terrain export for land development assessments.
 
-1. Start Apache and MySQL from XAMPP.
-2. Open phpMyAdmin at `http://localhost/phpmyadmin/`.
-3. Import [`database/setup.sql`](./database/setup.sql).
-4. Confirm [`app/config.local.php`](./app/config.local.php) matches your local XAMPP defaults:
+### 🎯 Investment Lens Scoring Engine
+* **Sector-Specific Lenses**: Dynamically re-rank and evaluate properties based on custom lenses:
+  * 🏖️ *Resort & Tourism*
+  * 🚚 *Logistics & Warehousing*
+  * 🏢 *Office & BPO*
+  * 🛍️ *Commercial & Retail*
+  * 🏭 *Light Manufacturing*
+* **Multi-Pillar Readiness Model (IRIE)**: Evaluates Spatial, Infrastructure, Economic, Institutional, and Legal signals.
+
+### 🗳️ Citizen & Investor Demand Voting
+* **Crowdsourced Market Validation**: Citizens and investors vote on needed businesses per barangay (e.g., Pharmacy, Café, Co-working space, 24/7 Convenience).
+* **Demand-to-Supply Matching**: Links local voting sentiment directly to adjacent commercial listings.
+
+### ⚖️ Compare & Decision Matrix
+* **Head-to-Head Comparison**: Compare up to 3 shortlisted properties across pricing, road access, zoning scores, due diligence completion, and investment readiness.
+* **Decision Recommendations**: Automated winner identification based on weighted priorities and budget caps.
+
+### 📋 Due Diligence & Ground Truth Tracking
+* **6-Point Document Checklist**: Title copy, tax declaration, survey plan, zoning clearance, site photos, and environmental/hazard reports.
+* **Ground Truth Auditing**: Tracks on-site inspection visits and applies confidence adjustments to opportunity scores.
+
+### 👥 Role-Based Workspaces
+* **🧑‍💼 Investor / Resident Portal**: Browse listings, save favorites, submit compare queues, cast votes, and send direct inquiries.
+* **🏢 Seller Portal**: Submit listings, manage media uploads, track verification progress, and respond to buyer inquiries.
+* **🛡️ Admin Command Center**: Inventory CRUD, document verification workflows, audit logs, and city-wide demand analytics.
+
+---
+
+## 🛠️ Tech Stack
+
+* **Backend**: PHP 8.1+ (Native, zero heavyweight framework dependencies, modular repository pattern)
+* **Database**: MySQL 8.0+ / MariaDB (InnoDB, Foreign Key constraints, UTF8mb4)
+* **Frontend**: Vanilla JavaScript (ES6 Modules), HTML5, Vanilla CSS3 (Clean custom design system with Dark/Light accents)
+* **Maps & Geo**: Leaflet.js, OpenStreetMap Tiles, LocationIQ Geocoding API
+* **External Services (Optional with Graceful Fallbacks)**:
+  * 🤖 *Gemini AI / OpenRouter* — Automated investment thesis summaries
+  * ⛅ *OpenWeather* — Microclimate and environmental conditions
+  * 📈 *Alpha Vantage* — Regional market benchmarks
+  * 📰 *NewsAPI* — Local economic and infrastructure developments
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* [XAMPP](https://www.apachefriends.org/) (PHP 8.1+ & MySQL) or any standard Apache/PHP/MySQL stack.
+* Git
+
+### Step-by-Step Installation
+
+1. **Clone the repository** into your XAMPP `htdocs` directory:
+   ```bash
+   cd c:/xampp/htdocs
+   git clone https://github.com/justinetadifa/BIZSTART.git sfceleratee
+   ```
+
+2. **Start Services**:
+   * Open the **XAMPP Control Panel**.
+   * Start both **Apache** and **MySQL**.
+
+3. **Import Database**:
+   * Open your browser and navigate to **[http://localhost/phpmyadmin/](http://localhost/phpmyadmin/)**.
+   * Create a new database named **`sfceleratee`**.
+   * Click **Import** and select [`database/setup.sql`](./database/setup.sql) (this creates all tables and inserts initial seed data).
+
+4. **Configuration (Optional)**:
+   * Copy [`app/config.local.php.example`](./app/config.local.php.example) to `app/config.local.php`:
+     ```bash
+     cp app/config.local.php.example app/config.local.php
+     ```
+   * The default settings connect to `localhost:3306` with user `root` and an empty password.
+   * Add any external API keys (Gemini, LocationIQ, OpenWeather) if you wish to enable live external integrations.
+
+5. **Launch Application**:
+   * Open your browser and visit:
+     ```text
+     http://localhost/sfceleratee/
+     ```
+
+---
+
+## 🔑 Demo Accounts
+
+For testing all roles and permissions, use the following demo credentials:
+
+| Role | Email | Password | Access / Capabilities |
+| :--- | :--- | :--- | :--- |
+| **🛡️ Admin** | `admin@sfcelerate.local` | `Admin123!` | Full inventory CRUD, document approvals, ground-truth audits, showcase management |
+| **🏢 Seller** | `seller@sfcelerate.local` | `Seller123!` | Submit & edit listings, upload due diligence files, track buyer inquiries |
+| **🧑‍💼 Investor** | `investor@sfcelerate.local` | `Investor123!` | Shortlist properties, compare matrices, cast demand votes, request documents |
+
+---
+
+## 📁 Project Structure
 
 ```text
-host: localhost
-port: 3306
-user: root
-password: empty
-database: sfceleratee
+sfceleratee/
+├── api/                        # JSON API Endpoints
+│   ├── _bootstrap.php          # API middleware & response helper
+│   ├── bootstrap.php           # Core application state & inventory
+│   ├── properties.php          # Property listing & filtering
+│   ├── property.php            # Single property details
+│   ├── cart.php                # Shortlist & comparison queue
+│   ├── votes.php               # Demand voting endpoints
+│   ├── due-diligence.php       # DD checklist & verification status
+│   ├── messages.php            # Direct seller-investor messaging
+│   └── external-*.php          # Service proxies (AI, Weather, News)
+├── app/                        # Backend Application Core
+│   ├── Core/                   # Database PDO singleton & Schema manager
+│   ├── Repositories/           # Data access layer (Properties, Votes, Users, etc.)
+│   ├── Support/                # Auth, Helpers, External services, View renderers
+│   ├── config.php              # Base configuration
+│   └── config.local.php.example# Local environment overrides
+├── assets/                     # Frontend Assets
+│   ├── css/
+│   │   ├── app.css             # Base utility styles
+│   │   └── portal.css          # Platform design system & page layouts
+│   ├── js/
+│   │   ├── api.js              # Frontend API client
+│   │   ├── portal.js           # Core state management & page controllers
+│   │   └── utils.js            # Formatters, calculations & scoring helpers
+│   └── images/                 # Listing photography & platform icons
+├── data/                       # Fallback JSON datasets for offline seeding
+├── database/                   # Database Migrations & Seeds
+│   ├── schema.sql              # Clean DDL table schemas
+│   ├── seed.sql                # Default property & user fixtures
+│   └── setup.sql               # Single-file complete DB installer
+├── docs/                       # Project Documentation & Architecture Guides
+│   └── CODEX_CONTEXT.md        # Technical design context & architecture specs
+├── property-explorer.php       # Interactive Leaflet Map & Spatial Filter Terminal
+├── property-ranking.php        # Editorial Scoreboards & Lens Rankings
+├── property-details.php        # Comprehensive Property Due Diligence Dossier
+├── compare-decision.php        # Multi-Property Comparison & Matrix Engine
+├── voting-dashboard.php        # Barangay Demand Sentiment & Community Voting
+├── offer-board.php             # Curated Timed Investment Releases
+├── city-pipeline.php           # City Development Pipeline & Future Infrastructure
+└── index.php                   # Public Homepage & Hero Stage
 ```
 
-5. Open:
+---
 
-```text
-http://localhost/sfceleratee/
-```
+## 🔌 API Endpoints
 
-## Demo login credentials
+All endpoints return standardized JSON payloads formatted as `{ "ok": true, "data": { ... } }`:
 
-For local presentation use:
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/bootstrap.php` | Full client bootstrap (properties, user session, service status) |
+| `GET` | `/api/property.php?id={id}` | Detailed property dossier with pillars, media, and DD checklist |
+| `GET/POST` | `/api/properties.php` | Property listing with search query, corridor, and type filters |
+| `GET/POST/DEL` | `/api/cart.php` | Manage compare and favorite queues |
+| `GET/POST` | `/api/votes.php` | Retrieve demand tallies and cast community votes |
+| `GET/POST` | `/api/due-diligence.php` | Submit/review property due diligence document items |
+| `GET/POST/DEL` | `/api/messages.php` | Threaded inquiries between investors and property sellers |
+| `GET` | `/api/location-search.php?q={query}` | Geocoding search via LocationIQ with local fallback |
+| `GET` | `/api/google-earth.php?id={id}` | Export property coordinates and bounds as a `.kml` file |
+| `GET` | `/api/health.php` | System status, database ping, and environment checks |
 
-```text
-Admin:
-admin@sfcelerate.local
-Admin123!
+---
 
-Investor:
-investor@sfcelerate.local
-Investor123!
+## 🔒 Security & Best Practices
 
-Seller:
-seller@sfcelerate.local
-Seller123!
-```
+* **Prepared Statements**: All database operations use PDO prepared statements with strict parameter binding to eliminate SQL injection risks.
+* **XSS Prevention**: Output data in templates is escaped using `htmlspecialchars()` with UTF-8 encoding.
+* **Environment Isolation**: Sensitive configuration (`config.local.php`, session cookies) is excluded from version control via [`.gitignore`](./.gitignore).
+* **Strict Session Security**: Session management uses HttpOnly cookies and role validation gates across restricted routes.
 
-6. Optional endpoint checks:
+---
 
-```text
-http://localhost/sfcelerate-bizstart/api/health.php
-http://localhost/sfcelerate-bizstart/api/bootstrap.php
-```
+## 📄 License
 
-## Seeding behavior
+This project is licensed under the [MIT License](LICENSE).
 
-You can seed data in either of these ways:
-
-- import [`database/setup.sql`](./database/setup.sql), which creates the schema and inserts sample rows
-- import [`database/schema.sql`](./database/schema.sql) only, then let the first successful PHP request auto-seed from the JSON files in [`data`](./data) when the `properties` table is empty
-
-That seed includes:
-
-- property inventory
-- property media
-- sample due diligence records
-- sample messages
-- sample scenarios
-
-## Available API endpoints
-
-- `GET /api/bootstrap.php`
-- `GET /api/property.php?id=<id>`
-- `GET|POST|DELETE /api/cart.php`
-- `POST /api/barangay.php`
-- `GET|POST /api/due-diligence.php`
-- `GET|POST /api/votes.php`
-- `GET|POST|DELETE /api/messages.php`
-- `GET|POST|PUT|DELETE /api/vote-options.php`
-- `GET|POST /api/scenarios.php`
-- `GET /api/health.php`
-- `GET /api/location-search.php?q=<query>`
-- `GET /api/external-market.php`
-- `GET /api/external-news.php?limit=<n>`
-- `GET /api/external-weather.php?propertyId=<id>`
-- `GET /api/external-ai-summary.php?propertyId=<id>`
-
-## Notes
-
-- Weighted scoring, filtering, comparison, decision pack, due diligence, shortlist cart, image-backed voting, threaded messaging, and scenario saving are handled by vanilla JavaScript against PHP APIs.
-- The explorer and property-detail screens now use a real Leaflet + OpenStreetMap map with live property markers.
-- LocationIQ, Alpha Vantage, NewsAPI, Gemini/OpenRouter, Cloudinary, and OpenWeather are integrated through optional PHP service layers with graceful fallbacks and file caching.
-- Without external API keys, the platform still works locally through seeded or structured fallback data under a standard XAMPP setup.
-- Investor accounts are now database-backed, and the investor login page supports sign-up for unique local accounts.
-- In this workspace, Apache is serving from `C:\xampp\New folder\htdocs`, so the live project path here is `C:\xampp\New folder\htdocs\sfcelerate-bizstart`.
+<div align="center">
+  <sub>Developed for the <strong>SFCelerate BizStart Platform</strong> • San Fernando, La Union</sub>
+</div>
