@@ -3682,20 +3682,42 @@ const VOTE_OPTION_IMAGE_FALLBACKS = {
   "GROCERY-OR-MINI-MART": "assets/images/vote-grocery-or-mini-mart.svg",
 };
 
-function voteOptionMedia(option) {
-  let imgUrl = option?.imageUrl;
-  if (!imgUrl && option?.title) {
-    const key = String(option.title).trim().toUpperCase();
-    const slugKey = String(option.slug || "").trim().toUpperCase();
-    imgUrl = VOTE_OPTION_IMAGE_FALLBACKS[key] || VOTE_OPTION_IMAGE_FALLBACKS[slugKey];
+function resolveVoteImageUrl(imgUrl, title, slug) {
+  let raw = imgUrl;
+  if (!raw && title) {
+    const key = String(title).trim().toUpperCase();
+    const slugKey = String(slug || "").trim().toUpperCase();
+    raw = VOTE_OPTION_IMAGE_FALLBACKS[key] || VOTE_OPTION_IMAGE_FALLBACKS[slugKey];
+  }
+  if (!raw) return "";
+
+  raw = String(raw).trim();
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) {
+    return raw;
   }
 
-  if (imgUrl) {
-    const assetBase = window.SFC_APP_CONFIG?.assetBase ? (window.SFC_APP_CONFIG.assetBase.replace(/\/$/, "") + "/") : "";
-    let cleanUrl = imgUrl;
-    if (!cleanUrl.startsWith("http") && !cleanUrl.startsWith("/") && assetBase && !cleanUrl.startsWith(assetBase)) {
-      cleanUrl = assetBase + cleanUrl.replace(/^(\.\/|\/)/, "");
-    }
+  let normalized = raw.replace(/^(\.\/|\/)+/, "");
+  const basePath = (window.SFC_APP_CONFIG?.basePath || "").replace(/\/+$/, "");
+
+  if (basePath && normalized.startsWith(basePath.replace(/^\/+/, "") + "/")) {
+    return "/" + normalized;
+  }
+
+  if (normalized.startsWith("assets/")) {
+    return basePath ? (basePath + "/" + normalized) : ("/" + normalized);
+  }
+
+  if (normalized.startsWith("images/")) {
+    return basePath ? (basePath + "/assets/" + normalized) : ("/assets/" + normalized);
+  }
+
+  return basePath ? (basePath + "/assets/images/" + normalized) : ("/assets/images/" + normalized);
+}
+
+function voteOptionMedia(option) {
+  const cleanUrl = resolveVoteImageUrl(option?.imageUrl, option?.title, option?.slug);
+
+  if (cleanUrl) {
     return `<img src="${escapeHtml(cleanUrl)}" alt="${escapeHtml(option.title || "Vote option")}" loading="lazy">`;
   }
 
