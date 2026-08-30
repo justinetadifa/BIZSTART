@@ -348,14 +348,14 @@ INSERT INTO vote_options (id, title, slug, description, image_url, is_active, so
   (1, '7/11', '7-11', 'Investor voting option for 7/11.', 'assets/images/vote-7-11.svg', 1, 1, 1),
   (2, 'PRINTING SHOP', 'printing-shop', 'Investor voting option for PRINTING SHOP.', 'assets/images/vote-printing-shop.svg', 1, 2, 1),
   (3, 'CAFE', 'cafe', 'Investor voting option for CAFE.', 'assets/images/vote-cafe.svg', 1, 3, 1),
-  (4, 'RESORT AND TOURISM', 'resort-and-tourism', 'Investor voting option for RESORT AND TOURISM.', NULL, 1, 4, 1),
-  (5, 'RESTAURANT OR FOOD PARK', 'restaurant-or-food-park', 'Investor voting option for RESTAURANT OR FOOD PARK.', NULL, 1, 5, 1),
+  (4, 'RESORT AND TOURISM', 'resort-and-tourism', 'Investor voting option for RESORT AND TOURISM.', 'assets/images/vote-resort-and-tourism.svg', 1, 4, 1),
+  (5, 'RESTAURANT OR FOOD PARK', 'restaurant-or-food-park', 'Investor voting option for RESTAURANT OR FOOD PARK.', 'assets/images/vote-restaurant-or-food-park.svg', 1, 5, 1),
   (6, 'PHARMACY', 'pharmacy', 'Investor voting option for PHARMACY.', 'assets/images/vote-pharmacy.svg', 1, 6, 1),
-  (7, 'CLINIC OR DIAGNOSTICS', 'clinic-or-diagnostics', 'Investor voting option for CLINIC OR DIAGNOSTICS.', NULL, 1, 7, 1),
-  (8, 'WAREHOUSE OR LOGISTICS', 'warehouse-or-logistics', 'Investor voting option for WAREHOUSE OR LOGISTICS.', NULL, 1, 8, 1),
-  (9, 'OFFICE OR BPO', 'office-or-bpo', 'Investor voting option for OFFICE OR BPO.', NULL, 1, 9, 1),
-  (10, 'HARDWARE AND CONSTRUCTION SUPPLY', 'hardware-and-construction-supply', 'Investor voting option for HARDWARE AND CONSTRUCTION SUPPLY.', NULL, 1, 10, 1),
-  (11, 'GROCERY OR MINI MART', 'grocery-or-mini-mart', 'Investor voting option for GROCERY OR MINI MART.', NULL, 1, 11, 1);
+  (7, 'CLINIC OR DIAGNOSTICS', 'clinic-or-diagnostics', 'Investor voting option for CLINIC OR DIAGNOSTICS.', 'assets/images/vote-clinic-or-diagnostics.svg', 1, 7, 1),
+  (8, 'WAREHOUSE OR LOGISTICS', 'warehouse-or-logistics', 'Investor voting option for WAREHOUSE OR LOGISTICS.', 'assets/images/vote-warehouse-or-logistics.svg', 1, 8, 1),
+  (9, 'OFFICE OR BPO', 'office-or-bpo', 'Investor voting option for OFFICE OR BPO.', 'assets/images/vote-office-or-bpo.svg', 1, 9, 1),
+  (10, 'HARDWARE AND CONSTRUCTION SUPPLY', 'hardware-and-construction-supply', 'Investor voting option for HARDWARE AND CONSTRUCTION SUPPLY.', 'assets/images/vote-hardware-and-construction-supply.svg', 1, 10, 1),
+  (11, 'GROCERY OR MINI MART', 'grocery-or-mini-mart', 'Investor voting option for GROCERY OR MINI MART.', 'assets/images/vote-grocery-or-mini-mart.svg', 1, 11, 1);
 
 INSERT INTO properties (
   id, name, city, lat, lng, area, price, price_per_sqm, status, approval_state, score, type, corridor,

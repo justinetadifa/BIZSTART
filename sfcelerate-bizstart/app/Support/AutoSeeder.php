@@ -117,7 +117,14 @@ final class AutoSeeder
             '7/11' => 'assets/images/vote-7-11.svg',
             'PRINTING SHOP' => 'assets/images/vote-printing-shop.svg',
             'CAFE' => 'assets/images/vote-cafe.svg',
+            'RESORT AND TOURISM' => 'assets/images/vote-resort-and-tourism.svg',
+            'RESTAURANT OR FOOD PARK' => 'assets/images/vote-restaurant-or-food-park.svg',
             'PHARMACY' => 'assets/images/vote-pharmacy.svg',
+            'CLINIC OR DIAGNOSTICS' => 'assets/images/vote-clinic-or-diagnostics.svg',
+            'WAREHOUSE OR LOGISTICS' => 'assets/images/vote-warehouse-or-logistics.svg',
+            'OFFICE OR BPO' => 'assets/images/vote-office-or-bpo.svg',
+            'HARDWARE AND CONSTRUCTION SUPPLY' => 'assets/images/vote-hardware-and-construction-supply.svg',
+            'GROCERY OR MINI MART' => 'assets/images/vote-grocery-or-mini-mart.svg',
         ];
 
         $insert = $pdo->prepare(

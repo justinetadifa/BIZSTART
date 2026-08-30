@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Office or BPO Vote Option</title>
+  <desc id="desc">A stylized card illustration representing corporate offices, tech business parks, and BPO operations centers.</desc>
+  <defs>
+    <linearGradient id="officeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#e0e7ff"/>
+    </linearGradient>
+    <linearGradient id="towerGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </linearGradient>
+    <linearGradient id="towerGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="220" rx="28" fill="url(#officeBg)"/>
+  <rect x="42" y="34" width="236" height="152" rx="26" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.5"/>
+
+  <!-- Left Tower -->
+  <rect x="94" y="74" width="46" height="68" rx="4" fill="url(#towerGrad1)"/>
+  <!-- Windows -->
+  <rect x="102" y="82" width="10" height="8" rx="2" fill="#c7d2fe"/>
+  <rect x="120" y="82" width="10" height="8" rx="2" fill="#818cf8"/>
+  <rect x="102" y="96" width="10" height="8" rx="2" fill="#818cf8"/>
+  <rect x="120" y="96" width="10" height="8" rx="2" fill="#c7d2fe"/>
+  <rect x="102" y="110" width="10" height="8" rx="2" fill="#c7d2fe"/>
+  <rect x="120" y="110" width="10" height="8" rx="2" fill="#818cf8"/>
+  <rect x="102" y="124" width="10" height="8" rx="2" fill="#818cf8"/>
+  <rect x="120" y="124" width="10" height="8" rx="2" fill="#c7d2fe"/>
+
+  <!-- Center Tall Tower with Spire -->
+  <line x1="160" y1="44" x2="160" y2="58" stroke="#4f46e5" stroke-width="3" stroke-linecap="round"/>
+  <polygon points="152,58 168,58 160,50" fill="#4f46e5"/>
+  <rect x="146" y="58" width="52" height="84" rx="4" fill="url(#towerGrad2)"/>
+  <!-- Center Tower Windows -->
+  <rect x="154" y="68" width="10" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="174" y="68" width="10" height="8" rx="2" fill="#e0e7ff"/>
+  <rect x="154" y="82" width="10" height="8" rx="2" fill="#e0e7ff"/>
+  <rect x="174" y="82" width="10" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="154" y="96" width="10" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="174" y="96" width="10" height="8" rx="2" fill="#e0e7ff"/>
+  <rect x="154" y="110" width="10" height="8" rx="2" fill="#e0e7ff"/>
+  <rect x="174" y="110" width="10" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="154" y="124" width="10" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="174" y="124" width="10" height="8" rx="2" fill="#e0e7ff"/>
+
+  <!-- Right Tower -->
+  <rect x="204" y="86" width="40" height="56" rx="4" fill="url(#towerGrad1)"/>
+  <!-- Windows -->
+  <rect x="212" y="94" width="8" height="7" rx="1.5" fill="#818cf8"/>
+  <rect x="226" y="94" width="8" height="7" rx="1.5" fill="#c7d2fe"/>
+  <rect x="212" y="106" width="8" height="7" rx="1.5" fill="#c7d2fe"/>
+  <rect x="226" y="106" width="8" height="7" rx="1.5" fill="#818cf8"/>
+  <rect x="212" y="118" width="8" height="7" rx="1.5" fill="#818cf8"/>
+  <rect x="226" y="118" width="8" height="7" rx="1.5" fill="#c7d2fe"/>
+
+  <!-- Card Label -->
+  <text x="160" y="180" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="4" fill="#3730a3">OFFICE &amp; BPO</text>
+</svg>

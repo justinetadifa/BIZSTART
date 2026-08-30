@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Grocery or Mini Mart Vote Option</title>
+  <desc id="desc">A stylized card illustration representing supermarkets, grocery stores, and neighborhood mini marts.</desc>
+  <defs>
+    <linearGradient id="grocBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdf4"/>
+      <stop offset="100%" stop-color="#dcfce7"/>
+    </linearGradient>
+    <linearGradient id="cartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="220" rx="28" fill="url(#grocBg)"/>
+  <rect x="42" y="34" width="236" height="152" rx="26" fill="#ffffff" stroke="#bbf7d0" stroke-width="1.5"/>
+
+  <!-- Store Canopy Awning at Top -->
+  <path d="M78 46 h164 v10 H78 Z" fill="#16a34a" rx="3"/>
+  <path d="M78 46 h26 v10 H78 Z" fill="#22c55e"/>
+  <path d="M130 46 h26 v10 H130 Z" fill="#22c55e"/>
+  <path d="M182 46 h26 v10 H182 Z" fill="#22c55e"/>
+
+  <!-- Groceries Inside Cart (Apple, Bottle, Loaf) -->
+  <!-- Milk/Juice Bottle -->
+  <rect x="136" y="66" width="16" height="26" rx="3" fill="#38bdf8"/>
+  <rect x="140" y="62" width="8" height="4" rx="1" fill="#0284c7"/>
+  <!-- Baguette Loaf -->
+  <rect x="156" y="60" width="12" height="32" rx="6" fill="#f59e0b" transform="rotate(18 156 60)"/>
+  <!-- Red Apple / Fruit -->
+  <circle cx="180" cy="80" r="10" fill="#ef4444"/>
+  <path d="M180 70 Q184 64 188 66" fill="none" stroke="#15803d" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Shopping Cart Wireframe Structure -->
+  <!-- Handle -->
+  <path d="M100 78 L114 78" stroke="#15803d" stroke-width="4" stroke-linecap="round"/>
+  <!-- Cart Basket -->
+  <path d="M114 78 L126 114 L194 114 L208 82 L116 82" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Grid Wires -->
+  <line x1="138" y1="84" x2="144" y2="114" stroke="#86efac" stroke-width="2.5"/>
+  <line x1="160" y1="84" x2="164" y2="114" stroke="#86efac" stroke-width="2.5"/>
+  <line x1="182" y1="84" x2="184" y2="114" stroke="#86efac" stroke-width="2.5"/>
+  <line x1="120" y1="98" x2="202" y2="98" stroke="#86efac" stroke-width="2.5"/>
+  <!-- Cart Base Leg Frame -->
+  <path d="M130 114 L126 128 L192 128" fill="none" stroke="#15803d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wheels -->
+  <circle cx="134" cy="136" r="6" fill="#0f172a" stroke="#86efac" stroke-width="2"/>
+  <circle cx="186" cy="136" r="6" fill="#0f172a" stroke="#86efac" stroke-width="2"/>
+
+  <!-- Card Label -->
+  <text x="160" y="180" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="2.5" fill="#166534">GROCERY &amp; MINI MART</text>
+</svg>

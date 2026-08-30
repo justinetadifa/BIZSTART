@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Warehouse or Logistics Vote Option</title>
+  <desc id="desc">A stylized card illustration representing logistics hubs, industrial warehouses, and cargo supply chains.</desc>
+  <defs>
+    <linearGradient id="whBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="truckGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="220" rx="28" fill="url(#whBg)"/>
+  <rect x="42" y="34" width="236" height="152" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+
+  <!-- Warehouse Building Background -->
+  <polygon points="76,82 160,54 244,82 244,142 76,142" fill="#334155"/>
+  <polygon points="80,84 160,58 240,84 240,140 80,140" fill="#1e293b"/>
+
+  <!-- Bay Doors -->
+  <rect x="94" y="98" width="34" height="42" rx="3" fill="#475569" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="94" y1="108" x2="128" y2="108" stroke="#334155" stroke-width="1.5"/>
+  <line x1="94" y1="118" x2="128" y2="118" stroke="#334155" stroke-width="1.5"/>
+  <line x1="94" y1="128" x2="128" y2="128" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Logistics Truck in Foreground -->
+  <!-- Container Box -->
+  <rect x="144" y="86" width="60" height="38" rx="4" fill="url(#truckGrad)"/>
+  <line x1="164" y1="86" x2="164" y2="124" stroke="#1e40af" stroke-width="1.5"/>
+  <line x1="184" y1="86" x2="184" y2="124" stroke="#1e40af" stroke-width="1.5"/>
+  <!-- Truck Cabin -->
+  <path d="M204 98 L218 98 L226 110 L226 124 L204 124 Z" fill="#2563eb"/>
+  <polygon points="208,102 216,102 222,110 208,110" fill="#93c5fd"/>
+  <!-- Wheels -->
+  <circle cx="158" cy="126" r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/>
+  <circle cx="192" cy="126" r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/>
+  <circle cx="218" cy="126" r="7" fill="#0f172a" stroke="#94a3b8" stroke-width="2"/>
+
+  <!-- Stacked Shipping Box on Left -->
+  <rect x="74" y="122" width="16" height="16" rx="2" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+  <line x1="74" y1="130" x2="90" y2="130" stroke="#b45309" stroke-width="1.5"/>
+
+  <!-- Card Label -->
+  <text x="160" y="180" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="14.5" font-weight="700" letter-spacing="2.5" fill="#1e293b">WAREHOUSE &amp; LOGISTICS</text>
+</svg>

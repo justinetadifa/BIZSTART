@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Restaurant or Food Park Vote Option</title>
+  <desc id="desc">A stylized card illustration representing dining, gourmet restaurants, and food parks.</desc>
+  <defs>
+    <linearGradient id="foodBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff7ed"/>
+      <stop offset="100%" stop-color="#ffedd5"/>
+    </linearGradient>
+    <linearGradient id="clocheGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="220" rx="28" fill="url(#foodBg)"/>
+  <rect x="42" y="34" width="236" height="152" rx="26" fill="#ffffff" stroke="#fed7aa" stroke-width="1.5"/>
+
+  <!-- Food Park Awning Stripes at Top -->
+  <path d="M76 46 h168 v12 H76 Z" fill="#ea580c" rx="4"/>
+  <path d="M76 46 h28 v12 H76 Z" fill="#f97316"/>
+  <path d="M132 46 h28 v12 H132 Z" fill="#f97316"/>
+  <path d="M188 46 h28 v12 H188 Z" fill="#f97316"/>
+
+  <!-- Chef Cloche Dome -->
+  <circle cx="160" cy="74" r="7" fill="#c2410c"/>
+  <path d="M110 120 C110 82 210 82 210 120 Z" fill="url(#clocheGrad)"/>
+  <!-- Cloche Base Tray -->
+  <rect x="100" y="120" width="120" height="10" rx="5" fill="#c2410c"/>
+
+  <!-- Fork and Spoon Cutlery Emblem Under Tray -->
+  <!-- Fork on Left -->
+  <path d="M138 136 L148 152 M138 136 L134 142 M140 134 L138 142 M144 136 L142 142" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Spoon on Right -->
+  <path d="M182 136 L172 152" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="182" cy="138" rx="5" ry="4" fill="#ea580c" transform="rotate(30 182 138)"/>
+
+  <!-- Steam Aroma Swirls -->
+  <path d="M145 68 Q140 58 145 50" fill="none" stroke="#fdba74" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M160 64 Q155 54 160 46" fill="none" stroke="#fb923c" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M175 68 Q170 58 175 50" fill="none" stroke="#fdba74" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Card Label -->
+  <text x="160" y="180" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="2.5" fill="#c2410c">RESTAURANT &amp; FOOD PARK</text>
+</svg>

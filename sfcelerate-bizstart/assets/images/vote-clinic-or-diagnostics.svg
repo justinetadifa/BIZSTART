@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Clinic or Diagnostics Vote Option</title>
+  <desc id="desc">A stylized card illustration representing medical clinics, healthcare centers, and diagnostic laboratories.</desc>
+  <defs>
+    <linearGradient id="clinicBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdfa"/>
+      <stop offset="100%" stop-color="#ccfbf1"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="220" rx="28" fill="url(#clinicBg)"/>
+  <rect x="42" y="34" width="236" height="152" rx="26" fill="#ffffff" stroke="#99f6e4" stroke-width="1.5"/>
+
+  <!-- Medical Shield Center -->
+  <path d="M160 52 C184 52 202 60 202 78 C202 110 160 128 160 128 C160 128 118 110 118 78 C118 60 136 52 160 52 Z" fill="url(#shieldGrad)"/>
+
+  <!-- White Medical Cross Inside Shield -->
+  <rect x="153" y="66" width="14" height="38" rx="4" fill="#ffffff"/>
+  <rect x="141" y="78" width="38" height="14" rx="4" fill="#ffffff"/>
+
+  <!-- Pulse ECG Heartbeat Line -->
+  <path d="M68 142 L110 142 L120 130 L130 154 L142 124 L154 148 L164 138 L172 142 L252 142" fill="none" stroke="#0d9488" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Stethoscope Details -->
+  <path d="M96 82 C86 98 86 122 108 126 C124 130 134 118 134 108" fill="none" stroke="#0284c7" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="96" cy="80" r="3.5" fill="#0369a1"/>
+  <circle cx="134" cy="108" r="5" fill="#0284c7" stroke="#ffffff" stroke-width="1.5"/>
+
+  <!-- Card Label -->
+  <text x="160" y="180" text-anchor="middle" font-family="'DM Sans', Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3" fill="#0f766e">CLINIC &amp; DIAGNOSTICS</text>
+</svg>

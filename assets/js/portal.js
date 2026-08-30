@@ -3659,9 +3659,44 @@ function initials(value) {
     .join("") || "OP";
 }
 
+const VOTE_OPTION_IMAGE_FALLBACKS = {
+  "7/11": "assets/images/vote-7-11.svg",
+  "7-11": "assets/images/vote-7-11.svg",
+  "PRINTING SHOP": "assets/images/vote-printing-shop.svg",
+  "PRINTING-SHOP": "assets/images/vote-printing-shop.svg",
+  "CAFE": "assets/images/vote-cafe.svg",
+  "RESORT AND TOURISM": "assets/images/vote-resort-and-tourism.svg",
+  "RESORT-AND-TOURISM": "assets/images/vote-resort-and-tourism.svg",
+  "RESTAURANT OR FOOD PARK": "assets/images/vote-restaurant-or-food-park.svg",
+  "RESTAURANT-OR-FOOD-PARK": "assets/images/vote-restaurant-or-food-park.svg",
+  "PHARMACY": "assets/images/vote-pharmacy.svg",
+  "CLINIC OR DIAGNOSTICS": "assets/images/vote-clinic-or-diagnostics.svg",
+  "CLINIC-OR-DIAGNOSTICS": "assets/images/vote-clinic-or-diagnostics.svg",
+  "WAREHOUSE OR LOGISTICS": "assets/images/vote-warehouse-or-logistics.svg",
+  "WAREHOUSE-OR-LOGISTICS": "assets/images/vote-warehouse-or-logistics.svg",
+  "OFFICE OR BPO": "assets/images/vote-office-or-bpo.svg",
+  "OFFICE-OR-BPO": "assets/images/vote-office-or-bpo.svg",
+  "HARDWARE AND CONSTRUCTION SUPPLY": "assets/images/vote-hardware-and-construction-supply.svg",
+  "HARDWARE-AND-CONSTRUCTION-SUPPLY": "assets/images/vote-hardware-and-construction-supply.svg",
+  "GROCERY OR MINI MART": "assets/images/vote-grocery-or-mini-mart.svg",
+  "GROCERY-OR-MINI-MART": "assets/images/vote-grocery-or-mini-mart.svg",
+};
+
 function voteOptionMedia(option) {
-  if (option?.imageUrl) {
-    return `<img src="${escapeHtml(option.imageUrl)}" alt="${escapeHtml(option.title || "Vote option")}">`;
+  let imgUrl = option?.imageUrl;
+  if (!imgUrl && option?.title) {
+    const key = String(option.title).trim().toUpperCase();
+    const slugKey = String(option.slug || "").trim().toUpperCase();
+    imgUrl = VOTE_OPTION_IMAGE_FALLBACKS[key] || VOTE_OPTION_IMAGE_FALLBACKS[slugKey];
+  }
+
+  if (imgUrl) {
+    const assetBase = window.SFC_APP_CONFIG?.assetBase ? (window.SFC_APP_CONFIG.assetBase.replace(/\/$/, "") + "/") : "";
+    let cleanUrl = imgUrl;
+    if (!cleanUrl.startsWith("http") && !cleanUrl.startsWith("/") && assetBase && !cleanUrl.startsWith(assetBase)) {
+      cleanUrl = assetBase + cleanUrl.replace(/^(\.\/|\/)/, "");
+    }
+    return `<img src="${escapeHtml(cleanUrl)}" alt="${escapeHtml(option.title || "Vote option")}" loading="lazy">`;
   }
 
   return `<span>${escapeHtml(initials(option?.title || "Option"))}</span>`;
