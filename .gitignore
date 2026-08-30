@@ -1,0 +1,10 @@
+app/config.local.php
+**/config.local.php
+cookies.txt
+vendor/
+node_modules/
+*.log
+Thumbs.db
+Desktop.ini
+.DS_Store
+
