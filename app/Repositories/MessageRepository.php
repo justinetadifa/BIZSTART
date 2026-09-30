@@ -159,7 +159,7 @@ final class MessageRepository
         ];
     }
 
-    public function replyToThread(int $threadId, array $user, string $text): array
+    public function replyToThread(int $threadId, array $user, string $text, ?int $recipientUserIdOverride = null): array
     {
         $thread = $this->threadRow($threadId);
         if (!$this->canAccessThread($thread, $user)) {
@@ -173,6 +173,19 @@ final class MessageRepository
             'admin' => int_or_null($thread['sellerUserId'] ?? null) ?? int_or_null($thread['investorUserId'] ?? null),
             default => int_or_null($thread['sellerUserId'] ?? null),
         };
+
+        if ($role === 'admin' && $recipientUserIdOverride !== null) {
+            $allowedRecipientIds = array_values(array_unique(array_filter([
+                int_or_null($thread['investorUserId'] ?? null),
+                int_or_null($thread['sellerUserId'] ?? null),
+            ], static fn (?int $value): bool => $value !== null && $value > 0)));
+
+            if (!in_array($recipientUserIdOverride, $allowedRecipientIds, true)) {
+                throw new InvalidArgumentException('Admin replies can only be sent to the investor or seller on this thread.');
+            }
+
+            $recipientUserId = $recipientUserIdOverride;
+        }
 
         $this->pdo->beginTransaction();
         try {
@@ -257,6 +270,54 @@ final class MessageRepository
             'threadCount' => (int) $threadStatement->fetchColumn(),
             'messageCount' => (int) $messageStatement->fetchColumn(),
         ];
+    }
+
+    public function propertySummaryMap(array $propertyIds): array
+    {
+        $propertyIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, $propertyIds),
+            static fn (int $value): bool => $value > 0
+        )));
+        if ($propertyIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+        $threadStatement = $this->pdo->prepare(
+            "SELECT property_id, COUNT(*) AS thread_count
+             FROM message_threads
+             WHERE property_id IN ({$placeholders})
+             GROUP BY property_id"
+        );
+        $threadStatement->execute($propertyIds);
+
+        $messageStatement = $this->pdo->prepare(
+            "SELECT property_id, COUNT(*) AS message_count
+             FROM property_messages
+             WHERE property_id IN ({$placeholders})
+             GROUP BY property_id"
+        );
+        $messageStatement->execute($propertyIds);
+
+        $map = [];
+        foreach ($propertyIds as $propertyId) {
+            $map[$propertyId] = [
+                'threadCount' => 0,
+                'messageCount' => 0,
+            ];
+        }
+
+        foreach ($threadStatement->fetchAll() as $row) {
+            $propertyId = (int) ($row['property_id'] ?? 0);
+            $map[$propertyId]['threadCount'] = (int) ($row['thread_count'] ?? 0);
+        }
+
+        foreach ($messageStatement->fetchAll() as $row) {
+            $propertyId = (int) ($row['property_id'] ?? 0);
+            $map[$propertyId]['messageCount'] = (int) ($row['message_count'] ?? 0);
+        }
+
+        return $map;
     }
 
     private function threadByPropertyAndInvestor(int $propertyId, int $investorUserId): ?array

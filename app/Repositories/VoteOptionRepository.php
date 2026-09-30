@@ -180,6 +180,130 @@ final class VoteOptionRepository
         ];
     }
 
+    public function voteTalliesMap(array $propertyIds, ?int $voterUserId = null): array
+    {
+        $propertyIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, $propertyIds),
+            static fn (int $value): bool => $value > 0
+        )));
+        if ($propertyIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT
+                pv.property_id,
+                COALESCE(vo.title, NULLIF(pv.label, '')) AS label,
+                COUNT(*) AS votes
+             FROM property_votes pv
+             LEFT JOIN vote_options vo ON vo.id = pv.vote_option_id
+             WHERE pv.property_id IN ({$placeholders})
+             GROUP BY pv.property_id, COALESCE(vo.title, NULLIF(pv.label, ''))
+             ORDER BY pv.property_id ASC, votes DESC, label ASC"
+        );
+        $statement->execute($propertyIds);
+
+        $map = [];
+        foreach ($propertyIds as $propertyId) {
+            $map[$propertyId] = [
+                'votes' => [],
+                'selectedVoteOptionId' => null,
+            ];
+        }
+
+        foreach ($statement->fetchAll() as $row) {
+            $propertyId = (int) ($row['property_id'] ?? 0);
+            $label = trim((string) ($row['label'] ?? ''));
+            if ($propertyId < 1 || $label === '' || !isset($map[$propertyId])) {
+                continue;
+            }
+
+            $map[$propertyId]['votes'][$label] = (int) ($row['votes'] ?? 0);
+        }
+
+        if ($voterUserId !== null && $voterUserId > 0) {
+            $selected = $this->pdo->prepare(
+                "SELECT property_id, vote_option_id
+                 FROM property_votes
+                 WHERE voter_user_id = ?
+                   AND property_id IN ({$placeholders})"
+            );
+            $selected->execute(array_merge([$voterUserId], $propertyIds));
+
+            foreach ($selected->fetchAll() as $row) {
+                $propertyId = (int) ($row['property_id'] ?? 0);
+                if (!isset($map[$propertyId])) {
+                    continue;
+                }
+
+                $map[$propertyId]['selectedVoteOptionId'] = int_or_null($row['vote_option_id'] ?? null);
+            }
+        }
+
+        return $map;
+    }
+
+    public function summaryMap(array $propertyIds): array
+    {
+        $propertyIds = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, $propertyIds),
+            static fn (int $value): bool => $value > 0
+        )));
+        if ($propertyIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($propertyIds), '?'));
+        $statement = $this->pdo->prepare(
+            "SELECT
+                pv.property_id,
+                COALESCE(vo.title, NULLIF(pv.label, '')) AS label,
+                COUNT(*) AS votes
+             FROM property_votes pv
+             LEFT JOIN vote_options vo ON vo.id = pv.vote_option_id
+             WHERE pv.property_id IN ({$placeholders})
+             GROUP BY pv.property_id, COALESCE(vo.title, NULLIF(pv.label, ''))
+             ORDER BY pv.property_id ASC, votes DESC, label ASC"
+        );
+        $statement->execute($propertyIds);
+
+        $map = [];
+        foreach ($propertyIds as $propertyId) {
+            $map[$propertyId] = [
+                'totalVotes' => 0,
+                'topNeed' => null,
+                'dominantShare' => 0.0,
+            ];
+        }
+
+        $topVotesByProperty = [];
+        foreach ($statement->fetchAll() as $row) {
+            $propertyId = (int) ($row['property_id'] ?? 0);
+            $label = string_or_null($row['label'] ?? null);
+            $votes = (int) ($row['votes'] ?? 0);
+            if ($propertyId < 1 || $label === null || $votes < 1) {
+                continue;
+            }
+
+            $map[$propertyId]['totalVotes'] += $votes;
+            if (!isset($topVotesByProperty[$propertyId]) || $votes > $topVotesByProperty[$propertyId]) {
+                $topVotesByProperty[$propertyId] = $votes;
+                $map[$propertyId]['topNeed'] = $label;
+            }
+        }
+
+        foreach ($map as $propertyId => $summary) {
+            $topVotes = (int) ($topVotesByProperty[$propertyId] ?? 0);
+            $totalVotes = (int) ($summary['totalVotes'] ?? 0);
+            $map[$propertyId]['dominantShare'] = $totalVotes > 0
+                ? round($topVotes / $totalVotes, 4)
+                : 0.0;
+        }
+
+        return $map;
+    }
+
     public function castVote(int $propertyId, int $voterUserId, ?int $voteOptionId = null, ?string $label = null): array
     {
         if ($voterUserId < 1) {

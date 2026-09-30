@@ -75,6 +75,7 @@ api_handle(function (array $container): array {
     $input = read_json_input();
     $threadId = int_or_null($input['threadId'] ?? null);
     $propertyId = int_or_null($input['propertyId'] ?? null);
+    $recipientUserId = int_or_null($input['recipientUserId'] ?? $input['recipient_user_id'] ?? null);
     $text = string_or_null($input['text'] ?? null);
 
     if ($text === null) {
@@ -82,7 +83,7 @@ api_handle(function (array $container): array {
     }
 
     if ($threadId !== null && $threadId > 0) {
-        $result = $container['messages']->replyToThread($threadId, $user, $text);
+        $result = $container['messages']->replyToThread($threadId, $user, $text, $recipientUserId);
         $container['line']->onMessageSent($result, $user, false);
         return $attachVisit($result, $user);
     }

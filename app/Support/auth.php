@@ -2,11 +2,56 @@
 declare(strict_types=1);
 
 use App\Repositories\UserRepository;
+use App\Repositories\SellerProfileRepository;
 
 function sfc_start_session(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
+        $secure = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+        ini_set('session.use_strict_mode', '1');
+        ini_set('session.use_only_cookies', '1');
+        ini_set('session.cookie_httponly', '1');
+        ini_set('session.cookie_samesite', 'Lax');
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
         session_start();
+    }
+}
+
+function sfc_csrf_token(): string
+{
+    sfc_start_session();
+    $token = $_SESSION['sfc_csrf_token'] ?? null;
+    if (!is_string($token) || strlen($token) < 32) {
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['sfc_csrf_token'] = $token;
+    }
+    return $token;
+}
+
+function sfc_verify_csrf_token(mixed $token): bool
+{
+    $expected = sfc_csrf_token();
+    return is_string($token) && $token !== '' && hash_equals($expected, $token);
+}
+
+function sfc_verify_csrf_request(): bool
+{
+    $header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    $body = $_POST['_csrf'] ?? null;
+    return sfc_verify_csrf_token(is_string($header) && $header !== '' ? $header : $body);
+}
+
+function sfc_require_csrf_form(): void
+{
+    if (!sfc_verify_csrf_request()) {
+        throw new InvalidArgumentException('Your security token expired. Refresh the page and try again.');
     }
 }
 
@@ -28,6 +73,11 @@ function sfc_app_container(): array
 function sfc_user_repository(): UserRepository
 {
     return sfc_app_container()['users'];
+}
+
+function sfc_seller_profile_repository(): SellerProfileRepository
+{
+    return sfc_app_container()['sellerProfiles'];
 }
 
 function sfc_demo_credentials(): array
@@ -59,7 +109,12 @@ function sfc_login(string $role, string $email, string $password): bool
         return false;
     }
 
+    session_regenerate_id(true);
+    unset($_SESSION['sfc_csrf_token']);
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
+    $_SESSION['sfc_authenticated_at'] = time();
+    $_SESSION['sfc_last_activity_at'] = time();
+    sfc_csrf_token();
     return true;
 }
 
@@ -84,17 +139,24 @@ function sfc_register_investor(string $name, string $email, string $password, st
     }
 
     $user = sfc_user_repository()->create('investor', $name, $email, $password);
+    session_regenerate_id(true);
+    unset($_SESSION['sfc_csrf_token']);
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
+    $_SESSION['sfc_authenticated_at'] = time();
+    $_SESSION['sfc_last_activity_at'] = time();
+    sfc_csrf_token();
 
     return $user;
 }
 
-function sfc_register_seller(string $name, string $email, string $password, string $confirmPassword): array
+function sfc_register_seller(array $payload): array
 {
     sfc_start_session();
 
-    $name = trim($name);
-    $email = strtolower(trim($email));
+    $name = trim((string) ($payload['name'] ?? ''));
+    $email = strtolower(trim((string) ($payload['email'] ?? '')));
+    $password = (string) ($payload['password'] ?? '');
+    $confirmPassword = (string) ($payload['confirm_password'] ?? $payload['confirmPassword'] ?? '');
 
     if ($name === '') {
         throw new InvalidArgumentException('Your full name is required.');
@@ -110,9 +172,46 @@ function sfc_register_seller(string $name, string $email, string $password, stri
     }
 
     $user = sfc_user_repository()->create('seller', $name, $email, $password);
+    $profile = sfc_seller_profile_repository()->createOrUpdateForUser((int) $user['id'], $payload, true);
+    $user = sfc_user_repository()->updateIdentityVerificationStatus((int) $user['id'], 'pending');
+    session_regenerate_id(true);
+    unset($_SESSION['sfc_csrf_token']);
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
+    $_SESSION['sfc_authenticated_at'] = time();
+    $_SESSION['sfc_last_activity_at'] = time();
+    sfc_csrf_token();
 
-    return $user;
+    $container = sfc_app_container();
+    $adminIds = array_values(array_filter(array_map(
+        static fn (array $admin): int => (int) ($admin['id'] ?? 0),
+        $container['users']->allByRole('admin')
+    )));
+    if ($adminIds !== []) {
+        $container['notifications']->createForUsers($adminIds, [
+            'category' => 'operational',
+            'kind' => 'seller_application',
+            'priority' => 'high',
+            'tone' => 'info',
+            'icon' => 'seller',
+            'title' => 'New seller application',
+            'body' => sprintf(
+                '%s submitted a seller verification profile for review.',
+                $profile['legalName'] ?: $user['name']
+            ),
+            'actionLabel' => 'Review seller',
+            'actionUrl' => 'admin-dashboard.php',
+            'actorUserId' => (int) $user['id'],
+            'meta' => [
+                'sellerUserId' => (int) $user['id'],
+                'applicationStatus' => $profile['applicationStatus'] ?? 'pending_review',
+            ],
+        ]);
+    }
+
+    return [
+        'user' => $user,
+        'profile' => $profile,
+    ];
 }
 
 function sfc_logout(): void
@@ -129,6 +228,14 @@ function sfc_logout(): void
 function sfc_current_user(): ?array
 {
     sfc_start_session();
+    $now = time();
+    $authenticatedAt = (int) ($_SESSION['sfc_authenticated_at'] ?? $now);
+    $lastActivityAt = (int) ($_SESSION['sfc_last_activity_at'] ?? $now);
+    if (($now - $lastActivityAt) > 7200 || ($now - $authenticatedAt) > 43200) {
+        sfc_logout();
+        return null;
+    }
+    $_SESSION['sfc_last_activity_at'] = $now;
     $sessionUser = $_SESSION['sfc_user'] ?? null;
     if (!is_array($sessionUser)) {
         return null;

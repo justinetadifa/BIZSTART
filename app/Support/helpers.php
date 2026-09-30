@@ -161,3 +161,55 @@ function store_uploaded_showcase_image(?array $file): ?string
 {
     return store_uploaded_public_image($file, 'showcase');
 }
+
+function store_uploaded_clup_evidence(?array $file): ?array
+{
+    if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        throw new InvalidArgumentException('CLUP evidence upload failed.');
+    }
+    $tmpName = (string) ($file['tmp_name'] ?? '');
+    $size = (int) ($file['size'] ?? 0);
+    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+        throw new InvalidArgumentException('Uploaded CLUP evidence is invalid.');
+    }
+    if ($size < 1 || $size > 15 * 1024 * 1024) {
+        throw new InvalidArgumentException('CLUP evidence must be between 1 byte and 15 MB.');
+    }
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = (string) $finfo->file($tmpName);
+    $extension = match ($mime) {
+        'application/pdf' => 'pdf',
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'application/geo+json', 'application/json', 'text/plain' => 'geojson',
+        default => null,
+    };
+    if ($extension === null) {
+        throw new InvalidArgumentException('Evidence must be PDF, JPG, PNG, WEBP, or GeoJSON.');
+    }
+    $checksum = hash_file('sha256', $tmpName);
+    if (!is_string($checksum) || strlen($checksum) !== 64) {
+        throw new InvalidArgumentException('Unable to checksum the uploaded evidence.');
+    }
+    $relativeDirectory = 'assets/uploads/clup-evidence';
+    $absoluteDirectory = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'clup-evidence';
+    if (!is_dir($absoluteDirectory) && !mkdir($absoluteDirectory, 0775, true) && !is_dir($absoluteDirectory)) {
+        throw new InvalidArgumentException('Unable to create the CLUP evidence directory.');
+    }
+    $fileName = sprintf('%s-%s.%s', gmdate('Ymd-His'), substr($checksum, 0, 16), $extension);
+    $absolutePath = $absoluteDirectory . DIRECTORY_SEPARATOR . $fileName;
+    if (!move_uploaded_file($tmpName, $absolutePath)) {
+        throw new InvalidArgumentException('Unable to store the CLUP evidence file.');
+    }
+    return [
+        'originalName' => mb_substr((string) ($file['name'] ?? 'evidence.' . $extension), 0, 255),
+        'storagePath' => $relativeDirectory . '/' . $fileName,
+        'mimeType' => $mime,
+        'fileSize' => $size,
+        'checksumSha256' => $checksum,
+    ];
+}

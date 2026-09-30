@@ -89,12 +89,16 @@ final class PropertyRepository
                 name, city, lat, lng, area, price, price_per_sqm, status, approval_state, score, type, corridor,
                 tags_json, facilities_json, road_access, image_url, description, barangay, owner_contact_json,
                 documents_json, seller_user_id, documents_reviewed_at, site_verified_at, last_confirmed_available_at,
-                dist_to_road_km, utility_status, zoning_score, assessed_value_sqm, readiness_notes
+                dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
+                clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
+                clup_verified_at, assessed_value_sqm, readiness_notes
             ) VALUES (
                 :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
                 :documents_json, :seller_user_id, :documents_reviewed_at, :site_verified_at, :last_confirmed_available_at,
-                :dist_to_road_km, :utility_status, :zoning_score, :assessed_value_sqm, :readiness_notes
+                :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
+                :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
+                :clup_verified_at, :assessed_value_sqm, :readiness_notes
             )'
         );
 
@@ -153,6 +157,13 @@ final class PropertyRepository
                 dist_to_road_km = :dist_to_road_km,
                 utility_status = :utility_status,
                 zoning_score = :zoning_score,
+                existing_land_use = :existing_land_use,
+                zoning_classification = :zoning_classification,
+                clup_allowed_uses_json = :clup_allowed_uses_json,
+                clup_conditional_uses_json = :clup_conditional_uses_json,
+                clup_restricted_uses_json = :clup_restricted_uses_json,
+                clup_source_reference = :clup_source_reference,
+                clup_verified_at = :clup_verified_at,
                 assessed_value_sqm = :assessed_value_sqm,
                 readiness_notes = :readiness_notes
              WHERE id = :id'
@@ -436,6 +447,10 @@ final class PropertyRepository
             $distToRoadKm = float_or_null($row['dist_to_road_km'] ?? null);
             $utilityStatus = $this->normalizeUtilityStatus($row['utility_status'] ?? null);
             $zoningScore = int_or_null($row['zoning_score'] ?? null);
+            $clupAllowedUses = $this->decodeJson($row['clup_allowed_uses_json'] ?? '[]');
+            $clupConditionalUses = $this->decodeJson($row['clup_conditional_uses_json'] ?? '[]');
+            $clupRestrictedUses = $this->decodeJson($row['clup_restricted_uses_json'] ?? '[]');
+            $clupVerifiedAt = $this->normalizeTimestamp($row['clup_verified_at'] ?? null);
             $pricePerSqm = $this->effectivePricePerSqm($row);
             $assessedValueSqm = $this->effectiveAssessedValueSqm($row['assessed_value_sqm'] ?? null, $pricePerSqm);
             $roadAccess = (int) $row['road_access'];
@@ -505,6 +520,16 @@ final class PropertyRepository
                 'distToRoadKm' => $distToRoadKm,
                 'utilityStatus' => $utilityStatus,
                 'zoningScore' => $zoningScore,
+                'clupProfile' => [
+                    'existingLandUse' => string_or_null($row['existing_land_use'] ?? null),
+                    'zoningClassification' => string_or_null($row['zoning_classification'] ?? null),
+                    'allowedUses' => $clupAllowedUses,
+                    'conditionalUses' => $clupConditionalUses,
+                    'restrictedUses' => $clupRestrictedUses,
+                    'sourceReference' => string_or_null($row['clup_source_reference'] ?? null),
+                    'verifiedAt' => string_or_null($clupVerifiedAt),
+                    'isVerified' => string_or_null($clupVerifiedAt) !== null,
+                ],
                 'assessedValueSqm' => $assessedValueSqm,
                 'readinessNotes' => string_or_null($row['readiness_notes'] ?? null),
                 'dueDiligencePct' => (int) ($dueSummary['pct'] ?? 0),
@@ -744,7 +769,11 @@ final class PropertyRepository
             throw new InvalidArgumentException('Price must be greater than zero.');
         }
 
-        $area = float_or_null($payload['land_area'] ?? $payload['area'] ?? ($existing['area'] ?? null));
+        $areaUnit = $this->normalizeLandAreaUnit($payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? null);
+        $area = $this->normalizeLandAreaValue(
+            $payload['land_area'] ?? $payload['area'] ?? ($existing['area'] ?? null),
+            $areaUnit
+        );
         if ($area === null || $area <= 0) {
             throw new InvalidArgumentException('Land area must be greater than zero.');
         }
@@ -804,6 +833,26 @@ final class PropertyRepository
         $zoningScore = $this->normalizeNullableScore(
             $payload['zoning_score'] ?? $payload['zoningScore'] ?? ($existing['zoning_score'] ?? null)
         );
+        $existingLandUse = string_or_null($payload['existing_land_use'] ?? $payload['existingLandUse'] ?? ($existing['existing_land_use'] ?? null));
+        $zoningClassification = string_or_null($payload['zoning_classification'] ?? $payload['zoningClassification'] ?? ($existing['zoning_classification'] ?? null));
+        $clupAllowedUses = $this->normalizeStringList(
+            $payload['clup_allowed_uses'] ?? $payload['clupAllowedUses'] ?? $this->decodeExistingValue($existing['clup_allowed_uses_json'] ?? null),
+            []
+        );
+        $clupConditionalUses = $this->normalizeStringList(
+            $payload['clup_conditional_uses'] ?? $payload['clupConditionalUses'] ?? $this->decodeExistingValue($existing['clup_conditional_uses_json'] ?? null),
+            []
+        );
+        $clupRestrictedUses = $this->normalizeStringList(
+            $payload['clup_restricted_uses'] ?? $payload['clupRestrictedUses'] ?? $this->decodeExistingValue($existing['clup_restricted_uses_json'] ?? null),
+            []
+        );
+        $clupSourceReference = string_or_null($payload['clup_source_reference'] ?? $payload['clupSourceReference'] ?? ($existing['clup_source_reference'] ?? null));
+        $clupVerifiedAt = $this->normalizeFlagTimestamp(
+            $payload['clup_verified'] ?? $payload['clupVerified'] ?? null,
+            $payload['clup_verified_at'] ?? $payload['clupVerifiedAt'] ?? null,
+            $existing['clup_verified_at'] ?? null
+        );
         $assessedValueSqm = $this->normalizeNullableInt(
             $payload['assessed_value_sqm'] ?? $payload['assessedValueSqm'] ?? ($existing['assessed_value_sqm'] ?? null)
         );
@@ -814,7 +863,7 @@ final class PropertyRepository
             'city' => $city,
             'lat' => $lat,
             'lng' => $lng,
-            'area' => round($area, 2),
+            'area' => round($area, 4),
             'price' => $price,
             'price_per_sqm' => $this->pricePerSqm($price, $area),
             'status' => $status,
@@ -837,6 +886,13 @@ final class PropertyRepository
             'dist_to_road_km' => $distToRoadKm,
             'utility_status' => $utilityStatus,
             'zoning_score' => $zoningScore,
+            'existing_land_use' => $existingLandUse,
+            'zoning_classification' => $zoningClassification,
+            'clup_allowed_uses_json' => json_encode($clupAllowedUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'clup_conditional_uses_json' => json_encode($clupConditionalUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'clup_restricted_uses_json' => json_encode($clupRestrictedUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'clup_source_reference' => $clupSourceReference,
+            'clup_verified_at' => $clupVerifiedAt,
             'assessed_value_sqm' => $assessedValueSqm,
             'readiness_notes' => $readinessNotes,
         ];
@@ -850,6 +906,28 @@ final class PropertyRepository
 
         $decoded = json_decode($value, true);
         return $decoded !== null ? $decoded : $value;
+    }
+
+    private function normalizeLandAreaUnit(mixed $value): string
+    {
+        $normalized = strtolower(trim((string) ($value ?? 'ha')));
+        return in_array($normalized, ['sqm', 'm2', 'square_meter', 'square_meters'], true)
+            ? 'sqm'
+            : 'ha';
+    }
+
+    private function normalizeLandAreaValue(mixed $value, string $unit = 'ha'): ?float
+    {
+        $area = float_or_null($value);
+        if ($area === null) {
+            return null;
+        }
+
+        if ($unit === 'sqm') {
+            return $area / 10000;
+        }
+
+        return $area;
     }
 
     private function normalizeStringList(mixed $value, array $fallback): array

@@ -6,7 +6,7 @@ require __DIR__ . '/app/Support/web.php';
 $context = sfc_web_context();
 sfc_require_role('admin', sfc_path('/admin-login.php'));
 $context = sfc_web_context();
-sfc_render_head('Admin Dashboard | SFCelerate BizStart', $context, ['page' => 'admin-dashboard', 'role' => 'admin']);
+sfc_render_head('Admin Dashboard | LOCUS-SF', $context, ['page' => 'admin-dashboard', 'role' => 'admin']);
 sfc_render_header($context, 'admin');
 ?>
 <main class="page-shell dashboard-page">
@@ -18,11 +18,11 @@ sfc_render_header($context, 'admin');
         <span class="page-role-pill">Curation + governance</span>
       </div>
       <h1>Platform oversight without the noise.</h1>
-      <p>Monitor listings, sellers, investor interest, voting demand, and analytics from one structured control surface.</p>
+      <p>Manage candidate sites, validate planning evidence, monitor CLUP outcomes, and generate policy-ready investment priorities.</p>
     </div>
     <div class="intro-actions">
-      <a href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-primary">Manage Listings</a>
-      <a href="<?= htmlspecialchars(sfc_path('/voting-dashboard.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View Voting</a>
+      <a href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-primary">Manage Candidate Sites</a>
+      <a href="<?= htmlspecialchars(sfc_path('/reports.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Reports</a>
     </div>
   </section>
 

@@ -1,4 +1,4 @@
-# SFCelerate BizStart: Codex Handoff Context
+# LOCUS-SF: Codex Handoff Context
 
 ## Purpose
 
@@ -15,7 +15,11 @@ Use it when a new chat or a new account needs fast context on:
 
 ## Product Identity
 
-SFCelerate BizStart is a San Fernando, La Union opportunity platform.
+LOCUS-SF is a San Fernando, La Union geospatial investment decision-support platform.
+
+The current flagship capability is the CLUP Compliance and Suitability Engine. Every recommendation must be screened for land-use compatibility and return `PASS`, `CONDITIONAL`, or `FAIL`, together with a suitability score, explanation, and recommended LGU action. CLUP is a hard recommendation gate, not a decorative KPI.
+
+Parcel-level CLUP evidence can be maintained by admins from the Area Intelligence Dossier. The stored profile includes existing land use, zoning classification, allowed/conditional/restricted uses, source reference, and verification timestamp. Interfaces distinguish `INFERRED`, `RECORDED`, and `VERIFIED` evidence. Inferred and recorded results remain preliminary until the LGU verifies them.
 
 It is not just a generic property listing site. The product direction is:
 
@@ -48,7 +52,7 @@ Important runtime notes:
 
 - this is no longer the old React/Vite/Node/Prisma stack
 - the app is now PHP + MySQL with server-rendered PHP pages and client-side JS enhancement
-- the local workspace path in this environment is `C:\xampp\New folder\htdocs\sfcelerate-bizstart`
+- the local workspace path in this environment is `C:\xampp\htdocs\sfcelerate-bizstart`
 
 ## Roles in the System
 
@@ -529,7 +533,8 @@ If a future Codex session needs to continue work, it should assume:
 - the product is already substantially built
 - the next work is usually refinement, extension, consistency, and polish, not greenfield setup
 - the homepage visual direction should be treated as the new quality bar
-- Offer Board and City Pipeline are established product concepts
+- legacy marketplace-oriented modules remain in the repository but are intentionally de-emphasized in primary navigation
+- Priority Board, Map Explorer, Area Intelligence Dossier, Compare Board, Scenario Simulator, and Reports must keep CLUP status visible
 - admin-only showcase control is intentional and should be preserved unless explicitly changed
 
 ## Best Files to Open First in a New Session
@@ -552,7 +557,7 @@ Open these first for fast orientation:
 Use this if you want to bootstrap a new Codex chat quickly:
 
 ```text
-This project is SFCelerate BizStart, a PHP/MySQL + vanilla JS city-opportunity platform running in XAMPP. It is not a generic property listing site; it is positioned as a San Fernando investment-intelligence platform with role-based flows for admin, seller, and investor/resident. Core features already implemented include property ranking, explorer/map workflow, property detail/command-center support, compare/decision flow, voting and vote-option CRUD, due diligence, shortlist/cart, scenarios, messaging, document requests, visit logs, notifications, Google Earth export, and optional external integrations with graceful fallbacks.
+This project is LOCUS-SF, a PHP/MySQL + vanilla JS city-opportunity platform running in XAMPP. It is not a generic property listing site; it is positioned as a San Fernando investment-intelligence platform with role-based flows for admin, seller, and investor/resident. Core features already implemented include property ranking, explorer/map workflow, property detail/command-center support, compare/decision flow, voting and vote-option CRUD, due diligence, shortlist/cart, scenarios, messaging, document requests, visit logs, notifications, Google Earth export, and optional external integrations with graceful fallbacks.
 
 Recent major additions include a premium redesigned homepage and a new showcase module. The showcase module uses the names Offer Board and City Pipeline, lives under the More menu, and is admin-only for CRUD. Public pages exist for offer-board.php and city-pipeline.php, and admin-showcase.php is the CRUD studio. The homepage now has a cinematic editorial "city thesis" design with live lens switching, orbit behavior, ranked opportunity previews, showcase previews, and voting signal previews.
 

@@ -72,11 +72,13 @@ final class ShowcaseRepository
         $statement = $this->pdo->prepare(
             'INSERT INTO showcase_items (
                 feature_type, title, slug, partner_label, summary, description, category, location_label, barangay,
-                status, cover_image_url, primary_metric_label, primary_metric_value, secondary_metric_label, secondary_metric_value,
+                status, pipeline_mode, supply_signal, cover_image_url, primary_metric_label, primary_metric_value, secondary_metric_label, secondary_metric_value,
+                investor_thesis, ideal_operator, avoidance_note,
                 countdown_at, completion_target, related_property_id, is_published, is_featured, sort_order, created_by_user_id
             ) VALUES (
                 :feature_type, :title, :slug, :partner_label, :summary, :description, :category, :location_label, :barangay,
-                :status, :cover_image_url, :primary_metric_label, :primary_metric_value, :secondary_metric_label, :secondary_metric_value,
+                :status, :pipeline_mode, :supply_signal, :cover_image_url, :primary_metric_label, :primary_metric_value, :secondary_metric_label, :secondary_metric_value,
+                :investor_thesis, :ideal_operator, :avoidance_note,
                 :countdown_at, :completion_target, :related_property_id, :is_published, :is_featured, :sort_order, :created_by_user_id
             )'
         );
@@ -90,6 +92,7 @@ final class ShowcaseRepository
         $existing = $this->find($showcaseId, ['role' => 'admin']);
         $item = $this->normalizePayload($payload, $existing, $actor, $showcaseId);
         $item['id'] = $showcaseId;
+        unset($item['created_by_user_id']);
 
         $statement = $this->pdo->prepare(
             'UPDATE showcase_items
@@ -103,17 +106,23 @@ final class ShowcaseRepository
                  location_label = :location_label,
                  barangay = :barangay,
                  status = :status,
+                 pipeline_mode = :pipeline_mode,
+                 supply_signal = :supply_signal,
                  cover_image_url = :cover_image_url,
                  primary_metric_label = :primary_metric_label,
                  primary_metric_value = :primary_metric_value,
                  secondary_metric_label = :secondary_metric_label,
                  secondary_metric_value = :secondary_metric_value,
+                 investor_thesis = :investor_thesis,
+                 ideal_operator = :ideal_operator,
+                 avoidance_note = :avoidance_note,
                  countdown_at = :countdown_at,
                  completion_target = :completion_target,
                  related_property_id = :related_property_id,
                  is_published = :is_published,
                  is_featured = :is_featured,
-                 sort_order = :sort_order
+                 sort_order = :sort_order,
+                 updated_at = CURRENT_TIMESTAMP
              WHERE id = :id'
         );
         $statement->execute($item);
@@ -151,11 +160,16 @@ final class ShowcaseRepository
             'locationLabel' => string_or_null($row['location_label'] ?? null),
             'barangay' => string_or_null($row['barangay'] ?? null),
             'status' => (string) ($row['status'] ?? ''),
+            'pipelineMode' => string_or_null($row['pipeline_mode'] ?? null),
+            'supplySignal' => string_or_null($row['supply_signal'] ?? null),
             'coverImageUrl' => (string) ($row['cover_image_url'] ?? self::DEFAULT_IMAGE),
             'primaryMetricLabel' => string_or_null($row['primary_metric_label'] ?? null),
             'primaryMetricValue' => string_or_null($row['primary_metric_value'] ?? null),
             'secondaryMetricLabel' => string_or_null($row['secondary_metric_label'] ?? null),
             'secondaryMetricValue' => string_or_null($row['secondary_metric_value'] ?? null),
+            'investorThesis' => string_or_null($row['investor_thesis'] ?? null),
+            'idealOperator' => string_or_null($row['ideal_operator'] ?? null),
+            'avoidanceNote' => string_or_null($row['avoidance_note'] ?? null),
             'countdownAt' => $this->normalizeTimestamp($row['countdown_at'] ?? null),
             'completionTarget' => $this->normalizeTimestamp($row['completion_target'] ?? null),
             'relatedPropertyId' => int_or_null($row['related_property_id'] ?? null),
@@ -186,6 +200,16 @@ final class ShowcaseRepository
             throw new InvalidArgumentException('Related property does not exist.');
         }
 
+        $pipelineMode = $featureType === 'city_pipeline'
+            ? $this->normalizePipelineMode($payload['pipeline_mode'] ?? $payload['pipelineMode'] ?? ($existing['pipelineMode'] ?? null))
+            : null;
+        $supplySignal = $featureType === 'city_pipeline'
+            ? $this->normalizeSupplySignal(
+                $payload['supply_signal'] ?? $payload['supplySignal'] ?? ($existing['supplySignal'] ?? null),
+                $pipelineMode !== 'investment_gap'
+            )
+            : null;
+
         return [
             'feature_type' => $featureType,
             'title' => $title,
@@ -197,11 +221,22 @@ final class ShowcaseRepository
             'location_label' => string_or_null($payload['location_label'] ?? $payload['locationLabel'] ?? ($existing['locationLabel'] ?? null)) ?? 'San Fernando, La Union',
             'barangay' => string_or_null($payload['barangay'] ?? ($existing['barangay'] ?? null)),
             'status' => string_or_null($payload['status'] ?? ($existing['status'] ?? null)) ?? $this->defaultStatusForFeature($featureType),
+            'pipeline_mode' => $pipelineMode,
+            'supply_signal' => $supplySignal,
             'cover_image_url' => string_or_null($payload['cover_image_url'] ?? $payload['coverImageUrl'] ?? $payload['image_url'] ?? ($existing['coverImageUrl'] ?? null)) ?? self::DEFAULT_IMAGE,
             'primary_metric_label' => string_or_null($payload['primary_metric_label'] ?? $payload['primaryMetricLabel'] ?? ($existing['primaryMetricLabel'] ?? null)) ?? $this->defaultPrimaryMetricLabel($featureType),
             'primary_metric_value' => string_or_null($payload['primary_metric_value'] ?? $payload['primaryMetricValue'] ?? ($existing['primaryMetricValue'] ?? null)),
             'secondary_metric_label' => string_or_null($payload['secondary_metric_label'] ?? $payload['secondaryMetricLabel'] ?? ($existing['secondaryMetricLabel'] ?? null)) ?? $this->defaultSecondaryMetricLabel($featureType),
             'secondary_metric_value' => string_or_null($payload['secondary_metric_value'] ?? $payload['secondaryMetricValue'] ?? ($existing['secondaryMetricValue'] ?? null)),
+            'investor_thesis' => $featureType === 'city_pipeline'
+                ? string_or_null($payload['investor_thesis'] ?? $payload['investorThesis'] ?? ($existing['investorThesis'] ?? null))
+                : null,
+            'ideal_operator' => $featureType === 'city_pipeline'
+                ? string_or_null($payload['ideal_operator'] ?? $payload['idealOperator'] ?? ($existing['idealOperator'] ?? null))
+                : null,
+            'avoidance_note' => $featureType === 'city_pipeline'
+                ? string_or_null($payload['avoidance_note'] ?? $payload['avoidanceNote'] ?? ($existing['avoidanceNote'] ?? null))
+                : null,
             'countdown_at' => $this->normalizeDateTimeInput($payload['countdown_at'] ?? $payload['countdownAt'] ?? ($existing['countdownAt'] ?? null)),
             'completion_target' => $this->normalizeDateTimeInput($payload['completion_target'] ?? $payload['completionTarget'] ?? ($existing['completionTarget'] ?? null)),
             'related_property_id' => $relatedPropertyId,
@@ -285,6 +320,34 @@ final class ShowcaseRepository
     private function defaultStatusForFeature(string $featureType): string
     {
         return $featureType === 'city_pipeline' ? 'planned' : 'open';
+    }
+
+    private function normalizePipelineMode(?string $value): string
+    {
+        $normalized = strtolower(string_or_null($value) ?? '');
+        if ($normalized === '' || $normalized === 'project') {
+            return 'future_project';
+        }
+
+        if (!in_array($normalized, ['future_project', 'investment_gap'], true)) {
+            throw new InvalidArgumentException('Invalid city pipeline mode.');
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeSupplySignal(?string $value, bool $allowNull = false): ?string
+    {
+        $normalized = strtolower(string_or_null($value) ?? '');
+        if ($normalized === '') {
+            return $allowNull ? null : 'under_supplied';
+        }
+
+        if (!in_array($normalized, ['not_present', 'under_supplied', 'balanced', 'crowded'], true)) {
+            throw new InvalidArgumentException('Invalid supply signal.');
+        }
+
+        return $normalized;
     }
 
     private function defaultPrimaryMetricLabel(string $featureType): string

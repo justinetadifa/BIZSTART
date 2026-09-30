@@ -1,14 +1,28 @@
 <?php
 declare(strict_types=1);
 
+$normalizeBoolean = static function (mixed $value, bool $fallback): bool {
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    if ($value === null || $value === false || trim((string) $value) === '') {
+        return $fallback;
+    }
+
+    $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    return $normalized ?? $fallback;
+};
+
 $defaults = [
     'app' => [
-        'name' => 'SFCelerate BizStart',
+        'name' => 'LOCUS-SF',
+        'environment' => getenv('APP_ENV') ?: 'local',
     ],
     'db' => [
         'host' => getenv('DB_HOST') ?: '127.0.0.1',
         'port' => (int) (getenv('DB_PORT') ?: 3306),
-        'name' => getenv('DB_NAME') ?: 'sfceleratee',
+        'name' => getenv('DB_NAME') ?: 'sfcelerate_bizstart',
         'user' => getenv('DB_USER') ?: 'root',
         'pass' => getenv('DB_PASS') ?: '',
         'charset' => 'utf8mb4',
@@ -18,8 +32,8 @@ $defaults = [
             'path' => dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'external',
         ],
         'maps' => [
-            'tile_url' => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'tile_attribution' => '&copy; OpenStreetMap contributors',
+            'tile_url' => 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+            'tile_attribution' => '&copy; CARTO &copy; OpenStreetMap contributors',
             'locationiq_key' => getenv('LOCATIONIQ_KEY') ?: '',
         ],
         'location' => [
@@ -55,11 +69,43 @@ $defaults = [
 ];
 
 $localConfigPath = __DIR__ . '/config.local.php';
+$local = [];
 if (is_file($localConfigPath)) {
     $local = require $localConfigPath;
     if (is_array($local)) {
         $defaults = array_replace_recursive($defaults, $local);
     }
+}
+
+$environment = strtolower(trim((string) ($defaults['app']['environment'] ?? 'local')));
+$environment = $environment !== '' ? $environment : 'local';
+$defaults['app']['environment'] = $environment;
+
+$appFlagDefaults = [
+    'debug' => $environment !== 'production',
+    'auto_migrate' => $environment !== 'production',
+    'auto_seed' => $environment === 'local',
+];
+$appFlagEnvironmentVariables = [
+    'debug' => 'APP_DEBUG',
+    'auto_migrate' => 'APP_AUTO_MIGRATE',
+    'auto_seed' => 'APP_AUTO_SEED',
+];
+$localAppConfig = is_array($local['app'] ?? null) ? $local['app'] : [];
+
+foreach ($appFlagDefaults as $flag => $fallback) {
+    $environmentValue = getenv($appFlagEnvironmentVariables[$flag]);
+    if ($environmentValue !== false && trim((string) $environmentValue) !== '') {
+        $defaults['app'][$flag] = $normalizeBoolean($environmentValue, $fallback);
+        continue;
+    }
+
+    if (array_key_exists($flag, $localAppConfig)) {
+        $defaults['app'][$flag] = $normalizeBoolean($localAppConfig[$flag], $fallback);
+        continue;
+    }
+
+    $defaults['app'][$flag] = $fallback;
 }
 
 return $defaults;

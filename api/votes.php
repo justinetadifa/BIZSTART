@@ -9,6 +9,21 @@ api_handle(function (array $container): array {
 
     if ($method === 'GET') {
         $propertyId = int_or_null($_GET['propertyId'] ?? null);
+        $idsParam = string_or_null($_GET['ids'] ?? $_GET['propertyIds'] ?? null);
+        if ($propertyId === null && $idsParam !== null) {
+            $propertyIds = array_values(array_unique(array_filter(
+                array_map(static fn (string $value): int => (int) trim($value), explode(',', $idsParam)),
+                static fn (int $value): bool => $value > 0
+            )));
+            if ($propertyIds === []) {
+                throw new InvalidArgumentException('At least one valid property id is required.');
+            }
+
+            return [
+                'tallies' => $container['votes']->voteTalliesMap($propertyIds, $user['id'] ?? null),
+            ];
+        }
+
         if ($propertyId === null || $propertyId < 1) {
             throw new InvalidArgumentException('A valid property id is required.');
         }
