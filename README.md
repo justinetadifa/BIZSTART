@@ -298,5 +298,3 @@ This project was developed as an undergraduate capstone project in Information T
 * **Academic Department:** College of Information Technology
 * **Institution:** Don Mariano Marcos Memorial State University - Mid La Union Campus (DMMMSU-MLUC)
 * **Location:** City of San Fernando, La Union 2500, Philippines
-#   l o c u s - s f  
- 
