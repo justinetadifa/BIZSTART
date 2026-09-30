@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#08121f">
+  <title>LOCUS-SF — Every opportunity starts with a place.</title>
+  <link rel="icon" href="assets/images/webLogoSfc-favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Single-file demo: Tailwind Play CDN; compile utilities for production. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+  <script>
+    // Progressive enhancement: an unavailable library must never hide the page.
+    document.documentElement.classList.add('intro-pending');
+    window.locusFailOpen = setTimeout(() => {
+      document.documentElement.classList.remove('intro-pending');
+      document.documentElement.classList.add('motion-fallback');
+      const hero = document.getElementById('hero');
+      if (hero) hero.inert = false;
+    }, 7000);
+  </script>
+  <style>
+    :root { color-scheme: dark; --ink: #08121f; --amber: #f5b43e; --gutter: clamp(22px, 4vw, 72px); }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--ink); }
+    body { color: #fff; font-family: Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 2px solid #fff; outline-offset: 6px; }
+    [hidden] { display: none !important; }
+    .scene { position: relative; isolation: isolate; min-height: 100svh; overflow: hidden; background: #122136; }
+    .photo-drift { position: absolute; inset: -24px; z-index: -3; pointer-events: none; }
+    .photo { width: 100%; height: 100%; object-fit: cover; object-position: 54% 48%; transform: scale(1.035); }
+    .scrim { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(90deg, #071321a8, #07132120 75%), linear-gradient(0deg, #050d19e8, #07132122 64%, #07132112); }
+    .navigation { position: relative; z-index: 12; display: flex; align-items: center; justify-content: space-between; padding: max(26px, env(safe-area-inset-top)) var(--gutter); gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .logo-dock { width: 44px; height: 34px; flex: none; }
+    .brand-name { font-size: 13px; font-weight: 800; letter-spacing: .16em; }
+    .brand-flight { position: absolute; top: max(26px, env(safe-area-inset-top)); left: var(--gutter); width: 220px; height: 170px; margin: -68px 0 0 -88px; z-index: 15; pointer-events: none; perspective: 700px; transform: scale(.2); transform-origin: center; }
+    .logo-model { width: 100%; height: 100%; transform-style: preserve-3d; }
+    .logo-model img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 12px #0005); }
+    .entry-link { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 16px; border: 1px solid #ffffff24; border-radius: 999px; background: #0b16264d; backdrop-filter: blur(12px); font-size: 12px; font-weight: 500; transition: background .25s ease, border-color .25s ease; }
+    .entry-link:hover { background: #ffffff18; border-color: #ffffff60; }
+    .nav-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+    .city-pill, .focus-pill { display: inline-flex; align-items: center; gap: 9px; min-height: 34px; padding: 0 13px; border: 1px solid #ffffff30; border-radius: 999px; background: #09152591; backdrop-filter: blur(15px); box-shadow: 0 8px 24px #0003; color: #f7f8fb; white-space: nowrap; font-size: 10px; font-weight: 700; }
+    .city-pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #36d59c; box-shadow: 0 0 12px #36d59caa; }
+    .focus-pill { border-color: #e5aa4d52; }
+    .focus-pill small { color: #f6bc55; font-size: 9px; font-weight: 800; letter-spacing: .11em; }
+    .focus-pill strong { font-size: 10px; font-weight: 700; }
+    .hero { display: flex; align-items: end; padding: clamp(120px, 21vh, 240px) var(--gutter) max(52px, env(safe-area-inset-bottom)); min-height: calc(100svh - 96px); }
+    .panel-drift { position: relative; z-index: 2; width: min(780px, 64vw); perspective: 1200px; }
+    .glass-panel { position: relative; padding: clamp(26px, 3vw, 46px); border: 1px solid #ffffff1c; border-radius: 28px; background: linear-gradient(125deg, #101c2c66, #08111e2d); backdrop-filter: blur(19px) saturate(115%); -webkit-backdrop-filter: blur(19px) saturate(115%); box-shadow: 0 30px 100px #00000024, inset 0 1px 0 #ffffff08; }
+    .glass-panel::before { content: ''; position: absolute; top: -1px; left: 8%; right: 15%; height: 1px; background: linear-gradient(90deg, transparent, #ffffff45, transparent); pointer-events: none; }
+    .location-label { display: flex; align-items: center; gap: 13px; margin: 0 0 23px; font-size: 10px; line-height: 1.6; font-weight: 700; letter-spacing: .18em; color: #e2e8f0; }
+    .location-label::before { content: ''; width: 26px; height: 2px; background: var(--amber); flex: none; }
+    h1 { font-size: clamp(38px, 4.6vw, 72px); font-weight: 600; line-height: 1.06; letter-spacing: -.065em; margin: 0; text-shadow: 0 6px 28px #0003; }
+    .line-mask { display: block; overflow: hidden; padding-bottom: .12em; margin-bottom: -.12em; }
+    .line-inner { display: block; }
+    h1 .line-inner { white-space: nowrap; }
+    .description { max-width: 510px; margin: 25px 0 0; color: #e1e7ef; font-size: clamp(15px, 1.2vw, 17px); line-height: 1.7; letter-spacing: -.025em; }
+    .actions { display: flex; align-items: center; gap: 20px; margin-top: 30px; }
+    .cta { display: inline-flex; align-items: center; justify-content: center; gap: 26px; min-height: 58px; padding: 0 25px; border: 1px solid #ffe4a266; border-radius: 13px; background: linear-gradient(120deg, #fac358, #eda324); color: #172032; box-shadow: inset 0 1px 0 #fff6, 0 8px 25px #0003; font-size: 13px; font-weight: 700; white-space: nowrap; transform-origin: center; }
+    .cta:hover { background: linear-gradient(120deg, #ffd27a, #f5b43e); }
+    .cta-arrow { display: inline-block; font-size: 20px; font-weight: 400; }
+    .aside-note { color: #b5bfce; font-size: 10px; line-height: 1.6; max-width: 160px; }
+    .map-beacons { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+    .map-beacon { position: absolute; display: flex; align-items: center; gap: 10px; padding: 9px; border: 0; background: transparent; color: #f6f8fc; cursor: pointer; pointer-events: auto; transform: translate(-9px, -50%); }
+    .map-beacon--poro { left: 33%; top: 25%; }
+    .map-beacon--center { left: 54%; top: 43%; }
+    .map-beacon--solar { left: 74%; top: 51%; }
+    .beacon-point { position: relative; display: block; width: 12px; height: 12px; flex: none; border: 2px solid #fff7d8; border-radius: 50%; background: #ffbe55; box-shadow: 0 0 0 3px #e8a83b55, 0 0 16px 6px #e8a83b95; }
+    .beacon-point::after { content: ''; position: absolute; inset: -8px; border: 1px solid #f6ba6273; border-radius: 50%; animation: beacon-pulse 3.6s ease-out infinite; }
+    .map-beacon--center .beacon-point::after { animation-delay: .8s; }
+    .map-beacon--solar .beacon-point::after { animation-delay: 1.6s; }
+    @keyframes beacon-pulse { 0% { opacity: .8; transform: scale(.45); } 75%, 100% { opacity: 0; transform: scale(1.6); } }
+    .beacon-pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px 5px 7px; border: 1px solid #c7d7e440; border-radius: 999px; background: #0b1726d9; box-shadow: 0 5px 18px #0006; backdrop-filter: blur(14px); font-size: 11px; font-weight: 700; white-space: nowrap; transition: border-color .22s ease, background .22s ease, box-shadow .22s ease; }
+    .beacon-pill em { padding: 2px 5px; border-radius: 5px; background: #f7b74933; color: #f6ba55; font-size: 9px; font-style: normal; font-weight: 800; }
+    .map-beacon:is(:hover, :focus-visible, .is-active) .beacon-pill { border-color: #ffcc6eab; background: #111e30f5; box-shadow: 0 5px 20px #0008, 0 0 18px #f8b14b38; }
+    .map-beacon:focus-visible { outline: 2px solid #fff; outline-offset: 4px; border-radius: 999px; }
+    .beacon-tip { position: absolute; top: calc(100% + 3px); left: 21px; width: max-content; max-width: 210px; padding: 9px 12px; border: 1px solid #ffffff32; border-radius: 11px; background: #0a1727e8; box-shadow: 0 12px 26px #0007; backdrop-filter: blur(16px); color: #dce6f2; font-size: 10px; font-weight: 500; line-height: 1.45; opacity: 0; transform: translateY(-4px); transition: opacity .22s ease, transform .22s ease; pointer-events: none; }
+    .map-beacon:is(:hover, :focus-visible, .is-inspected) .beacon-tip { opacity: 1; transform: translateY(0); }
+    .geo-art { position: absolute; right: 7%; top: 38%; width: 24vw; max-width: 390px; aspect-ratio: 1; pointer-events: none; color: #efd19a; opacity: .5; }
+    .geo-art svg { width: 100%; height: 100%; overflow: visible; }
+    .geo-label { display: flex; align-items: center; justify-content: center; gap: 16px; color: #d3deea; font-size: 9px; letter-spacing: .15em; margin-top: 18px; }
+    .geo-label::before, .geo-label::after { content: ''; height: 1px; width: 24px; background: #efd19a55; }
+    .intro-veil { position: fixed; inset: 0; z-index: 10; visibility: hidden; pointer-events: none; background: #050c18bd; backdrop-filter: blur(36px); -webkit-backdrop-filter: blur(36px); }
+    .intro-caption { position: fixed; top: calc(50% + 86px); left: 0; right: 0; z-index: 15; text-align: center; font-size: 10px; font-weight: 500; letter-spacing: .34em; color: #cdd6e4; visibility: hidden; pointer-events: none; }
+    .intro-pending .intro-veil, .intro-pending .intro-caption { visibility: visible; }
+    .intro-pending .glass-panel, .intro-pending .brand-name, .intro-pending .geo-art, .intro-pending .brand-flight, .intro-pending .map-beacons, .intro-pending .nav-hud { visibility: hidden; }
+    .intro-pending .hero { pointer-events: none; }
+    .motion-fallback .intro-veil, .motion-fallback .intro-caption { visibility: hidden !important; }
+    .motion-fallback .glass-panel, .motion-fallback .brand-name, .motion-fallback .geo-art, .motion-fallback .brand-flight, .motion-fallback .line-inner, .motion-fallback .location-label, .motion-fallback .actions, .motion-fallback .map-beacons, .motion-fallback .nav-hud { visibility: visible !important; opacity: 1 !important; transform: none !important; }
+    .motion-fallback #brandFlight { transform: scale(.2) !important; }
+    @media (max-width: 1000px) {
+      .panel-drift { width: min(700px, 80vw); }
+      .geo-art { top: 24%; right: 5%; width: 24vw; opacity: .35; }
+      .city-pill { display: none; }
+      .map-beacon--solar { left: 72%; }
+    }
+    @media (max-width: 800px) { .focus-pill { display: none; } }
+    @media (max-width: 680px) {
+      .navigation { padding-top: max(20px, env(safe-area-inset-top)); }
+      .brand-flight { top: max(20px, env(safe-area-inset-top)); }
+      .brand { gap: 7px; }
+      .brand-name { font-size: 11px; letter-spacing: .12em; }
+      .entry-link { font-size: 11px; padding-inline: 12px; gap: 8px; }
+      .hero { padding: 32vh 16px max(24px, env(safe-area-inset-bottom)); min-height: calc(100svh - 84px); }
+      .panel-drift { width: 100%; }
+      .glass-panel { padding: 26px 20px; border-radius: 24px; }
+      .photo { object-position: 57% center; }
+      .location-label { font-size: 8px; gap: 9px; letter-spacing: .14em; margin-bottom: 18px; }
+      .location-label::before { width: 18px; }
+      h1 { font-size: clamp(30px, 9.1vw, 53px); }
+      .description { margin-top: 21px; font-size: 14px; }
+      .actions { margin-top: 24px; }
+      .cta { width: 100%; min-height: 54px; padding-inline: 16px; gap: 18px; }
+      .aside-note, .geo-art, .map-beacons { display: none; }
+    }
+    @media (max-height: 650px) { .hero { padding-top: 80px; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .intro-veil, .intro-caption { display: none; }
+      .intro-pending .glass-panel, .intro-pending .brand-name, .intro-pending .geo-art, .intro-pending .brand-flight, .intro-pending .map-beacons, .intro-pending .nav-hud { visibility: visible; }
+      .intro-pending .hero { pointer-events: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene">
+    <div class="photo-drift" id="photoDrift" aria-hidden="true">
+      <!-- Replace src with image_df6ae0.jpg when that file is supplied. -->
+      <img id="cityPhoto" class="photo" src="assets/images/introlocus-sf.png" alt="" fetchpriority="high">
+    </div>
+    <div class="scrim" aria-hidden="true"></div>
+
+    <nav class="navigation flex items-center justify-between" aria-label="Welcome navigation">
+      <div class="brand flex items-center gap-3" aria-label="LOCUS-SF">
+        <span class="logo-dock" id="logoDock" aria-hidden="true"></span>
+        <span class="brand-name font-extrabold tracking-widest">LOCUS-SF</span>
+      </div>
+      <!-- Always reachable, including while the cinematic sequence plays. -->
+      <div class="nav-right">
+        <div class="nav-hud flex items-center gap-2" aria-live="polite">
+          <span class="city-pill"><span class="city-pill-dot" aria-hidden="true"></span>San Fernando · City view</span>
+          <span class="focus-pill"><small>SURVEY FOCUS</small><strong id="focusName">PORO POINT HORIZON</strong></span>
+        </div>
+        <a class="entry-link rounded-full" href="index.php?welcome=off#main-content" data-enter>
+          <span>Enter platform</span><span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </nav>
+
+    <div id="brandFlight" class="brand-flight" aria-hidden="true">
+      <div id="logoModel" class="logo-model">
+        <img src="assets/images/webLogoSfc.png" width="44" height="34" alt="">
+      </div>
+    </div>
+
+    <div class="geo-art" aria-hidden="true">
+      <svg viewBox="0 0 320 320" fill="none">
+        <defs>
+          <radialGradient id="geoFade"><stop stop-color="#fff" stop-opacity=".65"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+          <mask id="geoMask"><rect width="320" height="320" fill="url(#geoFade)"/></mask>
+          <pattern id="geoGrid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" stroke="currentColor" stroke-opacity=".18"/></pattern>
+        </defs>
+        <rect width="320" height="320" fill="url(#geoGrid)" mask="url(#geoMask)"/>
+        <g stroke="currentColor" stroke-width=".7">
+          <circle cx="160" cy="160" r="132" opacity=".28"/>
+          <circle cx="160" cy="160" r="87" opacity=".2"/>
+          <circle cx="160" cy="160" r="43" opacity=".22"/>
+          <path d="M160 12v296M12 160h296" opacity=".18"/>
+          <path d="M152 160h16m-8-8v16" opacity=".85"/>
+        </g>
+        <g id="geoOrbit"><circle cx="160" cy="28" r="3" fill="#f6bd57"/><circle cx="160" cy="28" r="8" stroke="#f6bd57" stroke-opacity=".4"/></g>
+        <circle cx="222" cy="216" r="3" fill="#f6bd57" opacity=".6"/>
+      </svg>
+      <div class="geo-label uppercase tracking-widest">A city of possibilities</div>
+    </div>
+
+    <div class="map-beacons" role="group" aria-label="Explore San Fernando locations">
+      <button class="map-beacon map-beacon--poro is-active" type="button" aria-pressed="true" data-focus="PORO POINT HORIZON" aria-label="Poro Point, port and logistics corridor">
+        <span class="beacon-point" aria-hidden="true"></span><span class="beacon-pill"><em>01</em>Poro Point</span>
+        <span class="beacon-tip" aria-hidden="true">Port and logistics corridor</span>
+      </button>
+      <button class="map-beacon map-beacon--center" type="button" aria-pressed="false" data-focus="CITY CENTER CORRIDOR" aria-label="City Center, civic and commercial corridor">
+        <span class="beacon-point" aria-hidden="true"></span><span class="beacon-pill"><em>02</em>City Center</span>
+        <span class="beacon-tip" aria-hidden="true">Civic and commercial corridor</span>
+      </button>
+      <button class="map-beacon map-beacon--solar" type="button" aria-pressed="false" data-focus="SOLAR ROOFTOP BELT" aria-label="Solar Belt, rooftop opportunity area">
+        <span class="beacon-point" aria-hidden="true"></span><span class="beacon-pill"><em>03</em>Solar Belt</span>
+        <span class="beacon-tip" aria-hidden="true">Rooftop opportunity area</span>
+      </button>
+    </div>
+
+    <main id="hero" class="hero">
+      <div id="panelDrift" class="panel-drift">
+        <section id="glassPanel" class="glass-panel border border-white/10 backdrop-blur-2xl" aria-labelledby="headline">
+          <p class="location-label uppercase tracking-widest">San Fernando City, La Union</p>
+          <h1 id="headline" class="font-semibold">
+            <span class="line-mask"><span class="line-inner headline-line">Every opportunity</span></span>
+            <span class="line-mask"><span class="line-inner headline-line">starts with a place.</span></span>
+          </h1>
+          <p class="description">
+            <span class="line-mask"><span class="line-inner description-line">Explore local investment opportunities through</span></span>
+            <span class="line-mask"><span class="line-inner description-line">property information and site comparison.</span></span>
+          </p>
+          <div class="actions flex items-center">
+            <a id="continueButton" class="cta inline-flex items-center justify-center" href="index.php?welcome=off#main-content" data-enter>
+              <span>Continue to LOCUS-SF</span><span class="cta-arrow" aria-hidden="true">→</span>
+            </a>
+            <span class="aside-note">Explore the city markers above</span>
+          </div>
+        </section>
+      </div>
+    </main>
+    <div id="introVeil" class="intro-veil" aria-hidden="true"></div>
+    <div id="introCaption" class="intro-caption" aria-hidden="true">LOCUS-SF</div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const root = document.documentElement;
+      const scene = document.getElementById('scene');
+      const hero = document.getElementById('hero');
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      const pointer = matchMedia('(hover: hover) and (pointer: fine)');
+      const sessionKey = `locus-sf.cinematic:${location.pathname.replace(/\/[^/]*$/, '')}`;
+      const beacons = [...document.querySelectorAll('.map-beacon')];
+      const focusName = document.getElementById('focusName');
+      let selectedBeacon = beacons[0];
+      let dismissed = false;
+      let finished = false;
+      let leaving = false;
+      let timeline;
+      let context;
+      let breath;
+      let flight;
+      let background;
+      let orbit;
+      let settlePointer = () => {};
+      let removePointer = () => {};
+      try {
+        dismissed = sessionStorage.getItem(sessionKey) === '1'
+          && new URLSearchParams(location.search).get('replay') !== '1';
+      } catch {}
+
+      const finishIntro = () => {
+        finished = true;
+        hero.inert = false;
+        root.classList.remove('intro-pending');
+        clearTimeout(window.locusFailOpen);
+        scene.dataset.phase = 'ready';
+      };
+
+      const showFocus = beacon => {
+        if (focusName) focusName.textContent = beacon.dataset.focus;
+      };
+      beacons.forEach(beacon => {
+        beacon.addEventListener('pointerenter', () => showFocus(beacon));
+        beacon.addEventListener('pointerleave', () => {
+          showFocus(beacons.find(item => item === document.activeElement) || selectedBeacon);
+        });
+        beacon.addEventListener('focus', () => showFocus(beacon));
+        beacon.addEventListener('blur', () => queueMicrotask(() => {
+          if (!document.querySelector('.map-beacon:focus')) showFocus(selectedBeacon);
+        }));
+        beacon.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          beacon.click();
+        });
+        beacon.addEventListener('click', () => {
+          beacons.forEach(item => {
+            const active = item === beacon;
+            item.classList.toggle('is-active', active);
+            item.classList.toggle('is-inspected', active);
+            item.setAttribute('aria-pressed', String(active));
+          });
+          selectedBeacon = beacon;
+          showFocus(beacon);
+        });
+      });
+
+      // Native links also work when GSAP, Tailwind, storage, or JavaScript fails.
+      document.querySelectorAll('[data-enter]').forEach(link => {
+        link.addEventListener('click', event => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          try { sessionStorage.setItem(sessionKey, '1'); } catch {}
+          if (!window.gsap || reduced.matches) return;
+          event.preventDefault();
+          if (leaving) return;
+          leaving = true;
+          // Navigation has its own timer so it cannot depend on a tween finishing.
+          setTimeout(() => location.assign(link.href), 260);
+          gsap.to(scene, { opacity: 0, duration: .25, ease: 'power2.out' });
+        });
+      });
+
+      if (!window.gsap || reduced.matches || root.classList.contains('motion-fallback')) {
+        finishIntro();
+        return;
+      }
+
+      const { gsap } = window;
+      // Normalized underdamped step response: small, controlled spring overshoot.
+      const spring = t => {
+        if (t === 0 || t === 1) return t;
+        const response = x => 1 - Math.exp(-8 * x) * (Math.cos(10 * x) + .8 * Math.sin(10 * x));
+        return response(t) / response(1);
+      };
+
+      try {
+        context = gsap.context(() => {
+          background = gsap.to('#cityPhoto', { scale: 1.09, xPercent: -.6, duration: 24, ease: 'sine.inOut', repeat: -1, yoyo: true });
+          orbit = gsap.to('#geoOrbit', { rotation: 360, svgOrigin: '160 160', duration: 32, ease: 'sine.inOut', repeat: -1, yoyo: true });
+
+          if (!dismissed) {
+            hero.inert = true;
+            scene.dataset.phase = 'breathing';
+            const dock = document.getElementById('logoDock').getBoundingClientRect();
+            gsap.set('#brandFlight', {
+              autoAlpha: 1,
+              x: innerWidth / 2 - dock.left - dock.width / 2,
+              y: innerHeight / 2 - dock.top - dock.height / 2,
+              scale: innerWidth < 680 ? .72 : .96
+            });
+            gsap.set('#introVeil', { autoAlpha: 1 });
+            gsap.set('#introCaption', { autoAlpha: 0, y: 12 });
+            gsap.set(['#glassPanel', '.brand-name', '.geo-art', '.nav-hud', '.map-beacons'], { autoAlpha: 0 });
+            gsap.set('.map-beacon', { autoAlpha: 0, y: 8 });
+            gsap.set('.line-inner', { yPercent: 115 });
+            gsap.set(['.location-label', '.actions'], { autoAlpha: 0, y: 14 });
+
+            breath = gsap.to('#logoModel', { y: -12, rotationY: 13, rotationX: -7, rotationZ: -3, scale: 1.045, duration: 1.1, ease: 'sine.inOut', repeat: -1, yoyo: true });
+            flight = gsap.to('#brandFlight', { x: 0, y: 0, scale: .2, duration: 1.55, ease: spring, paused: true });
+
+            timeline = gsap.timeline({ onComplete: finishIntro });
+            timeline.to('#introCaption', { autoAlpha: 1, y: 0, duration: .9, ease: 'power3.out' }, .15)
+              .add(() => {
+                scene.dataset.phase = 'revealing';
+                breath.kill();
+                flight.play();
+              }, 2)
+              .to('#logoModel', { y: 0, rotationX: 0, rotationY: 0, rotationZ: 0, scale: 1, duration: 1, ease: spring }, 2)
+              .to('#introCaption', { autoAlpha: 0, y: -8, duration: .4, ease: 'power2.in' }, 2)
+              .to('#introVeil', { autoAlpha: 0, backdropFilter: 'blur(0px)', webkitBackdropFilter: 'blur(0px)', duration: 1.35, ease: 'power3.inOut' }, 2)
+              .to('.brand-name', { autoAlpha: 1, duration: .8, ease: 'power3.out' }, 2.6)
+              .to('#glassPanel', { autoAlpha: 1, duration: 1, ease: 'power3.out' }, 2.45)
+              .to('.location-label', { autoAlpha: 1, y: 0, duration: .8, ease: 'power3.out' }, 2.65)
+              .to('.headline-line', { yPercent: 0, duration: 1.15, stagger: .13, ease: 'power4.out' }, 2.78)
+              .to('.description-line', { yPercent: 0, duration: .95, stagger: .1, ease: 'power4.out' }, 3.05)
+              .to('.actions', { autoAlpha: 1, y: 0, duration: .9, ease: spring }, 3.3)
+              .to('.geo-art', { autoAlpha: .5, duration: 1.1, ease: 'power3.out' }, 3.15)
+              .to(['.nav-hud', '.map-beacons'], { autoAlpha: 1, duration: .7, ease: 'power3.out' }, 3.12)
+              .to('.map-beacon', { autoAlpha: 1, y: 0, duration: .75, stagger: .12, ease: 'power3.out' }, 3.2);
+          } else {
+            finishIntro();
+          }
+
+          // Separate transform layers prevent Ken Burns, parallax and reveals fighting.
+          const photoX = gsap.quickTo('#photoDrift', 'x', { duration: 1.1, ease: 'power3.out' });
+          const photoY = gsap.quickTo('#photoDrift', 'y', { duration: 1.1, ease: 'power3.out' });
+          const panelX = gsap.quickTo('#panelDrift', 'x', { duration: 1.25, ease: 'power3.out' });
+          const panelY = gsap.quickTo('#panelDrift', 'y', { duration: 1.25, ease: 'power3.out' });
+          const move = event => {
+            if (!finished || reduced.matches || !pointer.matches) return;
+            const x = event.clientX / innerWidth * 2 - 1;
+            const y = event.clientY / innerHeight * 2 - 1;
+            photoX(x * -11); photoY(y * -8);
+            panelX(x * 7); panelY(y * 5);
+          };
+          settlePointer = () => { photoX(0); photoY(0); panelX(0); panelY(0); };
+          scene.addEventListener('pointermove', move, { passive: true });
+          scene.addEventListener('pointerleave', settlePointer);
+          removePointer = () => {
+            scene.removeEventListener('pointermove', move);
+            scene.removeEventListener('pointerleave', settlePointer);
+          };
+
+          const cta = document.getElementById('continueButton');
+          const hover = active => {
+            if (reduced.matches) return;
+            gsap.to(cta, { scale: active ? 1.035 : 1, duration: .65, ease: spring, overwrite: true,
+              boxShadow: active ? 'inset 0 1px 0 #ffffff66, 0 12px 38px #f5b43e40' : 'inset 0 1px 0 #ffffff66, 0 8px 25px #00000033' });
+            gsap.to('.cta-arrow', { x: active ? 4 : 0, duration: .5, ease: spring, overwrite: true });
+          };
+          cta.addEventListener('pointerenter', () => { if (pointer.matches) hover(true); });
+          cta.addEventListener('pointerleave', () => hover(false));
+          cta.addEventListener('focus', () => hover(true));
+          cta.addEventListener('blur', () => hover(false));
+        }, scene);
+
+        // Resizing mid-flight settles the logo into the responsive dock immediately.
+        const settleIntro = () => {
+          if (finished) return;
+          timeline?.progress(1);
+          flight?.progress(1);
+          finishIntro();
+        };
+        window.addEventListener('resize', settleIntro);
+        document.addEventListener('keydown', event => {
+          if (event.key === 'Escape') settleIntro();
+        });
+        reduced.addEventListener('change', event => {
+          if (!event.matches) return;
+          removePointer();
+          gsap.killTweensOf(['#continueButton', '.cta-arrow']);
+          context.revert();
+          root.classList.add('motion-fallback');
+          finishIntro();
+        });
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            settleIntro();
+            background.pause(); orbit.pause();
+          } else if (!reduced.matches) {
+            background.resume(); orbit.resume();
+          }
+        });
+      } catch (error) {
+        removePointer();
+        context?.revert();
+        root.classList.add('motion-fallback');
+        finishIntro();
+        console.error('LOCUS-SF animation fallback:', error);
+      }
+    });
+  </script>
+</body>
+</html>

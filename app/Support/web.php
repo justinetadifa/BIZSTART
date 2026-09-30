@@ -135,6 +135,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($pageName === 'decision-reports'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/reports.css<?= htmlspecialchars(sfc_asset_version('css/reports.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if ($pageName === 'property-ranking'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/ranking.css<?= htmlspecialchars(sfc_asset_version('css/ranking.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
   <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body <?= implode(' ', $bodyAttributes) ?>>
@@ -243,10 +246,11 @@ function sfc_render_header(array $context, string $active = ''): void
         </a>
       </div>
 
-      <button type="button" class="nav-mobile-toggle" aria-expanded="false" aria-controls="primaryNavigation headerActions">
+      <button type="button" class="nav-mobile-toggle" aria-expanded="false" aria-controls="navContent">
         <span class="nav-toggle-lines" aria-hidden="true"></span>
         <span>Menu</span>
       </button>
+      <div class="nav-content" id="navContent"><div class="nav-content-inner">
       <div class="nav-center" id="primaryNavigation">
         <nav class="top-nav" aria-label="Primary navigation">
           <?php foreach ($navItems as $item): ?>
@@ -261,10 +265,12 @@ function sfc_render_header(array $context, string $active = ''): void
       <div class="nav-actions" id="headerActions">
         <div class="portal-menu portal-menu-compact" data-sfc-menu>
           <button type="button" class="btn-shell btn-shell-secondary portal-menu-trigger more-menu-trigger <?= in_array($active, ['offer-board', 'city-pipeline', 'admin-showcase'], true) ? 'is-active' : '' ?>" data-sfc-menu-toggle aria-expanded="false" aria-controls="moreMenuPanel">
-            <span class="btn-shell-icon"><?= sfc_icon('menu') ?></span>
+            <span class="btn-shell-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></span>
             <span><?= htmlspecialchars($moreLabel, ENT_QUOTES, 'UTF-8') ?></span>
+            <svg class="nav-menu-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="portal-menu-panel more-menu-panel" id="moreMenuPanel">
+            <div class="nav-menu-heading">Explore more</div>
             <?php foreach ($moreItems as $item): ?>
               <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>" class="portal-entry <?= $active === $item['key'] ? 'is-active' : '' ?>">
                 <span class="portal-entry-icon"><?= sfc_icon($item['icon']) ?></span>
@@ -315,8 +321,10 @@ function sfc_render_header(array $context, string $active = ''): void
             <button type="button" class="btn-shell btn-shell-primary portal-menu-trigger" data-sfc-menu-toggle aria-expanded="false" aria-controls="portalMenuPanel">
               <span class="btn-shell-icon"><?= sfc_icon('lock') ?></span>
               <span><?= htmlspecialchars($guestCtaLabel, ENT_QUOTES, 'UTF-8') ?></span>
+              <svg class="nav-menu-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="portal-menu-panel" id="portalMenuPanel">
+              <div class="nav-menu-heading">Choose your workspace</div>
               <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="portal-entry portal-entry-primary">
                 <span class="portal-entry-icon"><?= sfc_icon('investor') ?></span>
                 <span class="portal-entry-copy">
@@ -335,6 +343,7 @@ function sfc_render_header(array $context, string $active = ''): void
           </div>
         <?php endif; ?>
       </div>
+      </div></div>
     </div>
   </header>
 <?php

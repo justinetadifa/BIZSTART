@@ -12,9 +12,10 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
 <script>
   window.LOCUS_PRELOADER?.dismiss(true);
   (() => {
-    if (new URLSearchParams(window.location.search).get('welcome') === 'off') return;
+    const welcomeMode = new URLSearchParams(window.location.search).get('welcome');
+    if (welcomeMode === 'off') return;
 
-    const sessionKey = `locus-sf.welcome:${window.SFC_APP_CONFIG?.basePath || ''}`;
+    const sessionKey = `locus-sf.cinematic:${window.SFC_APP_CONFIG?.basePath || ''}`;
     let dismissed = false;
     try {
       dismissed = window.sessionStorage.getItem(sessionKey) === '1';
@@ -22,7 +23,15 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
       // A blocked storage API should not prevent the visitor from continuing.
     }
 
-    if (!dismissed) document.documentElement.classList.add('locus-welcome-active');
+    if (!dismissed || welcomeMode === 'replay') {
+      // Enter the cinematic welcome before the homepage is painted. Its native
+      // Continue link returns here with ?welcome=off if scripts/storage fail.
+      window.__LOCUS_CINEMATIC_REDIRECT__ = true;
+      const introUrl = new URL('locus-cinematic.html', document.baseURI);
+      if (welcomeMode === 'replay') introUrl.searchParams.set('replay', '1');
+      window.location.replace(introUrl.href);
+      return;
+    }
   })();
 </script>
 <?php if (!$welcomeBypass): ?>

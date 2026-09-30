@@ -480,10 +480,10 @@ function investmentLensSelectorMarkup(activeLensKey, options = {}) {
         </div>
         <div class="service-chip-row">
           ${serviceChip(`${activeLens.label} active`, "live")}
-          ${serviceChip("Offline weighting", "neutral")}
+          ${options.compact ? "" : serviceChip("Offline weighting", "neutral")}
         </div>
       </div>
-      <div class="intent-grid" role="tablist" aria-label="Investment lens">
+      <div class="intent-grid" role="group" aria-label="Investment lens">
         ${INVESTMENT_LENSES.map((lens) => `
           <button
             type="button"
@@ -491,7 +491,7 @@ function investmentLensSelectorMarkup(activeLensKey, options = {}) {
             data-investment-lens="${escapeHtml(lens.key)}"
             aria-pressed="${lens.key === activeLens.key ? "true" : "false"}"
           >
-            <span class="icon" aria-hidden="true">${escapeHtml(lens.icon || "•")}</span>
+            <span class="icon" aria-hidden="true">${options.compact ? investmentLensIconMarkup(lens.key) : escapeHtml(lens.icon || "•")}</span>
             <div class="intent-meta">
               <strong>${escapeHtml(lens.label)}</strong>
               <small>${escapeHtml(lens.subtitle || "Reweight the property score")}</small>
@@ -6459,227 +6459,548 @@ async function initRankingPage() {
   let type = "all";
   let corridor = "all";
   let clupStatus = "all";
+  let searchQuery = "";
+  let sortBy = "rank";
+  let selectedPropertyId = null;
+  let activeInspectorTab = "fit"; // "fit" | "clup" | "location"
   let investmentLensKey = getActiveInvestmentLensKey();
 
   const render = () => {
+    const activeLens = getInvestmentLensConfig(investmentLensKey);
+
+    // 1. Filter by corridor, type, and search query
     const visibleBase = properties.filter((property) => {
       if (type !== "all" && property.type !== type) return false;
       if (corridor !== "all" && property.corridor !== corridor) return false;
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase().trim();
+        const nameMatch = (property.name || "").toLowerCase().includes(q);
+        const brgyMatch = (property.barangay || "").toLowerCase().includes(q);
+        const cityMatch = (property.city || "").toLowerCase().includes(q);
+        const typeMatch = (property.type || "").toLowerCase().includes(q);
+        const corrMatch = (property.corridor || "").toLowerCase().includes(q);
+        if (!nameMatch && !brgyMatch && !cityMatch && !typeMatch && !corrMatch) return false;
+      }
       return true;
     });
-    const activeLens = getInvestmentLensConfig(investmentLensKey);
-    const visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey)
+
+    // 2. Enrich with lens calculations & CLUP status
+    let visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey)
       .filter((property) => clupStatus === "all" || property.clupCompliance?.statusKey === clupStatus);
-    const compareIds = getCompareIds();
-    const favoriteIds = getFavoriteIds();
-    const lead = visible[0] || null;
+
+    // 3. Sorting overrides
+    if (sortBy === "score") {
+      visible.sort((a, b) => (Number(b.lensScore || 0)) - (Number(a.lensScore || 0)));
+    } else if (sortBy === "price_asc") {
+      visible.sort((a, b) => (Number(a.price || 0)) - (Number(b.price || 0)));
+    } else if (sortBy === "area_desc") {
+      visible.sort((a, b) => (Number(b.area || 0)) - (Number(a.area || 0)));
+    }
+
     const visibleCount = visible.length;
-    const strongCount = visible.filter((property) => Number(property.lensScore || 0) >= 85).length;
-    const averageLensScore = visibleCount
-      ? Math.round(visible.reduce((sum, property) => sum + Number(property.lensScore || 0), 0) / visibleCount)
-      : 0;
-    const averageDiligence = visibleCount
-      ? Math.round(visible.reduce((sum, property) => sum + Number(property.dueDiligencePct || 0), 0) / visibleCount)
-      : 0;
-    const approvedCount = visible.filter((property) => String(property.approvalState || "").toLowerCase() === "approved").length;
-    const clupPassCount = visible.filter((property) => property.clupCompliance?.status === "PASS").length;
-    const leadLabels = lead ? propertyPrimaryLabels(lead) : [];
-    const leadStory = lead
-      ? (lead.lensResult?.thesisShort || lead.lensResult?.thesis || propertyStory(lead))
-      : "Adjust the filters to surface ranked opportunities.";
-    const leadReason = lead
-      ? (lead.lensResult?.thesisLead || leadStory)
-      : "Expand the filter range to bring qualifying properties back into the board.";
-    const boardScopeLabel = corridor === "all" ? "All corridors" : corridorLabel(corridor);
-    const boardTypeLabel = type === "all" ? "All property types" : typeLabel(type);
+    const compareIds = getCompareIds();
+
+    // 4. Ensure selected property is valid
+    if (!selectedPropertyId || !visible.some((p) => p.id === selectedPropertyId)) {
+      selectedPropertyId = visible[0]?.id || null;
+    }
+    const selectedIndex = visible.findIndex((p) => p.id === selectedPropertyId);
+    const selected = visible[selectedIndex] || visible[0] || null;
+
+    // Helper: calculate high-fit count per lens
+    const lensCounts = {};
+    INVESTMENT_LENSES.forEach((lens) => {
+      const enriched = enrichProperties(properties, properties, votesMap, null, lens.key);
+      lensCounts[lens.key] = enriched.filter((p) => Number(p.lensScore || 0) >= 75).length;
+    });
+
+    const isFiltered = type !== "all" || corridor !== "all" || clupStatus !== "all" || searchQuery.trim() !== "" || sortBy !== "rank";
 
     root.innerHTML = `
-      <div class="ranking-studio">
-        <div class="ranking-command-grid">
-          <aside class="stack ranking-command-rail">
-            <article class="panel-card ranking-command-dock">
-              <div class="ranking-dock-head">
-                <div>
-                  <div class="panel-kicker">Board Controls</div>
-                  <h3>Shape the live leaderboard</h3>
-                  <p>Refine the board by corridor and property type, then let the active investment lens reset the ranking logic in real time.</p>
-                </div>
-                <span class="ranking-dock-badge">${visibleCount} in view</span>
-              </div>
-
-              <div class="filter-grid ranking-filter-grid">
-                <label class="form-shell">
-                  <span>Property type</span>
-                  <select class="input-shell" id="rankingType">
-                    <option value="all">All types</option>
-                    <option value="commercial" ${type === "commercial" ? "selected" : ""}>Commercial</option>
-                    <option value="logistics" ${type === "logistics" ? "selected" : ""}>Logistics</option>
-                    <option value="hotel" ${type === "hotel" ? "selected" : ""}>Resort / Tourism</option>
-                    <option value="bpo" ${type === "bpo" ? "selected" : ""}>Office / BPO</option>
-                    <option value="manufacturing" ${type === "manufacturing" ? "selected" : ""}>Manufacturing</option>
-                  </select>
-                </label>
-                <label class="form-shell">
-                  <span>Corridor</span>
-                  <select class="input-shell" id="rankingCorridor">
-                    <option value="all">All corridors</option>
-                    <option value="highway" ${corridor === "highway" ? "selected" : ""}>Highway</option>
-                    <option value="downtown" ${corridor === "downtown" ? "selected" : ""}>Downtown</option>
-                    <option value="coastal" ${corridor === "coastal" ? "selected" : ""}>Coastal</option>
-                  </select>
-                </label>
-                <label class="form-shell">
-                  <span>CLUP status</span>
-                  <select class="input-shell" id="rankingClupStatus">
-                    <option value="all">All compliance results</option>
-                    <option value="pass" ${clupStatus === "pass" ? "selected" : ""}>PASS only</option>
-                    <option value="conditional" ${clupStatus === "conditional" ? "selected" : ""}>CONDITIONAL only</option>
-                    <option value="fail" ${clupStatus === "fail" ? "selected" : ""}>FAIL only</option>
-                  </select>
-                </label>
-              </div>
-
-              <div class="ranking-summary-rail">
-                <article class="ranking-summary-cell">
-                  <span>${escapeHtml(activeLens.shortLabel)} avg</span>
-                  <strong>${averageLensScore}</strong>
-                </article>
-                <article class="ranking-summary-cell">
-                  <span>Elite fits</span>
-                  <strong>${strongCount}</strong>
-                </article>
-                <article class="ranking-summary-cell">
-                  <span>Diligence avg</span>
-                  <strong>${averageDiligence}%</strong>
-                </article>
-                <article class="ranking-summary-cell">
-                  <span>CLUP pass</span>
-                  <strong>${clupPassCount}/${visibleCount}</strong>
-                </article>
-              </div>
-
-              <article class="ranking-thesis-note">
-                <div class="panel-kicker">Current thesis</div>
-                <h3>${escapeHtml(activeLens.label)} is setting the decision standard.</h3>
-                <p>Scores move with purpose, not just price. The current lens is favoring ${escapeHtml(boardScopeLabel.toLowerCase())} opportunities that fit ${escapeHtml(boardTypeLabel.toLowerCase())} demand most cleanly.</p>
-                <div class="service-chip-row ranking-thesis-chip-row">
-                  ${serviceChip(`${activeLens.label} active`, "live")}
-                  ${serviceChip(boardScopeLabel, "neutral")}
-                  ${serviceChip(boardTypeLabel, "fallback")}
-                </div>
-              </article>
-            </article>
-          </aside>
-
-        <section class="stack ranking-command-main">
-          ${investmentLensSelectorMarkup(investmentLensKey, {
-            title: "Select Investment Lens",
-            description: "Re-rank the board by investment purpose. Scores, front-runner logic, and supporting explanation all update in one pass.",
-          })}
-
-          <article class="leaderboard-hero ranking-hero-board ranking-stage-shell" style="--ranking-hero-image:url('${escapeHtml(absoluteAssetPath(lead?.imageUrl || ""))}')">
-            <div class="ranking-stage-grid">
-              <div class="ranking-stage-main">
-                <div class="panel-kicker">Lead opportunity for ${escapeHtml(activeLens.label)}</div>
-                <h2>${escapeHtml(lead?.name || "No properties in this filter")}</h2>
-                <p>${escapeHtml(truncate(leadStory, 220))}</p>
-                <div class="service-chip-row ranking-hero-chip-row">
-                  ${lead ? clupStatusPill(lead.clupCompliance) : ""}
-                  ${leadLabels.map((label) => `<span class="service-chip service-chip-neutral">${escapeHtml(label)}</span>`).join("")}
-                  ${lead ? serviceChip(voteLabel(lead.topNeed || "No demand yet"), "fallback") : ""}
-                  ${lead ? serviceChip(corridorLabel(lead.corridor), "neutral") : ""}
-                </div>
-                <div class="ranking-stage-note">
-                  <span>Why it leads</span>
-                  <strong>${escapeHtml(truncate(leadReason, 152))}</strong>
-                </div>
-                <div class="property-actions ranking-hero-actions">
-                  ${lead ? `<a href="${propertyHref(lead.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property Thesis</a>` : ""}
-                  <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-explorer.php" class="btn-shell btn-shell-secondary">${icon("explorer")}Open Explorer</a>
-                  ${lead ? `<button type="button" class="btn-shell btn-shell-ghost" data-compare-toggle="${lead.id}">${icon("compare")}${compareIds.includes(lead.id) ? "Compared" : "Compare"}</button>` : ""}
-                </div>
-              </div>
-              <aside class="ranking-stage-aside">
-                <div class="ranking-hero-score">
-                  <span class="ranking-hero-score-label">Current lens score</span>
-                  <strong>${Math.round(Number(lead?.lensScore || 0))}</strong>
-                  <p>${escapeHtml(lead ? `${lead.name} is currently the clearest fit under the ${activeLens.label} lens.` : "No active lead in this filter.")}</p>
-                </div>
-                <div class="ranking-hero-metrics ranking-stage-metrics">
-                  <article><span>Guide price</span><strong>${escapeHtml(moneyShort(lead?.price || 0))}</strong></article>
-                  <article><span>Land area</span><strong>${escapeHtml(lead?.area || "--")} ha</strong></article>
-                  <article><span>Votes</span><strong>${Number(lead?.voteTotal || 0)}</strong></article>
-                  <article><span>Due diligence</span><strong>${Math.round(Number(lead?.dueDiligencePct || 0))}%</strong></article>
-                  <article><span>CLUP suitability</span><strong>${Math.round(Number(lead?.clupCompliance?.suitabilityScore || 0))}</strong></article>
-                </div>
-              </aside>
-            </div>
-            ${visible.length ? googleEarthActionsMarkup({
-              properties: visible,
-              scope: "ranking-visible",
-              note: "Export the current ranked set to Google Earth without disturbing the platform’s scoring and recommendation flow.",
-            }) : ""}
-          </article>
-
-          <div class="ranking-board-grid">
-            ${lead ? clupDecisionCardMarkup(lead.clupCompliance, { compact: true }) : ""}
-            ${lead ? investmentLensThesisMarkup(lead, lead.lensResult, {
-              kicker: `Top Pick for ${activeLens.label}`,
-              heading: `${lead.name} leads under the ${activeLens.label} lens`,
-            }) : ""}
-
-            <article class="panel-card leaderboard-shell ranking-leaderboard-shell">
-              <div class="ranking-section-head">
-                <div>
-                  <div class="panel-kicker">Leaderboard</div>
-                  <h3>Top ranked properties</h3>
-                </div>
-                <span class="service-chip service-chip-neutral">${visibleCount} entries</span>
-              </div>
-              <div class="leaderboard-list">${visible.length ? leaderboardRows(visible, 6, { lensKey: investmentLensKey }) : emptyState("No ranked properties", "Try widening the filters to see more results.")}</div>
-            </article>
-          </div>
-
-          <div class="ranking-results-head">
+      <div class="ranking-studio-v2">
+        <!-- Print Header -->
+        <div class="ranking-print-only">
+          <div class="ranking-print-header">
             <div>
-              <div class="panel-kicker">Full board</div>
-              <h3>Scan the remaining ranked opportunities</h3>
+              <h1>City Government of San Fernando, La Union</h1>
+              <p>Local Economic &amp; Business Development Office (LEBDO) — Investment Priority Board</p>
             </div>
-            <span class="service-chip service-chip-neutral">${visibleCount} propert${visibleCount === 1 ? "y" : "ies"} in view</span>
+            <div>
+              <strong>Lens: ${escapeHtml(activeLens.label)}</strong>
+              <p>${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+            </div>
           </div>
+        </div>
 
-          <div class="property-grid ranking-property-grid">
-            ${visible.length
-              ? visible.map((property) => propertyCard(property, { compareIds, favoriteIds, lensKey: investmentLensKey, variant: "ranking" })).join("")
-              : emptyState("No ranked properties", "Try widening the filters to see more results.")}
+        <!-- Investment Lens Ribbon -->
+        <section class="ranking-lens-bar" aria-label="Investment Lens Selector">
+          <div class="ranking-lens-bar-header">
+            <span class="ranking-lens-bar-title">
+              ${icon("spark")} Select Strategic Investment Lens
+            </span>
+            <span class="ranking-lens-active-badge">${escapeHtml(activeLens.label)} Active</span>
+          </div>
+          <div class="ranking-lens-track" role="tablist">
+            ${INVESTMENT_LENSES.map((lens) => `
+              <button
+                type="button"
+                class="ranking-lens-btn ${lens.key === activeLens.key ? "is-active" : ""}"
+                data-investment-lens="${escapeHtml(lens.key)}"
+                role="tab"
+                aria-selected="${lens.key === activeLens.key ? "true" : "false"}"
+                title="${escapeHtml(lens.subtitle || lens.label)}"
+              >
+                <span class="lens-icon-wrap" aria-hidden="true">${investmentLensIconMarkup(lens.key)}</span>
+                <span>${escapeHtml(lens.label)}</span>
+                <span class="lens-count-pill">${lensCounts[lens.key] || 0}</span>
+              </button>
+            `).join("")}
           </div>
         </section>
+
+        <!-- Command Toolbar: Real-time Search & Multi-Filters -->
+        <div class="ranking-toolbar">
+          <div class="ranking-toolbar-filters">
+            <div class="ranking-search-box">
+              <span class="ranking-search-icon" aria-hidden="true">${icon("explorer")}</span>
+              <input
+                type="text"
+                id="rankingSearch"
+                class="ranking-search-input"
+                placeholder="Search property or barangay..."
+                value="${escapeHtml(searchQuery)}"
+                aria-label="Filter properties by name or barangay"
+              >
+              ${searchQuery ? '<button type="button" id="rankingSearchClear" class="ranking-search-clear" title="Clear search">×</button>' : ""}
+            </div>
+
+            <select class="ranking-select" id="rankingCorridor" aria-label="Filter by corridor">
+              <option value="all">All Corridors</option>
+              <option value="highway" ${corridor === "highway" ? "selected" : ""}>Highway Corridor</option>
+              <option value="downtown" ${corridor === "downtown" ? "selected" : ""}>Downtown District</option>
+              <option value="coastal" ${corridor === "coastal" ? "selected" : ""}>Coastal Belt</option>
+            </select>
+
+            <select class="ranking-select" id="rankingType" aria-label="Filter by property type">
+              <option value="all">All Property Types</option>
+              <option value="commercial" ${type === "commercial" ? "selected" : ""}>Commercial</option>
+              <option value="logistics" ${type === "logistics" ? "selected" : ""}>Logistics</option>
+              <option value="hotel" ${type === "hotel" ? "selected" : ""}>Resort / Tourism</option>
+              <option value="bpo" ${type === "bpo" ? "selected" : ""}>Office / BPO</option>
+              <option value="manufacturing" ${type === "manufacturing" ? "selected" : ""}>Manufacturing</option>
+            </select>
+
+            <select class="ranking-select" id="rankingClupStatus" aria-label="Filter by CLUP compliance status">
+              <option value="all">All CLUP Statuses</option>
+              <option value="pass" ${clupStatus === "pass" ? "selected" : ""}>PASS only</option>
+              <option value="conditional" ${clupStatus === "conditional" ? "selected" : ""}>CONDITIONAL only</option>
+              <option value="unverified" ${clupStatus === "unverified" ? "selected" : ""}>Pending Verification</option>
+              <option value="fail" ${clupStatus === "fail" ? "selected" : ""}>FAIL only</option>
+            </select>
+
+            <select class="ranking-select" id="rankingSort" aria-label="Sort board order">
+              <option value="rank" ${sortBy === "rank" ? "selected" : ""}>Sort: Recommended Rank</option>
+              <option value="score" ${sortBy === "score" ? "selected" : ""}>Sort: Highest Score</option>
+              <option value="price_asc" ${sortBy === "price_asc" ? "selected" : ""}>Sort: Price Low to High</option>
+              <option value="area_desc" ${sortBy === "area_desc" ? "selected" : ""}>Sort: Largest Land Area</option>
+            </select>
+
+            ${isFiltered ? '<button type="button" class="ranking-reset-btn" id="rankingReset">Reset Filters</button>' : ""}
+          </div>
+
+          <div class="ranking-toolbar-stats">
+            <span class="ranking-count-pill">${visibleCount} ${visibleCount === 1 ? "Property" : "Properties"}</span>
+            <span>Sorted by ${escapeHtml(activeLens.label)} Fit</span>
+          </div>
+        </div>
+
+        <!-- Master-Detail 2-Column Split Grid -->
+        <div class="ranking-split-grid">
+          <!-- Left Column: Live Ranked Leaderboard List -->
+          <div class="ranking-list-col" role="region" aria-label="Ranked property leaderboard">
+            <div class="ranking-list-header">
+              <span class="ranking-list-title">🏆 Investment Shortlist</span>
+              <span style="font-size:12px;color:#64748b;">Click any card to inspect dossier</span>
+            </div>
+
+            ${visible.length ? visible.map((property, index) => {
+              const isSelected = property.id === selectedPropertyId;
+              const scoreNum = Math.round(Number(property.lensScore || 0));
+              const badgeClass = index === 0 ? "rk-badge-1" : index === 1 ? "rk-badge-2" : index === 2 ? "rk-badge-3" : "rk-badge-default";
+              const scoreClass = scoreNum >= 85 ? "is-high" : scoreNum >= 70 ? "is-med" : "";
+              return `
+                <article
+                  class="ranking-row-card ${isSelected ? "is-selected" : ""}"
+                  data-inspect-id="${property.id}"
+                  role="button"
+                  tabindex="0"
+                  aria-pressed="${isSelected ? "true" : "false"}"
+                  aria-label="Rank ${index + 1}: ${escapeHtml(property.name)}, score ${scoreNum}"
+                >
+                  <div class="rk-badge ${badgeClass}">
+                    #${String(index + 1).padStart(2, "0")}
+                  </div>
+
+                  <div class="rk-thumb">
+                    <img src="${escapeHtml(property.imageUrl || absoluteAssetPath("images/placeholder.jpg"))}" alt="${escapeHtml(property.name)}" loading="lazy">
+                  </div>
+
+                  <div class="rk-info">
+                    <div class="rk-info-head">
+                      <h3 class="rk-title" title="${escapeHtml(property.name)}">${escapeHtml(property.name)}</h3>
+                      ${clupStatusPill(property.clupCompliance, false)}
+                    </div>
+                    <div class="rk-meta">
+                      <span>${icon("map")}${escapeHtml(property.barangay || "San Fernando")}</span>
+                      <span class="rk-dot">·</span>
+                      <span>${escapeHtml(corridorLabel(property.corridor))}</span>
+                    </div>
+                    <div class="rk-numbers">
+                      <span class="rk-price">${escapeHtml(moneyShort(property.price))}</span>
+                      <span class="rk-dot">·</span>
+                      <span>${escapeHtml(property.area || "--")} ha</span>
+                    </div>
+                  </div>
+
+                  <div class="rk-score-block">
+                    <div class="rk-score-pill ${scoreClass}">
+                      <strong>${scoreNum}</strong>
+                      <span>Fit Score</span>
+                    </div>
+                  </div>
+                </article>
+              `;
+            }).join("") : `
+              <div class="ranking-empty-card">
+                <h3>No Matching Properties</h3>
+                <p>No investment sites match your selected filters or search terms.</p>
+                <button type="button" class="btn-shell btn-shell-secondary" id="rankingEmptyReset">Reset Filters</button>
+              </div>
+            `}
+          </div>
+
+          <!-- Right Column: Sticky Executive Property Dossier Inspector -->
+          <div class="ranking-inspector-col">
+            ${selected ? `
+              <article class="inspector-card">
+                <!-- Hero Media Header -->
+                <div class="inspector-hero" style="background-image: url('${escapeHtml(absoluteAssetPath(selected.imageUrl || ""))}');">
+                  <div class="inspector-hero-overlay"></div>
+                  <div class="inspector-hero-content">
+                    <div class="inspector-hero-top">
+                      <span class="inspector-rank-badge">
+                        RANK #${selectedIndex + 1} OF ${visibleCount} · ${escapeHtml(activeLens.label.toUpperCase())} FIT
+                      </span>
+                      <div style="display:flex;gap:6px;align-items:center;">
+                        ${statusPill(selected.status)}
+                        ${clupStatusPill(selected.clupCompliance)}
+                      </div>
+                    </div>
+
+                    <div class="inspector-hero-main">
+                      <div class="inspector-title-group">
+                        <h2>${escapeHtml(selected.name)}</h2>
+                        <p>${icon("map")} ${escapeHtml(selected.barangay || "San Fernando")} · ${escapeHtml(corridorLabel(selected.corridor))}</p>
+                      </div>
+
+                      <div class="inspector-score-lockup">
+                        <strong>${Math.round(Number(selected.lensScore || 0))}</strong>
+                        <span>Attractiveness Index</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Quick Metrics 4-Cell Grid -->
+                <div class="inspector-metric-strip">
+                  <div class="inspector-metric-cell">
+                    <span>Guide Valuation</span>
+                    <strong>${escapeHtml(moneyShort(selected.price || 0))}</strong>
+                  </div>
+                  <div class="inspector-metric-cell">
+                    <span>Parcel Size</span>
+                    <strong>${escapeHtml(selected.area || "--")} ha</strong>
+                  </div>
+                  <div class="inspector-metric-cell">
+                    <span>Due Diligence</span>
+                    <strong>${Math.round(Number(selected.dueDiligencePct || 0))}% Docs</strong>
+                  </div>
+                  <div class="inspector-metric-cell">
+                    <span>CLUP Gate</span>
+                    <strong>${selected.clupCompliance?.status || "Pending"}</strong>
+                  </div>
+                </div>
+
+                <!-- Action Button Strip -->
+                <div class="inspector-action-bar">
+                  <a href="${propertyHref(selected.id)}" class="btn-shell btn-shell-primary">
+                    ${icon("arrow")} View Full Dossier
+                  </a>
+                  <button type="button" class="btn-shell btn-shell-secondary" data-compare-toggle="${selected.id}">
+                    ${icon("compare")} ${compareIds.includes(selected.id) ? "In Comparison" : "Compare Site"}
+                  </button>
+                  <a href="${escapeHtml(googleEarthExportHref({ propertyIds: [selected.id], format: "kml" }))}" class="btn-shell btn-shell-ghost" title="Export Google Earth KML">
+                    ${icon("spark")} Export KML
+                  </a>
+                </div>
+
+                <!-- Tabbed Deep-Dive Navigation -->
+                <nav class="inspector-tabs-nav" role="tablist">
+                  <button
+                    type="button"
+                    class="inspector-tab-btn ${activeInspectorTab === "fit" ? "is-active" : ""}"
+                    data-tab-target="fit"
+                    role="tab"
+                    aria-selected="${activeInspectorTab === "fit" ? "true" : "false"}"
+                  >
+                    <span>📊 Fit Drivers</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="inspector-tab-btn ${activeInspectorTab === "clup" ? "is-active" : ""}"
+                    data-tab-target="clup"
+                    role="tab"
+                    aria-selected="${activeInspectorTab === "clup" ? "true" : "false"}"
+                  >
+                    <span>🏛️ CLUP Gate</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="inspector-tab-btn ${activeInspectorTab === "location" ? "is-active" : ""}"
+                    data-tab-target="location"
+                    role="tab"
+                    aria-selected="${activeInspectorTab === "location" ? "true" : "false"}"
+                  >
+                    <span>📍 Corridor &amp; Diligence</span>
+                  </button>
+                </nav>
+
+                <!-- Tab Panels -->
+                <div class="inspector-tab-body">
+                  ${activeInspectorTab === "fit" ? `
+                    <div>
+                      <p class="inspector-thesis-text">
+                        ${escapeHtml(selected.lensResult?.thesis || selected.description || propertyStory(selected))}
+                      </p>
+
+                      <div class="inspector-pillars-row">
+                        ${(selected.lensResult?.emphasizedPillars || []).slice(0, 3).map((pillar) => `
+                          <span class="inspector-pillar-tag">
+                            <strong>${escapeHtml(pillar.label)}</strong> ${Math.round(Number(pillar.share || 0))}%
+                          </span>
+                        `).join("")}
+                      </div>
+
+                      <div class="inspector-metrics-list">
+                        ${(selected.lensResult?.metrics || []).slice(0, 4).map((metric) => `
+                          <div class="inspector-metric-row">
+                            <div class="inspector-metric-header">
+                              <strong>${escapeHtml(metric.label)}</strong>
+                              <span>${Math.round(Number(metric.score || 0))}% score · ${Math.round(Number(metric.weight || 0) * 100)}% weight</span>
+                            </div>
+                            <div class="inspector-progress-track">
+                              <span class="inspector-progress-fill" data-metric-fill="${Math.round(Number(metric.score || 0))}"></span>
+                            </div>
+                          </div>
+                        `).join("")}
+                      </div>
+                    </div>
+                  ` : activeInspectorTab === "clup" ? `
+                    <div>
+                      ${(() => {
+                        const compliance = selected.clupCompliance;
+                        const status = clupStatus(compliance?.status);
+                        const isPass = status === "PASS";
+                        const isCond = status === "CONDITIONAL";
+                        const isFail = status === "FAIL";
+                        const bannerClass = isPass ? "is-pass" : isCond ? "is-conditional" : isFail ? "is-fail" : "is-unverified";
+                        const bannerTitle = isPass ? "CLUP Zoning Compatibility Verified" : isCond ? "Conditional Land Use Classification" : isFail ? "Restricted / Non-Conforming Use" : "Zoning Verification Pending";
+                        const bannerMsg = compliance?.explanation || "Authoritative CLUP evaluation pending official zoning map ingestion.";
+                        return `
+                          <div class="clup-alert-banner ${bannerClass}">
+                            <div style="font-size:22px;line-height:1;">${isPass ? "✅" : isCond ? "⚠️" : isFail ? "⛔" : "ℹ️"}</div>
+                            <div>
+                              <strong>${escapeHtml(bannerTitle)}</strong>
+                              <p>${escapeHtml(bannerMsg)}</p>
+                            </div>
+                          </div>
+
+                          <div class="clup-facts-grid">
+                            <div class="clup-fact-box">
+                              <span>Existing Land Use</span>
+                              <strong>${escapeHtml(compliance?.existingLandUse || "Verification pending")}</strong>
+                            </div>
+                            <div class="clup-fact-box">
+                              <span>Zoning Classification</span>
+                              <strong>${escapeHtml(compliance?.zoningClassification || "Verification pending")}</strong>
+                            </div>
+                            <div class="clup-fact-box">
+                              <span>Strategic Corridor</span>
+                              <strong>${escapeHtml(compliance?.strategicGrowthCorridorLabel || corridorLabel(selected.corridor))}</strong>
+                            </div>
+                            <div class="clup-fact-box">
+                              <span>Recommended LGU Action</span>
+                              <strong>${escapeHtml(compliance?.recommendedLguAction || "Confirm locational clearance")}</strong>
+                            </div>
+                          </div>
+
+                          <div class="clup-use-row" style="margin-top:12px;padding:12px;background:#f8fafc;border-radius:12px;font-size:12px;display:grid;gap:6px;">
+                            <span><b>Allowed:</b> ${escapeHtml((compliance?.allowedUses || []).join(", ") || "None listed")}</span>
+                            <span><b>Conditional:</b> ${escapeHtml((compliance?.conditionalUses || []).join(", ") || "None listed")}</span>
+                            <span><b>Restricted:</b> ${escapeHtml((compliance?.restrictedUses || []).join(", ") || "None listed")}</span>
+                          </div>
+
+                          <details class="clup-legal-drawer">
+                            <summary>City Regulatory &amp; Zoning Context</summary>
+                            <p>${escapeHtml(compliance?.disclaimer || "Preliminary decision support screening only. Confirm against the adopted CLUP, official zoning map, and Zoning Ordinance with the City Planning and Development Office.")}</p>
+                          </details>
+                        `;
+                      })()}
+                    </div>
+                  ` : `
+                    <div>
+                      <div class="clup-facts-grid" style="margin-bottom:18px;">
+                        <div class="clup-fact-box">
+                          <span>Barangay Jurisdiction</span>
+                          <strong>${escapeHtml(selected.barangay || "San Fernando")}</strong>
+                        </div>
+                        <div class="clup-fact-box">
+                          <span>Growth Corridor</span>
+                          <strong>${escapeHtml(corridorLabel(selected.corridor))}</strong>
+                        </div>
+                        <div class="clup-fact-box">
+                          <span>Road Frontage Access</span>
+                          <strong>${selected.roadAccess || 90}% Connectivity</strong>
+                        </div>
+                        <div class="clup-fact-box">
+                          <span>Utility Readiness</span>
+                          <strong>${selected.utilityReadiness || 90}% Fiber/Power</strong>
+                        </div>
+                      </div>
+
+                      <div style="padding:14px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;margin-bottom:16px;">
+                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.06em;">Due Diligence Readiness Check</span>
+                        <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                          <strong style="font-size:20px;font-family:'Space Grotesk',sans-serif;color:#0f172a;">${Math.round(Number(selected.dueDiligencePct || 0))}%</strong>
+                          <span style="font-size:12px;color:#64748b;">of title, zoning, and legal documents on file.</span>
+                        </div>
+                      </div>
+
+                      <a href="${(window.SFC_APP_CONFIG?.basePath || "")}/property-explorer.php?focus=${selected.id}" class="btn-shell btn-shell-secondary" style="width:100%;justify-content:center;">
+                        ${icon("explorer")} Open in Map Explorer with 500m Buffer Ring
+                      </a>
+                    </div>
+                  `}
+                </div>
+              </article>
+            ` : `
+              <div class="ranking-empty-card">
+                <h3>Select a Candidate</h3>
+                <p>Choose any property from the leaderboard to review its complete investment dossier.</p>
+              </div>
+            `}
+          </div>
         </div>
       </div>
     `;
 
-    document.getElementById("rankingType")?.addEventListener("change", (event) => {
-      type = event.target.value;
+    // ------------------------------------------------------------------------
+    // Event Listeners & Bindings
+    // ------------------------------------------------------------------------
+    // Search input
+    const searchInput = document.getElementById("rankingSearch");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        searchQuery = e.target.value;
+        render();
+        const nextInput = document.getElementById("rankingSearch");
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.setSelectionRange(nextInput.value.length, nextInput.value.length);
+        }
+      });
+    }
+
+    document.getElementById("rankingSearchClear")?.addEventListener("click", () => {
+      searchQuery = "";
       render();
     });
-    document.getElementById("rankingCorridor")?.addEventListener("change", (event) => {
-      corridor = event.target.value;
+
+    // Dropdown filters
+    document.getElementById("rankingType")?.addEventListener("change", (e) => {
+      type = e.target.value;
       render();
     });
-    document.getElementById("rankingClupStatus")?.addEventListener("change", (event) => {
-      clupStatus = event.target.value;
+    document.getElementById("rankingCorridor")?.addEventListener("change", (e) => {
+      corridor = e.target.value;
       render();
     });
-    bindInvestmentLensSelector(root, (nextLensKey) => {
-      investmentLensKey = nextLensKey;
-      saveActiveInvestmentLensKey(nextLensKey);
+    document.getElementById("rankingClupStatus")?.addEventListener("change", (e) => {
+      clupStatus = e.target.value;
       render();
     });
+    document.getElementById("rankingSort")?.addEventListener("change", (e) => {
+      sortBy = e.target.value;
+      render();
+    });
+
+    // Reset filters
+    const handleReset = () => {
+      type = "all";
+      corridor = "all";
+      clupStatus = "all";
+      searchQuery = "";
+      sortBy = "rank";
+      render();
+    };
+    document.getElementById("rankingReset")?.addEventListener("click", handleReset);
+    document.getElementById("rankingEmptyReset")?.addEventListener("click", handleReset);
+
+    // Investment Lens switching
+    root.querySelectorAll("[data-investment-lens]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextLensKey = btn.dataset.investmentLens;
+        if (!nextLensKey || nextLensKey === investmentLensKey) return;
+        investmentLensKey = nextLensKey;
+        saveActiveInvestmentLensKey(nextLensKey);
+        render();
+      });
+    });
+
+    // Leaderboard Row selection (Click & Keyboard Enter)
+    root.querySelectorAll(".ranking-row-card[data-inspect-id]").forEach((card) => {
+      const pid = Number(card.dataset.inspectId);
+      const selectCard = () => {
+        if (selectedPropertyId === pid) return;
+        selectedPropertyId = pid;
+        render();
+      };
+      card.addEventListener("click", selectCard);
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectCard();
+        }
+      });
+    });
+
+    // Tab buttons in Inspector
+    root.querySelectorAll(".inspector-tab-btn[data-tab-target]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        const tabKey = tabBtn.dataset.tabTarget;
+        if (activeInspectorTab === tabKey) return;
+        activeInspectorTab = tabKey;
+        render();
+      });
+    });
+
     bindCollectionActions(root, render);
     animateLensMetricBars(root);
   };
+
   render();
 }
+
 
 async function initSellerDashboard() {
   const root = document.getElementById("sellerDashboardRoot");
@@ -11637,197 +11958,124 @@ async function initScenarioSimulator() {
 async function initDecisionReports() {
   const root = document.getElementById("decisionReportsRoot");
   if (!root) return;
+  document.getElementById("printDecisionReport")?.addEventListener("click", () => window.print());
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
   const investmentLensKey = getActiveInvestmentLensKey();
   const enriched = enrichProperties(properties, properties, {}, null, investmentLensKey);
   const counts = { PASS: 0, CONDITIONAL: 0, FAIL: 0, UNVERIFIED: 0 };
-  enriched.forEach((p) => {
-    const s = p.clupCompliance.status;
-    if (counts[s] !== undefined) counts[s] += 1;
-    else counts.UNVERIFIED += 1;
-  });
-
-  /* ── helpers ── */
-  const clupPill = (status) => {
-    if (status === "PASS")        return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#15803d;"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span>PASS</span>`;
-    if (status === "CONDITIONAL")  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#fffbeb;border:1px solid #fde68a;font-size:10px;font-weight:800;color:#92400e;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>CONDITIONAL</span>`;
-    if (status === "FAIL")         return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#fff1f2;border:1px solid #fecdd3;font-size:10px;font-weight:800;color:#9f1239;"><span style="width:6px;height:6px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>FAIL</span>`;
-    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0;font-size:10px;font-weight:800;color:#475569;"><span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>Unverified</span>`;
+  const statusKey = (compliance) => Object.hasOwn(counts, compliance.status) ? compliance.status : "UNVERIFIED";
+  enriched.forEach((property) => { counts[statusKey(property.clupCompliance)] += 1; });
+  const labels = { PASS: "Pass", CONDITIONAL: "Conditional", FAIL: "Fail", UNVERIFIED: "Unverified" };
+  const icon = (path) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+  const infoIcon = icon('<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-9h.01"/>');
+  const chevron = icon('<path d="m7 10 5 5 5-5"/>');
+  const summary = [
+    { key: "UNVERIFIED", label: "Pending verification", note: "Awaiting land-use evidence", icon: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>' },
+    { key: "PASS", label: "CLUP pass", note: "Cleared for recommendation", icon: '<path d="m5 12 4 4L19 6"/>' },
+    { key: "CONDITIONAL", label: "Conditional", note: "Subject to LGU conditions", icon: '<path d="m12 3 10 18H2L12 3zm0 6v4m0 4h.01"/>' },
+    { key: "FAIL", label: "CLUP fail", note: "Incompatible with land use", icon: '<path d="m7 7 10 10M7 17 17 7"/>' },
+  ];
+  const evidenceLabel = (compliance) => titleCase(String(compliance.evidenceLevel || "UNVERIFIED").toLowerCase());
+  const checklist = (compliance) => {
+    const assessed = statusKey(compliance) !== "UNVERIFIED";
+    const recorded = ["RECORDED", "VERIFIED", "COMPLETE", "CONFIRMED", "SUBMITTED", "PARTIAL"].includes(String(compliance.evidenceLevel || "").toUpperCase());
+    return [
+      { label: "Import zoning map dataset", done: assessed },
+      { label: "Resolve against zoning polygon", done: assessed },
+      { label: "Attach parcel-to-zone evidence", done: assessed && recorded },
+      { label: "Admin review & sign-off", done: compliance.status === "PASS" },
+    ].map((step) => `<li${step.done ? ' class="is-complete"' : ""}><span class="report-check-state">${step.done ? "Complete" : "Pending"}</span>${escapeHtml(step.label)}</li>`).join("");
   };
-
-  const evidencePill = (level, src) => {
-    const lower = (level || "").toLowerCase();
-    let badge = "";
-    if (lower === "complete" || lower === "confirmed")
-      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#15803d;">&#10003; Complete</span>`;
-    else if (lower === "partial" || lower === "submitted")
-      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#f5f3ff;border:1px solid #ddd6fe;font-size:10px;font-weight:800;color:#5b21b6;">&#9682; Partial</span>`;
-    else
-      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fffbeb;border:1px solid #fde68a;font-size:10px;font-weight:800;color:#92400e;">&#9888; Unverified</span>`;
-    return `${badge}<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:5px;">${escapeHtml(src || "Corridor screen")}</div>`;
-  };
-
-  const suitabilityCell = (score) => {
-    if (score === null || score === undefined || String(score) === "null")
-      return `<div style="font-size:13px;font-weight:700;color:#cbd5e1;">&#8212;&#8212; <span style="color:#e2e8f0;">/100</span></div><div style="font-size:10px;color:#cbd5e1;font-weight:500;margin-top:3px;">Pending data</div>`;
-    const n = Number(score);
-    const col = n >= 75 ? "#15803d" : n >= 50 ? "#92400e" : "#9f1239";
-    const bg  = n >= 75 ? "#22c55e" : n >= 50 ? "#f59e0b" : "#f43f5e";
-    return `<div style="font-size:13px;font-weight:800;color:${col};">${n}<span style="color:#cbd5e1;font-weight:400;">/100</span></div><div style="height:5px;width:52px;border-radius:999px;background:#f1f5f9;margin-top:5px;overflow:hidden;"><div style="height:100%;width:${n}%;border-radius:999px;background:${bg};"></div></div>`;
-  };
-
-  const actionChecklist = (compliance) => {
-    const raw = compliance.recommendedLguAction || "";
-    const steps = [
-      { label: "Import Zoning Map dataset",           done: compliance.status !== "UNVERIFIED" },
-      { label: "Resolve against zoning polygon",      done: compliance.status === "PASS" || compliance.status === "CONDITIONAL" || compliance.status === "FAIL" },
-      { label: "Attach parcel-to-zone evidence",      done: (compliance.evidenceLevel || "").toLowerCase() !== "inferred" && compliance.status !== "UNVERIFIED" },
-      { label: "Admin review & sign-off",             done: compliance.status === "PASS" },
-    ];
-    return steps.map((s) => {
-      if (s.done)
-        return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span style="width:15px;height:15px;border-radius:4px;background:#dcfce7;border:1px solid #bbf7d0;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="font-size:11px;color:#94a3b8;text-decoration:line-through;line-height:1.4;">${escapeHtml(s.label)}</span></div>`;
-      return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span style="width:15px;height:15px;border-radius:4px;background:#fff;border:2px solid #e2e8f0;flex-shrink:0;margin-top:1px;"></span><span style="font-size:11px;color:#374151;font-weight:600;line-height:1.4;">${escapeHtml(s.label)}</span></div>`;
-    }).join("");
-  };
-
-  const actionBtn = (property) => {
-    const c = property.clupCompliance;
-    const btnStyle = "display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);outline:none;border:none;";
-    
-    if (c.status === "PASS") {
-      return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
-        style="${btnStyle}background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d;"
-        onmouseover="this.style.background='#d1fae5';this.style.transform='translateY(-1px)';"
-        onmouseout="this.style.background='#ecfdf5';this.style.transform='none';">
-        &#10003; Cleared
-      </button>`;
-    }
-    
-    const allDone = ["PASS","CONDITIONAL","FAIL"].includes(c.status);
-    if (allDone && c.status !== "PASS") {
-      return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
-        style="${btnStyle}background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;"
-        onmouseover="this.style.background='#ede9fe';this.style.transform='translateY(-1px)';"
-        onmouseout="this.style.background='#f5f3ff';this.style.transform='none';">
-        &#128196; Upload Evidence
-      </button>`;
-    }
-    
-    return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
-      style="${btnStyle}background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;box-shadow:0 3px 10px rgba(245,158,11,0.3);"
-      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 15px rgba(245,158,11,0.45)';"
-      onmouseout="this.style.transform='none';this.style.boxShadow='0 3px 10px rgba(245,158,11,0.3)';">
-      &#9889; Resolve Now
-    </button>`;
-  };
-
-  const rows = enriched.map((property, index) => {
-    const c = property.clupCompliance;
-    return `<tr style="border-bottom:1px solid #f1f5f9;transition:background 140ms ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
-      <td style="padding:14px 16px;vertical-align:top;"><div style="width:28px;height:28px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#475569;">${index + 1}</div></td>
-      <td style="padding:14px 12px;vertical-align:top;min-width:155px;"><div style="font-size:13px;font-weight:700;color:#0f172a;line-height:1.3;margin-bottom:3px;">${escapeHtml(property.name)}</div><div style="font-size:11px;color:#94a3b8;font-weight:500;">${escapeHtml(property.barangay || "San Fernando")} &middot; ${escapeHtml(corridorLabel(property.corridor))}</div></td>
-      <td style="padding:14px 12px;vertical-align:top;min-width:115px;"><div style="font-size:12px;font-weight:600;color:#374151;">${escapeHtml(c.proposedInvestmentLabel)}</div></td>
-      <td style="padding:14px 12px;vertical-align:top;text-align:center;"><span style="display:inline-block;padding:4px 9px;border-radius:8px;background:${Number(property.lensScore||0)>=90?"#ecfdf5":"#f8fafc"};font-size:12px;font-weight:800;color:${Number(property.lensScore||0)>=90?"#15803d":"#475569"};">${Math.round(Number(property.lensScore || 0))}</span></td>
-      <td style="padding:14px 12px;vertical-align:top;">${clupPill(c.status)}</td>
-      <td style="padding:14px 12px;vertical-align:top;min-width:95px;">${suitabilityCell(c.suitabilityScore)}</td>
-      <td style="padding:14px 12px;vertical-align:top;min-width:125px;">${evidencePill(c.evidenceLevel, c.sourceReference)}</td>
-      <td style="padding:14px 12px;vertical-align:top;min-width:185px;">${actionChecklist(c)}</td>
-      <td style="padding:14px 16px;vertical-align:top;text-align:right;">${actionBtn(property)}</td>
-    </tr>`;
-  }).join("");
-
-  const unverifiedCount = enriched.filter((p) => !["PASS","CONDITIONAL","FAIL"].includes(p.clupCompliance.status)).length;
-
-  root.innerHTML = `
-    <div class="stack clup-report-shell" style="gap:20px;">
-
-      <!-- Stat Cards -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
-        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #d1fae5;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
-          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#22c55e;border-radius:2px;"></div>
-          <div style="padding-left:10px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <div style="width:30px;height:30px;border-radius:9px;background:#dcfce7;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
-              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#16a34a;background:#dcfce7;padding:2px 8px;border-radius:999px;">Compliant</span>
-            </div>
-            <div style="font-size:38px;font-weight:900;color:#15803d;line-height:1;margin-bottom:3px;">${counts.PASS}</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b;">CLUP PASS</div>
-            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Cleared for investment recommendation</div>
-          </div>
+  const rowMarkup = (property, index) => {
+    const compliance = property.clupCompliance;
+    const status = statusKey(compliance);
+    const rawScore = compliance.suitabilityScore;
+    const assessed = rawScore !== null && rawScore !== undefined && rawScore !== "" && rawScore !== "null" && Number.isFinite(Number(rawScore));
+    const iai = Math.round(Number(property.lensScore || 0));
+    const detailsId = `report-details-${index}`;
+    return `<tbody data-report-candidate="${index}">
+      <tr class="report-candidate-row">
+        <td><span class="report-rank">${String(index + 1).padStart(2, "0")}</span></td>
+        <th scope="row" class="report-candidate-name">${escapeHtml(property.name)}<span class="report-candidate-location">${escapeHtml(property.barangay || "San Fernando")} &middot; ${escapeHtml(corridorLabel(property.corridor))}</span></th>
+        <td><span class="report-iai">${iai}</span><div class="report-iai-track" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, iai))}%"></span></div></td>
+        <td><span class="report-status report-status-${status.toLowerCase()}">${labels[status]}</span></td>
+        <td>${assessed ? `<span class="report-suitability">${Number(rawScore)} <span class="report-score-denominator">/ 100</span></span>` : '<span class="report-not-assessed">Not assessed</span>'}</td>
+        <td><span class="report-evidence">${escapeHtml(evidenceLabel(compliance))}</span></td>
+        <td><button type="button" class="report-toggle" aria-expanded="false" aria-controls="${detailsId}" aria-label="Review ${escapeHtml(property.name)}">Review ${chevron}</button></td>
+      </tr>
+      <tr class="report-details-row" id="${detailsId}" hidden><td colspan="7">
+        <div class="report-details">
+          <section><h3>Proposed use & evidence</h3><p>${escapeHtml(compliance.proposedInvestmentLabel || "Not specified")}</p><p>Source: ${escapeHtml(compliance.sourceReference || "Corridor-level screen; authoritative source pending.")}</p>${compliance.recommendedLguAction ? `<p>${escapeHtml(compliance.recommendedLguAction)}</p>` : ""}</section>
+          <section><h3>Verification checklist</h3><ul class="report-checklist">${checklist(compliance)}</ul></section>
+          <a class="report-resolution no-print" href="admin-properties.php?edit=${encodeURIComponent(property.id)}">${status === "PASS" ? "View record" : status === "UNVERIFIED" ? "Resolve verification" : "Review evidence"} <span aria-hidden="true">&rarr;</span></a>
         </div>
-        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #fde68a;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
-          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#f59e0b;border-radius:2px;"></div>
-          <div style="padding-left:10px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <div style="width:30px;height:30px;border-radius:9px;background:#fef3c7;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
-              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#d97706;background:#fef3c7;padding:2px 8px;border-radius:999px;">Conditional</span>
-            </div>
-            <div style="font-size:38px;font-weight:900;color:#92400e;line-height:1;margin-bottom:3px;">${counts.CONDITIONAL}</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b;">CONDITIONAL</div>
-            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Permitted with LGU conditions applied</div>
-          </div>
-        </div>
-        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #fecdd3;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
-          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#f43f5e;border-radius:2px;"></div>
-          <div style="padding-left:10px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-              <div style="width:30px;height:30px;border-radius:9px;background:#fff1f2;border:1px solid #fecdd3;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#e11d48;background:#fff1f2;padding:2px 8px;border-radius:999px;">Disqualified</span>
-            </div>
-            <div style="font-size:38px;font-weight:900;color:#9f1239;line-height:1;margin-bottom:3px;">${counts.FAIL}</div>
-            <div style="font-size:11px;font-weight:700;color:#64748b;">CLUP FAIL</div>
-            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Incompatible with land-use classification</div>
-          </div>
-        </div>
+      </td></tr>
+    </tbody>`;
+  };
+
+  root.innerHTML = `<div class="report-workspace">
+    <section aria-labelledby="reportOverviewTitle">
+      <div class="report-overview-heading"><h2 id="reportOverviewTitle">Compliance overview</h2><p>${enriched.length} candidate site${enriched.length === 1 ? "" : "s"}</p></div>
+      <dl class="report-summary">${summary.map((item) => `<div class="report-stat-${item.key.toLowerCase()}"><dt>${item.label}<span class="report-stat-icon">${icon(item.icon)}</span></dt><dd>${counts[item.key]}<small>${item.note}</small></dd></div>`).join("")}</dl>
+    </section>
+    ${counts.UNVERIFIED ? `<aside class="report-notice">${infoIcon}<p><strong>${counts.UNVERIFIED} site${counts.UNVERIFIED === 1 ? " needs" : "s need"} CLUP verification.</strong> Review the evidence checklist for each site to complete its compliance assessment.</p></aside>` : ""}
+    <section class="report-register" aria-labelledby="reportRegisterTitle">
+      <div class="report-register-head">
+        <div><div class="report-register-title"><h2 id="reportRegisterTitle">Candidate register</h2><span class="report-count">${enriched.length}</span></div><p>Investment lens: ${escapeHtml(getInvestmentLensConfig(investmentLensKey).label)}</p></div>
+        <label class="report-search no-print">${icon('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>')}<span class="report-visually-hidden">Search candidate sites</span><input id="reportSearch" type="search" placeholder="Search sites or locations…" autocomplete="off"></label>
       </div>
-
-      ${unverifiedCount > 0 ? `<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a;">
-        <div style="width:22px;height:22px;border-radius:50%;background:#fef3c7;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01"/></svg></div>
-        <p style="font-size:12px;font-weight:600;color:#92400e;margin:0;"><strong>${unverifiedCount}</strong> candidate site${unverifiedCount !== 1 ? "s" : ""} pending CLUP verification. Complete the evidence queue to unlock compliance scoring.</p>
-      </div>` : ""}
-
-      <!-- Priority Register Table -->
-      <article class="panel-card" style="overflow:hidden;padding:0;">
-        <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;">
-          <div class="panel-kicker">Priority Register</div>
-          <h3 style="margin:4px 0 0;font-size:1rem;font-weight:800;">CLUP-gated candidate sites</h3>
+      <div class="report-toolbar no-print">
+        <div class="report-filters" role="group" aria-label="Filter by CLUP status">
+          ${[["ALL", "All sites", enriched.length], ["UNVERIFIED", "Pending", counts.UNVERIFIED], ["PASS", "Pass", counts.PASS], ["CONDITIONAL", "Conditional", counts.CONDITIONAL], ["FAIL", "Fail", counts.FAIL]].map(([key, label, count]) => `<button type="button" class="report-filter" data-report-filter="${key}" aria-pressed="${key === "ALL"}">${label}<span>${count}</span></button>`).join("")}
         </div>
-        <div class="clup-report-table-wrap" style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
-                <th style="text-align:left;padding:10px 16px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;white-space:nowrap;">Rank</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Candidate Site</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Proposed Use</th>
-                <th style="text-align:center;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">IAI</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">CLUP</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Suitability</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Evidence</th>
-                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Action Checklist</th>
-                <th style="text-align:right;padding:10px 16px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Action</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-        <div style="padding:12px 24px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
-          <p style="font-size:11px;color:#94a3b8;font-weight:500;margin:0;">Showing ${enriched.length} candidate site${enriched.length !== 1 ? "s" : ""}</p>
-          <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#94a3b8;font-weight:500;">
-            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Pass</span>
-            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Conditional</span>
-            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>Fail</span>
-            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>Unverified</span>
-          </div>
-        </div>
-      </article>
+        <span class="report-sort-note">Ordered by CLUP status, then IAI</span>
+      </div>
+      <p class="report-scroll-hint">Scroll horizontally to view all columns and review actions &rarr;</p>
+      <div class="report-table-scroll" tabindex="0" role="region" aria-label="Candidate site rankings">
+        <table class="report-table">
+          <caption class="report-visually-hidden">Candidate sites ranked by CLUP compliance and investment attractiveness. Expand Review for proposed use, evidence, and next steps.</caption>
+          <colgroup><col style="width:6%"><col style="width:32%"><col style="width:8%"><col style="width:16%"><col style="width:13%"><col style="width:13%"><col style="width:12%"></colgroup>
+          <thead><tr><th scope="col">Rank</th><th scope="col">Candidate site</th><th scope="col"><abbr title="Investment Attractiveness Index">IAI</abbr></th><th scope="col">CLUP status</th><th scope="col">Suitability</th><th scope="col">Evidence</th><th scope="col"><span class="report-visually-hidden">Review</span></th></tr></thead>
+          ${enriched.map(rowMarkup).join("")}
+        </table>
+      </div>
+      <div class="report-empty" id="reportEmpty" hidden><h3>${enriched.length ? "No matching sites" : "No candidate sites yet"}</h3><p>${enriched.length ? "Try another site name, location, or compliance status." : "Candidate sites will appear here when they are available."}</p>${enriched.length ? '<button type="button" class="report-clear no-print" id="reportClear">Clear filters</button>' : ""}</div>
+      <div class="report-table-footer"><p id="reportResultCount" role="status" aria-live="polite"></p><p>IAI &middot; Investment Attractiveness Index</p></div>
+    </section>
+    <aside class="report-method">${infoIcon}<div><h2>About this assessment</h2><p>CLUP status is a preliminary corridor-level screen, not a zoning certificate or locational clearance. Validate each parcel against the adopted CLUP, official zoning map, Zoning Ordinance, overlays, and applicable national agency requirements.</p></div></aside>
+  </div>`;
 
-      <article class="panel-card clup-method-note"><div class="panel-kicker">Method and Limitation</div><p>CLUP status is a preliminary corridor-level screen derived from stored site attributes. It is not a zoning certificate or locational clearance. Validate every parcel against the latest adopted CLUP, official zoning map, Zoning Ordinance, overlays, and applicable national agency requirements.</p></article>
-    </div>`;
-
-  document.getElementById("printDecisionReport")?.addEventListener("click", () => window.print());
+  let activeFilter = "ALL";
+  const search = root.querySelector("#reportSearch");
+  const candidateGroups = [...root.querySelectorAll("[data-report-candidate]")];
+  const filterButtons = [...root.querySelectorAll("[data-report-filter]")];
+  const applyFilters = () => {
+    const query = search.value.trim().toLowerCase();
+    let visible = 0;
+    candidateGroups.forEach((group, index) => {
+      const property = enriched[index];
+      const searchable = [property.name, property.barangay || "San Fernando", corridorLabel(property.corridor), property.clupCompliance.proposedInvestmentLabel].join(" ").toLowerCase();
+      group.hidden = !(activeFilter === "ALL" || statusKey(property.clupCompliance) === activeFilter) || !searchable.includes(query);
+      if (!group.hidden) visible += 1;
+    });
+    filterButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.reportFilter === activeFilter)));
+    root.querySelector("#reportEmpty").hidden = visible > 0;
+    root.querySelector(".report-table-scroll").hidden = visible === 0;
+    root.querySelector("#reportResultCount").textContent = `Showing ${visible} of ${enriched.length} candidate sites${activeFilter !== "ALL" ? ` · ${activeFilter === "UNVERIFIED" ? "Pending verification" : labels[activeFilter]}` : ""}${query ? ` · Search: ${search.value.trim()}` : ""}`;
+  };
+  search.addEventListener("input", applyFilters);
+  filterButtons.forEach((button) => button.addEventListener("click", () => { activeFilter = button.dataset.reportFilter; applyFilters(); }));
+  root.querySelector("#reportClear")?.addEventListener("click", () => { activeFilter = "ALL"; search.value = ""; applyFilters(); search.focus(); });
+  root.querySelectorAll(".report-toggle").forEach((button) => button.addEventListener("click", () => {
+    const isExpanded = button.getAttribute("aria-expanded") === "true";
+    button.setAttribute("aria-expanded", String(!isExpanded));
+    document.getElementById(button.getAttribute("aria-controls")).hidden = isExpanded;
+    button.closest("tr").classList.toggle("is-open", !isExpanded);
+  }));
+  applyFilters();
 }
+
 
 async function boot() {
   initPortalMenu();
