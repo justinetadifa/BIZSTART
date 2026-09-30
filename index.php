@@ -36,6 +36,109 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
 >
   <div class="locus-welcome__backdrop" aria-hidden="true"></div>
   <div class="locus-welcome__shade" aria-hidden="true"></div>
+  <canvas class="locus-welcome__particles" aria-hidden="true"></canvas>
+
+  <!-- Interactive Spatial Beacons on San Fernando City landmarks -->
+  <div class="locus-welcome__beacons" aria-label="City Corridor Beacons">
+    <!-- Beacon 01: Poro Point Logistics & Freeport -->
+    <button
+      type="button"
+      class="locus-beacon locus-beacon--poro"
+      data-beacon="poro"
+      data-lat="16.6021&deg; N"
+      data-lng="120.3015&deg; E"
+      data-name="Poro Point Freeport"
+      data-corridor="Logistics Gateway"
+      data-stat="94.2 Attractiveness"
+      aria-label="Poro Point Freeport corridor"
+    >
+      <span class="locus-beacon__wave"></span>
+      <span class="locus-beacon__core"></span>
+      <span class="locus-beacon__pill">
+        <span class="locus-beacon__tag">01</span>
+        <span class="locus-beacon__name">Poro Point</span>
+      </span>
+      <span class="locus-beacon__card" role="tooltip">
+        <span class="locus-beacon__card-badge">Logistics Gateway</span>
+        <strong class="locus-beacon__card-title">Poro Point Freeport</strong>
+        <span class="locus-beacon__card-desc">Deep-water port, industrial corridor & logistics center</span>
+        <span class="locus-beacon__card-meta">
+          <span>Corridor Fit</span>
+          <strong>94.2 Score</strong>
+        </span>
+      </span>
+    </button>
+
+    <!-- Beacon 02: City Center Commercial & Civic Belt -->
+    <button
+      type="button"
+      class="locus-beacon locus-beacon--center"
+      data-beacon="center"
+      data-lat="16.6159&deg; N"
+      data-lng="120.3168&deg; E"
+      data-name="City Center Corridor"
+      data-corridor="Commercial Belt"
+      data-stat="88.7 Attractiveness"
+      aria-label="City Center and Commercial Belt corridor"
+    >
+      <span class="locus-beacon__wave"></span>
+      <span class="locus-beacon__core"></span>
+      <span class="locus-beacon__pill">
+        <span class="locus-beacon__tag">02</span>
+        <span class="locus-beacon__name">City Center</span>
+      </span>
+      <span class="locus-beacon__card" role="tooltip">
+        <span class="locus-beacon__card-badge">Commercial Belt</span>
+        <strong class="locus-beacon__card-title">City Center &amp; Civic Hub</strong>
+        <span class="locus-beacon__card-desc">Core financial spine, municipal services & retail district</span>
+        <span class="locus-beacon__card-meta">
+          <span>Demand Pull</span>
+          <strong>88.7 Score</strong>
+        </span>
+      </span>
+    </button>
+
+    <!-- Beacon 03: Solar Innovation Rooftop Corridor -->
+    <button
+      type="button"
+      class="locus-beacon locus-beacon--solar"
+      data-beacon="solar"
+      data-lat="16.6184&deg; N"
+      data-lng="120.3204&deg; E"
+      data-name="Solar Innovation Belt"
+      data-corridor="Clean Energy Zone"
+      data-stat="91.5 Readiness"
+      aria-label="Solar Innovation Commercial facility"
+    >
+      <span class="locus-beacon__wave"></span>
+      <span class="locus-beacon__core"></span>
+      <span class="locus-beacon__pill">
+        <span class="locus-beacon__tag">03</span>
+        <span class="locus-beacon__name">Solar Belt</span>
+      </span>
+      <span class="locus-beacon__card" role="tooltip">
+        <span class="locus-beacon__card-badge">Clean Energy Zone</span>
+        <strong class="locus-beacon__card-title">Commercial Solar Array</strong>
+        <span class="locus-beacon__card-desc">High-capacity clean energy rooftop infrastructure</span>
+        <span class="locus-beacon__card-meta">
+          <span>Readiness</span>
+          <strong>91.5 Score</strong>
+        </span>
+      </span>
+    </button>
+  </div>
+
+  <!-- Interactive Telemetry HUD (top right) -->
+  <div class="locus-welcome__hud" aria-hidden="true">
+    <div class="locus-welcome__hud-item locus-welcome__hud-time-pill">
+      <span class="locus-welcome__hud-pulse"></span>
+      <span data-locus-clock>San Fernando &bull; 13:04 PHT</span>
+    </div>
+    <div class="locus-welcome__hud-item locus-welcome__hud-target-pill">
+      <span class="locus-welcome__hud-label">SURVEY FOCUS</span>
+      <strong class="locus-welcome__hud-target" data-locus-hud-target>PORO POINT HORIZON</strong>
+    </div>
+  </div>
 
   <div class="locus-welcome__geo" aria-hidden="true">
     <div class="locus-welcome__geo-grid"></div>
@@ -46,9 +149,9 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
       <span class="locus-welcome__geo-node locus-welcome__geo-node--three"></span>
     </div>
     <div class="locus-welcome__geo-readout">
-      <span>16.6159&deg; N</span>
+      <span data-locus-lat>16.6159&deg; N</span>
       <i></i>
-      <span>120.3166&deg; E</span>
+      <span data-locus-lng>120.3166&deg; E</span>
     </div>
   </div>
 
@@ -69,14 +172,17 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
       <span>starts with a place.</span>
     </h1>
     <p class="locus-welcome__description" id="locusWelcomeDescription">Explore local investment opportunities through property information and site comparison.</p>
-    <a
-      class="locus-welcome__continue"
-      href="<?= htmlspecialchars($welcomeFallbackHref, ENT_QUOTES, 'UTF-8') ?>"
-      data-locus-welcome-continue
-    >
-      <span>Continue to LOCUS-SF</span>
-      <span aria-hidden="true">&rarr;</span>
-    </a>
+    <div class="locus-welcome__actions">
+      <a
+        class="locus-welcome__continue"
+        href="<?= htmlspecialchars($welcomeFallbackHref, ENT_QUOTES, 'UTF-8') ?>"
+        data-locus-welcome-continue
+      >
+        <span>Continue to LOCUS-SF</span>
+        <span aria-hidden="true">&rarr;</span>
+      </a>
+      <span class="locus-welcome__press-hint">Press <kbd>Space</kbd> or <kbd>&crarr;</kbd> to enter &bull; Explore beacons above</span>
+    </div>
   </div>
 </section>
 <?php endif; ?>
