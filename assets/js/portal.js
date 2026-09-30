@@ -1,6 +1,5 @@
 import { api } from "./api.js";
 import { initNotificationCenter } from "./notifications.js";
-import { initInvestorAcademy } from "./academy.js";
 import {
   DEFAULT_INVESTMENT_LENS,
   DEFAULT_WEIGHTS,
@@ -22,7 +21,41 @@ const STORAGE_KEYS = {
   compare: "sfc.portal.compare",
   favorites: "sfc.portal.favorites",
   investmentLens: "sfc.portal.investmentLens",
+  decisionPersona: "sfc.portal.decisionPersona",
 };
+
+const FALLBACK_DECISION_PERSONAS = [
+  {
+    key: "balanced",
+    label: "Balanced Desk",
+    shortLabel: "Balanced",
+    description: "General opportunity posture balancing price, readiness, and proof.",
+  },
+  {
+    key: "conservative_income",
+    label: "Conservative Income",
+    shortLabel: "Income",
+    description: "Prefers cleaner proof, stronger readiness, and lower execution risk.",
+  },
+  {
+    key: "growth_focused",
+    label: "Growth Focused",
+    shortLabel: "Growth",
+    description: "Accepts moderate risk when momentum and upside are visible.",
+  },
+  {
+    key: "small_business_operator",
+    label: "Owner Operator",
+    shortLabel: "Operator",
+    description: "Prioritizes operating practicality, utilities, and direct location fit.",
+  },
+  {
+    key: "speculative_early_mover",
+    label: "Speculative Early Mover",
+    shortLabel: "Speculative",
+    description: "Will move earlier when location and upside look exceptional.",
+  },
+];
 
 const shortlistState = {
   ids: getStoredIdsFromStorage(STORAGE_KEYS.favorites),
@@ -58,9 +91,11 @@ const VERIFICATION_LABELS = {
   verified: "Verified",
   partially_verified: "Partially Verified",
   unverified: "Unverified",
+  pending: "Pending Review",
   draft: "Draft",
   pending_review: "Pending Review",
   rejected: "Rejected",
+  suspended: "Suspended",
   archived: "Archived",
 };
 
@@ -119,6 +154,17 @@ function moneyShort(value) {
   if (!Number.isFinite(numeric)) return "PHP 0";
   if (numeric >= 1000000) return `PHP ${(numeric / 1000000).toFixed(1)}M`;
   return money(numeric);
+}
+
+function absoluteAssetPath(value) {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (/^(?:https?:)?\/\//i.test(source) || source.startsWith("data:") || source.startsWith("/")) {
+    return source;
+  }
+
+  const basePath = String(window.SFC_APP_CONFIG?.basePath || "").replace(/\/$/, "");
+  return `${basePath}/${source.replace(/^\/+/, "")}`;
 }
 
 function propertyHref(propertyId) {
@@ -241,9 +287,11 @@ function verificationTone(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "verified") return "verification-verified";
   if (normalized === "partially_verified") return "verification-partial";
+  if (normalized === "pending") return "verification-pending";
   if (normalized === "draft") return "verification-draft";
   if (normalized === "pending_review") return "verification-pending";
   if (normalized === "rejected") return "verification-rejected";
+  if (normalized === "suspended") return "verification-archived";
   if (normalized === "archived") return "verification-archived";
   return "verification-unverified";
 }
@@ -333,6 +381,36 @@ function getActiveInvestmentLensKey() {
 
 function saveActiveInvestmentLensKey(lensKey) {
   saveJSON(STORAGE_KEYS.investmentLens, getInvestmentLensConfig(lensKey).key);
+}
+
+function normalizeDecisionPersonas(personas = []) {
+  if (!Array.isArray(personas) || !personas.length) {
+    return FALLBACK_DECISION_PERSONAS;
+  }
+
+  return personas.map((persona) => ({
+    key: String(persona?.key || ""),
+    label: String(persona?.label || persona?.shortLabel || "Persona"),
+    shortLabel: String(persona?.shortLabel || persona?.label || "Persona"),
+    description: String(persona?.description || ""),
+  })).filter((persona) => persona.key);
+}
+
+function getStoredDecisionPersonaKey(personas = FALLBACK_DECISION_PERSONAS) {
+  const available = normalizeDecisionPersonas(personas);
+  const fallbackKey = available[0]?.key || "balanced";
+  const stored = loadJSON(STORAGE_KEYS.decisionPersona, fallbackKey);
+  return available.some((persona) => persona.key === stored) ? stored : fallbackKey;
+}
+
+function saveDecisionPersonaKey(personaKey) {
+  saveJSON(STORAGE_KEYS.decisionPersona, String(personaKey || "balanced"));
+}
+
+function resolveDecisionVariant(decision, personaKey) {
+  if (!decision || typeof decision !== "object") return null;
+  const variants = decision.personas || {};
+  return variants[personaKey] || decision;
 }
 
 async function toggleFavoriteId(propertyId) {
@@ -519,6 +597,204 @@ function opportunityScore(property, allProperties, votes = {}, intent = null) {
   return Math.round(baseScore * groundTruthMultiplier);
 }
 
+const CLUP_STATUS_RANK = Object.freeze({ PASS: 3, CONDITIONAL: 2, UNVERIFIED: 1, FAIL: 0 });
+const CLUP_GATE_BY_STATUS = Object.freeze({
+  PASS: "ELIGIBLE",
+  CONDITIONAL: "REVIEW_REQUIRED",
+  UNVERIFIED: "HOLD",
+  FAIL: "BLOCKED",
+});
+const CLUP_LENS_USE_MAP = Object.freeze({
+  commercial_center: "commercial",
+  resort: "hotel",
+  university: "mixed_use",
+  hospital: "mixed_use",
+});
+
+function clupUseKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+function clupUseForLens(value) {
+  const key = clupUseKey(value);
+  return CLUP_LENS_USE_MAP[key] || key;
+}
+
+function clupStatus(value) {
+  const normalized = String(value || "UNVERIFIED").trim().toUpperCase();
+  return Object.hasOwn(CLUP_STATUS_RANK, normalized) ? normalized : "UNVERIFIED";
+}
+
+function clupGate(compliance) {
+  const serverGate = String(compliance?.priorityGate || compliance?.gate || compliance?.decisionGate || "")
+    .trim()
+    .toUpperCase();
+  if (["ELIGIBLE", "REVIEW_REQUIRED", "HOLD", "BLOCKED"].includes(serverGate)) return serverGate;
+  return CLUP_GATE_BY_STATUS[clupStatus(compliance?.status)];
+}
+
+function clupCanRecommend(compliance) {
+  return ["PASS", "CONDITIONAL"].includes(clupStatus(compliance?.status))
+    && !["HOLD", "BLOCKED"].includes(clupGate(compliance));
+}
+
+function clupRank(compliance) {
+  return CLUP_STATUS_RANK[clupStatus(compliance?.status)] ?? CLUP_STATUS_RANK.UNVERIFIED;
+}
+
+function clupScoreValue(compliance) {
+  const raw = compliance?.suitabilityScore;
+  if (raw === null || raw === undefined || raw === "") return null;
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? Math.max(0, Math.min(100, Math.round(numeric))) : null;
+}
+
+function clupScoreLabel(compliance, suffix = true) {
+  const score = clupScoreValue(compliance);
+  return score === null ? "Pending" : `${score}${suffix ? "/100" : ""}`;
+}
+
+function unverifiedClup(property, proposedType = null, reason = "No authoritative CLUP evaluation is available for this site and proposed use.") {
+  const type = clupUseKey(proposedType || property?.type || "");
+  return {
+    version: null,
+    status: "UNVERIFIED",
+    statusKey: "unverified",
+    priorityGate: "HOLD",
+    suitabilityScore: null,
+    candidateSite: String(property?.name || "Candidate site"),
+    proposedInvestmentType: type || null,
+    proposedInvestmentLabel: type ? typeLabel(type === "mixed_use" ? "Mixed-use" : type) : "Proposed use pending",
+    existingLandUse: "Verification pending",
+    zoningClassification: "Verification pending",
+    allowedUses: [],
+    conditionalUses: [],
+    restrictedUses: [],
+    strategicGrowthCorridor: null,
+    strategicGrowthCorridorLabel: "Verification pending",
+    explanation: reason,
+    recommendedLguAction: "Hold prioritization and request an authoritative zoning and ordinance evaluation for the proposed use.",
+    screeningBasis: "Authoritative evaluation unavailable",
+    evidenceLevel: "UNVERIFIED",
+    sourceReference: null,
+    verifiedAt: null,
+    isPreliminary: true,
+    disclaimer: "No compliance conclusion should be drawn until the CLUP evaluation is available.",
+  };
+}
+
+function normalizeClupEvaluation(evaluation, property, requestedType = null) {
+  if (!evaluation || typeof evaluation !== "object") {
+    return unverifiedClup(property, requestedType);
+  }
+  const requestedKey = clupUseKey(requestedType || evaluation.proposedInvestmentType || property?.type || "");
+  const resultKey = clupUseKey(evaluation.proposedInvestmentType || requestedKey);
+  if (requestedKey && resultKey && requestedKey !== resultKey) {
+    return unverifiedClup(
+      property,
+      requestedKey,
+      `The server returned a ${typeLabel(resultKey)} evaluation instead of the requested ${typeLabel(requestedKey)} use. Prioritization is on hold.`
+    );
+  }
+  const status = clupStatus(evaluation.status);
+  const normalized = {
+    ...unverifiedClup(property, requestedKey),
+    ...evaluation,
+    status,
+    statusKey: status.toLowerCase(),
+    proposedInvestmentType: resultKey || requestedKey || null,
+    proposedInvestmentLabel: evaluation.proposedInvestmentLabel || (resultKey ? typeLabel(resultKey === "mixed_use" ? "Mixed-use" : resultKey) : "Proposed use pending"),
+    allowedUses: Array.isArray(evaluation.allowedUses) ? evaluation.allowedUses : [],
+    conditionalUses: Array.isArray(evaluation.conditionalUses) ? evaluation.conditionalUses : [],
+    restrictedUses: Array.isArray(evaluation.restrictedUses) ? evaluation.restrictedUses : [],
+    evidenceLevel: evaluation.evidenceLevel || (status === "UNVERIFIED" ? "UNVERIFIED" : "INFERRED"),
+  };
+  normalized.priorityGate = clupGate(normalized);
+  normalized.suitabilityScore = clupScoreValue(normalized);
+  return normalized;
+}
+
+function clupEvaluationCandidates(property, requestedType) {
+  const requestedKey = clupUseKey(requestedType);
+  const matrix = property?.clupEvaluations;
+  const candidates = [];
+  if (Array.isArray(matrix)) {
+    candidates.push(...matrix);
+  } else if (matrix && typeof matrix === "object") {
+    if (matrix[requestedKey]) candidates.push(matrix[requestedKey]);
+    if (matrix.evaluations && typeof matrix.evaluations === "object") {
+      if (Array.isArray(matrix.evaluations)) candidates.push(...matrix.evaluations);
+      else if (matrix.evaluations[requestedKey]) candidates.push(matrix.evaluations[requestedKey]);
+    }
+    candidates.push(...Object.values(matrix).filter((entry) => entry && typeof entry === "object" && !Array.isArray(entry)));
+  }
+  if (property?.clupCompliance && typeof property.clupCompliance === "object") {
+    candidates.push(property.clupCompliance);
+  }
+  return candidates;
+}
+
+function evaluateClup(property, proposedType = null) {
+  const requestedType = clupUseKey(proposedType || property?.type || "");
+  const candidates = clupEvaluationCandidates(property, requestedType);
+  const exact = candidates.find((evaluation) => clupUseKey(evaluation?.proposedInvestmentType) === requestedType);
+  if (exact) return normalizeClupEvaluation(exact, property, requestedType);
+
+  const legacy = candidates.find((evaluation) => !evaluation?.proposedInvestmentType)
+    || ((!proposedType || requestedType === clupUseKey(property?.type)) ? candidates[0] : null);
+  return legacy
+    ? normalizeClupEvaluation(legacy, property, requestedType)
+    : unverifiedClup(property, requestedType);
+}
+
+function clupStatusPill(compliance, label = true) {
+  if (!compliance) return "";
+  const status = clupStatus(compliance.status);
+  const gate = clupGate(compliance);
+  return `<span class="clup-status clup-status-${escapeHtml(status.toLowerCase())}" role="status" aria-label="CLUP ${escapeHtml(status)}; decision gate ${escapeHtml(titleCase(gate))}">${label ? "CLUP " : ""}${escapeHtml(status)}</span>`;
+}
+
+function clupDecisionCardMarkup(compliance, options = {}) {
+  if (!compliance) return "";
+  const compact = Boolean(options.compact);
+  const status = clupStatus(compliance.status);
+  const statusKey = status.toLowerCase();
+  const gate = clupGate(compliance);
+  const evidenceLevel = String(compliance.evidenceLevel || (status === "UNVERIFIED" ? "UNVERIFIED" : "INFERRED")).toUpperCase();
+  const score = clupScoreValue(compliance);
+  const scoreCopy = score === null ? "—" : String(score);
+  const sourceMeta = [
+    compliance.sourceReference ? `Source: ${compliance.sourceReference}` : null,
+    compliance.version ? `Engine: ${compliance.version}` : null,
+  ].filter(Boolean);
+  const limitation = status === "UNVERIFIED"
+    ? (compliance.disclaimer || "Compliance is on hold until an authoritative CLUP evaluation is available.")
+    : compliance.isPreliminary
+      ? (compliance.disclaimer || "Preliminary screen — confirm against the adopted CLUP, official zoning map, and Zoning Ordinance.")
+      : `LGU-verified profile${compliance.verifiedAt ? ` · ${formatDate(compliance.verifiedAt)}` : ""}. Formal locational clearance may still be required.`;
+  return `
+    <article class="panel-card clup-decision-card clup-${escapeHtml(statusKey)} ${compact ? "is-compact" : ""}" data-clup-gate="${escapeHtml(gate.toLowerCase())}">
+      <div class="clup-card-head">
+        <div><div class="panel-kicker">CLUP Compliance &amp; Suitability</div><h3>${escapeHtml(compliance.proposedInvestmentLabel || "Proposed use pending")}</h3></div>
+        <div class="clup-score-lockup">${clupStatusPill(compliance)}<strong>${escapeHtml(scoreCopy)}</strong><span>${score === null ? "Suitability pending" : "Suitability"}</span></div>
+      </div>
+      <div class="clup-evidence-row"><span class="clup-evidence clup-evidence-${escapeHtml(evidenceLevel.toLowerCase())}">${escapeHtml(evidenceLevel)} EVIDENCE</span><span class="clup-gate clup-gate-${escapeHtml(gate.toLowerCase())}">${escapeHtml(titleCase(gate))}</span>${sourceMeta.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>
+      <p>${escapeHtml(compliance.explanation || "Authoritative CLUP evaluation pending.")}</p>
+      ${compact ? "" : `<div class="clup-fact-grid">
+        <div><span>Existing Land Use</span><strong>${escapeHtml(compliance.existingLandUse || "Verification pending")}</strong></div>
+        <div><span>Zoning Classification</span><strong>${escapeHtml(compliance.zoningClassification || "Verification pending")}</strong></div>
+        <div><span>Strategic Corridor</span><strong>${escapeHtml(compliance.strategicGrowthCorridorLabel || "Verification pending")}</strong></div>
+        <div><span>Recommended LGU Action</span><strong>${escapeHtml(compliance.recommendedLguAction || "Request authoritative evaluation")}</strong></div>
+      </div>
+      <div class="clup-use-row"><span><b>Allowed</b> ${escapeHtml((compliance.allowedUses || []).join(", ") || "None listed")}</span><span><b>Conditional</b> ${escapeHtml((compliance.conditionalUses || []).join(", ") || "None listed")}</span><span><b>Restricted</b> ${escapeHtml((compliance.restrictedUses || []).join(", ") || "None listed")}</span></div>`}
+      ${compact ? `<div class="clup-compact-action"><strong>LGU action</strong><span>${escapeHtml(compliance.recommendedLguAction || "Request authoritative evaluation")}</span></div>` : ""}
+      <small>${escapeHtml(limitation)}</small>
+    </article>`;
+}
+
 function enrichProperties(properties, allProperties, votesMap, intent = null, lensKey = null, options = {}) {
   const normalizedLensKey = lensKey ? getInvestmentLensConfig(lensKey).key : null;
   const readinessById = options.readinessById || {};
@@ -539,6 +815,10 @@ function enrichProperties(properties, allProperties, votesMap, intent = null, le
           score: Math.round(Number(rawLensResult.score || 0) * groundTruthMultiplier),
         }
         : null;
+      const proposedClupUse = intent
+        ? clupUseKey(intent)
+        : (normalizedLensKey ? clupUseForLens(normalizedLensKey) : clupUseKey(property.type));
+      const clupCompliance = evaluateClup(property, proposedClupUse);
       return {
         ...property,
         marketScore: Number(property.marketScore || property.score || 0),
@@ -546,12 +826,15 @@ function enrichProperties(properties, allProperties, votesMap, intent = null, le
         opportunityScore: score,
         lensScore: lensResult?.score ?? score,
         lensResult,
+        clupCompliance,
         voteTotal: totalVotes(votes),
         topNeed,
         pricePerHectare: property.area ? Number(property.price || 0) / Number(property.area || 1) : 0,
       };
     })
     .sort((left, right) => {
+      const complianceDelta = clupRank(right.clupCompliance) - clupRank(left.clupCompliance);
+      if (complianceDelta) return complianceDelta;
       if (normalizedLensKey) {
         return (right.lensScore - left.lensScore)
           || (right.opportunityScore - left.opportunityScore)
@@ -562,14 +845,35 @@ function enrichProperties(properties, allProperties, votesMap, intent = null, le
 }
 
 async function loadVoteTallies(properties) {
+  const propertyIds = (Array.isArray(properties) ? properties : [])
+    .map((property) => Number(property?.id || 0))
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  if (!propertyIds.length) {
+    return {};
+  }
+
+  try {
+    const response = await api.getVoteTallies(propertyIds);
+    const tallies = response?.tallies || {};
+    return Object.fromEntries(
+      propertyIds.map((propertyId) => [
+        propertyId,
+        tallies[propertyId]?.votes || tallies[String(propertyId)]?.votes || {},
+      ])
+    );
+  } catch (bulkError) {
+    console.warn("Unable to load bulk vote tallies", bulkError);
+  }
+
   const entries = await Promise.all(
-    properties.map(async (property) => {
+    propertyIds.map(async (propertyId) => {
       try {
-        const response = await api.getVotes(property.id);
-        return [property.id, response.votes || {}];
+        const response = await api.getVotes(propertyId);
+        return [propertyId, response.votes || {}];
       } catch (error) {
-        console.warn("Unable to load votes", property.id, error);
-        return [property.id, {}];
+        console.warn("Unable to load votes", propertyId, error);
+        return [propertyId, {}];
       }
     })
   );
@@ -596,6 +900,7 @@ async function loadInquiryCounts(properties) {
 function icon(name) {
   const icons = {
     map: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 6.5 5-2 7 2.5 5-2V18l-5 2-7-2.5-5 2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 4.5v13M15.5 7v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
     earth: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.8 9.5h14.4M4.8 14.5h14.4M12 4a13.8 13.8 0 0 1 0 16M12 4a13.8 13.8 0 0 0 0 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
     vote: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="6" width="15" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m9 11 2.5 2.5L16 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     compare: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M17 5v14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 8h4M10 12h6M10 16h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
@@ -613,9 +918,30 @@ function icon(name) {
     file: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.5h6l4 4V20a1 1 0 0 1-1 1H8a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 3.5V8h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
     spark: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
     pipeline: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18V9.5h4V18M10 18V6h4v12M15 18v-8.5h4V18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18h16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    university: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 9 8-4 8 4-8 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 11.5V16c1.3 1 3 1.5 5 1.5s3.7-.5 5-1.5v-4.5M20 10v5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    hospital: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v8M8 12h8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    logistics: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 8.5h11v7h-11zM15.5 10.5h2.7l1.3 2v2.5h-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="8" cy="18" r="1.7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="18" r="1.7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`,
+    commercial: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8.5h14M7 8.5V6.2A1.7 1.7 0 0 1 8.7 4.5h6.6A1.7 1.7 0 0 1 17 6.2v2.3M6 8.5h12v10H6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+    resort: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M8.5 18.5h7M10 11h5l-5-5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13.5c2.4-1.4 4.5-1.4 7 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    bpo: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="12" height="15" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 8.5h6M9 12h6M9 15.5h3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+    manufacturing: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 18.5V9l5 3V9l5 3V5.5h5v13z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
   };
 
   return `<span class="ui-icon">${icons[name] || icons.arrow}</span>`;
+}
+
+function investmentLensIconMarkup(lensKey) {
+  const iconName = {
+    university: "university",
+    hospital: "hospital",
+    logistics: "logistics",
+    commercial_center: "commercial",
+    resort: "resort",
+    bpo: "bpo",
+    manufacturing: "manufacturing",
+  }[String(lensKey || "").toLowerCase()] || "spark";
+
+  return icon(iconName);
 }
 
 function tagRow(tags = [], fallback = "Investor-ready") {
@@ -651,6 +977,95 @@ function requestStatusPill(status) {
   return `<span class="status-pill request-status-pill ${requestTone(normalized)}">${escapeHtml(REQUEST_STATUS_LABELS[normalized] || titleCase(normalized))}</span>`;
 }
 
+function decisionStatusTone(statusKey) {
+  return {
+    buy_now: "decision-status-buy",
+    strong_watch: "decision-status-watch",
+    needs_verification: "decision-status-verify",
+    speculative: "decision-status-speculative",
+    low_priority: "decision-status-low",
+  }[String(statusKey || "").toLowerCase()] || "decision-status-verify";
+}
+
+function decisionSignalPill(decision) {
+  return `<span class="score-pill ${scoreTone(decision?.score || 0)}">Decision ${Math.round(Number(decision?.score || 0))}</span>`;
+}
+
+function decisionStatusPill(decision) {
+  return `<span class="status-pill decision-status-pill ${decisionStatusTone(decision?.statusKey)}">${escapeHtml(decision?.statusLabel || "Needs Verification")}</span>`;
+}
+
+function decisionConfidencePill(decision) {
+  return `<span class="tag decision-confidence-pill">${escapeHtml(decision?.confidenceLabel || "Confidence")} ${Math.round(Number(decision?.confidence || 0))}%</span>`;
+}
+
+function decisionPersonaSelectorMarkup(personas, activeKey, options = {}) {
+  const available = normalizeDecisionPersonas(personas);
+  if (!available.length) return "";
+
+  return `
+    <article class="panel-card decision-persona-panel">
+      <div class="investment-intent-head">
+        <div>
+          <div class="panel-kicker">${escapeHtml(options.kicker || "Decision Persona")}</div>
+          <h3>${escapeHtml(options.title || "Select Investor Persona")}</h3>
+          <p>${escapeHtml(options.description || "See how the recommendation changes once the buyer profile becomes explicit.")}</p>
+        </div>
+        <div class="service-chip-row">
+          ${serviceChip(`${available.length} personas`, "live")}
+          ${serviceChip("Decision Engine", "neutral")}
+        </div>
+      </div>
+      <div class="intent-grid" role="tablist" aria-label="Decision persona">
+        ${available.map((persona) => `
+          <button
+            type="button"
+            class="intent-card ${persona.key === activeKey ? "active" : ""}"
+            data-decision-persona="${escapeHtml(persona.key)}"
+            aria-pressed="${persona.key === activeKey ? "true" : "false"}"
+          >
+            <span class="icon" aria-hidden="true">${escapeHtml((persona.shortLabel || persona.label || "P").slice(0, 1))}</span>
+            <div class="intent-meta">
+              <strong>${escapeHtml(persona.label)}</strong>
+              <small>${escapeHtml(persona.description || "Persona weighting")}</small>
+            </div>
+          </button>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function decisionSignalPanelMarkup(decision, options = {}) {
+  if (!decision) return "";
+  const reasons = Array.isArray(decision.reasons) ? decision.reasons.slice(0, Number(options.reasonLimit || 3)) : [];
+  const nextAction = decision.nextAction?.label || "Review opportunity";
+  const compact = Boolean(options.compact);
+
+  return `
+    <article class="panel-card decision-engine-panel ${compact ? "is-compact" : ""}">
+      <div class="command-panel-head">
+        <div>
+          <div class="panel-kicker">${escapeHtml(options.kicker || "Decision Engine")}</div>
+          <h3>${escapeHtml(options.title || `${decision.toneLabel || "Decision Signal"} for this opportunity`)}</h3>
+        </div>
+        ${serviceChip(decision.confidenceLabel || "Confidence", Number(decision.confidence || 0) >= 70 ? "live" : "fallback")}
+      </div>
+      <div class="decision-stats">
+        ${decisionSignalPill(decision)}
+        ${decisionStatusPill(decision)}
+        ${decisionConfidencePill(decision)}
+      </div>
+      <p>${escapeHtml(decision.summary || "Decision signal available.")}</p>
+      <div class="mini-list">
+        <div class="mini-row"><span>Action lane</span><strong>${escapeHtml(nextAction)}</strong></div>
+        <div class="mini-row"><span>Persona</span><strong>${escapeHtml(decision.label || decision.shortLabel || "Balanced Desk")}</strong></div>
+      </div>
+      ${reasons.length ? `<div class="insight-strip">${reasons.map((reason) => `<span class="insight-pill">${escapeHtml(reason)}</span>`).join("")}</div>` : ""}
+    </article>
+  `;
+}
+
 function metaChip(label) {
   return `<span class="meta-chip">${escapeHtml(label)}</span>`;
 }
@@ -675,6 +1090,102 @@ function formatDateTime(value) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function sellerApplicationStatus(profile = {}, user = currentUser) {
+  const applicationStatus = String(profile?.applicationStatus || "").toLowerCase();
+  if (applicationStatus) return applicationStatus;
+  const identityStatus = String(user?.identityVerificationStatus || "unverified").toLowerCase();
+  if (identityStatus === "pending") return "pending_review";
+  if (["verified", "rejected", "suspended"].includes(identityStatus)) return identityStatus;
+  return "draft";
+}
+
+function sellerCanPublish(profile = {}, user = currentUser) {
+  return sellerApplicationStatus(profile, user) === "verified";
+}
+
+function sellerApplicationHeadline(status) {
+  return {
+    verified: "Seller account verified",
+    pending_review: "Seller verification pending",
+    rejected: "Seller application needs revision",
+    suspended: "Seller access is suspended",
+    draft: "Finish your seller profile",
+  }[String(status || "").toLowerCase()] || "Seller verification";
+}
+
+function sellerApplicationCopy(status) {
+  return {
+    verified: "Your seller identity is approved. You can now publish listings and respond with a verified trust signal.",
+    pending_review: "Your seller profile is in the admin approval queue. Listings stay locked until verification is approved.",
+    rejected: "Update the profile details below, fix the review notes, and resubmit for admin approval.",
+    suspended: "Seller publishing is paused on this account. Contact the platform admin before submitting more listings.",
+    draft: "Complete the verification details below so the admin team can review your seller account before it goes live.",
+  }[String(status || "").toLowerCase()] || "Complete your seller verification details before publishing.";
+}
+
+function sellerReviewSubmitLabel(status) {
+  return {
+    pending_review: "Review Submitted",
+    rejected: "Resubmit For Review",
+    verified: "Seller Approved",
+    suspended: "Seller Suspended",
+    draft: "Submit For Review",
+  }[String(status || "").toLowerCase()] || "Submit For Review";
+}
+
+function sellerReviewStatusNote(status, audience = "seller") {
+  const normalized = String(status || "").toLowerCase();
+
+  if (audience === "seller") {
+    return {
+      pending_review: "Your seller verification details are already waiting in the admin approval queue.",
+      verified: "You can now publish listings and respond with a verified trust signal.",
+      rejected: "Admin requested revisions. Update the details below, then resubmit for review.",
+      suspended: "Seller access is suspended for now. Contact the platform admin before submitting again.",
+    }[normalized] || "";
+  }
+
+  return {
+    verified: "This account can now publish listings in the seller workspace.",
+    pending_review: "Seller remains in the review queue and is still waiting for approval.",
+    rejected: "Revision requested. The seller needs to update the verification details before approval.",
+    suspended: "Seller access is currently suspended until the profile is reviewed again.",
+  }[normalized] || "";
+}
+
+function adminSellerReviewButtonLabel(status) {
+  return {
+    verified: "Seller Approved",
+    pending_review: "Keep Pending",
+    rejected: "Revision Requested",
+    suspended: "Seller Suspended",
+  }[String(status || "").toLowerCase()] || "Update Seller Status";
+}
+
+function syncAdminSellerReviewFormState(form) {
+  if (!(form instanceof HTMLElement)) return;
+  const statusSelect = form.querySelector('[name="status"]');
+  const submitButton = form.querySelector("[data-seller-review-submit-button]");
+  const statusNote = form.querySelector("[data-seller-review-status-note]");
+  const selectedStatus = String(statusSelect?.value || "draft").toLowerCase();
+  const buttonLabel = adminSellerReviewButtonLabel(selectedStatus);
+  const noteText = sellerReviewStatusNote(selectedStatus, "admin");
+
+  if (submitButton) {
+    submitButton.textContent = buttonLabel;
+  }
+
+  if (statusNote) {
+    if (noteText) {
+      statusNote.innerHTML = `<strong>${escapeHtml(buttonLabel)}.</strong> ${escapeHtml(noteText)}`;
+      statusNote.hidden = false;
+    } else {
+      statusNote.innerHTML = "";
+      statusNote.hidden = true;
+    }
+  }
 }
 
 function formatFreshness(value, fallback = "Not recently confirmed") {
@@ -741,14 +1252,18 @@ function showcaseStateLabel(status) {
     groundbreaking: "Groundbreaking",
     under_construction: "Under Construction",
     opening_soon: "Opening Soon",
+    priority: "Priority",
+    validation: "Needs Validation",
+    watchlist: "Watchlist",
   }[normalized] || titleCase(normalized || "active");
 }
 
 function showcaseStateTone(featureType, status) {
   const normalized = String(status || "").toLowerCase();
   if (featureType === "city_pipeline") {
-    if (["under_construction", "groundbreaking"].includes(normalized)) return "showcase-state-live";
-    if (["approved", "opening_soon"].includes(normalized)) return "showcase-state-warn";
+    if (["priority", "under_construction", "groundbreaking"].includes(normalized)) return "showcase-state-live";
+    if (["approved", "opening_soon", "validation"].includes(normalized)) return "showcase-state-warn";
+    if (["watchlist"].includes(normalized)) return "showcase-state-muted";
     return "showcase-state-muted";
   }
 
@@ -772,7 +1287,102 @@ function showcaseActionHref(item) {
 }
 
 function showcaseActionLabel(item) {
-  return item?.relatedPropertyId ? "Open Property" : (item?.featureType === "city_pipeline" ? "Explore Context" : "View Ranking");
+  if (item?.relatedPropertyId) return "Open Property";
+  if (item?.featureType === "city_pipeline" && showcasePipelineMode(item) === "investment_gap") return "Find Matching Sites";
+  return item?.featureType === "city_pipeline" ? "Explore Context" : "View Ranking";
+}
+
+function showcasePipelineMode(item) {
+  if (item?.featureType !== "city_pipeline") return "standard";
+  return String(item?.pipelineMode || "future_project").toLowerCase();
+}
+
+function showcasePipelineModeLabel(mode) {
+  return {
+    future_project: "Future Project",
+    investment_gap: "Investor Gap",
+    standard: "Standard",
+  }[String(mode || "").toLowerCase()] || titleCase(mode || "future_project");
+}
+
+function showcaseSupplySignalLabel(signal) {
+  return {
+    not_present: "Not In Tracked Supply",
+    under_supplied: "Under-Supplied",
+    balanced: "Balanced Supply",
+    crowded: "Already Crowded",
+  }[String(signal || "").toLowerCase()] || titleCase(signal || "under_supplied");
+}
+
+function showcaseSupplySignalTone(signal) {
+  return {
+    not_present: "is-strong",
+    under_supplied: "is-live",
+    balanced: "is-neutral",
+    crowded: "is-risk",
+  }[String(signal || "").toLowerCase()] || "is-neutral";
+}
+
+function showcasePipelineModeChip(item) {
+  if (item?.featureType !== "city_pipeline") return "";
+  const mode = showcasePipelineMode(item);
+  return `<span class="meta-chip showcase-need-chip ${mode === "investment_gap" ? "is-gap" : "is-project"}">${escapeHtml(showcasePipelineModeLabel(mode))}</span>`;
+}
+
+function showcaseSupplySignalChip(item) {
+  if (item?.featureType !== "city_pipeline" || showcasePipelineMode(item) !== "investment_gap" || !item?.supplySignal) return "";
+  return `<span class="meta-chip showcase-signal-chip ${showcaseSupplySignalTone(item.supplySignal)}">${escapeHtml(showcaseSupplySignalLabel(item.supplySignal))}</span>`;
+}
+
+function showcaseOpportunityBriefMarkup(item, variant = "card") {
+  if (item?.featureType !== "city_pipeline" || showcasePipelineMode(item) !== "investment_gap") return "";
+
+  const thesis = item?.investorThesis || item?.summary || "";
+  const idealOperator = item?.idealOperator || "Best-fit operator not set yet";
+  const caution = item?.avoidanceNote || "";
+
+  if (variant === "spotlight") {
+    return `
+      <div class="showcase-gap-panel">
+        <div class="showcase-gap-panel-row">
+          <span>${icon("spark")}Supply signal</span>
+          <strong>${escapeHtml(showcaseSupplySignalLabel(item?.supplySignal || "under_supplied"))}</strong>
+        </div>
+        <div class="showcase-gap-panel-row">
+          <span>${icon("user")}Best-fit operator</span>
+          <strong>${escapeHtml(idealOperator)}</strong>
+        </div>
+        <p>${escapeHtml(thesis)}</p>
+        ${caution ? `<div class="showcase-gap-warning">${icon("shield")}Avoid duplicate build: ${escapeHtml(caution)}</div>` : ""}
+      </div>
+    `;
+  }
+
+  return `
+    <div class="showcase-gap-panel compact">
+      <div class="showcase-gap-panel-row">
+        <span>Supply signal</span>
+        <strong>${escapeHtml(showcaseSupplySignalLabel(item?.supplySignal || "under_supplied"))}</strong>
+      </div>
+      <div class="showcase-gap-panel-row">
+        <span>Best fit</span>
+        <strong>${escapeHtml(idealOperator)}</strong>
+      </div>
+      <p>${escapeHtml(truncate(thesis, 132))}</p>
+      ${caution ? `<div class="showcase-gap-warning">${icon("shield")}Avoid duplicate build: ${escapeHtml(caution)}</div>` : ""}
+    </div>
+  `;
+}
+
+function showcasePipelineCounts(items = []) {
+  const cityItems = items.filter((item) => item?.featureType === "city_pipeline");
+  return {
+    gaps: cityItems.filter((item) => showcasePipelineMode(item) === "investment_gap").length,
+    projects: cityItems.filter((item) => showcasePipelineMode(item) !== "investment_gap").length,
+    notPresent: cityItems.filter((item) => String(item?.supplySignal || "").toLowerCase() === "not_present").length,
+    undersupplied: cityItems.filter((item) => String(item?.supplySignal || "").toLowerCase() === "under_supplied").length,
+    caution: cityItems.filter((item) => String(item?.supplySignal || "").toLowerCase() === "crowded").length,
+  };
 }
 
 function showcaseSearchHaystack(item) {
@@ -785,6 +1395,11 @@ function showcaseSearchHaystack(item) {
     item?.summary,
     item?.description,
     item?.status,
+    item?.pipelineMode,
+    item?.supplySignal,
+    item?.investorThesis,
+    item?.idealOperator,
+    item?.avoidanceNote,
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
@@ -1506,6 +2121,7 @@ function readinessMatrixMarkup(readiness, activePillarKey, canEditInline) {
 
 function inlineReadinessEditorMarkup(property) {
   const utilityStatus = String(property?.utilityStatus || "");
+  const clupProfile = property?.clupProfile || {};
   return `
     <article class="panel-card readiness-editor-card">
       <div class="panel-kicker">Admin Inline Editing</div>
@@ -1538,6 +2154,14 @@ function inlineReadinessEditorMarkup(property) {
           <span>Readiness notes</span>
           <textarea class="input-shell input-textarea" name="readinessNotes" placeholder="Internal readiness commentary for admin use.">${escapeHtml(property?.readinessNotes || "")}</textarea>
         </label>
+        <div class="form-span-2 clup-editor-divider"><div class="panel-kicker">Parcel CLUP Evidence</div><p>Use canonical keys: commercial, logistics, hotel, bpo, manufacturing, mixed_use.</p></div>
+        <label class="form-shell"><span>Existing land use</span><input class="input-shell" name="existingLandUse" value="${escapeHtml(clupProfile.existingLandUse || "")}" placeholder="e.g. Urban commercial use"></label>
+        <label class="form-shell"><span>Zoning classification</span><input class="input-shell" name="zoningClassification" value="${escapeHtml(clupProfile.zoningClassification || "")}" placeholder="e.g. C-2 Commercial Zone"></label>
+        <label class="form-shell"><span>Allowed uses</span><input class="input-shell" name="clupAllowedUses" value="${escapeHtml((clupProfile.allowedUses || []).join(", "))}" placeholder="commercial, bpo"></label>
+        <label class="form-shell"><span>Conditional uses</span><input class="input-shell" name="clupConditionalUses" value="${escapeHtml((clupProfile.conditionalUses || []).join(", "))}" placeholder="hotel, mixed_use"></label>
+        <label class="form-shell"><span>Restricted uses</span><input class="input-shell" name="clupRestrictedUses" value="${escapeHtml((clupProfile.restrictedUses || []).join(", "))}" placeholder="manufacturing, logistics"></label>
+        <label class="form-shell"><span>Source reference</span><input class="input-shell" name="clupSourceReference" value="${escapeHtml(clupProfile.sourceReference || "")}" placeholder="CLUP map sheet / ordinance section"></label>
+        <label class="diligence-item form-span-2"><span>Mark parcel CLUP profile as LGU verified</span><input type="checkbox" name="clupVerified" ${clupProfile.isVerified ? "checked" : ""}></label>
         <div class="crud-actions form-span-2">
           <button type="button" class="btn-shell btn-shell-ghost" data-readiness-reset>Reset Preview</button>
           <button type="submit" class="btn-shell btn-shell-primary">Save IRIE Inputs</button>
@@ -1594,24 +2218,21 @@ function destroyMap(containerId) {
 }
 
 function mapPopup(property) {
+  const compliance = evaluateClup(property, property.clupCompliance?.proposedInvestmentType || property.type);
   return `
-    <div class="map-popup-card">
-      <div class="map-popup-kicker">${escapeHtml(property.barangay || "San Fernando")}</div>
+    <div class="map-popup-card map-popup-card-rich">
+      <div class="map-popup-card-top">
+        <div class="map-popup-kicker">${escapeHtml(property.barangay || "San Fernando")}</div>
+        ${clupStatusPill(compliance)}
+      </div>
       <strong>${escapeHtml(property.name)}</strong>
-      <span>${escapeHtml(typeLabel(property.type))} | ${escapeHtml(corridorLabel(property.corridor))}</span>
-      <span>${escapeHtml(moneyShort(property.price))}</span>
+      <div class="map-popup-meta">
+        <span>${escapeHtml(corridorLabel(property.corridor))}</span>
+        <span>${escapeHtml(property.area || "--")} ha</span>
+      </div>
+      <div class="map-popup-price">${escapeHtml(moneyShort(property.price))}</div>
     </div>
   `;
-}
-
-function pinIcon(isActive = false) {
-  return window.L.divIcon({
-    className: "sfc-map-pin-shell",
-    html: `<span class="sfc-map-pin ${isActive ? "is-active" : ""}"></span>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
-    popupAnchor: [0, -10],
-  });
 }
 
 function mountPropertyMap({
@@ -1622,24 +2243,25 @@ function mountPropertyMap({
   searchResult = null,
 }) {
   const container = document.getElementById(containerId);
-  if (!container || !window.L) return;
+  if (!container || !window.maplibregl) return;
 
   destroyMap(containerId);
 
-  const map = window.L.map(container, {
-    zoomControl: false,
-    scrollWheelZoom: true,
+  const tileUrl = window.SFC_APP_CONFIG?.mapTileUrl || "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  const tileAttribution = window.SFC_APP_CONFIG?.mapAttribution || '&copy; CARTO &copy; OpenStreetMap contributors';
+
+  const map = new window.maplibregl.Map({
+    container: container,
+    style: tileUrl,
+    center: [120.3218, 16.6208], // [lng, lat]
+    zoom: 13,
+    attributionControl: false
   });
-  window.L.control.zoom({ position: "topright" }).addTo(map);
 
-  const tileUrl = window.SFC_APP_CONFIG?.mapTileUrl || "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-  const tileAttribution = window.SFC_APP_CONFIG?.mapAttribution || '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
-  window.L.tileLayer(tileUrl, {
-    attribution: tileAttribution,
-    maxZoom: 19,
-  }).addTo(map);
+  map.addControl(new window.maplibregl.NavigationControl({ showCompass: false }), "top-right");
+  map.addControl(new window.maplibregl.AttributionControl({ compact: true, customAttribution: tileAttribution }));
 
-  const bounds = [];
+  const bounds = new window.maplibregl.LngLatBounds();
   const markers = new Map();
 
   properties.forEach((property) => {
@@ -1647,61 +2269,97 @@ function mountPropertyMap({
     const lng = Number(property.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-    const marker = window.L.marker([lat, lng], {
-      icon: pinIcon(property.id === activeId),
-      keyboard: true,
-      title: property.name,
-    }).addTo(map);
+    const el = document.createElement("div");
+    el.className = "sfc-map-pin-shell";
+    el.innerHTML = `<span class="sfc-map-pin clup-pin-${escapeHtml(String(property.clupCompliance?.status || '').toLowerCase())} ${property.id === activeId ? "is-active" : ""}"></span>`;
 
-    marker.bindPopup(mapPopup(property), {
-      className: "sfc-map-popup",
+    const popupHtml = mapPopup(property);
+    const popup = new window.maplibregl.Popup({
+      offset: [0, -14],
       closeButton: false,
-      offset: [0, -4],
-    });
-    marker.on("click", () => {
+      className: "sfc-map-popup"
+    }).setHTML(popupHtml);
+
+    const marker = new window.maplibregl.Marker({ element: el })
+      .setLngLat([lng, lat])
+      .setPopup(popup)
+      .addTo(map);
+
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
       onSelect?.(property.id);
     });
-    bounds.push([lat, lng]);
+
+    bounds.extend([lng, lat]);
     markers.set(property.id, marker);
   });
 
   let searchMarker = null;
   if (searchResult?.lat && searchResult?.lng) {
-    searchMarker = window.L.marker([Number(searchResult.lat), Number(searchResult.lng)], {
-      icon: pinIcon(false),
-      title: searchResult.label || "Location result",
-    }).addTo(map);
-    searchMarker.bindPopup(`
-      <div class="map-popup-card">
-        <div class="map-popup-kicker">Search result</div>
+    const sLat = Number(searchResult.lat);
+    const sLng = Number(searchResult.lng);
+
+    const el = document.createElement("div");
+    el.className = "sfc-map-pin-shell";
+    el.innerHTML = `<span class="sfc-map-pin is-search-result"></span>`;
+
+    const popupHtml = `
+      <div class="map-popup-card map-popup-card-rich is-search-result">
+        <div class="map-popup-card-top">
+          <div class="map-popup-kicker">Search result</div>
+          <span class="map-popup-chip">Location</span>
+        </div>
         <strong>${escapeHtml(searchResult.label || "Location result")}</strong>
-        <span>${escapeHtml(searchResult.subtitle || "LocationIQ result")}</span>
+        <div class="map-popup-meta">
+          <span>${escapeHtml(searchResult.subtitle || "LocationIQ result")}</span>
+        </div>
       </div>
-    `, {
-      className: "sfc-map-popup",
+    `;
+
+    const popup = new window.maplibregl.Popup({
+      offset: [0, -14],
       closeButton: false,
-      offset: [0, -4],
-    });
-    bounds.push([Number(searchResult.lat), Number(searchResult.lng)]);
+      className: "sfc-map-popup"
+    }).setHTML(popupHtml);
+
+    searchMarker = new window.maplibregl.Marker({ element: el })
+      .setLngLat([sLng, sLat])
+      .setPopup(popup)
+      .addTo(map);
+
+    bounds.extend([sLng, sLat]);
   }
 
-  if (bounds.length > 1) {
-    map.fitBounds(bounds, { padding: [28, 28] });
-  } else if (bounds.length === 1) {
-    map.setView(bounds[0], 14);
-  } else {
-    map.setView([16.6208, 120.3218], 13);
+  if (!bounds.isEmpty()) {
+    const activeMarker = markers.get(activeId);
+    const useStandaloneSearchTarget = searchMarker && !Number(searchResult?.propertyId || 0);
+
+    let targetCoords = null;
+    if (useStandaloneSearchTarget && searchMarker) {
+      targetCoords = searchMarker.getLngLat();
+    } else if (activeMarker) {
+      targetCoords = activeMarker.getLngLat();
+    } else if (searchMarker) {
+      targetCoords = searchMarker.getLngLat();
+    }
+
+    if (targetCoords) {
+      map.easeTo({
+        center: targetCoords,
+        zoom: 15,
+        duration: 800
+      });
+      if (activeMarker) {
+        activeMarker.togglePopup();
+      } else if (searchMarker) {
+        searchMarker.togglePopup();
+      }
+    } else {
+      map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
+    }
   }
 
-  const activeMarker = markers.get(activeId);
-  if (activeMarker) {
-    activeMarker.openPopup();
-    map.setView(activeMarker.getLatLng(), Math.max(map.getZoom(), 14), { animate: true });
-  } else if (searchMarker) {
-    searchMarker.openPopup();
-  }
-
-  setTimeout(() => map.invalidateSize(), 0);
+  setTimeout(() => map.resize(), 0);
   mapRegistry.set(containerId, { map, markers });
 }
 
@@ -1789,6 +2447,10 @@ function propertyTrustStrip(property = {}) {
 }
 
 function propertyCard(property, options = {}) {
+  if (options.variant === "ranking") {
+    return rankingPropertyCardMarkup(property, options);
+  }
+
   if (options.variant === "compact") {
     return compactPropertyCardMarkup(property, options);
   }
@@ -1903,24 +2565,129 @@ function propertyCard(property, options = {}) {
   `;
 }
 
-function compactPropertyCardMarkup(property, options = {}) {
+function rankingPropertyCardMarkup(property, options = {}) {
   const compareIds = options.compareIds || [];
   const favoriteIds = options.favoriteIds || [];
   const showManage = options.showManage || false;
   const manageHref = options.manageHref || "";
-  const showApproval = options.showApproval ?? (role === "admin" || role === "seller" || String(property.approvalState || "").toLowerCase() !== "approved");
   const lensKey = options.lensKey || null;
   const activeLens = lensKey ? getInvestmentLensConfig(lensKey) : null;
+  const isSaved = favoriteIds.includes(property.id);
+  const isCompared = compareIds.includes(property.id);
   const leadScorePill = activeLens && property.lensResult
     ? investmentLensScorePill(property.lensResult)
     : scorePill(property.opportunityScore);
   const thesis = activeLens && property.lensResult
     ? property.lensResult.thesisShort || property.lensResult.thesis || `${property.name} is being read through the ${activeLens.label} lens.`
     : property.description || propertyStory(property);
-  const primaryLabels = propertyPrimaryLabels(property);
-  const secondaryLabels = propertySecondaryLabels(property).slice(0, 2);
   const docsPct = Math.round(Number(property.documentCompletenessPct || 0));
+  const voteTotal = Number(property.voteTotal || 0);
+  const verifiedLabel = VERIFICATION_LABELS[String(property.listingVerificationStatus || "unverified").toLowerCase()]
+    || titleCase(property.listingVerificationStatus || "Unverified");
+  const headerChips = [
+    typeLabel(property.type),
+    corridorLabel(property.corridor),
+    voteLabel(property.topNeed || "No dominant demand"),
+  ].filter(Boolean).slice(0, 3);
+  const footerChips = [
+    verifiedLabel,
+    property.area ? `${property.area} ha` : null,
+    property.lastConfirmedAvailableAt ? `Confirmed ${formatDate(property.lastConfirmedAvailableAt)}` : null,
+  ].filter(Boolean).slice(0, 3);
+  const compliance = evaluateClup(property, lensKey ? clupUseForLens(lensKey) : property.type);
+
+  return `
+    <article class="property-card property-card-ranking">
+      <div class="property-ranking-media">
+        <img src="${escapeHtml(property.imageUrl)}" alt="${escapeHtml(property.name)}">
+        <div class="property-ranking-media-top">
+          ${leadScorePill}
+          <div class="property-pill-stack">
+            ${clupStatusPill(compliance)}
+            ${statusPill(property.status)}
+          </div>
+        </div>
+        <div class="property-ranking-media-bottom">
+          <span class="property-ranking-location">${icon("map")}${escapeHtml(property.city || "San Fernando, La Union")} / ${escapeHtml(property.barangay || "Unassigned")}</span>
+        </div>
+      </div>
+      <div class="property-ranking-body">
+        <div class="property-ranking-head">
+          <div class="property-ranking-chip-row">
+            ${headerChips.map((label, index) => `<span class="property-ranking-chip ${index === 0 ? "is-strong" : ""}">${escapeHtml(label)}</span>`).join("")}
+          </div>
+          <div class="property-ranking-title-row">
+            <h3 class="property-ranking-title">${escapeHtml(property.name)}</h3>
+            <strong class="property-ranking-price">${escapeHtml(moneyShort(property.price))}</strong>
+          </div>
+          <p class="property-ranking-thesis">${escapeHtml(truncate(thesis, 110))}</p>
+        </div>
+
+        <div class="property-ranking-stat-rail">
+          <article class="property-ranking-stat">
+            <span>Land Area</span>
+            <strong>${escapeHtml(property.area || "--")} ha</strong>
+          </article>
+          <article class="property-ranking-stat">
+            <span>Readiness</span>
+            <strong>${docsPct}% docs</strong>
+          </article>
+          <article class="property-ranking-stat">
+            <span>CLUP Suitability</span>
+            <strong>${escapeHtml(clupScoreLabel(compliance))}</strong>
+          </article>
+        </div>
+
+        <div class="property-ranking-footer">
+          <div class="property-ranking-signal-row">
+            ${footerChips.map((label) => `<span class="property-ranking-signal-chip">${escapeHtml(label)}</span>`).join("")}
+          </div>
+          <div class="property-ranking-actions">
+            <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}View Details</a>
+            <button
+              type="button"
+              class="btn-shell btn-shell-secondary property-ranking-icon-action ${isCompared ? "is-active" : ""}"
+              data-compare-toggle="${property.id}"
+              aria-label="${escapeHtml(isCompared ? "Remove from compare" : "Add to compare")} ${escapeHtml(property.name)}"
+              title="${escapeHtml(isCompared ? "Compared" : "Compare")}"
+            >
+              ${icon("compare")}
+            </button>
+            <button
+              type="button"
+              class="btn-shell btn-shell-ghost property-ranking-icon-action ${isSaved ? "is-active" : ""}"
+              data-favorite-toggle="${property.id}"
+              aria-label="${escapeHtml(favoriteActionLabel(isSaved))} ${escapeHtml(property.name)}"
+              title="${escapeHtml(favoriteActionLabel(isSaved))}"
+            >
+              ${icon("save")}
+            </button>
+            ${showManage ? `<a href="${escapeHtml(manageHref)}" class="btn-shell btn-shell-ghost property-ranking-manage">${icon("arrow")}Manage</a>` : ""}
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function compactPropertyCardMarkup(property, options = {}) {
+  const compareIds = options.compareIds || [];
+  const favoriteIds = options.favoriteIds || [];
+  const showManage = options.showManage || false;
+  const manageHref = options.manageHref || "";
+  const lensKey = options.lensKey || null;
+  const activeLens = lensKey ? getInvestmentLensConfig(lensKey) : null;
   const isActive = Boolean(options.isActive);
+  const isSaved = favoriteIds.includes(property.id);
+  const isCompared = compareIds.includes(property.id);
+  const thesis = activeLens && property.lensResult
+    ? property.lensResult.thesisShort || property.lensResult.thesis || `${property.name} is being read through the ${activeLens.label} lens.`
+    : property.description || propertyStory(property);
+  const leadScoreValue = activeLens && property.lensResult
+    ? Math.round(Number(property.lensResult.score || property.lensScore || 0))
+    : Math.round(Number(property.opportunityScore || 0));
+  const verificationLabel = VERIFICATION_LABELS[String(property.listingVerificationStatus || "unverified").toLowerCase()] || titleCase(property.listingVerificationStatus || "Unverified");
+  const compliance = evaluateClup(property, lensKey ? clupUseForLens(lensKey) : property.type);
 
   return `
     <article
@@ -1929,40 +2696,48 @@ function compactPropertyCardMarkup(property, options = {}) {
       tabindex="0"
       role="button"
       aria-pressed="${isActive ? "true" : "false"}"
-      aria-label="Open intelligence panel for ${escapeHtml(property.name)}"
+      aria-label="Select ${escapeHtml(property.name)} on the map"
     >
       <div class="property-card-compact-media">
         <img src="${escapeHtml(property.imageUrl)}" alt="${escapeHtml(property.name)}">
+        <div class="property-card-compact-topline">
+          <span class="property-card-compact-hero-chip">${escapeHtml(typeLabel(property.type))}</span>
+          ${clupStatusPill(compliance)}
+        </div>
+        <button
+          type="button"
+          class="property-card-compact-bookmark ${isSaved ? "is-active" : ""}"
+          data-favorite-toggle="${property.id}"
+          aria-label="${escapeHtml(favoriteActionLabel(isSaved))} ${escapeHtml(property.name)}"
+          title="${escapeHtml(favoriteActionLabel(isSaved))}"
+        >
+          ${icon("save")}
+        </button>
+        <div class="property-card-compact-overlay">
+          <div class="property-card-compact-summary">
+            <div class="property-card-compact-heading">
+              <h3>${escapeHtml(property.name)}</h3>
+              <p>${escapeHtml(property.city || "San Fernando, La Union")} / ${escapeHtml(property.barangay || "Unassigned")}</p>
+            </div>
+            <div class="property-card-compact-price">
+              <span class="property-card-compact-scoreline">Score ${leadScoreValue}</span>
+              <strong>${escapeHtml(moneyShort(property.price))}</strong>
+              <span>asking price</span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="property-card-compact-body">
-        <div class="property-card-compact-top">
-          <div class="property-card-compact-heading">
-            <h3>${escapeHtml(property.name)}</h3>
-            <p>${escapeHtml(property.city || "San Fernando, La Union")} / ${escapeHtml(property.barangay || "Unassigned")}</p>
-          </div>
-          <div class="property-card-compact-score">${leadScorePill}</div>
+        <div class="property-card-compact-meta">
+          <span>${escapeHtml(corridorLabel(property.corridor))}</span>
+          <span>${escapeHtml(property.area || "--")} ha</span>
+          <span>${escapeHtml(verificationLabel)}</span>
         </div>
-        <div class="property-card-compact-status">
-          ${statusPill(property.status)}
-          ${showApproval ? approvalStatePill(property.approvalState) : ""}
-          ${verificationPill(property.listingVerificationStatus)}
-          ${groundTruthPill(property)}
-        </div>
-        <div class="property-card-compact-facts">
-          <span>${icon("money")}${escapeHtml(moneyShort(property.price))}</span>
-          <span>${icon("area")}${escapeHtml(property.area || "--")} ha</span>
-          <span>${icon("file")}${docsPct}% docs</span>
-        </div>
-        <p class="property-card-compact-thesis">${escapeHtml(truncate(thesis, 100))}</p>
-        <div class="property-card-compact-tags">
-          ${primaryLabels.map((label, index) => `<span class="property-card-compact-tag ${index === 0 ? "is-strong" : ""}">${escapeHtml(label)}</span>`).join("")}
-          ${secondaryLabels.map((label) => `<span class="property-card-compact-tag is-muted">${escapeHtml(label)}</span>`).join("")}
-        </div>
+        <p class="property-card-compact-support">${escapeHtml(truncate(thesis, 66))}</p>
         <div class="property-card-compact-actions">
-          <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-ghost">Details</a>
-          <button type="button" class="btn-shell btn-shell-secondary" data-compare-toggle="${property.id}">${compareIds.includes(property.id) ? "Compared" : "Compare"}</button>
-          <button type="button" class="btn-shell btn-shell-ghost" data-favorite-toggle="${property.id}">${favoriteActionLabel(favoriteIds.includes(property.id))}</button>
-          ${showManage ? `<a href="${escapeHtml(manageHref)}" class="btn-shell btn-shell-ghost">Manage</a>` : ""}
+          <button type="button" class="property-card-compact-link is-secondary ${isCompared ? "is-active" : ""}" data-compare-toggle="${property.id}">${isCompared ? "Compared" : "Compare"}</button>
+          <a href="${propertyHref(property.id)}" class="property-card-compact-link is-primary">View Details</a>
+          ${showManage ? `<a href="${escapeHtml(manageHref)}" class="property-card-compact-link is-secondary">Manage</a>` : ""}
         </div>
       </div>
     </article>
@@ -1974,33 +2749,52 @@ function explorerLensRibbonMarkup(activeLensKey, options = {}) {
   const visibleCount = Math.max(0, Number(options.visibleCount || 0));
   const mapLive = Boolean(options.mapLive);
   const locationLive = Boolean(options.locationLive);
+  const queueCount = Math.max(0, Number(options.queueCount || 0));
+  const basePath = window.SFC_APP_CONFIG?.basePath || "";
 
   return `
-    <header class="explorer-terminal-ribbon">
-      <div class="explorer-terminal-copy">
-        <div class="panel-kicker">Property Explorer Terminal</div>
-        <div class="explorer-terminal-title-row">
-          <h1>Investment Lens</h1>
-          <span class="explorer-terminal-count">${visibleCount} in view</span>
+    <header class="explorer-terminal-ribbon explorer-market-ribbon explorer-market-ribbon-inline">
+      <div class="explorer-market-ribbon-copy">
+        <div class="panel-kicker">Property Explorer</div>
+        <h1>Find the right property faster.</h1>
+        <p>${escapeHtml(activeLens.shortLabel || activeLens.label)} lens active.</p>
+      </div>
+      <div class="explorer-market-ribbon-strip">
+        <div class="explorer-market-inline-meta">
+          <span class="explorer-market-summary-pill is-icon" data-tooltip="${visibleCount} properties in view" title="${visibleCount} properties in view">
+            ${icon("ranking")}
+            <strong>${visibleCount}</strong>
+          </span>
+          <span class="explorer-market-summary-pill is-icon" data-tooltip="${escapeHtml(locationLive ? "Place search enabled" : "Local search fallback")}" title="${escapeHtml(locationLive ? "Place search enabled" : "Local search fallback")}">
+            ${icon("search")}
+          </span>
+          <span class="explorer-market-summary-pill is-icon" data-tooltip="${escapeHtml(mapLive ? "Live map" : "Fallback map")}" title="${escapeHtml(mapLive ? "Live map" : "Fallback map")}">
+            ${icon("map")}
+          </span>
+          <span class="explorer-market-status-chip is-icon" data-tooltip="${queueCount} saved or compared" title="${queueCount} saved or compared">
+            ${icon("compare")}
+            <strong>${queueCount}</strong>
+          </span>
         </div>
-      </div>
-      <div class="explorer-lens-pill-row" role="tablist" aria-label="Investment lens">
-        ${INVESTMENT_LENSES.map((lens) => `
-          <button
-            type="button"
-            class="explorer-lens-pill ${lens.key === activeLens.key ? "active" : ""}"
-            data-investment-lens="${escapeHtml(lens.key)}"
-            aria-pressed="${lens.key === activeLens.key ? "true" : "false"}"
-          >
-            <span class="explorer-lens-pill-icon" aria-hidden="true">${escapeHtml(lens.icon || "*")}</span>
-            <span>${escapeHtml(lens.label)}</span>
-          </button>
-        `).join("")}
-      </div>
-      <div class="explorer-ribbon-meta">
-        ${serviceChip(`${activeLens.label} active`, "live")}
-        ${serviceChip(mapLive ? "Leaflet live" : "Map fallback", mapLive ? "neutral" : "fallback")}
-        ${serviceChip(locationLive ? "LocationIQ" : "Local search", locationLive ? "neutral" : "fallback")}
+        <div class="explorer-market-chip-row" role="group" aria-label="Investment lenses">
+          ${INVESTMENT_LENSES.map((lens) => `
+            <button
+              type="button"
+              class="explorer-lens-chip explorer-lens-chip-icononly ${lens.key === activeLens.key ? "is-active" : ""}"
+              data-explorer-lens="${escapeHtml(lens.key)}"
+              data-tooltip="${escapeHtml(lens.label)}"
+              title="${escapeHtml(lens.label)}"
+              aria-label="${escapeHtml(lens.label)}"
+              aria-pressed="${lens.key === activeLens.key ? "true" : "false"}"
+            >
+              ${investmentLensIconMarkup(lens.key)}
+            </button>
+          `).join("")}
+        </div>
+        <div class="explorer-ribbon-actions">
+          <a href="${basePath}/property-ranking.php" class="btn-shell btn-shell-secondary explorer-ribbon-link">Open Rankings</a>
+          <a href="${basePath}/compare-decision.php" class="btn-shell btn-shell-primary explorer-ribbon-link">Open Compare</a>
+        </div>
       </div>
     </header>
   `;
@@ -2008,16 +2802,115 @@ function explorerLensRibbonMarkup(activeLensKey, options = {}) {
 
 function explorerMapHudMarkup(active, activeLens, visibleCount) {
   return `
-    <div class="explorer-map-hud">
+    <div class="explorer-map-hud explorer-map-hud-clean">
       <div class="explorer-map-hud-copy">
-        <span>Spatial intelligence</span>
-        <strong>${escapeHtml(active?.name || `${visibleCount} properties`)}</strong>
-      </div>
-      <div class="explorer-map-hud-copy is-secondary">
-        <span>Active lens</span>
-        <strong>${escapeHtml(activeLens.label)}</strong>
+        <span>${visibleCount} properties mapped</span>
+        <strong>${escapeHtml(active ? active.name : `${activeLens.shortLabel || activeLens.label} view`)}</strong>
       </div>
     </div>
+  `;
+}
+
+function explorerMapPreviewMarkup(active, activeLens, searchResult = null) {
+  const useSearchTarget = searchResult && !Number(searchResult.propertyId || 0);
+  if (useSearchTarget) {
+    return `
+      <aside class="explorer-map-preview is-search-target" aria-hidden="true">
+        <div class="explorer-map-preview-top">
+          <span class="explorer-map-preview-eyebrow">Search target</span>
+          <span class="explorer-map-preview-badge">${escapeHtml(activeLens.shortLabel || activeLens.label)}</span>
+        </div>
+        <div class="explorer-map-preview-main">
+          <div class="explorer-map-preview-copy">
+            <strong>${escapeHtml(searchResult.label || "Map result")}</strong>
+            <p>${escapeHtml(searchResult.subtitle || "Live place preview")}</p>
+          </div>
+        </div>
+      </aside>
+    `;
+  }
+
+  if (!active) return "";
+  const compliance = evaluateClup(active, clupUseForLens(activeLens.key));
+
+  return `
+    <aside class="explorer-map-preview" aria-hidden="true">
+      <div class="explorer-map-preview-top">
+        <span class="explorer-map-preview-eyebrow">${escapeHtml(active.barangay || "San Fernando")}</span>
+        ${clupStatusPill(compliance)}
+      </div>
+      <div class="explorer-map-preview-main">
+        <div class="explorer-map-preview-copy">
+          <strong>${escapeHtml(active.name)}</strong>
+          <p>${escapeHtml(typeLabel(active.type))} | ${escapeHtml(corridorLabel(active.corridor))}</p>
+        </div>
+        <div class="explorer-map-preview-price">
+          <strong>${escapeHtml(moneyShort(active.price))}</strong>
+          <span>CLUP ${escapeHtml(clupScoreLabel(compliance, false))} · ${escapeHtml(active.area || "--")} ha</span>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+function explorerSelectionCardMarkup(property, options = {}) {
+  if (!property) {
+    return `
+      <article class="explorer-selection-card is-empty">
+        <div class="panel-kicker">Selected Property</div>
+        <h2>Pick a property to preview it here.</h2>
+        <p>Use the list to load a cleaner summary before opening full details.</p>
+      </article>
+    `;
+  }
+
+  const activeLens = options.activeLens || getInvestmentLensConfig(getActiveInvestmentLensKey());
+  const compareIds = options.compareIds || [];
+  const favoriteIds = options.favoriteIds || [];
+  const primaryLabels = propertyPrimaryLabels(property);
+  const thesis = property.lensResult?.thesisShort || property.lensResult?.thesis || property.description || propertyStory(property);
+
+  return `
+    <article class="explorer-selection-card">
+      <div class="explorer-selection-media">
+        <img src="${escapeHtml(property.imageUrl)}" alt="${escapeHtml(property.name)}">
+      </div>
+      <div class="explorer-selection-body">
+        <div class="explorer-selection-head">
+          <div>
+            <div class="panel-kicker">Selected Property</div>
+            <h2>${escapeHtml(property.name)}</h2>
+            <p>${escapeHtml(property.city || "San Fernando, La Union")} / ${escapeHtml(property.barangay || "Unassigned")}</p>
+          </div>
+          <div class="explorer-selection-score">
+            ${property.lensResult ? investmentLensScorePill(property.lensResult) : scorePill(property.opportunityScore)}
+          </div>
+        </div>
+
+        <div class="explorer-selection-meta">
+          <strong>${escapeHtml(moneyShort(property.price))}</strong>
+          <span>${escapeHtml(corridorLabel(property.corridor))}</span>
+          <span>${escapeHtml(typeLabel(property.type))}</span>
+          <span>${escapeHtml(property.area || "--")} ha</span>
+        </div>
+
+        <div class="explorer-selection-tags">
+          ${primaryLabels.slice(0, 2).map((label) => `<span class="explorer-selection-tag">${escapeHtml(label)}</span>`).join("")}
+          ${statusPill(property.status)}
+          ${verificationPill(property.listingVerificationStatus)}
+        </div>
+
+        <p class="explorer-selection-story">${escapeHtml(truncate(thesis, 132))}</p>
+
+        <div class="explorer-selection-actions">
+          <a href="${propertyHref(property.id)}" class="explorer-selection-button is-primary">View Details</a>
+          <button type="button" class="explorer-selection-button" data-compare-toggle="${property.id}">${compareIds.includes(property.id) ? "Compared" : "Compare"}</button>
+          <button type="button" class="explorer-selection-button" data-favorite-toggle="${property.id}">${favoriteActionLabel(favoriteIds.includes(property.id))}</button>
+        </div>
+
+        <a href="${votingHref(property.id)}" class="explorer-selection-link">Open the community demand context</a>
+      </div>
+    </article>
   `;
 }
 
@@ -2269,6 +3162,87 @@ function emptyState(title, description, actionLabel = "", actionHref = "") {
   `;
 }
 
+function initCityBrief() {
+  const modal = document.getElementById("cityBriefModal");
+  const triggers = Array.from(document.querySelectorAll("[data-city-brief-trigger]"));
+  if (!modal || !triggers.length) return;
+
+  const dismissButtons = Array.from(modal.querySelectorAll("[data-city-brief-dismiss]"));
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let lastFocused = null;
+  let closeTimer = 0;
+  let mediaHydrated = false;
+
+  const hydrateMedia = () => {
+    if (mediaHydrated) return;
+    mediaHydrated = true;
+
+    modal.querySelectorAll("[data-city-image-src]").forEach((node) => {
+      if (!(node instanceof HTMLImageElement)) return;
+      const src = node.dataset.cityImageSrc?.trim();
+      if (!src || node.getAttribute("src")) return;
+      node.setAttribute("src", src);
+    });
+  };
+
+  const finishClose = () => {
+    closeTimer = 0;
+    modal.hidden = true;
+    lastFocused?.focus?.();
+  };
+
+  const openModal = () => {
+    if (closeTimer) {
+      window.clearTimeout(closeTimer);
+      closeTimer = 0;
+    }
+
+    hydrateMedia();
+    lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modal.hidden = false;
+    document.body.classList.add("has-city-brief-open");
+    window.requestAnimationFrame(() => {
+      modal.classList.add("is-open");
+      dismissButtons[0]?.focus();
+    });
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("is-open");
+    document.body.classList.remove("has-city-brief-open");
+
+    if (motionQuery.matches) {
+      finishClose();
+      return;
+    }
+
+    closeTimer = window.setTimeout(finishClose, 320);
+  };
+
+  triggers.forEach((trigger) => {
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      openModal();
+    });
+  });
+
+  dismissButtons.forEach((button) => {
+    button.addEventListener("click", closeModal);
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) {
+      closeModal();
+    }
+  });
+}
+
 function parsePropertyParam() {
   const params = new URLSearchParams(window.location.search);
   const propertyId = Number(params.get("property") || 0);
@@ -2360,8 +3334,7 @@ const LANDING_HERO_FOCUSES = {
     railLabel: "Logistics",
     accent: "#6366f1",
     accentRgb: "99, 102, 241",
-    summary: "Infrastructure access, zoning alignment, and property scale dictate the true value of a location. Right now, all data points to",
-    suffix: "as the anchor of San Fernando's economic heat map.",
+    summary: "Throughput, corridor fit, and land scale rise to the front of the city frame.",
     tickerMeta: "Freight",
     defaultNode: "poro-point",
     nodes: ["poro-point"],
@@ -2601,24 +3574,25 @@ function landingOpportunityTrustSignal(property) {
 
 function landingHeroStory(state) {
   if (!state?.leader) {
-    return `${state?.node?.label || "The city"} is quiet for now, waiting for a stronger live thesis to rise into view.`;
+    return `${state?.node?.label || "The city"} is quiet for now and waiting for a stronger live lead.`;
   }
 
   const leader = state.leader;
   const topNeed = voteLabel(leader.topNeed || "");
-  const needClause = topNeed && topNeed !== "No demand yet"
+  const hasMeaningfulNeed = topNeed && String(topNeed).trim().toLowerCase() !== "no demand yet";
+  const needClause = hasMeaningfulNeed
     ? `${topNeed} demand is surfacing around ${state.node.label}`
-    : `${state.focus.railLabel.toLowerCase()} demand is settling into this corridor`;
+    : `${state.focus.railLabel.toLowerCase()} demand is the strongest fit right now`;
 
-  return `${leader.name} now sits closest to the horizon because ${needClause}, giving ${state.node.label} the clearest read in the current thesis.`;
+  return `${leader.name} leads because ${needClause}.`;
 }
 
 function landingHeroProofItems(state) {
   return [
-    { label: "Data Valid", value: String(state.activeListings || 0) },
-    { label: "Verified Listings", value: String(state.verifiedListings || 0) },
-    { label: "Field Audits", value: String(state.fieldAuditCount || 0) },
-    { label: "Dossier Ready", value: String(state.dossierReadyCount || 0) },
+    { label: "Listings", value: String(state.activeListings || 0) },
+    { label: "Verified", value: String(state.verifiedListings || 0) },
+    { label: "Audits", value: String(state.fieldAuditCount || 0) },
+    { label: "Ready", value: String(state.dossierReadyCount || 0) },
   ];
 }
 
@@ -2653,15 +3627,12 @@ function landingFeaturedOpportunityMarkup(state) {
         <span>${Number(leader.voteTotal || 0)} votes</span>
         <span>${escapeHtml(verification)}</span>
       </div>
-      <div class="hero-brief-insight">
-        <span>Why it leads</span>
-        <strong>${escapeHtml(truncate(whyLead, 120))}</strong>
+      <div class="hero-brief-summary">
+        <span>Why now</span>
+        <strong>${escapeHtml(truncate(whyLead, 104))}</strong>
+        <p>${escapeHtml(trustSignal)}</p>
       </div>
-      <div class="hero-brief-insight is-trust">
-        <span>Trust signal</span>
-        <strong>${escapeHtml(trustSignal)}</strong>
-      </div>
-      <a href="${propertyHref(leader.id)}" class="hero-brief-link">Open Property Thesis</a>
+      <a href="${propertyHref(leader.id)}" class="hero-brief-link">Open Opportunity Brief</a>
     </article>
   `;
 }
@@ -2763,8 +3734,8 @@ function landingRankingLeadMarkup(property, lensKey) {
           ${primaryLabels.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}
         </div>
         <div class="landing-ranking-actions">
-          <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property Thesis</a>
-          <a href="${(window.SFC_APP_CONFIG?.basePath || "")}/property-explorer.php" class="btn-shell btn-shell-secondary">${icon("map")}Explore Context</a>
+          <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}View Opportunity</a>
+          <a href="${(window.SFC_APP_CONFIG?.basePath || "")}/property-explorer.php" class="btn-shell btn-shell-secondary">${icon("map")}Read the District</a>
         </div>
       </div>
     </article>
@@ -2789,12 +3760,12 @@ function landingRankingMiniMarkup(property, lensKey, rank = 2) {
         ${leadScoreMarkup}
       </div>
       <h3>${escapeHtml(property.name)}</h3>
-      <p>${escapeHtml(truncate(thesis, 98))}</p>
+      <p>${escapeHtml(truncate(thesis, 60))}</p>
       <div class="landing-ranking-mini-meta">
-        <span>${escapeHtml(property.barangay || "Unassigned")}</span>
-        <strong>${escapeHtml(moneyShort(property.price))}</strong>
+        <span class="landing-ranking-mini-location">${escapeHtml(property.barangay || "Unassigned")}</span>
+        <strong class="landing-ranking-mini-price">${escapeHtml(moneyShort(property.price))}</strong>
       </div>
-      <a href="${propertyHref(property.id)}" class="landing-inline-link">View Property</a>
+      <a href="${propertyHref(property.id)}" class="landing-inline-link">Open Brief</a>
     </article>
   `;
 }
@@ -2818,7 +3789,7 @@ function landingRankingPreviewMarkup(properties, lensKey) {
 function landingDemandCardMarkup(property, index = 0) {
   const voteCount = Number(property.voteTotal || 0);
   const docsPct = Math.round(Number(property.documentCompletenessPct || 0));
-  const kicker = index === 0 ? "Lead demand signal" : "Demand hotspot";
+  const kicker = index === 0 ? "Strongest signal" : "Demand pulse";
 
   return `
     <article class="landing-demand-card ${index === 0 ? "is-lead" : ""}">
@@ -2842,7 +3813,7 @@ function landingDemandCardMarkup(property, index = 0) {
           <strong>${docsPct}%</strong>
         </div>
       </div>
-      <a href="${propertyHref(property.id)}" class="landing-inline-link">Open Property</a>
+      <a href="${propertyHref(property.id)}" class="landing-inline-link">Open Brief</a>
     </article>
   `;
 }
@@ -2863,6 +3834,17 @@ function landingDemandPreviewMarkup(properties) {
   }
 
   return demandLeaders.map((property, index) => landingDemandCardMarkup(property, index)).join("");
+}
+
+function showcaseImageSrc(item) {
+  const fallback = "assets/images/Property10.png";
+  const base = String(item?.coverImageUrl || fallback || "").trim() || fallback;
+  if (/^(blob:|data:)/i.test(base)) return base;
+
+  const version = String(item?._imageVersion || item?.updatedAt || item?.createdAt || "").trim();
+  if (!version) return base;
+
+  return `${base}${base.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
 }
 
 function landingShowcaseMetricValueMarkup(item) {
@@ -2889,7 +3871,7 @@ function landingShowcasePreviewCardMarkup(item, featureType = "") {
   return `
     <article class="landing-showcase-card ${entry.featureType === "city_pipeline" ? "is-pipeline" : "is-offer"}">
       <div class="landing-showcase-media">
-        <img src="${escapeHtml(entry.coverImageUrl || "assets/images/Property10.png")}" alt="${escapeHtml(entry.title || "Showcase item")}">
+        <img src="${escapeHtml(showcaseImageSrc(entry))}" alt="${escapeHtml(entry.title || "Showcase item")}">
         <div class="landing-showcase-media-top">
           <span class="landing-showcase-badge">${escapeHtml(entry.partnerLabel || showcaseFeatureLabel(entry.featureType))}</span>
           ${showcaseStatePill(entry)}
@@ -2986,15 +3968,15 @@ function landingHeroState(properties, votesMap, focusKey, nodeKey = null) {
     dossierReadyCount,
     tickerItems: landingSentimentItems(focus, node, nodeUniverse),
     focusBadge: `${focus.railLabel} lens`,
-    nodeBadge: `Looking toward ${node.label}`,
+    nodeBadge: `Focus: ${node.label}`,
     metricMeta: `${focus.railLabel} / ${node.label}`,
     tickerMeta: `${focus.railLabel} lens`,
-    focusSummary: `${focus.summary} ${node.label} ${focus.suffix || "holds the center of the current spatial read."}`,
+    focusSummary: `${focus.summary} Start with ${node.label}.`,
     metricSummary: leader
-      ? `${leader.name} is the clearest opportunity currently visible at ${node.label}.`
+      ? `${leader.name} leads in ${node.label} right now.`
       : `${node.label} is waiting for live listings.`,
-    opportunitySummary: `${activeListings} active listing${activeListings === 1 ? "" : "s"} currently orbit ${node.label} on the city grid.`,
-    nodeMeta: `${node.label} horizon`,
+    opportunitySummary: `${activeListings} live listing${activeListings === 1 ? "" : "s"} around ${node.label}.`,
+    nodeMeta: `${node.label} focus`,
   };
 }
 
@@ -3468,12 +4450,12 @@ async function initLanding() {
     hero.classList.toggle("is-orbiting", orbitActive);
     if (orbitToggle) {
       orbitToggle.setAttribute("aria-pressed", orbitActive ? "true" : "false");
-      orbitToggle.textContent = orbitActive ? "Orbit Running" : "Start Orbit";
+      orbitToggle.textContent = orbitActive ? "Sweep Active" : "Begin Sweep";
     }
     if (orbitStatus) {
       orbitStatus.textContent = orbitActive
         ? `Presentation orbit is active. ${lastHeroState?.focus?.railLabel || "City intelligence"} is sweeping ${lastHeroState?.node?.label || "the grid"}.`
-        : "Manual control engaged. Start orbit to sweep the thesis across the city.";
+        : "Manual control engaged. Begin sweep to move the city read across the board.";
     }
   };
 
@@ -3637,12 +4619,13 @@ function voteBars(votes) {
   }
 
   return entries.map(([label, count]) => {
-    const pct = Math.round((Number(count || 0) / total) * 100);
+    const numericCount = Number(count || 0);
+    const pct = Math.round((numericCount / total) * 100);
     return `
       <div class="bar-row">
         <div class="bar-top">
-          <span>${escapeHtml(label)}</span>
-          <strong>${count} votes | ${pct}%</strong>
+          <span>${escapeHtml(voteLabel(label))}</span>
+          <strong>${numericCount} vote${numericCount === 1 ? "" : "s"} | ${pct}%</strong>
         </div>
         <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
       </div>
@@ -3659,66 +4642,9 @@ function initials(value) {
     .join("") || "OP";
 }
 
-const VOTE_OPTION_IMAGE_FALLBACKS = {
-  "7/11": "assets/images/vote-7-11.svg",
-  "7-11": "assets/images/vote-7-11.svg",
-  "PRINTING SHOP": "assets/images/vote-printing-shop.svg",
-  "PRINTING-SHOP": "assets/images/vote-printing-shop.svg",
-  "CAFE": "assets/images/vote-cafe.svg",
-  "RESORT AND TOURISM": "assets/images/vote-resort-and-tourism.svg",
-  "RESORT-AND-TOURISM": "assets/images/vote-resort-and-tourism.svg",
-  "RESTAURANT OR FOOD PARK": "assets/images/vote-restaurant-or-food-park.svg",
-  "RESTAURANT-OR-FOOD-PARK": "assets/images/vote-restaurant-or-food-park.svg",
-  "PHARMACY": "assets/images/vote-pharmacy.svg",
-  "CLINIC OR DIAGNOSTICS": "assets/images/vote-clinic-or-diagnostics.svg",
-  "CLINIC-OR-DIAGNOSTICS": "assets/images/vote-clinic-or-diagnostics.svg",
-  "WAREHOUSE OR LOGISTICS": "assets/images/vote-warehouse-or-logistics.svg",
-  "WAREHOUSE-OR-LOGISTICS": "assets/images/vote-warehouse-or-logistics.svg",
-  "OFFICE OR BPO": "assets/images/vote-office-or-bpo.svg",
-  "OFFICE-OR-BPO": "assets/images/vote-office-or-bpo.svg",
-  "HARDWARE AND CONSTRUCTION SUPPLY": "assets/images/vote-hardware-and-construction-supply.svg",
-  "HARDWARE-AND-CONSTRUCTION-SUPPLY": "assets/images/vote-hardware-and-construction-supply.svg",
-  "GROCERY OR MINI MART": "assets/images/vote-grocery-or-mini-mart.svg",
-  "GROCERY-OR-MINI-MART": "assets/images/vote-grocery-or-mini-mart.svg",
-};
-
-function resolveVoteImageUrl(imgUrl, title, slug) {
-  let raw = imgUrl;
-  if (!raw && title) {
-    const key = String(title).trim().toUpperCase();
-    const slugKey = String(slug || "").trim().toUpperCase();
-    raw = VOTE_OPTION_IMAGE_FALLBACKS[key] || VOTE_OPTION_IMAGE_FALLBACKS[slugKey];
-  }
-  if (!raw) return "";
-
-  raw = String(raw).trim();
-  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) {
-    return raw;
-  }
-
-  let normalized = raw.replace(/^(\.\/|\/)+/, "");
-  const basePath = (window.SFC_APP_CONFIG?.basePath || "").replace(/\/+$/, "");
-
-  if (basePath && normalized.startsWith(basePath.replace(/^\/+/, "") + "/")) {
-    return "/" + normalized;
-  }
-
-  if (normalized.startsWith("assets/")) {
-    return basePath ? (basePath + "/" + normalized) : ("/" + normalized);
-  }
-
-  if (normalized.startsWith("images/")) {
-    return basePath ? (basePath + "/assets/" + normalized) : ("/assets/" + normalized);
-  }
-
-  return basePath ? (basePath + "/assets/images/" + normalized) : ("/assets/images/" + normalized);
-}
-
 function voteOptionMedia(option) {
-  const cleanUrl = resolveVoteImageUrl(option?.imageUrl, option?.title, option?.slug);
-
-  if (cleanUrl) {
-    return `<img src="${escapeHtml(cleanUrl)}" alt="${escapeHtml(option.title || "Vote option")}" loading="lazy">`;
+  if (option?.imageUrl) {
+    return `<img src="${escapeHtml(option.imageUrl)}" alt="${escapeHtml(option.title || "Vote option")}">`;
   }
 
   return `<span>${escapeHtml(initials(option?.title || "Option"))}</span>`;
@@ -3857,6 +4783,7 @@ function prospectusMarkup({
   }
 
   const activeLens = getInvestmentLensConfig(lensKey);
+  const compliance = evaluateClup(property, lensKey ? clupUseForLens(lensKey) : property.type);
   const messageUrl = messagingQrUrl(property.id);
   const qrMarkup = messageUrl ? prospectusQrSvgMarkup(messageUrl) : "";
   const mapMarkup = demandSnapshotSvgMarkup({
@@ -3876,20 +4803,21 @@ function prospectusMarkup({
     ? formatProspectusTimestamp(property.latestGroundTruthVisitAt || visit?.visitedAt || visit?.updatedAt)
     : "Pending";
   const sealLabel = duePct >= 75 || String(property.listingVerificationStatus || "").toLowerCase() === "verified"
-    ? "Admin Verified"
-    : "Verification In Progress";
+    ? "Diligence Reviewed"
+    : "Diligence In Progress";
 
   return `
     <section class="prospectus-print-shell" aria-label="One-click prospectus">
       <article class="prospectus-page">
         <header class="prospectus-hero">
           <div class="prospectus-hero-copy">
-            <div class="prospectus-kicker">SFCelerate BizStart | One-Click Prospectus</div>
+            <div class="prospectus-kicker">LOCUS-SF | One-Click Prospectus</div>
             <h1>${escapeHtml(property.name)}</h1>
             <p>${escapeHtml(propertyStory(property))}</p>
             <div class="prospectus-chip-row">
               <span class="prospectus-chip">Investment Lens: ${escapeHtml(activeLens.label)}</span>
               <span class="prospectus-chip">IAI / Lens Score: ${Math.round(Number(lensResult.score || 0))}</span>
+              <span class="prospectus-chip">CLUP: ${escapeHtml(clupStatus(compliance.status))} · ${escapeHtml(clupScoreLabel(compliance))}</span>
               <span class="prospectus-chip">Data Valid as of ${escapeHtml(formatProspectusDate(generatedAt || new Date().toISOString()))}</span>
             </div>
           </div>
@@ -3900,6 +4828,21 @@ function prospectusMarkup({
         </header>
 
         <section class="prospectus-grid bento-grid">
+          <article class="bento-item prospectus-card prospectus-span-12 clup-report-card clup-${escapeHtml(clupStatus(compliance.status).toLowerCase())}">
+            <div class="prospectus-section-kicker">CLUP Compliance and Suitability</div>
+            <h2>${escapeHtml(clupStatus(compliance.status))} — ${escapeHtml(compliance.proposedInvestmentLabel)}</h2>
+            <p class="prospectus-lead">${escapeHtml(compliance.explanation)}</p>
+            <div class="prospectus-fact-grid">
+              <div><span>Suitability Score</span><strong>${escapeHtml(clupScoreLabel(compliance))}</strong></div>
+              <div><span>Existing Land Use</span><strong>${escapeHtml(compliance.existingLandUse)}</strong></div>
+              <div><span>Zoning Classification</span><strong>${escapeHtml(compliance.zoningClassification)}</strong></div>
+              <div><span>Decision Gate</span><strong>${escapeHtml(titleCase(clupGate(compliance)))}</strong></div>
+              <div><span>Evidence</span><strong>${escapeHtml(compliance.evidenceLevel || "UNVERIFIED")}</strong></div>
+              <div><span>Source</span><strong>${escapeHtml(compliance.sourceReference || "Authoritative source pending")}</strong></div>
+            </div>
+            <div class="prospectus-note"><strong>Recommended LGU action:</strong> ${escapeHtml(compliance.recommendedLguAction)}</div>
+            <small>${escapeHtml(compliance.disclaimer || (compliance.isPreliminary ? "Preliminary screen. Confirm against the adopted CLUP, official zoning map, Zoning Ordinance, and locational-clearance process." : "LGU-verified profile. Formal locational clearance may still be required."))}</small>
+          </article>
           <article class="bento-item prospectus-card prospectus-card-primary prospectus-span-7">
             <div class="prospectus-section-kicker">Scenario Synthesis</div>
             <h2>${escapeHtml(thesisHeading)}</h2>
@@ -4007,7 +4950,7 @@ function prospectusMarkup({
         <footer class="prospectus-footer">
           <span>Data Valid as of ${escapeHtml(formatProspectusTimestamp(generatedAt || new Date().toISOString()))}</span>
           <span>${escapeHtml(property.city || "San Fernando, La Union")} | ${escapeHtml(property.barangay || "Barangay pending")}</span>
-          <span>SFCelerate BizStart Investment Brief</span>
+          <span>LOCUS-SF Investment Brief</span>
         </footer>
       </article>
     </section>
@@ -4370,7 +5313,7 @@ function buildVisitIcsContent(visit, property = null) {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//SFCelerate Bizstart//Ground Truth Visit//EN",
+    "PRODID:-//LOCUS-SF//Ground Truth Visit//EN",
     "BEGIN:VEVENT",
     `UID:sfc-visit-${visit?.id || "logistics"}@sfcelerate.local`,
     `DTSTAMP:${formatUtc(new Date())}`,
@@ -4529,6 +5472,38 @@ function conversationThreadList(threads, activeThreadId, emptyCopy = "Conversati
   `).join("");
 }
 
+function adminThreadParticipants(thread) {
+  const roster = [
+    {
+      role: "investor",
+      id: Number(thread?.investorUserId || 0) || null,
+      name: thread?.investorName || "Investor",
+      email: thread?.investorEmail || "",
+    },
+    {
+      role: "seller",
+      id: Number(thread?.sellerUserId || 0) || null,
+      name: thread?.sellerName || "Seller",
+      email: thread?.sellerEmail || "",
+    },
+  ];
+
+  const seen = new Set();
+  return roster.filter((entry) => {
+    const id = Number(entry.id || 0);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+function adminThreadRecipientOptions(thread, selectedUserId = null) {
+  return adminThreadParticipants(thread).map((participant) => {
+    const optionLabel = `${titleCase(participant.role)} - ${participant.name}${participant.email ? ` (${participant.email})` : ""}`;
+    return `<option value="${participant.id}" ${Number(participant.id) === Number(selectedUserId) ? "selected" : ""}>${escapeHtml(optionLabel)}</option>`;
+  }).join("");
+}
+
 function auditBadgeClass(badge) {
   return {
     CRITICAL: "badge-critical",
@@ -4582,6 +5557,25 @@ function auditPrimaryDiff(entry) {
     auditDiffPriority(left.path) - auditDiffPriority(right.path)
     || String(left.path).localeCompare(String(right.path))
   ))[0];
+}
+
+function auditEntrySummary(entry, fallback = "") {
+  const diff = auditPrimaryDiff(entry);
+  if (!diff) {
+    return entry?.summary || fallback;
+  }
+
+  return `${auditFieldLabel(diff.path)} changed from ${auditValuePreview(diff.before, diff.path)} to ${auditValuePreview(diff.after, diff.path)}.`;
+}
+
+function auditEntryTitle(entry) {
+  const beforeState = entry?.metadata?.before || {};
+  const afterState = entry?.metadata?.after || {};
+
+  return afterState?.name
+    || beforeState?.name
+    || entry?.targetLabel
+    || "Select a log entry";
 }
 
 function auditValuePreview(value, path = "") {
@@ -4673,7 +5667,7 @@ function auditActionMarkup(entry) {
   const diffs = auditEntryDiffs(entry);
   const diff = auditPrimaryDiff(entry);
   if (!diff) {
-    return `<div class="audit-action-block"><div class="audit-action-foot">${escapeHtml(entry?.summary || "No structured diff captured.")}</div></div>`;
+    return `<div class="audit-action-block"><div class="audit-action-foot">${escapeHtml(auditEntrySummary(entry, "No structured diff captured."))}</div></div>`;
   }
 
   const additionalChanges = Math.max(0, diffs.length - 1);
@@ -4689,7 +5683,7 @@ function auditActionMarkup(entry) {
         </div>
       </div>
       <div class="audit-action-foot">
-        ${additionalChanges ? `<span class="audit-change-count">+${additionalChanges} more change${additionalChanges === 1 ? "" : "s"}</span>` : escapeHtml(entry?.summary || "Structured change captured.")}
+        ${additionalChanges ? `<span class="audit-change-count">+${additionalChanges} more change${additionalChanges === 1 ? "" : "s"}</span>` : escapeHtml(auditEntrySummary(entry, "Structured change captured."))}
       </div>
     </div>
   `;
@@ -4717,7 +5711,7 @@ function governanceTimelineMarkup(logs) {
           <span class="mono">${escapeHtml(formatDateTime(entry.createdAt))}</span>
         </div>
         <strong>${escapeHtml(entry.eventType || entry.actionType || "TRACE")}</strong>
-        <p>${escapeHtml(entry.summary || "System trace recorded.")}</p>
+        <p>${escapeHtml(auditEntrySummary(entry, "System trace recorded."))}</p>
         <span class="mono">${escapeHtml(entry.targetLabel || `${entry.entityType}: #${entry.entityId}`)}</span>
       </div>
     </article>
@@ -4736,8 +5730,8 @@ function auditDrawerMarkup(entry) {
         <div class="audit-drawer-head">
           <div>
             <div class="panel-kicker">Audit Diff</div>
-            <h3>${escapeHtml(entry?.targetLabel || "Select a log entry")}</h3>
-            <p>${escapeHtml(entry?.summary || "Open any log row to inspect its before/after state.")}</p>
+            <h3>${escapeHtml(auditEntryTitle(entry))}</h3>
+            <p>${escapeHtml(auditEntrySummary(entry, "Open any log row to inspect its before/after state."))}</p>
           </div>
           <button type="button" class="btn-shell btn-shell-secondary" data-audit-close>Close</button>
         </div>
@@ -4747,6 +5741,7 @@ function auditDrawerMarkup(entry) {
             <span class="audit-feed-badge ${auditBadgeClass(entry.badge)}">${escapeHtml(entry.badge || "TRACE")}</span>
             <span class="mono">${escapeHtml(formatDateTime(entry.createdAt))}</span>
             <span class="mono">${escapeHtml(entry.actorName || "System")}</span>
+            <span class="mono">${escapeHtml(entry.targetLabel || `${entry.entityType}: #${entry.entityId}`)}</span>
           </div>
 
           <div class="audit-diff-list">
@@ -4785,30 +5780,93 @@ async function initAdminDashboard() {
 
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
-  const [votesMap, inquiryMap, inboxResponse] = await Promise.all([
+  const [votesMap, inquiryMap, inboxResponse, sellerQueueResponse] = await Promise.all([
     loadVoteTallies(properties),
     loadInquiryCounts(properties),
     api.getMessageInbox().catch(() => ({ threads: [] })),
+    api.sellerReviewQueue().catch(() => ({ profiles: [], summary: {} })),
   ]);
   const enriched = enrichProperties(properties, properties, votesMap);
-  const sellerMap = {};
-  const inboxThreads = inboxResponse?.threads || [];
-
-  properties.forEach((property) => {
-    const email = property.ownerContact?.email || "";
-    if (!email || email === "portfolio@sfcelerate.local") return;
-    sellerMap[email] ??= { email, name: property.ownerContact?.name || email, listings: 0 };
-    sellerMap[email].listings += 1;
-  });
+  let inboxThreads = Array.isArray(inboxResponse?.threads) ? inboxResponse.threads : [];
+  let sellerProfiles = Array.isArray(sellerQueueResponse?.profiles) ? sellerQueueResponse.profiles : [];
+  let sellerSummary = {
+    total: Number(sellerQueueResponse?.summary?.total || sellerProfiles.length || 0),
+    pendingReview: Number(sellerQueueResponse?.summary?.pendingReview || 0),
+    verified: Number(sellerQueueResponse?.summary?.verified || 0),
+    rejected: Number(sellerQueueResponse?.summary?.rejected || 0),
+    suspended: Number(sellerQueueResponse?.summary?.suspended || 0),
+    draft: Number(sellerQueueResponse?.summary?.draft || 0),
+  };
 
   const totalVotesCount = Object.values(votesMap).reduce((sum, votes) => sum + totalVotes(votes), 0);
   const totalInquiries = Object.values(inquiryMap).reduce((sum, count) => sum + Number(count || 0), 0);
   const topDemand = aggregateVoteLabels(votesMap)[0] || ["No demand yet", 0];
+  let activeThreadId = Number(inboxThreads[0]?.id || 0) || null;
+  let activeThreadMessages = [];
+  let activeThreadVisit = null;
+  let adminReplyRecipientUserId = null;
+  let adminVisitCounterMode = false;
   let auditScope = "all";
   let auditLogs = [];
   let selectedAuditId = null;
   let auditLatestId = 0;
   let liveMode = true;
+
+  const sortThreadsByRecent = (threads) => [...threads].sort((left, right) => (
+    compareTimelineDate(right?.lastMessageAt || right?.updatedAt || right?.createdAt)
+      - compareTimelineDate(left?.lastMessageAt || left?.updatedAt || left?.createdAt)
+  ));
+  inboxThreads = sortThreadsByRecent(inboxThreads);
+  activeThreadId = Number(inboxThreads[0]?.id || 0) || null;
+
+  const syncAdminReplyRecipient = (thread, messages = activeThreadMessages) => {
+    const participants = adminThreadParticipants(thread);
+    const participantIds = participants.map((participant) => Number(participant.id || 0)).filter(Boolean);
+    if (!participantIds.length) {
+      adminReplyRecipientUserId = null;
+      return;
+    }
+
+    const currentRecipientId = Number(adminReplyRecipientUserId || 0);
+    if (currentRecipientId && participantIds.includes(currentRecipientId)) {
+      return;
+    }
+
+    const preferredSenderId = [...(Array.isArray(messages) ? messages : [])]
+      .reverse()
+      .find((message) => String(message?.role || "").toLowerCase() !== "admin"
+        && participantIds.includes(Number(message?.senderUserId || 0)));
+
+    adminReplyRecipientUserId = Number(preferredSenderId?.senderUserId || 0)
+      || Number(thread?.sellerUserId || 0)
+      || Number(thread?.investorUserId || 0)
+      || participantIds[0];
+  };
+
+  const loadAdminThread = async (threadId) => {
+    activeThreadId = Number(threadId || 0) || null;
+    adminVisitCounterMode = false;
+    if (!activeThreadId) {
+      activeThreadMessages = [];
+      activeThreadVisit = null;
+      adminReplyRecipientUserId = null;
+      return;
+    }
+
+    const cachedThread = inboxThreads.find((thread) => Number(thread.id) === Number(activeThreadId)) || null;
+    const response = await api.getThread(activeThreadId).catch(() => ({ thread: cachedThread, messages: [], visit: null }));
+    const refreshedThread = response?.thread || cachedThread;
+
+    if (refreshedThread) {
+      inboxThreads = sortThreadsByRecent(inboxThreads.map((thread) => (
+        Number(thread.id) === Number(activeThreadId) ? { ...thread, ...refreshedThread } : thread
+      )));
+    }
+
+    activeThreadMessages = Array.isArray(response?.messages) ? response.messages : [];
+    activeThreadVisit = response?.visit || null;
+    syncAdminReplyRecipient(refreshedThread, activeThreadMessages);
+  };
 
   const syncAuditSelection = () => {
     if (selectedAuditId === null) {
@@ -4860,11 +5918,19 @@ async function initAdminDashboard() {
   const selectedAudit = () => auditLogs.find((entry) => Number(entry.id) === Number(selectedAuditId)) || null;
 
   const render = () => {
+    const activeThread = inboxThreads.find((thread) => Number(thread.id) === Number(activeThreadId)) || null;
+    const activeThreadProperty = properties.find((property) => Number(property.id) === Number(activeThread?.propertyId)) || null;
+    const activeThreadParticipants = adminThreadParticipants(activeThread);
+    const selectedRecipient = activeThreadParticipants.find((participant) => (
+      Number(participant.id) === Number(adminReplyRecipientUserId)
+    )) || activeThreadParticipants[0] || null;
     const activeAudit = selectedAudit();
+    const pendingSellerProfiles = sellerProfiles.filter((profile) => sellerApplicationStatus(profile) === "pending_review");
+    const sellerRosterPreview = (pendingSellerProfiles.length ? pendingSellerProfiles : sellerProfiles).slice(0, 4);
     root.innerHTML = `
       <div class="stat-grid">
         <article class="stat-card"><div class="panel-kicker">Live listings</div><strong>${properties.length}</strong><p>Total active property records in the platform.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Seller roster</div><strong>${Object.keys(sellerMap).length || 1}</strong><p>Seller-side participation visible to admin.</p></article>
+        <article class="stat-card"><div class="panel-kicker">Seller applications</div><strong>${sellerSummary.total || 0}</strong><p>${sellerSummary.pendingReview || 0} seller account(s) are currently waiting for review.</p></article>
         <article class="stat-card"><div class="panel-kicker">Votes</div><strong>${totalVotesCount}</strong><p>Total business demand signals across properties.</p></article>
         <article class="stat-card"><div class="panel-kicker">Inquiries</div><strong>${totalInquiries}</strong><p>Conversation activity tied to listings.</p></article>
       </div>
@@ -4877,12 +5943,20 @@ async function initAdminDashboard() {
         </article>
 
         <article class="panel-card">
-          <div class="panel-kicker">Manage sellers</div>
-          <h3>Seller overview</h3>
+          <div class="panel-kicker">Seller review queue</div>
+          <h3>${pendingSellerProfiles.length ? "Seller accounts waiting on admin approval" : "Seller roster overview"}</h3>
           <div class="mini-list">
-            ${(Object.values(sellerMap).length ? Object.values(sellerMap) : [{ email: "seller@sfcelerate.local", name: "Seller Studio", listings: 0 }]).map((seller) => `
-              <div class="mini-row"><span>${icon("user")}${escapeHtml(seller.name)}</span><strong>${seller.listings} listings</strong></div>
-            `).join("")}
+            ${sellerRosterPreview.length ? `
+              ${sellerRosterPreview.map((profile) => `
+                <div class="mini-row">
+                  <span>${icon("user")}${escapeHtml(profile.displayName || profile.legalName || profile.name || profile.email || "Seller")}</span>
+                  <strong>${escapeHtml(VERIFICATION_LABELS[String(profile.applicationStatus || "draft").toLowerCase()] || titleCase(profile.applicationStatus || "draft"))}</strong>
+                </div>
+              `).join("")}
+              <div class="mini-row"><span>${icon("shield")}Verified sellers</span><strong>${sellerSummary.verified || 0}</strong></div>
+              <div class="mini-row"><span>${icon("clock")}Pending reviews</span><strong>${sellerSummary.pendingReview || 0}</strong></div>
+              <div class="mini-row"><span>${icon("file")}Needs revision</span><strong>${sellerSummary.rejected || 0}</strong></div>
+            ` : `<div class="loading-panel">Seller applications will appear here once accounts start registering through the seller workspace.</div>`}
           </div>
         </article>
 
@@ -4916,6 +5990,112 @@ async function initAdminDashboard() {
           </div>
         </article>
       </div>
+
+      <article class="panel-card seller-inbox-card">
+        <div class="panel-kicker">Admin inbox</div>
+        <h3>${inboxThreads.length ? "Moderate, guide, and reply inside active listing threads" : "No direct chats yet"}</h3>
+        <div class="seller-inbox-grid">
+          <div class="thread-list">
+            ${conversationThreadList(inboxThreads, activeThreadId, "Investor-to-seller conversations will appear here once property threads become active.")}
+          </div>
+          <div class="thread-view">
+            ${activeThread ? `
+              <div class="thread-view-head">
+                <strong>${escapeHtml(activeThread.propertyName || "Property conversation")}</strong>
+                <span>${Number(activeThread.messageCount || activeThreadMessages.length || 0)} messages</span>
+              </div>
+              <div class="property-stat-row">
+                <span>${icon("user")}Investor: ${escapeHtml(activeThread.investorName || "Investor")}</span>
+                <span>${icon("shield")}Seller: ${escapeHtml(activeThread.sellerName || "Seller")}</span>
+                <span>${icon("clock")}${escapeHtml(formatDate(activeThread.lastMessageAt || activeThread.updatedAt))}</span>
+              </div>
+              ${logisticsHubMarkup({
+                property: activeThreadProperty,
+                visit: activeThreadVisit,
+                currentRole: "admin",
+                counterMode: adminVisitCounterMode,
+                compact: true,
+              })}
+              <div class="chat-thread-surface">
+                ${conversationBubbles(activeThreadMessages, "admin", "This thread is ready for an admin reply.", activeThreadVisit)}
+              </div>
+              <form class="thread-compose" id="adminThreadReplyForm">
+                <label class="form-shell">
+                  <span>Send to</span>
+                  <select class="input-shell" id="adminThreadReplyRecipient">
+                    ${adminThreadRecipientOptions(activeThread, selectedRecipient?.id || adminReplyRecipientUserId)}
+                  </select>
+                </label>
+                <textarea class="input-shell input-textarea" id="adminThreadReplyInput" placeholder="Reply as admin with guidance, moderation direction, scheduling support, or escalation notes."></textarea>
+                <div class="property-actions">
+                  <button type="submit" class="btn-shell btn-shell-primary">Send Admin Reply</button>
+                </div>
+                <div class="auth-form-note">Admin replies post into the shared property thread and can be directed to either participant on the conversation.</div>
+              </form>
+            ` : `<div class="loading-panel">Select a conversation to message the investor or seller and keep the listing thread moving.</div>`}
+          </div>
+        </div>
+      </article>
+
+      <article class="panel-card">
+        <div class="panel-kicker">Seller verification</div>
+        <h3>${sellerProfiles.length ? "Review and decide seller applications" : "No seller applications yet"}</h3>
+        <div class="listing-stack">
+          ${sellerProfiles.length ? sellerProfiles.map((profile) => `
+            <article class="listing-row">
+              <div class="listing-main">
+                <div class="property-title">${escapeHtml(profile.displayName || profile.legalName || profile.name || profile.email || "Seller")}</div>
+                <div class="property-subline">${escapeHtml(profile.email || "No email")} | ${escapeHtml(titleCase(profile.sellerType || "individual"))} | ${escapeHtml(profile.city || "San Fernando, La Union")}</div>
+                <p>${escapeHtml(profile.authorizationBasis || profile.addressLine || "Seller profile is waiting for more operational notes.")}</p>
+                <div class="property-stat-row">
+                  <span>${icon("user")}${escapeHtml(profile.phone || "No phone yet")}</span>
+                  <span>${icon("file")}${escapeHtml(profile.governmentIdNo || "No ID yet")}</span>
+                  <span>${icon("ranking")}${Number(profile.listingCount || 0)} listings</span>
+                  <span>${icon("clock")}${escapeHtml(formatDate(profile.submittedAt || profile.updatedAt || profile.createdAt))}</span>
+                </div>
+                <div class="listing-meta-row">
+                  ${verificationPill(profile.applicationStatus || "draft")}
+                  ${metaChip(`${Number(profile.pendingListingCount || 0)} pending listing(s)`)}
+                  ${metaChip(profile.companyName || profile.legalName || "Seller profile")}
+                </div>
+                ${profile.reviewNotes ? `<div class="auth-form-note" style="margin-top:12px;">Latest review note: ${escapeHtml(profile.reviewNotes)}</div>` : ""}
+                <form class="crud-form-grid" data-seller-review-form="${profile.userId}" style="margin-top:18px;">
+                  <label class="form-shell">
+                    <span>Decision</span>
+                    <select class="input-shell" name="status" data-seller-review-status-select>
+                      <option value="verified" ${String(profile.applicationStatus || "").toLowerCase() === "verified" ? "selected" : ""}>Approve</option>
+                      <option value="pending_review" ${String(profile.applicationStatus || "").toLowerCase() === "pending_review" ? "selected" : ""}>Keep pending</option>
+                      <option value="rejected" ${String(profile.applicationStatus || "").toLowerCase() === "rejected" ? "selected" : ""}>Needs revision</option>
+                      <option value="suspended" ${String(profile.applicationStatus || "").toLowerCase() === "suspended" ? "selected" : ""}>Suspend</option>
+                    </select>
+                  </label>
+                  <label class="form-shell form-span-2">
+                    <span>Review note</span>
+                    <input class="input-shell" name="reviewNotes" value="${escapeHtml(profile.reviewNotes || "")}" placeholder="Tell the seller what to fix or confirm.">
+                  </label>
+                  <div class="crud-actions form-span-2">
+                    <button type="submit" class="btn-shell btn-shell-primary" data-seller-review-submit-button>${escapeHtml(adminSellerReviewButtonLabel(profile.applicationStatus || "draft"))}</button>
+                    <a href="mailto:${escapeHtml(profile.email || "")}" class="btn-shell btn-shell-secondary">Email Seller</a>
+                  </div>
+                  <div class="auth-form-note form-span-2" data-seller-review-status-note ${sellerReviewStatusNote(profile.applicationStatus || "draft", "admin") ? "" : "hidden"}>
+                    ${sellerReviewStatusNote(profile.applicationStatus || "draft", "admin")
+                      ? `<strong>${escapeHtml(adminSellerReviewButtonLabel(profile.applicationStatus || "draft"))}.</strong> ${escapeHtml(sellerReviewStatusNote(profile.applicationStatus || "draft", "admin"))}`
+                      : ""}
+                  </div>
+                </form>
+              </div>
+              <div class="listing-actions">
+                <div class="mini-list">
+                  <div class="mini-row"><span>${icon("shield")}Identity</span><strong>${escapeHtml(VERIFICATION_LABELS[String(profile.identityVerificationStatus || "unverified").toLowerCase()] || titleCase(profile.identityVerificationStatus || "unverified"))}</strong></div>
+                  <div class="mini-row"><span>${icon("user")}Legal name</span><strong>${escapeHtml(profile.legalName || profile.name || "Seller")}</strong></div>
+                  <div class="mini-row"><span>${icon("map")}Address</span><strong>${escapeHtml(profile.barangay || profile.city || "Not set")}</strong></div>
+                  <div class="mini-row"><span>${icon("compare")}Business reg</span><strong>${escapeHtml(profile.businessRegistrationNo || "Not supplied")}</strong></div>
+                </div>
+              </div>
+            </article>
+          `).join("") : emptyState("No seller applications yet", "New seller registrations will appear here once someone creates a seller account and submits verification details.", "", "")}
+        </div>
+      </article>
 
       <section class="governance-grid">
         <section class="governance-terminal">
@@ -5010,6 +6190,95 @@ async function initAdminDashboard() {
         render();
       });
     });
+
+    root.querySelectorAll("[data-thread-open]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        await loadAdminThread(button.dataset.threadOpen);
+        render();
+      });
+    });
+
+    document.getElementById("adminThreadReplyRecipient")?.addEventListener("change", (event) => {
+      adminReplyRecipientUserId = Number(event.currentTarget.value || 0) || null;
+    });
+
+    document.getElementById("adminThreadReplyForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!activeThread) return;
+      const input = document.getElementById("adminThreadReplyInput");
+      const text = input?.value?.trim() || "";
+      const recipientUserId = Number(document.getElementById("adminThreadReplyRecipient")?.value || 0) || null;
+      if (!text || !recipientUserId) return;
+
+      try {
+        const response = await api.sendMessage({ threadId: activeThread.id, recipientUserId, text });
+        const updatedThread = response?.thread || activeThread;
+        activeThreadMessages = Array.isArray(response?.messages) ? response.messages : activeThreadMessages;
+        activeThreadVisit = response?.visit || activeThreadVisit;
+        adminReplyRecipientUserId = recipientUserId;
+        inboxThreads = sortThreadsByRecent(inboxThreads.map((thread) => (
+          Number(thread.id) === Number(activeThread.id)
+            ? {
+              ...thread,
+              ...updatedThread,
+              lastMessageText: text,
+              lastMessageAt: updatedThread?.lastMessageAt || new Date().toISOString(),
+              messageCount: Number(updatedThread?.messageCount || thread.messageCount || 0),
+            }
+            : thread
+        )));
+        if (input) input.value = "";
+        render();
+      } catch (error) {
+        window.alert(error.message || "Unable to send the admin reply right now.");
+      }
+    });
+
+    bindVisitInteractions(root, {
+      property: activeThreadProperty,
+      visit: activeThreadVisit,
+      threadId: activeThread?.id || 0,
+      counterMode: adminVisitCounterMode,
+      setCounterMode: (nextMode) => {
+        adminVisitCounterMode = Boolean(nextMode);
+        render();
+      },
+      onUpdated: async (response) => {
+        activeThreadVisit = response.visit || activeThreadVisit;
+        await loadAdminThread(activeThread?.id || activeThreadId);
+        render();
+      },
+    });
+
+    root.querySelectorAll("[data-seller-review-form]").forEach((form) => {
+      const statusSelect = form.querySelector('[name="status"]');
+      syncAdminSellerReviewFormState(form);
+      statusSelect?.addEventListener("change", () => {
+        syncAdminSellerReviewFormState(form);
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const userId = Number(form.dataset.sellerReviewForm || 0);
+        if (!userId) return;
+        const formData = new FormData(form);
+        const response = await api.reviewSellerProfile({
+          userId,
+          status: formData.get("status"),
+          reviewNotes: formData.get("reviewNotes"),
+        });
+        sellerProfiles = Array.isArray(response?.profiles) ? response.profiles : sellerProfiles;
+        sellerSummary = {
+          total: Number(response?.summary?.total || sellerProfiles.length || 0),
+          pendingReview: Number(response?.summary?.pendingReview || 0),
+          verified: Number(response?.summary?.verified || 0),
+          rejected: Number(response?.summary?.rejected || 0),
+          suspended: Number(response?.summary?.suspended || 0),
+          draft: Number(response?.summary?.draft || 0),
+        };
+        render();
+      });
+    });
   };
 
   const scheduleAuditStream = () => {
@@ -5024,6 +6293,9 @@ async function initAdminDashboard() {
   };
 
   await loadAuditLogs();
+  if (activeThreadId) {
+    await loadAdminThread(activeThreadId);
+  }
   render();
   scheduleAuditStream();
 }
@@ -5186,6 +6458,7 @@ async function initRankingPage() {
   const votesMap = await loadVoteTallies(properties);
   let type = "all";
   let corridor = "all";
+  let clupStatus = "all";
   let investmentLensKey = getActiveInvestmentLensKey();
 
   const render = () => {
@@ -5195,7 +6468,8 @@ async function initRankingPage() {
       return true;
     });
     const activeLens = getInvestmentLensConfig(investmentLensKey);
-    const visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey);
+    const visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey)
+      .filter((property) => clupStatus === "all" || property.clupCompliance?.statusKey === clupStatus);
     const compareIds = getCompareIds();
     const favoriteIds = getFavoriteIds();
     const lead = visible[0] || null;
@@ -5204,20 +6478,36 @@ async function initRankingPage() {
     const averageLensScore = visibleCount
       ? Math.round(visible.reduce((sum, property) => sum + Number(property.lensScore || 0), 0) / visibleCount)
       : 0;
+    const averageDiligence = visibleCount
+      ? Math.round(visible.reduce((sum, property) => sum + Number(property.dueDiligencePct || 0), 0) / visibleCount)
+      : 0;
+    const approvedCount = visible.filter((property) => String(property.approvalState || "").toLowerCase() === "approved").length;
+    const clupPassCount = visible.filter((property) => property.clupCompliance?.status === "PASS").length;
     const leadLabels = lead ? propertyPrimaryLabels(lead) : [];
     const leadStory = lead
       ? (lead.lensResult?.thesisShort || lead.lensResult?.thesis || propertyStory(lead))
       : "Adjust the filters to surface ranked opportunities.";
+    const leadReason = lead
+      ? (lead.lensResult?.thesisLead || leadStory)
+      : "Expand the filter range to bring qualifying properties back into the board.";
+    const boardScopeLabel = corridor === "all" ? "All corridors" : corridorLabel(corridor);
+    const boardTypeLabel = type === "all" ? "All property types" : typeLabel(type);
 
     root.innerHTML = `
       <div class="ranking-studio">
         <div class="ranking-command-grid">
           <aside class="stack ranking-command-rail">
-            <article class="panel-card ranking-filter-card">
-              <div class="panel-kicker">Board filters</div>
-              <h3>Refine the leaderboard</h3>
-              <p>Shift the shortlist by property type and corridor while the city board recomposes itself live.</p>
-              <div class="filter-grid">
+            <article class="panel-card ranking-command-dock">
+              <div class="ranking-dock-head">
+                <div>
+                  <div class="panel-kicker">Board Controls</div>
+                  <h3>Shape the live leaderboard</h3>
+                  <p>Refine the board by corridor and property type, then let the active investment lens reset the ranking logic in real time.</p>
+                </div>
+                <span class="ranking-dock-badge">${visibleCount} in view</span>
+              </div>
+
+              <div class="filter-grid ranking-filter-grid">
                 <label class="form-shell">
                   <span>Property type</span>
                   <select class="input-shell" id="rankingType">
@@ -5238,60 +6528,91 @@ async function initRankingPage() {
                     <option value="coastal" ${corridor === "coastal" ? "selected" : ""}>Coastal</option>
                   </select>
                 </label>
+                <label class="form-shell">
+                  <span>CLUP status</span>
+                  <select class="input-shell" id="rankingClupStatus">
+                    <option value="all">All compliance results</option>
+                    <option value="pass" ${clupStatus === "pass" ? "selected" : ""}>PASS only</option>
+                    <option value="conditional" ${clupStatus === "conditional" ? "selected" : ""}>CONDITIONAL only</option>
+                    <option value="fail" ${clupStatus === "fail" ? "selected" : ""}>FAIL only</option>
+                  </select>
+                </label>
               </div>
-            </article>
 
-            <article class="panel-card ranking-signal-card">
-              <div class="panel-kicker">Decision read</div>
-              <h3>${visibleCount} ranked properties in view</h3>
-              <div class="mini-list">
-                <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)} score</span><strong>${averageLensScore}</strong></div>
-                <div class="mini-row"><span>${icon("spark")}Elite fits</span><strong>${strongCount}</strong></div>
-                <div class="mini-row"><span>${icon("vote")}Lead need</span><strong>${escapeHtml(voteLabel(lead?.topNeed || "No demand"))}</strong></div>
+              <div class="ranking-summary-rail">
+                <article class="ranking-summary-cell">
+                  <span>${escapeHtml(activeLens.shortLabel)} avg</span>
+                  <strong>${averageLensScore}</strong>
+                </article>
+                <article class="ranking-summary-cell">
+                  <span>Elite fits</span>
+                  <strong>${strongCount}</strong>
+                </article>
+                <article class="ranking-summary-cell">
+                  <span>Diligence avg</span>
+                  <strong>${averageDiligence}%</strong>
+                </article>
+                <article class="ranking-summary-cell">
+                  <span>CLUP pass</span>
+                  <strong>${clupPassCount}/${visibleCount}</strong>
+                </article>
               </div>
-            </article>
 
-            <article class="panel-card ranking-notes-card">
-              <div class="panel-kicker">Current thesis</div>
-              <h3>${escapeHtml(activeLens.label)} is driving the board.</h3>
-              <p>Scores are reweighted around the chosen investment intent, so the top of the board changes with purpose, not just price.</p>
-              <div class="service-chip-row">
-                ${serviceChip(`${activeLens.label} active`, "live")}
-                ${serviceChip(`${visibleCount} visible`, "neutral")}
-                ${serviceChip(type === "all" ? "All property types" : typeLabel(type), "fallback")}
-              </div>
+              <article class="ranking-thesis-note">
+                <div class="panel-kicker">Current thesis</div>
+                <h3>${escapeHtml(activeLens.label)} is setting the decision standard.</h3>
+                <p>Scores move with purpose, not just price. The current lens is favoring ${escapeHtml(boardScopeLabel.toLowerCase())} opportunities that fit ${escapeHtml(boardTypeLabel.toLowerCase())} demand most cleanly.</p>
+                <div class="service-chip-row ranking-thesis-chip-row">
+                  ${serviceChip(`${activeLens.label} active`, "live")}
+                  ${serviceChip(boardScopeLabel, "neutral")}
+                  ${serviceChip(boardTypeLabel, "fallback")}
+                </div>
+              </article>
             </article>
           </aside>
 
         <section class="stack ranking-command-main">
           ${investmentLensSelectorMarkup(investmentLensKey, {
             title: "Select Investment Lens",
-            description: "Re-rank the leaderboard by investment purpose. Scores and explanations update instantly without leaving the page.",
+            description: "Re-rank the board by investment purpose. Scores, front-runner logic, and supporting explanation all update in one pass.",
           })}
 
-          <article class="leaderboard-hero ranking-hero-board" style="--ranking-hero-image:url('${escapeHtml(lead?.imageUrl || "")}')">
-            <div class="panel-kicker">Lead opportunity for ${escapeHtml(activeLens.label)}</div>
-            <h2>${escapeHtml(lead?.name || "No properties in this filter")}</h2>
-            <p>${escapeHtml(truncate(leadStory, 220))}</p>
-            <div class="service-chip-row ranking-hero-chip-row">
-              ${leadLabels.map((label) => `<span class="service-chip service-chip-neutral">${escapeHtml(label)}</span>`).join("")}
-              ${lead ? serviceChip(voteLabel(lead.topNeed || "No demand yet"), "fallback") : ""}
-              ${lead ? serviceChip(corridorLabel(lead.corridor), "neutral") : ""}
-            </div>
-            <div class="ranking-hero-metrics">
-              <article><span>Guide price</span><strong>${escapeHtml(moneyShort(lead?.price || 0))}</strong></article>
-              <article><span>Land area</span><strong>${escapeHtml(lead?.area || "--")} ha</strong></article>
-              <article><span>Votes</span><strong>${Number(lead?.voteTotal || 0)}</strong></article>
-            </div>
-            <div class="property-actions ranking-hero-actions">
-              ${lead ? `<a href="${propertyHref(lead.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property Thesis</a>` : ""}
-              <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-explorer.php" class="btn-shell btn-shell-secondary">${icon("explorer")}Open Explorer</a>
-              ${lead ? `<button type="button" class="btn-shell btn-shell-ghost" data-compare-toggle="${lead.id}">${icon("compare")}${compareIds.includes(lead.id) ? "Compared" : "Compare"}</button>` : ""}
-            </div>
-            <div class="ranking-hero-score">
-              <span class="ranking-hero-score-label">Current lens score</span>
-              <strong>${Math.round(Number(lead?.lensScore || 0))}</strong>
-              <p>${escapeHtml(lead ? `${lead.name} is currently the clearest fit under the ${activeLens.label} lens.` : "No active lead in this filter.")}</p>
+          <article class="leaderboard-hero ranking-hero-board ranking-stage-shell" style="--ranking-hero-image:url('${escapeHtml(absoluteAssetPath(lead?.imageUrl || ""))}')">
+            <div class="ranking-stage-grid">
+              <div class="ranking-stage-main">
+                <div class="panel-kicker">Lead opportunity for ${escapeHtml(activeLens.label)}</div>
+                <h2>${escapeHtml(lead?.name || "No properties in this filter")}</h2>
+                <p>${escapeHtml(truncate(leadStory, 220))}</p>
+                <div class="service-chip-row ranking-hero-chip-row">
+                  ${lead ? clupStatusPill(lead.clupCompliance) : ""}
+                  ${leadLabels.map((label) => `<span class="service-chip service-chip-neutral">${escapeHtml(label)}</span>`).join("")}
+                  ${lead ? serviceChip(voteLabel(lead.topNeed || "No demand yet"), "fallback") : ""}
+                  ${lead ? serviceChip(corridorLabel(lead.corridor), "neutral") : ""}
+                </div>
+                <div class="ranking-stage-note">
+                  <span>Why it leads</span>
+                  <strong>${escapeHtml(truncate(leadReason, 152))}</strong>
+                </div>
+                <div class="property-actions ranking-hero-actions">
+                  ${lead ? `<a href="${propertyHref(lead.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property Thesis</a>` : ""}
+                  <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-explorer.php" class="btn-shell btn-shell-secondary">${icon("explorer")}Open Explorer</a>
+                  ${lead ? `<button type="button" class="btn-shell btn-shell-ghost" data-compare-toggle="${lead.id}">${icon("compare")}${compareIds.includes(lead.id) ? "Compared" : "Compare"}</button>` : ""}
+                </div>
+              </div>
+              <aside class="ranking-stage-aside">
+                <div class="ranking-hero-score">
+                  <span class="ranking-hero-score-label">Current lens score</span>
+                  <strong>${Math.round(Number(lead?.lensScore || 0))}</strong>
+                  <p>${escapeHtml(lead ? `${lead.name} is currently the clearest fit under the ${activeLens.label} lens.` : "No active lead in this filter.")}</p>
+                </div>
+                <div class="ranking-hero-metrics ranking-stage-metrics">
+                  <article><span>Guide price</span><strong>${escapeHtml(moneyShort(lead?.price || 0))}</strong></article>
+                  <article><span>Land area</span><strong>${escapeHtml(lead?.area || "--")} ha</strong></article>
+                  <article><span>Votes</span><strong>${Number(lead?.voteTotal || 0)}</strong></article>
+                  <article><span>Due diligence</span><strong>${Math.round(Number(lead?.dueDiligencePct || 0))}%</strong></article>
+                  <article><span>CLUP suitability</span><strong>${Math.round(Number(lead?.clupCompliance?.suitabilityScore || 0))}</strong></article>
+                </div>
+              </aside>
             </div>
             ${visible.length ? googleEarthActionsMarkup({
               properties: visible,
@@ -5300,24 +6621,37 @@ async function initRankingPage() {
             }) : ""}
           </article>
 
-          ${lead ? investmentLensThesisMarkup(lead, lead.lensResult, {
-            kicker: `Top Pick for ${activeLens.label}`,
-            heading: `${lead.name} leads under the ${activeLens.label} lens`,
-          }) : ""}
+          <div class="ranking-board-grid">
+            ${lead ? clupDecisionCardMarkup(lead.clupCompliance, { compact: true }) : ""}
+            ${lead ? investmentLensThesisMarkup(lead, lead.lensResult, {
+              kicker: `Top Pick for ${activeLens.label}`,
+              heading: `${lead.name} leads under the ${activeLens.label} lens`,
+            }) : ""}
 
-          <article class="panel-card leaderboard-shell ranking-leaderboard-shell">
-            <div class="ranking-section-head">
-              <div>
-                <div class="panel-kicker">Leaderboard</div>
-                <h3>Top ranked properties</h3>
+            <article class="panel-card leaderboard-shell ranking-leaderboard-shell">
+              <div class="ranking-section-head">
+                <div>
+                  <div class="panel-kicker">Leaderboard</div>
+                  <h3>Top ranked properties</h3>
+                </div>
+                <span class="service-chip service-chip-neutral">${visibleCount} entries</span>
               </div>
-              <span class="service-chip service-chip-neutral">${visibleCount} entries</span>
+              <div class="leaderboard-list">${visible.length ? leaderboardRows(visible, 6, { lensKey: investmentLensKey }) : emptyState("No ranked properties", "Try widening the filters to see more results.")}</div>
+            </article>
+          </div>
+
+          <div class="ranking-results-head">
+            <div>
+              <div class="panel-kicker">Full board</div>
+              <h3>Scan the remaining ranked opportunities</h3>
             </div>
-            <div class="leaderboard-list">${visible.length ? leaderboardRows(visible, 6, { lensKey: investmentLensKey }) : emptyState("No ranked properties", "Try widening the filters to see more results.")}</div>
-          </article>
+            <span class="service-chip service-chip-neutral">${visibleCount} propert${visibleCount === 1 ? "y" : "ies"} in view</span>
+          </div>
 
           <div class="property-grid ranking-property-grid">
-            ${visible.map((property) => propertyCard(property, { compareIds, favoriteIds, lensKey: investmentLensKey })).join("")}
+            ${visible.length
+              ? visible.map((property) => propertyCard(property, { compareIds, favoriteIds, lensKey: investmentLensKey, variant: "ranking" })).join("")
+              : emptyState("No ranked properties", "Try widening the filters to see more results.")}
           </div>
         </section>
         </div>
@@ -5330,6 +6664,10 @@ async function initRankingPage() {
     });
     document.getElementById("rankingCorridor")?.addEventListener("change", (event) => {
       corridor = event.target.value;
+      render();
+    });
+    document.getElementById("rankingClupStatus")?.addEventListener("change", (event) => {
+      clupStatus = event.target.value;
       render();
     });
     bindInvestmentLensSelector(root, (nextLensKey) => {
@@ -5361,8 +6699,12 @@ async function initSellerDashboard() {
   let activeThreadVisit = null;
   let documentRequests = [];
   let sellerVisitCounterMode = false;
+  let sellerProfile = null;
 
   const openModal = () => {
+    if (!sellerCanPublish(sellerProfile)) {
+      return;
+    }
     if (modal) modal.hidden = false;
   };
 
@@ -5394,6 +6736,9 @@ async function initSellerDashboard() {
   };
 
   const render = () => {
+    const profile = sellerProfile || {};
+    const applicationStatus = sellerApplicationStatus(profile);
+    const canPublish = sellerCanPublish(profile);
     const ownListings = properties.filter((property) => Number(property.sellerUserId || 0) === userId || String(property.ownerContact?.email || "").toLowerCase() === userEmail.toLowerCase());
     const available = ownListings.filter((property) => String(property.status || "").toLowerCase() === "available").length;
     const inquiryTotal = ownListings.reduce((sum, property) => sum + Number(inquiryMap[property.id] || 0), 0);
@@ -5401,7 +6746,16 @@ async function initSellerDashboard() {
     const activeThreadProperty = properties.find((property) => Number(property.id) === Number(activeThread?.propertyId || 0)) || null;
     const pendingReview = ownListings.filter((property) => String(property.approvalState || "").toLowerCase() === "pending_review").length;
     const openDocumentRequests = documentRequests.filter((request) => ["requested", "in_review"].includes(String(request.status))).length;
-    const sellerVerification = titleCase(String(currentUser?.identityVerificationStatus || "unverified"));
+    const sellerVerification = VERIFICATION_LABELS[String(applicationStatus || currentUser?.identityVerificationStatus || "unverified").toLowerCase()] || titleCase(String(applicationStatus || currentUser?.identityVerificationStatus || "unverified"));
+    const sellerReviewNote = sellerReviewStatusNote(applicationStatus, "seller");
+
+    if (addButton) {
+      addButton.disabled = !canPublish;
+      addButton.textContent = canPublish ? "Submit Listing" : "Verification Required";
+      addButton.title = canPublish
+        ? "Submit a new listing"
+        : "Complete seller verification and wait for admin approval before publishing listings.";
+    }
 
     root.innerHTML = `
       <div class="stat-grid">
@@ -5409,29 +6763,102 @@ async function initSellerDashboard() {
         <article class="stat-card"><div class="panel-kicker">Available now</div><strong>${available}</strong><p>Listings open for investor attention.</p></article>
         <article class="stat-card"><div class="panel-kicker">Messages</div><strong>${inquiryTotal}</strong><p>Messages received across your submissions.</p></article>
         <article class="stat-card"><div class="panel-kicker">Active chats</div><strong>${threads.length}</strong><p>Investor threads you can reply to directly.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Trust queue</div><strong>${openDocumentRequests}</strong><p>${pendingReview} listing(s) still waiting for admin review.</p></article>
+        <article class="stat-card"><div class="panel-kicker">Seller status</div><strong>${escapeHtml(sellerVerification)}</strong><p>${pendingReview} listing(s) pending review and ${openDocumentRequests} open document task(s).</p></article>
       </div>
 
       <div class="panel-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
         <article class="panel-card">
-          <div class="panel-kicker">Submission lane</div>
-          <h3>Keep your listing story sharp</h3>
-          <div class="mini-list">
-            <div class="mini-row"><span>${icon("arrow")}Use focused descriptions</span><strong>Clarity wins</strong></div>
-            <div class="mini-row"><span>${icon("money")}Set realistic pricing</span><strong>${ownListings.length ? moneyShort(ownListings[0].price) : "Ready"}</strong></div>
-            <div class="mini-row"><span>${icon("inbox")}Watch inquiry count</span><strong>${inquiryTotal} total</strong></div>
-            <div class="mini-row"><span>${icon("shield")}Seller identity</span><strong>${escapeHtml(sellerVerification)}</strong></div>
+          <div class="panel-kicker">Seller verification</div>
+          <h3>${escapeHtml(sellerApplicationHeadline(applicationStatus))}</h3>
+          <p>${escapeHtml(sellerApplicationCopy(applicationStatus))}</p>
+          <div class="mini-list" style="margin-top:18px;">
+            <div class="mini-row"><span>${icon("shield")}Application status</span><strong>${escapeHtml(sellerVerification)}</strong></div>
+            <div class="mini-row"><span>${icon("user")}Legal name</span><strong>${escapeHtml(profile.legalName || userName)}</strong></div>
+            <div class="mini-row"><span>${icon("map")}Location</span><strong>${escapeHtml(profile.city || "San Fernando, La Union")}</strong></div>
+            <div class="mini-row"><span>${icon("clock")}Submitted</span><strong>${escapeHtml(profile.submittedAt ? formatDate(profile.submittedAt) : "Not submitted")}</strong></div>
           </div>
+          ${profile.reviewNotes ? `<div class="auth-form-note" style="margin-top:16px;">Admin note: ${escapeHtml(profile.reviewNotes)}</div>` : ""}
         </article>
 
         <article class="panel-card">
           <div class="panel-kicker">Market signal</div>
           <h3>How your listings are positioned</h3>
-          <p>${ownListings.length ? `${escapeHtml(ownListings[0].name)} is currently your strongest visible listing.` : "Submit your first listing to start seeing market feedback."}</p>
+          <p>${canPublish
+            ? (ownListings.length ? `${escapeHtml(ownListings[0].name)} is currently your strongest visible listing.` : "Submit your first verified listing to start seeing market feedback.")
+            : "Listing submission stays locked until your seller identity is approved by the admin team."}</p>
           <div class="property-actions" style="margin-top:18px;">
-            <button type="button" class="btn-shell btn-shell-primary" id="sellerAddListingInline">Submit Listing</button>
+            <button type="button" class="btn-shell btn-shell-primary" id="sellerAddListingInline" ${canPublish ? "" : "disabled"}>${canPublish ? "Submit Listing" : "Verification Required"}</button>
             <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-ranking.php" class="btn-shell btn-shell-secondary">View Rankings</a>
           </div>
+        </article>
+
+        <article class="panel-card" style="grid-column:1 / -1;">
+          <div class="panel-kicker">Seller profile</div>
+          <h3>${canPublish ? "Verification profile on file" : "Complete the seller profile before publishing"}</h3>
+          ${applicationStatus === "verified" || applicationStatus === "suspended" ? `
+            <div class="mini-list">
+              <div class="mini-row"><span>${icon("user")}Display name</span><strong>${escapeHtml(profile.displayName || profile.legalName || userName)}</strong></div>
+              <div class="mini-row"><span>${icon("user")}Seller type</span><strong>${escapeHtml(titleCase(profile.sellerType || "individual"))}</strong></div>
+              <div class="mini-row"><span>${icon("inbox")}Email</span><strong>${escapeHtml(profile.email || userEmail)}</strong></div>
+              <div class="mini-row"><span>${icon("map")}Address</span><strong>${escapeHtml(profile.addressLine || profile.city || "Not supplied")}</strong></div>
+            </div>
+          ` : `
+            <form class="crud-form-grid" id="sellerProfileForm">
+              <label class="form-shell">
+                <span>Seller type</span>
+                <select class="input-shell" name="sellerType">
+                  <option value="individual" ${String(profile.sellerType || "individual").toLowerCase() === "individual" ? "selected" : ""}>Individual owner</option>
+                  <option value="company" ${String(profile.sellerType || "").toLowerCase() === "company" ? "selected" : ""}>Company / Developer</option>
+                  <option value="broker" ${String(profile.sellerType || "").toLowerCase() === "broker" ? "selected" : ""}>Broker / Representative</option>
+                </select>
+              </label>
+              <label class="form-shell">
+                <span>Legal or business name</span>
+                <input class="input-shell" name="legalName" value="${escapeHtml(profile.legalName || userName)}" required>
+              </label>
+              <label class="form-shell">
+                <span>Display name</span>
+                <input class="input-shell" name="displayName" value="${escapeHtml(profile.displayName || "")}" placeholder="Optional public-facing label">
+              </label>
+              <label class="form-shell">
+                <span>Phone</span>
+                <input class="input-shell" name="phone" value="${escapeHtml(profile.phone || "")}" required>
+              </label>
+              <label class="form-shell">
+                <span>Company name</span>
+                <input class="input-shell" name="companyName" value="${escapeHtml(profile.companyName || "")}">
+              </label>
+              <label class="form-shell">
+                <span>Business registration no.</span>
+                <input class="input-shell" name="businessRegistrationNo" value="${escapeHtml(profile.businessRegistrationNo || "")}">
+              </label>
+              <label class="form-shell">
+                <span>Government ID / license no.</span>
+                <input class="input-shell" name="governmentIdNo" value="${escapeHtml(profile.governmentIdNo || "")}" required>
+              </label>
+              <label class="form-shell">
+                <span>Address line</span>
+                <input class="input-shell" name="addressLine" value="${escapeHtml(profile.addressLine || "")}" required>
+              </label>
+              <label class="form-shell">
+                <span>Barangay</span>
+                <input class="input-shell" name="barangay" value="${escapeHtml(profile.barangay || "")}">
+              </label>
+              <label class="form-shell">
+                <span>City</span>
+                <input class="input-shell" name="city" value="${escapeHtml(profile.city || "San Fernando, La Union")}" required>
+              </label>
+              <label class="form-shell form-span-2">
+                <span>Authority on the property</span>
+                <input class="input-shell" name="authorizationBasis" value="${escapeHtml(profile.authorizationBasis || "")}" placeholder="Owner, exclusive broker, authorized representative" required>
+              </label>
+              <div class="crud-actions form-span-2">
+                <button type="submit" class="btn-shell btn-shell-secondary" data-profile-submit-mode="draft">Save Draft</button>
+                <button type="submit" class="btn-shell btn-shell-primary" data-profile-submit-mode="submit">${escapeHtml(sellerReviewSubmitLabel(applicationStatus))}</button>
+              </div>
+              ${sellerReviewNote ? `<div class="auth-form-note form-span-2"><strong>${escapeHtml(sellerReviewSubmitLabel(applicationStatus))}.</strong> ${escapeHtml(sellerReviewNote)}</div>` : ""}
+            </form>
+          `}
         </article>
 
         <article class="panel-card">
@@ -5510,7 +6937,14 @@ async function initSellerDashboard() {
                 <button type="button" class="btn-shell btn-shell-ghost" data-seller-delete="${property.id}">${icon("save")}Delete</button>
               </div>
             </article>
-          `).join("") : emptyState("Start with your first listing", "Use the seller dashboard to submit a property and begin collecting attention.", "", "")}
+          `).join("") : emptyState(
+            canPublish ? "Start with your first listing" : "Seller verification is still required",
+            canPublish
+              ? "Use the seller dashboard to submit a property and begin collecting attention."
+              : "Complete your seller verification profile and wait for approval before publishing the first listing.",
+            "",
+            ""
+          )}
         </div>
       </article>
     `;
@@ -5605,16 +7039,33 @@ async function initSellerDashboard() {
         await reload();
       });
     });
+    document.getElementById("sellerProfileForm")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formElement = event.currentTarget;
+      const formData = new FormData(formElement);
+      const payload = Object.fromEntries(formData.entries());
+      payload.submit = event.submitter?.dataset?.profileSubmitMode === "submit";
+      const response = await api.saveSellerProfile(payload);
+      sellerProfile = response?.profile || sellerProfile;
+      if (currentUser && response?.user) {
+        Object.assign(currentUser, response.user);
+      }
+      render();
+    });
   };
 
   const reload = async () => {
     const previousThreadId = activeThreadId;
-    const response = await api.properties();
-    properties = response.properties || [];
+    const [propertyResponse, profileResponse, inboxResponse, documentRequestResponse] = await Promise.all([
+      api.properties(),
+      api.sellerProfile().catch(() => ({ profile: null })),
+      api.getMessageInbox().catch(() => ({ threads: [] })),
+      api.getDocumentRequestInbox().catch(() => ({ requests: [] })),
+    ]);
+    properties = propertyResponse.properties || [];
+    sellerProfile = profileResponse.profile || null;
     inquiryMap = await loadInquiryCounts(properties);
-    const inboxResponse = await api.getMessageInbox().catch(() => ({ threads: [] }));
     threads = inboxResponse.threads || [];
-    const documentRequestResponse = await api.getDocumentRequestInbox().catch(() => ({ requests: [] }));
     documentRequests = documentRequestResponse.requests || [];
     activeThreadId = threads.some((thread) => Number(thread.id) === Number(previousThreadId))
       ? previousThreadId
@@ -5713,98 +7164,251 @@ async function initVotingDashboard() {
     const activeVoteOptions = voteOptions.filter((option) => option.isActive !== false);
     const editingOption = voteOptions.find((option) => Number(option.id) === Number(editingVoteOptionId)) || null;
     const selectedLabels = propertyPrimaryLabels(selected);
+    const secondaryLabels = propertySecondaryLabels(selected).slice(0, 2);
     const selectedVoteTotal = totalVotes(selectedVotes);
     const participationPct = totalPlatformVotes ? Math.round((selectedVoteTotal / totalPlatformVotes) * 100) : 0;
+    const rankedZones = [...enriched].sort((left, right) => (
+      Number(right.voteTotal || 0) - Number(left.voteTotal || 0)
+      || Number(right.opportunityScore || 0) - Number(left.opportunityScore || 0)
+    ));
+    const selectedRank = Math.max(1, rankedZones.findIndex((property) => Number(property.id) === Number(selected.id)) + 1);
+    const liveZoneCount = enriched.filter((property) => Number(property.voteTotal || 0) > 0).length;
+    const leadingSignalLabel = voteLabel(topNeed || "No demand yet");
+    const cityLeaderLabel = voteLabel(aggregate[0]?.[0] || "No demand yet");
+    const cityLeaderCount = Number(aggregate[0]?.[1] || 0);
+    const runnerUp = sortedVoteEntries(selectedVotes)[1] || null;
+    const locationLine = [selected.city || "San Fernando, La Union", selected.barangay || "Unassigned"].filter(Boolean).join(" / ");
+    const voteModeLabel = role === "investor"
+      ? "Live voting unlocked"
+      : role === "admin"
+        ? "Preview mode"
+        : "Investor access required";
+    const voteModeCopy = role === "investor"
+      ? "Cast one demand signal for this zone. Your latest choice replaces your previous one."
+      : role === "admin"
+        ? "Admins can inspect the live option set here while managing the voting inventory below."
+        : "Voting is reserved for Investor / Resident access. Enter that workspace to participate.";
+    const voteModeTone = role === "investor" ? "is-live" : role === "admin" ? "is-preview" : "is-locked";
+    const railSummary = cityLeaderCount
+      ? `${cityLeaderLabel} currently leads citywide.`
+      : "The board is ready for its first citywide leader.";
+    const zoneLeaderSummary = selectedVoteTotal
+      ? `${leadingSignalLabel} currently leads this zone.`
+      : "This zone has not received a demand signal yet.";
+    const citywideSummary = cityLeaderCount
+      ? `${cityLeaderLabel} is the clearest citywide demand signal right now.`
+      : "Platform-level recommendations will appear here once votes are cast.";
 
     root.innerHTML = `
-      <div class="voting-studio">
-        <div class="voting-command-grid">
-          <aside class="stack voting-command-rail">
-            <div class="stat-grid voting-stat-grid">
-              <article class="stat-card"><div class="panel-kicker">Total votes</div><strong>${totalPlatformVotes}</strong><p>All votes cast across the platform.</p></article>
-              <article class="stat-card"><div class="panel-kicker">Leading need</div><strong>${escapeHtml(voteLabel(aggregate[0]?.[0] || "No demand yet"))}</strong><p>Most requested business overall.</p></article>
-              <article class="stat-card"><div class="panel-kicker">Active location</div><strong>${escapeHtml(selected.barangay || "San Fernando")}</strong><p>Current voting focus area.</p></article>
+      <div class="voting-signal-studio">
+        <aside class="voting-signal-rail">
+          <article class="panel-card voting-rail-overview">
+            <div class="panel-kicker">Signal atlas</div>
+            <h3>Demand is clustering around real zones, not abstract categories.</h3>
+            <p>${liveZoneCount} of ${rankedZones.length} locations already hold live vote signals. ${escapeHtml(railSummary)}</p>
+            <div class="voting-rail-metric-grid">
+              <article>
+                <span>City votes</span>
+                <strong>${totalPlatformVotes}</strong>
+              </article>
+              <article>
+                <span>Live zones</span>
+                <strong>${liveZoneCount}/${rankedZones.length}</strong>
+              </article>
+              <article>
+                <span>City leader</span>
+                <strong>${escapeHtml(cityLeaderCount ? cityLeaderLabel : "Standby")}</strong>
+              </article>
             </div>
+          </article>
 
-            <article class="panel-card voting-location-panel">
-              <div class="panel-kicker">Location rail</div>
-              <h3>Choose a voting zone</h3>
-              <div class="vote-location-list">
-                ${enriched.map((property) => `
-                  <article class="vote-location-card ${property.id === selected.id ? "is-active" : ""}" data-vote-location="${property.id}">
-                    <div class="panel-kicker">${escapeHtml(property.barangay || "Unassigned")}</div>
-                    <h3>${escapeHtml(property.name)}</h3>
-                    <p>${escapeHtml(voteLabel(property.topNeed || "No demand yet"))}</p>
-                    <div class="mini-row"><span>${icon("vote")}Votes</span><strong>${property.voteTotal}</strong></div>
-                  </article>
-                `).join("")}
+          <article class="panel-card voting-location-panel">
+            <div class="voting-location-panel-head">
+              <div>
+                <div class="panel-kicker">Location rail</div>
+                <h3>Choose a voting zone</h3>
               </div>
-            </article>
-          </aside>
+              <span class="voting-location-badge">${rankedZones.length} zones</span>
+            </div>
+            <div class="vote-location-list">
+              ${rankedZones.map((property, index) => {
+                const propertyVotes = Number(property.voteTotal || 0);
+                const propertyShare = totalPlatformVotes ? Math.round((propertyVotes / totalPlatformVotes) * 100) : 0;
+                const isActive = Number(property.id) === Number(selected.id);
+                return `
+                  <button
+                    type="button"
+                    class="vote-location-card voting-zone-card ${isActive ? "is-active" : ""}"
+                    data-vote-location="${property.id}"
+                    aria-pressed="${isActive ? "true" : "false"}"
+                  >
+                    <div class="voting-zone-card-top">
+                      <span class="voting-zone-rank">${String(index + 1).padStart(2, "0")}</span>
+                      <span class="voting-zone-share">${propertyShare}% city share</span>
+                    </div>
+                    <div class="voting-zone-copy">
+                      <div class="panel-kicker">${escapeHtml(property.barangay || "Unassigned")}</div>
+                      <h3>${escapeHtml(property.name)}</h3>
+                      <p>${escapeHtml(voteLabel(property.topNeed || "No demand yet"))}</p>
+                    </div>
+                    <div class="voting-zone-card-footer">
+                      <span>${escapeHtml(typeLabel(property.type))}</span>
+                      <strong>${propertyVotes} vote${propertyVotes === 1 ? "" : "s"}</strong>
+                    </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </article>
+        </aside>
 
-          <section class="stack voting-command-main">
-          <article class="decision-card voting-stage-card" style="--voting-stage-image:url('${escapeHtml(selected.imageUrl || "")}')">
-            <div class="panel-kicker">Selected location</div>
-            <h2>${escapeHtml(selected.name)}</h2>
-            <p>${escapeHtml(propertyStory(selected))}</p>
-            <div class="decision-stats">
-              ${scorePill(selected.opportunityScore)}
-              <span class="tag">${escapeHtml(corridorLabel(selected.corridor))}</span>
-              <span class="tag">${escapeHtml(typeLabel(selected.type))}</span>
+        <section class="voting-signal-main">
+          <article class="decision-card voting-stage-card voting-stage-shell" style="--voting-stage-image:url('${escapeHtml(absoluteAssetPath(selected.imageUrl || ""))}')">
+            <div class="voting-stage-topline">
+              <div class="voting-stage-topline-copy">
+                <div class="panel-kicker">Selected location</div>
+                <span class="voting-stage-path">${escapeHtml(locationLine)}</span>
+              </div>
+              <span class="voting-stage-live">${escapeHtml(selectedVoteTotal ? "Live demand signal" : "Awaiting first vote")}</span>
             </div>
-            <div class="service-chip-row voting-stage-chip-row">
-              ${selectedLabels.map((label) => `<span class="service-chip service-chip-neutral">${escapeHtml(label)}</span>`).join("")}
-              ${serviceChip(voteLabel(topNeed || "No demand yet"), "fallback")}
+
+            <div class="voting-stage-board">
+              <div class="voting-stage-copy">
+                <h2>${escapeHtml(selected.name)}</h2>
+                <p>${escapeHtml(propertyStory(selected))}</p>
+                <div class="decision-stats voting-stage-proof-row">
+                  ${scorePill(selected.opportunityScore)}
+                  ${verificationPill(selected.listingVerificationStatus)}
+                  ${serviceChip(leadingSignalLabel, topNeedCount ? "live" : "neutral")}
+                </div>
+                <div class="service-chip-row voting-stage-chip-row">
+                  ${selectedLabels.map((label) => serviceChip(label, "neutral")).join("")}
+                  ${secondaryLabels.map((label, index) => serviceChip(label, index === 0 && topNeedCount ? "fallback" : "neutral")).join("")}
+                </div>
+              </div>
+
+              <div class="voting-stage-signal-card">
+                <span>Zone rank</span>
+                <strong>#${selectedRank}</strong>
+                <p>${selectedVoteTotal ? `${selectedVoteTotal} live votes place this zone among the city's clearest demand reads.` : "This zone is open and waiting for the first investor or resident signal."}</p>
+                <div class="voting-stage-signal-meta">
+                  <article>
+                    <span>Top need</span>
+                    <strong>${escapeHtml(leadingSignalLabel)}</strong>
+                  </article>
+                  <article>
+                    <span>Share</span>
+                    <strong>${participationPct}%</strong>
+                  </article>
+                </div>
+              </div>
             </div>
-            <div class="voting-stage-metrics">
+
+            <div class="voting-stage-metrics voting-stage-metrics-rich">
               <article><span>Votes here</span><strong>${selectedVoteTotal}</strong></article>
-              <article><span>Platform share</span><strong>${participationPct}%</strong></article>
+              <article><span>Land area</span><strong>${escapeHtml(selected.area || "--")} ha</strong></article>
               <article><span>Guide price</span><strong>${escapeHtml(moneyShort(selected.price || 0))}</strong></article>
+              <article><span>Corridor</span><strong>${escapeHtml(corridorLabel(selected.corridor))}</strong></article>
             </div>
-            <div class="mini-list" style="margin-top:18px;">
-              <div class="mini-row"><span>${icon("vote")}Top-voted establishment</span><strong>${escapeHtml(voteLabel(topNeed))}</strong></div>
-              <div class="mini-row"><span>${icon("pulse")}Votes here</span><strong>${topNeedCount}</strong></div>
-            </div>
-            <div class="property-actions voting-stage-actions">
-              <a href="${propertyHref(selected.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property</a>
-              <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-ranking.php" class="btn-shell btn-shell-secondary">${icon("ranking")}Open Rankings</a>
+
+            <div class="voting-stage-bottom">
+              <div class="mini-list voting-stage-facts">
+                <div class="mini-row"><span>${icon("vote")}Top-voted establishment</span><strong>${escapeHtml(leadingSignalLabel)}</strong></div>
+                <div class="mini-row"><span>${icon("pulse")}Votes on leader</span><strong>${topNeedCount}</strong></div>
+                <div class="mini-row"><span>${icon("spark")}Runner-up signal</span><strong>${escapeHtml(runnerUp ? `${voteLabel(runnerUp[0])} (${runnerUp[1]})` : "No runner-up yet")}</strong></div>
+              </div>
+              <div class="property-actions voting-stage-actions">
+                <a href="${propertyHref(selected.id)}" class="btn-shell btn-shell-primary">${icon("arrow")}Open Property</a>
+                <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-ranking.php" class="btn-shell btn-shell-secondary">${icon("ranking")}Open Rankings</a>
+              </div>
             </div>
           </article>
 
-          <article class="panel-card voting-breakdown-panel">
-            <div class="panel-kicker">Vote breakdown</div>
-            <h3>Demand by establishment</h3>
-            <div class="bar-list">${voteBars(selectedVotes)}</div>
-          </article>
+          <div class="voting-insight-grid">
+            <article class="panel-card voting-breakdown-panel">
+              <div class="voting-panel-head">
+                <div>
+                  <div class="panel-kicker">Vote breakdown</div>
+                  <h3>Demand by establishment</h3>
+                  <p>${escapeHtml(zoneLeaderSummary)}</p>
+                </div>
+                <div class="voting-panel-badge">
+                  <span>Leader</span>
+                  <strong>${escapeHtml(topNeedCount ? leadingSignalLabel : "Standby")}</strong>
+                </div>
+              </div>
+              <div class="bar-list voting-breakdown-bars">${voteBars(selectedVotes)}</div>
+            </article>
 
-          <article class="panel-card voting-cast-panel">
-            <div class="panel-kicker">Cast a vote</div>
-            <h3>${role === "admin" ? "Voting options preview" : "What does this location need?"}</h3>
-            ${role === "investor"
-              ? `<div class="vote-card-grid">${activeVoteOptions.map((option) => voteOptionCard(option, Number(selectedVotes[option.title] || 0), Number(selectedVoteOptionId) === Number(option.id), false)).join("")}</div>`
-              : role === "admin"
-                ? `<div class="vote-card-grid">${activeVoteOptions.map((option) => voteOptionCard(option, Number(selectedVotes[option.title] || 0), false, true)).join("")}</div>`
-                : `<p>Voting is reserved for Investor / Resident access. Use the investor login to participate.</p>`
-            }
+            <article class="panel-card voting-cast-panel">
+              <div class="voting-panel-head">
+                <div>
+                  <div class="panel-kicker">Cast a vote</div>
+                  <h3>${role === "admin" ? "Voting options preview" : "What does this location need?"}</h3>
+                  <p>${escapeHtml(voteModeCopy)}</p>
+                </div>
+                <span class="voting-mode-pill ${voteModeTone}">${escapeHtml(voteModeLabel)}</span>
+              </div>
+              <div class="service-chip-row voting-cast-chip-row">
+                ${selectedLabels.map((label) => serviceChip(label, "neutral")).join("")}
+                ${serviceChip(`${activeVoteOptions.length} active option${activeVoteOptions.length === 1 ? "" : "s"}`, activeVoteOptions.length ? "live" : "neutral")}
+              </div>
+              ${role === "investor"
+                ? `<div class="vote-card-grid">${activeVoteOptions.map((option) => voteOptionCard(option, Number(selectedVotes[option.title] || 0), Number(selectedVoteOptionId) === Number(option.id), false)).join("")}</div>`
+                : role === "admin"
+                  ? `
+                    <div class="voting-preview-note">
+                      <strong>Admin preview only.</strong>
+                      <p>The cards below show the live voting inventory exactly as investors see it.</p>
+                    </div>
+                    <div class="vote-card-grid">${activeVoteOptions.map((option) => voteOptionCard(option, Number(selectedVotes[option.title] || 0), false, true)).join("")}</div>
+                  `
+                  : `
+                    <div class="voting-locked-state">
+                      <strong>Investor / Resident access unlocks voting.</strong>
+                      <p>Enter the investor workspace to place one vote per location and help shape the next business need here.</p>
+                      <a href="${window.SFC_APP_CONFIG.basePath || ""}/investor-login.php" class="btn-shell btn-shell-primary">${icon("user")}Investor / Resident Access</a>
+                    </div>
+                  `
+              }
+            </article>
+          </div>
+
+          <article class="panel-card voting-summary-panel">
+            <div class="voting-panel-head">
+              <div>
+                <div class="panel-kicker">Overall recommendation summary</div>
+                <h3>Most requested businesses across San Fernando</h3>
+                <p>${escapeHtml(citywideSummary)}</p>
+              </div>
+              <div class="voting-summary-highlight">
+                <span>City leader</span>
+                <strong>${escapeHtml(cityLeaderCount ? cityLeaderLabel : "Standby")}</strong>
+                <em>${cityLeaderCount} vote${cityLeaderCount === 1 ? "" : "s"}</em>
+              </div>
+            </div>
+            <div class="voting-summary-grid">
+              <div class="voting-summary-stats">
+                <article><span>Total platform votes</span><strong>${totalPlatformVotes}</strong></article>
+                <article><span>Active zones</span><strong>${liveZoneCount}</strong></article>
+                <article><span>Selected zone share</span><strong>${participationPct}%</strong></article>
+              </div>
+              <div class="bar-list voting-summary-bars">
+                ${aggregate.slice(0, 6).map(([label, count]) => {
+                  const pct = totalPlatformVotes ? Math.round((Number(count || 0) / totalPlatformVotes) * 100) : 0;
+                  const numericCount = Number(count || 0);
+                  return `
+                    <div class="bar-row">
+                      <div class="bar-top"><span>${escapeHtml(voteLabel(label))}</span><strong>${numericCount} vote${numericCount === 1 ? "" : "s"} | ${pct}%</strong></div>
+                      <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+                    </div>
+                  `;
+                }).join("") || `<div class="loading-panel">Platform-level recommendations will appear here once votes are cast.</div>`}
+              </div>
+            </div>
           </article>
         </section>
       </div>
-
-      <article class="panel-card">
-        <div class="panel-kicker">Overall recommendation summary</div>
-        <h3>Most requested businesses across San Fernando</h3>
-        <div class="bar-list">
-          ${aggregate.slice(0, 6).map(([label, count]) => {
-            const pct = totalPlatformVotes ? Math.round((count / totalPlatformVotes) * 100) : 0;
-            return `
-              <div class="bar-row">
-                <div class="bar-top"><span>${escapeHtml(voteLabel(label))}</span><strong>${count} votes | ${pct}%</strong></div>
-                <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-              </div>
-            `;
-          }).join("") || `<div class="loading-panel">Platform-level recommendations will appear here once votes are cast.</div>`}
-        </div>
-      </article>
 
       ${role === "admin" ? `
         <article class="panel-card vote-admin-panel voting-admin-panel-shell">
@@ -5929,7 +7533,8 @@ async function initVotingDashboard() {
 }
 
 function showcasePrimaryMetricMarkup(item) {
-  const label = item?.primaryMetricLabel || (item?.featureType === "city_pipeline" ? "Expected launch" : "Offer window");
+  const isGap = showcasePipelineMode(item) === "investment_gap";
+  const label = item?.primaryMetricLabel || (item?.featureType === "city_pipeline" ? (isGap ? "Gap level" : "Expected launch") : "Offer window");
   if (item?.featureType === "offer_board" && item?.countdownAt) {
     return `
       <article class="showcase-metric">
@@ -5939,7 +7544,7 @@ function showcasePrimaryMetricMarkup(item) {
     `;
   }
 
-  const value = item?.primaryMetricValue || (item?.completionTarget ? formatProspectusDate(item.completionTarget) : "Pending");
+  const value = item?.primaryMetricValue || (item?.completionTarget ? formatProspectusDate(item.completionTarget) : (isGap ? "Investor review" : "Pending"));
   return `
     <article class="showcase-metric">
       <span>${escapeHtml(label)}</span>
@@ -5955,6 +7560,10 @@ function showcaseTimelineValue(item) {
 
   if (item?.primaryMetricValue) {
     return item.primaryMetricValue;
+  }
+
+  if (showcasePipelineMode(item) === "investment_gap") {
+    return "Investor review";
   }
 
   if (item?.completionTarget) {
@@ -5973,8 +7582,9 @@ function showcaseTimelineValueMarkup(item) {
 }
 
 function showcaseSecondaryMetricMarkup(item) {
-  const label = item?.secondaryMetricLabel || (item?.featureType === "city_pipeline" ? "Development stage" : "Current offer");
-  const value = item?.secondaryMetricValue || showcaseStateLabel(item?.status);
+  const isGap = showcasePipelineMode(item) === "investment_gap";
+  const label = item?.secondaryMetricLabel || (item?.featureType === "city_pipeline" ? (isGap ? "Tracked supply" : "Development stage") : "Current offer");
+  const value = item?.secondaryMetricValue || (isGap && item?.supplySignal ? showcaseSupplySignalLabel(item.supplySignal) : showcaseStateLabel(item?.status));
   return `
     <article class="showcase-metric showcase-metric-secondary">
       <span>${escapeHtml(label)}</span>
@@ -5984,11 +7594,12 @@ function showcaseSecondaryMetricMarkup(item) {
 }
 
 function showcaseCardMarkup(item) {
+  const isOffer = item.featureType === "offer_board";
   return `
     <article class="showcase-card ${item.featureType === "city_pipeline" ? "is-pipeline" : "is-offer"}">
       <div class="showcase-card-halo"></div>
       <div class="showcase-card-media">
-        <img src="${escapeHtml(item.coverImageUrl || "assets/images/Property10.png")}" alt="${escapeHtml(item.title)}">
+        <img src="${escapeHtml(showcaseImageSrc(item))}" alt="${escapeHtml(item.title)}">
         <div class="showcase-card-media-top">
           <span class="showcase-mini-badge">${escapeHtml(item.partnerLabel || showcaseFeatureLabel(item.featureType))}</span>
           ${showcaseStatePill(item)}
@@ -5996,11 +7607,16 @@ function showcaseCardMarkup(item) {
       </div>
       <div class="showcase-card-body">
         <div class="showcase-card-head">
-          <div class="showcase-card-location">${escapeHtml(item.locationLabel || "San Fernando, La Union")}</div>
+          <div class="showcase-card-topline">
+            <div class="showcase-card-location">${escapeHtml(item.locationLabel || "San Fernando, La Union")}</div>
+            ${isOffer ? `<span class="showcase-card-timeline">${escapeHtml(showcaseTimelineValue(item))}</span>` : ""}
+          </div>
           <h3>${escapeHtml(item.title)}</h3>
-          <p>${escapeHtml(truncate(item.summary || item.description || "", 140))}</p>
+          <p>${escapeHtml(truncate(item.summary || item.description || "", isOffer ? 132 : 140))}</p>
         </div>
         <div class="showcase-card-chip-row">
+          ${showcasePipelineModeChip(item)}
+          ${showcaseSupplySignalChip(item)}
           ${item.category ? `<span class="meta-chip">${escapeHtml(item.category)}</span>` : ""}
           ${item.barangay ? `<span class="meta-chip">${escapeHtml(item.barangay)}</span>` : ""}
           ${item.isFeatured ? `<span class="meta-chip showcase-featured-chip">${icon("spark")}Featured</span>` : ""}
@@ -6009,6 +7625,7 @@ function showcaseCardMarkup(item) {
           ${showcasePrimaryMetricMarkup(item)}
           ${showcaseSecondaryMetricMarkup(item)}
         </div>
+        ${showcaseOpportunityBriefMarkup(item, "card")}
         <div class="showcase-card-actions">
           <a href="${escapeHtml(showcaseActionHref(item))}" class="btn-shell btn-shell-primary">${icon("arrow")}${escapeHtml(showcaseActionLabel(item))}</a>
         </div>
@@ -6017,13 +7634,195 @@ function showcaseCardMarkup(item) {
   `;
 }
 
+function showcaseTopFrequency(items = [], selector, fallback = "Standby") {
+  const counts = new Map();
+  items.forEach((item) => {
+    const rawValue = typeof selector === "function" ? selector(item) : item?.[selector];
+    const label = String(rawValue || "").trim();
+    if (!label) return;
+    counts.set(label, (counts.get(label) || 0) + 1);
+  });
+
+  let top = fallback;
+  let count = 0;
+  counts.forEach((valueCount, valueLabel) => {
+    if (valueCount > count) {
+      top = valueLabel;
+      count = valueCount;
+    }
+  });
+
+  return { label: top, count };
+}
+
+function showcaseCityLeadCardMarkup(item, tone = "gap") {
+  if (!item) return "";
+
+  const isGap = showcasePipelineMode(item) === "investment_gap";
+  const summary = truncate(item.description || item.summary || "", 196);
+  const primaryLabel = item?.primaryMetricLabel || (isGap ? "Gap level" : "Expected launch");
+  const primaryValue = item?.primaryMetricValue || (isGap ? "Investor review" : showcaseTimelineValue(item));
+  const secondaryLabel = item?.secondaryMetricLabel || (isGap ? "Tracked supply" : "Development stage");
+  const secondaryValue = item?.secondaryMetricValue || (isGap ? showcaseSupplySignalLabel(item.supplySignal) : showcaseStateLabel(item.status));
+  const tertiaryLabel = isGap ? "Best-fit operator" : "Watch zone";
+  const tertiaryValue = isGap
+    ? (item?.idealOperator || "Operator signal pending")
+    : (item?.barangay || item?.locationLabel || "San Fernando, La Union");
+  const note = isGap
+    ? (item?.avoidanceNote
+      ? `Avoid duplicate build: ${item.avoidanceNote}`
+      : truncate(item?.investorThesis || item?.summary || "Whitespace rationale is still being refined.", 120))
+    : `${item?.partnerLabel || "City Pipeline"} is tracking this as ${showcaseStateLabel(item.status).toLowerCase()} momentum.`;
+
+  return `
+    <article class="showcase-city-lead-card is-${tone}">
+      <div class="showcase-city-lead-media">
+        <img src="${escapeHtml(showcaseImageSrc(item))}" alt="${escapeHtml(item.title)}">
+        <div class="showcase-city-lead-badges">
+          <span class="showcase-city-lead-kicker">${escapeHtml(isGap ? "Investor Gap Radar" : "Pipeline Momentum")}</span>
+          ${showcaseStatePill(item)}
+        </div>
+      </div>
+      <div class="showcase-city-lead-body">
+        <div class="showcase-city-lead-topline">
+          <span class="showcase-city-lead-location">${escapeHtml(item.locationLabel || "San Fernando, La Union")}</span>
+          <span class="showcase-city-lead-partner">${escapeHtml(item.partnerLabel || showcaseFeatureLabel(item.featureType))}</span>
+        </div>
+        <div class="showcase-city-lead-heading">
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(summary)}</p>
+        </div>
+        <div class="showcase-card-chip-row showcase-city-lead-chip-row">
+          ${showcasePipelineModeChip(item)}
+          ${showcaseSupplySignalChip(item)}
+          ${item.category ? `<span class="meta-chip">${escapeHtml(item.category)}</span>` : ""}
+          ${item.barangay ? `<span class="meta-chip">${escapeHtml(item.barangay)}</span>` : ""}
+          ${item.isFeatured ? `<span class="meta-chip showcase-featured-chip">${icon("spark")}Featured signal</span>` : ""}
+        </div>
+        <div class="showcase-city-lead-stats">
+          <div>
+            <span>${escapeHtml(primaryLabel)}</span>
+            <strong>${escapeHtml(primaryValue)}</strong>
+          </div>
+          <div>
+            <span>${escapeHtml(secondaryLabel)}</span>
+            <strong>${escapeHtml(secondaryValue)}</strong>
+          </div>
+          <div>
+            <span>${escapeHtml(tertiaryLabel)}</span>
+            <strong>${escapeHtml(tertiaryValue)}</strong>
+          </div>
+        </div>
+        <div class="showcase-city-lead-note">
+          ${isGap ? icon("shield") : icon("pipeline")}
+          <p>${escapeHtml(note)}</p>
+        </div>
+        <div class="showcase-city-lead-actions">
+          <a href="${escapeHtml(showcaseActionHref(item))}" class="btn-shell btn-shell-primary">${icon("arrow")}${escapeHtml(showcaseActionLabel(item))}</a>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function showcaseCitySignalCardMarkup(item, variant = "standard") {
+  if (!item) return "";
+
+  const isGap = showcasePipelineMode(item) === "investment_gap";
+  const isCompact = variant === "compact";
+  const primaryLabel = item?.primaryMetricLabel || (isGap ? "Gap level" : "Expected launch");
+  const primaryValue = item?.primaryMetricValue || (isGap ? "Investor review" : showcaseTimelineValue(item));
+  const secondaryLabel = item?.secondaryMetricLabel || (isGap ? "Tracked supply" : "Development stage");
+  const secondaryValue = item?.secondaryMetricValue || (isGap ? showcaseSupplySignalLabel(item.supplySignal) : showcaseStateLabel(item.status));
+  const note = isGap
+    ? (item?.idealOperator || item?.investorThesis || "Operator signal pending")
+    : `${item?.partnerLabel || "City Pipeline"} / ${showcaseTimelineValue(item)}`;
+
+  return `
+    <article class="showcase-city-signal-card ${isGap ? "is-gap" : "is-project"} ${isCompact ? "is-compact" : ""}">
+      <div class="showcase-city-signal-media">
+        <img src="${escapeHtml(showcaseImageSrc(item))}" alt="${escapeHtml(item.title)}">
+        <div class="showcase-city-signal-media-badge">${escapeHtml(item.category || (isGap ? "Investor gap" : "Future project"))}</div>
+      </div>
+      <div class="showcase-city-signal-body">
+        <div class="showcase-city-signal-topline">
+          <span>${escapeHtml(item.locationLabel || "San Fernando, La Union")}</span>
+          ${showcaseStatePill(item)}
+        </div>
+        <h4>${escapeHtml(item.title)}</h4>
+        <p>${escapeHtml(truncate(item.summary || item.description || "", isCompact ? 96 : 118))}</p>
+        <div class="showcase-city-signal-stats">
+          <div>
+            <span>${escapeHtml(primaryLabel)}</span>
+            <strong>${escapeHtml(primaryValue)}</strong>
+          </div>
+          <div>
+            <span>${escapeHtml(secondaryLabel)}</span>
+            <strong>${escapeHtml(secondaryValue)}</strong>
+          </div>
+        </div>
+        <div class="showcase-city-signal-note">
+          ${isGap ? icon("user") : icon("clock")}
+          <strong>${escapeHtml(truncate(note, isCompact ? 88 : 108))}</strong>
+        </div>
+        <a href="${escapeHtml(showcaseActionHref(item))}" class="showcase-city-signal-link">${icon("arrow")}${escapeHtml(showcaseActionLabel(item))}</a>
+      </div>
+    </article>
+  `;
+}
+
+function showcaseCityLaneMarkup({
+  kicker,
+  title,
+  copy,
+  tone = "gap",
+  collection = [],
+  emptyTitle,
+  emptyCopy,
+  metaLabels = [],
+}) {
+  const lead = collection.find((item) => item.isFeatured) || collection[0] || null;
+  const supporting = lead ? collection.filter((item) => item !== lead) : [];
+  const meta = metaLabels.filter(Boolean);
+
+  return `
+    <section class="showcase-city-lane is-${tone}">
+      <div class="showcase-city-lane-head">
+        <div>
+          <div class="panel-kicker">${escapeHtml(kicker)}</div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(copy)}</p>
+        </div>
+        ${meta.length ? `
+          <div class="showcase-city-lane-meta">
+            ${meta.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}
+          </div>
+        ` : ""}
+      </div>
+      ${lead ? `
+        <div class="showcase-city-lane-grid ${supporting.length ? "" : "is-single"}">
+          ${showcaseCityLeadCardMarkup(lead, tone)}
+        </div>
+        ${supporting.length ? `
+          <div class="showcase-city-overflow-grid">
+            ${supporting.map((entry) => showcaseCitySignalCardMarkup(entry, "compact")).join("")}
+          </div>
+        ` : ""}
+      ` : emptyState(emptyTitle, emptyCopy)}
+    </section>
+  `;
+}
+
 function showcaseSpotlightMarkup(item) {
   if (!item) return "";
+
+  const spotlightSummary = truncate(item.description || item.summary || "", item.featureType === "city_pipeline" ? 168 : 220);
+  const partnerLabel = item.partnerLabel || showcaseFeatureLabel(item.featureType);
 
   return `
     <article class="showcase-spotlight-card ${item.featureType === "city_pipeline" ? "is-pipeline" : "is-offer"}">
       <div class="showcase-spotlight-media">
-        <img src="${escapeHtml(item.coverImageUrl || "assets/images/Property10.png")}" alt="${escapeHtml(item.title)}">
+        <img src="${escapeHtml(showcaseImageSrc(item))}" alt="${escapeHtml(item.title)}">
       </div>
       <div class="showcase-spotlight-copy">
         <div class="showcase-spotlight-topline">
@@ -6033,18 +7832,24 @@ function showcaseSpotlightMarkup(item) {
           </div>
           ${showcaseStatePill(item)}
         </div>
-        <h3>${escapeHtml(item.title)}</h3>
-        <p>${escapeHtml(item.description || item.summary || "")}</p>
+        <div class="showcase-spotlight-heading">
+          <h3>${escapeHtml(item.title)}</h3>
+          <span class="showcase-spotlight-partner">${escapeHtml(partnerLabel)}</span>
+        </div>
+        <p>${escapeHtml(spotlightSummary)}</p>
         <div class="showcase-spotlight-stats">
           <div><span>${escapeHtml(item.primaryMetricLabel || "Timeline")}</span>${showcaseTimelineValueMarkup(item)}</div>
           <div><span>${escapeHtml(item.secondaryMetricLabel || "Signal")}</span><strong>${escapeHtml(item.secondaryMetricValue || showcaseStateLabel(item.status))}</strong></div>
           <div><span>Location</span><strong>${escapeHtml(item.locationLabel || "San Fernando, La Union")}</strong></div>
         </div>
         <div class="showcase-card-chip-row">
+          ${showcasePipelineModeChip(item)}
+          ${showcaseSupplySignalChip(item)}
           ${item.category ? `<span class="meta-chip">${escapeHtml(item.category)}</span>` : ""}
           ${item.barangay ? `<span class="meta-chip">${escapeHtml(item.barangay)}</span>` : ""}
           ${item.isFeatured ? `<span class="meta-chip showcase-featured-chip">${icon("spark")}Featured</span>` : ""}
         </div>
+        ${showcaseOpportunityBriefMarkup(item, "spotlight")}
         <div class="showcase-spotlight-actions">
           <a href="${escapeHtml(showcaseActionHref(item))}" class="btn-shell btn-shell-primary">${icon("arrow")}${escapeHtml(showcaseActionLabel(item))}</a>
         </div>
@@ -6060,12 +7865,16 @@ async function initShowcasePage(rootId, featureType) {
   let items = (await api.showcase(featureType)).items || [];
   let search = "";
   let activeCategory = "all";
+  let activeLane = "all";
 
   const render = () => {
     const categories = Array.from(new Set(items.map((item) => String(item.category || "").trim()).filter(Boolean)));
-    const featuredCount = items.filter((item) => item.isFeatured).length;
-    const timelineCount = items.filter((item) => item.countdownAt || item.completionTarget).length;
     const filtered = items.filter((item) => {
+      if (featureType === "city_pipeline") {
+        const itemMode = showcasePipelineMode(item);
+        if (activeLane === "investment_gap" && itemMode !== "investment_gap") return false;
+        if (activeLane === "future_project" && itemMode === "investment_gap") return false;
+      }
       if (activeCategory !== "all" && String(item.category || "").toLowerCase() !== activeCategory) {
         return false;
       }
@@ -6074,96 +7883,304 @@ async function initShowcasePage(rootId, featureType) {
       }
       return true;
     });
-    const featured = filtered.find((item) => item.isFeatured) || items.find((item) => item.isFeatured) || filtered[0] || items[0] || null;
+    const featured = filtered.find((item) => item.isFeatured) || filtered[0] || items.find((item) => item.isFeatured) || items[0] || null;
+    const filteredFeaturedCount = filtered.filter((item) => item.isFeatured).length;
+    const filteredTimelineCount = filtered.filter((item) => item.countdownAt || item.completionTarget).length;
+    const filteredLocations = Array.from(new Set(
+      filtered
+        .map((item) => String(item.locationLabel || "San Fernando, La Union").trim())
+        .filter(Boolean)
+    ));
+    const liveStatuses = new Set(["open", "closing_soon", "paused"]);
+    const liveCount = filtered.filter((item) => liveStatuses.has(String(item.status || "").toLowerCase())).length;
+    const awardedCount = filtered.filter((item) => String(item.status || "").toLowerCase() === "awarded").length;
+    const linkedCount = filtered.filter((item) => Number(item.relatedPropertyId || 0) > 0).length;
+    const leadWindow = featured ? showcaseTimelineValue(featured) : "Pending";
+    const leadSignal = featured ? (featured.secondaryMetricValue || showcaseStateLabel(featured.status)) : "Standby";
+    const leadPartnerLabel = featured?.partnerLabel || "Editorial release";
+    const locationLabel = filteredLocations.length
+      ? (filteredLocations.length === 1 ? filteredLocations[0] : `${filteredLocations.length} locations`)
+      : "San Fernando, La Union";
+    const boardCategoryLabel = activeCategory === "all"
+      ? (categories.length ? `${categories.length} ${categories.length === 1 ? "category" : "categories"}` : "Open board")
+      : titleCase(activeCategory);
     const stageNoteTitle = featureType === "city_pipeline"
-      ? "A future-facing board for what San Fernando is still building toward."
+      ? "A city intelligence board for what San Fernando still needs and what is already forming."
       : "A premium release board for opportunities that deserve cleaner spotlight treatment.";
     const stageNoteCopy = featureType === "city_pipeline"
-      ? "Pipeline entries remain separate from live inventory so the city can tell a clear story about planned and under-construction momentum."
+      ? "Pipeline entries stay separate from live inventory so investors can tell the difference between active projects, white-space opportunities, and areas that may already be too crowded."
       : "Offer Board lets the admin team surface curated opportunities with better timing, imagery, and visual storytelling than a standard listing grid.";
     const collectionTitle = featureType === "city_pipeline" ? "Pipeline Collection" : "Curated Offer Collection";
     const collectionCopy = featureType === "city_pipeline"
-      ? "Published future-facing entries appear here as a cleaner board of what the city is moving toward next."
+      ? "Published city pipeline entries are separated into investor gaps and real projects so the board is easier to scan and harder to misread."
       : "Published Offer Board entries appear here as a cleaner premium rail of spotlight opportunities.";
+    const filteredCityCounts = featureType === "city_pipeline" ? showcasePipelineCounts(filtered) : null;
+    const gapItems = featureType === "city_pipeline"
+      ? filtered.filter((item) => showcasePipelineMode(item) === "investment_gap")
+      : [];
+    const projectItems = featureType === "city_pipeline"
+      ? filtered.filter((item) => showcasePipelineMode(item) !== "investment_gap")
+      : [];
+    const leadGap = featureType === "city_pipeline"
+      ? (gapItems.find((item) => item.isFeatured) || gapItems[0] || null)
+      : null;
+    const leadProject = featureType === "city_pipeline"
+      ? (projectItems.find((item) => item.isFeatured) || projectItems[0] || null)
+      : null;
+    const dominantCategory = featureType === "city_pipeline"
+      ? showcaseTopFrequency(filtered, (item) => item.category, "Mixed signals")
+      : null;
+    const dominantGapCategory = featureType === "city_pipeline"
+      ? showcaseTopFrequency(gapItems, (item) => item.category, "No gap sector yet")
+      : null;
+    const dominantGapLocation = featureType === "city_pipeline"
+      ? showcaseTopFrequency(gapItems, (item) => item.barangay || item.locationLabel, "Citywide")
+      : null;
+    const dominantProjectLocation = featureType === "city_pipeline"
+      ? showcaseTopFrequency(projectItems, (item) => item.locationLabel, "Citywide")
+      : null;
+    const projectStagePulse = featureType === "city_pipeline"
+      ? showcaseTopFrequency(projectItems, (item) => showcaseStateLabel(item.status), "No project pace yet")
+      : null;
+    const collectionSectionMarkup = (kicker, title, copy, collection, emptyTitle, emptyCopy) => `
+      <section class="showcase-card-section">
+        <div class="showcase-card-section-head">
+          <div>
+            <div class="panel-kicker">${escapeHtml(kicker)}</div>
+            <h3>${escapeHtml(title)}</h3>
+            <p>${escapeHtml(copy)}</p>
+          </div>
+          <div class="showcase-card-section-meta">
+            <span>${collection.length} cards in view</span>
+            <span>${activeCategory === "all" ? "All categories" : escapeHtml(titleCase(activeCategory))}</span>
+          </div>
+        </div>
+        <section class="showcase-card-grid">
+          ${collection.length
+            ? collection.map((item) => showcaseCardMarkup(item)).join("")
+            : emptyState(emptyTitle, emptyCopy)}
+        </section>
+      </section>
+    `;
 
     root.innerHTML = `
       <div class="showcase-stage ${featureType === "city_pipeline" ? "is-pipeline" : "is-offer"}">
         <section class="showcase-hero">
           <div class="showcase-hero-copy">
-            <div class="panel-kicker">${escapeHtml(showcaseFeatureLabel(featureType))}</div>
-            <h2>${featureType === "city_pipeline" ? 'What is still <em>coming next</em> in the city?' : 'Which curated <em>offers</em> deserve the cleanest spotlight?'}</h2>
-            <p>${featureType === "city_pipeline"
-              ? "Use this board to discover planned, approved, and under-construction developments without mixing them into the active live-inventory journey."
-              : "Use this board to surface admin-curated opportunities in a more editorial, image-led format than the standard listing pages."}</p>
-            <div class="showcase-search-shell">
-              <input class="showcase-search-input" id="showcaseSearchInput" value="${escapeHtml(search)}" placeholder="${featureType === "city_pipeline" ? "Search future developments and establishments" : "Search curated offers and locations"}">
-            </div>
-            <div class="showcase-filter-row">
-              <button type="button" class="filter-chip ${activeCategory === "all" ? "active" : ""}" data-showcase-category="all">All</button>
-              ${categories.map((category) => `
-                <button type="button" class="filter-chip ${activeCategory === category.toLowerCase() ? "active" : ""}" data-showcase-category="${escapeHtml(category.toLowerCase())}">${escapeHtml(category)}</button>
-              `).join("")}
-            </div>
-            <div class="showcase-summary-ribbon">
-              <span>${icon(featureType === "city_pipeline" ? "pipeline" : "spark")}${filtered.length} visible</span>
-              <span>${icon("map")}${featured?.locationLabel ? escapeHtml(featured.locationLabel) : "San Fernando, La Union"}</span>
-              <span>${icon("clock")}${featureType === "city_pipeline" ? "Future-facing board" : "Timed release board"}</span>
-            </div>
-            <div class="showcase-hero-stat-grid">
-              <article class="showcase-hero-stat">
-                <span>Visible Now</span>
-                <strong>${filtered.length}</strong>
-              </article>
-              <article class="showcase-hero-stat">
-                <span>Featured</span>
-                <strong>${featuredCount}</strong>
-              </article>
-              <article class="showcase-hero-stat">
-                <span>${featureType === "city_pipeline" ? "Timed Launches" : "Timed Windows"}</span>
-                <strong>${timelineCount}</strong>
-              </article>
-              <article class="showcase-hero-stat">
-                <span>${featureType === "city_pipeline" ? "Collections" : "Categories"}</span>
-                <strong>${categories.length || 1}</strong>
-              </article>
-            </div>
-          </div>
-          <div class="showcase-hero-side">
-            ${showcaseSpotlightMarkup(featured)}
-            <article class="showcase-intel-dock">
-              <div class="panel-kicker">Board Read</div>
-              <h3>${escapeHtml(stageNoteTitle)}</h3>
-              <p>${escapeHtml(stageNoteCopy)}</p>
-              <div class="showcase-intel-list">
-                <div><span>Lead item</span><strong>${escapeHtml(featured?.title || "Standby")}</strong></div>
-                <div><span>Primary timeline</span><strong>${escapeHtml(featured ? showcaseTimelineValue(featured) : "Pending")}</strong></div>
-                <div><span>Routing</span><strong>${featureType === "city_pipeline" ? "Future discovery" : "Spotlight release"}</strong></div>
+            ${featureType === "city_pipeline" ? `
+              <div class="panel-kicker">${escapeHtml(showcaseFeatureLabel(featureType))}</div>
+              <h2>What should investors <em>build next</em> in San Fernando?</h2>
+              <p>Use this board to separate active future projects from the businesses, services, and establishments the city still wants to attract, so investors do not duplicate what is already saturated.</p>
+              <div class="showcase-search-shell">
+                <input class="showcase-search-input" id="showcaseSearchInput" value="${escapeHtml(search)}" placeholder="Search missing businesses, establishments, and future projects">
               </div>
-            </article>
+              <div class="showcase-filter-row showcase-mode-row">
+                <button type="button" class="filter-chip ${activeLane === "all" ? "active" : ""}" data-showcase-lane="all">All city signals</button>
+                <button type="button" class="filter-chip ${activeLane === "investment_gap" ? "active" : ""}" data-showcase-lane="investment_gap">What the city still needs</button>
+                <button type="button" class="filter-chip ${activeLane === "future_project" ? "active" : ""}" data-showcase-lane="future_project">Projects already forming</button>
+              </div>
+              <div class="showcase-filter-row">
+                <button type="button" class="filter-chip ${activeCategory === "all" ? "active" : ""}" data-showcase-category="all">All</button>
+                ${categories.map((category) => `
+                  <button type="button" class="filter-chip ${activeCategory === category.toLowerCase() ? "active" : ""}" data-showcase-category="${escapeHtml(category.toLowerCase())}">${escapeHtml(category)}</button>
+                `).join("")}
+              </div>
+              <div class="showcase-summary-ribbon showcase-summary-ribbon-city">
+                <span>${icon("pipeline")}${filtered.length === 1 ? "1 signal in view" : `${filtered.length} signals in view`}</span>
+                <span>${icon("spark")}${escapeHtml(dominantCategory?.count ? `${dominantCategory.label} leads` : "Mixed sector read")}</span>
+                <span>${icon("map")}${escapeHtml(locationLabel)}</span>
+                <span>${icon("shield")}${filteredCityCounts?.caution ? `${filteredCityCounts.caution} duplicate-build watchout${filteredCityCounts.caution === 1 ? "" : "s"}` : "Open whitespace read"}</span>
+              </div>
+              <div class="showcase-hero-stat-grid">
+                <article class="showcase-hero-stat">
+                  <span>Whitespace briefs</span>
+                  <strong>${filteredCityCounts?.gaps || 0}</strong>
+                </article>
+                <article class="showcase-hero-stat">
+                  <span>Not in tracked supply</span>
+                  <strong>${filteredCityCounts?.notPresent || 0}</strong>
+                </article>
+                <article class="showcase-hero-stat">
+                  <span>Under-supplied</span>
+                  <strong>${filteredCityCounts?.undersupplied || 0}</strong>
+                </article>
+                <article class="showcase-hero-stat">
+                  <span>Projects in motion</span>
+                  <strong>${filteredCityCounts?.projects || 0}</strong>
+                </article>
+              </div>
+            ` : `
+              <div class="showcase-offer-hero-topline">
+                <div>
+                  <div class="panel-kicker">${escapeHtml(showcaseFeatureLabel(featureType))}</div>
+                  <span class="showcase-offer-overline">Editorial release board</span>
+                </div>
+                <span class="showcase-offer-live-pill">${filtered.length} visible now</span>
+              </div>
+              <div class="showcase-offer-heading">
+                <h2>Which curated <em>offers</em> deserve the cleanest spotlight?</h2>
+                <p>Use this board to surface admin-curated opportunities in a more editorial, image-led format than the standard listing pages.</p>
+              </div>
+              <div class="showcase-offer-toolbar">
+                <div class="showcase-search-shell">
+                  <input class="showcase-search-input" id="showcaseSearchInput" value="${escapeHtml(search)}" placeholder="Search curated offers, partners, and locations">
+                </div>
+                <div class="showcase-filter-panel">
+                  <div class="showcase-filter-row">
+                    <button type="button" class="filter-chip ${activeCategory === "all" ? "active" : ""}" data-showcase-category="all">All</button>
+                    ${categories.map((category) => `
+                      <button type="button" class="filter-chip ${activeCategory === category.toLowerCase() ? "active" : ""}" data-showcase-category="${escapeHtml(category.toLowerCase())}">${escapeHtml(category)}</button>
+                    `).join("")}
+                  </div>
+                </div>
+              </div>
+              <div class="showcase-summary-ribbon showcase-summary-ribbon-offer">
+                <span>${icon("spark")}${filtered.length === 1 ? "1 offer in view" : `${filtered.length} offers in view`}</span>
+                <span>${icon("map")}${escapeHtml(locationLabel)}</span>
+                <span>${icon("clock")}Timed release board</span>
+                <span>${icon("arrow")}${escapeHtml(boardCategoryLabel)}</span>
+              </div>
+              <div class="showcase-offer-stat-grid">
+                <article class="showcase-offer-stat is-accent">
+                  <span>Visible now</span>
+                  <strong>${filtered.length}</strong>
+                  <p>Curated offer cards in the current board view.</p>
+                </article>
+                <article class="showcase-offer-stat">
+                  <span>Live windows</span>
+                  <strong>${filteredTimelineCount}</strong>
+                  <p>Entries with active release timing or countdown context.</p>
+                </article>
+                <article class="showcase-offer-stat">
+                  <span>Featured</span>
+                  <strong>${filteredFeaturedCount}</strong>
+                  <p>Items carrying spotlight treatment inside the current mix.</p>
+                </article>
+                <article class="showcase-offer-stat">
+                  <span>Direct routes</span>
+                  <strong>${linkedCount}</strong>
+                  <p>Cards that jump straight into the deeper property thesis.</p>
+                </article>
+              </div>
+              <div class="showcase-offer-insight-grid">
+                <article class="showcase-offer-insight">
+                  <span>Lead item</span>
+                  <strong>${escapeHtml(featured?.title || "Standby")}</strong>
+                  <p>${escapeHtml(truncate(featured?.summary || featured?.description || "Select a featured offer to anchor the editorial spotlight.", 110))}</p>
+                </article>
+                <article class="showcase-offer-insight">
+                  <span>Release cadence</span>
+                  <strong>${escapeHtml(leadWindow)}</strong>
+                  <p>${escapeHtml(featured ? `${leadSignal} is the current timing signal for the lead offer.` : "Waiting for a published timing window.")}</p>
+                </article>
+                <article class="showcase-offer-insight">
+                  <span>Board posture</span>
+                  <strong>${liveCount} live / ${awardedCount} awarded</strong>
+                  <p>${escapeHtml(linkedCount ? "Property-linked offers stay one click away from the full diligence view." : "When direct property routing is missing, the board falls back to the rankings surface.")}</p>
+                </article>
+              </div>
+            `}
           </div>
+          ${featureType === "city_pipeline" ? `
+            <div class="showcase-hero-side showcase-hero-side-city">
+              ${showcaseSpotlightMarkup(featured)}
+              <div class="showcase-city-command-grid">
+                <article class="showcase-city-command-card is-wide is-accent">
+                  <span>${icon("pipeline")}Board pulse</span>
+                  <strong>${filtered.length} live signal${filtered.length === 1 ? "" : "s"} across ${filteredLocations.length} zone${filteredLocations.length === 1 ? "" : "s"}</strong>
+                  <p>${escapeHtml(activeLane === "all"
+                    ? "Compare unmet investor demand against real pipeline momentum without mixing the two stories together."
+                    : activeLane === "investment_gap"
+                      ? "Whitespace mode is active, so every signal in view is about what the city still wants investors to build."
+                      : "Momentum mode is active, so every signal in view reflects a project already forming, approved, or under way.")}</p>
+                </article>
+                <article class="showcase-city-command-card">
+                  <span>${icon("spark")}Top whitespace</span>
+                  <strong>${escapeHtml(leadGap?.title || "No investor gap in view")}</strong>
+                  <p>${escapeHtml(leadGap ? `${showcaseSupplySignalLabel(leadGap.supplySignal || "under_supplied")} / ${leadGap.primaryMetricValue || "Priority review"}` : "Switch back to All city signals to compare unmet demand.")}</p>
+                </article>
+                <article class="showcase-city-command-card">
+                  <span>${icon("clock")}Momentum lead</span>
+                  <strong>${escapeHtml(leadProject?.title || "No future project in view")}</strong>
+                  <p>${escapeHtml(leadProject ? `${showcaseTimelineValue(leadProject)} / ${showcaseStateLabel(leadProject.status)}` : "Project momentum returns when future-project filters are active.")}</p>
+                </article>
+                <article class="showcase-city-command-card">
+                  <span>${icon("shield")}Duplicate-build watch</span>
+                  <strong>${filteredCityCounts?.caution || 0} crowded warning${filteredCityCounts?.caution === 1 ? "" : "s"}</strong>
+                  <p>${escapeHtml(filteredCityCounts?.caution
+                    ? "These warnings stay visible so investors do not misread saturated lanes as whitespace."
+                    : "No crowded supply signals are visible in this view, so the board is leaning toward open demand and active momentum.")}</p>
+                </article>
+              </div>
+            </div>
+          ` : `
+            <div class="showcase-hero-side showcase-hero-side-offer">
+              ${showcaseSpotlightMarkup(featured)}
+              <article class="showcase-intel-dock showcase-intel-dock-offer">
+                <div class="panel-kicker">Board Read</div>
+                <h3>${escapeHtml(stageNoteTitle)}</h3>
+                <p>${escapeHtml(stageNoteCopy)}</p>
+                <div class="showcase-intel-list showcase-intel-list-offer">
+                  <div><span>Lead item</span><strong>${escapeHtml(featured?.title || "Standby")}</strong></div>
+                  <div><span>Lead partner</span><strong>${escapeHtml(leadPartnerLabel)}</strong></div>
+                  <div><span>Primary timeline</span><strong>${escapeHtml(leadWindow)}</strong></div>
+                  <div><span>Current signal</span><strong>${escapeHtml(leadSignal)}</strong></div>
+                </div>
+              </article>
+            </div>
+          `}
         </section>
 
-        <section class="showcase-card-section">
-          <div class="showcase-card-section-head">
-            <div>
-              <div class="panel-kicker">${escapeHtml(collectionTitle)}</div>
-              <h3>${featureType === "city_pipeline" ? "What is still forming across the city." : "What is currently ready for a cleaner release."}</h3>
-              <p>${escapeHtml(collectionCopy)}</p>
+        ${featureType === "city_pipeline" ? `
+          ${activeLane !== "future_project" ? showcaseCityLaneMarkup({
+            kicker: "Investor gap radar",
+            title: "Where San Fernando still wants new operators to show up.",
+            copy: "Whitespace briefs stay separate from project momentum so investors can act on unmet demand without copying already saturated supply.",
+            tone: "gap",
+            collection: gapItems,
+            emptyTitle: "No investor-gap entries match this view",
+            emptyCopy: "Broaden the search or switch back to All city signals.",
+            metaLabels: [
+              `${gapItems.length} whitespace signal${gapItems.length === 1 ? "" : "s"}`,
+              dominantGapCategory?.count ? `${dominantGapCategory.label} leads` : "",
+              dominantGapLocation?.count ? `${dominantGapLocation.label} focus` : "",
+            ],
+          }) : ""}
+          ${activeLane !== "investment_gap" ? showcaseCityLaneMarkup({
+            kicker: "Pipeline momentum",
+            title: "What is already gaining real city traction.",
+            copy: "These are future developments or advancing concepts already moving through the city story, so investors can distinguish momentum from fresh whitespace.",
+            tone: "project",
+            collection: projectItems,
+            emptyTitle: "No future-project entries match this view",
+            emptyCopy: "Broaden the search or switch back to Projects already forming.",
+            metaLabels: [
+              `${projectItems.length} project signal${projectItems.length === 1 ? "" : "s"}`,
+              projectStagePulse?.count ? `${projectStagePulse.label} pace` : "",
+              dominantProjectLocation?.count ? `${dominantProjectLocation.label} cluster` : "",
+            ],
+          }) : ""}
+        ` : `
+          <section class="showcase-card-section showcase-card-section-offer">
+            <div class="showcase-card-section-head showcase-card-section-head-offer">
+              <div>
+                <div class="panel-kicker">${escapeHtml(collectionTitle)}</div>
+                <h3>What is currently ready for a cleaner release.</h3>
+                <p>${escapeHtml(collectionCopy)}</p>
+              </div>
+              <div class="showcase-card-section-meta">
+                <span>${filtered.length} cards in view</span>
+                <span>${activeCategory === "all" ? "All categories" : escapeHtml(titleCase(activeCategory))}</span>
+                <span>${escapeHtml(locationLabel)}</span>
+              </div>
             </div>
-            <div class="showcase-card-section-meta">
-              <span>${filtered.length} cards in view</span>
-              <span>${activeCategory === "all" ? "All categories" : escapeHtml(activeCategory)}</span>
-            </div>
-          </div>
-          <section class="showcase-card-grid">
-            ${filtered.length
-              ? filtered.map((item) => showcaseCardMarkup(item)).join("")
-              : emptyState(
-                featureType === "city_pipeline" ? "No pipeline entries match this view" : "No offer board entries match this view",
-                "Try a broader search or switch back to All."
-              )}
+            <section class="showcase-card-grid showcase-card-grid-offer">
+              ${filtered.length
+                ? filtered.map((item) => showcaseCardMarkup(item)).join("")
+                : emptyState("No offer board entries match this view", "Try a broader search or switch back to All.")}
+            </section>
           </section>
-        </section>
+        `}
       </div>
     `;
 
@@ -6175,6 +8192,13 @@ async function initShowcasePage(rootId, featureType) {
     root.querySelectorAll("[data-showcase-category]").forEach((button) => {
       button.addEventListener("click", () => {
         activeCategory = String(button.dataset.showcaseCategory || "all");
+        render();
+      });
+    });
+
+    root.querySelectorAll("[data-showcase-lane]").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeLane = String(button.dataset.showcaseLane || "all");
         render();
       });
     });
@@ -6191,7 +8215,7 @@ function showcaseAdminCardMarkup(item) {
   return `
     <article class="showcase-admin-card">
       <div class="showcase-admin-media">
-        <img src="${escapeHtml(item.coverImageUrl || "assets/images/Property10.png")}" alt="${escapeHtml(item.title)}">
+        <img src="${escapeHtml(showcaseImageSrc(item))}" alt="${escapeHtml(item.title)}">
       </div>
       <div class="showcase-admin-copy">
         <div class="showcase-admin-topline">
@@ -6202,6 +8226,8 @@ function showcaseAdminCardMarkup(item) {
         <h3>${escapeHtml(item.title)}</h3>
         <p>${escapeHtml(truncate(item.summary || item.description || "", 160))}</p>
         <div class="showcase-card-chip-row">
+          ${showcasePipelineModeChip(item)}
+          ${showcaseSupplySignalChip(item)}
           ${item.category ? `<span class="meta-chip">${escapeHtml(item.category)}</span>` : ""}
           ${item.locationLabel ? `<span class="meta-chip">${escapeHtml(item.locationLabel)}</span>` : ""}
           ${item.relatedPropertyName ? `<span class="meta-chip">Linked: ${escapeHtml(item.relatedPropertyName)}</span>` : ""}
@@ -6210,6 +8236,7 @@ function showcaseAdminCardMarkup(item) {
           ${showcasePrimaryMetricMarkup(item)}
           ${showcaseSecondaryMetricMarkup(item)}
         </div>
+        ${showcaseOpportunityBriefMarkup(item, "card")}
       </div>
       <div class="showcase-admin-actions">
         <a href="${escapeHtml(item.featureType === "city_pipeline" ? `${window.SFC_APP_CONFIG?.basePath || ""}/city-pipeline.php` : `${window.SFC_APP_CONFIG?.basePath || ""}/offer-board.php`)}" class="btn-shell btn-shell-secondary">View Public</a>
@@ -6231,11 +8258,18 @@ async function initAdminShowcase() {
   const addButton = document.getElementById("adminShowcaseAdd");
   const deleteLabel = document.getElementById("deleteShowcaseLabel");
   const confirmDeleteButton = document.getElementById("confirmDeleteShowcase");
+  const wizardBackButton = document.getElementById("showcaseWizardBack");
+  const wizardNextButton = document.getElementById("showcaseWizardNext");
+  const wizardSubmitButton = document.getElementById("showcaseWizardSubmit");
+  const feedbackNote = document.getElementById("showcaseCrudFeedback");
   let items = [];
   let properties = [];
   let activeFeature = "offer_board";
   let search = "";
   let deleteId = null;
+  let currentStep = 0;
+  let previewObjectUrl = "";
+  let isSaving = false;
 
   const openModal = (target) => {
     if (target) target.hidden = false;
@@ -6243,6 +8277,54 @@ async function initAdminShowcase() {
 
   const closeModal = (target) => {
     if (target) target.hidden = true;
+  };
+
+  const setShowcaseFeedback = (message = "", tone = "") => {
+    if (!feedbackNote) return;
+    feedbackNote.hidden = !message;
+    feedbackNote.textContent = message;
+    feedbackNote.classList.toggle("is-success", tone === "success");
+  };
+
+  const setSavingState = (saving) => {
+    isSaving = Boolean(saving);
+    if (wizardNextButton) wizardNextButton.disabled = isSaving;
+    if (wizardBackButton) wizardBackButton.disabled = isSaving;
+    if (wizardSubmitButton) {
+      wizardSubmitButton.disabled = isSaving;
+      wizardSubmitButton.textContent = isSaving ? "Saving..." : (Number(document.getElementById("showcaseItemId")?.value || 0) > 0 ? "Save Changes" : "Save Showcase Item");
+    }
+  };
+
+  const stampShowcaseItems = (collection = []) => {
+    const stamp = Date.now();
+    return collection.map((item, index) => ({
+      ...item,
+      _imageVersion: `${stamp}-${index}`,
+    }));
+  };
+
+  const mergeShowcaseResponseItems = (response, fallbackItems = items) => {
+    let nextItems = Array.isArray(response?.items) ? response.items : [...fallbackItems];
+    const updatedItem = response?.item && typeof response.item === "object" ? response.item : null;
+
+    if (updatedItem?.id) {
+      let found = false;
+      nextItems = nextItems.map((entry) => {
+        if (Number(entry?.id) !== Number(updatedItem.id)) return entry;
+        found = true;
+        return {
+          ...entry,
+          ...updatedItem,
+        };
+      });
+
+      if (!found) {
+        nextItems = [updatedItem, ...nextItems];
+      }
+    }
+
+    return stampShowcaseItems(nextItems);
   };
 
   const fillPropertyOptions = () => {
@@ -6256,17 +8338,237 @@ async function initAdminShowcase() {
     select.value = existingValue;
   };
 
+  const wizardSteps = () => Array.from(form?.querySelectorAll("[data-showcase-step]") || []);
+
+  const updateWizardMeta = () => {
+    const steps = wizardSteps();
+    const activeStep = steps[currentStep];
+    const stepCount = document.getElementById("showcaseStepCount");
+    const stepTitle = document.getElementById("showcaseStepTitle");
+    const stepHint = document.getElementById("showcaseStepHint");
+
+    if (stepCount) {
+      stepCount.textContent = `Step ${currentStep + 1} of ${steps.length}`;
+    }
+
+    if (stepTitle) {
+      stepTitle.textContent = activeStep?.dataset.stepTitle || "Showcase Entry";
+    }
+
+    if (stepHint) {
+      stepHint.textContent = activeStep?.dataset.stepHint || "Complete the current step, then continue when ready.";
+    }
+
+    wizardBackButton.hidden = currentStep === 0;
+    wizardNextButton.hidden = currentStep >= steps.length - 1;
+    wizardSubmitButton.hidden = currentStep !== steps.length - 1;
+    wizardNextButton.textContent = currentStep === steps.length - 2 ? "Review Media & Publish" : "Next";
+  };
+
+  const goToStep = (nextStep = 0) => {
+    const steps = wizardSteps();
+    currentStep = Math.max(0, Math.min(Number(nextStep) || 0, Math.max(0, steps.length - 1)));
+
+    steps.forEach((step, index) => {
+      const isActive = index === currentStep;
+      step.hidden = !isActive;
+      step.classList.toggle("is-active", isActive);
+    });
+
+    form?.querySelectorAll("[data-showcase-step-trigger]").forEach((button, index) => {
+      const isActive = index === currentStep;
+      button.classList.toggle("is-active", isActive);
+      button.classList.toggle("is-complete", index < currentStep);
+      button.setAttribute("aria-current", isActive ? "step" : "false");
+    });
+
+    updateWizardMeta();
+    setShowcaseFeedback("");
+  };
+
+  const validateStep = (index = currentStep) => {
+    const step = wizardSteps()[index];
+    if (!step) return true;
+
+    const fields = Array.from(step.querySelectorAll("input, select, textarea")).filter((field) => {
+      if (field.type === "hidden" || field.disabled) return false;
+      if (field.closest("[hidden]")) return false;
+      return true;
+    });
+
+    for (const field of fields) {
+      if (!field.reportValidity()) {
+        field.focus();
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const validateCoreFields = () => {
+    const essentials = ["showcaseTitle", "showcaseSummary"];
+    for (const fieldId of essentials) {
+      const field = document.getElementById(fieldId);
+      if (field && !field.reportValidity()) {
+        goToStep(0);
+        field.focus();
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const clearPreviewObjectUrl = () => {
+    if (!previewObjectUrl) return;
+    URL.revokeObjectURL(previewObjectUrl);
+    previewObjectUrl = "";
+  };
+
+  const updateShowcaseMediaPreview = (overrideSrc = "") => {
+    const previewImage = document.getElementById("showcaseMediaPreviewImage");
+    const previewTitle = document.getElementById("showcaseMediaPreviewTitle");
+    const previewNote = document.getElementById("showcaseMediaPreviewNote");
+    const title = document.getElementById("showcaseTitle")?.value?.trim() || "Untitled showcase entry";
+    const imagePath = document.getElementById("showcaseImagePath")?.value?.trim() || "assets/images/Property10.png";
+    const selectedFile = document.getElementById("showcaseImage")?.files?.[0] || null;
+
+    let source = overrideSrc || imagePath || "assets/images/Property10.png";
+    let note = "Upload a new image or keep the fallback path for a first draft.";
+
+    clearPreviewObjectUrl();
+
+    if (selectedFile) {
+      previewObjectUrl = URL.createObjectURL(selectedFile);
+      source = previewObjectUrl;
+      note = `${selectedFile.name} will be used when you save this entry.`;
+    } else if (overrideSrc) {
+      note = "This is the current saved cover image for the entry.";
+    } else if (imagePath && imagePath !== "assets/images/Property10.png") {
+      note = "This fallback image path will be used unless you upload a new cover.";
+    }
+
+    if (previewImage) {
+      previewImage.src = source;
+      previewImage.alt = title;
+    }
+
+    if (previewTitle) {
+      previewTitle.textContent = title;
+    }
+
+    if (previewNote) {
+      previewNote.textContent = note;
+    }
+  };
+
+  const showcaseStatusCatalog = {
+    offer_board: [
+      ["open", "Open"],
+      ["closing_soon", "Closing Soon"],
+      ["awarded", "Awarded"],
+      ["paused", "Paused"],
+    ],
+    future_project: [
+      ["planned", "Planned"],
+      ["approved", "Approved"],
+      ["under_construction", "Under Construction"],
+      ["opening_soon", "Opening Soon"],
+      ["validation", "Validation"],
+    ],
+    investment_gap: [
+      ["priority", "Priority Need"],
+      ["planned", "Planned Gap"],
+      ["watchlist", "Watchlist"],
+      ["validation", "Needs Validation"],
+    ],
+  };
+
+  const syncShowcaseFieldVisibility = (preferredStatus = "") => {
+    const feature = document.getElementById("showcaseFeatureType")?.value || "offer_board";
+    const pipelineMode = document.getElementById("showcasePipelineMode")?.value || "future_project";
+    const isPipeline = feature === "city_pipeline";
+    const isGap = isPipeline && pipelineMode === "investment_gap";
+    const statusSelect = document.getElementById("showcaseStatus");
+    const statusOptions = !isPipeline
+      ? showcaseStatusCatalog.offer_board
+      : (isGap ? showcaseStatusCatalog.investment_gap : showcaseStatusCatalog.future_project);
+    const defaultStatus = !isPipeline ? "open" : (isGap ? "priority" : "planned");
+
+    document.querySelectorAll(".showcase-pipeline-only").forEach((node) => {
+      node.hidden = !isPipeline;
+    });
+    document.querySelectorAll(".showcase-gap-only").forEach((node) => {
+      node.hidden = !isGap;
+    });
+    document.querySelectorAll(".showcase-offer-only").forEach((node) => {
+      node.hidden = isPipeline;
+    });
+
+    if (statusSelect) {
+      const currentValue = preferredStatus || statusSelect.value || defaultStatus;
+      statusSelect.innerHTML = statusOptions.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("");
+      statusSelect.value = statusOptions.some(([value]) => value === currentValue) ? currentValue : defaultStatus;
+    }
+
+    const note = document.getElementById("showcasePipelineNote");
+    if (note) {
+      note.textContent = isGap
+        ? "Investor Gap entries are for businesses and establishments San Fernando still needs. Use the supply signal, thesis, and caution note only when they strengthen investor clarity."
+        : isPipeline
+          ? "Future Project entries are for approved, planned, or under-construction developments already moving through the city pipeline."
+          : "Offer Board entries are for timed, curated opportunities. You can save the first draft with essentials and return later for timing or media polish.";
+    }
+
+    const featureBadge = document.getElementById("showcaseFormFeatureBadge");
+    if (featureBadge) {
+      featureBadge.textContent = showcaseFeatureLabel(feature);
+    }
+
+    const modeBadge = document.getElementById("showcaseFormModeBadge");
+    if (modeBadge) {
+      modeBadge.textContent = !isPipeline
+        ? "Timed opportunity"
+        : (isGap ? "Investor gap brief" : "Future project");
+    }
+
+    const modeLabel = document.getElementById("showcaseCrudModeLabel");
+    if (modeLabel) {
+      modeLabel.textContent = !isPipeline
+        ? "Start with the offer headline and stage."
+        : (isGap ? "Describe the city need before adding extra signals." : "Start with the project headline and stage.");
+    }
+
+    const guide = document.getElementById("showcaseCrudGuide");
+    if (guide) {
+      guide.textContent = !isPipeline
+        ? "Title, stage, and summary are enough to create an Offer Board draft. Timing, metrics, and media can wait."
+        : (isGap
+          ? "Title, stage, summary, and supply signal are enough to publish a clear investor gap brief. The rest is optional support."
+          : "Title, stage, summary, and location are enough to draft a future project card. Add dates and metrics only when they are confirmed.");
+    }
+
+    const partnerField = document.getElementById("showcasePartnerLabel");
+    if (partnerField && !partnerField.value.trim() && isPipeline) {
+      partnerField.value = "City Investment Desk";
+    }
+  };
+
   const fillForm = (item = null) => {
     fillPropertyOptions();
+    setShowcaseFeedback("");
+    setSavingState(false);
     document.getElementById("showcaseCrudTitle").textContent = item ? "Edit Showcase Item" : "Add Showcase Item";
     document.getElementById("showcaseItemId").value = item?.id || "";
     document.getElementById("showcaseFeatureType").value = item?.featureType || activeFeature;
+    document.getElementById("showcasePipelineMode").value = item?.pipelineMode || "future_project";
+    syncShowcaseFieldVisibility(item?.status || "");
     document.getElementById("showcaseTitle").value = item?.title || "";
-    document.getElementById("showcasePartnerLabel").value = item?.partnerLabel || "";
+    document.getElementById("showcasePartnerLabel").value = item?.partnerLabel || ((item?.featureType || activeFeature) === "city_pipeline" ? "City Investment Desk" : "");
     document.getElementById("showcaseCategory").value = item?.category || "";
     document.getElementById("showcaseLocationLabel").value = item?.locationLabel || "San Fernando, La Union";
     document.getElementById("showcaseBarangay").value = item?.barangay || "";
-    document.getElementById("showcaseStatus").value = item?.status || (activeFeature === "city_pipeline" ? "planned" : "open");
+    document.getElementById("showcaseSupplySignal").value = item?.supplySignal || "under_supplied";
     document.getElementById("showcaseRelatedProperty").value = item?.relatedPropertyId || "";
     document.getElementById("showcasePublished").value = item?.isPublished ? "1" : "0";
     document.getElementById("showcaseFeatured").value = item?.isFeatured ? "1" : "0";
@@ -6277,13 +8579,36 @@ async function initAdminShowcase() {
     document.getElementById("showcasePrimaryMetricValue").value = item?.primaryMetricValue || "";
     document.getElementById("showcaseSecondaryMetricLabel").value = item?.secondaryMetricLabel || "";
     document.getElementById("showcaseSecondaryMetricValue").value = item?.secondaryMetricValue || "";
+    document.getElementById("showcaseInvestorThesis").value = item?.investorThesis || "";
+    document.getElementById("showcaseIdealOperator").value = item?.idealOperator || "";
+    document.getElementById("showcaseAvoidanceNote").value = item?.avoidanceNote || "";
     document.getElementById("showcaseSummary").value = item?.summary || "";
     document.getElementById("showcaseDescription").value = item?.description || "";
     document.getElementById("showcaseImagePath").value = item?.coverImageUrl || "assets/images/Property10.png";
     document.getElementById("showcaseImage").value = "";
+
+    const advancedFields = document.getElementById("showcaseAdvancedFields");
+    if (advancedFields) {
+      advancedFields.open = Boolean(
+        item?.countdownAt
+        || item?.completionTarget
+        || item?.primaryMetricLabel
+        || item?.primaryMetricValue
+        || item?.secondaryMetricLabel
+        || item?.secondaryMetricValue
+        || item?.description
+        || Number(item?.sortOrder || 1) > 1
+        || (item?.coverImageUrl && item.coverImageUrl !== "assets/images/Property10.png")
+      );
+    }
+
+    wizardSubmitButton.textContent = item ? "Save Changes" : "Save Showcase Item";
+    updateShowcaseMediaPreview(item ? showcaseImageSrc(item) : "");
+    goToStep(0);
   };
 
   const render = () => {
+    const featureItems = items.filter((item) => item.featureType === activeFeature);
     const filtered = items.filter((item) => {
       if (item.featureType !== activeFeature) return false;
       if (search && !showcaseSearchHaystack(item).includes(search.toLowerCase())) return false;
@@ -6292,6 +8617,7 @@ async function initAdminShowcase() {
     const featuredCount = items.filter((item) => item.featureType === activeFeature && item.isFeatured).length;
     const publishedCount = items.filter((item) => item.featureType === activeFeature && item.isPublished).length;
     const hiddenCount = items.filter((item) => item.featureType === activeFeature && !item.isPublished).length;
+    const cityCounts = activeFeature === "city_pipeline" ? showcasePipelineCounts(featureItems) : null;
 
     root.innerHTML = `
       <div class="showcase-admin-layout">
@@ -6304,17 +8630,23 @@ async function initAdminShowcase() {
               <div class="mini-row"><span>${icon("spark")}Featured</span><strong>${featuredCount}</strong></div>
               <div class="mini-row"><span>${icon("shield")}Published</span><strong>${publishedCount}</strong></div>
               <div class="mini-row"><span>${icon("file")}Hidden</span><strong>${hiddenCount}</strong></div>
+              ${activeFeature === "city_pipeline" ? `
+                <div class="mini-row"><span>${icon("pipeline")}Investor gaps</span><strong>${cityCounts?.gaps || 0}</strong></div>
+                <div class="mini-row"><span>${icon("clock")}Future projects</span><strong>${cityCounts?.projects || 0}</strong></div>
+              ` : ""}
             </div>
           </article>
 
           <article class="panel-card">
             <div class="panel-kicker">Public routing</div>
-            <h3>Hidden under More</h3>
-            <p>The Offer Board and City Pipeline stay outside the main nav, then surface through the header overflow menu.</p>
+            <h3>${activeFeature === "city_pipeline" ? "Investor guidance lives here" : "Hidden under More"}</h3>
+            <p>${activeFeature === "city_pipeline"
+              ? "Use City Pipeline to separate real future projects from missing-business briefs so investors can see what the city still needs before they build."
+              : "The Offer Board and City Pipeline stay outside the main nav, then surface through the header overflow menu."}</p>
             <div class="showcase-card-chip-row">
               <span class="meta-chip">More menu</span>
               <span class="meta-chip">Admin only CRUD</span>
-              <span class="meta-chip">Image-led display</span>
+              <span class="meta-chip">${activeFeature === "city_pipeline" ? "Investor gap board" : "Image-led display"}</span>
             </div>
           </article>
         </aside>
@@ -6383,7 +8715,7 @@ async function initAdminShowcase() {
         const response = await api.updateShowcaseItem(item.id, {
           is_published: item.isPublished ? 0 : 1,
         });
-        items = response.items || items;
+        items = mergeShowcaseResponseItems(response, items);
         render();
       });
     });
@@ -6391,7 +8723,7 @@ async function initAdminShowcase() {
 
   const reload = async () => {
     const [showcaseResponse, propertiesResponse] = await Promise.all([api.showcase(), api.properties()]);
-    items = showcaseResponse.items || [];
+    items = stampShowcaseItems(showcaseResponse.items || []);
     properties = propertiesResponse.properties || [];
     render();
   };
@@ -6401,59 +8733,130 @@ async function initAdminShowcase() {
     openModal(modal);
   });
 
+  form?.querySelectorAll("[data-showcase-step-trigger]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (isSaving) return;
+      const targetStep = Number(button.dataset.showcaseStepTrigger || 0);
+      if (targetStep > currentStep && !validateStep(currentStep)) return;
+      goToStep(targetStep);
+    });
+  });
+
+  wizardBackButton?.addEventListener("click", () => {
+    if (isSaving) return;
+    goToStep(currentStep - 1);
+  });
+
+  wizardNextButton?.addEventListener("click", () => {
+    if (isSaving) return;
+    if (!validateStep(currentStep)) return;
+    goToStep(currentStep + 1);
+  });
+
+  document.getElementById("showcaseFeatureType")?.addEventListener("change", () => {
+    syncShowcaseFieldVisibility();
+  });
+
+  document.getElementById("showcasePipelineMode")?.addEventListener("change", () => {
+    syncShowcaseFieldVisibility();
+  });
+
+  document.getElementById("showcaseTitle")?.addEventListener("input", () => {
+    updateShowcaseMediaPreview();
+  });
+
+  document.getElementById("showcaseImagePath")?.addEventListener("input", () => {
+    updateShowcaseMediaPreview();
+  });
+
+  document.getElementById("showcaseImage")?.addEventListener("change", () => {
+    updateShowcaseMediaPreview();
+  });
+
   document.addEventListener("click", (event) => {
     const closeTarget = event.target.closest("[data-modal-close]");
     if (!closeTarget) return;
+    clearPreviewObjectUrl();
     closeModal(document.getElementById(closeTarget.dataset.modalClose));
   });
 
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const itemId = Number(document.getElementById("showcaseItemId").value || 0);
-    const payload = new FormData();
-    payload.append("feature_type", document.getElementById("showcaseFeatureType").value);
-    payload.append("title", document.getElementById("showcaseTitle").value);
-    payload.append("partner_label", document.getElementById("showcasePartnerLabel").value);
-    payload.append("category", document.getElementById("showcaseCategory").value);
-    payload.append("location_label", document.getElementById("showcaseLocationLabel").value);
-    payload.append("barangay", document.getElementById("showcaseBarangay").value);
-    payload.append("status", document.getElementById("showcaseStatus").value);
-    payload.append("related_property_id", document.getElementById("showcaseRelatedProperty").value);
-    payload.append("is_published", document.getElementById("showcasePublished").value);
-    payload.append("is_featured", document.getElementById("showcaseFeatured").value);
-    payload.append("sort_order", document.getElementById("showcaseSortOrder").value);
-    payload.append("primary_metric_label", document.getElementById("showcasePrimaryMetricLabel").value);
-    payload.append("primary_metric_value", document.getElementById("showcasePrimaryMetricValue").value);
-    payload.append("secondary_metric_label", document.getElementById("showcaseSecondaryMetricLabel").value);
-    payload.append("secondary_metric_value", document.getElementById("showcaseSecondaryMetricValue").value);
-    payload.append("summary", document.getElementById("showcaseSummary").value);
-    payload.append("description", document.getElementById("showcaseDescription").value);
-    payload.append("cover_image_url", document.getElementById("showcaseImagePath").value);
-    const countdownAt = document.getElementById("showcaseCountdownAt").value;
-    const completionTarget = document.getElementById("showcaseCompletionTarget").value;
-    if (countdownAt) payload.append("countdown_at", countdownAt);
-    if (completionTarget) payload.append("completion_target", completionTarget);
-    const imageFile = document.getElementById("showcaseImage").files?.[0];
-    if (imageFile) payload.append("image_file", imageFile);
+    if (isSaving) return;
+    if (!validateCoreFields() || !validateStep(currentStep)) return;
+    try {
+      setShowcaseFeedback("");
+      setSavingState(true);
 
-    const response = itemId > 0
-      ? await api.updateShowcaseItem(itemId, payload)
-      : await api.createShowcaseItem(payload);
+      const itemId = Number(document.getElementById("showcaseItemId").value || 0);
+      const payloadData = {
+        feature_type: document.getElementById("showcaseFeatureType").value,
+        title: document.getElementById("showcaseTitle").value,
+        partner_label: document.getElementById("showcasePartnerLabel").value,
+        category: document.getElementById("showcaseCategory").value,
+        location_label: document.getElementById("showcaseLocationLabel").value,
+        barangay: document.getElementById("showcaseBarangay").value,
+        status: document.getElementById("showcaseStatus").value,
+        pipeline_mode: document.getElementById("showcasePipelineMode").value,
+        supply_signal: document.getElementById("showcaseSupplySignal").value,
+        related_property_id: document.getElementById("showcaseRelatedProperty").value,
+        is_published: document.getElementById("showcasePublished").value,
+        is_featured: document.getElementById("showcaseFeatured").value,
+        sort_order: document.getElementById("showcaseSortOrder").value,
+        primary_metric_label: document.getElementById("showcasePrimaryMetricLabel").value,
+        primary_metric_value: document.getElementById("showcasePrimaryMetricValue").value,
+        secondary_metric_label: document.getElementById("showcaseSecondaryMetricLabel").value,
+        secondary_metric_value: document.getElementById("showcaseSecondaryMetricValue").value,
+        investor_thesis: document.getElementById("showcaseInvestorThesis").value,
+        ideal_operator: document.getElementById("showcaseIdealOperator").value,
+        avoidance_note: document.getElementById("showcaseAvoidanceNote").value,
+        summary: document.getElementById("showcaseSummary").value,
+        description: document.getElementById("showcaseDescription").value,
+        cover_image_url: document.getElementById("showcaseImagePath").value,
+      };
+      const countdownAt = document.getElementById("showcaseCountdownAt").value;
+      const completionTarget = document.getElementById("showcaseCompletionTarget").value;
+      if (countdownAt) payloadData.countdown_at = countdownAt;
+      if (completionTarget) payloadData.completion_target = completionTarget;
+      const imageFile = document.getElementById("showcaseImage").files?.[0];
+      const payload = imageFile
+        ? (() => {
+          const formData = new FormData();
+          Object.entries(payloadData).forEach(([key, value]) => {
+            formData.append(key, value ?? "");
+          });
+          formData.append("image_file", imageFile);
+          return formData;
+        })()
+        : payloadData;
 
-    items = response.items || items;
-    closeModal(modal);
-    render();
+      const response = itemId > 0
+        ? await api.updateShowcaseItem(itemId, payload)
+        : await api.createShowcaseItem(payload);
+
+      items = mergeShowcaseResponseItems(response, items);
+      clearPreviewObjectUrl();
+      closeModal(modal);
+      await reload();
+    } catch (error) {
+      console.error("Unable to save showcase item", error);
+      setShowcaseFeedback(error?.message || "Unable to save this showcase item right now.");
+    } finally {
+      setSavingState(false);
+    }
   });
 
   confirmDeleteButton?.addEventListener("click", async () => {
     if (!deleteId) return;
     const response = await api.deleteShowcaseItem(deleteId);
-    items = response.items || items;
+    items = stampShowcaseItems(response.items || items);
     deleteId = null;
     closeModal(deleteModal);
     render();
   });
 
+  goToStep(0);
+  updateShowcaseMediaPreview();
   await reload();
 }
 
@@ -6463,17 +8866,36 @@ async function initExplorer() {
 
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
+  if (!properties.length) {
+    root.innerHTML = emptyState("Explorer unavailable", "No properties are loaded yet. Add inventory to bring the map online.");
+    return;
+  }
   const votesMap = await loadVoteTallies(properties);
   const mapService = bootstrap.meta?.services?.maps || {};
   const locationService = bootstrap.meta?.services?.location || {};
   let search = "";
   let type = "all";
   let corridor = "all";
+  let clupStatus = "all";
   let activeId = parsePropertyParam() || properties[0]?.id || 0;
   let locationQuery = "";
   let locationResults = [];
   let selectedSearchResult = null;
   let investmentLensKey = getActiveInvestmentLensKey();
+  let mobileView = "list";
+
+  const runLocationSearch = async () => {
+    const field = document.getElementById("explorerLocationSearch");
+    locationQuery = field?.value || locationQuery;
+    const response = await api.locationSearch(locationQuery).catch(() => ({ search: { results: [] } }));
+    locationResults = response.search?.results || [];
+    selectedSearchResult = locationResults[0] || null;
+    if (selectedSearchResult?.propertyId) {
+      activeId = Number(selectedSearchResult.propertyId);
+    }
+    mobileView = "map";
+    render();
+  };
 
   const render = () => {
     const visibleBase = properties.filter((property) => {
@@ -6484,11 +8906,13 @@ async function initExplorer() {
       return true;
     });
     const activeLens = getInvestmentLensConfig(investmentLensKey);
-    const visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey);
+    const visible = enrichProperties(visibleBase, properties, votesMap, null, investmentLensKey)
+      .filter((property) => clupStatus === "all" || property.clupCompliance?.statusKey === clupStatus);
     const compareIds = getCompareIds();
     const favoriteIds = getFavoriteIds();
     const active = visible.find((property) => property.id === activeId) || visible[0];
-    const activeLabels = active ? propertyPrimaryLabels(active) : [];
+    const leadProperty = visible[0] || active;
+    activeId = active?.id || 0;
 
     if (!visible.length) {
       destroyMap("explorerLeafletMap");
@@ -6496,172 +8920,220 @@ async function initExplorer() {
       return;
     }
 
+    const hasLocationQuery = Boolean(String(locationQuery || "").trim());
+    const locationResultMarkup = locationResults.slice(0, 5).map((result, index) => `
+      <button type="button" class="explorer-inline-result ${selectedSearchResult?.label === result.label ? "is-active" : ""}" data-search-result="${index}">
+        <strong>${escapeHtml(result.label || "Search result")}</strong>
+        <span>${escapeHtml(result.subtitle || "Map result")}</span>
+      </button>
+    `).join("");
+    const locationNote = !locationService.enabled
+      ? "Place search currently uses your local property inventory because LocationIQ is not configured."
+      : "Use place search when you want the map to jump to a barangay or landmark.";
+    const shouldShowLocationPanel = hasLocationQuery || locationResults.length;
+
     root.innerHTML = `
-      <div class="explorer-studio">
-        <div class="explorer-command-grid">
-        <aside class="stack explorer-command-rail">
-          <article class="panel-card explorer-filter-card">
-            <div class="panel-kicker">Explorer filters</div>
-            <h3>Refine the market</h3>
-            <div class="filter-grid">
-              <label class="form-shell"><span>Search</span><input class="input-shell" id="explorerSearch" value="${escapeHtml(search)}" placeholder="Property, barangay, corridor"></label>
-              <label class="form-shell">
-                <span>Type</span>
-                <select class="input-shell" id="explorerType">
-                  <option value="all">All types</option>
-                  <option value="commercial" ${type === "commercial" ? "selected" : ""}>Commercial</option>
-                  <option value="logistics" ${type === "logistics" ? "selected" : ""}>Logistics</option>
-                  <option value="hotel" ${type === "hotel" ? "selected" : ""}>Resort / Tourism</option>
-                  <option value="bpo" ${type === "bpo" ? "selected" : ""}>Office / BPO</option>
-                  <option value="manufacturing" ${type === "manufacturing" ? "selected" : ""}>Manufacturing</option>
-                </select>
-              </label>
-              <label class="form-shell">
-                <span>Corridor</span>
-                <select class="input-shell" id="explorerCorridor">
-                  <option value="all">All corridors</option>
-                  <option value="highway" ${corridor === "highway" ? "selected" : ""}>Highway</option>
-                  <option value="downtown" ${corridor === "downtown" ? "selected" : ""}>Downtown</option>
-                  <option value="coastal" ${corridor === "coastal" ? "selected" : ""}>Coastal</option>
-                </select>
-              </label>
-              <label class="form-shell">
-                <span>Look up location</span>
-                <div class="split-input">
-                  <input class="input-shell" id="explorerLocationSearch" value="${escapeHtml(locationQuery)}" placeholder="Search San Fernando, barangay, or landmark">
-                  <button type="button" class="btn-shell btn-shell-secondary" id="explorerLocationTrigger">Search</button>
-                </div>
-              </label>
-            </div>
-          </article>
-
-          <article class="panel-card explorer-summary-card">
-            <div class="panel-kicker">Explorer summary</div>
-            <h3>${visible.length} properties in view</h3>
-            <div class="mini-list">
-              <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)} score</span><strong>${visible[0]?.lensScore || 0}</strong></div>
-              <div class="mini-row"><span>${icon("vote")}Saved + compare</span><strong>${favoriteIds.length + compareIds.length}</strong></div>
-              <div class="mini-row"><span>${icon("map")}Lead corridor</span><strong>${escapeHtml(corridorLabel(visible[0]?.corridor || ""))}</strong></div>
-            </div>
-            <div class="service-chip-row" style="margin-top:16px;">
-              ${serviceChip(mapService.enabled ? "Live map" : "Fallback map", mapService.enabled ? "live" : "fallback")}
-              ${serviceChip(locationService.enabled ? "LocationIQ search" : "Local search", locationService.enabled ? "live" : "fallback")}
-            </div>
-          </article>
-
-          <article class="panel-card explorer-search-card">
-            <div class="panel-kicker">Search results</div>
-            <h3>${locationResults.length ? "Location matches" : "Search a place or property"}</h3>
-            <div class="search-results-list">
-              ${locationResults.length ? locationResults.slice(0, 5).map((result, index) => `
-                <button type="button" class="search-result-card ${selectedSearchResult?.label === result.label ? "is-active" : ""}" data-search-result="${index}">
-                  <strong>${escapeHtml(result.label || "Search result")}</strong>
-                  <span>${escapeHtml(result.subtitle || "Map result")}</span>
-                </button>
-              `).join("") : `<div class="loading-panel">${escapeHtml(locationService.enabled ? "Use location lookup to focus the map, or keep using property filters." : "Search falls back to your local property inventory until LocationIQ is configured.")}</div>`}
-            </div>
-          </article>
-        </aside>
-
-        <section class="stack explorer-command-main">
-          ${investmentLensSelectorMarkup(investmentLensKey, {
-            title: "Select Investment Lens",
-            description: "Re-rank the explorer and shift the explanation toward the purpose you are testing.",
+      <div class="explorer-terminal explorer-marketplace mobile-view-${mobileView}">
+        <div class="explorer-market-shell">
+          ${explorerLensRibbonMarkup(investmentLensKey, {
+            visibleCount: visible.length,
+            mapLive: mapService.enabled,
+            locationLive: locationService.enabled,
+            queueCount: favoriteIds.length + compareIds.length,
           })}
 
-          <div class="panel-grid explorer-stage-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
-            <article class="panel-card map-panel-card">
-              <div class="map-panel-head">
-                <div>
-                  <div class="panel-kicker">Spatial overview</div>
-                  <h3>Live property map</h3>
+          <div class="explorer-workspace explorer-workspace-minimal">
+            <section class="explorer-results-stage">
+              <div class="explorer-results-stage-top">
+                <div class="explorer-results-toolbar">
+                  <div>
+                    <div class="panel-kicker">Filters</div>
+                    <h2>Refine the list.</h2>
+                    <p>Search, narrow, and preview properties without the map taking over the page.</p>
+                  </div>
+                  <span class="explorer-results-count">${visible.length} in view</span>
                 </div>
-                <div class="service-chip-row">
-                  ${serviceChip(mapService.provider || "Leaflet", "neutral")}
+
+                <div class="explorer-filter-panel">
+                  <div class="explorer-filter-panel-head">
+                    <div class="explorer-filter-panel-copy">
+                      <div class="panel-kicker">Quick Search</div>
+                      <strong>Build a cleaner shortlist.</strong>
+                    </div>
+                    <div class="explorer-filter-panel-accent">
+                      <span>${icon("spark")}Smart filters</span>
+                    </div>
+                  </div>
+
+                  <div class="explorer-filter-grid">
+                    <label class="form-shell explorer-filter-span">
+                      <span>Search</span>
+                      <div class="explorer-input-with-icon">
+                        <span class="explorer-input-icon">${icon("search")}</span>
+                        <input class="input-shell" id="explorerSearch" value="${escapeHtml(search)}" placeholder="Property, barangay, corridor">
+                      </div>
+                    </label>
+
+                    <label class="form-shell explorer-filter-card">
+                      <span>Type</span>
+                      <select class="input-shell" id="explorerType">
+                        <option value="all">All types</option>
+                        <option value="commercial" ${type === "commercial" ? "selected" : ""}>Commercial</option>
+                        <option value="logistics" ${type === "logistics" ? "selected" : ""}>Logistics</option>
+                        <option value="hotel" ${type === "hotel" ? "selected" : ""}>Resort / Tourism</option>
+                        <option value="bpo" ${type === "bpo" ? "selected" : ""}>Office / BPO</option>
+                        <option value="manufacturing" ${type === "manufacturing" ? "selected" : ""}>Manufacturing</option>
+                      </select>
+                    </label>
+
+                    <label class="form-shell explorer-filter-card">
+                      <span>Corridor</span>
+                      <select class="input-shell" id="explorerCorridor">
+                        <option value="all">All corridors</option>
+                        <option value="highway" ${corridor === "highway" ? "selected" : ""}>Highway</option>
+                        <option value="downtown" ${corridor === "downtown" ? "selected" : ""}>Downtown</option>
+                        <option value="coastal" ${corridor === "coastal" ? "selected" : ""}>Coastal</option>
+                      </select>
+                    </label>
+                    <label class="form-shell explorer-filter-card">
+                      <span>CLUP status</span>
+                      <select class="input-shell" id="explorerClupStatus">
+                        <option value="all">All results</option>
+                        <option value="pass" ${clupStatus === "pass" ? "selected" : ""}>PASS</option>
+                        <option value="conditional" ${clupStatus === "conditional" ? "selected" : ""}>CONDITIONAL</option>
+                        <option value="fail" ${clupStatus === "fail" ? "selected" : ""}>FAIL</option>
+                      </select>
+                    </label>
+
+                    <label class="form-shell explorer-location-field explorer-filter-span">
+                      <span>Place Search</span>
+                      <div class="split-input">
+                        <div class="explorer-input-with-icon">
+                          <span class="explorer-input-icon">${icon("map")}</span>
+                          <input class="input-shell" id="explorerLocationSearch" value="${escapeHtml(locationQuery)}" placeholder="Search San Fernando, barangay, or landmark">
+                        </div>
+                        <button type="button" class="btn-shell btn-shell-secondary" id="explorerLocationTrigger">${icon("search")}Search</button>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div class="explorer-sidebar-summary explorer-sidebar-summary-filters">
+                    <span>${escapeHtml(activeLens.label)}</span>
+                    <span>${escapeHtml(corridorLabel(leadProperty?.corridor || ""))}</span>
+                    <span>${favoriteIds.length + compareIds.length} saved / compared</span>
+                  </div>
+                  <p class="explorer-filter-note">${icon("map")}${escapeHtml(locationNote)}</p>
+                </div>
+
+                ${shouldShowLocationPanel ? `
+                  <div class="explorer-inline-results">
+                    <div class="explorer-inline-results-head">
+                      <span>${locationResults.length ? "Place matches" : "Search status"}</span>
+                      <strong>${locationResults.length ? `${Math.min(locationResults.length, 5)} shown` : "No match"}</strong>
+                    </div>
+                    <div class="explorer-inline-results-list">
+                      ${locationResults.length ? locationResultMarkup : `
+                        <div class="explorer-list-empty">
+                          <strong>No map target yet</strong>
+                          <span>Try a shorter barangay, landmark, or street name.</span>
+                        </div>
+                      `}
+                    </div>
+                  </div>
+                ` : ""}
+              </div>
+
+              <div class="explorer-card-stack">
+                <div class="explorer-card-stack-head">
+                  <div class="explorer-card-stack-heading">
+                    <span class="panel-kicker">Results Found</span>
+                    <strong>${visible.length} results found</strong>
+                  </div>
+                  <span class="explorer-card-stack-sort">Sorted by ${escapeHtml(activeLens.shortLabel || activeLens.label)}</span>
+                </div>
+                <div class="explorer-results-grid">
+                  ${visible.map((property) => propertyCard(property, {
+                    variant: "compact",
+                    isActive: property.id === activeId,
+                    compareIds,
+                    favoriteIds,
+                    lensKey: investmentLensKey,
+                    showManage: role === "admin",
+                    manageHref: adminPropertyHref(property.id),
+                  })).join("")}
                 </div>
               </div>
-              <div class="leaflet-frame">
-                <div id="explorerLeafletMap" class="leaflet-shell explorer-map"></div>
-              </div>
-            </article>
-            <article class="spotlight-card explorer-spotlight-card" style="--explorer-stage-image:url('${escapeHtml(active?.imageUrl || "")}')">
-              <div class="panel-kicker">Selected opportunity for ${escapeHtml(activeLens.label)}</div>
-              <h2>${escapeHtml(active?.name || "")}</h2>
-              <div class="spotlight-media"><img src="${escapeHtml(active?.imageUrl || "")}" alt="${escapeHtml(active?.name || "")}"></div>
-              <p>${escapeHtml(active ? propertyStory(active) : "")}</p>
-              <div class="service-chip-row explorer-spotlight-chip-row">
-                ${activeLabels.map((label) => `<span class="service-chip service-chip-neutral">${escapeHtml(label)}</span>`).join("")}
-                ${active ? serviceChip(corridorLabel(active.corridor), "neutral") : ""}
-              </div>
-              <div class="decision-stats">
-                ${active?.lensResult ? investmentLensScorePill(active.lensResult) : scorePill(active?.opportunityScore || 0)}
-                <span class="tag">${escapeHtml(voteLabel(active?.topNeed || "No demand yet"))}</span>
-                <span class="tag">${escapeHtml(moneyShort(active?.price || 0))}</span>
-              </div>
-              <div class="property-actions">
-                <a href="${propertyHref(active?.id || 0)}" class="btn-shell btn-shell-primary">View Details</a>
-                <a href="${votingHref(active?.id || 0)}" class="btn-shell btn-shell-secondary">Open Voting</a>
-              </div>
-              ${active ? googleEarthActionsMarkup({
-                property: active,
-                properties: visible,
-                scope: "explorer-visible",
-                showView: true,
-                note: "Open the selected site in Google Earth or export the current explorer view for wider spatial validation.",
-              }) : ""}
-            </article>
-          </div>
+            </section>
 
-          ${active ? investmentLensThesisMarkup(active, active.lensResult, {
-            kicker: `Why it fits ${activeLens.label}`,
-            heading: `${active.name} under the ${activeLens.label} lens`,
-          }) : ""}
+            <section class="explorer-support-rail">
+              ${explorerSelectionCardMarkup(active, {
+                activeLens,
+                compareIds,
+                favoriteIds,
+              })}
 
-          <div class="property-grid explorer-property-grid">
-            ${visible.map((property) => propertyCard(property, {
-              compareIds,
-              favoriteIds,
-              lensKey: investmentLensKey,
-              showManage: role === "admin",
-              manageHref: adminPropertyHref(property.id),
-            })).join("")}
+              <div class="explorer-map-shell">
+                <div class="explorer-map-shell-head">
+                  <div class="explorer-map-shell-copy">
+                    <div class="panel-kicker">Map Preview</div>
+                    <h2>City context</h2>
+                    <p>See where the shortlist sits across San Fernando without the map overpowering the page.</p>
+                  </div>
+                  <div class="explorer-map-shell-meta">
+                    <span>${escapeHtml(activeLens.shortLabel || activeLens.label)} lens</span>
+                    <span>${escapeHtml(mapService.enabled ? "Leaflet live" : "Fallback map")}</span>
+                  </div>
+                </div>
+                <div class="clup-map-legend"><span><i class="is-pass"></i>PASS</span><span><i class="is-conditional"></i>CONDITIONAL</span><span><i class="is-fail"></i>FAIL</span></div>
+
+                <section class="explorer-map-pane">
+                  <div class="explorer-map-stage">
+                    <div id="explorerLeafletMap" class="explorer-terminal-map explorer-map"></div>
+                    ${explorerMapHudMarkup(active, activeLens, visible.length)}
+                    ${explorerMapPreviewMarkup(active, activeLens, selectedSearchResult)}
+                  </div>
+                </section>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
+
+        <div class="explorer-mobile-nav">
+          <button type="button" class="explorer-mobile-tab ${mobileView === "list" ? "is-active" : ""}" data-explorer-mobile-view="list">Results</button>
+          <button type="button" class="explorer-mobile-tab ${mobileView === "map" ? "is-active" : ""}" data-explorer-mobile-view="map">Map</button>
         </div>
       </div>
     `;
 
-    document.getElementById("explorerSearch")?.addEventListener("input", (event) => {
+    root.querySelector("#explorerSearch")?.addEventListener("input", (event) => {
       search = event.target.value;
       render();
     });
-    document.getElementById("explorerType")?.addEventListener("change", (event) => {
+    root.querySelector("#explorerType")?.addEventListener("change", (event) => {
       type = event.target.value;
       render();
     });
-    document.getElementById("explorerCorridor")?.addEventListener("change", (event) => {
+    root.querySelector("#explorerCorridor")?.addEventListener("change", (event) => {
       corridor = event.target.value;
       render();
     });
-    bindInvestmentLensSelector(root, (nextLensKey) => {
-      investmentLensKey = nextLensKey;
-      saveActiveInvestmentLensKey(nextLensKey);
+    root.querySelector("#explorerClupStatus")?.addEventListener("change", (event) => {
+      clupStatus = event.target.value;
       render();
     });
-    document.getElementById("explorerLocationTrigger")?.addEventListener("click", async () => {
-      locationQuery = document.getElementById("explorerLocationSearch")?.value || "";
-      const response = await api.locationSearch(locationQuery).catch(() => ({ search: { results: [] } }));
-      locationResults = response.search?.results || [];
-      selectedSearchResult = locationResults[0] || null;
-      if (selectedSearchResult?.propertyId) {
-        activeId = Number(selectedSearchResult.propertyId);
-      }
-      render();
+    root.querySelectorAll("[data-explorer-lens]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextLensKey = button.dataset.explorerLens || investmentLensKey;
+        investmentLensKey = nextLensKey;
+        saveActiveInvestmentLensKey(nextLensKey);
+        render();
+      });
     });
-    document.getElementById("explorerLocationSearch")?.addEventListener("keydown", async (event) => {
+    root.querySelector("#explorerLocationTrigger")?.addEventListener("click", runLocationSearch);
+    root.querySelector("#explorerLocationSearch")?.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter") return;
       event.preventDefault();
-      document.getElementById("explorerLocationTrigger")?.click();
+      await runLocationSearch();
     });
     root.querySelectorAll("[data-search-result]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -6669,6 +9141,34 @@ async function initExplorer() {
         if (selectedSearchResult?.propertyId) {
           activeId = Number(selectedSearchResult.propertyId);
         }
+        mobileView = "map";
+        render();
+      });
+    });
+    root.querySelectorAll("[data-explorer-select]").forEach((card) => {
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("a, button")) return;
+        activeId = Number(card.dataset.explorerSelect);
+        selectedSearchResult = null;
+        if (window.innerWidth <= 768) {
+          mobileView = "map";
+        }
+        render();
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        activeId = Number(card.dataset.explorerSelect);
+        selectedSearchResult = null;
+        if (window.innerWidth <= 768) {
+          mobileView = "map";
+        }
+        render();
+      });
+    });
+    root.querySelectorAll("[data-explorer-mobile-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        mobileView = button.dataset.explorerMobileView || "map";
         render();
       });
     });
@@ -6683,6 +9183,9 @@ async function initExplorer() {
       onSelect: (propertyId) => {
         activeId = Number(propertyId);
         selectedSearchResult = null;
+        if (window.innerWidth <= 768) {
+          mobileView = "map";
+        }
         render();
       },
     });
@@ -6697,10 +9200,12 @@ async function initCompare() {
 
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
+  const decisionPersonas = normalizeDecisionPersonas(bootstrap.meta?.decisionPersonas || []);
   const votesMap = await loadVoteTallies(properties);
   let intent = "";
   let budget = "";
   let investmentLensKey = getActiveInvestmentLensKey();
+  let decisionPersonaKey = getStoredDecisionPersonaKey(decisionPersonas);
 
   const render = () => {
     const compareIds = getCompareIds();
@@ -6713,8 +9218,34 @@ async function initCompare() {
     const activeLens = getInvestmentLensConfig(investmentLensKey);
     const enriched = enrichProperties(comparedBase, properties, votesMap, intent || null, investmentLensKey)
       .filter((property) => !Number(budget || 0) || Number(property.price) <= Number(budget || 0));
-    const activeCompared = enriched.length ? enriched : enrichProperties(comparedBase, properties, votesMap, intent || null, investmentLensKey);
+    const activeComparedBase = enriched.length ? enriched : enrichProperties(comparedBase, properties, votesMap, intent || null, investmentLensKey);
+    const activeCompared = activeComparedBase
+      .map((property) => {
+        const activeDecision = resolveDecisionVariant(property.decision, decisionPersonaKey) || {
+          score: Number(property.lensScore || property.opportunityScore || 0),
+          confidence: 55,
+          confidenceLabel: "Medium Confidence",
+          statusKey: "strong_watch",
+          statusLabel: "Strong Watch",
+          toneLabel: "Momentum Watch",
+          summary: propertyStory(property),
+          nextAction: { label: "Review property", target: "details" },
+          reasons: [],
+        };
+        return {
+          ...property,
+          activeDecision,
+          compareLeadScore: Math.round((Number(activeDecision.score || 0) * 0.7) + (Number(property.lensScore || 0) * 0.3)),
+        };
+      })
+      .sort((left, right) => (
+        (({ PASS: 2, CONDITIONAL: 1, FAIL: 0 })[right.clupCompliance?.status] - ({ PASS: 2, CONDITIONAL: 1, FAIL: 0 })[left.clupCompliance?.status])
+        || (right.compareLeadScore - left.compareLeadScore)
+        || (Number(right.activeDecision?.confidence || 0) - Number(left.activeDecision?.confidence || 0))
+        || (right.lensScore - left.lensScore)
+      ));
     const winner = activeCompared[0];
+    const activePersona = decisionPersonas.find((persona) => persona.key === decisionPersonaKey) || decisionPersonas[0] || null;
 
     root.innerHTML = `
       <div class="compare-layout">
@@ -6744,6 +9275,11 @@ async function initCompare() {
               <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-explorer.php" class="btn-shell btn-shell-primary">Open Explorer</a>
             </div>
           </article>
+
+          ${decisionPersonaSelectorMarkup(decisionPersonas, decisionPersonaKey, {
+            title: "Select Investor Persona",
+            description: "Turn the compare board into user-specific intelligence instead of one-size-fits-all ranking.",
+          })}
         </aside>
 
         <section class="stack">
@@ -6753,19 +9289,29 @@ async function initCompare() {
           })}
 
           <article class="decision-card">
-            <div class="panel-kicker">Recommended lead for ${escapeHtml(activeLens.label)}</div>
+            <div class="panel-kicker">Recommended lead for ${escapeHtml(activeLens.label)} | ${escapeHtml(activePersona?.label || "Balanced Desk")}</div>
             <h2>${escapeHtml(winner.name)}</h2>
-            <p>${escapeHtml(propertyStory(winner))}</p>
+            <p>${escapeHtml(winner.activeDecision?.summary || propertyStory(winner))}</p>
             <div class="decision-stats">
+              ${clupStatusPill(winner.clupCompliance)}
+              ${decisionSignalPill(winner.activeDecision)}
+              ${decisionStatusPill(winner.activeDecision)}
+              ${decisionConfidencePill(winner.activeDecision)}
               ${winner.lensResult ? investmentLensScorePill(winner.lensResult) : scorePill(winner.opportunityScore)}
               <span class="tag">${escapeHtml(moneyShort(winner.price))}</span>
-              <span class="tag">${winner.voteTotal} votes</span>
             </div>
             <div class="mini-list" style="margin-top:18px;">
+              <div class="mini-row"><span>${icon("spark")}Action lane</span><strong>${escapeHtml(winner.activeDecision?.nextAction?.label || "Review property")}</strong></div>
               <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)} score</span><strong>${winner.lensScore}</strong></div>
               <div class="mini-row"><span>${icon("vote")}Top need</span><strong>${escapeHtml(voteLabel(winner.topNeed || "No demand yet"))}</strong></div>
               <div class="mini-row"><span>${icon("money")}Price per ha</span><strong>${escapeHtml(moneyShort(winner.pricePerHectare))}</strong></div>
+              <div class="mini-row"><span>${icon("admin")}CLUP suitability</span><strong>${winner.clupCompliance.suitabilityScore}/100</strong></div>
             </div>
+            ${winner.activeDecision?.reasons?.length ? `
+              <div class="insight-strip" style="margin-top:18px;">
+                ${winner.activeDecision.reasons.slice(0, 3).map((reason) => `<span class="insight-pill">${escapeHtml(reason)}</span>`).join("")}
+              </div>
+            ` : ""}
             ${winner ? googleEarthActionsMarkup({
               property: winner,
               properties: activeCompared,
@@ -6774,6 +9320,8 @@ async function initCompare() {
               note: "Inspect the lead site in Google Earth or export the full compare set as KML or KMZ.",
             }) : ""}
           </article>
+
+          ${clupDecisionCardMarkup(winner.clupCompliance)}
 
           ${winner ? investmentLensThesisMarkup(winner, winner.lensResult, {
             kicker: `Why it wins for ${activeLens.label}`,
@@ -6789,10 +9337,18 @@ async function initCompare() {
                   <div class="property-subline">${escapeHtml(corridorLabel(property.corridor))}</div>
                   <div class="lens-inline-note">${escapeHtml(property.lensResult?.thesisShort || `${property.name} under the ${activeLens.label} lens.`)}</div>
                   <p>${escapeHtml(truncate(propertyStory(property), 130))}</p>
+                  <div class="decision-stats" style="margin-bottom:14px;">
+                    ${clupStatusPill(property.clupCompliance)}
+                    ${decisionSignalPill(property.activeDecision)}
+                    ${decisionStatusPill(property.activeDecision)}
+                    ${decisionConfidencePill(property.activeDecision)}
+                  </div>
                   <div class="mini-list">
                     <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)}</span><strong>${property.lensScore}</strong></div>
                     <div class="mini-row"><span>${icon("money")}Price</span><strong>${escapeHtml(moneyShort(property.price))}</strong></div>
                     <div class="mini-row"><span>${icon("vote")}Demand</span><strong>${property.voteTotal}</strong></div>
+                    <div class="mini-row"><span>${icon("spark")}Next move</span><strong>${escapeHtml(property.activeDecision?.nextAction?.label || "Review")}</strong></div>
+                    <div class="mini-row"><span>${icon("admin")}CLUP</span><strong>${property.clupCompliance.status} · ${property.clupCompliance.suitabilityScore}</strong></div>
                   </div>
                   <div class="property-actions">
                     <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">View Details</a>
@@ -6818,6 +9374,13 @@ async function initCompare() {
       investmentLensKey = nextLensKey;
       saveActiveInvestmentLensKey(nextLensKey);
       render();
+    });
+    root.querySelectorAll("[data-decision-persona]").forEach((button) => {
+      button.addEventListener("click", () => {
+        decisionPersonaKey = String(button.dataset.decisionPersona || decisionPersonaKey);
+        saveDecisionPersonaKey(decisionPersonaKey);
+        render();
+      });
     });
     document.getElementById("clearCompare")?.addEventListener("click", () => {
       saveCompareIds([]);
@@ -7163,6 +9726,305 @@ function commandNextActionsMarkup(nextActions = {}) {
   `;
 }
 
+function prioritizedCommandActions(nextActions = {}, limit = 3) {
+  const roleGroups = [
+    ["Investor", nextActions.investor || []],
+    ["Seller", nextActions.seller || []],
+    ["Admin", nextActions.admin || []],
+  ];
+  const seeded = roleGroups.flatMap(([roleLabel, actions]) => (
+    actions.length ? [{ ...actions[0], roleLabel }] : []
+  ));
+  const overflow = roleGroups.flatMap(([roleLabel, actions]) => (
+    actions.slice(1).map((action) => ({ ...action, roleLabel }))
+  ));
+  return [...seeded, ...overflow].slice(0, limit);
+}
+
+function commandSummaryMetricMarkup(label, value, note = "") {
+  return `
+    <article class="command-summary-metric">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+      ${note ? `<small>${escapeHtml(note)}</small>` : ""}
+    </article>
+  `;
+}
+
+function commandCompactBlockerMarkup(blocker) {
+  return `
+    <button
+      type="button"
+      class="command-summary-item command-summary-blocker ${commandSeverityClass(blocker.severity)}"
+      data-command-target="${escapeHtml(blocker.actionTarget || "overview")}"
+    >
+      <span>${escapeHtml(String(blocker.severity || "medium").toUpperCase())}</span>
+      <strong>${escapeHtml(blocker.title || "Blocker")}</strong>
+    </button>
+  `;
+}
+
+function commandCompactActionMarkup(action) {
+  return `
+    <button
+      type="button"
+      class="command-summary-item command-summary-next ${commandUrgencyClass(action.urgency)}"
+      data-command-target="${escapeHtml(action.target || "overview")}"
+    >
+      <span>${escapeHtml(action.roleLabel || "Team")}</span>
+      <strong>${escapeHtml(action.label || "Review item")}</strong>
+    </button>
+  `;
+}
+
+function commandTabsMarkup(activeTab, tabs = []) {
+  return `
+    <div class="command-tab-list" role="tablist" aria-label="Property command center sections">
+      ${tabs.map((tab) => `
+        <button
+          type="button"
+          class="command-tab ${activeTab === tab.key ? "is-active" : ""}"
+          data-command-tab="${escapeHtml(tab.key)}"
+          role="tab"
+          aria-selected="${activeTab === tab.key ? "true" : "false"}"
+        >
+          <span>${escapeHtml(tab.label)}</span>
+          <small>${escapeHtml(tab.meta || "")}</small>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function commandAccordionMarkup({
+  key,
+  kicker,
+  title,
+  summary = "",
+  metaHtml = "",
+  bodyHtml = "",
+  open = false,
+}) {
+  return `
+    <section class="command-accordion ${open ? "is-open" : ""}" data-command-accordion-id="${escapeHtml(key)}">
+      <button
+        type="button"
+        class="command-accordion-toggle"
+        data-command-accordion-toggle="${escapeHtml(key)}"
+        aria-expanded="${open ? "true" : "false"}"
+      >
+        <div class="command-accordion-copy">
+          <div class="panel-kicker">${escapeHtml(kicker)}</div>
+          <h3>${escapeHtml(title)}</h3>
+          ${summary ? `<p>${escapeHtml(summary)}</p>` : ""}
+        </div>
+        <div class="command-accordion-side">
+          ${metaHtml ? `<div class="command-accordion-meta">${metaHtml}</div>` : ""}
+          <span class="command-accordion-chevron" aria-hidden="true"></span>
+        </div>
+      </button>
+      <div class="command-accordion-body" ${open ? "" : "hidden"}>
+        ${bodyHtml}
+      </div>
+    </section>
+  `;
+}
+
+function commandStickySummaryMarkup({
+  property,
+  enriched,
+  scoreModel,
+  activeLens,
+  blockers,
+  nextActions,
+  compareIds,
+  favoriteIds,
+  visit,
+}) {
+  const basePath = window.SFC_APP_CONFIG?.basePath || "";
+  const propertyId = enriched?.id || property?.id || 0;
+  const scoreValue = Math.round(Number(scoreModel?.finalScore || 0));
+  const deltaValue = Math.round(Number(scoreModel?.delta || 0));
+  const topBlockers = blockers.slice(0, 2);
+  const remainingBlockers = Math.max(0, blockers.length - topBlockers.length);
+  const priorityActions = prioritizedCommandActions(nextActions, 2);
+  const remainingActions = Math.max(0, nextActions.length - priorityActions.length);
+  const messagingAction = role === "guest"
+    ? `<a href="${basePath}/investor-login.php" class="btn-shell btn-shell-secondary">${icon("user")}Investor Login</a>`
+    : `<button type="button" class="btn-shell btn-shell-secondary" data-command-target="${visit ? "visits" : "messaging"}">${visit ? `${icon("clock")}Visit Workflow` : `${icon("inbox")}Open Messaging`}</button>`;
+
+  return `
+    <section class="command-summary-shell">
+      <div class="command-summary-bar" id="propertyCommandTop">
+        <div class="command-summary-topline">
+          <div class="panel-kicker">Executive summary</div>
+          ${serviceChip(`${activeLens?.label || "Default"} lens`, "live")}
+        </div>
+        <div class="command-summary-header">
+          <div class="command-summary-title-copy">
+            <h2>${escapeHtml(enriched?.name || property?.name || "Property")}</h2>
+            <p>${escapeHtml(propertyStory(enriched || property))}</p>
+          </div>
+          <div class="command-summary-side">
+            <div class="command-summary-score-shell">
+              <span>Command score</span>
+              <strong id="propertyStickyCommandScoreValue">${scoreValue}</strong>
+              <small
+                id="propertyStickyCommandDelta"
+                class="command-summary-score-delta ${deltaValue >= 0 ? "is-positive" : "is-negative"}"
+              >
+                ${signedMetric(deltaValue)} vs base IAI
+              </small>
+            </div>
+            <div class="command-summary-actions">
+              <div class="command-summary-primary-actions">
+                <button type="button" class="btn-shell btn-shell-primary" data-command-target="documents">${icon("file")}Review Documents</button>
+                <button type="button" class="btn-shell btn-shell-secondary" data-command-target="due-diligence">${icon("shield")}Open Checklist</button>
+                ${messagingAction}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="decision-stats command-summary-status-row">
+          <div id="propertyLensScoreSlot">${enriched?.lensResult ? investmentLensScorePill(enriched.lensResult) : scorePill(enriched?.opportunityScore || property?.marketScore || 0)}</div>
+          ${statusPill(enriched?.status)}
+          ${approvalStatePill(enriched?.approvalState)}
+          ${verificationPill(enriched?.listingVerificationStatus)}
+          ${groundTruthPill(enriched)}
+          <span class="tag">${escapeHtml(voteLabel(enriched?.topNeed || "No demand yet"))}</span>
+        </div>
+      </div>
+      <div class="command-summary-signals">
+        <section class="command-summary-signal-group">
+          <div class="command-summary-lane-head">
+            <div class="panel-kicker">Top blockers</div>
+            ${serviceChip(`${blockers.length} total`, topBlockers.length ? "fallback" : "live")}
+          </div>
+          <div class="command-summary-item-list">
+            ${topBlockers.length
+              ? `
+                ${topBlockers.map((blocker) => commandCompactBlockerMarkup(blocker)).join("")}
+                ${remainingBlockers ? `
+                  <button type="button" class="command-summary-item command-summary-more" data-command-target="analysis">
+                    <span>More</span>
+                    <strong>+${remainingBlockers} additional blocker${remainingBlockers === 1 ? "" : "s"}</strong>
+                  </button>
+                ` : ""}
+              `
+              : `<div class="command-summary-empty">No critical blockers. This property is clear to move.</div>`}
+          </div>
+        </section>
+        <section class="command-summary-signal-group">
+          <div class="command-summary-lane-head">
+            <div class="panel-kicker">Next actions</div>
+            ${serviceChip("Role aware", "live")}
+          </div>
+          <div class="command-summary-item-list">
+            ${priorityActions.length
+              ? `
+                ${priorityActions.map((action) => commandCompactActionMarkup(action)).join("")}
+                ${remainingActions ? `
+                  <button type="button" class="command-summary-item command-summary-more" data-command-target="operations">
+                    <span>Queue</span>
+                    <strong>+${remainingActions} more action${remainingActions === 1 ? "" : "s"}</strong>
+                  </button>
+                ` : ""}
+              `
+              : `<div class="command-summary-empty">No queued next actions right now.</div>`}
+          </div>
+        </section>
+      </div>
+    </section>
+  `;
+}
+
+function commandOverviewStageMarkup({
+  property,
+  enriched,
+  scoreModel,
+  decision,
+  activeLens,
+  lastConfirmed,
+  readiness,
+  trust,
+  duePct,
+  visit,
+  documentRequests,
+  conversationSummary,
+  nextActions,
+  compareIds,
+  favoriteIds,
+}) {
+  const propertyId = enriched?.id || property?.id || 0;
+  const leadAction = prioritizedCommandActions(nextActions, 1)[0] || null;
+  const requestCount = Array.isArray(documentRequests) ? documentRequests.length : 0;
+  const messageCount = Number(conversationSummary?.messageCount || 0);
+  const visitState = visit?.status ? titleCase(String(visit.status).replace(/_/g, " ")) : "Unscheduled";
+
+  return `
+    <section class="command-overview-stage" id="propertyCommandOverview">
+      <article class="command-overview-hero">
+        <div class="command-overview-media">
+          <img src="${escapeHtml(enriched?.imageUrl || property?.imageUrl || "")}" alt="${escapeHtml(enriched?.name || property?.name || "Property")}">
+        </div>
+        <div class="command-overview-copy">
+          <div class="command-overview-head">
+            <div>
+              <div class="panel-kicker">Property brief</div>
+              <h3>${escapeHtml(enriched?.name || property?.name || "Property")} through the ${escapeHtml(activeLens?.label || "Default")} lens</h3>
+            </div>
+            <div class="service-chip-row">
+              ${serviceChip(formatFreshness(lastConfirmed, "Awaiting confirmation"), "neutral")}
+              ${serviceChip(corridorLabel(enriched?.corridor), "fallback")}
+            </div>
+          </div>
+          <p>${escapeHtml(propertyStory(enriched || property))}</p>
+          <div class="command-overview-facts">
+            <div><span>${icon("map")}Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
+            <div><span>${icon("area")}Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
+            <div><span>${icon("money")}Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
+            <div><span>${icon("clock")}Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
+          </div>
+          <div class="trust-badge-row">${trustBadgeRow(enriched?.trustBadges || [], { compact: true })}</div>
+        </div>
+      </article>
+      <aside class="command-overview-side">
+        <div class="command-overview-tools">
+          <a href="${votingHref(propertyId)}" class="btn-shell btn-shell-ghost">${icon("vote")}Open Voting</a>
+          <button type="button" class="btn-shell btn-shell-ghost" id="propertyProspectusPrintButton">${icon("file")}Print Prospectus</button>
+          <button type="button" class="btn-shell btn-shell-ghost" data-compare-toggle="${propertyId}">${icon("compare")}${compareIds.includes(propertyId) ? "Compared" : "Compare"}</button>
+          <button type="button" class="btn-shell btn-shell-ghost" data-favorite-toggle="${propertyId}">${icon("save")}${favoriteActionLabel(favoriteIds.includes(propertyId))}</button>
+        </div>
+        <article class="command-ribbon-score command-overview-score" id="propertyCommandMetricSlot">
+          ${commandScoreSummaryMarkup(scoreModel, activeLens)}
+        </article>
+        ${decisionSignalPanelMarkup(decision, {
+          compact: true,
+          title: `${decision?.toneLabel || "Decision Signal"} for this property`,
+          kicker: "Decision Engine",
+        })}
+        <article class="panel-card command-focus-card">
+          <div class="panel-kicker">Workflow pulse</div>
+          <h3>What the team should watch next</h3>
+          <div class="command-focus-grid">
+            ${commandSummaryMetricMarkup("Readiness", `${Math.round(Number(readiness?.totalScore || 0))}%`, readiness?.label || "Awaiting read")}
+            ${commandSummaryMetricMarkup("Due diligence", `${Number(trust?.dueDiligencePct || duePct || 0)}%`, `${Number(trust?.documentCompletenessPct || 0)}% docs complete`)}
+            ${commandSummaryMetricMarkup("Visit state", visitState, visit?.confirmedWindow?.startAt ? formatVisitWindow(visit.confirmedWindow) : "No confirmed slot")}
+            ${commandSummaryMetricMarkup("Active threads", `${messageCount}`, `${requestCount} document request${requestCount === 1 ? "" : "s"}`)}
+          </div>
+          ${leadAction ? `
+            <button type="button" class="command-focus-next ${commandUrgencyClass(leadAction.urgency)}" data-command-target="${escapeHtml(leadAction.target || "overview")}">
+              <span>${escapeHtml(leadAction.roleLabel || "Team")}</span>
+              <strong>${escapeHtml(leadAction.label || "Review item")}</strong>
+              <small>${escapeHtml(leadAction.reason || "No context supplied.")}</small>
+            </button>
+          ` : `<div class="command-summary-empty">No immediate workflow action is queued right now.</div>`}
+        </article>
+      </aside>
+    </section>
+  `;
+}
+
 async function initPropertyDetails() {
   const root = document.getElementById("propertyDetailsRoot");
   if (!root) return;
@@ -7196,13 +10058,28 @@ async function initPropertyDetails() {
   const weather = weatherResponse?.weather || null;
   const summary = summaryResponse?.summary || null;
   const dueItems = bootstrap.meta?.dueDiligenceItems || [];
+  const decisionPersonas = normalizeDecisionPersonas(bootstrap.meta?.decisionPersonas || []);
   let dueState = {};
   let dueDrawerOpen = false;
   let activeReadinessPillar = "spatial";
   let adminReadinessDraft = null;
   let investmentLensKey = getActiveInvestmentLensKey();
+  let decisionPersonaKey = getStoredDecisionPersonaKey(decisionPersonas);
   let visitCounterMode = false;
   let selectedCommandAuditId = null;
+  let activeCommandTab = "command";
+  let commandAccordionState = {
+    "command-workflow": true,
+    "command-trail": false,
+    "analysis-score": true,
+    "analysis-readiness": false,
+    "analysis-context": false,
+    "trust-compliance": true,
+    "trust-documents": false,
+    "operations-logistics": true,
+    "operations-messaging": false,
+    "operations-location": false,
+  };
 
   const applyCommandCenterPayload = (payload) => {
     if (!payload) return;
@@ -7345,6 +10222,16 @@ async function initPropertyDetails() {
     if (metricSlot) {
       metricSlot.innerHTML = commandScoreSummaryMarkup(scoreModel, activeLens);
     }
+    const stickyScoreValue = document.getElementById("propertyStickyCommandScoreValue");
+    if (stickyScoreValue) {
+      stickyScoreValue.textContent = `${Math.round(Number(scoreModel?.finalScore || 0))}`;
+    }
+    const stickyDelta = document.getElementById("propertyStickyCommandDelta");
+    if (stickyDelta) {
+      const delta = Math.round(Number(scoreModel?.delta || 0));
+      stickyDelta.textContent = `${signedMetric(delta)} vs base IAI`;
+      stickyDelta.className = `command-summary-score-delta ${delta >= 0 ? "is-positive" : "is-negative"}`;
+    }
     const scorePanelSlot = document.getElementById("propertyCommandScorePanelSlot");
     if (scorePanelSlot) {
       scorePanelSlot.innerHTML = commandScorePanelInnerMarkup(scoreModel, activeLens);
@@ -7359,6 +10246,8 @@ async function initPropertyDetails() {
       });
       animateLensMetricBars(thesisSlot);
     }
+    const clupSlot = document.getElementById("propertyClupSlot");
+    if (clupSlot) clupSlot.innerHTML = clupDecisionCardMarkup(previewEnriched.clupCompliance);
   };
 
   const collectReadinessDraft = (form) => {
@@ -7378,12 +10267,31 @@ async function initPropertyDetails() {
       return numeric;
     };
 
+    const splitUses = (name) => String(formData.get(name) || "").split(",").map((value) => value.trim()).filter(Boolean);
+    const clupProfile = {
+      existingLandUse: String(formData.get("existingLandUse") || "").trim() || null,
+      zoningClassification: String(formData.get("zoningClassification") || "").trim() || null,
+      allowedUses: splitUses("clupAllowedUses"),
+      conditionalUses: splitUses("clupConditionalUses"),
+      restrictedUses: splitUses("clupRestrictedUses"),
+      sourceReference: String(formData.get("clupSourceReference") || "").trim() || null,
+      isVerified: Boolean(form.elements.clupVerified?.checked),
+      verifiedAt: form.elements.clupVerified?.checked ? (property?.clupProfile?.verifiedAt || new Date().toISOString()) : null,
+    };
     return {
       distToRoadKm: parseNullableNumber(formData.get("distToRoadKm"), 2),
       utilityStatus: String(formData.get("utilityStatus") || "").trim() || null,
       zoningScore: parseNullableInteger(formData.get("zoningScore")),
       assessedValueSqm: parseNullableInteger(formData.get("assessedValueSqm")),
       readinessNotes: String(formData.get("readinessNotes") || ""),
+      existingLandUse: clupProfile.existingLandUse,
+      zoningClassification: clupProfile.zoningClassification,
+      clupAllowedUses: clupProfile.allowedUses,
+      clupConditionalUses: clupProfile.conditionalUses,
+      clupRestrictedUses: clupProfile.restrictedUses,
+      clupSourceReference: clupProfile.sourceReference,
+      clupVerified: clupProfile.isVerified ? 1 : 0,
+      clupProfile,
     };
   };
 
@@ -7426,6 +10334,9 @@ async function initPropertyDetails() {
       documentRequests,
       activeLens,
     });
+    const decision = resolveDecisionVariant(formProperty.decision, decisionPersonaKey)
+      || resolveDecisionVariant(property?.decision, decisionPersonaKey)
+      || null;
     const prospectusProperties = enrichProperties(
       allProperties,
       allProperties,
@@ -7438,7 +10349,396 @@ async function initPropertyDetails() {
       activeReadinessPillar = pillarKeys[0];
     }
     const activeAudit = auditLogs.find((entry) => Number(entry.id) === Number(selectedCommandAuditId)) || null;
-    root.innerHTML = `
+    const priorityActions = prioritizedCommandActions(commandNextActions, 3);
+    const commandTabs = [
+      {
+        key: "command",
+        label: "Command",
+        meta: `${commandBlockers.length} blocker${commandBlockers.length === 1 ? "" : "s"}`,
+      },
+      {
+        key: "analysis",
+        label: "Analysis",
+        meta: `${Math.round(Number(scoreModel?.finalScore || 0))} score`,
+      },
+      {
+        key: "trust",
+        label: "Trust & Docs",
+        meta: `${Number(commandTrust?.auditLogCount || 0)} audit event${Number(commandTrust?.auditLogCount || 0) === 1 ? "" : "s"}`,
+      },
+      {
+        key: "operations",
+        label: "Operations",
+        meta: visitLog?.status ? titleCase(String(visitLog.status).replace(/_/g, " ")) : `${conversationSummary.messageCount || 0} message${Number(conversationSummary.messageCount || 0) === 1 ? "" : "s"}`,
+      },
+    ];
+    const analysisScorePanel = `
+      <div class="command-tab-grid command-tab-grid-double" id="propertyCommandScoreSection">
+        <div class="stack">
+          ${investmentLensSelectorMarkup(investmentLensKey, {
+            title: "Select Investment Lens",
+            description: "Reweight this property for the purpose you want to test. The command score and thesis update live without changing the underlying record.",
+          })}
+          ${decisionPersonaSelectorMarkup(decisionPersonas, decisionPersonaKey, {
+            title: "Select Investor Persona",
+            description: "Move from generic scoring to buyer-specific intelligence without leaving the command desk.",
+          })}
+        </div>
+        <div class="stack">
+          ${decisionSignalPanelMarkup(decision, {
+            title: `${decision?.toneLabel || "Decision Signal"} for this property`,
+            kicker: "Decision Engine",
+          })}
+          <article class="panel-card command-score-panel" id="propertyCommandScorePanelSlot">
+            ${commandScorePanelInnerMarkup(scoreModel, activeLens)}
+          </article>
+        </div>
+      </div>
+    `;
+    const analysisReadinessPanel = `
+      <div class="command-tab-grid command-tab-grid-double">
+        <div class="stack">
+          <div id="propertyClupSlot">${clupDecisionCardMarkup(enriched.clupCompliance)}</div>
+          <div id="investmentLensThesisSlot">${investmentLensThesisMarkup(enriched, enriched.lensResult, {
+            kicker: `Why it fits ${activeLens.label}`,
+            heading: `${enriched.name} through the ${activeLens.label} lens`,
+            metricLimit: 5,
+          })}</div>
+          ${canEditReadiness ? inlineReadinessEditorMarkup(formProperty) : ""}
+        </div>
+        <div id="readinessMatrixSlot">${readinessMatrixMarkup(readiness, activeReadinessPillar, canEditReadiness)}</div>
+      </div>
+    `;
+    const marketContextPanel = `
+      <div class="command-tab-grid command-tab-grid-double">
+        <article class="panel-card">
+          <div class="panel-kicker">Local demand</div>
+          <h3>What this location appears to need</h3>
+          <div class="bar-list">${voteBars(votes)}</div>
+        </article>
+        <article class="panel-card">
+          <div class="panel-kicker">AI investment brief</div>
+          <div class="service-chip-row">
+            ${serviceChip(summary?.live ? "Live summary" : "Structured summary", summary?.live ? "live" : "fallback")}
+            ${serviceChip(summary?.provider || "Property narrative", "neutral")}
+          </div>
+          <h3>${escapeHtml(summary?.headline || "Property briefing")}</h3>
+          <p>${escapeHtml(summary?.summary || propertyStory(enriched))}</p>
+          <div class="insight-strip">
+            ${(summary?.takeaways || []).slice(0, 3).map((item) => `<span class="insight-pill">${escapeHtml(item)}</span>`).join("")}
+          </div>
+        </article>
+      </div>
+    `;
+    const trustDocumentsPanel = `
+      <article class="panel-card" id="propertyDocumentWorkflowSection">
+        <div class="panel-kicker">Document workflow</div>
+        <h3>Verification requests and document package</h3>
+        <div class="document-grid">
+          ${documentChecklistMarkup(enriched)}
+        </div>
+        ${canRequestDocuments ? `
+          <form class="crud-form-grid" id="propertyDocumentRequestForm">
+            <label class="form-shell">
+              <span>Document to request</span>
+              <select class="input-shell" id="documentRequestName">
+                ${checklistItems.map((item) => `<option value="${escapeHtml(item.label || titleCase(item.key))}">${escapeHtml(item.label || titleCase(item.key))}</option>`).join("")}
+                <option value="Other supporting document">Other supporting document</option>
+              </select>
+            </label>
+            <label class="form-shell form-span-2">
+              <span>Request note</span>
+              <textarea class="input-shell input-textarea" id="documentRequestNote" placeholder="Ask for the exact document, version date, or supporting attachment you need."></textarea>
+            </label>
+            <div class="crud-actions form-span-2">
+              <button type="submit" class="btn-shell btn-shell-primary">Request Document</button>
+            </div>
+          </form>
+        ` : role === "guest" ? `
+          <div class="auth-form-note">Investor accounts can request title copies, surveys, and supporting verification files from this property page.</div>
+        ` : ""}
+        <div class="request-stack">
+          ${requestTimelineMarkup(documentRequests, {
+            manage: canManageRequests,
+            emptyCopy: "Document requests will appear here once an investor or admin asks for supporting files.",
+          })}
+        </div>
+      </article>
+    `;
+    const messagingPanel = `
+      <div class="command-tab-grid command-tab-grid-double">
+        <article class="contact-card" id="propertyMessagingSection">
+          <div class="panel-kicker">${role === "investor" ? "Direct seller chat" : "Seller contact"}</div>
+          <h3>${escapeHtml(property.ownerContact?.name || "Listing desk")}</h3>
+          <div class="mini-list">
+            <div class="mini-row"><span>Email</span><strong>${escapeHtml(property.ownerContact?.email || "portfolio@sfcelerate.local")}</strong></div>
+            <div class="mini-row"><span>Phone</span><strong>${escapeHtml(property.ownerContact?.phone || "+63 917 555 0199")}</strong></div>
+            <div class="mini-row"><span>Response SLA</span><strong>${escapeHtml(property.ownerContact?.responseSla || "24 HOURS")}</strong></div>
+          </div>
+          ${role === "investor" ? `
+            <div class="chat-thread-surface">
+              ${conversationBubbles(conversationMessages, "investor", "No messages yet. Introduce yourself and ask the seller about documents, schedule, or pricing.", visitLog)}
+            </div>
+            <form class="thread-compose" id="propertyChatForm">
+              <textarea class="input-shell input-textarea" id="propertyChatInput" placeholder="Message the seller directly about this property."></textarea>
+              <button type="submit" class="btn-shell btn-shell-primary">${conversationThread ? "Send Message" : "Start Conversation"}</button>
+            </form>
+          ` : role === "guest" ? `
+            <div class="auth-form-note">Investor accounts can now message the seller directly from this property page.</div>
+            <a href="${window.SFC_APP_CONFIG.basePath || ""}/investor-login.php" class="btn-shell btn-shell-primary">Investor Login / Sign Up</a>
+          ` : `
+            <div class="auth-form-note">This property currently has ${conversationSummary.threadCount || 0} direct thread(s) and ${conversationSummary.messageCount || 0} stored message(s).</div>
+          `}
+        </article>
+        <article class="panel-card">
+          <div class="panel-kicker">Inquiry preview</div>
+          <h3>${conversationSummary.messageCount ? `${conversationSummary.messageCount} stored messages` : "No inquiries yet"}</h3>
+          <div class="mini-list">
+            ${conversationThreads.length ? conversationThreads.slice(0, 3).map((thread) => `
+              <div class="mini-row"><span>${escapeHtml(thread.investorName || "Investor")}</span><strong>${escapeHtml(truncate(thread.lastMessageText || thread.subject || "Recent conversation", 42))}</strong></div>
+            `).join("") : conversationMessages.length ? conversationMessages.slice(0, 3).map((message) => `
+              <div class="mini-row"><span>${escapeHtml(message.senderName)}</span><strong>${escapeHtml(truncate(message.text, 42))}</strong></div>
+            `).join("") : `<div class="loading-panel">Inquiry activity appears here once residents or investors message this listing.</div>`}
+          </div>
+        </article>
+      </div>
+    `;
+    const locationPanel = `
+      <div class="command-tab-grid command-tab-grid-double">
+        <article class="panel-card map-panel-card">
+          <div class="map-panel-head">
+            <div>
+              <div class="panel-kicker">Nearby corridor view</div>
+              <h3>Live location map</h3>
+            </div>
+            <div class="service-chip-row">
+              ${serviceChip("Leaflet map", "live")}
+              ${serviceChip("OSM", "neutral")}
+            </div>
+          </div>
+          <div class="leaflet-frame compact-leaflet-frame">
+            <div id="propertyDetailMap" class="leaflet-shell detail-map"></div>
+          </div>
+          ${googleEarthActionsMarkup({
+            property: enriched || property,
+            scope: "property-details",
+            showView: true,
+            note: "Use Google Earth as a complementary site inspection layer for parcel context, report export, and visual validation.",
+          })}
+        </article>
+        <article class="panel-card">
+          <div class="panel-kicker">Climate context</div>
+          <div class="service-chip-row">
+            ${serviceChip(weather?.live ? "Live weather" : "Climate note", weather?.live ? "live" : "fallback")}
+            ${serviceChip(weather?.provider || "Weather", "neutral")}
+          </div>
+          <h3>${escapeHtml(weather?.summary || "Location context")}</h3>
+          <div class="mini-list">
+            <div class="mini-row"><span>${icon("map")}Location</span><strong>${escapeHtml(weather?.location || property.barangay || "San Fernando")}</strong></div>
+            <div class="mini-row"><span>${icon("pulse")}Temperature</span><strong>${weather?.temperatureC != null ? `${Math.round(Number(weather.temperatureC))}Â°C` : "Not configured"}</strong></div>
+            <div class="mini-row"><span>${icon("vote")}Humidity</span><strong>${weather?.humidity != null ? `${weather.humidity}%` : "Not configured"}</strong></div>
+          </div>
+        </article>
+      </div>
+    `;
+    const commandTabContent = {
+      command: `
+        <div class="command-tab-panel">
+          ${commandAccordionMarkup({
+            key: "command-workflow",
+            kicker: "Workflow",
+            title: "Resolve blockers and move the operating loop forward",
+            summary: priorityActions.length
+              ? `${priorityActions[0].roleLabel}: ${priorityActions[0].label}`
+              : "No queued next actions right now.",
+            metaHtml: `${serviceChip(`${commandBlockers.length} blocker${commandBlockers.length === 1 ? "" : "s"}`, commandBlockers.length ? "fallback" : "live")}${serviceChip(`${priorityActions.length} next`, "live")}`,
+            bodyHtml: `
+              <div class="command-tab-grid command-tab-grid-double" id="propertyCommandWorkflowSection">
+                ${commandBlockersMarkup(commandBlockers)}
+                ${commandNextActionsMarkup(commandNextActions)}
+              </div>
+            `,
+            open: Boolean(commandAccordionState["command-workflow"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "command-trail",
+            kicker: "Activity trail",
+            title: "Recent movement across trust, logistics, and messaging",
+            summary: commandTimeline.length
+              ? `${commandTimeline[0].title || "Recent update"}`
+              : "No recent events on this property yet.",
+            metaHtml: `${serviceChip("Live property trail", "neutral")}`,
+            bodyHtml: `<section id="propertyCommandTrailSection">${commandTimelineMarkup(commandTimeline)}</section>`,
+            open: Boolean(commandAccordionState["command-trail"]),
+          })}
+        </div>
+      `,
+      analysis: `
+        <div class="command-tab-panel">
+          ${commandAccordionMarkup({
+            key: "analysis-score",
+            kicker: "Lens and scoring",
+            title: "Reframe the property and inspect the current command score",
+            summary: `${activeLens.label} is active. Score ${Math.round(Number(scoreModel?.finalScore || 0))}.`,
+            metaHtml: `${serviceChip(`${activeLens.label} active`, "live")}${serviceChip(`${signedMetric(Math.round(Number(scoreModel?.delta || 0)))} delta`, Number(scoreModel?.delta || 0) >= 0 ? "live" : "fallback")}`,
+            bodyHtml: analysisScorePanel,
+            open: Boolean(commandAccordionState["analysis-score"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "analysis-readiness",
+            kicker: "Readiness",
+            title: "See why the thesis holds up and where certainty breaks",
+            summary: `${Math.round(Number(readiness?.totalScore || 0))}% readiness. ${readiness?.label || "Awaiting structured read."}`,
+            metaHtml: `${serviceChip(`${Number(readiness?.missingDataCount || 0)} missing`, Number(readiness?.missingDataCount || 0) ? "fallback" : "live")}${serviceChip("IRIE", "neutral")}`,
+            bodyHtml: analysisReadinessPanel,
+            open: Boolean(commandAccordionState["analysis-readiness"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "analysis-context",
+            kicker: "Market context",
+            title: "Demand signal and AI brief",
+            summary: summary?.headline || "Demand, narrative, and quick context for the property.",
+            metaHtml: `${serviceChip(voteLabel(enriched?.topNeed || "No demand yet"), "fallback")}${serviceChip(summary?.live ? "Live summary" : "Structured summary", summary?.live ? "live" : "neutral")}`,
+            bodyHtml: marketContextPanel,
+            open: Boolean(commandAccordionState["analysis-context"]),
+          })}
+        </div>
+      `,
+      trust: `
+        <div class="command-tab-panel">
+          ${commandAccordionMarkup({
+            key: "trust-compliance",
+            kicker: "Trust",
+            title: "Institutional confidence, verification, and ledger visibility",
+            summary: `${Number(commandTrust?.auditLogCount || 0)} audit event${Number(commandTrust?.auditLogCount || 0) === 1 ? "" : "s"} recorded.`,
+            metaHtml: `${serviceChip(`${Number(commandTrust?.auditLogCount || 0)} audit events`, Number(commandTrust?.auditLogCount || 0) ? "live" : "neutral")}`,
+            bodyHtml: commandTrustMarkup({ trust: commandTrust, property: enriched, enriched }),
+            open: Boolean(commandAccordionState["trust-compliance"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "trust-documents",
+            kicker: "Documents",
+            title: "Document package, requests, and response workflow",
+            summary: `${checklistItems.length} tracked document field${checklistItems.length === 1 ? "" : "s"} with ${documentRequests.length} active request${documentRequests.length === 1 ? "" : "s"}.`,
+            metaHtml: `${serviceChip(`${documentRequests.length} request${documentRequests.length === 1 ? "" : "s"}`, documentRequests.length ? "fallback" : "neutral")}`,
+            bodyHtml: trustDocumentsPanel,
+            open: Boolean(commandAccordionState["trust-documents"]),
+          })}
+        </div>
+      `,
+      operations: `
+        <div class="command-tab-panel">
+          ${commandAccordionMarkup({
+            key: "operations-logistics",
+            kicker: "Logistics",
+            title: "Ground truth orchestration and visit workflow",
+            summary: visitLog?.status
+              ? `Current visit state: ${titleCase(String(visitLog.status).replace(/_/g, " "))}`
+              : "No visit workflow is active yet.",
+            metaHtml: `${serviceChip(visitLog?.status ? titleCase(String(visitLog.status).replace(/_/g, " ")) : "Awaiting visit", visitLog?.status ? "live" : "neutral")}`,
+            bodyHtml: `<section id="propertyLogisticsSection">${logisticsHubMarkup({
+              property: enriched,
+              visit: visitLog,
+              currentRole: role,
+              counterMode: visitCounterMode,
+              compact: true,
+            })}</section>`,
+            open: Boolean(commandAccordionState["operations-logistics"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "operations-messaging",
+            kicker: "Messaging",
+            title: "Seller conversation and inquiry context",
+            summary: conversationSummary.messageCount
+              ? `${conversationSummary.messageCount} stored message${Number(conversationSummary.messageCount || 0) === 1 ? "" : "s"}.`
+              : "No inquiries are stored for this property yet.",
+            metaHtml: `${serviceChip(`${conversationSummary.threadCount || 0} thread${Number(conversationSummary.threadCount || 0) === 1 ? "" : "s"}`, conversationSummary.threadCount ? "live" : "neutral")}`,
+            bodyHtml: messagingPanel,
+            open: Boolean(commandAccordionState["operations-messaging"]),
+          })}
+          ${commandAccordionMarkup({
+            key: "operations-location",
+            kicker: "Location context",
+            title: "Map, weather, and parcel context",
+            summary: weather?.summary || "Inspect the property in the corridor and review live location context.",
+            metaHtml: `${serviceChip("Leaflet map", "live")}${serviceChip(weather?.provider || "Weather", "neutral")}`,
+            bodyHtml: commandAccordionState["operations-location"] ? locationPanel : "",
+            open: Boolean(commandAccordionState["operations-location"]),
+          })}
+        </div>
+      `,
+    };
+    if (!window.__SFC_LEGACY_PROPERTY_DETAILS__) {
+      root.innerHTML = `
+        <div class="property-command-shell">
+          ${commandStickySummaryMarkup({
+            property: formProperty,
+            enriched,
+            scoreModel,
+            activeLens,
+            blockers: commandBlockers,
+            nextActions: commandNextActions,
+            compareIds,
+            favoriteIds,
+            visit: visitLog,
+          })}
+
+          ${commandOverviewStageMarkup({
+            property: formProperty,
+            enriched,
+            scoreModel,
+            decision,
+            activeLens,
+            lastConfirmed,
+            readiness,
+            trust: commandTrust,
+            duePct,
+            visit: visitLog,
+            documentRequests,
+            conversationSummary,
+            nextActions: commandNextActions,
+            compareIds,
+            favoriteIds,
+          })}
+
+          <section class="command-workspace">
+            <div class="command-workspace-head">
+              <div>
+                <div class="panel-kicker">Deep dive workspace</div>
+                <h3>Move from executive scan to analyst detail without losing the thread</h3>
+                <p>Primary workflow stays visible above. Supporting detail is organized below by command, analysis, trust, and operations.</p>
+              </div>
+              ${commandTabsMarkup(activeCommandTab, commandTabs)}
+            </div>
+            <div class="command-tab-stage">
+              ${commandTabContent[activeCommandTab] || commandTabContent.command}
+            </div>
+          </section>
+
+          ${dueDiligenceDrawerMarkup(dueItems, dueState, {
+            open: dueDrawerOpen,
+            editable: canEditDueDiligence,
+          })}
+          ${auditDrawerMarkup(activeAudit)}
+          ${prospectusMarkup({
+            property: enriched,
+            readiness,
+            lensResult: enriched.lensResult,
+            lensKey: investmentLensKey,
+            votes,
+            summary,
+            weather,
+            visit: visitLog,
+            conversationSummary,
+            conversationThread,
+            allProperties: prospectusProperties,
+            duePct,
+            generatedAt: bootstrap.generatedAt,
+          })}
+        </div>
+      `;
+    }
+    if (window.__SFC_LEGACY_PROPERTY_DETAILS__) root.innerHTML = `
       <div class="property-command-shell">
         ${investmentLensSelectorMarkup(investmentLensKey, {
           title: "Select Investment Lens",
@@ -7639,6 +10939,22 @@ async function initPropertyDetails() {
     document.getElementById("propertyProspectusPrintButton")?.addEventListener("click", () => {
       window.print();
     });
+    root.querySelectorAll("[data-command-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextTab = String(button.dataset.commandTab || "command");
+        if (!nextTab || nextTab === activeCommandTab) return;
+        activeCommandTab = nextTab;
+        render();
+      });
+    });
+    root.querySelectorAll("[data-command-accordion-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const key = String(button.dataset.commandAccordionToggle || "");
+        if (!key) return;
+        commandAccordionState[key] = !Boolean(commandAccordionState[key]);
+        render();
+      });
+    });
     syncReadinessPreview();
 
     const readinessForm = document.getElementById("readinessInlineForm");
@@ -7682,10 +10998,19 @@ async function initPropertyDetails() {
       activeReadinessPillar = nextLensResult?.emphasizedPillars?.[0]?.key || activeReadinessPillar;
       render();
     });
+    root.querySelectorAll("[data-decision-persona]").forEach((button) => {
+      button.addEventListener("click", () => {
+        decisionPersonaKey = String(button.dataset.decisionPersona || decisionPersonaKey);
+        saveDecisionPersonaKey(decisionPersonaKey);
+        render();
+      });
+    });
 
     const handleCommandTarget = (target, auditId = null) => {
       if (auditId) {
         selectedCommandAuditId = Number(auditId);
+        activeCommandTab = "command";
+        commandAccordionState["command-trail"] = true;
         render();
         return;
       }
@@ -7697,15 +11022,48 @@ async function initPropertyDetails() {
       }
 
       const targetMap = {
-        messaging: "propertyMessagingSection",
-        visits: "propertyLogisticsSection",
-        documents: "propertyDocumentWorkflowSection",
-        trust: "propertyTrustSection",
-        audit: "propertyDetailsRoot",
-        overview: "propertyDetailsRoot",
+        messaging: {
+          id: "propertyMessagingSection",
+          tab: "operations",
+          accordion: "operations-messaging",
+        },
+        visits: {
+          id: "propertyLogisticsSection",
+          tab: "operations",
+          accordion: "operations-logistics",
+        },
+        documents: {
+          id: "propertyDocumentWorkflowSection",
+          tab: "trust",
+          accordion: "trust-documents",
+        },
+        trust: {
+          id: "propertyTrustSection",
+          tab: "trust",
+          accordion: "trust-compliance",
+        },
+        audit: {
+          id: "propertyCommandTrailSection",
+          tab: "command",
+          accordion: "command-trail",
+        },
+        overview: {
+          id: "propertyCommandTop",
+          tab: "command",
+        },
       };
-      const element = document.getElementById(targetMap[target] || targetMap.overview);
-      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const mapping = targetMap[target] || targetMap.overview;
+      if (mapping.tab) {
+        activeCommandTab = mapping.tab;
+      }
+      if (mapping.accordion) {
+        commandAccordionState[mapping.accordion] = true;
+      }
+      render();
+      window.requestAnimationFrame(() => {
+        const element = document.getElementById(mapping.id || "propertyCommandTop");
+        element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     };
 
     root.querySelectorAll("[data-command-target]").forEach((button) => {
@@ -7805,15 +11163,19 @@ async function initPropertyDetails() {
       });
     });
 
-    mountPropertyMap({
-      containerId: "propertyDetailMap",
-      properties: mapPeers,
-      activeId: enriched.id,
-      onSelect: (nextId) => {
-        if (Number(nextId) === Number(enriched.id)) return;
-        window.location.href = propertyHref(nextId);
-      },
-    });
+    if (document.getElementById("propertyDetailMap")) {
+      mountPropertyMap({
+        containerId: "propertyDetailMap",
+        properties: mapPeers,
+        activeId: enriched.id,
+        onSelect: (nextId) => {
+          if (Number(nextId) === Number(enriched.id)) return;
+          window.location.href = propertyHref(nextId);
+        },
+      });
+    } else {
+      destroyMap("propertyDetailMap");
+    }
     animateLensMetricBars(root);
   };
 
@@ -7836,15 +11198,85 @@ async function initAdminProperties() {
   const modal = document.getElementById("propertyCrudModal");
   const deleteModal = document.getElementById("propertyDeleteModal");
   const form = document.getElementById("propertyCrudForm");
+  const landAreaInput = document.getElementById("crudLandArea");
+  const landAreaUnitInput = document.getElementById("crudLandAreaUnit");
+  const landAreaHint = document.getElementById("crudLandAreaHint");
   const deleteLabel = document.getElementById("deletePropertyLabel");
   const confirmDeleteButton = document.getElementById("confirmDeleteProperty");
   const addButton = document.getElementById("adminAddProperty");
   let properties = [];
   let search = "";
   let deleteId = null;
+  let currentAreaUnit = "ha";
+
+  const SQM_PER_HECTARE = 10000;
+  const normalizeAreaUnit = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    return normalized === "sqm" ? "sqm" : "ha";
+  };
+  const parseAreaValue = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const numeric = Number(String(value).replace(/,/g, "").trim());
+    return Number.isFinite(numeric) ? numeric : null;
+  };
+  const formatAreaValue = (value, unit = "ha") => {
+    const numeric = parseAreaValue(value);
+    if (numeric === null) return "";
+    const normalizedUnit = normalizeAreaUnit(unit);
+    const decimals = normalizedUnit === "sqm" ? 0 : (numeric < 1 ? 4 : 2);
+    return numeric.toFixed(decimals).replace(/\.?0+$/, "");
+  };
+  const areaValueInHectares = (value, unit = "ha") => {
+    const numeric = parseAreaValue(value);
+    if (numeric === null) return null;
+    return normalizeAreaUnit(unit) === "sqm" ? numeric / SQM_PER_HECTARE : numeric;
+  };
+  const syncAreaHint = () => {
+    if (!landAreaHint) return;
+    const rawValue = parseAreaValue(landAreaInput?.value);
+    const unit = normalizeAreaUnit(landAreaUnitInput?.value);
+    if (rawValue === null || rawValue <= 0) {
+      landAreaHint.textContent = unit === "sqm"
+        ? "Use square meters from your source document. The system converts it to hectares automatically on save."
+        : "Use hectares directly. The saved value stays aligned with the existing ranking and pricing logic.";
+      return;
+    }
+
+    if (unit === "sqm") {
+      const hectares = rawValue / SQM_PER_HECTARE;
+      landAreaHint.textContent = `${Math.round(rawValue).toLocaleString()} sqm will be saved as ${formatAreaValue(hectares, "ha")} ha.`;
+      return;
+    }
+
+    const sqm = Math.round(rawValue * SQM_PER_HECTARE);
+    landAreaHint.textContent = `${formatAreaValue(rawValue, "ha")} ha is ${sqm.toLocaleString()} sqm.`;
+  };
+  const setAreaUnit = (nextUnit, { convertValue = true } = {}) => {
+    const normalizedUnit = normalizeAreaUnit(nextUnit);
+    const existingValue = parseAreaValue(landAreaInput?.value);
+    if (convertValue && existingValue !== null && existingValue > 0 && landAreaInput) {
+      const hectares = currentAreaUnit === "sqm" ? existingValue / SQM_PER_HECTARE : existingValue;
+      const nextValue = normalizedUnit === "sqm" ? hectares * SQM_PER_HECTARE : hectares;
+      landAreaInput.value = formatAreaValue(nextValue, normalizedUnit);
+    }
+
+    currentAreaUnit = normalizedUnit;
+    if (landAreaUnitInput) {
+      landAreaUnitInput.value = normalizedUnit;
+    }
+    if (landAreaInput) {
+      landAreaInput.step = normalizedUnit === "sqm" ? "1" : "0.0001";
+      landAreaInput.min = normalizedUnit === "sqm" ? "1" : "0.0001";
+      landAreaInput.placeholder = normalizedUnit === "sqm" ? "e.g. 3500" : "e.g. 0.35";
+    }
+    syncAreaHint();
+  };
 
   const openModal = (target) => {
-    if (target) target.hidden = false;
+    if (target) {
+      target.hidden = false;
+      form?.scrollTo({ top: 0, behavior: "auto" });
+    }
   };
 
   const closeModal = (target) => {
@@ -7864,7 +11296,12 @@ async function initAdminProperties() {
     document.getElementById("crudApprovalState").value = property?.approvalState || "approved";
     document.getElementById("crudSellerIdentityStatus").value = property?.sellerIdentityStatus || "unverified";
     document.getElementById("crudPrice").value = property?.price || "";
-    document.getElementById("crudLandArea").value = property?.area || "";
+    const areaHectares = parseAreaValue(property?.area);
+    const preferredAreaUnit = areaHectares !== null && areaHectares > 0 && areaHectares < 1 ? "sqm" : "ha";
+    document.getElementById("crudLandArea").value = areaHectares === null
+      ? ""
+      : formatAreaValue(preferredAreaUnit === "sqm" ? areaHectares * SQM_PER_HECTARE : areaHectares, preferredAreaUnit);
+    setAreaUnit(preferredAreaUnit, { convertValue: false });
     document.getElementById("crudScore").value = property?.marketScore || property?.score || 82;
     document.getElementById("crudAccess").value = property?.roadAccess || 85;
     document.getElementById("crudDocumentsReviewed").value = property?.documentsReviewedAt ? "1" : "0";
@@ -7881,6 +11318,7 @@ async function initAdminProperties() {
     document.getElementById("crudDocSitePhotos").value = documentStatuses.site_photos || "missing";
     document.getElementById("crudDocHazardReport").value = documentStatuses.hazard_report || "missing";
     document.getElementById("crudImage").value = "";
+    form?.scrollTo({ top: 0, behavior: "auto" });
   };
 
   const render = () => {
@@ -7888,6 +11326,7 @@ async function initAdminProperties() {
       const haystack = `${property.name} ${property.city} ${property.barangay || ""}`.toLowerCase();
       return !search || haystack.includes(search.toLowerCase());
     });
+    const earthPreviewProperty = visible[0] || null;
     const approvedCount = properties.filter((property) => String(property.approvalState || "").toLowerCase() === "approved").length;
     const pendingCount = properties.filter((property) => String(property.approvalState || "").toLowerCase() === "pending_review").length;
     const nonVisibleCount = properties.filter((property) => ["draft", "rejected", "archived"].includes(String(property.approvalState || "").toLowerCase())).length;
@@ -7926,18 +11365,30 @@ async function initAdminProperties() {
               <button type="button" class="btn-shell btn-shell-primary" id="adminAddInline">Add Property</button>
             </div>
             ${visible.length ? googleEarthActionsMarkup({
+              property: earthPreviewProperty,
               properties: visible,
               scope: "admin-visible",
-              note: "Export the current filtered inventory for LGU review, site validation, and thesis-ready Google Earth walkthroughs.",
+              showView: Boolean(earthPreviewProperty),
+              note: visible.length === 1
+                ? "Open this filtered listing directly in Google Earth or export it as KML or KMZ for validation."
+                : "Open the first filtered listing in Google Earth or export the current filtered inventory for LGU review, site validation, and thesis-ready walkthroughs.",
             }) : ""}
           </article>
 
           <div class="listing-stack">
             ${visible.length ? visible.map((property) => `
-              <article class="listing-row">
-                <div class="listing-main">
-                  <div class="property-title">${escapeHtml(property.name)}</div>
-                  <div class="property-subline">${escapeHtml(property.city || "San Fernando, La Union")} | ${escapeHtml(property.barangay || "Unassigned")}</div>
+              <article class="listing-row admin-listing-row">
+                <div class="listing-main admin-listing-main">
+                  <div class="admin-listing-head">
+                    <div class="admin-listing-head-copy">
+                      <div class="property-title">${escapeHtml(property.name)}</div>
+                      <div class="property-subline">${escapeHtml(property.city || "San Fernando, La Union")} | ${escapeHtml(property.barangay || "Unassigned")}</div>
+                    </div>
+                    <div class="admin-listing-statuses">
+                      ${statusPill(property.status)}
+                      ${approvalStatePill(property.approvalState)}
+                    </div>
+                  </div>
                   <p>${escapeHtml(truncate(property.description || propertyStory(property), 150))}</p>
                   <div class="property-stat-row">
                     <span>${icon("money")}${escapeHtml(moneyShort(property.price))}</span>
@@ -7945,19 +11396,21 @@ async function initAdminProperties() {
                     <span>${icon("ranking")}${Number(property.marketScore || property.score || 0)} market score</span>
                     <span>${icon("file")}${Math.round(Number(property.documentCompletenessPct || 0))}% docs</span>
                   </div>
-                  <div class="listing-meta-row">
-                    ${approvalStatePill(property.approvalState)}
+                  <div class="listing-meta-row admin-listing-meta-row">
                     ${verificationPill(property.listingVerificationStatus)}
                     ${metaChip(`${Number(property.openDocumentRequestCount || 0)} open requests`)}
                     ${property.lastConfirmedAvailableAt ? metaChip(`Confirmed ${formatDate(property.lastConfirmedAvailableAt)}`) : metaChip("Awaiting confirmation")}
                   </div>
                   <div class="trust-badge-row">${trustBadgeRow(property.trustBadges || [], { compact: true })}</div>
                 </div>
-                <div class="listing-actions">
-                  ${statusPill(property.status)}
+                <div class="listing-actions admin-listing-actions">
                   <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-secondary">View</a>
+                  <a href="${escapeHtml(googleEarthViewHref(property))}" target="_blank" rel="noreferrer" class="btn-shell btn-shell-secondary">${icon("earth")}Google Earth</a>
                   <button type="button" class="btn-shell btn-shell-secondary" data-admin-confirm-availability="${property.id}">${icon("clock")}Confirm Available</button>
-                  <button type="button" class="btn-shell btn-shell-primary" data-admin-edit="${property.id}">Edit</button>
+                  ${String(property.approvalState || "").toLowerCase() !== "approved"
+                    ? `<button type="button" class="btn-shell btn-shell-primary" data-admin-approve="${property.id}">${icon("shield")}Approve Submission</button>`
+                    : ""}
+                  <button type="button" class="btn-shell ${String(property.approvalState || "").toLowerCase() !== "approved" ? "btn-shell-secondary" : "btn-shell-primary"}" data-admin-edit="${property.id}">Edit</button>
                   <button type="button" class="btn-shell btn-shell-danger" data-admin-delete="${property.id}">Delete</button>
                 </div>
               </article>
@@ -7982,6 +11435,21 @@ async function initAdminProperties() {
         const property = properties.find((entry) => entry.id === Number(button.dataset.adminEdit));
         fillCrudForm(property);
         openModal(modal);
+      });
+    });
+    root.querySelectorAll("[data-admin-approve]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const propertyId = Number(button.dataset.adminApprove || 0);
+        if (!propertyId) return;
+
+        try {
+          await api.updateProperty(propertyId, {
+            approval_state: "approved",
+          });
+          await reload();
+        } catch (error) {
+          window.alert(error.message || "Unable to approve this listing right now.");
+        }
       });
     });
 
@@ -8019,6 +11487,14 @@ async function initAdminProperties() {
     openModal(modal);
   });
 
+  landAreaInput?.addEventListener("input", () => {
+    syncAreaHint();
+  });
+  landAreaUnitInput?.addEventListener("change", (event) => {
+    setAreaUnit(event.target.value);
+  });
+  setAreaUnit("ha", { convertValue: false });
+
   document.addEventListener("click", (event) => {
     const closeTarget = event.target.closest("[data-modal-close]");
     if (!closeTarget) return;
@@ -8028,6 +11504,14 @@ async function initAdminProperties() {
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const propertyId = Number(document.getElementById("crudPropertyId").value || 0);
+    const areaUnit = normalizeAreaUnit(landAreaUnitInput?.value);
+    const areaValue = parseAreaValue(landAreaInput?.value);
+    const areaHectares = areaValueInHectares(areaValue, areaUnit);
+    if (areaHectares === null || areaHectares <= 0) {
+      landAreaInput?.focus();
+      syncAreaHint();
+      return;
+    }
     const payload = new FormData();
     payload.append("property_name", document.getElementById("crudPropertyName").value);
     payload.append("city", document.getElementById("crudCity").value);
@@ -8038,7 +11522,8 @@ async function initAdminProperties() {
     payload.append("approval_state", document.getElementById("crudApprovalState").value);
     payload.append("seller_identity_verification_status", document.getElementById("crudSellerIdentityStatus").value);
     payload.append("price", document.getElementById("crudPrice").value);
-    payload.append("land_area", document.getElementById("crudLandArea").value);
+    payload.append("land_area", String(areaValue));
+    payload.append("land_area_unit", areaUnit);
     payload.append("score", document.getElementById("crudScore").value);
     payload.append("road_access", document.getElementById("crudAccess").value);
     payload.append("documents_reviewed", document.getElementById("crudDocumentsReviewed").value);
@@ -8060,14 +11545,18 @@ async function initAdminProperties() {
     const imageFile = document.getElementById("crudImage").files?.[0];
     if (imageFile) payload.append("image_file", imageFile);
 
-    if (propertyId > 0) {
-      await api.updateProperty(propertyId, payload);
-    } else {
-      await api.createProperty(payload);
-    }
+    try {
+      if (propertyId > 0) {
+        await api.updateProperty(propertyId, payload);
+      } else {
+        await api.createProperty(payload);
+      }
 
-    closeModal(modal);
-    await reload();
+      closeModal(modal);
+      await reload();
+    } catch (error) {
+      window.alert(error.message || "Unable to save this property right now.");
+    }
   });
 
   confirmDeleteButton?.addEventListener("click", async () => {
@@ -8079,13 +11568,272 @@ async function initAdminProperties() {
   });
 
   await reload();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const editId = Number(urlParams.get("edit") || 0);
+  if (editId) {
+    const targetProperty = properties.find((entry) => entry.id === editId);
+    if (targetProperty) {
+      fillCrudForm(targetProperty);
+      openModal(modal);
+    }
+  }
+}
+
+async function initScenarioSimulator() {
+  const root = document.getElementById("scenarioSimulatorRoot");
+  if (!root) return;
+  const bootstrap = await api.bootstrap();
+  const properties = bootstrap.properties || [];
+  let propertyId = Number(properties[0]?.id || 0);
+  let investmentType = "commercial";
+  let roadLift = 0;
+  let utilityLift = 0;
+
+  const render = () => {
+    const property = properties.find((item) => Number(item.id) === propertyId) || properties[0];
+    if (!property) {
+      root.innerHTML = emptyState("No candidate sites", "Add an approved candidate site before running a scenario.");
+      return;
+    }
+    const compliance = evaluateClup(property, investmentType);
+    const baseScore = Number(property.marketScore || 0);
+    const simulatedIai = Math.min(100, Math.round(baseScore + (roadLift * .18) + (utilityLift * .14)));
+    const decisionAllowed = compliance.status !== "FAIL";
+    root.innerHTML = `
+      <div class="clup-simulator-layout">
+        <aside class="stack">
+          <article class="panel-card">
+            <div class="panel-kicker">Scenario Inputs</div><h3>Candidate site + proposed investment</h3>
+            <div class="filter-grid">
+              <label class="form-shell"><span>Candidate site</span><select class="input-shell" id="scenarioClupSite">${properties.map((item) => `<option value="${item.id}" ${Number(item.id) === propertyId ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}</select></label>
+              <label class="form-shell"><span>Proposed investment type</span><select class="input-shell" id="scenarioClupType">
+                ${[["commercial","Commercial / Retail"],["logistics","Logistics / Warehousing"],["hotel","Tourism / Hospitality"],["bpo","Office / BPO"],["manufacturing","Light Manufacturing"],["mixed_use","Mixed-use Development"]].map(([key,label]) => `<option value="${key}" ${investmentType === key ? "selected" : ""}>${label}</option>`).join("")}
+              </select></label>
+              <label class="form-shell"><span>Road improvement (+ points)</span><input class="input-shell" id="scenarioRoadLift" type="range" min="0" max="20" value="${roadLift}"><strong>${roadLift}</strong></label>
+              <label class="form-shell"><span>Utility expansion (+ points)</span><input class="input-shell" id="scenarioUtilityLift" type="range" min="0" max="20" value="${utilityLift}"><strong>${utilityLift}</strong></label>
+            </div>
+          </article>
+          <article class="panel-card"><div class="panel-kicker">Policy Rule</div><h3>Attractiveness cannot override incompatibility.</h3><p>Infrastructure interventions can improve IAI and readiness, but a CLUP <b>FAIL</b> remains blocked until the proposed use or lawful zoning basis changes.</p></article>
+        </aside>
+        <section class="stack">
+          <article class="decision-card clup-scenario-result">
+            <div class="panel-kicker">Scenario Result</div><h2>${decisionAllowed ? "Eligible for prioritization" : "Blocked by CLUP gate"}</h2>
+            <p>${decisionAllowed ? `${property.name} may proceed to the next LGU review stage for the proposed use.` : `${property.name} should not be recommended for this use regardless of its attractiveness score.`}</p>
+            <div class="decision-stats">${clupStatusPill(compliance)}<span class="tag">Simulated IAI ${simulatedIai}</span><span class="tag">CLUP ${compliance.suitabilityScore}</span></div>
+          </article>
+          ${clupDecisionCardMarkup(compliance)}
+          <article class="panel-card"><div class="panel-kicker">Before / After</div><h3>Intervention effect</h3><div class="clup-fact-grid"><div><span>Base IAI</span><strong>${baseScore}</strong></div><div><span>Simulated IAI</span><strong>${simulatedIai}</strong></div><div><span>CLUP Gate</span><strong>${compliance.status}</strong></div><div><span>Priority Decision</span><strong>${decisionAllowed ? "May proceed" : "Do not prioritize"}</strong></div></div></article>
+        </section>
+      </div>`;
+    root.querySelector("#scenarioClupSite")?.addEventListener("change", (event) => { propertyId = Number(event.target.value); render(); });
+    root.querySelector("#scenarioClupType")?.addEventListener("change", (event) => { investmentType = event.target.value; render(); });
+    root.querySelector("#scenarioRoadLift")?.addEventListener("input", (event) => { roadLift = Number(event.target.value); render(); });
+    root.querySelector("#scenarioUtilityLift")?.addEventListener("input", (event) => { utilityLift = Number(event.target.value); render(); });
+  };
+  render();
+}
+
+async function initDecisionReports() {
+  const root = document.getElementById("decisionReportsRoot");
+  if (!root) return;
+  const bootstrap = await api.bootstrap();
+  const properties = bootstrap.properties || [];
+  const investmentLensKey = getActiveInvestmentLensKey();
+  const enriched = enrichProperties(properties, properties, {}, null, investmentLensKey);
+  const counts = { PASS: 0, CONDITIONAL: 0, FAIL: 0, UNVERIFIED: 0 };
+  enriched.forEach((p) => {
+    const s = p.clupCompliance.status;
+    if (counts[s] !== undefined) counts[s] += 1;
+    else counts.UNVERIFIED += 1;
+  });
+
+  /* ── helpers ── */
+  const clupPill = (status) => {
+    if (status === "PASS")        return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#15803d;"><span style="width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;"></span>PASS</span>`;
+    if (status === "CONDITIONAL")  return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#fffbeb;border:1px solid #fde68a;font-size:10px;font-weight:800;color:#92400e;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>CONDITIONAL</span>`;
+    if (status === "FAIL")         return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#fff1f2;border:1px solid #fecdd3;font-size:10px;font-weight:800;color:#9f1239;"><span style="width:6px;height:6px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>FAIL</span>`;
+    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0;font-size:10px;font-weight:800;color:#475569;"><span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>Unverified</span>`;
+  };
+
+  const evidencePill = (level, src) => {
+    const lower = (level || "").toLowerCase();
+    let badge = "";
+    if (lower === "complete" || lower === "confirmed")
+      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#ecfdf5;border:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#15803d;">&#10003; Complete</span>`;
+    else if (lower === "partial" || lower === "submitted")
+      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#f5f3ff;border:1px solid #ddd6fe;font-size:10px;font-weight:800;color:#5b21b6;">&#9682; Partial</span>`;
+    else
+      badge = `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:#fffbeb;border:1px solid #fde68a;font-size:10px;font-weight:800;color:#92400e;">&#9888; Unverified</span>`;
+    return `${badge}<div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:5px;">${escapeHtml(src || "Corridor screen")}</div>`;
+  };
+
+  const suitabilityCell = (score) => {
+    if (score === null || score === undefined || String(score) === "null")
+      return `<div style="font-size:13px;font-weight:700;color:#cbd5e1;">&#8212;&#8212; <span style="color:#e2e8f0;">/100</span></div><div style="font-size:10px;color:#cbd5e1;font-weight:500;margin-top:3px;">Pending data</div>`;
+    const n = Number(score);
+    const col = n >= 75 ? "#15803d" : n >= 50 ? "#92400e" : "#9f1239";
+    const bg  = n >= 75 ? "#22c55e" : n >= 50 ? "#f59e0b" : "#f43f5e";
+    return `<div style="font-size:13px;font-weight:800;color:${col};">${n}<span style="color:#cbd5e1;font-weight:400;">/100</span></div><div style="height:5px;width:52px;border-radius:999px;background:#f1f5f9;margin-top:5px;overflow:hidden;"><div style="height:100%;width:${n}%;border-radius:999px;background:${bg};"></div></div>`;
+  };
+
+  const actionChecklist = (compliance) => {
+    const raw = compliance.recommendedLguAction || "";
+    const steps = [
+      { label: "Import Zoning Map dataset",           done: compliance.status !== "UNVERIFIED" },
+      { label: "Resolve against zoning polygon",      done: compliance.status === "PASS" || compliance.status === "CONDITIONAL" || compliance.status === "FAIL" },
+      { label: "Attach parcel-to-zone evidence",      done: (compliance.evidenceLevel || "").toLowerCase() !== "inferred" && compliance.status !== "UNVERIFIED" },
+      { label: "Admin review & sign-off",             done: compliance.status === "PASS" },
+    ];
+    return steps.map((s) => {
+      if (s.done)
+        return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span style="width:15px;height:15px;border-radius:4px;background:#dcfce7;border:1px solid #bbf7d0;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;"><svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span style="font-size:11px;color:#94a3b8;text-decoration:line-through;line-height:1.4;">${escapeHtml(s.label)}</span></div>`;
+      return `<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;"><span style="width:15px;height:15px;border-radius:4px;background:#fff;border:2px solid #e2e8f0;flex-shrink:0;margin-top:1px;"></span><span style="font-size:11px;color:#374151;font-weight:600;line-height:1.4;">${escapeHtml(s.label)}</span></div>`;
+    }).join("");
+  };
+
+  const actionBtn = (property) => {
+    const c = property.clupCompliance;
+    const btnStyle = "display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);outline:none;border:none;";
+    
+    if (c.status === "PASS") {
+      return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
+        style="${btnStyle}background:#ecfdf5;border:1px solid #bbf7d0;color:#15803d;"
+        onmouseover="this.style.background='#d1fae5';this.style.transform='translateY(-1px)';"
+        onmouseout="this.style.background='#ecfdf5';this.style.transform='none';">
+        &#10003; Cleared
+      </button>`;
+    }
+    
+    const allDone = ["PASS","CONDITIONAL","FAIL"].includes(c.status);
+    if (allDone && c.status !== "PASS") {
+      return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
+        style="${btnStyle}background:#f5f3ff;border:1px solid #ddd6fe;color:#5b21b6;"
+        onmouseover="this.style.background='#ede9fe';this.style.transform='translateY(-1px)';"
+        onmouseout="this.style.background='#f5f3ff';this.style.transform='none';">
+        &#128196; Upload Evidence
+      </button>`;
+    }
+    
+    return `<button onclick="window.location.href='admin-properties.php?edit=${property.id}'" 
+      style="${btnStyle}background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;box-shadow:0 3px 10px rgba(245,158,11,0.3);"
+      onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 5px 15px rgba(245,158,11,0.45)';"
+      onmouseout="this.style.transform='none';this.style.boxShadow='0 3px 10px rgba(245,158,11,0.3)';">
+      &#9889; Resolve Now
+    </button>`;
+  };
+
+  const rows = enriched.map((property, index) => {
+    const c = property.clupCompliance;
+    return `<tr style="border-bottom:1px solid #f1f5f9;transition:background 140ms ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+      <td style="padding:14px 16px;vertical-align:top;"><div style="width:28px;height:28px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#475569;">${index + 1}</div></td>
+      <td style="padding:14px 12px;vertical-align:top;min-width:155px;"><div style="font-size:13px;font-weight:700;color:#0f172a;line-height:1.3;margin-bottom:3px;">${escapeHtml(property.name)}</div><div style="font-size:11px;color:#94a3b8;font-weight:500;">${escapeHtml(property.barangay || "San Fernando")} &middot; ${escapeHtml(corridorLabel(property.corridor))}</div></td>
+      <td style="padding:14px 12px;vertical-align:top;min-width:115px;"><div style="font-size:12px;font-weight:600;color:#374151;">${escapeHtml(c.proposedInvestmentLabel)}</div></td>
+      <td style="padding:14px 12px;vertical-align:top;text-align:center;"><span style="display:inline-block;padding:4px 9px;border-radius:8px;background:${Number(property.lensScore||0)>=90?"#ecfdf5":"#f8fafc"};font-size:12px;font-weight:800;color:${Number(property.lensScore||0)>=90?"#15803d":"#475569"};">${Math.round(Number(property.lensScore || 0))}</span></td>
+      <td style="padding:14px 12px;vertical-align:top;">${clupPill(c.status)}</td>
+      <td style="padding:14px 12px;vertical-align:top;min-width:95px;">${suitabilityCell(c.suitabilityScore)}</td>
+      <td style="padding:14px 12px;vertical-align:top;min-width:125px;">${evidencePill(c.evidenceLevel, c.sourceReference)}</td>
+      <td style="padding:14px 12px;vertical-align:top;min-width:185px;">${actionChecklist(c)}</td>
+      <td style="padding:14px 16px;vertical-align:top;text-align:right;">${actionBtn(property)}</td>
+    </tr>`;
+  }).join("");
+
+  const unverifiedCount = enriched.filter((p) => !["PASS","CONDITIONAL","FAIL"].includes(p.clupCompliance.status)).length;
+
+  root.innerHTML = `
+    <div class="stack clup-report-shell" style="gap:20px;">
+
+      <!-- Stat Cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #d1fae5;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
+          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#22c55e;border-radius:2px;"></div>
+          <div style="padding-left:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="width:30px;height:30px;border-radius:9px;background:#dcfce7;border:1px solid #bbf7d0;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#16a34a;background:#dcfce7;padding:2px 8px;border-radius:999px;">Compliant</span>
+            </div>
+            <div style="font-size:38px;font-weight:900;color:#15803d;line-height:1;margin-bottom:3px;">${counts.PASS}</div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;">CLUP PASS</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Cleared for investment recommendation</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #fde68a;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
+          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#f59e0b;border-radius:2px;"></div>
+          <div style="padding-left:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="width:30px;height:30px;border-radius:9px;background:#fef3c7;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#d97706;background:#fef3c7;padding:2px 8px;border-radius:999px;">Conditional</span>
+            </div>
+            <div style="font-size:38px;font-weight:900;color:#92400e;line-height:1;margin-bottom:3px;">${counts.CONDITIONAL}</div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;">CONDITIONAL</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Permitted with LGU conditions applied</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:18px;padding:20px;border:1px solid #fecdd3;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;position:relative;">
+          <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#f43f5e;border-radius:2px;"></div>
+          <div style="padding-left:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div style="width:30px;height:30px;border-radius:9px;background:#fff1f2;border:1px solid #fecdd3;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+              <span style="font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#e11d48;background:#fff1f2;padding:2px 8px;border-radius:999px;">Disqualified</span>
+            </div>
+            <div style="font-size:38px;font-weight:900;color:#9f1239;line-height:1;margin-bottom:3px;">${counts.FAIL}</div>
+            <div style="font-size:11px;font-weight:700;color:#64748b;">CLUP FAIL</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:500;margin-top:3px;">Incompatible with land-use classification</div>
+          </div>
+        </div>
+      </div>
+
+      ${unverifiedCount > 0 ? `<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a;">
+        <div style="width:22px;height:22px;border-radius:50%;background:#fef3c7;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01"/></svg></div>
+        <p style="font-size:12px;font-weight:600;color:#92400e;margin:0;"><strong>${unverifiedCount}</strong> candidate site${unverifiedCount !== 1 ? "s" : ""} pending CLUP verification. Complete the evidence queue to unlock compliance scoring.</p>
+      </div>` : ""}
+
+      <!-- Priority Register Table -->
+      <article class="panel-card" style="overflow:hidden;padding:0;">
+        <div style="padding:20px 24px 16px;border-bottom:1px solid #f1f5f9;">
+          <div class="panel-kicker">Priority Register</div>
+          <h3 style="margin:4px 0 0;font-size:1rem;font-weight:800;">CLUP-gated candidate sites</h3>
+        </div>
+        <div class="clup-report-table-wrap" style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
+                <th style="text-align:left;padding:10px 16px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;white-space:nowrap;">Rank</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Candidate Site</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Proposed Use</th>
+                <th style="text-align:center;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">IAI</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">CLUP</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Suitability</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Evidence</th>
+                <th style="text-align:left;padding:10px 12px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Action Checklist</th>
+                <th style="text-align:right;padding:10px 16px;font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#94a3b8;">Action</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="padding:12px 24px;border-top:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+          <p style="font-size:11px;color:#94a3b8;font-weight:500;margin:0;">Showing ${enriched.length} candidate site${enriched.length !== 1 ? "s" : ""}</p>
+          <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:#94a3b8;font-weight:500;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;"></span>Pass</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Conditional</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#f43f5e;display:inline-block;"></span>Fail</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;"></span>Unverified</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel-card clup-method-note"><div class="panel-kicker">Method and Limitation</div><p>CLUP status is a preliminary corridor-level screen derived from stored site attributes. It is not a zoning certificate or locational clearance. Validate every parcel against the latest adopted CLUP, official zoning map, Zoning Ordinance, overlays, and applicable national agency requirements.</p></article>
+    </div>`;
+
+  document.getElementById("printDecisionReport")?.addEventListener("click", () => window.print());
 }
 
 async function boot() {
   initPortalMenu();
+  initCityBrief();
   initStudioMotion();
   initNotificationCenter();
-  initInvestorAcademy();
   await ensureFavoriteIdsLoaded();
   if (page === "landing") initHeroStage();
   if (page === "landing") initLandingChrome();
@@ -8102,6 +11850,8 @@ async function boot() {
   if (page === "property-details") await initPropertyDetails();
   if (page === "admin-properties") await initAdminProperties();
   if (page === "admin-showcase") await initAdminShowcase();
+  if (page === "scenario-simulator") await initScenarioSimulator();
+  if (page === "decision-reports") await initDecisionReports();
 }
 
 boot().catch((error) => {
@@ -8118,11 +11868,15 @@ boot().catch((error) => {
     || document.getElementById("compareDecisionRoot")
     || document.getElementById("propertyDetailsRoot")
     || document.getElementById("adminPropertiesRoot")
-    || document.getElementById("adminShowcaseRoot");
+    || document.getElementById("adminShowcaseRoot")
+    || document.getElementById("scenarioSimulatorRoot")
+    || document.getElementById("decisionReportsRoot");
 
   if (root) {
     root.innerHTML = emptyState("Unable to load this screen", error.message || "Unexpected error.");
   }
+}).finally(() => {
+  window.LOCUS_PRELOADER?.dismiss();
 });
 
 

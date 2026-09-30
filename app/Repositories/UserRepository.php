@@ -9,7 +9,7 @@ use PDOException;
 
 final class UserRepository
 {
-    private const IDENTITY_VERIFICATION_STATUSES = ['unverified', 'pending', 'verified'];
+    private const IDENTITY_VERIFICATION_STATUSES = ['unverified', 'pending', 'verified', 'rejected', 'suspended'];
 
     private PDO $pdo;
 

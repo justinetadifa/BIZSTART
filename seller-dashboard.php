@@ -6,7 +6,7 @@ require __DIR__ . '/app/Support/web.php';
 $context = sfc_web_context();
 sfc_require_role('seller', sfc_path('/seller-login.php'));
 $context = sfc_web_context();
-sfc_render_head('Seller Dashboard | SFCelerate BizStart', $context, ['page' => 'seller-dashboard', 'role' => 'seller']);
+sfc_render_head('Seller Dashboard | LOCUS-SF', $context, ['page' => 'seller-dashboard', 'role' => 'seller']);
 sfc_render_header($context, 'seller');
 ?>
 <main class="page-shell dashboard-page">
@@ -32,7 +32,7 @@ sfc_render_header($context, 'seller');
 </main>
 
 <div class="modal-shell" id="sellerListingModal" hidden>
-  <div class="modal-card">
+  <div class="modal-card property-crud-modal">
     <div class="modal-head">
       <div>
         <div class="panel-kicker">Seller Listing</div>
@@ -40,7 +40,7 @@ sfc_render_header($context, 'seller');
       </div>
       <button type="button" class="modal-close" data-modal-close="sellerListingModal">Close</button>
     </div>
-    <form id="sellerListingForm" class="crud-form-grid">
+    <form id="sellerListingForm" class="crud-form-grid property-crud-form">
       <input type="hidden" id="sellerPropertyId">
       <label class="form-shell"><span>Property Name</span><input class="input-shell" id="sellerPropertyName" required></label>
       <label class="form-shell"><span>City</span><input class="input-shell" id="sellerCity" value="San Fernando, La Union" required></label>

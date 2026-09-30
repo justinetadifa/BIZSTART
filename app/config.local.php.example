@@ -1,12 +1,16 @@
 <?php
 return [
     'app' => [
-        'name' => 'SFCelerate BizStart',
+        'name' => 'LOCUS-SF',
+        'environment' => 'local',
+        'debug' => true,
+        'auto_migrate' => true,
+        'auto_seed' => true,
     ],
     'db' => [
         'host' => '127.0.0.1',
         'port' => 3306,
-        'name' => 'sfceleratee',
+        'name' => 'sfcelerate_bizstart',
         'user' => 'root',
         'pass' => '',
     ],

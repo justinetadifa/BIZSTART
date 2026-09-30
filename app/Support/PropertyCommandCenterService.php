@@ -20,6 +20,7 @@ final class PropertyCommandCenterService
     private VisitLogRepository $visits;
     private NotificationRepository $notifications;
     private AuditLogRepository $auditLogs;
+    private DecisionEngineService $decisionEngine;
 
     public function __construct(
         PropertyRepository $properties,
@@ -28,7 +29,8 @@ final class PropertyCommandCenterService
         DocumentRequestRepository $documentRequests,
         VisitLogRepository $visits,
         NotificationRepository $notifications,
-        AuditLogRepository $auditLogs
+        AuditLogRepository $auditLogs,
+        DecisionEngineService $decisionEngine
     ) {
         $this->properties = $properties;
         $this->votes = $votes;
@@ -37,6 +39,7 @@ final class PropertyCommandCenterService
         $this->visits = $visits;
         $this->notifications = $notifications;
         $this->auditLogs = $auditLogs;
+        $this->decisionEngine = $decisionEngine;
     }
 
     public function build(int $propertyId, ?array $user = null): array
@@ -54,6 +57,13 @@ final class PropertyCommandCenterService
             : [];
         $auditLogs = $this->auditLogs->forProperty($propertyId, 18);
         $blockers = $this->buildBlockers($property, $documentRequests, $visit, $conversation);
+        $property = $this->decisionEngine->decorateProperty($property, [
+            'votes' => is_array($votes['votes'] ?? null) ? $votes['votes'] : [],
+            'conversationSummary' => $conversation['summary'] ?? [],
+            'visit' => $visit,
+            'documentRequests' => $documentRequests,
+            'blockers' => $blockers,
+        ]);
 
         return [
             'property' => $property,

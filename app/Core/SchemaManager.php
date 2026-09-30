@@ -36,13 +36,45 @@ CREATE TABLE IF NOT EXISTS user_preferences (
 )
 SQL,
             <<<'SQL'
+CREATE TABLE IF NOT EXISTS seller_profiles (
+  user_id INT NOT NULL PRIMARY KEY,
+  seller_type VARCHAR(40) NOT NULL DEFAULT 'individual',
+  legal_name VARCHAR(190) NULL,
+  display_name VARCHAR(190) NULL,
+  phone VARCHAR(60) NULL,
+  company_name VARCHAR(190) NULL,
+  business_registration_no VARCHAR(120) NULL,
+  government_id_no VARCHAR(120) NULL,
+  address_line VARCHAR(255) NULL,
+  barangay VARCHAR(120) NULL,
+  city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
+  authorization_basis VARCHAR(190) NULL,
+  application_status VARCHAR(40) NOT NULL DEFAULT 'draft',
+  review_notes TEXT NULL,
+  submitted_at TIMESTAMP NULL DEFAULT NULL,
+  reviewed_at TIMESTAMP NULL DEFAULT NULL,
+  reviewed_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_seller_profiles_phone (phone),
+  UNIQUE KEY uniq_seller_profiles_business_reg (business_registration_no),
+  UNIQUE KEY uniq_seller_profiles_government_id (government_id_no),
+  KEY idx_seller_profiles_status (application_status),
+  KEY idx_seller_profiles_reviewed_by (reviewed_by_user_id),
+  CONSTRAINT fk_seller_profiles_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_seller_profiles_reviewer
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+)
+SQL,
+            <<<'SQL'
 CREATE TABLE IF NOT EXISTS properties (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
   lat DECIMAL(10, 6) NOT NULL,
   lng DECIMAL(10, 6) NOT NULL,
-  area DECIMAL(10, 2) NOT NULL,
+  area DECIMAL(12, 4) NOT NULL,
   price BIGINT NOT NULL,
   price_per_sqm INT NOT NULL,
   status VARCHAR(80) NOT NULL,
@@ -65,6 +97,13 @@ CREATE TABLE IF NOT EXISTS properties (
   dist_to_road_km DECIMAL(8, 2) NULL,
   utility_status VARCHAR(40) NULL,
   zoning_score INT NULL,
+  existing_land_use VARCHAR(180) NULL,
+  zoning_classification VARCHAR(180) NULL,
+  clup_allowed_uses_json JSON NULL,
+  clup_conditional_uses_json JSON NULL,
+  clup_restricted_uses_json JSON NULL,
+  clup_source_reference VARCHAR(255) NULL,
+  clup_verified_at TIMESTAMP NULL DEFAULT NULL,
   assessed_value_sqm INT NULL,
   readiness_notes TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -127,11 +166,16 @@ CREATE TABLE IF NOT EXISTS showcase_items (
   location_label VARCHAR(190) NULL,
   barangay VARCHAR(120) NULL,
   status VARCHAR(80) NOT NULL,
+  pipeline_mode VARCHAR(40) NULL,
+  supply_signal VARCHAR(40) NULL,
   cover_image_url VARCHAR(255) NOT NULL,
   primary_metric_label VARCHAR(120) NULL,
   primary_metric_value VARCHAR(120) NULL,
   secondary_metric_label VARCHAR(120) NULL,
   secondary_metric_value VARCHAR(120) NULL,
+  investor_thesis VARCHAR(255) NULL,
+  ideal_operator VARCHAR(160) NULL,
+  avoidance_note VARCHAR(255) NULL,
   countdown_at DATETIME NULL,
   completion_target DATETIME NULL,
   related_property_id INT NULL,
@@ -370,9 +414,11 @@ SQL,
         }
 
         self::ensureUsersColumns($pdo);
+        self::ensureSellerProfilesColumns($pdo);
         self::ensurePropertiesColumns($pdo);
         self::ensurePropertyVotesColumns($pdo);
         self::ensurePropertyMessagesColumns($pdo);
+        self::ensureShowcaseItemsColumns($pdo);
         self::ensureUserPreferenceRows($pdo);
         self::ensureIndexes($pdo);
     }
@@ -414,6 +460,88 @@ SQL,
             "UPDATE users
              SET identity_verification_status = 'unverified'
              WHERE identity_verification_status IS NULL OR TRIM(identity_verification_status) = ''"
+        );
+    }
+
+    private static function ensureSellerProfilesColumns(PDO $pdo): void
+    {
+        if (!self::tableExists($pdo, 'seller_profiles')) {
+            return;
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'seller_type')) {
+            $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN seller_type VARCHAR(40) NOT NULL DEFAULT 'individual' AFTER user_id");
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'legal_name')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN legal_name VARCHAR(190) NULL AFTER seller_type');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'display_name')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN display_name VARCHAR(190) NULL AFTER legal_name');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'phone')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN phone VARCHAR(60) NULL AFTER display_name');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'company_name')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN company_name VARCHAR(190) NULL AFTER phone');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'business_registration_no')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN business_registration_no VARCHAR(120) NULL AFTER company_name');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'government_id_no')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN government_id_no VARCHAR(120) NULL AFTER business_registration_no');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'address_line')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN address_line VARCHAR(255) NULL AFTER government_id_no');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'barangay')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN barangay VARCHAR(120) NULL AFTER address_line');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'city')) {
+            $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union' AFTER barangay");
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'authorization_basis')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN authorization_basis VARCHAR(190) NULL AFTER city');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'application_status')) {
+            $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN application_status VARCHAR(40) NOT NULL DEFAULT 'draft' AFTER authorization_basis");
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'review_notes')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN review_notes TEXT NULL AFTER application_status');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'submitted_at')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN submitted_at TIMESTAMP NULL DEFAULT NULL AFTER review_notes');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'reviewed_at')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN reviewed_at TIMESTAMP NULL DEFAULT NULL AFTER submitted_at');
+        }
+
+        if (!self::columnExists($pdo, 'seller_profiles', 'reviewed_by_user_id')) {
+            $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN reviewed_by_user_id INT NULL AFTER reviewed_at');
+        }
+
+        $pdo->exec(
+            "UPDATE seller_profiles
+             SET application_status = 'draft'
+             WHERE application_status IS NULL OR TRIM(application_status) = ''"
+        );
+        $pdo->exec(
+            "UPDATE seller_profiles
+             SET city = 'San Fernando, La Union'
+             WHERE city IS NULL OR TRIM(city) = ''"
         );
     }
 
@@ -475,12 +603,40 @@ SQL,
             $pdo->exec('ALTER TABLE properties ADD COLUMN zoning_score INT NULL AFTER utility_status');
         }
 
+        if (!self::columnExists($pdo, 'properties', 'existing_land_use')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN existing_land_use VARCHAR(180) NULL AFTER zoning_score');
+        }
+        if (!self::columnExists($pdo, 'properties', 'zoning_classification')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN zoning_classification VARCHAR(180) NULL AFTER existing_land_use');
+        }
+        if (!self::columnExists($pdo, 'properties', 'clup_allowed_uses_json')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN clup_allowed_uses_json JSON NULL AFTER zoning_classification');
+        }
+        if (!self::columnExists($pdo, 'properties', 'clup_conditional_uses_json')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN clup_conditional_uses_json JSON NULL AFTER clup_allowed_uses_json');
+        }
+        if (!self::columnExists($pdo, 'properties', 'clup_restricted_uses_json')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN clup_restricted_uses_json JSON NULL AFTER clup_conditional_uses_json');
+        }
+        if (!self::columnExists($pdo, 'properties', 'clup_source_reference')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN clup_source_reference VARCHAR(255) NULL AFTER clup_restricted_uses_json');
+        }
+        if (!self::columnExists($pdo, 'properties', 'clup_verified_at')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN clup_verified_at TIMESTAMP NULL DEFAULT NULL AFTER clup_source_reference');
+        }
+
         if (!self::columnExists($pdo, 'properties', 'assessed_value_sqm')) {
             $pdo->exec('ALTER TABLE properties ADD COLUMN assessed_value_sqm INT NULL AFTER zoning_score');
         }
 
         if (!self::columnExists($pdo, 'properties', 'readiness_notes')) {
             $pdo->exec('ALTER TABLE properties ADD COLUMN readiness_notes TEXT NULL AFTER assessed_value_sqm');
+        }
+
+        $areaColumn = self::columnDetails($pdo, 'properties', 'area');
+        $areaScale = isset($areaColumn['NUMERIC_SCALE']) ? (int) $areaColumn['NUMERIC_SCALE'] : null;
+        if ($areaScale === null || $areaScale < 4) {
+            $pdo->exec('ALTER TABLE properties MODIFY area DECIMAL(12, 4) NOT NULL');
         }
 
         $pdo->exec(
@@ -677,6 +833,33 @@ SQL,
         }
     }
 
+    private static function ensureShowcaseItemsColumns(PDO $pdo): void
+    {
+        if (!self::tableExists($pdo, 'showcase_items')) {
+            return;
+        }
+
+        if (!self::columnExists($pdo, 'showcase_items', 'pipeline_mode')) {
+            $pdo->exec('ALTER TABLE showcase_items ADD COLUMN pipeline_mode VARCHAR(40) NULL AFTER status');
+        }
+
+        if (!self::columnExists($pdo, 'showcase_items', 'supply_signal')) {
+            $pdo->exec('ALTER TABLE showcase_items ADD COLUMN supply_signal VARCHAR(40) NULL AFTER pipeline_mode');
+        }
+
+        if (!self::columnExists($pdo, 'showcase_items', 'investor_thesis')) {
+            $pdo->exec('ALTER TABLE showcase_items ADD COLUMN investor_thesis VARCHAR(255) NULL AFTER secondary_metric_value');
+        }
+
+        if (!self::columnExists($pdo, 'showcase_items', 'ideal_operator')) {
+            $pdo->exec('ALTER TABLE showcase_items ADD COLUMN ideal_operator VARCHAR(160) NULL AFTER investor_thesis');
+        }
+
+        if (!self::columnExists($pdo, 'showcase_items', 'avoidance_note')) {
+            $pdo->exec('ALTER TABLE showcase_items ADD COLUMN avoidance_note VARCHAR(255) NULL AFTER ideal_operator');
+        }
+    }
+
     private static function ensureUserPreferenceRows(PDO $pdo): void
     {
         if (!self::tableExists($pdo, 'user_preferences') || !self::tableExists($pdo, 'users')) {
@@ -727,6 +910,11 @@ SQL,
         self::ensureIndex($pdo, 'spatial_overlays', 'idx_spatial_overlays_type_active', 'CREATE INDEX idx_spatial_overlays_type_active ON spatial_overlays (overlay_type, is_active)');
         self::ensureIndex($pdo, 'spatial_overlays', 'idx_spatial_overlays_match_key', 'CREATE INDEX idx_spatial_overlays_match_key ON spatial_overlays (match_key)');
         self::ensureIndex($pdo, 'spatial_overlays', 'idx_spatial_overlays_property', 'CREATE INDEX idx_spatial_overlays_property ON spatial_overlays (property_id)');
+        self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_phone', 'CREATE UNIQUE INDEX uniq_seller_profiles_phone ON seller_profiles (phone)');
+        self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_business_reg', 'CREATE UNIQUE INDEX uniq_seller_profiles_business_reg ON seller_profiles (business_registration_no)');
+        self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_government_id', 'CREATE UNIQUE INDEX uniq_seller_profiles_government_id ON seller_profiles (government_id_no)');
+        self::ensureIndex($pdo, 'seller_profiles', 'idx_seller_profiles_status', 'CREATE INDEX idx_seller_profiles_status ON seller_profiles (application_status)');
+        self::ensureIndex($pdo, 'seller_profiles', 'idx_seller_profiles_reviewed_by', 'CREATE INDEX idx_seller_profiles_reviewed_by ON seller_profiles (reviewed_by_user_id)');
     }
 
     private static function ensureIndex(PDO $pdo, string $tableName, string $indexName, string $statement): void
@@ -758,7 +946,7 @@ SQL,
     private static function columnDetails(PDO $pdo, string $tableName, string $columnName): ?array
     {
         $statement = $pdo->prepare(
-            'SELECT COLUMN_NAME, COLUMN_DEFAULT, EXTRA
+            'SELECT COLUMN_NAME, COLUMN_DEFAULT, EXTRA, COLUMN_TYPE, DATA_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE
              FROM information_schema.columns
              WHERE table_schema = DATABASE()
                AND table_name = :table_name

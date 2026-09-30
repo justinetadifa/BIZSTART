@@ -1,8 +1,8 @@
-CREATE DATABASE IF NOT EXISTS sfceleratee
+CREATE DATABASE IF NOT EXISTS sfcelerate_bizstart
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-USE sfceleratee;
+USE sfcelerate_bizstart;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS properties (
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
   lat DECIMAL(10, 6) NOT NULL,
   lng DECIMAL(10, 6) NOT NULL,
-  area DECIMAL(10, 2) NOT NULL,
+  area DECIMAL(12, 4) NOT NULL,
   price BIGINT NOT NULL,
   price_per_sqm INT NOT NULL,
   status VARCHAR(80) NOT NULL,
@@ -56,6 +56,13 @@ CREATE TABLE IF NOT EXISTS properties (
   dist_to_road_km DECIMAL(8, 2) NULL,
   utility_status VARCHAR(40) NULL,
   zoning_score INT NULL,
+  existing_land_use VARCHAR(180) NULL,
+  zoning_classification VARCHAR(180) NULL,
+  clup_allowed_uses_json JSON NULL,
+  clup_conditional_uses_json JSON NULL,
+  clup_restricted_uses_json JSON NULL,
+  clup_source_reference VARCHAR(255) NULL,
+  clup_verified_at TIMESTAMP NULL DEFAULT NULL,
   assessed_value_sqm INT NULL,
   readiness_notes TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +70,181 @@ CREATE TABLE IF NOT EXISTS properties (
   KEY idx_properties_seller_user (seller_user_id),
   KEY idx_properties_approval_state (approval_state),
   KEY idx_properties_last_confirmed_available (last_confirmed_available_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_datasets (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(180) NOT NULL,
+  version_label VARCHAR(80) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  source_agency VARCHAR(180) NULL,
+  source_reference VARCHAR(255) NULL,
+  source_url VARCHAR(500) NULL,
+  effective_date DATE NULL,
+  coordinate_reference_system VARCHAR(80) NULL,
+  checksum_sha256 CHAR(64) NULL,
+  notes TEXT NULL,
+  activated_by_user_id INT NULL,
+  activated_at TIMESTAMP NULL DEFAULT NULL,
+  created_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_clup_dataset_version (name, version_label),
+  KEY idx_clup_datasets_status (status),
+  CONSTRAINT fk_clup_datasets_activated_by FOREIGN KEY (activated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_clup_datasets_created_by FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_zones (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  dataset_id INT NOT NULL,
+  zone_code VARCHAR(80) NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  description TEXT NULL,
+  geometry_type VARCHAR(40) NOT NULL DEFAULT 'Polygon',
+  geometry_json JSON NULL,
+  bbox_json JSON NULL,
+  properties_json JSON NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_clup_zone_code (dataset_id, zone_code),
+  KEY idx_clup_zones_dataset (dataset_id),
+  CONSTRAINT fk_clup_zones_dataset FOREIGN KEY (dataset_id) REFERENCES clup_datasets(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_use_types (
+  code VARCHAR(80) NOT NULL PRIMARY KEY,
+  label VARCHAR(160) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  description TEXT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_zone_use_rules (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  dataset_id INT NOT NULL,
+  zone_id INT NOT NULL,
+  use_code VARCHAR(80) NOT NULL,
+  permission_status VARCHAR(30) NOT NULL,
+  conditions_json JSON NULL,
+  ordinance_reference VARCHAR(255) NULL,
+  effective_date DATE NULL,
+  expires_at DATE NULL,
+  created_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_clup_zone_use_rule (zone_id, use_code),
+  KEY idx_clup_rules_dataset (dataset_id),
+  KEY idx_clup_rules_permission (permission_status),
+  CONSTRAINT fk_clup_rules_dataset FOREIGN KEY (dataset_id) REFERENCES clup_datasets(id) ON DELETE CASCADE,
+  CONSTRAINT fk_clup_rules_zone FOREIGN KEY (zone_id) REFERENCES clup_zones(id) ON DELETE CASCADE,
+  CONSTRAINT fk_clup_rules_use FOREIGN KEY (use_code) REFERENCES clup_use_types(code) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_rules_creator FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_site_profiles (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  property_id INT NOT NULL,
+  version_no INT NOT NULL,
+  dataset_id INT NULL,
+  zone_id INT NULL,
+  existing_land_use VARCHAR(180) NULL,
+  zoning_classification VARCHAR(180) NULL,
+  allowed_uses_json JSON NULL,
+  conditional_uses_json JSON NULL,
+  restricted_uses_json JSON NULL,
+  source_reference VARCHAR(255) NULL,
+  source_document_path VARCHAR(500) NULL,
+  review_status VARCHAR(30) NOT NULL DEFAULT 'draft',
+  prepared_by_user_id INT NULL,
+  submitted_at TIMESTAMP NULL DEFAULT NULL,
+  reviewed_by_user_id INT NULL,
+  reviewed_at TIMESTAMP NULL DEFAULT NULL,
+  review_notes TEXT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_clup_profile_version (property_id, version_no),
+  KEY idx_clup_profiles_property_status (property_id, review_status),
+  KEY idx_clup_profiles_dataset (dataset_id),
+  CONSTRAINT fk_clup_profiles_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_profiles_dataset FOREIGN KEY (dataset_id) REFERENCES clup_datasets(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_profiles_zone FOREIGN KEY (zone_id) REFERENCES clup_zones(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_profiles_preparer FOREIGN KEY (prepared_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_clup_profiles_reviewer FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_evidence_documents (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  profile_id INT NOT NULL,
+  document_type VARCHAR(80) NOT NULL,
+  original_name VARCHAR(255) NOT NULL,
+  storage_path VARCHAR(500) NOT NULL,
+  mime_type VARCHAR(120) NOT NULL,
+  file_size BIGINT NOT NULL,
+  checksum_sha256 CHAR(64) NOT NULL,
+  uploaded_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_clup_evidence_profile (profile_id),
+  UNIQUE KEY uniq_clup_evidence_checksum (profile_id, checksum_sha256),
+  CONSTRAINT fk_clup_evidence_profile FOREIGN KEY (profile_id) REFERENCES clup_site_profiles(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_evidence_uploader FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_review_events (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  profile_id INT NOT NULL,
+  event_type VARCHAR(40) NOT NULL,
+  from_status VARCHAR(30) NULL,
+  to_status VARCHAR(30) NOT NULL,
+  notes TEXT NULL,
+  actor_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_clup_review_events_profile (profile_id, created_at),
+  CONSTRAINT fk_clup_review_events_profile FOREIGN KEY (profile_id) REFERENCES clup_site_profiles(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_review_events_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_evaluations (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  property_id INT NOT NULL,
+  profile_id INT NULL,
+  dataset_id INT NULL,
+  proposed_use_code VARCHAR(80) NOT NULL,
+  compliance_status VARCHAR(30) NOT NULL,
+  suitability_score INT NULL,
+  evidence_level VARCHAR(30) NOT NULL,
+  engine_version VARCHAR(80) NOT NULL,
+  input_snapshot_json JSON NOT NULL,
+  result_snapshot_json JSON NOT NULL,
+  evaluated_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_clup_evaluations_property (property_id, created_at),
+  KEY idx_clup_evaluations_status (compliance_status),
+  CONSTRAINT fk_clup_evaluations_property FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_evaluations_profile FOREIGN KEY (profile_id) REFERENCES clup_site_profiles(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_evaluations_dataset FOREIGN KEY (dataset_id) REFERENCES clup_datasets(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_evaluations_use FOREIGN KEY (proposed_use_code) REFERENCES clup_use_types(code) ON DELETE RESTRICT,
+  CONSTRAINT fk_clup_evaluations_actor FOREIGN KEY (evaluated_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS clup_reports (
+  id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  report_number VARCHAR(80) NOT NULL,
+  report_type VARCHAR(60) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'generated',
+  snapshot_json JSON NOT NULL,
+  checksum_sha256 CHAR(64) NOT NULL,
+  generated_by_user_id INT NULL,
+  reviewed_by_user_id INT NULL,
+  reviewed_at TIMESTAMP NULL DEFAULT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_clup_report_number (report_number),
+  KEY idx_clup_reports_type_created (report_type, created_at),
+  CONSTRAINT fk_clup_reports_generator FOREIGN KEY (generated_by_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_clup_reports_reviewer FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS property_media (
@@ -309,11 +491,10 @@ CREATE TABLE IF NOT EXISTS spatial_overlays (
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-USE sfceleratee;
+USE sfcelerate_bizstart;
 
 SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE notifications;
-TRUNCATE TABLE audit_logs;
 TRUNCATE TABLE user_preferences;
 TRUNCATE TABLE property_shortlists;
 TRUNCATE TABLE property_votes;
@@ -348,14 +529,14 @@ INSERT INTO vote_options (id, title, slug, description, image_url, is_active, so
   (1, '7/11', '7-11', 'Investor voting option for 7/11.', 'assets/images/vote-7-11.svg', 1, 1, 1),
   (2, 'PRINTING SHOP', 'printing-shop', 'Investor voting option for PRINTING SHOP.', 'assets/images/vote-printing-shop.svg', 1, 2, 1),
   (3, 'CAFE', 'cafe', 'Investor voting option for CAFE.', 'assets/images/vote-cafe.svg', 1, 3, 1),
-  (4, 'RESORT AND TOURISM', 'resort-and-tourism', 'Investor voting option for RESORT AND TOURISM.', 'assets/images/vote-resort-and-tourism.svg', 1, 4, 1),
-  (5, 'RESTAURANT OR FOOD PARK', 'restaurant-or-food-park', 'Investor voting option for RESTAURANT OR FOOD PARK.', 'assets/images/vote-restaurant-or-food-park.svg', 1, 5, 1),
+  (4, 'RESORT AND TOURISM', 'resort-and-tourism', 'Investor voting option for RESORT AND TOURISM.', NULL, 1, 4, 1),
+  (5, 'RESTAURANT OR FOOD PARK', 'restaurant-or-food-park', 'Investor voting option for RESTAURANT OR FOOD PARK.', NULL, 1, 5, 1),
   (6, 'PHARMACY', 'pharmacy', 'Investor voting option for PHARMACY.', 'assets/images/vote-pharmacy.svg', 1, 6, 1),
-  (7, 'CLINIC OR DIAGNOSTICS', 'clinic-or-diagnostics', 'Investor voting option for CLINIC OR DIAGNOSTICS.', 'assets/images/vote-clinic-or-diagnostics.svg', 1, 7, 1),
-  (8, 'WAREHOUSE OR LOGISTICS', 'warehouse-or-logistics', 'Investor voting option for WAREHOUSE OR LOGISTICS.', 'assets/images/vote-warehouse-or-logistics.svg', 1, 8, 1),
-  (9, 'OFFICE OR BPO', 'office-or-bpo', 'Investor voting option for OFFICE OR BPO.', 'assets/images/vote-office-or-bpo.svg', 1, 9, 1),
-  (10, 'HARDWARE AND CONSTRUCTION SUPPLY', 'hardware-and-construction-supply', 'Investor voting option for HARDWARE AND CONSTRUCTION SUPPLY.', 'assets/images/vote-hardware-and-construction-supply.svg', 1, 10, 1),
-  (11, 'GROCERY OR MINI MART', 'grocery-or-mini-mart', 'Investor voting option for GROCERY OR MINI MART.', 'assets/images/vote-grocery-or-mini-mart.svg', 1, 11, 1);
+  (7, 'CLINIC OR DIAGNOSTICS', 'clinic-or-diagnostics', 'Investor voting option for CLINIC OR DIAGNOSTICS.', NULL, 1, 7, 1),
+  (8, 'WAREHOUSE OR LOGISTICS', 'warehouse-or-logistics', 'Investor voting option for WAREHOUSE OR LOGISTICS.', NULL, 1, 8, 1),
+  (9, 'OFFICE OR BPO', 'office-or-bpo', 'Investor voting option for OFFICE OR BPO.', NULL, 1, 9, 1),
+  (10, 'HARDWARE AND CONSTRUCTION SUPPLY', 'hardware-and-construction-supply', 'Investor voting option for HARDWARE AND CONSTRUCTION SUPPLY.', NULL, 1, 10, 1),
+  (11, 'GROCERY OR MINI MART', 'grocery-or-mini-mart', 'Investor voting option for GROCERY OR MINI MART.', NULL, 1, 11, 1);
 
 INSERT INTO properties (
   id, name, city, lat, lng, area, price, price_per_sqm, status, approval_state, score, type, corridor,

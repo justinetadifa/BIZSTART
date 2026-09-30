@@ -5,87 +5,92 @@ require __DIR__ . '/app/Support/web.php';
 
 $context = sfc_web_context();
 $heroImage = $context['assetBase'] . '/images/sfcpanoramicView.png';
-sfc_render_head('SFCelerate BizStart', $context, ['page' => 'landing', 'role' => $context['user']['role'] ?? 'guest']);
+$welcomeBypass = (string) ($_GET['welcome'] ?? '') === 'off';
+$welcomeFallbackHref = sfc_path('/index.php?welcome=off#main-content');
+sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['user']['role'] ?? 'guest']);
+?>
+<script>
+  window.LOCUS_PRELOADER?.dismiss(true);
+  (() => {
+    if (new URLSearchParams(window.location.search).get('welcome') === 'off') return;
+
+    const sessionKey = `locus-sf.welcome:${window.SFC_APP_CONFIG?.basePath || ''}`;
+    let dismissed = false;
+    try {
+      dismissed = window.sessionStorage.getItem(sessionKey) === '1';
+    } catch {
+      // A blocked storage API should not prevent the visitor from continuing.
+    }
+
+    if (!dismissed) document.documentElement.classList.add('locus-welcome-active');
+  })();
+</script>
+<?php if (!$welcomeBypass): ?>
+<section
+  class="locus-welcome"
+  data-locus-welcome
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="locusWelcomeTitle"
+  aria-describedby="locusWelcomeDescription"
+>
+  <div class="locus-welcome__backdrop" aria-hidden="true"></div>
+  <div class="locus-welcome__shade" aria-hidden="true"></div>
+
+  <div class="locus-welcome__geo" aria-hidden="true">
+    <div class="locus-welcome__geo-grid"></div>
+    <div class="locus-welcome__radar">
+      <span class="locus-welcome__radar-sweep"></span>
+      <span class="locus-welcome__geo-node locus-welcome__geo-node--one"></span>
+      <span class="locus-welcome__geo-node locus-welcome__geo-node--two"></span>
+      <span class="locus-welcome__geo-node locus-welcome__geo-node--three"></span>
+    </div>
+    <div class="locus-welcome__geo-readout">
+      <span>16.6159&deg; N</span>
+      <i></i>
+      <span>120.3166&deg; E</span>
+    </div>
+  </div>
+
+  <div class="locus-welcome__brand" aria-label="LOCUS-SF">
+    <img
+      src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc.png"
+      alt=""
+      width="48"
+      height="30"
+    >
+    <span>LOCUS-SF</span>
+  </div>
+
+  <div class="locus-welcome__content">
+    <p class="locus-welcome__location">SAN FERNANDO CITY, LA UNION</p>
+    <h1 id="locusWelcomeTitle">
+      <span>Every opportunity</span>
+      <span>starts with a place.</span>
+    </h1>
+    <p class="locus-welcome__description" id="locusWelcomeDescription">Explore local investment opportunities through property information and site comparison.</p>
+    <a
+      class="locus-welcome__continue"
+      href="<?= htmlspecialchars($welcomeFallbackHref, ENT_QUOTES, 'UTF-8') ?>"
+      data-locus-welcome-continue
+    >
+      <span>Continue to LOCUS-SF</span>
+      <span aria-hidden="true">&rarr;</span>
+    </a>
+  </div>
+</section>
+<?php endif; ?>
+<?php
 sfc_render_header($context, 'landing');
 ?>
-<main class="page-shell landing-shell landing-editorial-shell">
-  <section class="hero-home hero-home-editorial" data-hero-stage tabindex="0" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
+<main class="page-shell landing-shell landing-editorial-shell landing-calm-shell" id="main-content" tabindex="-1">
+  <section class="hero-home hero-home-editorial hero-home-refined" data-hero-stage tabindex="0" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
     <div class="hero-canvas" id="hero-canvas" aria-hidden="true">
       <div class="hero-home-backdrop"></div>
       <div class="mouse-glow"></div>
-      <div class="city-node-layer" aria-label="Spatial trigger nodes">
-        <button type="button" class="spatial-trigger-node" data-city-node="poro-point" data-node-surface="map" style="--node-x:82.2%;--node-y:29.7%;">
-          <span class="spatial-trigger-orb"></span>
-          <span class="spatial-trigger-copy">
-            <strong>Poro Point</strong>
-            <span>Port + logistics corridor</span>
-          </span>
-        </button>
-        <button type="button" class="spatial-trigger-node" data-city-node="city-center" data-node-surface="map" style="--node-x:62%;--node-y:42.8%;">
-          <span class="spatial-trigger-orb"></span>
-          <span class="spatial-trigger-copy">
-            <strong>City Center</strong>
-            <span>Retail + civic gravity</span>
-          </span>
-        </button>
-        <button type="button" class="spatial-trigger-node" data-city-node="civic-belt" data-node-surface="map" style="--node-x:48%;--node-y:55.3%;">
-          <span class="spatial-trigger-orb"></span>
-          <span class="spatial-trigger-copy">
-            <strong>Civic Belt</strong>
-            <span>Campus + health support</span>
-          </span>
-        </button>
-      </div>
-      <svg class="hero-coordinate-layer" viewBox="0 0 1000 720" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <linearGradient id="heroGridFade" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28" />
-            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
-          </linearGradient>
-        </defs>
-        <g class="hero-heat-mesh" id="heroHeatMesh" aria-hidden="true"></g>
-        <g class="hero-grid-lines">
-          <path d="M120 90H880" />
-          <path d="M90 180H910" />
-          <path d="M78 300H922" />
-          <path d="M90 430H910" />
-          <path d="M120 560H880" />
-          <path d="M180 60V650" />
-          <path d="M360 40V680" />
-          <path d="M540 35V685" />
-          <path d="M720 40V680" />
-          <path d="M880 70V650" />
-        </g>
-        <path class="hero-spine hero-spine-primary" d="M140 470C260 420 360 450 470 390C590 324 710 345 860 236" />
-        <path class="hero-spine hero-spine-secondary" d="M160 250C280 180 370 210 470 198C610 180 690 214 840 176" />
-        <path class="hero-spine hero-spine-tertiary" d="M188 590C324 554 432 602 548 552C660 504 754 532 860 498" />
-
-        <g class="pulse-cluster" data-spatial-node="poro-point" data-focus-groups="logistics">
-          <circle class="pulse-ring" cx="822" cy="214" r="28" style="animation-delay:0s"></circle>
-          <circle class="pulse-ring" cx="822" cy="214" r="44" style="animation-delay:0.65s"></circle>
-          <circle class="pulse-ring" cx="822" cy="214" r="62" style="animation-delay:1.3s"></circle>
-          <circle class="pulse-node-core" cx="822" cy="214" r="7"></circle>
-        </g>
-
-        <g class="pulse-cluster" data-spatial-node="city-center" data-focus-groups="university retail hospital">
-          <circle class="pulse-ring" cx="620" cy="308" r="26" style="animation-delay:0.25s"></circle>
-          <circle class="pulse-ring" cx="620" cy="308" r="42" style="animation-delay:0.9s"></circle>
-          <circle class="pulse-ring" cx="620" cy="308" r="58" style="animation-delay:1.55s"></circle>
-          <circle class="pulse-node-core" cx="620" cy="308" r="7"></circle>
-        </g>
-
-        <g class="pulse-cluster" data-spatial-node="civic-belt" data-focus-groups="hospital university">
-          <circle class="pulse-ring" cx="480" cy="398" r="24" style="animation-delay:0.45s"></circle>
-          <circle class="pulse-ring" cx="480" cy="398" r="38" style="animation-delay:1.1s"></circle>
-          <circle class="pulse-ring" cx="480" cy="398" r="54" style="animation-delay:1.75s"></circle>
-          <circle class="pulse-node-core" cx="480" cy="398" r="7"></circle>
-        </g>
-      </svg>
     </div>
-    <div class="hero-depth-label hero-depth-label-city-center" data-depth-label="city-center" aria-hidden="true">City Center</div>
-    <div class="hero-depth-label hero-depth-label-civic-belt" data-depth-label="civic-belt" aria-hidden="true">Civic Belt</div>
-    <div class="site-shell hero-home-grid">
-      <div class="hero-home-copy">
+    <div class="site-shell hero-home-grid hero-home-grid-refined">
+      <div class="hero-home-copy hero-home-copy-refined">
         <div class="hero-prelude">
           <div class="hero-prelude-copy">
             <div class="eyebrow">City Investment Brief</div>
@@ -93,121 +98,124 @@ sfc_render_header($context, 'landing');
           </div>
           <span class="hero-node-badge" id="heroNodeBadge">Looking toward Poro Point</span>
         </div>
-        <h1>Where City Maps Become Investment Roadmaps.</h1>
-        <p id="heroFocusSummary">Infrastructure access, zoning alignment, and property scale dictate the true value of a location. Right now, all data points to Poro Point as the anchor of San Fernando's economic heat map.</p>
+        <h1>Find your next opportunity in San Fernando.</h1>
+        <p id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
 
-        <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city read">
-          <span class="hero-sentiment-label">Live city read</span>
-          <div class="market-ticker-track hero-sentiment-track" id="heroSentimentTicker">
-            <span class="market-ticker-item">Loading live city signals</span>
-          </div>
-        </div>
-
-        <div class="hero-lens-dock">
-          <div class="hero-lens-dock-head">
-            <div>
-              <span>Investment Lens</span>
-              <strong>Select the investment thesis that should guide the live city ranking.</strong>
-            </div>
-            <div class="hero-lens-controls">
-              <div class="hero-lens-dock-meta" id="heroTickerMeta">Logistics lens</div>
-              <button type="button" class="hero-orbit-toggle" id="heroOrbitToggle" aria-pressed="false">Start Orbit</button>
-            </div>
-          </div>
-          <div class="hero-focus-row">
+        <div class="hero-focus-block">
+          <span class="hero-focus-label">Choose a lens</span>
+          <div class="hero-focus-row" aria-label="Investment lens selector">
             <button type="button" class="chip hero-focus-chip" data-hero-focus="university">University</button>
             <button type="button" class="chip hero-focus-chip" data-hero-focus="logistics">Logistics</button>
             <button type="button" class="chip hero-focus-chip" data-hero-focus="hospital">Hospital</button>
             <button type="button" class="chip hero-focus-chip" data-hero-focus="retail">Retail</button>
           </div>
-          <p class="hero-orbit-status" id="heroOrbitStatus">Manual control engaged. Start orbit to sweep the thesis across the city.</p>
+          </div>
+
+        <div class="hero-actions hero-command-actions hero-home-actions">
+          <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-primary">
+            <span class="btn-shell-icon"><?= sfc_icon('ranking') ?></span>
+            <span>View Top Opportunities</span>
+          </a>
+          <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-secondary">
+            <span class="btn-shell-icon"><?= sfc_icon('explorer') ?></span>
+            <span>Explore the City</span>
+          </a>
         </div>
 
-        <div class="hero-actions">
-          <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero">Open Investment View</a>
-          <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero">Explore the City</a>
-        </div>
-
-        <div class="hero-proof-grid" id="heroProofGrid">
-          <article class="hero-proof-card">
-            <span>Data Valid</span>
-            <strong>Loading</strong>
-          </article>
-          <article class="hero-proof-card">
-            <span>Verified Listings</span>
-            <strong>Loading</strong>
-          </article>
-          <article class="hero-proof-card">
-            <span>Field Audits</span>
-            <strong>Loading</strong>
-          </article>
-          <article class="hero-proof-card">
-            <span>Dossier Ready</span>
-            <strong>Loading</strong>
-          </article>
-        </div>
-
-        <article class="hero-story-panel">
-          <div class="panel-kicker">Analyst Note</div>
-          <p id="heroStoryCopy">Property 1 - Industrial Zone now sits closest to the horizon because logistics demand is surfacing around Poro Point, giving the corridor its clearest current read.</p>
-        </article>
-      </div>
-
-      <aside class="hero-feature-shell">
-        <div class="hero-atlas-stack" id="livingCityRail">
-          <article class="hero-metric-slab">
-            <div class="hero-slab-topline">
-              <span>Current Thesis</span>
-              <strong id="heroMetricMeta">Logistics / Poro Point</strong>
-            </div>
-            <div class="hero-thesis-score-wrap">
-              <strong class="hero-slab-score" id="heroIaiScore">87.0</strong>
-              <p id="heroMetricSummary">Property 1 - Industrial Zone is the clearest opportunity currently visible at Poro Point.</p>
-            </div>
-            <div class="hero-slab-footer">
-              <span class="hero-slab-chip" id="heroFocusBadge">Logistics lens</span>
-              <span class="hero-slab-chip hero-slab-chip-quiet"><strong id="heroOpportunityCount">3</strong> live listings</span>
-            </div>
-          </article>
-
-          <article class="hero-opportunity-brief-shell">
-            <div class="hero-opportunity-brief-head">
-              <span>Featured Opportunity</span>
-              <strong id="heroFeaturedMeta">Poro Point horizon</strong>
-            </div>
-            <div class="hero-featured-opportunity" id="heroFeaturedOpportunity">
-              <div class="hero-opportunity-loading">Synchronizing live property brief...</div>
-            </div>
-          </article>
-
-          <div class="hero-node-dock">
-            <div class="hero-node-panel-head">
-              <div>
-                <div class="hero-node-dock-head">Spatial Triggers</div>
-                <strong id="heroNodeMeta">Poro Point horizon</strong>
-                <p id="heroOpportunitySummary">3 active listings currently orbit Poro Point on the city grid.</p>
-              </div>
-            </div>
-            <div class="living-city-node-list" aria-label="Spatial trigger nodes">
-              <button type="button" class="living-city-node-pill" data-city-node="poro-point">Poro Point</button>
-              <button type="button" class="living-city-node-pill" data-city-node="city-center">City Center</button>
-              <button type="button" class="living-city-node-pill" data-city-node="civic-belt">Civic Belt</button>
-            </div>
+        <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city read">
+          <span class="hero-sentiment-label">Live city read <strong id="heroTickerMeta">Logistics lens</strong></span>
+          <div class="market-ticker-track hero-sentiment-track" id="heroSentimentTicker">
+            <span class="market-ticker-item">Loading live city signals</span>
           </div>
         </div>
+      </div>
+
+      <aside class="hero-feature-shell hero-feature-shell-refined">
+        <article class="hero-home-panel">
+          <div class="hero-home-panel-head">
+            <div class="hero-home-panel-copy">
+              <div class="panel-kicker">Live Investment Snapshot</div>
+              <h2>Lead opportunity right now.</h2>
+            </div>
+            <div class="hero-brief-context">
+              <span>Live node</span>
+              <strong id="heroFeaturedMeta">Poro Point horizon</strong>
+            </div>
+          </div>
+
+          <div class="hero-featured-opportunity" id="heroFeaturedOpportunity">
+            <div class="hero-opportunity-loading">Synchronizing live property brief...</div>
+          </div>
+
+          <details class="hero-more-details">
+            <summary>View scores &amp; city context</summary>
+            <div class="hero-home-panel-body">
+              <section class="hero-score-block">
+                <div class="hero-score-copy">
+                  <span id="heroMetricMeta">Logistics / Poro Point</span>
+                  <strong class="hero-slab-score" id="heroIaiScore">87.0</strong>
+                  <p id="heroMetricSummary">Property 1 - Industrial Zone is the clearest opportunity currently visible at Poro Point.</p>
+                </div>
+                <div class="hero-score-chips">
+                  <span class="hero-slab-chip" id="heroFocusBadge">Logistics lens</span>
+                  <span class="hero-slab-chip hero-slab-chip-quiet"><strong id="heroOpportunityCount">3</strong> candidate sites</span>
+                </div>
+              </section>
+
+              <div class="hero-proof-grid hero-proof-grid-refined" id="heroProofGrid">
+                <article class="hero-proof-card">
+                  <span>Candidate Sites</span>
+                  <strong>Loading</strong>
+                </article>
+                <article class="hero-proof-card">
+                  <span>Verified</span>
+                  <strong>Loading</strong>
+                </article>
+                <article class="hero-proof-card">
+                  <span>Audits</span>
+                  <strong>Loading</strong>
+                </article>
+                <article class="hero-proof-card">
+                  <span>Ready</span>
+                  <strong>Loading</strong>
+                </article>
+              </div>
+            </div>
+
+            <article class="hero-story-panel hero-story-panel-refined">
+              <div class="panel-kicker">Why It Leads</div>
+              <p id="heroStoryCopy">Property 1 - Industrial Zone now sits closest to the horizon because logistics demand is surfacing around Poro Point, giving the corridor its clearest current read.</p>
+            </article>
+
+            <div class="hero-spatial-dock hero-spatial-dock-refined">
+              <div class="hero-node-panel-head">
+                <div class="hero-node-panel-copy">
+                  <div class="hero-node-dock-head">Spatial focus</div>
+                  <strong id="heroNodeMeta">Poro Point horizon</strong>
+                  <p id="heroOpportunitySummary">3 active listings currently orbit Poro Point on the city grid.</p>
+                </div>
+              </div>
+              <div class="living-city-node-list" aria-label="Spatial trigger nodes">
+                <button type="button" class="living-city-node-pill" data-city-node="poro-point">Poro Point</button>
+                <button type="button" class="living-city-node-pill" data-city-node="city-center">City Center</button>
+                <button type="button" class="living-city-node-pill" data-city-node="civic-belt">Civic Belt</button>
+              </div>
+            </div>
+          </details>
+        </article>
       </aside>
     </div>
   </section>
 
   <section class="site-shell section-block landing-overview-grid">
-    <article class="landing-panel landing-ranking-panel">
-      <div class="landing-panel-head">
-        <div class="section-heading section-heading-inline">
-          <div class="eyebrow">Top Ranked Opportunities</div>
-          <h2>Read the strongest investment opportunities in one editorial view.</h2>
-          <p>These properties rise first because score, corridor fit, readiness, and local demand are aligning more clearly than the rest of the field.</p>
-        </div>
-        <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Full Ranking</a>
+    <article class="landing-panel landing-ranking-panel landing-panel-priority">
+        <div class="landing-panel-head">
+          <div class="section-heading section-heading-inline">
+            <div class="eyebrow">Top Ranked Opportunities</div>
+            <h2>Opportunities backed by local evidence.</h2>
+          <p>These areas rise first only when investment attractiveness, corridor fit, readiness, and CLUP suitability align.</p>
+          </div>
+        <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View Investment Board</a>
       </div>
       <div id="homeRankingPreview" class="landing-ranking-preview">
         <div class="loading-panel">Loading property rankings...</div>
@@ -215,36 +223,32 @@ sfc_render_header($context, 'landing');
     </article>
 
     <div class="landing-side-stack">
-      <article class="landing-panel landing-demand-panel">
+      <article class="landing-panel landing-demand-panel landing-panel-secondary">
         <div class="landing-panel-head">
           <div class="section-heading section-heading-inline">
             <div class="eyebrow">Voting Signals</div>
-            <h2>What the city appears to need next.</h2>
-            <p>Investor and resident signals help reveal which services or establishments are beginning to pull hardest in each area.</p>
+          <h2>See what the city needs next.</h2>
+          <p>Investor and resident signals reveal which services or establishments are beginning to pull hardest in each area.</p>
           </div>
-          <a href="<?= htmlspecialchars(sfc_path('/voting-dashboard.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Voting</a>
+          <a href="<?= htmlspecialchars(sfc_path('/voting-dashboard.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View Demand Signals</a>
         </div>
         <div id="homeVotingPreview" class="landing-demand-preview">
           <div class="loading-panel">Loading demand insights...</div>
         </div>
       </article>
 
-      <article class="landing-panel landing-role-panel">
+      <article class="landing-panel landing-role-panel landing-panel-contrast">
         <div class="eyebrow">Platform Paths</div>
-        <h2>Choose the workspace that matches your role.</h2>
-        <p>Admins curate the market, sellers manage owned listings, and investors read the city through ranking, comparison, and demand signals.</p>
+        <h2>Each role enters through a workspace built for its exact decisions.</h2>
+        <p>Planning officers govern site evidence and policy priorities, while investors explore and compare compliant opportunities.</p>
         <div class="landing-role-links">
           <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="landing-role-link role-admin-link">
             <span>Admin</span>
-            <strong>Manage listings, showcase uploads, and platform intelligence.</strong>
-          </a>
-          <a href="<?= htmlspecialchars(sfc_path('/seller-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="landing-role-link role-seller-link">
-            <span>Seller</span>
-            <strong>Publish owned land, monitor readiness, and respond to interest.</strong>
+            <strong>Validate candidate sites, CLUP outcomes, scenarios, and reports.</strong>
           </a>
           <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="landing-role-link role-investor-link">
             <span>Investor / Resident</span>
-            <strong>Explore the city, compare opportunities, and surface demand.</strong>
+            <strong>Explore the city and compare CLUP-screened investment areas.</strong>
           </a>
         </div>
       </article>
@@ -252,28 +256,29 @@ sfc_render_header($context, 'landing');
   </section>
 
   <section class="site-shell section-block landing-curation-grid">
-    <article class="landing-panel landing-curation-panel">
+    <article class="landing-panel landing-curation-panel landing-panel-collection">
       <div class="landing-panel-head">
         <div class="section-heading section-heading-inline">
-          <div class="eyebrow">Offer Board</div>
-          <h2>Curated timed opportunities, presented like a premium collection.</h2>
-          <p>Admin-managed releases can carry offer windows, spotlight imagery, and a much cleaner story than a plain list can tell.</p>
+          <div class="eyebrow">CLUP Compliance Engine</div>
+          <h2>Attractiveness never overrides land-use compatibility.</h2>
+          <p>Test a candidate site and proposed investment type to receive a PASS, CONDITIONAL, or FAIL result with a suitability score and LGU action.</p>
         </div>
-        <a href="<?= htmlspecialchars(sfc_path('/offer-board.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Offer Board</a>
+        <a href="<?= htmlspecialchars(sfc_path('/simulator.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Run a Scenario</a>
       </div>
-      <div id="homeOfferPreview" class="landing-showcase-preview">
-        <div class="loading-panel">Loading curated offers...</div>
+      <div class="landing-showcase-preview clup-fact-grid">
+        <div><span>Compliance Gate</span><strong>PASS · CONDITIONAL · FAIL</strong></div>
+        <div><span>Decision Output</span><strong>Suitability, explanation, and LGU action</strong></div>
       </div>
     </article>
 
-    <article class="landing-panel landing-curation-panel is-pipeline">
+    <article class="landing-panel landing-curation-panel landing-panel-collection is-pipeline">
       <div class="landing-panel-head">
         <div class="section-heading section-heading-inline">
           <div class="eyebrow">City Pipeline</div>
-          <h2>Planned, approved, and not-yet-built city developments in one future-facing board.</h2>
-          <p>This is where the platform can surface what is coming next, from pipeline establishments to larger city-facing development signals.</p>
+          <h2>Planned and upcoming city developments, edited into one future-facing board.</h2>
+          <p>Track what is coming next, from approved commercial additions to larger city-facing development momentum.</p>
         </div>
-        <a href="<?= htmlspecialchars(sfc_path('/city-pipeline.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open City Pipeline</a>
+        <a href="<?= htmlspecialchars(sfc_path('/city-pipeline.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View City Pipeline</a>
       </div>
       <div id="homePipelinePreview" class="landing-showcase-preview">
         <div class="loading-panel">Loading city pipeline...</div>
@@ -285,7 +290,7 @@ sfc_render_header($context, 'landing');
     <div class="landing-city-copy">
       <div class="section-heading section-heading-inline">
         <div class="eyebrow">Why San Fernando</div>
-        <h2>A compact city where corridor logic, civic gravity, and coastal scale stay legible.</h2>
+        <h2>A city where corridor logic, civic gravity, and coastal scale stay surprisingly legible.</h2>
         <p>San Fernando works because transport, commerce, social services, and future growth all remain visible in one frame. That makes the city easier to read and easier to curate convincingly.</p>
       </div>
       <div class="landing-city-pillars">
@@ -334,7 +339,7 @@ sfc_render_header($context, 'landing');
           </div>
           <div>
             <span>03</span>
-            <strong>Use demand signals and due diligence as your final filters.</strong>
+            <strong>Use CLUP compliance and due diligence as mandatory final gates.</strong>
           </div>
         </div>
       </article>
@@ -342,14 +347,14 @@ sfc_render_header($context, 'landing');
   </section>
 
   <section class="site-shell final-cta-card landing-final-cta">
-    <div>
+    <div class="landing-final-cta-copy">
       <div class="eyebrow">Role Entry</div>
-      <h2>Enter the platform through the workflow that actually fits your role.</h2>
-      <p>This homepage now leads into sharper admin, seller, and investor journeys. The same premium language should carry all the way through the product.</p>
+      <h2>Enter through the workflow that matches the kind of decision you need to make.</h2>
+      <p>Choose the workspace that matches your role, with the same clear visual language carried into every next step.</p>
     </div>
     <div class="cta-card-actions">
       <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-ghost">Admin</a>
-      <a href="<?= htmlspecialchars(sfc_path('/seller-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Seller</a>
+      <a href="<?= htmlspecialchars(sfc_path('/simulator.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Scenario Simulator</a>
       <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-primary">Investor / Resident</a>
     </div>
   </section>

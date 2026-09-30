@@ -6,8 +6,13 @@ require __DIR__ . '/_bootstrap.php';
 use App\Support\JsonData;
 
 api_handle(function (array $container): array {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    if (request_method() !== 'POST') {
         return [405, ['error' => 'Method not allowed.']];
+    }
+
+    $user = sfc_current_user();
+    if (($user['role'] ?? null) !== 'admin') {
+        return [403, ['error' => 'Only admin accounts can update a candidate site barangay.']];
     }
 
     $input = read_json_input();
@@ -26,4 +31,3 @@ api_handle(function (array $container): array {
         'property' => $container['properties']->updateBarangay($propertyId, $barangay),
     ];
 });
-

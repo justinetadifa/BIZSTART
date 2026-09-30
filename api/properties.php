@@ -8,8 +8,16 @@ api_handle(function (array $container): array {
     $user = sfc_current_user();
 
     if ($method === 'GET') {
+        $properties = $container['properties']->all($user);
+        $propertyIds = array_values(array_filter(array_map(
+            static fn (array $property): int => (int) ($property['id'] ?? 0),
+            $properties
+        )));
         return [
-            'properties' => $container['properties']->all($user),
+            'properties' => $container['decisionEngine']->decorateProperties($properties, [
+                'voteSummaries' => $container['votes']->summaryMap($propertyIds),
+                'messageSummaries' => $container['messages']->propertySummaryMap($propertyIds),
+            ]),
         ];
     }
 
@@ -24,6 +32,10 @@ api_handle(function (array $container): array {
             $payload['image_path'] = $uploadedImagePath;
         }
         if (($user['role'] ?? null) === 'seller') {
+            if (strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'verified') {
+                return [403, ['error' => 'Your seller account is still pending verification. Complete your seller profile and wait for admin approval before publishing listings.']];
+            }
+
             unset(
                 $payload['approval_state'],
                 $payload['approvalState'],
@@ -41,6 +53,38 @@ api_handle(function (array $container): array {
                 $payload['utilityStatus'],
                 $payload['zoning_score'],
                 $payload['zoningScore'],
+                $payload['existing_land_use'],
+                $payload['existingLandUse'],
+                $payload['zoning_classification'],
+                $payload['zoningClassification'],
+                $payload['clup_allowed_uses'],
+                $payload['clupAllowedUses'],
+                $payload['clup_conditional_uses'],
+                $payload['clupConditionalUses'],
+                $payload['clup_restricted_uses'],
+                $payload['clupRestrictedUses'],
+                $payload['clup_source_reference'],
+                $payload['clupSourceReference'],
+                $payload['clup_verified'],
+                $payload['clupVerified'],
+                $payload['clup_verified_at'],
+                $payload['clupVerifiedAt'],
+                $payload['clup_profile'],
+                $payload['clupProfile'],
+                $payload['clup_compliance'],
+                $payload['clupCompliance'],
+                $payload['evidence_level'],
+                $payload['evidenceLevel'],
+                $payload['source_document_path'],
+                $payload['sourceDocumentPath'],
+                $payload['review_status'],
+                $payload['reviewStatus'],
+                $payload['dataset_id'],
+                $payload['datasetId'],
+                $payload['zone_id'],
+                $payload['zoneId'],
+                $payload['profile_id'],
+                $payload['profileId'],
                 $payload['assessed_value_sqm'],
                 $payload['assessedValueSqm'],
                 $payload['readiness_notes'],
@@ -75,7 +119,10 @@ api_handle(function (array $container): array {
         return [
             201,
             [
-                'property' => $property,
+                'property' => $container['decisionEngine']->decorateProperty($property, [
+                    'voteSummary' => $container['votes']->summaryMap([(int) ($property['id'] ?? 0)])[(int) ($property['id'] ?? 0)] ?? [],
+                    'messageSummary' => $container['messages']->propertySummaryMap([(int) ($property['id'] ?? 0)])[(int) ($property['id'] ?? 0)] ?? [],
+                ]),
             ],
         ];
     }

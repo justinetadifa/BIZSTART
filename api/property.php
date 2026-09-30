@@ -12,9 +12,13 @@ api_handle(function (array $container): array {
     }
 
     if ($method === 'GET') {
-        return [
-            'property' => $container['properties']->find($propertyId, $user),
-        ];
+        $property = $container['properties']->find($propertyId, $user);
+        $property = $container['decisionEngine']->decorateProperty($property, [
+                'voteSummary' => $container['votes']->summaryMap([$propertyId])[$propertyId] ?? [],
+                'messageSummary' => $container['messages']->propertySummaryMap([$propertyId])[$propertyId] ?? [],
+            ]);
+        $property = $container['clup']->decorateProperty($property, string_or_null($_GET['investmentType'] ?? null));
+        return ['property' => $property];
     }
 
     if ($method === 'PUT' || $method === 'PATCH') {
@@ -49,6 +53,22 @@ api_handle(function (array $container): array {
                 $payload['utilityStatus'],
                 $payload['zoning_score'],
                 $payload['zoningScore'],
+                $payload['existing_land_use'],
+                $payload['existingLandUse'],
+                $payload['zoning_classification'],
+                $payload['zoningClassification'],
+                $payload['clup_allowed_uses'],
+                $payload['clupAllowedUses'],
+                $payload['clup_conditional_uses'],
+                $payload['clupConditionalUses'],
+                $payload['clup_restricted_uses'],
+                $payload['clupRestrictedUses'],
+                $payload['clup_source_reference'],
+                $payload['clupSourceReference'],
+                $payload['clup_verified'],
+                $payload['clupVerified'],
+                $payload['clup_verified_at'],
+                $payload['clupVerifiedAt'],
                 $payload['assessed_value_sqm'],
                 $payload['assessedValueSqm'],
                 $payload['readiness_notes'],
@@ -75,9 +95,12 @@ api_handle(function (array $container): array {
 
         $container['line']->onListingUpdated($beforeProperty, $property, $user);
 
-        return [
-            'property' => $property,
-        ];
+        $property = $container['decisionEngine']->decorateProperty($property, [
+                'voteSummary' => $container['votes']->summaryMap([$propertyId])[$propertyId] ?? [],
+                'messageSummary' => $container['messages']->propertySummaryMap([$propertyId])[$propertyId] ?? [],
+            ]);
+        $property = $container['clup']->decorateProperty($property);
+        return ['property' => $property];
     }
 
     if ($method === 'DELETE') {

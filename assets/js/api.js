@@ -6,6 +6,11 @@ async function request(path, options = {}) {
     Accept: "application/json",
     ...(options.headers || {}),
   };
+  const method = String(options.method || "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    const csrfToken = String(window.SFC_APP_CONFIG?.csrfToken || "");
+    if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
+  }
 
   if (!isFormData && options.body !== undefined) {
     headers["Content-Type"] = "application/json";
@@ -13,6 +18,7 @@ async function request(path, options = {}) {
 
   const response = await fetch(`${API_BASE}/${path}`, {
     headers,
+    credentials: "same-origin",
     ...options,
   });
 
@@ -85,6 +91,12 @@ export const api = {
   property(propertyId) {
     return request(`property.php?id=${propertyId}`);
   },
+  clupCompliance(propertyId, investmentType) {
+    return request("clup.php", {
+      method: "POST",
+      body: JSON.stringify({ propertyId, investmentType }),
+    });
+  },
   propertyCommandCenter(propertyId) {
     return request(`property-command-center.php?id=${propertyId}`);
   },
@@ -131,6 +143,19 @@ export const api = {
   getVotes(propertyId) {
     return request(`votes.php?propertyId=${propertyId}`);
   },
+  getVoteTallies(propertyIds = []) {
+    const ids = Array.from(
+      new Set(
+        (Array.isArray(propertyIds) ? propertyIds : [propertyIds])
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value) && value > 0)
+      )
+    );
+    if (!ids.length) {
+      return Promise.resolve({ tallies: {} });
+    }
+    return request(`votes.php?ids=${ids.join(",")}`);
+  },
   castVote(propertyId, labelOrOptionId) {
     const payload = Number.isFinite(Number(labelOrOptionId)) && String(labelOrOptionId).trim() !== ""
       ? { propertyId, voteOptionId: Number(labelOrOptionId) }
@@ -163,6 +188,7 @@ export const api = {
   updateShowcaseItem(itemId, payload) {
     if (payload instanceof FormData) {
       payload.append("_method", "PUT");
+      payload.append("id", String(itemId));
       return request(`showcase-item.php?id=${itemId}`, {
         method: "POST",
         body: payload,
@@ -260,6 +286,29 @@ export const api = {
   },
   notifications(limit = 40) {
     return request(`notifications.php?limit=${Math.max(1, Number(limit || 40))}`);
+  },
+  sellerProfile() {
+    return request("seller-profiles.php");
+  },
+  sellerReviewQueue(status = "") {
+    const params = new URLSearchParams();
+    params.set("scope", "queue");
+    if (status) {
+      params.set("status", String(status));
+    }
+    return request(`seller-profiles.php?${params.toString()}`);
+  },
+  saveSellerProfile(payload) {
+    return request("seller-profiles.php", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  reviewSellerProfile(payload) {
+    return request("seller-profiles.php", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   },
   markNotificationRead(notificationId) {
     return request("notifications.php", {

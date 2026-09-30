@@ -1,7 +1,0 @@
-app/config.local.php
-vendor/
-node_modules/
-*.log
-Thumbs.db
-Desktop.ini
-
