@@ -1,17 +1,33 @@
-# 🏙️ SFCelerate BizStart
-
 <div align="center">
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
-[![MySQL](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
-[![Leaflet.js](https://img.shields.io/badge/Leaflet-1.9.4-199900?style=for-the-badge&logo=leaflet&logoColor=white)](https://leafletjs.com/)
-[![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-Live_Tiles-7EBC6F?style=for-the-badge&logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6%2B-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+  <img src="assets/images/webLogoSfc.png" alt="LOCUS-SF / SFCelerate BizStart Logo" width="100" />
 
-**Spatial Intelligence, Due Diligence, and Investment Decision Platform for San Fernando, La Union.**
+  # 🏙️ LOCUS-SF
+  ### City Investment Intelligence & Geospatial Decision-Support Platform
+  **SFCelerate BizStart Ecosystem • San Fernando City, La Union, Philippines**
 
-[Features](#-key-features) • [Installation](#-getting-started) • [Demo Credentials](#-demo-accounts) • [Architecture](#-project-structure) • [API Reference](#-api-endpoints)
+  <p align="center">
+    <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP Version" /></a>
+    <a href="https://www.mysql.com/"><img src="https://img.shields.io/badge/MySQL-8.0%2B-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL" /></a>
+    <a href="https://leafletjs.com/"><img src="https://img.shields.io/badge/Leaflet-1.9.4-199900?style=for-the-badge&logo=leaflet&logoColor=white" alt="Leaflet.js" /></a>
+    <a href="https://www.openstreetmap.org/"><img src="https://img.shields.io/badge/OpenStreetMap-Live_GIS-7EBC6F?style=for-the-badge&logo=openstreetmap&logoColor=white" alt="OpenStreetMap" /></a>
+    <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"><img src="https://img.shields.io/badge/JavaScript-ES6%2B-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript ES6+" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" /></a>
+  </p>
+
+  <p align="center">
+    <strong>Deterministic opportunity screening, parcel-level spatial intelligence, and CLUP policy compliance for smart city investments.</strong>
+  </p>
+
+  <p align="center">
+    <a href="#-overview">Overview</a> •
+    <a href="#-key-features">Key Features</a> •
+    <a href="#-system-architecture">Architecture</a> •
+    <a href="#-getting-started">Installation</a> •
+    <a href="#-demo-accounts">Demo Accounts</a> •
+    <a href="#-api-endpoints">API Reference</a> •
+    <a href="#-academic-credits">Credits</a>
+  </p>
 
 </div>
 
@@ -19,192 +35,228 @@
 
 ## 📖 Overview
 
-**SFCelerate BizStart** is a full-featured spatial intelligence and investment acceleration platform tailored for the City of San Fernando, La Union. It connects investors, property sellers, city planners, and residents by transforming raw land and commercial real estate data into actionable investment intelligence.
+**LOCUS-SF** (San Fernando Geospatial Investment Intelligence System, powered by the **SFCelerate BizStart** platform) is an enterprise-grade, web-based decision-support platform designed to evaluate, rank, and screen commercial property investments and urban development sites in **San Fernando City, La Union, Philippines**.
 
-The platform provides interactive map exploration, sector-specific investment lens scoring, crowdsourced local demand voting, due diligence tracking, and multi-property comparison matrices.
+The platform resolves the traditional disconnect between investor site selection, real-time market demand, and local land-use governance. By combining automated multi-criteria investment scoring with a spatial **Comprehensive Land Use Plan (CLUP)** suitability engine, LOCUS-SF delivers a transparent, data-driven environment for private investors, commercial developers, land sellers, and municipal planners.
+
+```
+       [ Private Investors & Developers ]          [ Land Sellers & Owners ]
+                       \                                   /
+                        \                                 /
+                         ▼                               ▼
+                 +-----------------------------------------------+
+                 |       LOCUS-SF DECISION-SUPPORT ENGINE        |
+                 |  - Spatial GIS Mapping & CLUP Suitability     |
+                 |  - Multi-Lens Investment Attractiveness (IAI) |
+                 |  - Crowdsourced Citizen Demand Signals        |
+                 |  - 6-Point Due Diligence & Audit Verification |
+                 +-----------------------------------------------+
+                                         |
+                                         ▼
+                     [ City Government Planners & LGUs ]
+               Policy-Ready Reports • Due Diligence Packs • Growth Pipeline
+```
 
 ---
 
 ## ✨ Key Features
 
-### 🗺️ Spatial Intelligence & Live Property Explorer
-* **Interactive Leaflet + OpenStreetMap**: Explore properties with cluster markers, interactive bounding, and corridor overlays (Highway, Coastal, Downtown).
-* **Opportunity Spotlight**: Instant deep dive into highlighted opportunities with spatial metrics and live neighborhood demand.
-* **Google Earth KML Export**: 3D spatial validation and terrain export for land development assessments.
+### 🗺️ Spatial Intelligence & Live Map Explorer
+* **Interactive Leaflet & MapLibre Engine**: Explore commercial corridors with live boundary geometry, clustered property markers, and spatial overlays (Poro Point Peninsula, City Center Commercial Spine, and Coastal Tourism Belt).
+* **Corridor Filter Terminal**: Search by investment corridor, land-use zoning, price per square meter, road frontage, and total parcel area.
+* **Google Earth KML Export**: One-click 3D spatial terrain export (`/api/google-earth.php?id={id}`) for satellite and drone inspection.
 
-### 🎯 Investment Lens Scoring Engine
-* **Sector-Specific Lenses**: Dynamically re-rank and evaluate properties based on custom lenses:
-  * 🏖️ *Resort & Tourism*
-  * 🚚 *Logistics & Warehousing*
-  * 🏢 *Office & BPO*
-  * 🛍️ *Commercial & Retail*
-  * 🏭 *Light Manufacturing*
-* **Multi-Pillar Readiness Model (IRIE)**: Evaluates Spatial, Infrastructure, Economic, Institutional, and Legal signals.
+### 🎯 Multi-Lens Investment Scoring (IAI Engine)
+* **Custom Investment Theses**: Dynamically re-rank and evaluate properties based on industry sector lenses:
+  * 🚚 **Logistics & Freeport Corridor** (Port proximity, container access, arterial road depth)
+  * 🏢 **Office, IT & BPO Belt** (Fiber connectivity, commercial density, transit hubs)
+  * 🛍️ **Commercial & Retail Center** (Foot-traffic pull, civic proximity, population density)
+  * 🏖️ **Resort, Hospitality & Tourism** (Coastal proximity, scenic vista, recreation access)
+  * ☀️ **Clean Energy & Sustainability** (High-capacity rooftop solar suitability, resilience)
+* **Multi-Pillar Readiness Model**: Evaluates Spatial, Infrastructure, Economic, Governance, and Legal evidence.
+
+### ⚖️ Head-to-Head Comparison & Decision Matrix
+* **3-Property Matrix Evaluation**: Compare candidate sites side-by-side across pricing, zoning compliance, hazard ratings, and due diligence completion.
+* **Deterministic Recommendation Engine**: Automated opportunity matching with custom investor weightings and budget constraints.
+
+### 📋 Due Diligence Dossier & Ground-Truth Verification
+* **6-Point Verification Checklist**: Tracks and verifies Land Title copy, Tax Declaration, Certified Geodetic Survey Plan, Zoning Clearance, Site Photographs, and Environmental/Hazard Clearances.
+* **LGU Ground-Truth Audits**: On-site verification timestamps and municipal compliance flags directly attached to listings.
 
 ### 🗳️ Citizen & Investor Demand Voting
-* **Crowdsourced Market Validation**: Citizens and investors vote on needed businesses per barangay (e.g., Pharmacy, Café, Co-working space, 24/7 Convenience).
-* **Demand-to-Supply Matching**: Links local voting sentiment directly to adjacent commercial listings.
+* **Hyperlocal Community Signals**: Residents and investors vote on commercial gaps per barangay (e.g., Diagnostics Clinic, 24/7 Convenience, Specialty Café, Co-Working Space, Hardware Depot).
+* **Demand-to-Supply Matching**: Connects community voting demand to adjacent vacant properties to identify high-conviction development opportunities.
 
-### ⚖️ Compare & Decision Matrix
-* **Head-to-Head Comparison**: Compare up to 3 shortlisted properties across pricing, road access, zoning scores, due diligence completion, and investment readiness.
-* **Decision Recommendations**: Automated winner identification based on weighted priorities and budget caps.
+### 🌅 Cinematic Welcome Experience & Interactive Beacons
+* **Interactive City Beacons**: Live hotspot coordinates on key San Fernando landmarks (Poro Point Freeport, City Center Spine, Commercial Solar Arrays) with telemetry tooltips.
+* **Atmospheric Physics**: 3D cursor tilt with specular glass glare and ambient golden-hour dust motes on a high-performance HTML5 canvas layer.
+* **Live Telemetry HUD**: Real-time San Fernando Philippine Standard Time (PHT, UTC+8) clock and radar coordinates readout.
 
-### 📋 Due Diligence & Ground Truth Tracking
-* **6-Point Document Checklist**: Title copy, tax declaration, survey plan, zoning clearance, site photos, and environmental/hazard reports.
-* **Ground Truth Auditing**: Tracks on-site inspection visits and applies confidence adjustments to opportunity scores.
-
-### 👥 Role-Based Workspaces
-* **🧑‍💼 Investor / Resident Portal**: Browse listings, save favorites, submit compare queues, cast votes, and send direct inquiries.
-* **🏢 Seller Portal**: Submit listings, manage media uploads, track verification progress, and respond to buyer inquiries.
-* **🛡️ Admin Command Center**: Inventory CRUD, document verification workflows, audit logs, and city-wide demand analytics.
+### 👥 Multi-Role Workspaces
+* **🧑‍💼 Investor Portal**: Shortlist properties, compare portfolios, generate decision reports, cast demand votes, and message property sellers directly.
+* **🏢 Seller Portal**: Submit listings, upload legal proof documents, track due diligence approval stages, and respond to buyer inquiries.
+* **🛡️ Admin Command Center**: Full inventory CRUD, document audit workflows, showcase curator, user management, and city-wide analytics.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Architecture
 
-* **Backend**: PHP 8.1+ (Native, zero heavyweight framework dependencies, modular repository pattern)
-* **Database**: MySQL 8.0+ / MariaDB (InnoDB, Foreign Key constraints, UTF8mb4)
-* **Frontend**: Vanilla JavaScript (ES6 Modules), HTML5, Vanilla CSS3 (Clean custom design system with Dark/Light accents)
-* **Maps & Geo**: Leaflet.js, OpenStreetMap Tiles, LocationIQ Geocoding API
-* **External Services (Optional with Graceful Fallbacks)**:
-  * 🤖 *Gemini AI / OpenRouter* — Automated investment thesis summaries
-  * ⛅ *OpenWeather* — Microclimate and environmental conditions
-  * 📈 *Alpha Vantage* — Regional market benchmarks
-  * 📰 *NewsAPI* — Local economic and infrastructure developments
+| Layer | Technologies | Key Highlights |
+| :--- | :--- | :--- |
+| **Frontend** | HTML5, Modern Vanilla CSS3, JavaScript (ES6+ Modules) | Zero heavy JS framework overhead; custom design tokens, glassmorphism, responsive navigation down to 320px |
+| **Mapping & GIS** | Leaflet.js 1.9.4, MapLibre GL, OpenStreetMap, CARTO Basemaps | Real-time geospatial rendering, polygon overlays, interactive GPS markers |
+| **Backend Core** | PHP 8.1+ (Native OOP) | Repository-Service pattern, PSR-compliant structure, robust error handling, session security |
+| **Database** | MySQL 8.0+ / MariaDB 10.4+ | InnoDB engine, foreign keys, UTF8mb4 charset, indexed spatial lookups, transactional audit logs |
+| **External APIs** | LocationIQ, OpenWeather, NewsAPI, Alpha Vantage, Google Gemini | Reverse geocoding, parcel microclimate, economic news, and AI opportunity synthesis (all with graceful fallbacks) |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-* [XAMPP](https://www.apachefriends.org/) (PHP 8.1+ & MySQL) or any standard Apache/PHP/MySQL stack.
-* Git
+* **[XAMPP](https://www.apachefriends.org/)** (PHP 8.1+ & MySQL 8.0+ / MariaDB) or an equivalent Apache/PHP/MySQL web server.
+* **Git** installed on your system.
 
 ### Step-by-Step Installation
 
-1. **Clone the repository** into your XAMPP `htdocs` directory:
+1. **Clone the repository** into your web server root (`htdocs`):
    ```bash
    cd c:/xampp/htdocs
-   git clone https://github.com/justinetadifa/BIZSTART.git sfceleratee
+   git clone https://github.com/justinetadifa/BIZSTART.git sfcelerate-bizstart
    ```
 
-2. **Start Services**:
+2. **Start Web & Database Services**:
    * Open the **XAMPP Control Panel**.
-   * Start both **Apache** and **MySQL**.
+   * Start both **Apache** and **MySQL** services.
 
-3. **Import Database**:
-   * Open your browser and navigate to **[http://localhost/phpmyadmin/](http://localhost/phpmyadmin/)**.
-   * Create a new database named **`sfceleratee`**.
-   * Click **Import** and select [`database/setup.sql`](./database/setup.sql) (this creates all tables and inserts initial seed data).
+3. **Import the Database**:
+   * Open your web browser and visit **[http://localhost/phpmyadmin/](http://localhost/phpmyadmin/)**.
+   * Create a new database named **`sfcelerate-bizstart`** (or `sfceleratee`).
+   * Click **Import** and upload [`database/setup.sql`](./database/setup.sql). This executes the complete table schema and injects initial sample properties, users, and audit fixtures.
 
-4. **Configuration (Optional)**:
-   * Copy [`app/config.local.php.example`](./app/config.local.php.example) to `app/config.local.php`:
+4. **Environment Configuration (Optional)**:
+   * By default, the application runs out of the box with `localhost:3306`, user `root`, and an empty password.
+   * To add custom database credentials or external API keys (Gemini AI, LocationIQ, OpenWeather), copy the example configuration:
      ```bash
      cp app/config.local.php.example app/config.local.php
      ```
-   * The default settings connect to `localhost:3306` with user `root` and an empty password.
-   * Add any external API keys (Gemini, LocationIQ, OpenWeather) if you wish to enable live external integrations.
 
 5. **Launch Application**:
-   * Open your browser and visit:
+   * Open your browser and navigate to:
      ```text
-     http://localhost/sfceleratee/
+     http://localhost/sfcelerate-bizstart/
      ```
 
 ---
 
 ## 🔑 Demo Accounts
 
-For testing all roles and permissions, use the following demo credentials:
+For testing all roles and permissions, use the following pre-seeded demo accounts:
 
-| Role | Email | Password | Access / Capabilities |
+| Role | Email Address | Password | Capabilities & Access |
 | :--- | :--- | :--- | :--- |
-| **🛡️ Admin** | `admin@sfcelerate.local` | `Admin123!` | Full inventory CRUD, document approvals, ground-truth audits, showcase management |
-| **🏢 Seller** | `seller@sfcelerate.local` | `Seller123!` | Submit & edit listings, upload due diligence files, track buyer inquiries |
-| **🧑‍💼 Investor** | `investor@sfcelerate.local` | `Investor123!` | Shortlist properties, compare matrices, cast demand votes, request documents |
+| **🛡️ Administrator** | `admin@sfcelerate.local` | `Admin123!` | Full property CRUD, document verification, ground-truth audit logs, showcase manager |
+| **🏢 Property Seller** | `seller@sfcelerate.local` | `Seller123!` | Submit property listings, upload 6-point due diligence documents, view buyer inquiries |
+| **🧑‍💼 Private Investor** | `investor@sfcelerate.local` | `Investor123!` | Shortlist candidates, run 3-way matrix compare, cast demand votes, generate PDF reports |
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Directory Structure
 
 ```text
-sfceleratee/
-├── api/                        # JSON API Endpoints
-│   ├── _bootstrap.php          # API middleware & response helper
-│   ├── bootstrap.php           # Core application state & inventory
-│   ├── properties.php          # Property listing & filtering
-│   ├── property.php            # Single property details
-│   ├── cart.php                # Shortlist & comparison queue
-│   ├── votes.php               # Demand voting endpoints
-│   ├── due-diligence.php       # DD checklist & verification status
-│   ├── messages.php            # Direct seller-investor messaging
-│   └── external-*.php          # Service proxies (AI, Weather, News)
-├── app/                        # Backend Application Core
-│   ├── Core/                   # Database PDO singleton & Schema manager
-│   ├── Repositories/           # Data access layer (Properties, Votes, Users, etc.)
-│   ├── Support/                # Auth, Helpers, External services, View renderers
-│   ├── config.php              # Base configuration
-│   └── config.local.php.example# Local environment overrides
-├── assets/                     # Frontend Assets
+sfcelerate-bizstart/
+├── api/                        # RESTful JSON API Endpoints
+│   ├── _bootstrap.php          # API middleware, session handler & JSON response helpers
+│   ├── properties.php          # Property catalogue listing, searching & corridor filters
+│   ├── property.php            # Single parcel dossier, readiness scores & media
+│   ├── cart.php                # Shortlist favorites and compare matrix queue
+│   ├── votes.php               # Hyperlocal demand votes & barangay tallies
+│   ├── due-diligence.php       # 6-point verification documents review & uploads
+│   ├── messages.php            # Direct investor-to-seller inquiry threads
+│   ├── google-earth.php        # Dynamic 3D KML GIS boundary exporter
+│   ├── external-*.php          # Graceful proxies for AI synthesis, Weather & News
+│   └── health.php              # Automated system & database diagnostics ping
+├── app/                        # Modular Backend Application Core
+│   ├── Core/                   # Database singleton (PDO) & SchemaManager
+│   ├── Repositories/           # Data access layer (Property, User, Vote, AuditLog)
+│   ├── Support/                # Auth guards, HTML renderers, GIS utilities & helpers
+│   ├── config.php              # System configuration & environment defaults
+│   └── config.local.php.example# Template for local environment overrides
+├── assets/                     # Frontend Design System & Static Media
 │   ├── css/
-│   │   ├── app.css             # Base utility styles
-│   │   └── portal.css          # Platform design system & page layouts
+│   │   ├── portal.css          # Core design tokens, layout grid & card styling
+│   │   ├── welcome.css         # Cinematic welcome screen & spatial beacon styles
+│   │   ├── preloader.css       # Non-blocking initial portal loader
+│   │   ├── navigation.css      # Responsive mobile navigation menu
+│   │   ├── discovery.css       # City discovery & top opportunity components
+│   │   └── reports.css         # Printable investment prospectus styling
 │   ├── js/
-│   │   ├── api.js              # Frontend API client
-│   │   ├── portal.js           # Core state management & page controllers
-│   │   └── utils.js            # Formatters, calculations & scoring helpers
-│   └── images/                 # Listing photography & platform icons
-├── data/                       # Fallback JSON datasets for offline seeding
-├── database/                   # Database Migrations & Seeds
-│   ├── schema.sql              # Clean DDL table schemas
-│   ├── seed.sql                # Default property & user fixtures
-│   └── setup.sql               # Single-file complete DB installer
-├── docs/                       # Project Documentation & Architecture Guides
-│   └── CODEX_CONTEXT.md        # Technical design context & architecture specs
-├── property-explorer.php       # Interactive Leaflet Map & Spatial Filter Terminal
-├── property-ranking.php        # Editorial Scoreboards & Lens Rankings
-├── property-details.php        # Comprehensive Property Due Diligence Dossier
-├── compare-decision.php        # Multi-Property Comparison & Matrix Engine
-├── voting-dashboard.php        # Barangay Demand Sentiment & Community Voting
-├── offer-board.php             # Curated Timed Investment Releases
-├── city-pipeline.php           # City Development Pipeline & Future Infrastructure
-└── index.php                   # Public Homepage & Hero Stage
+│   │   ├── portal.js           # Core state management, modal controllers & UI logic
+│   │   ├── welcome.js          # Particle physics, 3D cursor parallax & beacon locks
+│   │   ├── preloader.js        # Smooth loader dismissal lifecycle
+│   │   └── navigation.js       # Mobile navigation toggle controller
+│   └── images/                 # Listing photography, brand logos & SVG iconography
+├── data/                       # Offline JSON datasets & CLUP governance records
+├── database/                   # Database Scripts & Fixtures
+│   ├── schema.sql              # Clean DDL table schemas with foreign keys & indexes
+│   ├── seed.sql                # Default properties, users & demand fixtures
+│   └── setup.sql               # Single-file complete database installer
+├── docs/                       # Architectural Specifications & Research Documentation
+├── index.php                   # Public Homepage, Hero Overview & Spatial Brief
+├── property-explorer.php       # Interactive GIS Map & Spatial Search Terminal
+├── property-ranking.php        # Multi-Lens Scoreboards & Investment Ranking
+├── property-details.php        # Complete Parcel Due Diligence Dossier
+├── compare-decision.php        # Multi-Property Comparison & Matrix Decision Engine
+├── voting-dashboard.php        # Barangay Community Demand Sentiment & Voting
+├── reports.php                 # Investment Reports & Print Prospectus Generator
+├── seller-dashboard.php        # Seller Listing Management & Inquiries
+├── admin-dashboard.php         # Administrator Command Center
+└── admin-properties.php        # Admin Inventory Management & Document Verification
 ```
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 Core API Endpoints
 
-All endpoints return standardized JSON payloads formatted as `{ "ok": true, "data": { ... } }`:
+All API endpoints return standard JSON envelopes formatted as `{ "ok": true, "data": { ... } }`:
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/bootstrap.php` | Full client bootstrap (properties, user session, service status) |
-| `GET` | `/api/property.php?id={id}` | Detailed property dossier with pillars, media, and DD checklist |
-| `GET/POST` | `/api/properties.php` | Property listing with search query, corridor, and type filters |
-| `GET/POST/DEL` | `/api/cart.php` | Manage compare and favorite queues |
-| `GET/POST` | `/api/votes.php` | Retrieve demand tallies and cast community votes |
-| `GET/POST` | `/api/due-diligence.php` | Submit/review property due diligence document items |
-| `GET/POST/DEL` | `/api/messages.php` | Threaded inquiries between investors and property sellers |
-| `GET` | `/api/location-search.php?q={query}` | Geocoding search via LocationIQ with local fallback |
-| `GET` | `/api/google-earth.php?id={id}` | Export property coordinates and bounds as a `.kml` file |
-| `GET` | `/api/health.php` | System status, database ping, and environment checks |
+| `GET` | `/api/bootstrap.php` | Client bootstrap payload (property catalogue, user session, system flags) |
+| `GET` | `/api/properties.php` | List properties with query, price, corridor, and zoning filters |
+| `GET` | `/api/property.php?id={id}` | Retrieve full property dossier, IAI pillar breakdown, and documents |
+| `GET / POST / DEL` | `/api/cart.php` | Manage investor shortlist and compare queues |
+| `GET / POST` | `/api/votes.php` | Query barangay demand statistics and record validated votes |
+| `GET / POST` | `/api/due-diligence.php` | Query verification status and upload checklist documents |
+| `GET / POST / DEL` | `/api/messages.php` | Threaded investor inquiries and seller communications |
+| `GET` | `/api/google-earth.php?id={id}` | Export property coordinates and polygon boundaries as a `.kml` GIS file |
+| `GET` | `/api/health.php` | System status check, database latency ping, and environment diagnostics |
 
 ---
 
-## 🔒 Security & Best Practices
+## 🔒 Security & Performance Principles
 
-* **Prepared Statements**: All database operations use PDO prepared statements with strict parameter binding to eliminate SQL injection risks.
-* **XSS Prevention**: Output data in templates is escaped using `htmlspecialchars()` with UTF-8 encoding.
-* **Environment Isolation**: Sensitive configuration (`config.local.php`, session cookies) is excluded from version control via [`.gitignore`](./.gitignore).
-* **Strict Session Security**: Session management uses HttpOnly cookies and role validation gates across restricted routes.
+* **Prepared Statements**: 100% of SQL interactions use PDO prepared statements with strict parameter binding to eliminate SQL injection vulnerabilities.
+* **XSS Neutralization**: User inputs and database outputs in templates are sanitized using `htmlspecialchars()` with UTF-8 encoding.
+* **Graceful API Degradation**: Third-party services (Gemini AI, LocationIQ, OpenWeather) feature local file-caching and structured offline fallbacks so the application functions seamlessly even without external API keys.
+* **Strict Session Management**: Role-based access control with HttpOnly session cookies, CSRF defenses, and authentication gates on all administrative and seller routes.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This software is released under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🎓 Academic Credits
+
+Developed as an undergraduate Capstone Project in Information Technology:
+
+* **Degree Program:** Bachelor of Science in Information Technology (BSIT)
+* **Institution:** Don Mariano Marcos Memorial State University — Mid La Union Campus (DMMMSU-MLUC)
+* **Location:** City of San Fernando, La Union 2500, Philippines
 
 <div align="center">
-  <sub>Developed for the <strong>SFCelerate BizStart Platform</strong> • San Fernando, La Union</sub>
+  <sub>Developed for <strong>LOCUS-SF • SFCelerate BizStart Platform</strong> • San Fernando City, La Union</sub>
 </div>
