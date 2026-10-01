@@ -202,78 +202,140 @@ sfc_render_header($context, 'landing');
   <section class="hero-home hero-home-editorial hero-home-refined" data-hero-stage tabindex="0" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
     <div class="hero-canvas" id="hero-canvas" aria-hidden="true">
       <div class="hero-home-backdrop"></div>
+      <div class="hero-atmosphere-light"></div>
+      <div class="hero-grid-mesh"></div>
+
+      <!-- Interactive Spatial Beacons anchored to San Fernando landmarks -->
+      <div class="hero-spatial-beacons" aria-hidden="true">
+        <button type="button" class="hero-geo-pin hero-geo-pin--poro" data-city-node="poro-point" title="Poro Point Freeport & Logistics Spine" tabindex="-1">
+          <span class="geo-pin-ring"></span>
+          <span class="geo-pin-dot"></span>
+          <span class="geo-pin-label">01 · Poro Point Freeport</span>
+        </button>
+        <button type="button" class="hero-geo-pin hero-geo-pin--center" data-city-node="city-center" title="City Center & Commercial Belt" tabindex="-1">
+          <span class="geo-pin-ring"></span>
+          <span class="geo-pin-dot"></span>
+          <span class="geo-pin-label">02 · City Center Core</span>
+        </button>
+        <button type="button" class="hero-geo-pin hero-geo-pin--civic" data-city-node="civic-belt" title="Civic Belt & Bypass Expansion" tabindex="-1">
+          <span class="geo-pin-ring"></span>
+          <span class="geo-pin-dot"></span>
+          <span class="geo-pin-label">03 · Civic Belt Corridor</span>
+        </button>
+      </div>
+
+      <!-- Geospatial Planning Telemetry Header -->
+      <div class="hero-telemetry-overlay" aria-hidden="true">
+        <span class="telemetry-coord">16°37′03″N · 120°19′11″E</span>
+        <span class="telemetry-clup">CLUP COMPREHENSIVE ZONING 2025–2035</span>
+        <span class="telemetry-datum">SURVEY ELEVATION +14M TO +82M</span>
+      </div>
+
       <div class="mouse-glow"></div>
     </div>
+
     <div class="site-shell hero-home-grid hero-home-grid-refined">
       <div class="hero-home-copy hero-home-copy-refined">
         <div class="hero-prelude">
           <div class="hero-prelude-copy">
-            <div class="eyebrow">City Investment Brief</div>
+            <span class="hero-authority-seal">
+              <span class="hero-live-beacon-dot"></span>
+              <span class="eyebrow">City Investment Gateway</span>
+            </span>
             <span class="hero-location-seal">San Fernando, La Union</span>
           </div>
           <span class="hero-node-badge" id="heroNodeBadge">Looking toward Poro Point</span>
         </div>
-        <h1>Find your next opportunity in San Fernando.</h1>
-        <p id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
+
+        <h1 class="hero-headline">Find your next investment in San Fernando.</h1>
+        <p class="hero-subhead" id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
 
         <div class="hero-focus-block">
-          <span class="hero-focus-label">Choose a lens</span>
-          <div class="hero-focus-row" aria-label="Investment lens selector">
-            <button type="button" class="chip hero-focus-chip" data-hero-focus="university">University</button>
-            <button type="button" class="chip hero-focus-chip" data-hero-focus="logistics">Logistics</button>
-            <button type="button" class="chip hero-focus-chip" data-hero-focus="hospital">Hospital</button>
-            <button type="button" class="chip hero-focus-chip" data-hero-focus="retail">Retail</button>
+          <div class="hero-focus-header">
+            <span class="hero-focus-label">Development Sector</span>
+            <span class="hero-focus-hint">Corridor lens</span>
           </div>
+          <div class="hero-focus-row" aria-label="Investment sector selector">
+            <button type="button" class="hero-focus-chip is-active" data-hero-focus="logistics">
+              <span class="chip-num">01</span>
+              <span class="chip-text">Logistics &amp; Port</span>
+            </button>
+            <button type="button" class="hero-focus-chip" data-hero-focus="commercial_center">
+              <span class="chip-num">02</span>
+              <span class="chip-text">Commercial &amp; Retail</span>
+            </button>
+            <button type="button" class="hero-focus-chip" data-hero-focus="hospital">
+              <span class="chip-num">03</span>
+              <span class="chip-text">Healthcare &amp; Civic</span>
+            </button>
+            <button type="button" class="hero-focus-chip" data-hero-focus="university">
+              <span class="chip-num">04</span>
+              <span class="chip-text">Education &amp; Campus</span>
+            </button>
           </div>
+        </div>
 
         <div class="hero-actions hero-command-actions hero-home-actions">
           <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-primary">
             <span class="btn-shell-icon"><?= sfc_icon('ranking') ?></span>
             <span>View Top Opportunities</span>
+            <svg class="btn-arrow-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
           </a>
           <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-secondary">
             <span class="btn-shell-icon"><?= sfc_icon('explorer') ?></span>
-            <span>Explore the City</span>
+            <span>Explore Spatial Map</span>
           </a>
         </div>
 
-        <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city read">
-          <span class="hero-sentiment-label">Live city read <strong id="heroTickerMeta">Logistics lens</strong></span>
+        <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city intelligence radar">
+          <div class="hero-sentiment-top">
+            <span class="radar-live-indicator"><span class="radar-dot"></span> LIVE RADAR</span>
+            <span class="hero-sentiment-label">Corridor Feed: <strong id="heroTickerMeta">Logistics lens</strong></span>
+          </div>
           <div class="market-ticker-track hero-sentiment-track" id="heroSentimentTicker">
-            <span class="market-ticker-item">Loading live city signals</span>
+            <span class="market-ticker-item">Loading verified corridor signals...</span>
           </div>
         </div>
       </div>
 
       <aside class="hero-feature-shell hero-feature-shell-refined">
-        <article class="hero-home-panel">
+        <article class="hero-home-panel hero-dossier-panel">
           <div class="hero-home-panel-head">
             <div class="hero-home-panel-copy">
-              <div class="panel-kicker">Live Investment Snapshot</div>
-              <h2>Lead opportunity right now.</h2>
+              <div class="panel-kicker">
+                <span class="kicker-pulse-dot"></span>
+                <span>Active Investment Memo</span>
+              </div>
+              <h2 class="hero-dossier-headline">Lead Opportunity Brief</h2>
             </div>
             <div class="hero-brief-context">
-              <span>Live node</span>
-              <strong id="heroFeaturedMeta">Poro Point horizon</strong>
+              <span class="context-kicker">Corridor Focus</span>
+              <strong id="heroFeaturedMeta" class="context-value">Poro Point horizon</strong>
             </div>
           </div>
 
           <div class="hero-featured-opportunity" id="heroFeaturedOpportunity">
-            <div class="hero-opportunity-loading">Synchronizing live property brief...</div>
+            <div class="hero-opportunity-loading">Synchronizing verified parcel dossier...</div>
           </div>
 
-          <details class="hero-more-details">
-            <summary>View scores &amp; city context</summary>
+          <details class="hero-more-details" id="heroDetailsDrawer">
+            <summary class="hero-details-summary">
+              <span>View Corridor Proof &amp; Spatial Nodes</span>
+              <svg class="summary-caret" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            </summary>
             <div class="hero-home-panel-body">
               <section class="hero-score-block">
                 <div class="hero-score-copy">
                   <span id="heroMetricMeta">Logistics / Poro Point</span>
-                  <strong class="hero-slab-score" id="heroIaiScore">87.0</strong>
-                  <p id="heroMetricSummary">Property 1 - Industrial Zone is the clearest opportunity currently visible at Poro Point.</p>
+                  <div class="hero-score-num-wrap">
+                    <strong class="hero-slab-score" id="heroIaiScore">87.0</strong>
+                    <span class="hero-score-denom">/ 100 IAI</span>
+                  </div>
+                  <p id="heroMetricSummary">Fabro Building Prime Lot leads the corridor in readiness and access.</p>
                 </div>
                 <div class="hero-score-chips">
                   <span class="hero-slab-chip" id="heroFocusBadge">Logistics lens</span>
-                  <span class="hero-slab-chip hero-slab-chip-quiet"><strong id="heroOpportunityCount">3</strong> candidate sites</span>
+                  <span class="hero-slab-chip hero-slab-chip-quiet"><strong id="heroOpportunityCount">3</strong> Candidate Parcels</span>
                 </div>
               </section>
 
@@ -295,25 +357,25 @@ sfc_render_header($context, 'landing');
                   <strong>Loading</strong>
                 </article>
               </div>
-            </div>
 
-            <article class="hero-story-panel hero-story-panel-refined">
-              <div class="panel-kicker">Why It Leads</div>
-              <p id="heroStoryCopy">Property 1 - Industrial Zone now sits closest to the horizon because logistics demand is surfacing around Poro Point, giving the corridor its clearest current read.</p>
-            </article>
+              <article class="hero-story-panel hero-story-panel-refined">
+                <div class="panel-kicker">Corridor Analysis</div>
+                <p id="heroStoryCopy">Strategic location along the main transport spine provides direct arterial access and immediate seaport connectivity.</p>
+              </article>
 
-            <div class="hero-spatial-dock hero-spatial-dock-refined">
-              <div class="hero-node-panel-head">
-                <div class="hero-node-panel-copy">
-                  <div class="hero-node-dock-head">Spatial focus</div>
-                  <strong id="heroNodeMeta">Poro Point horizon</strong>
-                  <p id="heroOpportunitySummary">3 active listings currently orbit Poro Point on the city grid.</p>
+              <div class="hero-spatial-dock hero-spatial-dock-refined">
+                <div class="hero-node-panel-head">
+                  <div class="hero-node-panel-copy">
+                    <div class="hero-node-dock-head">Spatial Focus Nodes</div>
+                    <strong id="heroNodeMeta">Poro Point horizon</strong>
+                    <p id="heroOpportunitySummary">3 active listings currently orbit Poro Point on the city grid.</p>
+                  </div>
                 </div>
-              </div>
-              <div class="living-city-node-list" aria-label="Spatial trigger nodes">
-                <button type="button" class="living-city-node-pill" data-city-node="poro-point">Poro Point</button>
-                <button type="button" class="living-city-node-pill" data-city-node="city-center">City Center</button>
-                <button type="button" class="living-city-node-pill" data-city-node="civic-belt">Civic Belt</button>
+                <div class="living-city-node-list" aria-label="Spatial trigger nodes">
+                  <button type="button" class="living-city-node-pill" data-city-node="poro-point">Poro Point</button>
+                  <button type="button" class="living-city-node-pill" data-city-node="city-center">City Center</button>
+                  <button type="button" class="living-city-node-pill" data-city-node="civic-belt">Civic Belt</button>
+                </div>
               </div>
             </div>
           </details>
