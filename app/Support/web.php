@@ -147,6 +147,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($pageName === 'scenario-simulator'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/simulator.css<?= htmlspecialchars(sfc_asset_version('css/simulator.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if ($pageName === 'city-pipeline'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/pipeline.css<?= htmlspecialchars(sfc_asset_version('css/pipeline.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
   <?php if (in_array($pageName, ['admin-dashboard', 'admin-properties', 'admin-showcase'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin.css<?= htmlspecialchars(sfc_asset_version('css/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>

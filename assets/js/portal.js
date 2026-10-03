@@ -8818,6 +8818,507 @@ async function initShowcasePage(rootId, featureType) {
   render();
 }
 
+async function initCityPipeline() {
+  const root = document.getElementById("cityPipelineRoot");
+  if (!root) return;
+
+  const [showcaseRes, bootstrapRes] = await Promise.all([
+    api.showcase("city_pipeline"),
+    api.bootstrap().catch(() => ({ properties: [] })),
+  ]);
+
+  const items = showcaseRes.items || [];
+  const properties = bootstrapRes.properties || [];
+  const basePath = window.SFC_APP_CONFIG?.basePath || "";
+
+  let activeLens = "all";
+  let activeSector = "all";
+  let search = "";
+  let selectedSignalId = items.find((i) => i.isFeatured)?.id || items[0]?.id || null;
+
+  const sectors = Array.from(new Set(items.map((i) => String(i.category || "").trim()).filter(Boolean)));
+
+  const render = () => {
+    const filtered = items.filter((item) => {
+      const mode = showcasePipelineMode(item);
+      if (activeLens === "investment_gap" && mode !== "investment_gap") return false;
+      if (activeLens === "future_project" && mode === "investment_gap") return false;
+      if (activeSector !== "all" && String(item.category || "").toLowerCase() !== activeSector) return false;
+      if (search) {
+        const query = search.toLowerCase();
+        const haystack = [
+          item.title,
+          item.description,
+          item.summary,
+          item.category,
+          item.locationLabel,
+          item.barangay,
+          item.idealOperator,
+          item.investorThesis,
+          item.avoidanceNote,
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+
+    const gapItems = filtered.filter((i) => showcasePipelineMode(i) === "investment_gap");
+    const projectItems = filtered.filter((i) => showcasePipelineMode(i) !== "investment_gap");
+
+    const totalSignals = items.length;
+    const totalGaps = items.filter((i) => showcasePipelineMode(i) === "investment_gap").length;
+    const totalProjects = items.filter((i) => showcasePipelineMode(i) !== "investment_gap").length;
+
+    const spotlightItem = filtered.find((i) => i.id === selectedSignalId) || filtered[0] || items[0] || null;
+    const isSpotlightGap = spotlightItem ? showcasePipelineMode(spotlightItem) === "investment_gap" : false;
+
+    root.innerHTML = `
+      <header class="pipe-hero-ribbon">
+        <div class="pipe-hero-copy">
+          <div class="pipe-eyebrow-row">
+            <span class="pipe-live-beacon">Investor Signal Atlas</span>
+            <span class="pipe-hero-location">San Fernando City · Strategic Development Desk</span>
+          </div>
+          <h1>What should investors<br><span>build next in San Fernando?</span></h1>
+          <p>An authoritative dual-lens intelligence atlas separating active commercial projects already forming from validated investor whitespace gaps—directing capital to high-value unmet demand while preventing duplicate-build saturation.</p>
+        </div>
+        <div class="pipe-hero-actions">
+          <div class="pipe-hero-stats">
+            <div><strong>${totalSignals}</strong><span>Live Signals</span></div>
+            <div><strong>${totalGaps}</strong><span>Whitespace Gaps</span></div>
+            <div><strong>${totalProjects}</strong><span>Projects in Motion</span></div>
+            <div><strong>4</strong><span>Active Corridors</span></div>
+          </div>
+          <div class="pipe-hero-links">
+            <a href="${basePath}/property-explorer.php" class="btn-pipe-secondary">
+              Explore Spatial Map ↗
+            </a>
+            <a href="${basePath}/property-ranking.php" class="btn-pipe-primary">
+              Investment Priority Board ↗
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section class="pipe-control-dock" aria-label="Pipeline Controls">
+        <div class="pipe-dock-topline">
+          <div class="pipe-segment-bar" role="tablist" aria-label="Pipeline Lenses">
+            <button type="button" class="pipe-segment-btn ${activeLens === "all" ? "is-active" : ""}" data-pipe-lens="all" role="tab" aria-selected="${activeLens === "all"}">
+              All Signals
+              <span class="pipe-segment-badge">${totalSignals}</span>
+            </button>
+            <button type="button" class="pipe-segment-btn ${activeLens === "investment_gap" ? "is-active" : ""}" data-pipe-lens="investment_gap" role="tab" aria-selected="${activeLens === "investment_gap"}">
+              Whitespace Gaps
+              <span class="pipe-segment-badge">${totalGaps}</span>
+            </button>
+            <button type="button" class="pipe-segment-btn ${activeLens === "future_project" ? "is-active" : ""}" data-pipe-lens="future_project" role="tab" aria-selected="${activeLens === "future_project"}">
+              Projects in Motion
+              <span class="pipe-segment-badge">${totalProjects}</span>
+            </button>
+          </div>
+
+          <div class="pipe-search-wrap">
+            <svg class="pipe-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input
+              type="text"
+              id="pipeSearchInput"
+              class="pipe-search-input"
+              value="${escapeHtml(search)}"
+              placeholder="Search by sector, operator type, corridor, or keyword..."
+              aria-label="Search pipeline signals"
+            >
+          </div>
+        </div>
+
+        <div class="pipe-dock-bottomline">
+          <div class="pipe-sector-chips" role="group" aria-label="Filter by Sector">
+            <span class="pipe-sector-label">Sector:</span>
+            <button type="button" class="pipe-chip ${activeSector === "all" ? "is-active" : ""}" data-pipe-sector="all">All Sectors</button>
+            ${sectors.map((sec) => `
+              <button type="button" class="pipe-chip ${activeSector === sec.toLowerCase() ? "is-active" : ""}" data-pipe-sector="${escapeHtml(sec.toLowerCase())}">${escapeHtml(sec)}</button>
+            `).join("")}
+          </div>
+          <span class="pipe-active-meta">Showing <strong>${filtered.length}</strong> of ${totalSignals} signals</span>
+        </div>
+      </section>
+
+      ${spotlightItem ? `
+        <article class="pipe-spotlight-card ${isSpotlightGap ? "is-gap" : "is-project"}" id="pipeSpotlightCard">
+          <div class="pipe-spotlight-media-wrap">
+            <img class="pipe-spotlight-img" src="${escapeHtml(spotlightItem.coverImageUrl || 'assets/images/Property6.png')}" alt="${escapeHtml(spotlightItem.title)}">
+            <div class="pipe-spotlight-badges">
+              <span class="pipe-badge is-featured">${icon("spark")}Featured Signal</span>
+              <span class="pipe-badge is-category">${escapeHtml(spotlightItem.category || "Strategic")}</span>
+            </div>
+            <div class="pipe-spotlight-overlay">
+              <div class="pipe-spotlight-loc">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${escapeHtml(spotlightItem.locationLabel || "San Fernando, La Union")}
+              </div>
+              <span style="font-size: 11px; opacity: 0.85;">${escapeHtml(spotlightItem.barangay ? `Brgy. ${spotlightItem.barangay}` : "")}</span>
+            </div>
+          </div>
+
+          <div class="pipe-spotlight-content">
+            <div class="pipe-spotlight-header">
+              <div class="pipe-partner-row">
+                <span class="pipe-partner-pill ${isSpotlightGap ? "is-gap" : "is-project"}">
+                  ${isSpotlightGap ? "Municipal Whitespace Brief" : "Project in Motion"}
+                </span>
+                <span class="pipe-partner-sub">${escapeHtml(spotlightItem.partnerLabel || "City Investment Desk")}</span>
+              </div>
+              <h2 class="pipe-spotlight-title">${escapeHtml(spotlightItem.title)}</h2>
+              <p class="pipe-spotlight-desc">${escapeHtml(spotlightItem.summary || spotlightItem.description || "")}</p>
+            </div>
+
+            <div class="pipe-metrics-row">
+              <div class="pipe-metric-box">
+                <span class="pipe-metric-label">${escapeHtml(spotlightItem.primaryMetricLabel || (isSpotlightGap ? "Gap Level" : "Launch Window"))}</span>
+                <span class="pipe-metric-value">${escapeHtml(spotlightItem.primaryMetricValue || (isSpotlightGap ? "Priority Need" : "Planned"))}</span>
+              </div>
+              <div class="pipe-metric-box">
+                <span class="pipe-metric-label">${escapeHtml(spotlightItem.secondaryMetricLabel || (isSpotlightGap ? "Tracked Supply" : "Development Stage"))}</span>
+                <span class="pipe-metric-value">${escapeHtml(spotlightItem.secondaryMetricValue || (isSpotlightGap ? "Under-supplied" : showcaseStateLabel(spotlightItem.status)))}</span>
+              </div>
+            </div>
+
+            ${spotlightItem.investorThesis ? `
+              <div class="pipe-thesis-box">
+                <strong>Strategic Market Thesis</strong>
+                ${escapeHtml(spotlightItem.investorThesis)}
+              </div>
+            ` : ""}
+
+            ${spotlightItem.idealOperator ? `
+              <div style="font-size: 12px; color: #475569; display: flex; align-items: baseline; gap: 6px;">
+                <strong style="color: #0f172a; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em;">Target Operator:</strong>
+                <span>${escapeHtml(spotlightItem.idealOperator)}</span>
+              </div>
+            ` : ""}
+
+            ${spotlightItem.avoidanceNote ? `
+              <div class="pipe-guardrail-strip">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span><b>Duplicate-Build Watch:</b> ${escapeHtml(spotlightItem.avoidanceNote)}</span>
+              </div>
+            ` : ""}
+
+            <div class="pipe-spotlight-actions">
+              ${isSpotlightGap ? `
+                <a href="${basePath}/property-ranking.php" class="btn-pipe-primary">
+                  Find Matching Sites ↗
+                </a>
+              ` : `
+                <a href="${basePath}/property-explorer.php" class="btn-pipe-primary">
+                  Explore Corridor in Map ↗
+                </a>
+              `}
+              <button type="button" class="btn-pipe-secondary" data-inspect-signal="${spotlightItem.id}">
+                Inspect Full Market Brief ↗
+              </button>
+            </div>
+          </div>
+        </article>
+      ` : ""}
+
+      ${filtered.length === 0 ? `
+        <div class="pipe-empty-state">
+          <svg class="pipe-empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <h3 class="pipe-empty-title">No signals match your filter</h3>
+          <p class="pipe-empty-copy">No city pipeline entries match your search query or selected sector filter. Try resetting filters to explore all active opportunities.</p>
+          <button type="button" class="btn-pipe-secondary" id="pipeResetFilters">Reset All Filters</button>
+        </div>
+      ` : `
+        ${(activeLens === "all" || activeLens === "investment_gap") && gapItems.length > 0 ? `
+          <section class="pipe-section">
+            <div class="pipe-section-header">
+              <div class="pipe-section-title-wrap">
+                <span class="pipe-kicker is-gap">Investor Gap Radar · Unmet Demand</span>
+                <h3 class="pipe-section-title">Where San Fernando still wants new operators to show up.</h3>
+                <p class="pipe-section-sub">Validated commercial whitespace gaps where the city actively encourages new market entrants instead of duplicating saturated supply.</p>
+              </div>
+              <span class="pipe-section-badge">${gapItems.length} gap${gapItems.length === 1 ? "" : "s"} visible</span>
+            </div>
+
+            <div class="pipe-card-grid">
+              ${gapItems.map((item) => renderSignalCard(item, "gap")).join("")}
+            </div>
+          </section>
+        ` : ""}
+
+        ${(activeLens === "all" || activeLens === "future_project") && projectItems.length > 0 ? `
+          <section class="pipe-section" style="margin-top: 12px;">
+            <div class="pipe-section-header">
+              <div class="pipe-section-title-wrap">
+                <span class="pipe-kicker is-project">Pipeline Momentum · Projects in Motion</span>
+                <h3 class="pipe-section-title">Developments already forming across the city.</h3>
+                <p class="pipe-section-sub">Commercial nodes, logistics hubs, and hospitality facilities currently moving through planning, permitting, or active construction.</p>
+              </div>
+              <span class="pipe-section-badge">${projectItems.length} project${projectItems.length === 1 ? "" : "s"} visible</span>
+            </div>
+
+            <div class="pipe-card-grid">
+              ${projectItems.map((item) => renderSignalCard(item, "project")).join("")}
+            </div>
+          </section>
+        ` : ""}
+      `}
+
+      <div class="pipe-modal-backdrop" id="pipeSignalModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="pipe-modal-card" id="pipeModalContent"></div>
+      </div>
+    `;
+
+    root.querySelectorAll("[data-pipe-lens]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeLens = btn.dataset.pipeLens;
+        render();
+      });
+    });
+
+    root.querySelectorAll("[data-pipe-sector]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeSector = btn.dataset.pipeSector;
+        render();
+      });
+    });
+
+    const searchInput = root.querySelector("#pipeSearchInput");
+    searchInput?.addEventListener("input", (e) => {
+      search = e.target.value;
+      render();
+      const updatedInput = root.querySelector("#pipeSearchInput");
+      if (updatedInput) {
+        updatedInput.focus();
+        updatedInput.setSelectionRange(updatedInput.value.length, updatedInput.value.length);
+      }
+    });
+
+    root.querySelector("#pipeResetFilters")?.addEventListener("click", () => {
+      activeLens = "all";
+      activeSector = "all";
+      search = "";
+      render();
+    });
+
+    root.querySelectorAll("[data-select-signal]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const id = Number(btn.dataset.selectSignal);
+        selectedSignalId = id;
+        render();
+        const spotlightEl = root.querySelector("#pipeSpotlightCard");
+        spotlightEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+
+    root.querySelectorAll("[data-inspect-signal]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = Number(btn.dataset.inspectSignal);
+        const item = items.find((i) => i.id === id);
+        if (item) openSignalModal(item);
+      });
+    });
+  };
+
+  const renderSignalCard = (item, type) => {
+    const isGap = type === "gap";
+    const supplySignalLabel = showcaseSupplySignalLabel(item.supplySignal || "under_supplied");
+    const supplyClass = item.supplySignal === "not_present" ? "is-not-present" : "is-under-supplied";
+    const statusLabel = showcaseStateLabel(item.status);
+    const statusClass = item.status === "planned" ? "is-stage-planned" : (item.status === "approved" ? "is-stage-approved" : "is-stage-construction");
+
+    return `
+      <article class="pipe-card ${isGap ? "is-gap" : "is-project"}" data-signal-card="${item.id}">
+        <div class="pipe-card-top">
+          <div class="pipe-card-tags">
+            <div class="pipe-tag-group">
+              <span class="pipe-tag is-sector">${escapeHtml(item.category || "General")}</span>
+              ${isGap ? `
+                <span class="pipe-tag ${supplyClass}">${escapeHtml(supplySignalLabel)}</span>
+              ` : `
+                <span class="pipe-tag ${statusClass}">${escapeHtml(statusLabel)}</span>
+              `}
+            </div>
+            ${item.isFeatured ? `<span style="font-size: 10px; color: #d97706; font-weight: 800;">★ FEATURED</span>` : ""}
+          </div>
+
+          <div class="pipe-card-thumb-wrap">
+            <img class="pipe-card-thumb" src="${escapeHtml(item.coverImageUrl || 'assets/images/Property1.png')}" alt="${escapeHtml(item.title)}">
+            <div class="pipe-card-location-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${escapeHtml(item.barangay ? `Brgy. ${item.barangay}` : (item.locationLabel || "San Fernando"))}
+            </div>
+          </div>
+
+          <h4 class="pipe-card-title">${escapeHtml(item.title)}</h4>
+          <p class="pipe-card-summary">${escapeHtml(truncate(item.summary || item.description || "", 120))}</p>
+
+          <div class="pipe-card-specs">
+            <div>
+              <span>${isGap ? "Gap Level" : "Target Delivery"}</span>
+              <strong>${escapeHtml(item.primaryMetricValue || (isGap ? "Priority Need" : "Planned"))}</strong>
+            </div>
+            <div>
+              <span>${isGap ? "Supply Signal" : "Development Stage"}</span>
+              <strong>${escapeHtml(item.secondaryMetricValue || (isGap ? "Under-supplied" : statusLabel))}</strong>
+            </div>
+          </div>
+
+          ${item.avoidanceNote ? `
+            <div class="pipe-card-avoidance">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>${escapeHtml(truncate(item.avoidanceNote, 85))}</span>
+            </div>
+          ` : ""}
+        </div>
+
+        <div class="pipe-card-actions">
+          <button type="button" class="btn-card-secondary" data-inspect-signal="${item.id}">
+            Inspect Brief
+          </button>
+          ${isGap ? `
+            <a href="${basePath}/property-ranking.php" class="btn-card-primary is-amber">
+              Find Sites ↗
+            </a>
+          ` : `
+            <a href="${basePath}/property-explorer.php" class="btn-card-primary is-blue">
+              Explore ↗
+            </a>
+          `}
+        </div>
+      </article>
+    `;
+  };
+
+  const openSignalModal = (item) => {
+    const modalBackdrop = root.querySelector("#pipeSignalModal");
+    const modalContent = root.querySelector("#pipeModalContent");
+    if (!modalBackdrop || !modalContent) return;
+
+    const isGap = showcasePipelineMode(item) === "investment_gap";
+    const matchingProps = properties.filter((p) => {
+      const pType = String(p.type || "").toLowerCase();
+      const pBarangay = String(p.barangay || "").toLowerCase();
+      const itemCat = String(item.category || "").toLowerCase();
+      const itemBarangay = String(item.barangay || "").toLowerCase();
+      return (itemBarangay && pBarangay.includes(itemBarangay)) || (itemCat && pType.includes(itemCat));
+    }).slice(0, 3);
+
+    modalContent.innerHTML = `
+      <div class="pipe-modal-hero">
+        <img class="pipe-modal-img" src="${escapeHtml(item.coverImageUrl || 'assets/images/Property6.png')}" alt="${escapeHtml(item.title)}">
+        <button type="button" class="pipe-modal-close-btn" id="pipeModalClose" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="pipe-modal-scroll">
+        <div class="pipe-modal-head-meta">
+          <span class="pipe-tag is-sector">${escapeHtml(item.category || "Strategic")}</span>
+          <span class="pipe-partner-pill ${isGap ? "is-gap" : "is-project"}">
+            ${isGap ? "Municipal Whitespace Brief" : "Project in Motion"}
+          </span>
+          <span style="font-size: 11px; color: #64748b;">${escapeHtml(item.locationLabel || "San Fernando, La Union")}</span>
+        </div>
+
+        <h3 class="pipe-modal-title">${escapeHtml(item.title)}</h3>
+        <p class="pipe-modal-prose">${escapeHtml(item.description || item.summary || "")}</p>
+
+        <div class="pipe-modal-grid">
+          <div class="pipe-modal-stat">
+            <span>${isGap ? "Gap Priority" : "Launch Target"}</span>
+            <strong>${escapeHtml(item.primaryMetricValue || "Strategic Priority")}</strong>
+          </div>
+          <div class="pipe-modal-stat">
+            <span>${isGap ? "Tracked Supply" : "Permitting Stage"}</span>
+            <strong>${escapeHtml(item.secondaryMetricValue || "Active")}</strong>
+          </div>
+          <div class="pipe-modal-stat">
+            <span>Designated Corridor</span>
+            <strong>${escapeHtml(item.locationLabel || "San Fernando City")}</strong>
+          </div>
+          <div class="pipe-modal-stat">
+            <span>Curated By</span>
+            <strong>${escapeHtml(item.partnerLabel || "City Investment Desk")}</strong>
+          </div>
+        </div>
+
+        ${item.investorThesis ? `
+          <div class="pipe-thesis-box">
+            <strong>Strategic Market Thesis</strong>
+            ${escapeHtml(item.investorThesis)}
+          </div>
+        ` : ""}
+
+        ${item.idealOperator ? `
+          <div style="padding: 12px 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <span style="display: block; font-size: 9.5px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 3px;">Recommended Operator Profile</span>
+            <strong style="color: #0f172a; font-size: 13px;">${escapeHtml(item.idealOperator)}</strong>
+          </div>
+        ` : ""}
+
+        ${item.avoidanceNote ? `
+          <div class="pipe-guardrail-strip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span><b>Duplicate-Build Caution:</b> ${escapeHtml(item.avoidanceNote)}</span>
+          </div>
+        ` : ""}
+
+        ${matchingProps.length > 0 ? `
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+            <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b;">Matching Candidate Sites in San Fernando</span>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              ${matchingProps.map((p) => `
+                <a href="${propertyHref(p.id)}" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; text-decoration: none; color: inherit; transition: all 0.2s ease;">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="${escapeHtml(p.imageUrl || '')}" alt="" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; background: #0f172a;">
+                    <div>
+                      <strong style="font-size: 12.5px; color: #0f172a; display: block;">${escapeHtml(p.name)}</strong>
+                      <span style="font-size: 11px; color: #64748b;">${escapeHtml(p.barangay || "San Fernando")} &bull; ${escapeHtml(corridorLabel(p.corridor))}</span>
+                    </div>
+                  </div>
+                  <span style="font-size: 11px; font-weight: 750; color: #d97706;">View Site ↗</span>
+                </a>
+              `).join("")}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+
+      <div class="pipe-modal-footer">
+        <button type="button" class="btn-pipe-secondary" id="pipeModalCloseBtn">
+          Close Brief
+        </button>
+        ${isGap ? `
+          <a href="${basePath}/property-ranking.php" class="btn-pipe-primary">
+            Find Matching Sites ↗
+          </a>
+        ` : `
+          <a href="${basePath}/property-explorer.php" class="btn-pipe-primary">
+            Explore Corridor ↗
+          </a>
+        `}
+      </div>
+    `;
+
+    modalBackdrop.classList.add("is-open");
+    modalBackdrop.setAttribute("aria-hidden", "false");
+
+    const closeModal = () => {
+      modalBackdrop.classList.remove("is-open");
+      modalBackdrop.setAttribute("aria-hidden", "true");
+    };
+
+    modalContent.querySelector("#pipeModalClose")?.addEventListener("click", closeModal);
+    modalContent.querySelector("#pipeModalCloseBtn")?.addEventListener("click", closeModal);
+    modalBackdrop.onclick = (e) => {
+      if (e.target === modalBackdrop) closeModal();
+    };
+  };
+
+  render();
+}
+
 function showcaseAdminCardMarkup(item) {
   return `
     <article class="showcase-admin-card">
@@ -13007,7 +13508,7 @@ async function boot() {
   if (page === "property-ranking") await initRankingPage();
   if (page === "voting-dashboard") await initVotingDashboard();
   if (page === "offer-board") await initShowcasePage("offerBoardRoot", "offer_board");
-  if (page === "city-pipeline") await initShowcasePage("cityPipelineRoot", "city_pipeline");
+  if (page === "city-pipeline") await initCityPipeline();
   if (page === "property-explorer" || page === "property-explorer-terminal") await initExplorer();
   if (page === "compare-decision") await initCompare();
   if (page === "property-details") await initPropertyDetails();
