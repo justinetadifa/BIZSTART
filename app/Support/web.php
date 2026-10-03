@@ -132,11 +132,23 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/welcome.js<?= htmlspecialchars(sfc_asset_version('js/welcome.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
   <?php endif; ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/navigation.css<?= htmlspecialchars(sfc_asset_version('css/navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php if ($pageName === 'landing'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/landing-refinements.css<?= htmlspecialchars(sfc_asset_version('css/landing-refinements.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
   <?php if ($pageName === 'decision-reports'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/reports.css<?= htmlspecialchars(sfc_asset_version('css/reports.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
   <?php if ($pageName === 'property-ranking'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/ranking.css<?= htmlspecialchars(sfc_asset_version('css/ranking.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if (in_array($pageName, ['property-explorer', 'property-explorer-terminal'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/explorer.css<?= htmlspecialchars(sfc_asset_version('css/explorer.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if ($pageName === 'scenario-simulator'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/simulator.css<?= htmlspecialchars(sfc_asset_version('css/simulator.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if (in_array($pageName, ['admin-dashboard', 'admin-properties', 'admin-showcase'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin.css<?= htmlspecialchars(sfc_asset_version('css/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
   <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
@@ -159,9 +171,9 @@ function sfc_render_header(array $context, string $active = ''): void
     $dashboardKey = null;
     $navItems = match ($role) {
         'admin' => [
-            ['href' => sfc_path('/property-ranking.php'), 'label' => 'Priority Board', 'icon' => 'ranking', 'key' => 'ranking'],
-            ['href' => sfc_path('/property-explorer.php'), 'label' => 'Map Explorer', 'icon' => 'explorer', 'key' => 'explorer'],
-            ['href' => sfc_path('/simulator.php'), 'label' => 'Simulator', 'icon' => 'insights', 'key' => 'simulator'],
+            ['href' => sfc_path('/admin-dashboard.php'), 'label' => 'Workspace', 'icon' => 'home', 'key' => 'admin'],
+            ['href' => sfc_path('/admin-properties.php'), 'label' => 'Properties', 'icon' => 'inventory', 'key' => 'admin-properties'],
+            ['href' => sfc_path('/admin-showcase.php'), 'label' => 'Showcase', 'icon' => 'showcase', 'key' => 'admin-showcase'],
             ['href' => sfc_path('/reports.php'), 'label' => 'Reports', 'icon' => 'inventory', 'key' => 'reports'],
         ],
         'seller' => [
@@ -215,19 +227,17 @@ function sfc_render_header(array $context, string $active = ''): void
         ],
     ];
     if ($role === 'admin') {
-        $moreItems[] = [
-            'href' => sfc_path('/admin-showcase.php'),
-            'label' => 'Showcase Studio',
-            'description' => 'Admin-only CRUD for Offer Board and City Pipeline.',
-            'icon' => 'showcase',
-            'key' => 'admin-showcase',
-        ];
+        $moreItems = array_merge([
+            ['href' => sfc_path('/property-ranking.php'), 'label' => 'Priority Board', 'description' => 'View ranked investment opportunities.', 'icon' => 'ranking', 'key' => 'ranking'],
+            ['href' => sfc_path('/property-explorer.php'), 'label' => 'Map Explorer', 'description' => 'Explore candidate sites across the city.', 'icon' => 'explorer', 'key' => 'explorer'],
+            ['href' => sfc_path('/offer-board.php'), 'label' => 'Offer Board', 'description' => 'View published investment offers.', 'icon' => 'offer', 'key' => 'offer-board'],
+        ], $moreItems);
     }
-    $brandSubtitle = $isLanding ? 'Curated City Investment Board' : 'San Fernando Opportunity Platform';
+    $brandSubtitle = $role === 'admin' ? 'City administration' : ($isLanding ? 'Curated City Investment Board' : 'San Fernando Opportunity Platform');
     $moreLabel = $isLanding ? 'Collections' : 'More';
     $guestCtaLabel = $isLanding ? 'Choose Workspace' : 'Enter Platform';
     ?>
-  <header class="site-header">
+  <header class="site-header <?= $role === 'admin' ? 'admin-site-header' : '' ?>">
     <div class="site-shell nav-shell">
       <div class="brand-link">
         <button
@@ -243,14 +253,16 @@ function sfc_render_header(array $context, string $active = ''): void
         <a href="<?= htmlspecialchars(sfc_path('/index.php'), ENT_QUOTES, 'UTF-8') ?>" class="brand-copy brand-home-link">
           <span class="brand-title"><?= htmlspecialchars($context['appName'], ENT_QUOTES, 'UTF-8') ?></span>
           <span class="brand-subtitle"><?= htmlspecialchars($brandSubtitle, ENT_QUOTES, 'UTF-8') ?></span>
+          <span class="brand-mobile-subtitle">San Fernando, La Union</span>
         </a>
       </div>
 
       <button type="button" class="nav-mobile-toggle" aria-expanded="false" aria-controls="navContent">
         <span class="nav-toggle-lines" aria-hidden="true"></span>
-        <span>Menu</span>
+        <span class="nav-toggle-label">Menu</span>
       </button>
       <div class="nav-content" id="navContent"><div class="nav-content-inner">
+      <div class="nav-mobile-heading" aria-hidden="true"><?= $role === 'admin' ? 'Admin workspace' : 'Explore LOCUS-SF' ?></div>
       <div class="nav-center" id="primaryNavigation">
         <nav class="top-nav" aria-label="Primary navigation">
           <?php foreach ($navItems as $item): ?>
@@ -264,15 +276,15 @@ function sfc_render_header(array $context, string $active = ''): void
 
       <div class="nav-actions" id="headerActions">
         <div class="portal-menu portal-menu-compact" data-sfc-menu>
-          <button type="button" class="btn-shell btn-shell-secondary portal-menu-trigger more-menu-trigger <?= in_array($active, ['offer-board', 'city-pipeline', 'admin-showcase'], true) ? 'is-active' : '' ?>" data-sfc-menu-toggle aria-expanded="false" aria-controls="moreMenuPanel">
+          <button type="button" class="btn-shell btn-shell-secondary portal-menu-trigger more-menu-trigger <?= in_array($active, array_column($moreItems, 'key'), true) ? 'is-active' : '' ?>" data-sfc-menu-toggle aria-expanded="false" aria-controls="moreMenuPanel">
             <span class="btn-shell-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></span>
             <span><?= htmlspecialchars($moreLabel, ENT_QUOTES, 'UTF-8') ?></span>
             <svg class="nav-menu-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="portal-menu-panel more-menu-panel" id="moreMenuPanel">
-            <div class="nav-menu-heading">Explore more</div>
+            <div class="nav-menu-heading"><?= $role === 'admin' ? 'Explore the platform' : 'Explore more' ?></div>
             <?php foreach ($moreItems as $item): ?>
-              <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>" class="portal-entry <?= $active === $item['key'] ? 'is-active' : '' ?>">
+              <a href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>" class="portal-entry <?= $active === $item['key'] ? 'is-active' : '' ?>" <?= $active === $item['key'] ? 'aria-current="page"' : '' ?>>
                 <span class="portal-entry-icon"><?= sfc_icon($item['icon']) ?></span>
                 <span class="portal-entry-copy">
                   <strong><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></strong>
@@ -287,9 +299,18 @@ function sfc_render_header(array $context, string $active = ''): void
             href="<?= htmlspecialchars($dashboardHref ?? sfc_path('/index.php'), ENT_QUOTES, 'UTF-8') ?>"
             class="session-chip session-chip-link <?= $active === $dashboardKey ? 'active' : '' ?>"
             aria-label="<?= htmlspecialchars(sfc_role_label($role) . ' dashboard', ENT_QUOTES, 'UTF-8') ?>"
+            <?= $role === 'admin' ? 'title="' . htmlspecialchars($user['name'] ?? 'Admin workspace', ENT_QUOTES, 'UTF-8') . '"' : '' ?>
           >
             <span class="session-chip-icon"><?= sfc_icon($role === 'admin' ? 'admin' : ($role === 'seller' ? 'seller' : 'investor')) ?></span>
-            <span class="session-chip-text"><?= htmlspecialchars(sfc_role_label($role), ENT_QUOTES, 'UTF-8') ?></span>
+            <span class="session-chip-text">
+              <?php if ($role === 'admin'): ?>
+                <span class="admin-account-label">Admin</span>
+                <span class="admin-account-caption">City workspace</span>
+              <?php else: ?>
+                <?= htmlspecialchars(sfc_role_label($role), ENT_QUOTES, 'UTF-8') ?>
+              <?php endif; ?>
+            </span>
+            <span class="session-chip-mobile-text">Dashboard</span>
           </a>
           <button
             type="button"

@@ -685,17 +685,19 @@ body[data-page="landing"] .hero-spatial-dock-refined .living-city-node-pill.is-a
   }
 
   body[data-page="landing"] .hero-home-copy-refined {
-    padding: 72px 0 8px;
+    padding: 0;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy h1 {
-    max-width: 9ch;
-    font-size: clamp(44px, 12vw, 60px);
+    max-width: none;
+    font-size: clamp(28px, 7.8vw, 36px);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy > p {
-    font-size: 16px;
-    line-height: 1.68;
+    font-size: 14.5px;
+    line-height: 1.58;
   }
 
   body[data-page="landing"] .hero-home-panel {
@@ -1047,75 +1049,79 @@ body[data-page="landing"] .hero-home-refined .hero-sentiment-rail {
 
 @media (max-width: 760px) {
   body[data-page="landing"] .hero-home-copy-refined {
-    padding: 82px 0 16px;
+    padding: 0;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy h1 {
-    max-width: 8.4ch;
-    font-size: clamp(56px, 14vw, 76px);
-    line-height: 0.88;
+    max-width: none;
+    font-size: clamp(28px, 7.8vw, 36px);
+    line-height: 1.15;
+    letter-spacing: -0.035em;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy > p {
-    font-size: 18px;
-    line-height: 1.62;
+    font-size: 14px;
+    line-height: 1.55;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-location-seal,
   body[data-page="landing"] .hero-home-refined .hero-node-badge {
-    min-height: 44px;
-    padding: 0 18px;
-    font-size: 11px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 10px;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-focus-chip {
-    min-height: 46px;
-    padding: 0 18px;
-    font-size: 14px;
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 11.5px;
   }
 
   body[data-page="landing"] .hero-home-actions .btn-shell-hero {
-    min-height: 60px;
-    font-size: 14px;
-    padding-inline: 20px;
+    min-height: 48px;
+    font-size: 12px;
+    padding-inline: 16px;
+    border-radius: 14px;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-brief-card {
-    padding: 20px;
-    border-radius: 24px;
+    padding: 16px;
+    border-radius: 18px;
   }
 }
 
 @media (max-width: 560px) {
   body[data-page="landing"] .hero-home-copy-refined {
-    padding: 86px 0 20px;
+    padding: 0;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy h1 {
-    max-width: 8.1ch;
-    font-size: clamp(60px, 15.5vw, 74px);
-    line-height: 0.86;
+    max-width: none;
+    font-size: clamp(26px, 7.5vw, 33px);
+    line-height: 1.15;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-copy > p {
-    font-size: 18px;
-    line-height: 1.58;
+    font-size: 13.5px;
+    line-height: 1.5;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-location-seal,
   body[data-page="landing"] .hero-home-refined .hero-node-badge {
-    min-height: 46px;
-    padding: 0 18px;
+    min-height: 28px;
+    padding: 0 10px;
+    font-size: 9.5px;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-focus-chip {
-    min-height: 48px;
-    font-size: 14px;
+    min-height: 34px;
+    font-size: 11px;
+    padding: 0 10px;
   }
 
   body[data-page="landing"] .hero-home-actions .btn-shell-hero {
-    min-height: 62px;
-    font-size: 14px;
+    min-height: 46px;
+    font-size: 11.5px;
   }
 }
 
@@ -2227,21 +2233,22 @@ body[data-page="landing"] .hero-home-refined .hero-home-actions .btn-shell-hero.
 
 @media (max-width: 760px) {
   body[data-page="landing"] .hero-home-refined .hero-home-actions {
-    gap: 12px;
+    gap: 10px;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-actions .btn-shell-hero {
-    min-height: 60px;
-    padding: 0 22px;
-    border-radius: 22px;
-    letter-spacing: 0.11em;
+    min-height: 48px;
+    padding: 0 18px;
+    border-radius: 14px;
+    letter-spacing: 0.08em;
+    font-size: 11.5px;
   }
 
   body[data-page="landing"] .hero-home-refined .hero-home-actions .btn-shell-hero .btn-shell-icon {
-    width: 36px;
-    height: 36px;
-    flex-basis: 36px;
-    border-radius: 12px;
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    border-radius: 8px;
   }
 }
 
@@ -21391,7 +21398,7 @@ body[data-page="city-pipeline"] .showcase-spotlight-actions .btn-shell-primary {
 
 .auth-role-switch {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 8px;
   border-radius: 24px;
@@ -21816,7 +21823,7 @@ body[data-page="admin-login"][data-role="admin"] .auth-surface-admin::before {
   }
 
   .auth-page-admin .auth-role-switch {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .auth-page-admin .auth-visual-copy-admin h1 {
@@ -22265,7 +22272,7 @@ body[data-page="investor-login"][data-role="investor"] .auth-surface-investor-re
   }
 
   .auth-page-investor .auth-role-switch {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .auth-page-investor .auth-visual-copy-investor-refined h1 {
@@ -24647,6 +24654,23 @@ body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-sh
   box-shadow:
     0 14px 30px rgba(8, 12, 20, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell-ghost {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 180ms ease;
+}
+
+body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell-ghost:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22), 0 0 16px rgba(245, 158, 11, 0.2);
+  transform: translateY(-1px);
 }
 
 body[data-page="property-ranking"] .ranking-command-grid {

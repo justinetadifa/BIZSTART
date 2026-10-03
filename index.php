@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/app/Support/web.php';
 
 $context = sfc_web_context();
-$heroImage = $context['assetBase'] . '/images/sfcpanoramicView.png';
+$heroImage = $context['assetBase'] . '/images/introlocus-sf.png';
 $welcomeBypass = (string) ($_GET['welcome'] ?? '') === 'off';
 $welcomeFallbackHref = sfc_path('/index.php?welcome=off#main-content');
 sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['user']['role'] ?? 'guest']);
@@ -199,7 +199,7 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
 sfc_render_header($context, 'landing');
 ?>
 <main class="page-shell landing-shell landing-editorial-shell landing-calm-shell" id="main-content" tabindex="-1">
-  <section class="hero-home hero-home-editorial hero-home-refined" data-hero-stage tabindex="0" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
+  <section class="hero-home hero-home-editorial hero-home-refined" data-hero-stage aria-labelledby="heroHeadline" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
     <div class="hero-canvas" id="hero-canvas" aria-hidden="true">
       <div class="hero-home-backdrop"></div>
       <div class="hero-atmosphere-light"></div>
@@ -244,35 +244,35 @@ sfc_render_header($context, 'landing');
             </span>
             <span class="hero-location-seal">San Fernando, La Union</span>
           </div>
-          <span class="hero-node-badge" id="heroNodeBadge">Looking toward Poro Point</span>
         </div>
 
-        <h1 class="hero-headline">Find your next investment in San Fernando.</h1>
+        <h1 class="hero-headline" id="heroHeadline">Find your next investment in <span class="hero-headline-place">San Fernando.</span></h1>
         <p class="hero-subhead" id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
 
         <div class="hero-focus-block">
           <div class="hero-focus-header">
             <span class="hero-focus-label">Development Sector</span>
-            <span class="hero-focus-hint">Corridor lens</span>
+            <span class="hero-node-badge" id="heroNodeBadge">Focus: Poro Point</span>
           </div>
-          <div class="hero-focus-row" aria-label="Investment sector selector">
-            <button type="button" class="hero-focus-chip is-active" data-hero-focus="logistics">
+          <div class="hero-focus-row" role="group" aria-label="Investment sector selector">
+            <button type="button" class="hero-focus-chip is-active" data-hero-focus="logistics" aria-pressed="true">
               <span class="chip-num">01</span>
               <span class="chip-text">Logistics &amp; Port</span>
             </button>
-            <button type="button" class="hero-focus-chip" data-hero-focus="commercial_center">
+            <button type="button" class="hero-focus-chip" data-hero-focus="commercial_center" aria-pressed="false">
               <span class="chip-num">02</span>
               <span class="chip-text">Commercial &amp; Retail</span>
             </button>
-            <button type="button" class="hero-focus-chip" data-hero-focus="hospital">
+            <button type="button" class="hero-focus-chip" data-hero-focus="hospital" aria-pressed="false">
               <span class="chip-num">03</span>
               <span class="chip-text">Healthcare &amp; Civic</span>
             </button>
-            <button type="button" class="hero-focus-chip" data-hero-focus="university">
+            <button type="button" class="hero-focus-chip" data-hero-focus="university" aria-pressed="false">
               <span class="chip-num">04</span>
               <span class="chip-text">Education &amp; Campus</span>
             </button>
           </div>
+          <span class="hero-selection-status" id="heroSelectionStatus" role="status" aria-live="polite" aria-atomic="true"></span>
         </div>
 
         <div class="hero-actions hero-command-actions hero-home-actions">
@@ -285,9 +285,13 @@ sfc_render_header($context, 'landing');
             <span class="btn-shell-icon"><?= sfc_icon('explorer') ?></span>
             <span>Explore Spatial Map</span>
           </a>
+          <a href="<?= htmlspecialchars(sfc_path('/locus-cinematic.html?preview=open'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-preview" id="openPlatformPreviewHomeBtn" title="Launch Interactive Platform Preview">
+            <span class="btn-shell-icon"><?= sfc_icon('simulator') ?></span>
+            <span>Platform Dossier</span>
+          </a>
         </div>
 
-        <div class="market-ticker-shell hero-sentiment-rail" aria-label="Live city intelligence radar">
+        <div class="market-ticker-shell hero-sentiment-rail" tabindex="0" aria-label="City corridor insights. Focus here to pause scrolling.">
           <div class="hero-sentiment-top">
             <span class="radar-live-indicator"><span class="radar-dot"></span> LIVE RADAR</span>
             <span class="hero-sentiment-label">Corridor Feed: <strong id="heroTickerMeta">Logistics lens</strong></span>

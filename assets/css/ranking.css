@@ -1082,3 +1082,449 @@
     border-right: none;
   }
 }
+
+/* Keep intrinsic ribbon and filter widths inside the page's grid column. */
+body[data-page="property-ranking"] .ranking-page-shell,
+body[data-page="property-ranking"] .ranking-root-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+body[data-page="property-ranking"] .ranking-page-shell > .ranking-site-shell {
+  width: min(1320px, calc(100% - 28px));
+  min-width: 0;
+}
+
+body[data-page="property-ranking"] .ranking-studio-v2,
+body[data-page="property-ranking"] .ranking-studio-v2 > *,
+body[data-page="property-ranking"] .ranking-split-grid > *,
+body[data-page="property-ranking"] .ranking-toolbar-filters,
+body[data-page="property-ranking"] .inspector-title-group {
+  min-width: 0;
+}
+
+@media screen and (max-width: 1024px) {
+  body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell-primary {
+    color: #fff8ef;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell-ghost {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar {
+    align-items: stretch;
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  body[data-page="property-ranking"] .ranking-search-box {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+  }
+
+  body[data-page="property-ranking"] .ranking-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar-stats {
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid #eef0f3;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-bar-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-track {
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: 2px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-btn {
+    scroll-snap-align: start;
+    min-height: 46px;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  body[data-page="property-ranking"] .ranking-page-shell {
+    gap: 20px;
+    padding: 12px 0 48px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page-shell > .ranking-site-shell {
+    width: calc(100% - 24px);
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface {
+    padding: 24px 20px 20px;
+    border-radius: 24px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.1);
+    background-position: center;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .page-intro-copy {
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.13em;
+    line-height: 1.5;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface h1 {
+    max-width: 18ch;
+    margin: 0;
+    font-size: clamp(30px, 8.2vw, 38px);
+    line-height: 1.08;
+    letter-spacing: -0.055em;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface p {
+    max-width: none;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .intro-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: static;
+    width: 100%;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell {
+    min-width: 0;
+    min-height: 46px;
+    width: 100%;
+    height: auto;
+    padding: 10px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: 0;
+    white-space: normal;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-intro-surface .intro-actions .btn-shell-primary {
+    grid-column: 1 / -1;
+    color: #fff8ef;
+    font-size: 13px;
+  }
+
+  body[data-page="property-ranking"] .ranking-studio-v2 {
+    gap: 16px;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-bar,
+  body[data-page="property-ranking"] .ranking-toolbar {
+    padding: 14px;
+    border-radius: 18px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-bar-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-inline: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-bar-title {
+    font-size: 10px;
+    line-height: 1.5;
+    letter-spacing: 0.07em;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-active-badge {
+    font-size: 10px;
+    padding: 4px 9px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-active-badge::before {
+    animation: none;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-track {
+    gap: 8px;
+    padding: 2px 2px 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-btn {
+    padding: 9px 12px;
+    gap: 8px;
+    border-radius: 11px;
+    font-size: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-lens-btn .lens-icon-wrap {
+    width: 24px;
+    height: 24px;
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar {
+    display: grid;
+    gap: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar-filters {
+    gap: 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-search-input {
+    height: 46px;
+    font-size: 16px;
+  }
+
+  body[data-page="property-ranking"] .ranking-select {
+    height: 44px;
+    padding: 8px 25px 8px 10px;
+    font-size: 12px;
+    background-position: right 7px center;
+    background-size: 12px;
+  }
+
+  body[data-page="property-ranking"] #rankingClupStatus,
+  body[data-page="property-ranking"] #rankingSort {
+    grid-column: 1 / -1;
+  }
+
+  body[data-page="property-ranking"] .ranking-reset-btn {
+    grid-column: 1 / -1;
+    min-height: 44px;
+  }
+
+  body[data-page="property-ranking"] .ranking-toolbar-stats {
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+
+  body[data-page="property-ranking"] .ranking-split-grid {
+    gap: 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-list-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-inline: 2px;
+  }
+
+  body[data-page="property-ranking"] .ranking-list-title {
+    font-size: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-row-card {
+    grid-template-columns: 34px minmax(0, 1fr) 48px;
+    gap: 10px;
+    padding: 14px 12px;
+    border-radius: 15px;
+  }
+
+  body[data-page="property-ranking"] .rk-badge {
+    width: 34px;
+    height: 38px;
+    font-size: 13px;
+    border-radius: 9px;
+  }
+
+  body[data-page="property-ranking"] .rk-title {
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="property-ranking"] .rk-meta,
+  body[data-page="property-ranking"] .rk-numbers {
+    gap: 5px;
+    font-size: 10px;
+    line-height: 1.5;
+    flex-wrap: wrap;
+  }
+
+  body[data-page="property-ranking"] .rk-score-pill {
+    min-width: 46px;
+    padding: 7px 4px;
+    border-radius: 10px;
+  }
+
+  body[data-page="property-ranking"] .rk-score-pill strong {
+    font-size: 22px;
+  }
+
+  body[data-page="property-ranking"] .rk-score-pill span {
+    font-size: 8px;
+    letter-spacing: 0;
+  }
+
+  body[data-page="property-ranking"] .inspector-card {
+    border-radius: 20px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  body[data-page="property-ranking"] .inspector-hero {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  body[data-page="property-ranking"] .inspector-rank-badge {
+    max-width: 100%;
+    font-size: 9px;
+    line-height: 1.6;
+    padding: 5px 9px;
+    letter-spacing: 0.04em;
+  }
+
+  body[data-page="property-ranking"] .inspector-hero-top {
+    gap: 9px;
+  }
+
+  body[data-page="property-ranking"] .inspector-hero-main {
+    gap: 16px;
+  }
+
+  body[data-page="property-ranking"] .inspector-title-group h2 {
+    font-size: 23px;
+    line-height: 1.2;
+    letter-spacing: -0.045em;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="property-ranking"] .inspector-title-group p {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  body[data-page="property-ranking"] .inspector-score-lockup {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 11px;
+  }
+
+  body[data-page="property-ranking"] .inspector-score-lockup strong {
+    font-size: 30px;
+  }
+
+  body[data-page="property-ranking"] .inspector-score-lockup span {
+    font-size: 9px;
+  }
+
+  body[data-page="property-ranking"] .inspector-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="property-ranking"] .inspector-metric-cell {
+    min-width: 0;
+    padding: 13px 9px;
+  }
+
+  body[data-page="property-ranking"] .inspector-metric-cell strong {
+    overflow-wrap: anywhere;
+    font-size: 13px;
+  }
+
+  body[data-page="property-ranking"] .inspector-action-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 12px;
+    gap: 8px;
+  }
+
+  body[data-page="property-ranking"] .inspector-action-bar .btn-shell {
+    min-width: 0;
+    height: auto;
+    min-height: 44px;
+    padding: 9px 6px;
+    white-space: normal;
+    font-size: 11px;
+    line-height: 1.4;
+    justify-content: center;
+  }
+
+  body[data-page="property-ranking"] .inspector-action-bar .btn-shell-primary {
+    grid-column: 1 / -1;
+  }
+
+  body[data-page="property-ranking"] .inspector-tabs-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0 8px;
+  }
+
+  body[data-page="property-ranking"] .inspector-tab-btn {
+    min-width: 0;
+    min-height: 54px;
+    padding: 10px 4px;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  body[data-page="property-ranking"] .inspector-tab-body {
+    padding: 18px 16px;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="property-ranking"] .inspector-thesis-text {
+    font-size: 13px;
+  }
+
+  body[data-page="property-ranking"] .inspector-metric-header {
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  body[data-page="property-ranking"] .inspector-metric-header span {
+    flex-shrink: 0;
+    font-size: 10px;
+    text-align: right;
+  }
+
+  body[data-page="property-ranking"] .clup-facts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="property-ranking"] .clup-fact-box {
+    min-width: 0;
+    padding: 10px;
+  }
+
+  body[data-page="property-ranking"] .clup-alert-banner {
+    gap: 10px;
+    padding: 12px;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  body[data-page="property-ranking"] .ranking-toolbar-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

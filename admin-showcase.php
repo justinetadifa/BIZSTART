@@ -12,13 +12,9 @@ sfc_render_header($context, 'admin-showcase');
 <main class="page-shell admin-showcase-page">
   <section class="site-shell page-intro-card">
     <div>
-      <div class="eyebrow">Admin Showcase Studio</div>
-      <div class="page-role-strip">
-        <span class="page-role-pill is-role">Admin Workspace</span>
-        <span class="page-role-pill">Offer Board + City Pipeline</span>
-      </div>
-      <h1>Manage the Offer Board and City Pipeline with one polished control surface.</h1>
-      <p>Create, curate, publish, and reorder the hidden showcase features that live under the platform's More menu, including investor gap briefs for businesses and establishments San Fernando still wants to attract.</p>
+      <div class="eyebrow">Admin workspace</div>
+      <h1>Showcase</h1>
+      <p>Curate the Offer Board and City Pipeline. Create, publish, and arrange city opportunities.</p>
     </div>
     <div class="intro-actions">
       <button type="button" class="btn-shell btn-shell-primary" id="adminShowcaseAdd">Add Showcase Item</button>

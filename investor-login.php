@@ -7,6 +7,7 @@ $context = sfc_web_context();
 $sceneImage = $context['assetBase'] . '/images/sfcpanoramicView.png';
 $mode = ($_GET['mode'] ?? $_POST['mode'] ?? 'login') === 'signup' ? 'signup' : 'login';
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!sfc_verify_csrf_request()) {
         $error = 'Your security token expired. Refresh the page and try again.';
@@ -24,13 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = $exception->getMessage();
         }
     } else {
-        $email = (string) ($_POST['email'] ?? '');
+        $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         if (sfc_login('investor', $email, $password)) {
             header('Location: ' . sfc_path('/investor-dashboard.php'));
             exit;
         }
-        $error = 'Invalid investor credentials. Use the seeded account below or create a new investor profile.';
+        $error = 'Invalid investor credentials. Use the demo account below or create a new investor profile.';
     }
 }
 
@@ -38,68 +39,311 @@ sfc_render_head('Investor Login | LOCUS-SF', $context, ['page' => 'investor-logi
 sfc_render_header($context);
 ?>
 <main class="page-shell auth-page auth-page-investor">
-  <section class="site-shell auth-stage auth-stage-investor-refined">
-    <div class="auth-visual auth-visual-investor-refined" style="--auth-image:url('<?= htmlspecialchars($sceneImage, ENT_QUOTES, 'UTF-8') ?>')">
-      <div class="auth-visual-copy auth-visual-copy-investor-refined">
-        <span class="auth-role-chip auth-role-chip-investor-refined">Investor / Resident</span>
-        <h1>Local opportunities, presented with more calm and clarity.</h1>
+  <section class="site-shell auth-stage">
+    <!-- Visual Side -->
+    <div class="auth-visual" style="--auth-image:url('<?= htmlspecialchars($sceneImage, ENT_QUOTES, 'UTF-8') ?>')">
+      <div class="auth-visual-copy">
+        <span class="auth-role-chip">Investor / Resident</span>
+        <h1>Local opportunities, presented with calm and clarity.</h1>
         <p>Sign in to review properties, compare options, and follow demand signals in a workspace designed for focused decision-making.</p>
       </div>
-      <div class="auth-investor-visual-treatment" aria-hidden="true"></div>
+
+      <div class="auth-signal-row" aria-label="Portal highlights">
+        <span class="auth-signal-pill">CLUP 2025–2035</span>
+        <span class="auth-signal-pill">Candidate Sites</span>
+        <span class="auth-signal-pill">Decision Matrix</span>
+      </div>
+
+      <div class="auth-visual-stack">
+        <article class="auth-floating-card auth-floating-card-accent">
+          <span>Investment Discovery</span>
+          <strong>Focused Property Evaluation</strong>
+          <p>Review candidate sites screened against official zoning policies, infrastructure access, and hazard overlays.</p>
+        </article>
+      </div>
     </div>
 
-    <div class="auth-surface auth-surface-investor-refined">
-      <div class="auth-brand-line auth-brand-line-investor-refined">LOCUS-SF</div>
+    <!-- Surface Side -->
+    <div class="auth-surface">
+      <div class="auth-brand-line">LOCUS-SF</div>
+
+      <!-- 2-Role Workspace Switch (Investor & Admin Only) -->
       <div class="auth-role-switch">
-        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link is-active">Investor</a>
+        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link <?= $mode === 'login' || $mode === 'signup' ? 'is-active' : '' ?>">Investor</a>
         <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link">Admin</a>
       </div>
-      <div class="auth-surface-head auth-surface-head-investor-refined">
-        <h2><?= $mode === 'signup' ? 'Create investor account' : 'Investor / Resident login' ?></h2>
-        <p><?= $mode === 'signup' ? 'Create your account to save candidate areas and CLUP-screened comparisons.' : 'Use your account to continue your shortlist, suitability reviews, and comparisons.' ?></p>
+
+      <div class="auth-surface-head">
+        <h2><?= $mode === 'signup' ? 'Create account' : 'Investor login' ?></h2>
+        <p><?= $mode === 'signup' ? 'Create an account to save candidate areas and CLUP comparisons.' : 'Use your account to continue your shortlist and suitability reviews.' ?></p>
       </div>
-      <div class="auth-switch auth-switch-investor-refined">
-        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-switch-link <?= $mode === 'login' ? 'is-active' : '' ?>">Login</a>
+
+      <!-- Login / Signup Sub-tabs -->
+      <div class="auth-switch">
+        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-switch-link <?= $mode === 'login' ? 'is-active' : '' ?>">Sign in</a>
         <a href="<?= htmlspecialchars(sfc_path('/investor-login.php?mode=signup'), ENT_QUOTES, 'UTF-8') ?>" class="auth-switch-link <?= $mode === 'signup' ? 'is-active' : '' ?>">Create account</a>
       </div>
-      <?php if ($error !== ''): ?><div class="auth-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
-      <form method="post" class="auth-form auth-form-investor-refined">
+
+      <?php if ($error !== ''): ?>
+      <div class="auth-error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+      <?php endif; ?>
+
+      <form method="post" class="auth-form" id="investorForm">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(sfc_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
         <input type="hidden" name="mode" value="<?= htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') ?>">
+
         <?php if ($mode === 'signup'): ?>
-        <label class="form-shell">
+        <label class="form-shell" for="investorName">
           <span>Full name</span>
-          <input type="text" id="investorName" name="name" class="input-shell" value="<?= htmlspecialchars((string) ($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" autocomplete="name" required>
+          <input 
+            type="text" 
+            id="investorName" 
+            name="name" 
+            class="input-shell" 
+            value="<?= htmlspecialchars((string) ($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" 
+            autocomplete="name" 
+            placeholder="e.g. Maria Santos" 
+            required
+          >
         </label>
         <?php endif; ?>
-        <label class="form-shell">
+
+        <label class="form-shell" for="investorEmail">
           <span>Email address</span>
-          <input type="email" id="investorEmail" name="email" class="input-shell" value="<?= htmlspecialchars((string) ($_POST['email'] ?? ($mode === 'signup' ? '' : 'investor@sfcelerate.local')), ENT_QUOTES, 'UTF-8') ?>" autocomplete="username" autocapitalize="off" spellcheck="false" inputmode="email" required>
+          <input 
+            type="email" 
+            id="investorEmail" 
+            name="email" 
+            class="input-shell" 
+            value="<?= htmlspecialchars((string) ($_POST['email'] ?? ($mode === 'signup' ? '' : 'investor@sfcelerate.local')), ENT_QUOTES, 'UTF-8') ?>" 
+            autocomplete="username" 
+            autocapitalize="off" 
+            spellcheck="false" 
+            inputmode="email" 
+            required
+          >
         </label>
-        <label class="form-shell">
-          <span>Password</span>
-          <input type="password" id="investorPassword" name="password" class="input-shell" value="<?= $mode === 'signup' ? '' : 'Investor123!' ?>" autocomplete="<?= $mode === 'signup' ? 'new-password' : 'current-password' ?>" required>
+
+        <label class="form-shell" for="investorPassword">
+          <div class="auth-label-row">
+            <span>Password</span>
+            <button type="button" class="btn-pwd-toggle" id="btnTogglePassword" tabindex="-1">Show</button>
+          </div>
+          <input 
+            type="password" 
+            id="investorPassword" 
+            name="password" 
+            class="input-shell" 
+            value="<?= $mode === 'signup' ? '' : 'Investor123!' ?>" 
+            autocomplete="<?= $mode === 'signup' ? 'new-password' : 'current-password' ?>" 
+            required
+          >
+          <div class="caps-warning" id="capsWarning" style="display:none;">Caps Lock is ON</div>
         </label>
+
         <?php if ($mode === 'signup'): ?>
-        <label class="form-shell">
+        <label class="form-shell" for="investorConfirmPassword">
           <span>Confirm password</span>
-          <input type="password" id="investorConfirmPassword" name="confirm_password" class="input-shell" autocomplete="new-password" required>
+          <input 
+            type="password" 
+            id="investorConfirmPassword" 
+            name="confirm_password" 
+            class="input-shell" 
+            autocomplete="new-password" 
+            required
+          >
         </label>
         <?php endif; ?>
-        <button type="submit" class="btn-shell btn-shell-primary btn-full auth-investor-submit"><?= $mode === 'signup' ? 'Create account' : 'Continue to dashboard' ?></button>
+
+        <button type="submit" class="btn-shell btn-shell-primary btn-full" id="btnSubmit">
+          <span id="btnSubmitText"><?= $mode === 'signup' ? 'Create account &rarr;' : 'Continue to dashboard &rarr;' ?></span>
+        </button>
       </form>
-      <div class="auth-investor-secondary">
-        <a href="mailto:support@sfcelerate.local?subject=Investor%20Access%20Support" class="auth-investor-secondary-link">Need help?</a>
-        <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-investor-secondary-link">Browse rankings first</a>
+
+      <?php if ($mode === 'login'): ?>
+      <!-- Clean Demo Credential Assistant -->
+      <div class="auth-demo-hint">
+        <div class="demo-hint-copy">
+          <span class="demo-hint-label">Demo access</span>
+          <span><code>investor@sfcelerate.local</code> / <code>Investor123!</code></span>
+        </div>
+        <button type="button" class="btn-demo-autofill" id="btnAutoFill">Auto-fill</button>
       </div>
-      <div class="auth-form-note auth-form-note-investor-refined">
-        <?php if ($mode === 'signup'): ?>
-        Investor accounts keep their own candidate-site shortlist and comparison activity.
-        <?php else: ?>
-        Seeded investor access: <strong>investor@sfcelerate.local</strong> / <strong>Investor123!</strong>
-        <?php endif; ?>
+      <?php else: ?>
+      <div class="auth-form-note">
+        Investor accounts save candidate-site shortlists, suitability reviews, and comparison history.
+      </div>
+      <?php endif; ?>
+
+      <div class="auth-secondary-links">
+        <a href="mailto:support@sfcelerate.local?subject=Investor%20Access%20Assistance">Need assistance?</a>
+        <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>">Browse rankings first &rarr;</a>
       </div>
     </div>
   </section>
 </main>
+
+<style>
+.auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-pwd-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.btn-pwd-toggle:hover {
+  color: #042f2e;
+  text-decoration: underline;
+}
+
+.caps-warning {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.auth-demo-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.05);
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  margin-top: 4px;
+}
+
+.demo-hint-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.demo-hint-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0f766e;
+}
+
+.demo-hint-copy code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: #134e4a;
+  font-weight: 600;
+}
+
+.btn-demo-autofill {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #99f6e4;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms ease;
+  white-space: nowrap;
+}
+
+.btn-demo-autofill:hover {
+  background: #f0fdfa;
+  border-color: #5eead4;
+}
+
+.auth-secondary-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.auth-secondary-links a {
+  font-size: 12.5px;
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 180ms ease;
+}
+
+.auth-secondary-links a:hover {
+  color: #0f766e;
+  text-decoration: underline;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const pwdInput = document.getElementById('investorPassword');
+  const toggleBtn = document.getElementById('btnTogglePassword');
+  const capsWarning = document.getElementById('capsWarning');
+  const emailInput = document.getElementById('investorEmail');
+  const btnAutoFill = document.getElementById('btnAutoFill');
+  const form = document.getElementById('investorForm');
+  const submitBtn = document.getElementById('btnSubmit');
+  const submitText = document.getElementById('btnSubmitText');
+
+  // Password toggle
+  if (toggleBtn && pwdInput) {
+    toggleBtn.addEventListener('click', function () {
+      const isPwd = pwdInput.type === 'password';
+      pwdInput.type = isPwd ? 'text' : 'password';
+      toggleBtn.textContent = isPwd ? 'Hide' : 'Show';
+      pwdInput.focus();
+    });
+  }
+
+  // Caps lock warning
+  if (pwdInput && capsWarning) {
+    const checkCaps = function (e) {
+      capsWarning.style.display = (e.getModifierState && e.getModifierState('CapsLock')) ? 'block' : 'none';
+    };
+    pwdInput.addEventListener('keydown', checkCaps);
+    pwdInput.addEventListener('keyup', checkCaps);
+    pwdInput.addEventListener('blur', function () {
+      capsWarning.style.display = 'none';
+    });
+  }
+
+  // Auto fill demo credentials
+  if (btnAutoFill) {
+    btnAutoFill.addEventListener('click', function () {
+      if (emailInput) emailInput.value = 'investor@sfcelerate.local';
+      if (pwdInput) pwdInput.value = 'Investor123!';
+      btnAutoFill.textContent = '✓ Filled';
+      setTimeout(function () {
+        btnAutoFill.textContent = 'Auto-fill';
+      }, 1800);
+      pwdInput?.focus();
+    });
+  }
+
+  // Submit loading state
+  if (form && submitBtn && submitText) {
+    form.addEventListener('submit', function () {
+      submitBtn.disabled = true;
+      submitText.textContent = 'Signing in...';
+    });
+  }
+});
+</script>
 <?php sfc_render_footer($context); ?>

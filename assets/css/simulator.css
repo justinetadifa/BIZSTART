@@ -1,0 +1,1236 @@
+/* ==========================================================================
+   LOCUS-SF: Spatial Scenario Simulator Lab Stylesheet
+   Sleek iOS-Grade Tactile Studio · Real-time Policy & Infrastructure Engine
+   ========================================================================== */
+
+:root {
+  --sim-amber: #f59e0b;
+  --sim-amber-dark: #d97706;
+  --sim-orange: #ea580c;
+  --sim-amber-gradient: linear-gradient(135deg, #ffb800 0%, #ff7a00 100%);
+  --sim-amber-gradient-hover: linear-gradient(135deg, #ffc21a 0%, #ff881a 100%);
+  --sim-amber-shadow: 0 4px 16px rgba(255, 122, 0, 0.35), 0 2px 6px rgba(255, 184, 0, 0.22);
+  --sim-amber-shadow-hover: 0 8px 24px rgba(255, 122, 0, 0.45), 0 3px 8px rgba(255, 184, 0, 0.3);
+
+  --sim-slate-900: #0f172a;
+  --sim-slate-800: #1e293b;
+  --sim-slate-700: #334155;
+  --sim-slate-600: #475569;
+  --sim-slate-500: #64748b;
+  --sim-slate-400: #94a3b8;
+  --sim-slate-200: #e2e8f0;
+  --sim-slate-100: #f1f5f9;
+  --sim-slate-50: #f8fafc;
+
+  --sim-card-bg: #ffffff;
+  --sim-card-border: rgba(226, 232, 240, 0.85);
+  --sim-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --sim-card-shadow-hover: 0 12px 32px -4px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --sim-card-radius: 22px;
+
+  --sim-pass: #10b981;
+  --sim-pass-bg: #f0fdf4;
+  --sim-pass-border: #86efac;
+  --sim-cond: #f59e0b;
+  --sim-cond-bg: #fffbeb;
+  --sim-cond-border: #fde68a;
+  --sim-fail: #ef4444;
+  --sim-fail-bg: #fff1f2;
+  --sim-fail-border: #fca5a5;
+  --sim-unverified: #64748b;
+  --sim-unverified-bg: #f8fafc;
+  --sim-unverified-border: #cbd5e1;
+}
+
+body[data-page="scenario-simulator"] {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.simulator-page-shell {
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 20px 32px 72px;
+  box-sizing: border-box;
+}
+
+.simulator-site-shell {
+  max-width: 1640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   Hero Ribbon: Architectural Executive Lab Header
+   -------------------------------------------------------------------------- */
+.sim-hero-ribbon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 34px 40px;
+  gap: 36px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 60%, #fffdf5 100%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-top: 3.5px solid #f59e0b;
+  border-radius: 24px;
+  box-shadow: var(--sim-card-shadow);
+  overflow: hidden;
+}
+
+.sim-hero-ribbon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.45;
+  background: repeating-linear-gradient(0deg, transparent 0 39px, rgba(226, 232, 240, 0.5) 39px 40px),
+              repeating-linear-gradient(90deg, transparent 0 39px, rgba(226, 232, 240, 0.5) 39px 40px);
+  mask-image: radial-gradient(circle at 85% 30%, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.sim-hero-ribbon::after {
+  content: '';
+  position: absolute;
+  width: 440px;
+  height: 440px;
+  right: -80px;
+  top: -130px;
+  border: 1px solid rgba(245, 158, 11, 0.12);
+  border-radius: 50%;
+  box-shadow: 0 0 0 60px rgba(245, 158, 11, 0.04), 0 0 0 120px rgba(245, 158, 11, 0.02);
+  pointer-events: none;
+}
+
+.sim-hero-copy {
+  position: relative;
+  min-width: 0;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1;
+}
+
+.sim-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sim-live-beacon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  color: #b45309;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sim-live-beacon::before {
+  content: '';
+  display: inline-block;
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  animation: simBeaconPulse 2s infinite ease-in-out;
+}
+
+@keyframes simBeaconPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.35); }
+}
+
+.sim-hero-location {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sim-hero-copy h1 {
+  color: #0f172a;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: clamp(28px, 2.8vw, 42px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.sim-hero-copy h1 span {
+  display: inline-block;
+  background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sim-hero-copy p {
+  max-width: 600px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0;
+}
+
+.sim-hero-actions {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 360px;
+  z-index: 1;
+}
+
+.sim-hero-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.sim-hero-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sim-hero-stats strong {
+  color: #0f172a;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.sim-hero-stats span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sim-hero-links {
+  display: flex;
+  gap: 10px;
+}
+
+/* User's Exact Amber-Orange Pill Button Style */
+.btn-sim-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--sim-amber-gradient);
+  color: #ffffff !important;
+  border: none;
+  border-radius: 9999px;
+  font-family: "Manrope", sans-serif;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  padding: 11px 22px;
+  min-height: 42px;
+  text-decoration: none;
+  box-shadow: var(--sim-amber-shadow);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-sim-primary:hover {
+  background: var(--sim-amber-gradient-hover);
+  box-shadow: var(--sim-amber-shadow-hover);
+  transform: translateY(-1.5px) scale(1.015);
+  color: #ffffff !important;
+}
+
+.btn-sim-primary:active {
+  transform: translateY(0.5px) scale(0.99);
+  box-shadow: 0 2px 8px rgba(255, 122, 0, 0.3);
+}
+
+.btn-sim-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 11px 18px;
+  min-height: 42px;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.btn-sim-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Studio Layout: Split Cockpit & Live Analytics Stage
+   -------------------------------------------------------------------------- */
+.sim-studio-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+/* --------------------------------------------------------------------------
+   Left Column: Sticky iOS Control Cockpit
+   -------------------------------------------------------------------------- */
+.sim-cockpit {
+  position: sticky;
+  top: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sim-panel {
+  background: var(--sim-card-bg);
+  border: 1px solid var(--sim-card-border);
+  border-radius: var(--sim-card-radius);
+  padding: 22px;
+  box-shadow: var(--sim-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sim-panel:hover {
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: var(--sim-card-shadow-hover);
+}
+
+.sim-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sim-kicker {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #d97706;
+}
+
+.sim-panel-title {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 16px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 2px 0 0;
+}
+
+/* Site Selector Card with Thumbnail & Metadata */
+.sim-site-picker-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sim-site-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.sim-site-thumb {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #0f172a;
+}
+
+.sim-site-preview-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sim-site-preview-name {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 14px;
+  font-weight: 750;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sim-site-preview-meta {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-select-shell {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 36px 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 650;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sim-select-shell:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  outline: none;
+}
+
+/* Proposed Investment Segmented Tiles */
+.sim-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.sim-type-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.sim-type-tile svg {
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.sim-type-tile:hover {
+  background: #fffdf5;
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.sim-type-tile:hover svg {
+  color: #f59e0b;
+  transform: scale(1.08);
+}
+
+.sim-type-tile.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 6px 16px -2px rgba(15, 23, 42, 0.25), 0 0 0 2px rgba(245, 158, 11, 0.35);
+}
+
+.sim-type-tile.is-active svg {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+}
+
+/* --------------------------------------------------------------------------
+   Interactive iOS Range Sliders with Glowing Fill & Live Delta
+   -------------------------------------------------------------------------- */
+.sim-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sim-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.sim-slider-row:focus-within {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.sim-slider-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sim-slider-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sim-slider-label svg {
+  width: 15px;
+  height: 15px;
+  color: #f59e0b;
+}
+
+.sim-slider-value-pill {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-slider-subtext {
+  font-size: 10.5px;
+  color: #64748b;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.sim-slider-subtext strong {
+  color: #059669;
+  font-weight: 750;
+}
+
+/* Custom iOS Track & Thumb */
+.sim-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+  margin: 6px 0 4px;
+  transition: background 0.15s ease;
+}
+
+.sim-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sim-range-input::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: grab;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sim-range-input:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(255, 122, 0, 0.38), 0 0 0 3px rgba(255, 184, 0, 0.3);
+}
+
+.sim-range-input:active::-moz-range-thumb {
+  cursor: grabbing;
+  transform: scale(1.15);
+  box-shadow: 0 4px 14px rgba(255, 122, 0, 0.38), 0 0 0 3px rgba(255, 184, 0, 0.3);
+}
+
+/* Quick Boost Presets */
+.sim-quick-boosts {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sim-boost-btn {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.sim-boost-btn:hover {
+  background: #fffdf5;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.sim-boost-btn.is-active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #b45309;
+  font-weight: 800;
+}
+
+/* One-Tap Scenario Presets */
+.sim-preset-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.sim-preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sim-preset-chip:hover {
+  background: #ffffff;
+  border-color: #f59e0b;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+/* Policy Guardrail Card (Compact Apple Frosted Callout) */
+.sim-guardrail-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.sim-guardrail-icon {
+  width: 22px;
+  height: 22px;
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sim-guardrail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sim-guardrail-copy strong {
+  font-size: 12px;
+  font-weight: 750;
+  color: #0f172a;
+}
+
+.sim-guardrail-copy p {
+  font-size: 11px;
+  line-height: 1.55;
+  color: #475569;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Right Column: Live Simulation Studio & Analytics Stage
+   -------------------------------------------------------------------------- */
+.sim-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Showstopper Live Decision Hero Banner */
+.sim-decision-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 32px;
+  border-radius: var(--sim-card-radius);
+  background: #ffffff;
+  border: 1.5px solid var(--sim-card-border);
+  box-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sim-decision-hero.is-pass {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: #86efac;
+  border-left: 6px solid #10b981;
+}
+
+.sim-decision-hero.is-conditional {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-color: #fde68a;
+  border-left: 6px solid #f59e0b;
+}
+
+.sim-decision-hero.is-fail {
+  background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%);
+  border-color: #fca5a5;
+  border-left: 6px solid #ef4444;
+}
+
+.sim-decision-hero.is-unverified {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-color: #cbd5e1;
+  border-left: 6px solid #64748b;
+}
+
+.sim-decision-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sim-verdict-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 620px;
+}
+
+.sim-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.sim-status-badge.is-pass {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.sim-status-badge.is-conditional {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.sim-status-badge.is-fail {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+.sim-status-badge.is-unverified {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.sim-verdict-title {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 24px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.sim-verdict-desc {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #475569;
+  margin: 0;
+}
+
+/* Scoreboard Lockup (Simulated IAI Gauge) */
+.sim-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 16px 20px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.sim-score-label {
+  font-size: 9.5px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.sim-score-huge {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 42px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.sim-score-huge small {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0;
+}
+
+.sim-delta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Before / After Impact Matrix */
+.sim-impact-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.sim-impact-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.sim-progress-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.sim-progress-meta span {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.sim-progress-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.sim-progress-base {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #0f172a;
+  border-radius: 9999px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+.sim-progress-lift {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #ffb800 0%, #ff7a00 100%);
+  border-radius: 9999px;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(255, 122, 0, 0.5);
+  z-index: 2;
+}
+
+/* --------------------------------------------------------------------------
+   CLUP Land-Use & Zoning Intelligence Matrix (4 Dimensions)
+   -------------------------------------------------------------------------- */
+.sim-clup-intel {
+  background: var(--sim-card-bg);
+  border: 1px solid var(--sim-card-border);
+  border-radius: var(--sim-card-radius);
+  padding: 28px;
+  box-shadow: var(--sim-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sim-intel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.sim-intel-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sim-intel-title {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 20px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.sim-intel-meta {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.sim-evidence-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.sim-intel-explanation {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #475569;
+  margin: 0;
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-radius: 14px;
+  border-left: 3.5px solid #d97706;
+}
+
+/* 4 Dimension Glass Tiles Grid */
+.sim-dimensions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sim-dim-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.sim-dim-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.sim-dim-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.sim-dim-label svg {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+}
+
+.sim-dim-value {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
+/* Permitted Use Matrix Row */
+.sim-uses-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.sim-uses-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.sim-uses-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sim-use-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.sim-use-pill.is-allowed {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.sim-use-pill.is-conditional {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.sim-use-pill.is-restricted {
+  background: #fff1f2;
+  color: #e11d48;
+  border: 1px solid rgba(225, 29, 72, 0.25);
+}
+
+.sim-intel-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #94a3b8;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Action Bar */
+.sim-stage-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 22px;
+  background: var(--sim-card-bg);
+  border: 1px solid var(--sim-card-border);
+  border-radius: var(--sim-card-radius);
+  box-shadow: var(--sim-card-shadow);
+  flex-wrap: wrap;
+}
+
+.sim-action-hint {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Media Queries
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  .sim-studio-grid {
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 20px;
+  }
+  .sim-hero-ribbon {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 26px 28px;
+    gap: 24px;
+  }
+  .sim-hero-actions {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .simulator-page-shell {
+    padding: 16px 18px 60px;
+  }
+  .sim-studio-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .sim-cockpit {
+    position: relative;
+    top: 0;
+  }
+  .sim-dimensions-grid {
+    grid-template-columns: 1fr;
+  }
+  .sim-decision-hero-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sim-score-card {
+    align-items: flex-start;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 560px) {
+  .simulator-page-shell {
+    padding-inline: 12px;
+  }
+  .sim-hero-ribbon {
+    padding: 20px;
+    border-radius: 18px;
+  }
+  .sim-type-grid {
+    grid-template-columns: 1fr;
+  }
+  .sim-hero-stats {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sim-stage-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-sim-primary, .btn-sim-secondary {
+    justify-content: center;
+  }
+}
