@@ -1,0 +1,757 @@
+/* ==========================================================================
+   LOCUS-SF: Official Domain Iconography & Analytical Flow Styles
+   Precision Spatial Decision Platform · Executive Light Mode
+   ========================================================================== */
+
+:root {
+  --locus-icon-xs: 18px;
+  --locus-icon-sm: 24px;
+  --locus-icon-md: 32px;
+  --locus-icon-lg: 44px;
+  --locus-icon-xl: 64px;
+}
+
+/* Base Icon Style: Crisp rendering, aspect ratio preserved, transparent background */
+.locus-icon {
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+  width: var(--locus-icon-md);
+  height: var(--locus-icon-md);
+  flex-shrink: 0;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Sizing Modifiers */
+.locus-icon--xs {
+  width: var(--locus-icon-xs);
+  height: var(--locus-icon-xs);
+}
+
+.locus-icon--sm {
+  width: var(--locus-icon-sm);
+  height: var(--locus-icon-sm);
+}
+
+.locus-icon--md {
+  width: var(--locus-icon-md);
+  height: var(--locus-icon-md);
+}
+
+.locus-icon--lg {
+  width: var(--locus-icon-lg);
+  height: var(--locus-icon-lg);
+}
+
+.locus-icon--xl {
+  width: var(--locus-icon-xl);
+  height: var(--locus-icon-xl);
+}
+
+/* ==========================================================================
+   Premium Icon Container: Subtle, Non-Distracting Architectural Surface
+   ========================================================================== */
+.locus-icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 180ms ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.locus-icon-box:hover {
+  transform: translateY(-1.5px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  border-color: rgba(203, 213, 225, 0.95);
+}
+
+/* Container Size Variations */
+.locus-icon-box--xs {
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.locus-icon-box--sm {
+  padding: 6px;
+  border-radius: 10px;
+}
+
+.locus-icon-box--md {
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.locus-icon-box--lg {
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.locus-icon-box--xl {
+  padding: 14px;
+  border-radius: 16px;
+}
+
+/* Subtle Semantic Tints for Domain Accent Containers */
+.locus-icon-box--iai {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.locus-icon-box--mce {
+  border-color: rgba(99, 102, 241, 0.35);
+  background: linear-gradient(180deg, #ffffff 0%, #f5f3ff 100%);
+}
+
+.locus-icon-box--hazard {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.locus-icon-box--readiness {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: linear-gradient(180deg, #ffffff 0%, #f0f9ff 100%);
+}
+
+/* ==========================================================================
+   Section A: MCE Analytical Pipeline Component (PROPERTY DATA → MCE → IAI)
+   ========================================================================== */
+.locus-mce-flow-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin: 20px 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.locus-mce-flow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.locus-mce-flow-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 2px 0 0;
+  letter-spacing: -0.01em;
+}
+
+.locus-mce-flow-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6366f1;
+}
+
+.locus-mce-pipeline {
+  display: grid;
+  grid-template-columns: 1fr auto 240px auto 240px;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (max-width: 1080px) {
+  .locus-mce-pipeline {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Stage 1: Spatial Criteria Grid */
+.locus-mce-stage-criteria {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.locus-mce-stage-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.locus-mce-criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .locus-mce-criteria-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.locus-criterion-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.locus-criterion-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+.locus-criterion-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.locus-criterion-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.locus-criterion-score {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Connector Arrow */
+.locus-mce-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 20px;
+}
+
+@media (max-width: 1080px) {
+  .locus-mce-arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* Stage 2: MCE Weighting Hub */
+.locus-mce-stage-hub {
+  background: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.06);
+  position: relative;
+}
+
+.locus-mce-stage-hub .locus-icon-box {
+  margin: 0 auto 10px;
+}
+
+.locus-mce-hub-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.locus-mce-hub-desc {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.locus-mce-hub-tag {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Stage 3: Final IAI Attractiveness Index */
+.locus-mce-stage-iai {
+  background: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.08);
+}
+
+.locus-mce-stage-iai .locus-icon-box {
+  margin: 0 auto 10px;
+}
+
+.locus-iai-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.locus-iai-score {
+  font-size: 28px;
+  font-weight: 800;
+  color: #059669;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.locus-iai-fit {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   Property Card Semantic Badges & Detail Page Information Groups
+   ========================================================================== */
+.locus-card-domain-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.locus-card-domain-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.locus-card-domain-item strong {
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Property Detail Page Group Header Anchor */
+.locus-detail-group-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.locus-detail-group-head .locus-icon-box {
+  margin-bottom: 0;
+}
+
+.locus-detail-group-copy h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.locus-detail-group-copy p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 1px 0 0;
+}
+
+/* Dashboard Metric Card Domain Anchor */
+.adm-kpi-icon-wrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.stat-card:hover .adm-kpi-icon-wrap {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+}
+
+/* Detailed bitmap icons need more room than the navigation line icons. */
+body:is([data-page="property-ranking"], [data-page="property-explorer-terminal"]) {
+  --locus-icon-xs: 24px;
+  --locus-icon-sm: 28px;
+  --locus-icon-md: 36px;
+}
+
+body[data-page="property-ranking"] .inspector-metric-cell > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 60px;
+  letter-spacing: 0;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+body[data-page="property-ranking"] :is(.inspector-metric-cell, .inspector-tab-btn) .locus-icon {
+  width: 32px;
+  height: 32px;
+}
+
+body[data-page="property-ranking"] .inspector-metric-cell strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn > span {
+  gap: 8px !important;
+  min-width: 0;
+  line-height: 1.4;
+  text-align: left;
+}
+
+body[data-page="property-ranking"] .inspector-score-lockup .locus-icon {
+  width: 44px;
+  height: 44px;
+}
+
+body[data-page="property-ranking"] .inspector-hero-main > .inspector-score-lockup {
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+body[data-page="property-ranking"] .inspector-score-lockup > div {
+  min-width: 0;
+}
+
+body[data-page="property-ranking"] .inspector-score-lockup > div > span {
+  display: block;
+  max-width: 110px;
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+body[data-page="property-ranking"] .inspector-metric-strip > .inspector-metric-cell {
+  min-width: 0;
+  padding: 16px 8px;
+}
+
+body[data-page="property-ranking"] .inspector-metric-cell > strong {
+  overflow-wrap: anywhere;
+}
+
+body[data-page="property-ranking"] .inspector-score-lockup .locus-icon-box {
+  width: 56px;
+  height: 56px;
+  box-sizing: border-box;
+  padding: 5px;
+  border-radius: 8px;
+}
+
+body[data-page="property-ranking"] .rk-score-pill {
+  min-width: 64px;
+  min-height: 88px;
+  box-sizing: border-box;
+  padding: 8px 7px;
+  border-radius: 8px;
+}
+
+body[data-page="property-ranking"] .rk-score-pill strong {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-page="property-ranking"] .rk-score-pill > span {
+  font-size: 9px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+body[data-page="property-ranking"] .rk-score-pill > div {
+  flex-direction: column;
+  gap: 3px !important;
+}
+
+body[data-page="property-ranking"] .rk-score-pill .locus-icon {
+  width: 28px;
+  height: 28px;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn {
+  min-height: 60px;
+  position: relative;
+  color: #475569;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn.is-active {
+  background: #fff9ed;
+  color: #92400e;
+  border-bottom-color: #f59e0b;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn:focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: -4px;
+}
+
+body[data-page="property-ranking"] .ranking-lens-btn .lens-icon-wrap,
+body[data-page="property-explorer-terminal"] .explorer-lens-btn-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+body[data-page="property-ranking"] .ranking-lens-btn .lens-icon-wrap svg,
+body[data-page="property-explorer-terminal"] .explorer-lens-btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="property-ranking"] .ranking-lens-btn.is-active .lens-icon-wrap,
+body[data-page="property-explorer-terminal"] .explorer-lens-btn.is-active .explorer-lens-btn-icon {
+  background: #fbbf24;
+  color: #422006;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn .locus-icon {
+  opacity: 0.8;
+  transition: opacity 160ms ease;
+}
+
+body[data-page="property-ranking"] .inspector-tab-btn:is(:hover, .is-active) .locus-icon {
+  opacity: 1;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-metric-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-card-metrics > div:last-child .explorer-metric-label {
+  justify-content: flex-end;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-metric-label .locus-icon {
+  width: 28px;
+  height: 28px;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-card-metrics {
+  gap: 12px;
+  padding: 16px 0;
+  background: transparent;
+  border-radius: 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  border-inline: 0;
+  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+body[data-page="property-explorer-terminal"] .explorer-card-metrics > .explorer-domain-metric {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  text-align: left;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-domain-metric > .locus-icon {
+  width: 40px;
+  height: 40px;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-domain-metric-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-domain-metric-copy .explorer-metric-label {
+  min-height: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+  color: #64748b;
+  justify-content: flex-start;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-domain-metric-copy :is(.explorer-card-price, .explorer-card-area) {
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+body[data-page="property-explorer-terminal"] .locus-card-domain-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+  padding: 14px 0 4px;
+  border: 0;
+  background: transparent;
+}
+
+body[data-page="property-explorer-terminal"] .locus-card-domain-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 70px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: center;
+  color: #475569;
+  font-weight: 600;
+}
+
+body[data-page="property-explorer-terminal"] .locus-card-domain-chip + .locus-card-domain-chip {
+  border-left: 1px solid #e2e8f0;
+  padding-left: 10px;
+}
+
+body[data-page="property-explorer-terminal"] .locus-card-domain-chip .locus-icon {
+  width: 36px;
+  height: 36px;
+}
+
+body[data-page="property-explorer-terminal"] .locus-card-domain-chip > span {
+  overflow-wrap: anywhere;
+}
+
+body[data-page="property-explorer-terminal"] .dossier-metrics > div > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card {
+    grid-template-columns: 34px minmax(0, 1fr) 64px;
+  }
+
+  body[data-page="property-ranking"] .inspector-hero-main > .inspector-score-lockup {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  body[data-page="property-ranking"] .inspector-tabs-nav {
+    flex-wrap: wrap;
+  }
+
+  body[data-page="property-ranking"] .inspector-tab-btn {
+    min-height: 48px;
+  }
+
+  body[data-page="property-ranking"] .inspector-tab-btn > span {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  body[data-page="property-explorer-terminal"] .locus-card-domain-strip {
+    gap: 6px 10px;
+  }
+
+  body[data-page="property-explorer-terminal"] .explorer-card-metrics > .explorer-domain-metric {
+    gap: 6px;
+  }
+
+  body[data-page="property-explorer-terminal"] .explorer-domain-metric > .locus-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  body[data-page="property-explorer-terminal"] .explorer-domain-metric-copy :is(.explorer-card-price, .explorer-card-area) {
+    font-size: 15px;
+  }
+
+  body[data-page="property-explorer-terminal"] .locus-card-domain-chip .locus-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  body[data-page="property-ranking"] .rk-score-pill {
+    min-width: 58px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1100px) {
+  body[data-page="property-ranking"] .inspector-hero-main {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:is([data-page="property-ranking"], [data-page="property-explorer-terminal"]) :is(.locus-icon, .locus-icon-box, .inspector-tab-btn) {
+    transition: none;
+  }
+}

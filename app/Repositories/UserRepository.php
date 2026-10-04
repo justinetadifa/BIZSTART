@@ -21,7 +21,7 @@ final class UserRepository
     public function findById(int $userId): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, role, name, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
+            'SELECT id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
              FROM users
              WHERE id = :id
              LIMIT 1'
@@ -35,7 +35,7 @@ final class UserRepository
     public function findByEmail(string $email): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, role, name, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
+            'SELECT id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
              FROM users
              WHERE LOWER(email) = LOWER(:email)
              LIMIT 1'
@@ -65,10 +65,15 @@ final class UserRepository
         return $user;
     }
 
-    public function create(string $role, string $name, string $email, string $password): array
+    public function create(string $role, string $name, string $email, string $password, ?string $department = null): array
     {
         $name = trim($name);
         $email = strtolower(trim($email));
+        $department = $department !== null ? trim($department) : null;
+        if ($department === '') {
+            $department = null;
+        }
+
         if ($name === '') {
             throw new InvalidArgumentException('Name is required.');
         }
@@ -80,15 +85,20 @@ final class UserRepository
         }
 
         $statement = $this->pdo->prepare(
-            'INSERT INTO users (role, name, email, password_hash, identity_verification_status, identity_verified_at)
-             VALUES (:role, :name, :email, :password_hash, :identity_verification_status, :identity_verified_at)'
+            'INSERT INTO users (role, name, department, email, password_hash, identity_verification_status, identity_verified_at)
+             VALUES (:role, :name, :department, :email, :password_hash, :identity_verification_status, :identity_verified_at)'
         );
 
         try {
-            $identityStatus = $role === 'seller' ? 'pending' : 'unverified';
+            $identityStatus = match ($role) {
+                'admin' => 'verified',
+                'seller' => 'pending',
+                default => 'unverified',
+            };
             $statement->execute([
                 'role' => $role,
                 'name' => $name,
+                'department' => $department,
                 'email' => $email,
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
                 'identity_verification_status' => $identityStatus,
@@ -139,7 +149,7 @@ final class UserRepository
     public function allByRole(string $role): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, role, name, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
+            'SELECT id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
              FROM users
              WHERE role = :role
              ORDER BY name ASC, email ASC'
@@ -152,7 +162,7 @@ final class UserRepository
     public function firstByRole(string $role): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, role, name, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
+            'SELECT id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at, created_at, updated_at
              FROM users
              WHERE role = :role
              ORDER BY id ASC
@@ -172,11 +182,15 @@ final class UserRepository
     private function hydrate(array $row): array
     {
         $identityVerifiedAt = $row['identity_verified_at'] ?? null;
+        $department = isset($row['department']) && $row['department'] !== null && trim((string) $row['department']) !== ''
+            ? (string) $row['department']
+            : null;
 
         return [
             'id' => (int) ($row['id'] ?? 0),
             'role' => (string) ($row['role'] ?? 'guest'),
             'name' => (string) ($row['name'] ?? ''),
+            'department' => $department,
             'email' => (string) ($row['email'] ?? ''),
             'passwordHash' => (string) ($row['password_hash'] ?? ''),
             'identityVerificationStatus' => $this->normalizeIdentityVerificationStatus((string) ($row['identity_verification_status'] ?? 'unverified')),

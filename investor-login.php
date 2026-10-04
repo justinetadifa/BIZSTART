@@ -69,8 +69,8 @@ sfc_render_header($context);
 
       <!-- 2-Role Workspace Switch (Investor & Admin Only) -->
       <div class="auth-role-switch">
-        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link <?= $mode === 'login' || $mode === 'signup' ? 'is-active' : '' ?>">Investor</a>
-        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link">Admin</a>
+        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php' . ($mode === 'signup' ? '?mode=signup' : '')), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link <?= $mode === 'login' || $mode === 'signup' ? 'is-active' : '' ?>">Investor</a>
+        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php' . ($mode === 'signup' ? '?mode=signup' : '')), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link">Admin</a>
       </div>
 
       <div class="auth-surface-head">

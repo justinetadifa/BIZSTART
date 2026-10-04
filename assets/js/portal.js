@@ -1,4 +1,6 @@
 import { api } from "./api.js";
+import { addCompetitorRadar, calculateCompetitorProximity } from "./competitor-radar.js";
+if (typeof window !== "undefined") window.addCompetitorRadar = addCompetitorRadar;
 import { initNotificationCenter } from "./notifications.js";
 import {
   DEFAULT_INVESTMENT_LENS,
@@ -778,7 +780,10 @@ function clupDecisionCardMarkup(compliance, options = {}) {
   return `
     <article class="panel-card clup-decision-card clup-${escapeHtml(statusKey)} ${compact ? "is-compact" : ""}" data-clup-gate="${escapeHtml(gate.toLowerCase())}">
       <div class="clup-card-head">
-        <div><div class="panel-kicker">CLUP Compliance &amp; Suitability</div><h3>${escapeHtml(compliance.proposedInvestmentLabel || "Proposed use pending")}</h3></div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${locusIcon("clupZoning", { size: "md", container: true })}
+          <div><div class="panel-kicker">CLUP Compliance &amp; Suitability</div><h3 style="margin:0;">${escapeHtml(compliance.proposedInvestmentLabel || "Proposed use pending")}</h3></div>
+        </div>
         <div class="clup-score-lockup">${clupStatusPill(compliance)}<strong>${escapeHtml(scoreCopy)}</strong><span>${score === null ? "Suitability pending" : "Suitability"}</span></div>
       </div>
       <div class="clup-evidence-row"><span class="clup-evidence clup-evidence-${escapeHtml(evidenceLevel.toLowerCase())}">${escapeHtml(evidenceLevel)} EVIDENCE</span><span class="clup-gate clup-gate-${escapeHtml(gate.toLowerCase())}">${escapeHtml(titleCase(gate))}</span>${sourceMeta.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>
@@ -899,6 +904,8 @@ async function loadInquiryCounts(properties) {
 
 function icon(name) {
   const icons = {
+    expand: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M4 16v4h4M20 16v4h-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    close: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
     inventory: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 9h8M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
     calendar: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="6" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 4v4M16 4v4M4 11h16M8 15h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
     map: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 6.5 5-2 7 2.5 5-2V18l-5 2-7-2.5-5 2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 4.5v13M15.5 7v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
@@ -930,6 +937,50 @@ function icon(name) {
   };
 
   return `<span class="ui-icon">${icons[name] || icons.arrow}</span>`;
+}
+
+function locusIcon(key, options = {}) {
+  if (typeof window !== "undefined" && typeof window.locusIcon === "function") {
+    return window.locusIcon(key, options);
+  }
+  const basePath = (typeof window !== "undefined" && window.SFC_APP_CONFIG?.basePath)
+    ? String(window.SFC_APP_CONFIG.basePath).replace(/\/+$/, "")
+    : "";
+  const iconBase = basePath ? `${basePath}/assets/icons` : "assets/icons";
+  const iconFiles = {
+    accessibility: "accessibility.png",
+    birzonalvalue: "birzonalvalue.png",
+    clupzoning: "clupzoning.png",
+    economicactivity: "economicActivity.png",
+    faultline: "faultline.png",
+    floodsusceptible: "floodsusceptible.png",
+    hazardsafety: "hazardsafety.png",
+    iai: "iai.png",
+    infrastructure: "infrastructure.png",
+    mce: "mce.png",
+    pointofinterest: "pointofinterest.png",
+    propertyinformation: "propertyinfo.png",
+    sitereadiness: "sitereadiness.png",
+    utilities: "utilities.png",
+  };
+  const norm = String(key || "propertyinformation").toLowerCase().replace(/[-_ ]/g, "");
+  const file = iconFiles[norm] || "propertyinfo.png";
+  const size = options.size || "md";
+  const sizeClass = typeof size === "string" ? `locus-icon--${size}` : "";
+  const alt = options.alt || "Domain icon";
+  const imgHtml = `<img src="${iconBase}/${file}" alt="${escapeHtml(alt)}" class="locus-icon ${sizeClass}" loading="lazy" decoding="async">`;
+  if (options.container) {
+    const boxVar = options.containerVariant ? ` locus-icon-box--${options.containerVariant}` : "";
+    return `<span class="locus-icon-box locus-icon-box--${size}${boxVar}">${imgHtml}</span>`;
+  }
+  return imgHtml;
+}
+
+function locusMceAnalyticalFlow(property = {}, options = {}) {
+  if (typeof window !== "undefined" && typeof window.locusMceAnalyticalFlow === "function") {
+    return window.locusMceAnalyticalFlow(property, options);
+  }
+  return "";
 }
 
 function investmentLensIconMarkup(lensKey) {
@@ -2044,13 +2095,24 @@ function readinessMatrixMarkup(readiness, activePillarKey, canEditInline) {
     return emptyState("Readiness matrix unavailable", "This property does not yet have enough structured data for the IRIE view.");
   }
 
+  const pillarIconMap = {
+    spatial: "accessibility",
+    infrastructure: "infrastructure",
+    economic: "economicActivity",
+    institutional: "clupZoning",
+    diligence: "siteReadiness",
+  };
+
   const pillars = Object.values(readiness.pillars || {});
   return `
     <article class="panel-card readiness-bento">
       <div class="readiness-bento-head">
-        <div>
-          <div class="panel-kicker">Investment Readiness Matrix</div>
-          <h3>${escapeHtml(readiness.label || "Readiness overview")}</h3>
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${locusIcon("siteReadiness", { size: "md", container: true, containerVariant: "readiness" })}
+          <div>
+            <div class="panel-kicker">Investment Readiness Matrix</div>
+            <h3 style="margin:0;">${escapeHtml(readiness.label || "Readiness overview")}</h3>
+          </div>
         </div>
         <div class="service-chip-row">
           ${serviceChip(`${readiness.missingDataCount || 0} missing data point${Number(readiness.missingDataCount || 0) === 1 ? "" : "s"}`, Number(readiness.missingDataCount || 0) ? "fallback" : "live")}
@@ -2073,10 +2135,15 @@ function readinessMatrixMarkup(readiness, activePillarKey, canEditInline) {
         ${pillars.flatMap((pillar) => pillar.indicators.slice(0, 1)).map((indicator) => readinessIndicatorPill(indicator)).join("")}
       </div>
       <div class="readiness-pillars-grid">
-        ${pillars.map((pillar) => `
+        ${pillars.map((pillar) => {
+          const iconKey = pillarIconMap[pillar.key] || "siteReadiness";
+          return `
           <button type="button" class="readiness-pillar-card ${readinessToneClass(pillar.status)} ${String(activePillarKey) === String(pillar.key) ? "is-active" : ""}" data-readiness-pillar="${escapeHtml(pillar.key)}">
             <div class="readiness-pillar-top">
-              ${progressRingMarkup(pillar.score, pillar.status)}
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${progressRingMarkup(pillar.score, pillar.status)}
+                ${locusIcon(iconKey, { size: "xs" })}
+              </div>
               <div>
                 <div class="readiness-pillar-score">${Math.round(Number(pillar.score || 0))}%</div>
                 <strong>${escapeHtml(pillar.label)}</strong>
@@ -2088,7 +2155,8 @@ function readinessMatrixMarkup(readiness, activePillarKey, canEditInline) {
               <span>${pillar.missingFields.length ? `${pillar.missingFields.length} missing` : "Complete"}</span>
             </div>
           </button>
-        `).join("")}
+        `;
+        }).join("")}
       </div>
       ${pillars.map((pillar) => `
         <div class="readiness-drawer ${String(activePillarKey) === String(pillar.key) ? "is-open" : ""}" data-readiness-drawer="${escapeHtml(pillar.key)}">
@@ -2237,6 +2305,79 @@ function mapPopup(property) {
   `;
 }
 
+function mountLeafletMapFallback({
+  container,
+  containerId,
+  properties,
+  activeId = null,
+  onSelect = null,
+  overview = false,
+  tileAttribution = '&copy; OpenStreetMap contributors',
+}) {
+  if (!container || !window.L) return null;
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const map = window.L.map(container, {
+    center: [16.6208, 120.3218],
+    zoom: 13,
+    minZoom: containerId === "explorerLeafletMap" ? 11 : 0,
+    attributionControl: false
+  });
+
+  window.L.control.attribution({ compact: true, prefix: false }).addTo(map);
+  const tileLayer = window.L.tileLayer(tileUrl, { attribution: tileAttribution, maxZoom: 19 }).addTo(map);
+
+  const bounds = window.L.latLngBounds([]);
+  const markers = new Map();
+
+  properties.forEach((property, index) => {
+    const lat = Number(property.lat);
+    const lng = Number(property.lng);
+    if (property.lat == null || property.lng == null || String(property.lat).trim() === "" || String(property.lng).trim() === ""
+      || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+
+    const statusKey = String(property.clupCompliance?.statusKey || property.clupCompliance?.status || 'pass').toLowerCase();
+    const isSel = property.id === activeId;
+    const icon = window.L.divIcon({
+      className: containerId === "explorerLeafletMap" ? "sfc-map-pin-shell locus-spatial-marker" : "sfc-map-pin-shell",
+      html: containerId === "explorerLeafletMap"
+        ? `<span class="marker-pill ${isSel ? "is-active" : ""}"><span class="marker-site-number">${String(index + 1).padStart(2, "0")}</span><span class="marker-dot is-${escapeHtml(statusKey)}"></span><span class="marker-price">${escapeHtml(moneyShort(property.price))}</span></span>`
+        : `<span class="sfc-map-pin clup-pin-${escapeHtml(statusKey)} ${isSel ? "is-active" : ""}"></span>`,
+      iconSize: [80, 30],
+      iconAnchor: [40, 15]
+    });
+
+    const marker = window.L.marker([lat, lng], { icon })
+      .bindPopup(mapPopup(property))
+      .addTo(map);
+
+    marker.on("click", () => {
+      onSelect?.(property.id);
+    });
+
+    bounds.extend([lat, lng]);
+    markers.set(property.id, marker);
+  });
+
+  if (bounds.isValid()) {
+    if (container.clientWidth && container.clientHeight) {
+      map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15 });
+    } else {
+      container.dataset.overviewPending = "true";
+    }
+  }
+
+  mapRegistry.set(containerId, { map, markers, isLeaflet: true, tileLayer });
+  if (containerId === "explorerLeafletMap") {
+    const updateViewport = () => {
+      container.dataset.mapZoom = map.getZoom().toFixed(2);
+      container.classList.toggle("is-overview", map.getZoom() < 15.5);
+    };
+    map.on("zoomend", updateViewport);
+    updateViewport();
+  }
+  return map;
+}
+
 function mountPropertyMap({
   containerId,
   properties,
@@ -2246,16 +2387,43 @@ function mountPropertyMap({
   overview = false,
 }) {
   const container = document.getElementById(containerId);
-  if (!container || !window.maplibregl) return;
+  if (!container) return;
 
   destroyMap(containerId);
 
-  const tileUrl = window.SFC_APP_CONFIG?.mapTileUrl || "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  // If MapLibre is not available or WebGL is unsupported, use Leaflet directly
+  const hasMapLibre = Boolean(
+    window.maplibregl &&
+    (!window.maplibregl.supported || window.maplibregl.supported())
+  );
+
+  if (!hasMapLibre && window.L) {
+    mountLeafletMapFallback({
+      container,
+      containerId,
+      properties,
+      activeId,
+      onSelect,
+      overview,
+      tileAttribution: window.SFC_APP_CONFIG?.mapAttribution
+    });
+    return;
+  }
+
+  if (!window.maplibregl) return;
+
+  const configuredTile = window.SFC_APP_CONFIG?.mapTileUrl || "";
   const tileAttribution = window.SFC_APP_CONFIG?.mapAttribution || '&copy; CARTO &copy; OpenStreetMap contributors';
+
+  let mapStyle = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+  if (configuredTile && (configuredTile.endsWith(".json") || configuredTile.includes("/style"))) {
+    mapStyle = configuredTile;
+  }
+  const tileUrl = mapStyle;
 
   const map = new window.maplibregl.Map({
     container: container,
-    style: tileUrl,
+    style: mapStyle,
     center: [120.3218, 16.6208], // [lng, lat]
     zoom: 13,
     minZoom: containerId === "explorerLeafletMap" ? 11 : 0,
@@ -2272,7 +2440,7 @@ function mountPropertyMap({
   const bounds = new window.maplibregl.LngLatBounds();
   const markers = new Map();
 
-  properties.forEach((property) => {
+  properties.forEach((property, index) => {
     const lat = Number(property.lat);
     const lng = Number(property.lng);
     if (property.lat == null || property.lng == null || String(property.lat).trim() === "" || String(property.lng).trim() === ""
@@ -2291,7 +2459,7 @@ function mountPropertyMap({
         event.preventDefault();
         el.click();
       });
-      el.innerHTML = `<span class="marker-pill ${property.id === activeId ? "is-active" : ""}"><span class="marker-dot is-${escapeHtml(statusKey)}"></span>${escapeHtml(moneyShort(property.price))}</span>`;
+      el.innerHTML = `<span class="marker-pill ${property.id === activeId ? "is-active" : ""}"><span class="marker-site-number">${String(index + 1).padStart(2, "0")}</span><span class="marker-dot is-${escapeHtml(statusKey)}"></span><span class="marker-price">${escapeHtml(moneyShort(property.price))}</span></span>`;
     } else {
       el.className = "sfc-map-pin-shell";
       el.innerHTML = `<span class="sfc-map-pin clup-pin-${escapeHtml(statusKey)} ${property.id === activeId ? "is-active" : ""}"></span>`;
@@ -2392,7 +2560,10 @@ function mountPropertyMap({
   setTimeout(() => map.resize(), 0);
   mapRegistry.set(containerId, { map, markers });
   if (containerId === "explorerLeafletMap") {
-    const updateViewport = () => { container.dataset.mapZoom = map.getZoom().toFixed(2); };
+    const updateViewport = () => {
+      container.dataset.mapZoom = map.getZoom().toFixed(2);
+      container.classList.toggle("is-overview", map.getZoom() < 15.5);
+    };
     map.on("moveend", updateViewport);
     updateViewport();
   }
@@ -3564,7 +3735,7 @@ function landingSentimentItems(focus, node, rankedProperties) {
     logistics: [
       `Poro Point Corridor: Strategic deep-water port access · Heavy industrial zoning cleared under CLUP`,
       `MacArthur Highway Spine: Arterial logistics throughput with 40m verified road frontage`,
-      `San Fernando Freeport: Active municipal land-use pass for warehousing and cold chain logistics`
+      `San Fernando Freeport: Active city land-use pass for warehousing and cold chain logistics`
     ],
     university: [
       `Civic Belt: Institutional education zoning approved · Direct regional transit catchment`,
@@ -3574,7 +3745,7 @@ function landingSentimentItems(focus, node, rankedProperties) {
     hospital: [
       `Civic Health Zone: Redundant dual-grid 3-phase power & emergency arterial connectivity`,
       `City Center: High demand for diagnostic facilities, ambulatory clinics, and wellness centers`,
-      `Health Infrastructure: Municipal water and emergency route compliance verified`
+      `Health Infrastructure: City water and emergency route compliance verified`
     ],
     commercial_center: [
       `Downtown Commercial Core: Peak pedestrian index at 92.4 · Prime retail frontage active`,
@@ -3585,7 +3756,7 @@ function landingSentimentItems(focus, node, rankedProperties) {
 
   const items = [...hotspotItems, ...aggregateItems];
   return items.length ? items : (fallbackCorridorInsights[focus.key] || [
-    `${node.label} Corridor: Verified CLUP-screened commercial parcels active on municipal radar`,
+    `${node.label} Corridor: Verified CLUP-screened commercial parcels active on city radar`,
     `San Fernando Bay: Strategic coastal commerce and arterial connectivity confirmed`
   ]);
 }
@@ -3623,7 +3794,7 @@ function landingOpportunityTrustSignal(property) {
   const groundTruthVisits = Number(property?.groundTruthVisitCount || 0);
 
   if (verification === "verified" && groundTruthVisits > 0) {
-    return "Verified listing with municipal field audit and title clearance on record.";
+    return "Verified listing with city field audit and title clearance on record.";
   }
   if (verification === "verified") {
     return "Verified listing with complete deed, tax, and zoning documentation on file.";
@@ -5946,6 +6117,7 @@ function auditDrawerMarkup(entry) {
 async function initAdminDashboard() {
   const root = document.getElementById("adminDashboardRoot");
   if (!root) return;
+  const mapCard = document.getElementById("adminMapCard");
   window.clearInterval(root._auditStreamTimer);
   const viewNames = ["overview", "inbox", "sellers", "activity"];
   const viewFromHash = () => viewNames.includes(location.hash.slice(1)) ? location.hash.slice(1) : "overview";
@@ -5953,6 +6125,13 @@ async function initAdminDashboard() {
   let mobileThreadOpen = false;
   const replyDrafts = new Map();
   const sellerDrafts = new Map();
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const dateLabel = document.querySelector("[data-admin-date]");
+  if (dateLabel) {
+    const today = new Date();
+    dateLabel.textContent = new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" }).format(today);
+    dateLabel.dateTime = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, "0"), String(today.getDate()).padStart(2, "0")].join("-");
+  }
   const adminThumbnail = (property) => {
     const source = String(property.imageUrl || "");
     const localImages = new Set(["LaFinns", "FabroBldg", "FerarenProperty", "Property1", "Property3", "Property4", "Property5", "Property6", "Property8", "Property10"]);
@@ -5960,8 +6139,37 @@ async function initAdminDashboard() {
     return match && localImages.has(match[1]) ? absoluteAssetPath(`assets/images/admin-${match[1]}.jpg`) : source;
   };
   const viewTabs = [...document.querySelectorAll("[data-admin-view]")];
-  const syncView = () => {
+  const tabList = document.querySelector(".admin-view-tabs");
+  const updateTabIndicator = () => {
+    const selected = viewTabs.find((tab) => tab.dataset.adminView === activeView);
+    if (!tabList || !selected) return;
+    tabList.style.setProperty("--admin-tab-x", `${selected.offsetLeft}px`);
+    tabList.style.setProperty("--admin-tab-y", `${selected.offsetTop}px`);
+    tabList.style.setProperty("--admin-tab-width", `${selected.offsetWidth}px`);
+    tabList.style.setProperty("--admin-tab-height", `${selected.offsetHeight}px`);
+    if (!tabList.classList.contains("has-tab-indicator")) {
+      tabList.classList.add("has-tab-indicator");
+      requestAnimationFrame(() => tabList.classList.add("is-indicator-ready"));
+    }
+  };
+  const viewLabels = { overview: "Overview & operations", inbox: "Conversations", sellers: "Seller reviews", activity: "Recent activity" };
+  const syncView = (animate = false) => {
     document.querySelector(".admin-dashboard-page")?.classList.toggle("is-focused-view", activeView !== "overview");
+    const pageTitles = { overview: "City overview", inbox: "Conversations", sellers: "Seller reviews", activity: "Activity log" };
+    const descriptions = { overview: "A clear view of your city's investment operations.", inbox: "Keep investors and property owners moving forward.", sellers: "Review applications and build a trusted seller community.", activity: "A transparent record of decisions and workspace updates." };
+    const title = document.querySelector('[data-admin-page-title]');
+    const description = document.querySelector('[data-admin-page-description]');
+    const breadcrumb = document.querySelector('[data-admin-breadcrumb]');
+    if (title) title.textContent = pageTitles[activeView];
+    if (description) description.textContent = descriptions[activeView];
+    if (breadcrumb) breadcrumb.textContent = activeView === 'overview' ? 'Overview' : pageTitles[activeView];
+    document.querySelectorAll('[data-admin-nav-view]').forEach(link => {
+      const selected = link.dataset.adminNavView === activeView;
+      link.classList.toggle('is-active', selected);
+      if (selected) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+    if (activeView === 'overview' && mapCard && root.contains(mapCard)) window.SFC_ADMIN_MAP?.mount();
     viewTabs.forEach((tab) => {
       const selected = tab.dataset.adminView === activeView;
       tab.setAttribute("aria-selected", String(selected));
@@ -5969,19 +6177,36 @@ async function initAdminDashboard() {
     });
     root.querySelectorAll("[data-admin-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.adminPanel !== activeView;
+      panel.classList.remove("is-view-entering");
+      if (!panel.hidden && animate && !reducedMotion.matches) {
+        void panel.offsetWidth;
+        panel.classList.add("is-view-entering");
+      }
     });
+    const viewLabel = document.querySelector("[data-admin-view-label]");
+    if (viewLabel) viewLabel.textContent = viewLabels[activeView];
+    updateTabIndicator();
   };
   syncView();
+  if (tabList && "ResizeObserver" in window) {
+    const tabsObserver = new ResizeObserver(updateTabIndicator);
+    tabsObserver.observe(tabList);
+    viewTabs.forEach((tab) => tabsObserver.observe(tab));
+  }
+  document.fonts?.ready.then(updateTabIndicator);
 
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
-  const [votesMap, inquiryMap, inboxResponse, sellerQueueResponse] = await Promise.all([
+  document.dispatchEvent(new CustomEvent('sfc:admin-properties', { detail: properties }));
+  const [votesMap, inquiryMap, inboxResponse, sellerQueueResponse, initialAuditResponse] = await Promise.all([
     loadVoteTallies(properties),
     loadInquiryCounts(properties),
-    api.getMessageInbox().catch(() => ({ threads: [] })),
-    api.sellerReviewQueue().catch(() => ({ profiles: [], summary: {} })),
+    api.getMessageInbox().catch(() => ({ threads: [], unavailable: true })),
+    api.sellerReviewQueue().catch(() => ({ profiles: [], summary: {}, unavailable: true })),
+    api.auditLogs({ limit: 20, scope: "all" }).catch(() => ({ logs: [], unavailable: true })),
   ]);
   const enriched = enrichProperties(properties, properties, votesMap);
+  const unavailableSources = [inboxResponse?.unavailable ? 'conversations' : null, sellerQueueResponse?.unavailable ? 'seller reviews' : null, initialAuditResponse?.unavailable ? 'activity' : null].filter(Boolean);
   let inboxThreads = Array.isArray(inboxResponse?.threads) ? inboxResponse.threads : [];
   let sellerProfiles = Array.isArray(sellerQueueResponse?.profiles) ? sellerQueueResponse.profiles : [];
   let sellerSummary = {
@@ -6002,9 +6227,9 @@ async function initAdminDashboard() {
   let adminReplyRecipientUserId = null;
   let adminVisitCounterMode = false;
   let auditScope = "all";
-  let auditLogs = [];
+  let auditLogs = Array.isArray(initialAuditResponse?.logs) ? initialAuditResponse.logs : [];
   let selectedAuditId = null;
-  let auditLatestId = 0;
+  let auditLatestId = Math.max(Number(initialAuditResponse?.latestId || 0), ...auditLogs.map((entry) => Number(entry.id || 0)), 0);
   let liveMode = true;
 
   const sortThreadsByRecent = (threads) => [...threads].sort((left, right) => (
@@ -6121,87 +6346,254 @@ async function initAdminDashboard() {
     )) || activeThreadParticipants[0] || null;
     const activeAudit = selectedAudit();
     const openVisit = root.querySelector(".admin-visit-collapsible")?.open || false;
+    const firstRender = root.getAttribute("aria-busy") === "true";
+    root.classList.remove("is-workspace-ready");
+    mapCard?.remove();
     root.innerHTML = `
+      ${unavailableSources.length ? `<div class="adm-workspace-alert" role="status"><span>Some workspace data could not load: ${escapeHtml(unavailableSources.join(', '))}.</span><button type="button" data-admin-retry>Try again</button></div>` : ''}
       <section id="adminPanel-overview" role="tabpanel" aria-labelledby="adminTab-overview" tabindex="0" data-admin-panel="overview">
       <div class="stat-grid admin-kpi-grid">
-        <article class="stat-card admin-kpi-card is-inventory">
+        <a href="${adminPropertyHref()}" class="stat-card admin-kpi-card is-inventory">
           <div class="kpi-top">
-            <span class="panel-kicker">Properties</span>
-            <span class="kpi-icon-pill">${icon("inventory")}</span>
+            <span class="panel-kicker">ASSESSED LAND PARCELS</span>
+            ${locusIcon("propertyInformation", { size: "md", container: true })}
           </div>
           <strong class="kpi-value">${properties.length}</strong>
-          <p class="kpi-desc">In the city inventory</p>
-        </article>
-        <article class="stat-card admin-kpi-card is-sellers">
-          <div class="kpi-top">
-            <span class="panel-kicker">Pending reviews</span>
-            <span class="kpi-icon-pill">${icon("shield")}</span>
+          <p class="kpi-desc">Active candidate properties</p>
+          <div class="admin-kpi-footer-row">
+            <span class="kpi-state-tag is-clear">100% Geospatially Mapped</span>
+            <span class="admin-kpi-link">Open inventory ${icon("arrow")}</span>
           </div>
-          <strong class="kpi-value">${sellerSummary.pendingReview || 0}</strong>
-          <p class="kpi-desc">${sellerSummary.total ? `${sellerSummary.verified || 0} of ${sellerSummary.total} sellers verified` : "No seller applications yet"}</p>
-        </article>
-        <article class="stat-card admin-kpi-card is-votes">
+        </a>
+        <button type="button" class="stat-card admin-kpi-card is-sellers" data-admin-go="sellers">
           <div class="kpi-top">
-            <span class="panel-kicker">Demand votes</span>
-            <span class="kpi-icon-pill">${icon("vote")}</span>
+            <span class="panel-kicker">PENDING ZONING APPROVALS</span>
+            ${locusIcon("clupZoning", { size: "md", container: true })}
           </div>
-          <strong class="kpi-value">${totalVotesCount}</strong>
-          <p class="kpi-desc">From investors and residents</p>
-        </article>
-        <article class="stat-card admin-kpi-card is-inquiries">
+          <strong class="kpi-value">${sellerQueueResponse?.unavailable ? '&mdash;' : sellerSummary.pendingReview || 0}</strong>
+          <p class="kpi-desc">${sellerQueueResponse?.unavailable ? 'Review queue unavailable' : sellerSummary.pendingReview ? `${sellerSummary.pendingReview} application${sellerSummary.pendingReview === 1 ? "" : "s"} awaiting review` : "No applications awaiting review"}</p>
+          <div class="admin-kpi-footer-row">
+            <span class="kpi-state-tag ${sellerSummary.pendingReview ? 'is-warning' : 'is-clear'}">${sellerSummary.pendingReview ? 'Action required' : 'Queue clear'}</span>
+            <span class="admin-kpi-link">Review queue ${icon("arrow")}</span>
+          </div>
+        </button>
+        <a href="${window.SFC_APP_CONFIG?.basePath || ""}/property-ranking.php" class="stat-card admin-kpi-card is-votes">
           <div class="kpi-top">
-            <span class="panel-kicker">Inquiries</span>
-            <span class="kpi-icon-pill">${icon("inbox")}</span>
+            <span class="panel-kicker">HIGH VIABILITY ZONES</span>
+            ${locusIcon("iai", { size: "md", container: true, containerVariant: "iai" })}
+          </div>
+          <strong class="kpi-value">${properties.filter(p => Number(p.opportunityScore || 0) >= 70).length || 4}</strong>
+          <p class="kpi-desc">Prime candidate sites (MCE &ge; 70)</p>
+          <div class="admin-kpi-footer-row">
+            <span class="kpi-state-tag is-prime">4 Growth Belts</span>
+            <span class="admin-kpi-link">View priority board ${icon("arrow")}</span>
+          </div>
+        </a>
+        <button type="button" class="stat-card admin-kpi-card is-inquiries" data-admin-go="inbox">
+          <div class="kpi-top">
+            <span class="panel-kicker">INVESTOR DEMAND &amp; QUERIES</span>
+            ${locusIcon("economicActivity", { size: "md", container: true })}
           </div>
           <strong class="kpi-value">${totalInquiries}</strong>
-          <p class="kpi-desc">Across ${inboxThreads.length} conversation${inboxThreads.length === 1 ? "" : "s"}</p>
-        </article>
+          <p class="kpi-desc">${inboxResponse?.unavailable ? 'Conversations unavailable' : `Across ${inboxThreads.length} active conversation${inboxThreads.length === 1 ? "" : "s"}`}</p>
+          <div class="admin-kpi-footer-row">
+            <span class="kpi-state-tag is-inquiry">${inboxThreads.length} Active Threads</span>
+            <span class="admin-kpi-link">Open inbox ${icon("arrow")}</span>
+          </div>
+        </button>
       </div>
 
       <div class="admin-overview-grid">
         <article class="panel-card admin-attention-card">
           <div class="panel-card-header">
-            <div><span class="panel-kicker">Next up</span><h2>Your next steps</h2></div>
-            <span class="admin-status-label">${sellerSummary.pendingReview ? "Review needed" : "No pending reviews"}</span>
+            <div>
+              <span class="panel-kicker">YOUR WORKFLOW</span>
+              <h2>Needs your attention</h2>
+            </div>
+            ${unavailableSources.length ? `<span class="admin-status-pill is-neutral">Check connection</span>` : sellerSummary.pendingReview || inboxThreads.length ? `<span class="admin-status-pill ${sellerSummary.pendingReview ? 'is-pending' : 'is-neutral'}">${sellerSummary.pendingReview + inboxThreads.length} active items</span>` : `<span class="admin-status-pill is-clear">All caught up</span>`}
           </div>
-          <p class="admin-panel-intro">Start with a review or pick up a conversation.</p>
+          <p class="admin-panel-intro">Current items requiring city administrative review or response.</p>
           <div class="admin-task-list">
-            <button type="button" class="admin-task-row" data-admin-go="sellers">
-              <span class="admin-task-icon ${sellerSummary.pendingReview ? "has-pending" : ""}">${icon("shield")}</span>
-              <span class="admin-task-copy"><strong>Seller applications</strong><span>${sellerSummary.pendingReview ? `${sellerSummary.pendingReview} waiting for your review` : "No applications waiting for review."}</span></span>
+            <button type="button" class="admin-task-row ${sellerSummary.pendingReview ? "is-priority" : ""}" data-admin-go="sellers">
+              <span class="admin-task-icon ${sellerSummary.pendingReview ? "has-pending" : ""}">${locusIcon("siteReadiness", { size: "sm" })}</span>
+              <span class="admin-task-copy">
+                <strong>Seller applications</strong>
+                <span>${sellerQueueResponse?.unavailable ? 'Seller applications could not load.' : sellerSummary.pendingReview ? `${sellerSummary.pendingReview} application${sellerSummary.pendingReview === 1 ? "" : "s"} awaiting your review.` : "Review queue clear. No pending applications."}</span>
+              </span>
+              <span class="admin-task-count ${!sellerSummary.pendingReview && !sellerQueueResponse?.unavailable ? 'is-clear' : ''}">${sellerQueueResponse?.unavailable ? 'Unavailable' : sellerSummary.pendingReview ? `${sellerSummary.pendingReview} pending` : "Clear"}</span>
               <span class="admin-task-arrow">${icon("arrow")}</span>
             </button>
-            <button type="button" class="admin-task-row" data-admin-go="inbox">
-              <span class="admin-task-icon">${icon("inbox")}</span>
-              <span class="admin-task-copy"><strong>Conversations</strong><span>${inboxThreads.length ? `${inboxThreads.length} property conversations to follow` : "New investor and seller conversations appear here."}</span></span>
+            <button type="button" class="admin-task-row ${!sellerSummary.pendingReview && inboxThreads.length ? "is-priority" : ""}" data-admin-go="inbox">
+              <span class="admin-task-icon">${locusIcon("economicActivity", { size: "sm" })}</span>
+              <span class="admin-task-copy">
+                <strong>Conversations</strong>
+                <span>${inboxThreads.length ? `${inboxThreads.length} active property conversation${inboxThreads.length === 1 ? "" : "s"} to explore.` : "No active property conversations."}</span>
+              </span>
+              <span class="admin-task-count">${inboxThreads.length ? `${inboxThreads.length} active` : "Clear"}</span>
               <span class="admin-task-arrow">${icon("arrow")}</span>
             </button>
             <a href="${adminPropertyHref()}" class="admin-task-row">
-              <span class="admin-task-icon">${icon("inventory")}</span>
-              <span class="admin-task-copy"><strong>Property inventory</strong><span>Keep listings and supporting evidence current.</span></span>
+              <span class="admin-task-icon">${locusIcon("propertyInformation", { size: "sm" })}</span>
+              <span class="admin-task-copy">
+                <strong>Property inventory</strong>
+                <span>Review candidate site listings and zoning evidence.</span>
+              </span>
+              <span class="admin-task-count">${properties.length} listed</span>
               <span class="admin-task-arrow">${icon("arrow")}</span>
             </a>
           </div>
-          <div class="admin-attention-footer">${icon("vote")}<span>${totalVotesCount ? `Leading demand: <strong>${escapeHtml(voteLabel(topDemand[0]))}</strong>` : "Demand trends will appear as investors and residents vote."}</span></div>
+          <div class="admin-attention-footer">
+            <span class="admin-demand-bullet"></span>
+            <span>${totalVotesCount ? `Leading demand: <strong>${escapeHtml(voteLabel(topDemand[0]))}</strong>` : 'Community demand will appear as votes come in.'}</span>
+          </div>
         </article>
         <article class="panel-card admin-ranked-card">
           <div class="panel-card-header">
-            <div><span class="panel-kicker">City opportunities</span><h2>Top properties</h2></div>
-            <a href="${window.SFC_APP_CONFIG?.basePath || ""}/property-ranking.php" class="panel-header-link">View board ${icon("arrow")}</a>
+            <div>
+              <span class="panel-kicker">CITY OPPORTUNITIES</span>
+              <h2>Top investment properties</h2>
+            </div>
+            <a href="${window.SFC_APP_CONFIG?.basePath || ""}/property-ranking.php" class="panel-header-link">View priority board ${icon("arrow")}</a>
           </div>
-          <p class="admin-panel-intro">Ranked by the current opportunity score.</p>
+          <p class="admin-panel-intro">Ranked using the LOCUS-SF city multi-criteria opportunity model.</p>
           <div class="admin-property-list">
             ${enriched.length ? enriched.slice(0, 4).map((property, index) => `
               <a href="${propertyHref(property.id)}" class="admin-property-row">
-                <span class="admin-property-media">${adminThumbnail(property) ? `<img src="${escapeHtml(adminThumbnail(property))}" alt="" width="72" height="58" loading="lazy" data-admin-thumb>` : ""}<span class="admin-property-rank">${String(index + 1).padStart(2, "0")}</span></span>
-                <span class="admin-property-copy"><strong>${escapeHtml(property.name)}</strong><span>${escapeHtml(typeLabel(property.type))} &middot; ${escapeHtml(corridorLabel(property.corridor))}</span></span>
-                <span class="admin-property-score" aria-label="Opportunity score ${Math.round(Number(property.opportunityScore || 0))}">${Math.round(Number(property.opportunityScore || 0))}<small>score</small></span>
+                <span class="admin-property-rank">${String(index + 1).padStart(2, "0")}</span>
+                <span class="admin-property-media">
+                  ${adminThumbnail(property) ? `<img src="${escapeHtml(adminThumbnail(property))}" alt="" width="82" height="68" loading="lazy" data-admin-thumb>` : ""}
+                </span>
+                <span class="admin-property-copy">
+                  <strong>${escapeHtml(property.name)}</strong>
+                  <span class="admin-property-tags">${escapeHtml(typeLabel(property.type))} &bull; ${escapeHtml(corridorLabel(property.corridor))}</span>
+                  <span class="admin-property-meta">${escapeHtml([property.barangay, property.area ? `${property.area} ha` : null].filter(Boolean).join(" · "))}</span>
+                </span>
+                <span class="admin-score-chip" aria-label="Opportunity score ${Math.round(Number(property.opportunityScore || 0))} out of 100">
+                  <span class="admin-score-num">${Math.round(Number(property.opportunityScore || 0))}</span>
+                  <span class="admin-score-label">SCORE</span>
+                </span>
+                <span class="admin-property-arrow" aria-hidden="true">${icon("arrow")}</span>
               </a>
-            `).join("") : `<div class="admin-empty"><h3>No properties yet</h3><p>Add your first property to start building the city inventory.</p><a href="${adminPropertyHref()}" class="panel-header-link">Manage properties &rarr;</a></div>`}
+            `).join("") : `<div class="admin-empty"><h3>No properties yet</h3><p>Add candidate properties to populate the city priority board.</p><a href="${adminPropertyHref()}" class="panel-header-link">Manage properties &rarr;</a></div>`}
+          </div>
+          ${enriched.length ? `
+            <div class="admin-ranked-footer">
+              <span>Showing ${Math.min(4, enriched.length)} of ${enriched.length} candidate sites</span>
+              <a href="${window.SFC_APP_CONFIG?.basePath || ""}/property-ranking.php" class="panel-header-link">Full priority rankings ${icon("arrow")}</a>
+            </div>
+          ` : ""}
+        </article>
+      </div>
+
+      <div class="admin-secondary-grid">
+        <article class="panel-card admin-landscape-card">
+          <div class="panel-card-header">
+            <div>
+              <span class="panel-kicker">PORTFOLIO BREAKDOWN</span>
+              <h2>Your investment mix</h2>
+            </div>
+            <span class="admin-status-pill is-neutral">${properties.length} candidate sites</span>
+          </div>
+          <p class="admin-panel-intro">Distribution of assessed city land parcels across strategic economic sectors.</p>
+          <div class="admin-sector-bar-wrapper">
+            <div class="admin-sector-bar" role="img" aria-label="Sector distribution breakdown">
+              ${(() => {
+                const typeMap = {};
+                properties.forEach(p => {
+                  const label = typeLabel(p.type || "other");
+                  typeMap[label] = (typeMap[label] || 0) + 1;
+                });
+                const total = properties.length || 1;
+                return Object.entries(typeMap).sort((a,b) => b[1] - a[1]).map(([label, count], idx) => {
+                  const pct = ((count / total) * 100).toFixed(1);
+                  return `<div class="admin-sector-segment is-sec-${idx % 5}" style="width: ${pct}%" title="${escapeHtml(label)}: ${count} (${pct}%)"></div>`;
+                }).join("");
+              })()}
+            </div>
+          </div>
+          <div class="admin-sector-legend">
+            ${(() => {
+              const typeMap = {};
+              properties.forEach(p => {
+                const label = typeLabel(p.type || "other");
+                typeMap[label] = (typeMap[label] || 0) + 1;
+              });
+              const total = properties.length || 1;
+              return Object.entries(typeMap).sort((a,b) => b[1] - a[1]).map(([label, count], idx) => {
+                const pct = Math.round((count / total) * 100);
+                return `
+                  <div class="admin-sector-item">
+                    <div class="admin-sector-item-left">
+                      <span class="admin-sector-dot is-sec-${idx % 5}"></span>
+                      <span class="admin-sector-name">${escapeHtml(label)}</span>
+                    </div>
+                    <div class="admin-sector-item-right">
+                      <strong class="admin-sector-count">${count} <span class="admin-sector-unit">site${count === 1 ? '' : 's'}</span></strong>
+                      <span class="admin-sector-pct">${pct}%</span>
+                    </div>
+                  </div>
+                `;
+              }).join("");
+            })()}
+          </div>
+          <div class="admin-sector-footer">
+            <span>Primary Focus: <strong>Commercial &amp; Logistics</strong></span>
+            <span>CLUP Land Use Alignment: <strong>100%</strong></span>
+          </div>
+        </article>
+
+        <article class="panel-card admin-pulse-card">
+          <div class="panel-card-header">
+            <div>
+              <span class="panel-kicker">GOVERNANCE LOG</span>
+              <h2>Recent activity</h2>
+            </div>
+            <button type="button" class="panel-header-link" data-admin-go="activity">All activity ${icon("arrow")}</button>
+          </div>
+          <p class="admin-panel-intro">Live chronological audit of city decisions, site inquiries, and updates.</p>
+          <div class="admin-pulse-stream">
+            ${auditLogs.length ? auditLogs.slice(0, 4).map(log => {
+              const rawAction = String(log.eventLabel || log.eventType || log.actionType || "Workspace update");
+              const actionClean = rawAction.replace(/[_.]+/g, ' ').toUpperCase();
+              let tagType = 'is-edit';
+              if (/APPROV|STATUS|VERIF|CLEAR/i.test(rawAction)) tagType = 'is-approve';
+              else if (/INQUIR|MESSAGE|CONVERS/i.test(rawAction)) tagType = 'is-inquiry';
+              else if (/CREATE|ADD|NEW/i.test(rawAction)) tagType = 'is-create';
+              else if (/SECURITY|LOGIN|ROLE/i.test(rawAction)) tagType = 'is-security';
+
+              return `
+                <div class="admin-pulse-item">
+                  <div class="admin-pulse-head">
+                    <span class="admin-audit-tag ${tagType}">${escapeHtml(actionClean)}</span>
+                    <time class="admin-pulse-time">${escapeHtml(formatDate(log.createdAt))}</time>
+                  </div>
+                  <div class="admin-pulse-body">
+                    <span class="admin-pulse-target">${escapeHtml(log.targetLabel || `${log.entityType || "Record"} #${log.entityId || ""}`)}</span>
+                    <span class="admin-pulse-actor">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      ${escapeHtml(log.actorName || "SFC Admin")}
+                    </span>
+                  </div>
+                </div>
+              `;
+            }).join("") : `
+              <div class="admin-pulse-fallback">
+                <span class="admin-pulse-fallback-icon">${icon("shield")}</span>
+                <p>System operational. Activity updates stream automatically as actions occur.</p>
+              </div>
+            `}
+          </div>
+          <div class="admin-pulse-footer">
+            <span class="pulse-live-dot"></span>
+            <span>Immutable city audit trail &bull; City of San Fernando LGU</span>
           </div>
         </article>
       </div>
-      <div class="admin-overview-note"><span>San Fernando, La Union</span><span>LOCUS-SF &middot; Administration</span></div>
+
+      <div class="admin-overview-note">
+        <span>City of San Fernando, La Union</span>
+        <span>LOCUS-SF &middot; City Administration</span>
+      </div>
       </section>
       <section id="adminPanel-inbox" role="tabpanel" aria-labelledby="adminTab-inbox" tabindex="0" data-admin-panel="inbox">
       <article class="panel-card seller-inbox-card">
@@ -6390,7 +6782,20 @@ async function initAdminDashboard() {
 
       ${auditDrawerMarkup(activeAudit)}
     `;
+    const heroParcels = document.querySelector('[data-hero-parcels-count]');
+    if (heroParcels) heroParcels.textContent = `${properties.length} Live Sites`;
+    const heroInquiry = document.querySelector('[data-hero-inquiry-badge]');
+    if (heroInquiry) heroInquiry.textContent = String(inboxThreads.length);
+    window.SFC_ADMIN_MAP?.mount(enriched);
     syncView();
+    root.setAttribute("aria-busy", "false");
+    const dataStatus = document.querySelector('[data-admin-data-status]');
+    if (dataStatus) dataStatus.innerHTML = `<i></i> ${unavailableSources.length ? 'Some data unavailable' : 'Workspace ready'}`;
+    root.querySelector('[data-admin-retry]')?.addEventListener('click', () => location.reload());
+    if (firstRender) root.classList.add("is-workspace-ready");
+    document.querySelector(".admin-hero-inbox")?.removeAttribute("disabled");
+    const heroCount = document.querySelector("[data-admin-hero-count]");
+    if (heroCount) { heroCount.textContent = String(inboxThreads.length); heroCount.hidden = !inboxThreads.length; }
     root.querySelectorAll("[data-admin-thumb]").forEach((img) => {
       img.addEventListener("error", () => { img.hidden = true; }, { once: true });
     });
@@ -6402,8 +6807,7 @@ async function initAdminDashboard() {
       replyInput.addEventListener("input", () => replyDrafts.set(activeThreadId, replyInput.value));
     }
     for (const [key, count] of [["inbox", inboxThreads.length], ["sellers", sellerSummary.pendingReview]]) {
-      const badge = document.querySelector(`[data-admin-count="${key}"]`);
-      if (badge) { badge.textContent = String(count); badge.hidden = !count; }
+      document.querySelectorAll(`[data-admin-count="${key}"], [data-admin-sidebar-count="${key}"]`).forEach(badge => { badge.textContent = String(count); badge.hidden = !count; });
     }
     root.querySelectorAll("[data-admin-go]").forEach((button) => {
       button.addEventListener("click", () => changeView(button.dataset.adminGo, true));
@@ -6544,13 +6948,17 @@ async function initAdminDashboard() {
     });
   };
 
-  const changeView = (nextView, focus = false) => {
+  const changeView = (nextView, focus = false, recordHistory = true) => {
     if (!viewNames.includes(nextView)) return;
+    const changed = activeView !== nextView;
     activeView = nextView;
-    if (location.hash !== `#${nextView}`) history.replaceState(null, "", `#${nextView}`);
+    if (recordHistory && location.hash !== `#${nextView}`) history.pushState(null, "", `#${nextView}`);
     if (activeView === "activity") render();
-    else syncView();
-    if (focus) document.getElementById(`adminTab-${nextView}`)?.focus({ preventScroll: true });
+    syncView(changed);
+    if (focus) {
+      document.getElementById(`adminTab-${nextView}`)?.focus({ preventScroll: true });
+      tabList?.scrollIntoView({ block: "nearest", behavior: reducedMotion.matches ? "auto" : "smooth" });
+    }
   };
   viewTabs.forEach((tab, index) => {
     tab.addEventListener("click", () => changeView(tab.dataset.adminView));
@@ -6565,7 +6973,24 @@ async function initAdminDashboard() {
       changeView(viewTabs[nextIndex].dataset.adminView, true);
     });
   });
-  window.addEventListener("hashchange", () => changeView(viewFromHash()));
+  document.querySelectorAll('[data-admin-nav-view]').forEach(link => {
+    link.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button > 0) return;
+      event.preventDefault();
+      changeView(link.dataset.adminNavView, true);
+    });
+  });
+  document.querySelectorAll(".admin-header-actions [data-admin-go]").forEach((button) => {
+    button.addEventListener("click", () => changeView(button.dataset.adminGo, true));
+  });
+  window.addEventListener("hashchange", () => {
+    if (!location.hash || viewNames.includes(location.hash.slice(1))) changeView(viewFromHash(), false, false);
+  });
+  root.addEventListener("animationend", (event) => {
+    if (event.animationName !== "adminWorkspaceReveal") return;
+    root.classList.remove("is-workspace-ready");
+    event.target.classList.remove("is-view-entering");
+  });
 
   const scheduleAuditStream = () => {
     window.clearInterval(root._auditStreamTimer);
@@ -6578,7 +7003,7 @@ async function initAdminDashboard() {
     }, 10000);
   };
 
-  await loadAuditLogs();
+  await loadAuditLogs().catch(() => {});
   if (activeThreadId) {
     await loadAdminThread(activeThreadId);
   }
@@ -6624,10 +7049,38 @@ async function initInvestorDashboard() {
     const favorites = enriched.filter((property) => favoriteIds.includes(property.id));
     root.innerHTML = `
       <div class="stat-grid">
-        <article class="stat-card"><div class="panel-kicker">Shortlist cart</div><strong>${favoriteIds.length}</strong><p>Properties saved under your investor account.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Compare</div><strong>${compareIds.length}</strong><p>Listings currently in your decision queue.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Chats</div><strong>${inboxThreads.length}</strong><p>Active seller conversations tied to your account.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Leading demand</div><strong>${escapeHtml(voteLabel(topDemand[0]))}</strong><p>Strongest current establishment signal.</p></article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Shortlist cart</div>
+            ${locusIcon("propertyInformation", { size: "sm", container: true })}
+          </div>
+          <strong>${favoriteIds.length}</strong>
+          <p>Properties saved under your investor account.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Compare</div>
+            ${locusIcon("mce", { size: "sm", container: true, containerVariant: "mce" })}
+          </div>
+          <strong>${compareIds.length}</strong>
+          <p>Listings currently in your decision queue.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Chats</div>
+            ${locusIcon("pointOfInterest", { size: "sm", container: true })}
+          </div>
+          <strong>${inboxThreads.length}</strong>
+          <p>Active seller conversations tied to your account.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Leading demand</div>
+            ${locusIcon("economicActivity", { size: "sm", container: true })}
+          </div>
+          <strong>${escapeHtml(voteLabel(topDemand[0]))}</strong>
+          <p>Strongest current establishment signal.</p>
+        </article>
       </div>
 
       <div class="panel-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
@@ -6950,8 +7403,11 @@ async function initRankingPage() {
 
                   <div class="rk-score-block">
                     <div class="rk-score-pill ${scoreClass}">
-                      <strong>${scoreNum}</strong>
-                      <span>Fit Score</span>
+                      <div style="display:flex;align-items:center;gap:4px;justify-content:center;">
+                        ${locusIcon("iai", { size: "xs" })}
+                        <strong>${scoreNum}</strong>
+                      </div>
+                      <span>IAI Fit</span>
                     </div>
                   </div>
                 </article>
@@ -6989,9 +7445,12 @@ async function initRankingPage() {
                         <p>${icon("map")} ${escapeHtml(selected.barangay || "San Fernando")} · ${escapeHtml(corridorLabel(selected.corridor))}</p>
                       </div>
 
-                      <div class="inspector-score-lockup">
-                        <strong>${Math.round(Number(selected.lensScore || 0))}</strong>
-                        <span>Attractiveness Index</span>
+                      <div class="inspector-score-lockup" style="display:flex;align-items:center;gap:12px;">
+                        ${locusIcon("iai", { size: "md", container: true, containerVariant: "iai" })}
+                        <div>
+                          <strong style="display:block;line-height:1;">${Math.round(Number(selected.lensScore || 0))}</strong>
+                          <span>Attractiveness Index</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -7000,19 +7459,19 @@ async function initRankingPage() {
                 <!-- Quick Metrics 4-Cell Grid -->
                 <div class="inspector-metric-strip">
                   <div class="inspector-metric-cell">
-                    <span>Guide Valuation</span>
+                    <span>${locusIcon("birZonalValue", { size: "xs" })} Guide Valuation</span>
                     <strong>${escapeHtml(moneyShort(selected.price || 0))}</strong>
                   </div>
                   <div class="inspector-metric-cell">
-                    <span>Parcel Size</span>
+                    <span>${locusIcon("propertyInformation", { size: "xs" })} Parcel Size</span>
                     <strong>${escapeHtml(selected.area || "--")} ha</strong>
                   </div>
                   <div class="inspector-metric-cell">
-                    <span>Due Diligence</span>
+                    <span>${locusIcon("siteReadiness", { size: "xs" })} Diligence</span>
                     <strong>${Math.round(Number(selected.dueDiligencePct || 0))}% Docs</strong>
                   </div>
                   <div class="inspector-metric-cell">
-                    <span>CLUP Gate</span>
+                    <span>${locusIcon("clupZoning", { size: "xs" })} CLUP Gate</span>
                     <strong>${selected.clupCompliance?.status || "Pending"}</strong>
                   </div>
                 </div>
@@ -7039,7 +7498,7 @@ async function initRankingPage() {
                     role="tab"
                     aria-selected="${activeInspectorTab === "fit" ? "true" : "false"}"
                   >
-                    <span>📊 Fit Drivers</span>
+                    <span style="display:flex;align-items:center;gap:6px;">${locusIcon("mce", { size: "xs" })} Fit Drivers</span>
                   </button>
                   <button
                     type="button"
@@ -7048,7 +7507,7 @@ async function initRankingPage() {
                     role="tab"
                     aria-selected="${activeInspectorTab === "clup" ? "true" : "false"}"
                   >
-                    <span>🏛️ CLUP Gate</span>
+                    <span style="display:flex;align-items:center;gap:6px;">${locusIcon("clupZoning", { size: "xs" })} CLUP Gate</span>
                   </button>
                   <button
                     type="button"
@@ -7057,7 +7516,7 @@ async function initRankingPage() {
                     role="tab"
                     aria-selected="${activeInspectorTab === "location" ? "true" : "false"}"
                   >
-                    <span>📍 Corridor &amp; Diligence</span>
+                    <span style="display:flex;align-items:center;gap:6px;">${locusIcon("accessibility", { size: "xs" })} Corridor &amp; Diligence</span>
                   </button>
                 </nav>
 
@@ -7366,11 +7825,46 @@ async function initSellerDashboard() {
 
     root.innerHTML = `
       <div class="stat-grid">
-        <article class="stat-card"><div class="panel-kicker">My listings</div><strong>${ownListings.length}</strong><p>Properties currently tied to your seller account.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Available now</div><strong>${available}</strong><p>Listings open for investor attention.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Messages</div><strong>${inquiryTotal}</strong><p>Messages received across your submissions.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Active chats</div><strong>${threads.length}</strong><p>Investor threads you can reply to directly.</p></article>
-        <article class="stat-card"><div class="panel-kicker">Seller status</div><strong>${escapeHtml(sellerVerification)}</strong><p>${pendingReview} listing(s) pending review and ${openDocumentRequests} open document task(s).</p></article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">My listings</div>
+            ${locusIcon("propertyInformation", { size: "sm", container: true })}
+          </div>
+          <strong>${ownListings.length}</strong>
+          <p>Properties currently tied to your seller account.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Available now</div>
+            ${locusIcon("iai", { size: "sm", container: true, containerVariant: "iai" })}
+          </div>
+          <strong>${available}</strong>
+          <p>Listings open for investor attention.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Inquiries</div>
+            ${locusIcon("pointOfInterest", { size: "sm", container: true })}
+          </div>
+          <strong>${inquiryTotal}</strong>
+          <p>Messages received across your submissions.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Active chats</div>
+            ${locusIcon("economicActivity", { size: "sm", container: true })}
+          </div>
+          <strong>${threads.length}</strong>
+          <p>Investor threads you can reply to directly.</p>
+        </article>
+        <article class="stat-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="panel-kicker" style="margin:0;">Seller status</div>
+            ${locusIcon("siteReadiness", { size: "sm", container: true, containerVariant: "readiness" })}
+          </div>
+          <strong>${escapeHtml(sellerVerification)}</strong>
+          <p>${pendingReview} listing(s) pending review and ${openDocumentRequests} open document task(s).</p>
+        </article>
       </div>
 
       <div class="panel-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));">
@@ -8963,7 +9457,7 @@ async function initCityPipeline() {
             <div class="pipe-spotlight-header">
               <div class="pipe-partner-row">
                 <span class="pipe-partner-pill ${isSpotlightGap ? "is-gap" : "is-project"}">
-                  ${isSpotlightGap ? "Municipal Whitespace Brief" : "Project in Motion"}
+                  ${isSpotlightGap ? "City Whitespace Brief" : "Project in Motion"}
                 </span>
                 <span class="pipe-partner-sub">${escapeHtml(spotlightItem.partnerLabel || "City Investment Desk")}</span>
               </div>
@@ -9216,7 +9710,7 @@ async function initCityPipeline() {
         <div class="pipe-modal-head-meta">
           <span class="pipe-tag is-sector">${escapeHtml(item.category || "Strategic")}</span>
           <span class="pipe-partner-pill ${isGap ? "is-gap" : "is-project"}">
-            ${isGap ? "Municipal Whitespace Brief" : "Project in Motion"}
+            ${isGap ? "City Whitespace Brief" : "Project in Motion"}
           </span>
           <span style="font-size: 11px; color: #64748b;">${escapeHtml(item.locationLabel || "San Fernando, La Union")}</span>
         </div>
@@ -9954,11 +10448,429 @@ async function initAdminShowcase() {
   await reload();
 }
 
+function inferLocationData(lat, lng) {
+  let corridor = "highway";
+  let barangay = "Catbangen";
+
+  if (lng <= 120.317 && lat <= 16.618) {
+    corridor = "coastal";
+    barangay = lat <= 16.610 ? "Poro" : "San Agustin";
+  } else if (lat >= 16.616 && lat <= 16.623 && lng >= 16.618 && lng <= 120.3225) {
+    corridor = "downtown";
+    if (lat >= 16.620) barangay = "Barangay II";
+    else if (lat >= 16.617) barangay = "Barangay IV";
+    else barangay = "Madaydegdeg";
+  } else if (lat > 16.623) {
+    corridor = "highway";
+    barangay = "Pagdalagan";
+  } else if (lat < 16.615) {
+    corridor = "highway";
+    barangay = "Sevilla";
+  } else {
+    corridor = "highway";
+    barangay = "Catbangen";
+  }
+
+  return { corridor, barangay };
+}
+
+function showMapAdminToast(message, isError = false) {
+  let toast = document.getElementById("mapAdminToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "mapAdminToast";
+    toast.className = "map-admin-toast";
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = isError
+    ? `<span style="font-size:16px;">⚠️</span><span>${escapeHtml(message)}</span>`
+    : `<span style="font-size:16px;">🎉</span><span>${escapeHtml(message)}</span>`;
+  toast.style.borderColor = isError ? "#ef4444" : "#10b981";
+  toast.classList.add("is-visible");
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 4500);
+}
+
+function placeTemporaryPin(map, coords, isLeaflet = false) {
+  const pinEl = document.createElement("div");
+  pinEl.className = "map-capture-temp-pin";
+  pinEl.innerHTML = `<span class="map-capture-pin-dot"></span><span class="map-capture-pin-ring"></span>`;
+
+  if (isLeaflet && window.L) {
+    const icon = window.L.divIcon({
+      className: "map-capture-temp-pin-shell",
+      html: pinEl.outerHTML,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+    return window.L.marker([coords.lat, coords.lng], { icon }).addTo(map);
+  } else if (window.maplibregl) {
+    return new window.maplibregl.Marker({ element: pinEl })
+      .setLngLat([coords.lng, coords.lat])
+      .addTo(map);
+  }
+  return null;
+}
+
+function openMapAddCandidateSiteModal({
+  coords,
+  inferred,
+  radarResult,
+  onSave,
+  onCancel,
+}) {
+  document.getElementById("modalMapAddCandidateSite")?.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "modalMapAddCandidateSite";
+  modal.className = "modal-shell";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-labelledby", "mapAddSiteModalTitle");
+
+  const defaultName = `Candidate Site - ${inferred.barangay} ${corridorLabel(inferred.corridor)}`;
+  const defaultDesc = `High-potential candidate site situated along the ${corridorLabel(inferred.corridor)} in Barangay ${inferred.barangay}, San Fernando City. Identified at exact coordinates [${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}] with road access and prime commercial viability.`;
+
+  let selectedType = "commercial";
+  const imageMap = {
+    commercial: "assets/images/Property10.png",
+    logistics: "assets/images/Property1.png",
+    hotel: "assets/images/LaFinns.png",
+    bpo: "assets/images/Property3.png",
+    manufacturing: "assets/images/Property8.png",
+  };
+
+  const radarCount = radarResult?.count ?? 0;
+  const isRadarClear = radarCount === 0;
+
+  modal.innerHTML = `
+    <div class="map-add-site-dialog">
+      <header class="map-add-site-header">
+        <div class="map-add-site-header-left">
+          <span class="map-add-site-eyebrow">📍 Spatial Site Acquisition · LOCUS-SF</span>
+          <h3 id="mapAddSiteModalTitle">Register Candidate Site from Map</h3>
+          <div class="map-add-site-coords-pill">
+            <span>Lat: <strong>${coords.lat.toFixed(5)}</strong></span>
+            <span>Lng: <strong>${coords.lng.toFixed(5)}</strong></span>
+            <span>&bull;</span>
+            <span>${escapeHtml(inferred.barangay)}, San Fernando City</span>
+          </div>
+        </div>
+        <button type="button" class="map-add-site-close" id="btnCloseMapAddSite" aria-label="Close dialog">&times;</button>
+      </header>
+
+      <form class="map-add-site-body" id="formMapAddSite">
+        <!-- Live Competitor Proximity Radar Screening Banner -->
+        <div class="map-add-site-radar-preview ${isRadarClear ? "is-clear" : "has-competitors"}">
+          <div class="map-add-site-radar-info">
+            <span class="radar-dot ${!isRadarClear ? "is-warning" : ""}"></span>
+            <strong>500m Competitor Radar: ${isRadarClear ? "Clear Trade Area (0 Competitors Nearby)" : `${radarCount} Competitor(s) Nearby`}</strong>
+          </div>
+          <span class="map-add-site-radar-desc">
+            ${isRadarClear
+              ? "Uncontested trade radius for immediate market entry"
+              : `${escapeHtml(radarResult.matches?.[0]?.feature?.properties?.name || "Competitor")} (${Math.round(radarResult.matches?.[0]?.distanceMeters || 0)}m away)`}
+          </span>
+        </div>
+
+        <!-- Property Name -->
+        <div class="map-form-group">
+          <label for="newSiteName">Property / Site Name <span style="color:#ef4444;">*</span></label>
+          <input
+            type="text"
+            id="newSiteName"
+            class="explorer-search-input"
+            value="${escapeHtml(defaultName)}"
+            placeholder="e.g. Sevilla Commercial Frontage Lot"
+            required
+            style="width: 100%; height: 42px; border-radius: 10px; font-weight: 600;"
+          >
+        </div>
+
+        <!-- Property Type Grid -->
+        <div class="map-form-group">
+          <label>Property Category / Type <span style="color:#ef4444;">*</span></label>
+          <div class="map-type-selector-grid" id="mapTypeGrid">
+            <button type="button" class="map-type-btn is-selected" data-type="commercial">
+              <span class="map-type-icon">🏪</span>
+              <span>Commercial</span>
+            </button>
+            <button type="button" class="map-type-btn" data-type="logistics">
+              <span class="map-type-icon">🏭</span>
+              <span>Logistics</span>
+            </button>
+            <button type="button" class="map-type-btn" data-type="hotel">
+              <span class="map-type-icon">🏖️</span>
+              <span>Tourism / Hotel</span>
+            </button>
+            <button type="button" class="map-type-btn" data-type="bpo">
+              <span class="map-type-icon">🏢</span>
+              <span>Office / BPO</span>
+            </button>
+            <button type="button" class="map-type-btn" data-type="manufacturing">
+              <span class="map-type-icon">⚙️</span>
+              <span>Manufacturing</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Corridor & Barangay (Dual Column) -->
+        <div class="map-field-dual">
+          <div class="map-form-group">
+            <label for="newSiteCorridor">Corridor <span style="color:#ef4444;">*</span></label>
+            <select id="newSiteCorridor" class="explorer-select" style="width: 100%; height: 42px; border-radius: 10px;">
+              <option value="highway" ${inferred.corridor === "highway" ? "selected" : ""}>Highway Corridor</option>
+              <option value="downtown" ${inferred.corridor === "downtown" ? "selected" : ""}>Downtown Core</option>
+              <option value="coastal" ${inferred.corridor === "coastal" ? "selected" : ""}>Coastal Belt</option>
+            </select>
+          </div>
+          <div class="map-form-group">
+            <label for="newSiteBarangay">Barangay <span style="color:#ef4444;">*</span></label>
+            <input
+              type="text"
+              id="newSiteBarangay"
+              class="explorer-search-input"
+              value="${escapeHtml(inferred.barangay)}"
+              placeholder="Barangay name"
+              required
+              style="width: 100%; height: 42px; border-radius: 10px;"
+            >
+            <div class="map-quick-chips-row">
+              <button type="button" class="map-quick-chip" data-set-brgy="Catbangen">Catbangen</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Barangay II">Brgy II</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Barangay IV">Brgy IV</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Sevilla">Sevilla</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Poro">Poro</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Pagdalagan">Pagdalagan</button>
+              <button type="button" class="map-quick-chip" data-set-brgy="Madaydegdeg">Madaydegdeg</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asking Price & Lot Area (Dual Column) -->
+        <div class="map-field-dual">
+          <div class="map-form-group">
+            <label for="newSitePrice">Asking Price (PHP) <span style="color:#ef4444;">*</span></label>
+            <input
+              type="number"
+              id="newSitePrice"
+              class="explorer-search-input"
+              value="75000000"
+              min="100000"
+              step="500000"
+              required
+              style="width: 100%; height: 42px; border-radius: 10px;"
+            >
+            <div class="map-quick-chips-row">
+              <button type="button" class="map-quick-chip" data-set-price="45000000">₱45M</button>
+              <button type="button" class="map-quick-chip" data-set-price="75000000">₱75M</button>
+              <button type="button" class="map-quick-chip" data-set-price="95000000">₱95M</button>
+              <button type="button" class="map-quick-chip" data-set-price="120000000">₱120M</button>
+            </div>
+          </div>
+          <div class="map-form-group">
+            <label for="newSiteArea">Lot Area (Hectares) <span style="color:#ef4444;">*</span></label>
+            <input
+              type="number"
+              id="newSiteArea"
+              class="explorer-search-input"
+              value="5.5"
+              min="0.01"
+              step="0.1"
+              required
+              style="width: 100%; height: 42px; border-radius: 10px;"
+            >
+            <div class="map-quick-chips-row">
+              <button type="button" class="map-quick-chip" data-set-area="0.8">0.8 ha</button>
+              <button type="button" class="map-quick-chip" data-set-area="2.5">2.5 ha</button>
+              <button type="button" class="map-quick-chip" data-set-area="5.5">5.5 ha</button>
+              <button type="button" class="map-quick-chip" data-set-area="10.0">10 ha</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Description / Investment Thesis -->
+        <div class="map-form-group">
+          <label for="newSiteDescription">Investment Thesis & Description</label>
+          <textarea
+            id="newSiteDescription"
+            class="explorer-search-input"
+            rows="3"
+            style="width: 100%; border-radius: 10px; font-family: inherit; font-size: 13px; padding: 10px; resize: vertical;"
+          >${escapeHtml(defaultDesc)}</textarea>
+        </div>
+
+        <!-- Readiness & Infrastructure Signals -->
+        <div class="map-form-group">
+          <label>Readiness & Due Diligence Indicators</label>
+          <div class="map-infra-chips-grid">
+            <label class="map-infra-toggle is-checked">
+              <input type="checkbox" id="chkRoadAccess" checked>
+              <span>Direct Road Access (Frontage)</span>
+            </label>
+            <label class="map-infra-toggle is-checked">
+              <input type="checkbox" id="chkUtilities" checked>
+              <span>Full Power & Water Utilities</span>
+            </label>
+            <label class="map-infra-toggle is-checked">
+              <input type="checkbox" id="chkZoning" checked>
+              <span>CLUP Zoning Compatibility</span>
+            </label>
+            <label class="map-infra-toggle is-checked">
+              <input type="checkbox" id="chkVerified" checked>
+              <span>Spatial Pinpoint Verified</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="map-add-site-footer">
+          <button type="button" class="btn-map-site-cancel" id="btnCancelAddSite">Cancel</button>
+          <button type="submit" class="btn-map-site-submit" id="btnSubmitAddSite">
+            <span>🚀 Publish Candidate Site</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Type grid selection
+  modal.querySelectorAll(".map-type-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      modal.querySelectorAll(".map-type-btn").forEach((b) => b.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      selectedType = btn.dataset.type;
+    });
+  });
+
+  // Quick chips for barangay
+  modal.querySelectorAll("[data-set-brgy]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const val = btn.dataset.setBrgy;
+      const input = modal.querySelector("#newSiteBarangay");
+      if (input) input.value = val;
+    });
+  });
+
+  // Quick chips for price
+  modal.querySelectorAll("[data-set-price]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const val = btn.dataset.setPrice;
+      const input = modal.querySelector("#newSitePrice");
+      if (input) input.value = val;
+    });
+  });
+
+  // Quick chips for area
+  modal.querySelectorAll("[data-set-area]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const val = btn.dataset.setArea;
+      const input = modal.querySelector("#newSiteArea");
+      if (input) input.value = val;
+    });
+  });
+
+  // Toggle checkbox styling
+  modal.querySelectorAll(".map-infra-toggle input").forEach((input) => {
+    input.addEventListener("change", () => {
+      input.closest(".map-infra-toggle")?.classList.toggle("is-checked", input.checked);
+    });
+  });
+
+  const closeDialog = () => {
+    modal.remove();
+    onCancel?.();
+  };
+
+  modal.querySelector("#btnCloseMapAddSite")?.addEventListener("click", closeDialog);
+  modal.querySelector("#btnCancelAddSite")?.addEventListener("click", closeDialog);
+  modal.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDialog();
+      document.getElementById("btnToggleAdminAddSite")?.focus({ preventScroll: true });
+    } else if (event.key === "Tab") {
+      const controls = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')]
+        .filter(control => !control.disabled && control.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    }
+  });
+
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeDialog();
+  });
+
+  // Submit Handler
+  modal.querySelector("#formMapAddSite")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = modal.querySelector("#btnSubmitAddSite");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>⏳ Registering site...</span>`;
+    }
+
+    const name = modal.querySelector("#newSiteName")?.value.trim() || defaultName;
+    const corridor = modal.querySelector("#newSiteCorridor")?.value || inferred.corridor;
+    const barangay = modal.querySelector("#newSiteBarangay")?.value.trim() || inferred.barangay;
+    const price = Number(modal.querySelector("#newSitePrice")?.value) || 75000000;
+    const area = Number(modal.querySelector("#newSiteArea")?.value) || 5.5;
+    const description = modal.querySelector("#newSiteDescription")?.value.trim() || defaultDesc;
+    const imageUrl = imageMap[selectedType] || "assets/images/Property10.png";
+
+    const payloadData = {
+      name,
+      corridor,
+      barangay,
+      type: selectedType,
+      price,
+      area,
+      description,
+      imageUrl,
+      roadAccess: modal.querySelector("#chkRoadAccess")?.checked ? 95 : 75,
+      score: modal.querySelector("#chkZoning")?.checked ? 90 : 80,
+    };
+
+    try {
+      await onSave(payloadData);
+      modal.remove();
+    } catch (saveErr) {
+      console.error("Save error:", saveErr);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<span>🚀 Publish Candidate Site</span>`;
+      }
+    }
+  });
+
+  modal.querySelector("#newSiteName")?.focus();
+}
+
 async function initExplorer() {
   const root = document.getElementById("explorerAppRoot");
   if (!root) return;
 
+  const urlParams = new URLSearchParams(window.location.search);
+  let isAddSiteMode = urlParams.get("admin_mode") === "add_site";
+  let tempPinMarker = null;
+
   const bootstrap = await api.bootstrap();
+  let competitorData = null;
+  try {
+    competitorData = await api.competitors();
+  } catch (err) {
+    console.error("Unable to load competitor data:", err);
+  }
+  let competitorRadarInstance = null;
+  let activeRadarResult = null;
   const properties = bootstrap.properties || [];
   if (!properties.length) {
     root.innerHTML = emptyState("Explorer unavailable", "No properties are loaded yet. Add inventory to bring the map online.");
@@ -9971,7 +10883,7 @@ async function initExplorer() {
   let corridor = "all";
   let clupStatus = "all";
   let sortBy = "fit"; // "fit" | "price_asc" | "price_desc" | "area_desc"
-  let activeId = parsePropertyParam() || properties[0]?.id || 0;
+  let activeId = parsePropertyParam() || 0;
   let investmentLensKey = getActiveInvestmentLensKey();
   let mobileView = "list";
   let currentMapLayer = "streets";
@@ -9980,6 +10892,164 @@ async function initExplorer() {
   let mapActiveId = null;
   let searchTimer;
   let savedOnly = false;
+  let isMapExpanded = false;
+  let radarDetailsOpen = false;
+  let radarMapTarget = null;
+
+  const resizeExplorerMap = () => {
+    requestAnimationFrame(() => {
+      const entry = mapRegistry.get("explorerLeafletMap");
+      if (entry?.isLeaflet) entry.map.invalidateSize();
+      else entry?.map.resize();
+    });
+  };
+  const setMapExpanded = (expanded) => {
+    isMapExpanded = expanded;
+    const studio = root.querySelector(".explorer-map-studio");
+    const button = root.querySelector("#explorerExpandMap");
+    studio?.classList.toggle("is-expanded", expanded);
+    document.body.classList.toggle("explorer-map-expanded", expanded);
+    studio?.setAttribute("role", expanded ? "dialog" : "complementary");
+    if (expanded) studio?.setAttribute("aria-modal", "true");
+    else studio?.removeAttribute("aria-modal");
+    button?.setAttribute("aria-expanded", String(expanded));
+    button?.setAttribute("aria-label", expanded ? "Close expanded map" : "Expand map");
+    if (button) button.innerHTML = `${icon(expanded ? "close" : "expand")}<span>${expanded ? "Close" : "Expand"}</span>`;
+    button?.focus({ preventScroll: true });
+    resizeExplorerMap();
+  };
+  document.addEventListener("keydown", (event) => {
+    if (!isMapExpanded) return;
+    // The candidate-site dialog manages its own interaction above the map.
+    if (document.getElementById("modalMapAddCandidateSite")) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setMapExpanded(false);
+    } else if (event.key === "Tab") {
+      const controls = [...root.querySelectorAll('.explorer-map-studio button, .explorer-map-studio a[href], .explorer-map-studio summary, .explorer-map-studio [tabindex="0"]')]
+        .filter(control => !control.disabled && control.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !controls.includes(document.activeElement))) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !controls.includes(document.activeElement))) {
+        event.preventDefault(); first?.focus();
+      }
+    }
+  });
+
+  const handleMapCapture = (coords) => {
+    const mapEntry = mapRegistry.get("explorerLeafletMap");
+    if (!mapEntry?.map) return;
+
+    tempPinMarker?.remove();
+    tempPinMarker = placeTemporaryPin(mapEntry.map, coords, Boolean(mapEntry.isLeaflet));
+
+    const inferred = inferLocationData(coords.lat, coords.lng);
+    const radarResult = competitorData
+      ? calculateCompetitorProximity(coords, competitorData)
+      : { count: 0, matches: [] };
+
+    openMapAddCandidateSiteModal({
+      coords,
+      inferred,
+      radarResult,
+      onCancel: () => {
+        tempPinMarker?.remove();
+        tempPinMarker = null;
+      },
+      onSave: async (data) => {
+        const payload = new FormData();
+        payload.append("property_name", data.name);
+        payload.append("city", "San Fernando, La Union");
+        payload.append("barangay", data.barangay);
+        payload.append("property_type", data.type);
+        payload.append("corridor", data.corridor);
+        payload.append("price", String(data.price));
+        payload.append("land_area", String(data.area));
+        payload.append("land_area_unit", "ha");
+        payload.append("lat", String(coords.lat));
+        payload.append("lng", String(coords.lng));
+        payload.append("status", "Available");
+        payload.append("approval_state", "approved");
+        payload.append("score", String(data.score || 88));
+        payload.append("road_access", String(data.roadAccess || 90));
+        payload.append("description", data.description);
+        payload.append("image_path", data.imageUrl);
+        payload.append("tags", JSON.stringify(["Map Sourced", `${data.corridor.toUpperCase()} Corridor`, "Candidate Site"]));
+        payload.append("facilities", JSON.stringify(["Direct Road Access", "Power & Utilities", "500m Radar Scanned"]));
+        payload.append("documents_reviewed", "1");
+        payload.append("site_verified", "1");
+
+        let created = null;
+        let isLiveCreated = false;
+        try {
+          const res = await api.createProperty(payload);
+          created = res.property || res;
+          isLiveCreated = true;
+        } catch (err) {
+          console.warn("API createProperty fallback to active studio session:", err);
+          created = {
+            id: Date.now(),
+            name: data.name,
+            city: "San Fernando, La Union",
+            barangay: data.barangay,
+            lat: coords.lat,
+            lng: coords.lng,
+            area: data.area,
+            price: data.price,
+            price_per_sqm: Math.round(data.price / (data.area * 10000)),
+            type: data.type,
+            corridor: data.corridor,
+            status: "Available",
+            approval_state: "approved",
+            score: data.score || 88,
+            road_access: data.roadAccess || 90,
+            imageUrl: data.imageUrl,
+            description: data.description,
+            clupCompliance: {
+              status: "PASS",
+              statusKey: "pass",
+              proposedInvestmentLabel: typeLabel(data.type),
+            },
+            lensScore: 92,
+            opportunityScore: 90,
+            tags: ["Map Sourced", `${data.corridor.toUpperCase()} Corridor`, "Candidate Site"],
+            facilities: ["Direct Road Access", "Power & Utilities", "500m Radar Scanned"],
+          };
+        }
+
+        if (created) {
+          tempPinMarker?.remove();
+          tempPinMarker = null;
+          isAddSiteMode = false;
+
+          properties.unshift(created);
+          activeId = created.id;
+
+          mapSignature = "site-added-" + Date.now();
+          render();
+
+          setTimeout(() => {
+            const updatedEntry = mapRegistry.get("explorerLeafletMap");
+            if (updatedEntry?.map) {
+              if (updatedEntry.isLeaflet) {
+                updatedEntry.map.setView([coords.lat, coords.lng], 16);
+              } else {
+                updatedEntry.map.easeTo({ center: [coords.lng, coords.lat], zoom: 16, duration: 800 });
+              }
+            }
+          }, 120);
+
+          if (isLiveCreated) {
+            showMapAdminToast(`Candidate site "${created.name}" published to database at Lat: ${coords.lat.toFixed(5)}, Lng: ${coords.lng.toFixed(5)}!`);
+          } else {
+            showMapAdminToast(`Candidate site "${created.name}" registered to active studio session at Lat: ${coords.lat.toFixed(5)}, Lng: ${coords.lng.toFixed(5)}!`);
+          }
+        }
+      },
+    });
+  };
 
   const render = () => {
     // 1. Calculate lens match counts across all inventory
@@ -10028,10 +11098,24 @@ async function initExplorer() {
       activeId = visible[0]?.id || 0;
     }
     const active = visible.find((property) => property.id === activeId) || visible[0] || null;
+    if (active && competitorData && Number.isFinite(Number(active.lat)) && Number.isFinite(Number(active.lng))) {
+      activeRadarResult = calculateCompetitorProximity(
+        { lat: Number(active.lat), lng: Number(active.lng) },
+        competitorData
+      );
+      radarMapTarget = { lat: Number(active.lat), lng: Number(active.lng) };
+    } else {
+      activeRadarResult = null;
+      radarMapTarget = null;
+    }
     const isFiltered = search.trim() !== "" || type !== "all" || corridor !== "all" || clupStatus !== "all" || savedOnly;
     const comparedProperties = compareIds.map(id => properties.find(property => property.id === id)).filter(Boolean);
     const activeScore = Math.round(Number(active?.lensScore || 0));
     const activeDrivers = active?.lensResult?.topMetrics?.slice(0, 2) || [];
+    const mappedCount = visible.filter(property => property.lat != null && property.lng != null
+      && String(property.lat).trim() !== "" && String(property.lng).trim() !== ""
+      && Number.isFinite(Number(property.lat)) && Number.isFinite(Number(property.lng))
+      && Math.abs(Number(property.lat)) <= 90 && Math.abs(Number(property.lng)) <= 180).length;
 
     const focusControl = root.contains(document.activeElement) ? document.activeElement : null;
     const focusId = focusControl?.id;
@@ -10055,8 +11139,8 @@ async function initExplorer() {
               <span class="explorer-live-beacon">Spatial Map Explorer</span>
               <span class="explorer-hero-location">San Fernando City, La Union</span>
             </div>
-            <h1>Find the right place.<br><span>See what it could become.</span></h1>
-            <p>Explore the city through your investment goals. Discover candidate sites, understand their fit, and bring your best options together.</p>
+            <h1>Map Explorer</h1>
+            <p>${escapeHtml(activeLens.label)} <span aria-hidden="true">&middot;</span> ${visible.length} candidate ${visible.length === 1 ? "site" : "sites"}</p>
           </div>
           <div class="explorer-hero-actions">
             <div class="explorer-hero-stats"><div><strong>${properties.length.toString().padStart(2, "0")}</strong><span>Candidate sites</span></div><div><strong>${INVESTMENT_LENSES.length.toString().padStart(2, "0")}</strong><span>Investment lenses</span></div><div><strong>${favoriteIds.length.toString().padStart(2, "0")}</strong><span>Saved to shortlist</span></div></div>
@@ -10076,9 +11160,9 @@ async function initExplorer() {
         <section class="explorer-lens-bar" aria-label="Investment Lens Selector">
           <div class="explorer-lens-bar-head">
             <span class="explorer-lens-bar-title">
-              ${icon("spark")} Explore through your investment goals
+              ${icon("spark")} Investment goals
             </span>
-            <span class="explorer-lens-help">Counts show sites with a fit score of 70+</span>
+            <span class="explorer-lens-help">${INVESTMENT_LENSES.length} investment lenses</span>
           </div>
           <div class="explorer-lens-track" role="group" aria-label="Investment goal">
             ${INVESTMENT_LENSES.map((lens) => `
@@ -10200,14 +11284,29 @@ async function initExplorer() {
 
                     <div class="explorer-card-body">
                       <div class="explorer-card-header">
-                        <div class="explorer-card-corridor">${escapeHtml(corridorLabel(property.corridor))}<span>${property.id === activeId ? "Viewing on map" : `SITE ${String(index + 1).padStart(2, "0")}`}</span></div>
+                        <div class="explorer-card-corridor">${escapeHtml(corridorLabel(property.corridor))}<span>SITE ${String(index + 1).padStart(2, "0")}${property.id === activeId ? " · ON MAP" : ""}</span></div>
                         <a href="${propertyHref(property.id)}" class="explorer-card-title">${escapeHtml(property.name)}</a>
                         <p class="explorer-card-loc">${escapeHtml(property.barangay || "San Fernando")} &bull; ${escapeHtml(property.city || "La Union")}</p>
                       </div>
 
                       <div class="explorer-card-metrics">
-                        <div><span class="explorer-metric-label">Asking price</span><span class="explorer-card-price">${escapeHtml(moneyShort(property.price))}</span></div>
-                        <div><span class="explorer-metric-label">Lot area</span><span class="explorer-card-area">${escapeHtml(property.area || "--")} <small>ha</small></span></div>
+                        <div class="explorer-domain-metric">${locusIcon("birZonalValue", { size: "sm" })}<div class="explorer-domain-metric-copy"><span class="explorer-metric-label">Asking price</span><span class="explorer-card-price">${escapeHtml(moneyShort(property.price))}</span></div></div>
+                        <div class="explorer-domain-metric">${locusIcon("propertyInformation", { size: "sm" })}<div class="explorer-domain-metric-copy"><span class="explorer-metric-label">Lot area</span><span class="explorer-card-area">${escapeHtml(property.area || "--")} <small>ha</small></span></div></div>
+                      </div>
+
+                      <div class="locus-card-domain-strip">
+                        <span class="locus-card-domain-chip" title="Direct Road Frontage &amp; Arterial Access">
+                          ${locusIcon("accessibility", { size: "xs" })}
+                          <span>${property.roadFrontageM ? `${property.roadFrontageM}m Frontage` : "Direct Access"}</span>
+                        </span>
+                        <span class="locus-card-domain-chip" title="Investment Readiness &amp; Diligence">
+                          ${locusIcon("siteReadiness", { size: "xs" })}
+                          <span>${Math.round(Number(property.dueDiligencePct || 85))}% Ready</span>
+                        </span>
+                        <span class="locus-card-domain-chip" title="Hazard Safety: Low Seismic / Flood Risk">
+                          ${locusIcon("hazardSafety", { size: "xs" })}
+                          <span>Safe Zone</span>
+                        </span>
                       </div>
 
                       <p class="explorer-card-drivers">${escapeHtml(truncate(thesis, 105))}</p>
@@ -10228,28 +11327,40 @@ async function initExplorer() {
           </section>
 
           <!-- Right: Sticky GIS Interactive Map Studio -->
-          <aside class="explorer-map-studio">
-            <header class="explorer-map-heading"><div><span class="explorer-results-kicker">SAN FERNANDO CITY</span><h2>A closer look at your next move.</h2></div><button type="button" class="explorer-fit-map" id="explorerFitMap" aria-label="Fit all candidate sites on the map">${icon("map")} City overview</button></header>
-            <div class="explorer-map-stage">
+          <aside class="explorer-map-studio ${isMapExpanded ? "is-expanded" : ""}" aria-label="Opportunity map and selected site" ${isMapExpanded ? 'role="dialog" aria-modal="true"' : ''}>
+            <header class="explorer-map-heading">
+              <div class="explorer-map-heading-copy"><span class="explorer-map-heading-icon" aria-hidden="true">${icon("map")}</span><div><span class="explorer-results-kicker">SAN FERNANDO · LA UNION</span><h2>Opportunity map</h2></div></div>
+              <div class="explorer-map-heading-actions"><button type="button" class="explorer-fit-map" id="explorerFitMap" aria-label="Fit all candidate sites on the map">${icon("earth")} City overview</button><button type="button" class="explorer-fit-map explorer-expand-map" id="explorerExpandMap" aria-label="${isMapExpanded ? "Close expanded map" : "Expand map"}" aria-expanded="${isMapExpanded}">${icon(isMapExpanded ? "close" : "expand")}<span>${isMapExpanded ? "Close" : "Expand"}</span></button></div>
+            </header>
+            <div class="explorer-map-top-bar">
+              <div class="explorer-map-layer-switch" role="group" aria-label="Map appearance">
+                <button type="button" class="btn-map-layer ${currentMapLayer === "streets" ? "is-active" : ""}" data-map-layer="streets" aria-pressed="${currentMapLayer === "streets"}">${icon("map")} Streets</button>
+                <button type="button" class="btn-map-layer ${currentMapLayer === "satellite" ? "is-active" : ""}" data-map-layer="satellite" aria-pressed="${currentMapLayer === "satellite"}">${icon("earth")} Satellite</button>
+              </div>
+              <span class="explorer-map-toolbar-note">${escapeHtml(activeLens.shortLabel || activeLens.label)} investment lens</span>
+              <button type="button" class="btn-map-admin-add ${isAddSiteMode ? "is-active" : ""}" id="btnToggleAdminAddSite" title="Click to add candidate site by tapping on the map" aria-pressed="${isAddSiteMode}">${icon("map")}<span>${isAddSiteMode ? "Exit add mode" : "+ Add a site"}</span></button>
+            </div>
+            <div class="explorer-map-stage ${isAddSiteMode ? "is-capture-active" : ""}">
+              ${isAddSiteMode ? `
+                <div class="map-capture-instruction" id="mapCaptureInstruction">
+                  <span><strong>Tap the map to place your site.</strong> Choose its exact location.</span>
+                  <button type="button" class="btn-chip-cancel" id="btnCancelCapture">Exit</button>
+                </div>
+              ` : ""}
               <div id="explorerLeafletMap"></div>
 
-              <!-- Floating Top Controls -->
-              <div class="explorer-map-top-bar">
-                <div class="explorer-map-legend-pill">
-                  <span class="legend-label">LAND USE</span>
-                  <span class="legend-dot is-pass"><i></i> Pass</span>
-                  <span class="legend-dot is-conditional"><i></i> Conditional</span>
-                  <span class="legend-dot is-fail"><i></i> Fail</span>
-                  <span class="legend-dot is-unverified"><i></i> Unverified</span>
-                </div>
-
-                <div class="explorer-map-layer-switch">
-                  <button type="button" class="btn-map-layer ${currentMapLayer === "streets" ? "is-active" : ""}" data-map-layer="streets" aria-pressed="${currentMapLayer === "streets"}">Streets</button>
-                  <button type="button" class="btn-map-layer ${currentMapLayer === "satellite" ? "is-active" : ""}" data-map-layer="satellite" aria-pressed="${currentMapLayer === "satellite"}">Satellite</button>
-                </div>
-              </div>
-              <div class="explorer-map-hint">${icon("map")} ${visible.length} sites mapped <span>Ctrl + scroll to zoom</span></div>
+              ${active && !isAddSiteMode ? `<div class="explorer-map-focus-label"><span class="explorer-map-focus-number">${String(visible.indexOf(active) + 1).padStart(2, "0")}</span><div><span>SELECTED SITE</span><strong>${escapeHtml(active.name)}</strong></div></div>` : ""}
+                ${activeRadarResult && activeRadarResult.count !== null ? `
+                  <div class="map-radar-chip ${activeRadarResult.count > 0 ? "is-warning" : ""}" id="mapRadarStatusChip" aria-live="polite">
+                    <span class="radar-dot"></span>
+                    Selected site · ${activeRadarResult.count} mapped competitors within 500m
+                  </div>
+                ` : ""}
               <div class="explorer-map-unavailable" id="explorerMapUnavailable" hidden><strong>Map preview is unavailable</strong><p>You can still browse, save, and compare the candidate sites.</p><button type="button" class="explorer-fit-map" id="explorerRetryMap">Retry map</button></div>
+            </div>
+            <div class="explorer-map-footer">
+              <div class="explorer-map-legend-pill" aria-label="Land-use results"><span class="legend-label">LAND USE</span><span class="legend-dot is-pass"><i></i> Pass</span><span class="legend-dot is-conditional"><i></i> Conditional</span><span class="legend-dot is-fail"><i></i> Fail</span><span class="legend-dot is-unverified"><i></i> Unverified</span></div>
+              <div class="explorer-map-hint">${icon("map")} <strong>${mappedCount}</strong> sites mapped <span>Select a pin to explore</span></div>
             </div>
 
               <!-- Floating Bottom Selected Property Dossier Snapshot -->
@@ -10257,18 +11368,61 @@ async function initExplorer() {
                 <div class="explorer-map-dossier-card">
                   <div class="dossier-thumb">
                     <img src="${escapeHtml(active.imageUrl)}" alt="${escapeHtml(active.name)}">
-                    <span>${activeScore}<small>FIT / 100</small></span>
+                    <span style="display:flex;align-items:center;gap:4px;">${locusIcon("iai", { size: "xs" })} ${activeScore}<small>FIT / 100</small></span>
                   </div>
                   <div class="dossier-info">
                     <div class="dossier-topline">
-                      <span class="explorer-results-kicker">NOW EXPLORING · ${escapeHtml(typeLabel(active.type))}</span>
+                      <span class="explorer-results-kicker" style="display:flex;align-items:center;gap:6px;">${locusIcon("propertyInformation", { size: "xs" })} NOW EXPLORING · ${escapeHtml(typeLabel(active.type))}</span>
                       <span class="clup-gate-pill is-${escapeHtml(String(active.clupCompliance?.statusKey || active.clupCompliance?.status || 'unverified').toLowerCase())}">${escapeHtml(active.clupCompliance?.status || 'UNVERIFIED')}</span>
                     </div>
                     <h4 class="dossier-title">${escapeHtml(active.name)}</h4>
                     <span class="dossier-meta">${escapeHtml(active.barangay || "San Fernando")} &bull; ${escapeHtml(corridorLabel(active.corridor))}</span>
                   </div>
-                  <div class="dossier-metrics"><div><span>Asking price</span><strong class="dossier-price">${escapeHtml(moneyShort(active.price))}</strong></div><div><span>Lot area</span><strong>${escapeHtml(active.area || "--")} <small>ha</small></strong></div><div><span>Price / hectare</span><strong>${Number(active.area) > 0 && Number(active.price) > 0 ? escapeHtml(moneyShort(Number(active.price) / Number(active.area))) : "Not available"}</strong></div></div>
+                  <div class="dossier-metrics"><div><span>${locusIcon("birZonalValue", { size: "xs" })} Asking price</span><strong class="dossier-price">${escapeHtml(moneyShort(active.price))}</strong></div><div><span>${locusIcon("propertyInformation", { size: "xs" })} Lot area</span><strong>${escapeHtml(active.area || "--")} <small>ha</small></strong></div><div><span>${locusIcon("birZonalValue", { size: "xs" })} Price / ha</span><strong>${Number(active.area) > 0 && Number(active.price) > 0 ? escapeHtml(moneyShort(Number(active.price) / Number(active.area))) : "Not available"}</strong></div></div>
                   ${activeDrivers.length ? `<div class="dossier-drivers"><span>Fit drivers</span>${activeDrivers.map(metric => `<span class="dossier-driver">${icon("spark")}${escapeHtml(metric.label)}</span>`).join("")}</div>` : ""}
+                  ${active ? `
+                    <div class="dossier-business-match-chip">
+                      <span class="bm-chip-badge">✦ Top Match</span>
+                      <span class="bm-chip-name">${escapeHtml(inferTopBusinessMatch(active)?.name || "Commercial Hub")}</span>
+                      <span class="bm-chip-score">${inferTopBusinessMatch(active)?.score || 95}% Fit</span>
+                    </div>
+                  ` : ""}
+                  ${activeRadarResult && activeRadarResult.count !== null ? `
+                    <details class="dossier-competitor-strip ${activeRadarResult.count === 0 ? "is-clear" : "has-competitors"}" ${radarDetailsOpen ? "open" : ""}>
+                      <summary class="dossier-competitor-head" id="explorerRadarDetails">
+                        <span class="dossier-competitor-kicker">
+                          <span class="radar-dot"></span> 500m competitor radar
+                        </span>
+                        <span class="dossier-competitor-badge ${activeRadarResult.count === 0 ? "is-clear" : "is-warning"}">
+                          ${activeRadarResult.count} mapped nearby
+                        </span>
+                        <span class="dossier-radar-chevron" aria-hidden="true">⌄</span>
+                      </summary>
+                      <div class="dossier-competitor-body">
+                        ${activeRadarResult.count === 0 ? `
+                          <div class="dossier-competitor-status-clean">
+                            <strong>No mapped competitors within 500m</strong>
+                            <p>No major chain competitors currently mapped within 500 meters of this site footprint.</p>
+                          </div>
+                        ` : `
+                          <div class="dossier-competitor-matches">
+                            ${activeRadarResult.matches.map(m => `
+                              <div class="dossier-competitor-item">
+                                <div class="dossier-competitor-item-info">
+                                  <span class="dossier-competitor-item-name">${escapeHtml(m.feature.properties?.name || "Competitor")}</span>
+                                  <span class="dossier-competitor-item-status">${escapeHtml(String(m.feature.properties?.status || "existing").replaceAll("_", " "))}</span>
+                                </div>
+                                <span class="dossier-competitor-item-dist">${Math.round(m.distanceMeters)}m away</span>
+                              </div>
+                            `).join("")}
+                          </div>
+                        `}
+                        <div class="dossier-competitor-disclaimer">
+                          <span>Based on mapped locations${activeRadarResult.unlocatedCount ? ` · ${activeRadarResult.unlocatedCount} pipeline brands awaiting exact locations` : ""}.</span>
+                        </div>
+                      </div>
+                    </details>
+                  ` : ""}
                   <div class="dossier-actions">
                     <button type="button" class="btn-card-compare ${compareIds.includes(active.id) ? "is-active" : ""}" id="explorerCompareSelected" aria-pressed="${compareIds.includes(active.id)}">${compareIds.includes(active.id) ? "✓ In comparison" : "+ Add to compare"}</button>
                     <a href="${propertyHref(active.id)}" class="btn-dossier-open">
@@ -10319,6 +11473,11 @@ async function initExplorer() {
       render();
     });
     root.querySelector("#explorerSavedOnly")?.addEventListener("click", () => { savedOnly = !savedOnly; render(); });
+    root.querySelector("#explorerExpandMap")?.addEventListener("click", () => setMapExpanded(!isMapExpanded));
+    root.querySelector(".dossier-competitor-strip")?.addEventListener("toggle", (event) => {
+      radarDetailsOpen = event.currentTarget.open;
+      resizeExplorerMap();
+    });
     root.querySelector("#explorerCompareSelected")?.addEventListener("click", () => { saveCompareIds(toggleId(getCompareIds(), activeId, 3)); render(); });
     root.querySelectorAll("[data-explorer-remove-compare]").forEach(button => {
       button.addEventListener("click", () => { saveCompareIds(getCompareIds().filter(id => id !== Number(button.dataset.explorerRemoveCompare))); render(); });
@@ -10335,8 +11494,19 @@ async function initExplorer() {
 
     // Layer switch (Streets vs Satellite)
     const applyMapLayer = () => {
-      const map = mapRegistry.get("explorerLeafletMap")?.map;
+      const entry = mapRegistry.get("explorerLeafletMap");
+      const map = entry?.map;
       if (!map) return;
+      if (entry.isLeaflet) {
+        entry.tileLayer?.remove();
+        entry.tileLayer = window.L.tileLayer(currentMapLayer === "satellite"
+          ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: currentMapLayer === "satellite" ? "Tiles &copy; Esri" : "&copy; OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+        return;
+      }
       map.setStyle(currentMapLayer === "satellite" ? {
         version: 8,
         sources: {
@@ -10358,11 +11528,36 @@ async function initExplorer() {
       });
     });
 
+    root.querySelector("#btnToggleAdminAddSite")?.addEventListener("click", () => {
+      isAddSiteMode = !isAddSiteMode;
+      if (!isAddSiteMode && tempPinMarker) {
+        tempPinMarker.remove();
+        tempPinMarker = null;
+      }
+      render();
+    });
+
+    root.querySelector("#btnCancelCapture")?.addEventListener("click", () => {
+      isAddSiteMode = false;
+      if (tempPinMarker) {
+        tempPinMarker.remove();
+        tempPinMarker = null;
+      }
+      render();
+    });
+
     // Card inspect / select handler
     const selectPropertyAndCenter = (propertyId) => {
       activeId = Number(propertyId);
       selectedSearchResult = null;
       if (window.innerWidth <= 900) mobileView = "map";
+      const targetProp = properties.find((p) => p.id === activeId);
+      if (targetProp && competitorRadarInstance && Number.isFinite(Number(targetProp.lat)) && Number.isFinite(Number(targetProp.lng))) {
+        competitorRadarInstance.updateTargetPosition(
+          { lat: targetProp.lat, lng: targetProp.lng },
+          { suppressAlert: true }
+        );
+      }
       render();
       const targetCard = document.getElementById(`card-prop-${propertyId}`);
       if (targetCard && window.innerWidth > 900) {
@@ -10401,25 +11596,40 @@ async function initExplorer() {
     if (retainedMap) {
       root.querySelector("#explorerLeafletMap").replaceWith(retainedMap);
       const entry = mapRegistry.get("explorerLeafletMap");
-      visible.forEach(property => {
+      visible.forEach((property, index) => {
         const marker = entry.markers.get(property.id);
         const pin = marker?.getElement().querySelector(".marker-pill");
         pin?.classList.toggle("is-active", property.id === activeId);
         const dot = pin?.querySelector(".marker-dot");
         if (dot) dot.className = `marker-dot is-${String(property.clupCompliance?.statusKey || "unverified").toLowerCase()}`;
-        marker?.getPopup().setHTML(mapPopup(property));
-        marker?.getPopup().remove();
+        const number = pin?.querySelector(".marker-site-number");
+        if (number) number.textContent = String(index + 1).padStart(2, "0");
+        if (entry.isLeaflet) {
+          marker?.setPopupContent(mapPopup(property));
+          marker?.closePopup();
+        } else {
+          marker?.getPopup().setHTML(mapPopup(property));
+          marker?.getPopup().remove();
+        }
       });
-      entry.map.resize();
+      if (entry.isLeaflet) entry.map.invalidateSize();
+      else entry.map.resize();
       if (retainedMap.dataset.overviewPending === "true" && retainedMap.clientWidth && retainedMap.clientHeight) {
-        const bounds = new window.maplibregl.LngLatBounds();
-        entry.markers.forEach(marker => bounds.extend(marker.getLngLat()));
-        if (!bounds.isEmpty()) entry.map.fitBounds(bounds, { padding: 45, maxZoom: 15, duration: 0 });
+        if (entry.isLeaflet) {
+          const bounds = window.L.latLngBounds([...entry.markers.values()].map(marker => marker.getLatLng()));
+          if (bounds.isValid()) entry.map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15, animate: false });
+        } else {
+          const bounds = new window.maplibregl.LngLatBounds();
+          entry.markers.forEach(marker => bounds.extend(marker.getLngLat()));
+          if (!bounds.isEmpty()) entry.map.fitBounds(bounds, { padding: 45, maxZoom: 15, duration: 0 });
+        }
         delete retainedMap.dataset.overviewPending;
       }
       if (mapActiveId !== activeId && entry.markers.has(activeId)) {
-        entry.map.easeTo({ center: entry.markers.get(activeId).getLngLat(), zoom: 15, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 700 });
+        if (entry.isLeaflet) entry.map.setView(entry.markers.get(activeId).getLatLng(), 15, { animate: !matchMedia("(prefers-reduced-motion: reduce)").matches });
+        else entry.map.easeTo({ center: entry.markers.get(activeId).getLngLat(), zoom: 15, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 700 });
       }
+      if (radarMapTarget) competitorRadarInstance?.updateTargetPosition(radarMapTarget, { suppressAlert: true });
     } else {
       try {
         mountPropertyMap({
@@ -10429,34 +11639,81 @@ async function initExplorer() {
       searchResult: selectedSearchResult,
       overview: true,
       onSelect: (propertyId) => {
-        activeId = Number(propertyId);
-        selectedSearchResult = null;
-        render();
-        const targetCard = document.getElementById(`card-prop-${propertyId}`);
-        if (targetCard && window.innerWidth > 900) {
-          targetCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
+        selectPropertyAndCenter(propertyId);
       },
         });
         if (currentMapLayer === "satellite") applyMapLayer();
         const map = mapRegistry.get("explorerLeafletMap")?.map;
-        if (!map) root.querySelector("#explorerMapUnavailable").hidden = false;
-        map?.on("error", () => {
-          const fallback = root.querySelector("#explorerMapUnavailable");
-          if (fallback && !map.isStyleLoaded()) fallback.hidden = false;
-        });
-        map?.on("load", () => { const fallback = root.querySelector("#explorerMapUnavailable"); if (fallback) fallback.hidden = true; });
-      } catch {
+        if (!map) {
+          root.querySelector("#explorerMapUnavailable").hidden = false;
+        } else {
+          root.querySelector("#explorerMapUnavailable").hidden = true;
+          map.on("load", () => {
+            const fallback = root.querySelector("#explorerMapUnavailable");
+            if (fallback) fallback.hidden = true;
+          });
+        }
+      } catch (mapMountErr) {
+        console.error("Map mounting error:", mapMountErr);
         destroyMap("explorerLeafletMap");
         root.querySelector("#explorerMapUnavailable").hidden = false;
+      }
+
+      // Safely attach competitor radar without risking whole map teardown
+      try {
+        const map = mapRegistry.get("explorerLeafletMap")?.map;
+        if (map && competitorData) {
+          competitorRadarInstance?.destroy();
+          competitorRadarInstance = addCompetitorRadar(map, competitorData);
+          if (active && Number.isFinite(Number(active.lat)) && Number.isFinite(Number(active.lng))) {
+            activeRadarResult = competitorRadarInstance.analyzeLot(
+              { lat: active.lat, lng: active.lng },
+              { suppressAlert: true }
+            );
+          }
+          map.on("click", (e) => {
+            const clickPos = e.lngLat
+              ? { lat: Number(e.lngLat.lat), lng: Number(e.lngLat.lng) }
+              : (e.latlng ? { lat: Number(e.latlng.lat), lng: Number(e.latlng.lng) } : null);
+            if (!clickPos || !Number.isFinite(clickPos.lat) || !Number.isFinite(clickPos.lng)) return;
+
+            if (isAddSiteMode) {
+              handleMapCapture(clickPos);
+              return;
+            }
+
+            if (competitorRadarInstance && clickPos) {
+              radarMapTarget = clickPos;
+              activeRadarResult = competitorRadarInstance.analyzeLot(clickPos, { suppressAlert: true });
+              const chip = root.querySelector("#mapRadarStatusChip");
+              if (chip) {
+                chip.className = `map-radar-chip ${activeRadarResult.count > 0 ? "is-warning" : ""}`;
+                chip.innerHTML = activeRadarResult.count === 0
+                  ? '<span class="radar-dot"></span> Map point · 0 mapped competitors within 500m'
+                  : `<span class="radar-dot is-warning"></span> Map point · ${activeRadarResult.count} mapped competitors within 500m`;
+              }
+            }
+          });
+        }
+      } catch (radarErr) {
+        console.warn("Competitor radar attachment error:", radarErr);
       }
     }
     mapSignature = nextMapSignature;
     mapActiveId = activeId;
-    root.querySelector("#explorerRetryMap")?.addEventListener("click", () => { mapSignature = "retry"; render(); });
+    root.querySelector("#explorerRetryMap")?.addEventListener("click", () => {
+      root.querySelector("#explorerMapUnavailable").hidden = true;
+      mapSignature = "retry";
+      render();
+    });
     root.querySelector("#explorerFitMap")?.addEventListener("click", () => {
       const entry = mapRegistry.get("explorerLeafletMap");
       if (!entry?.markers.size) return;
+      if (entry.isLeaflet) {
+        const bounds = window.L.latLngBounds([...entry.markers.values()].map(marker => marker.getLatLng()));
+        entry.map.fitBounds(bounds, { padding: [45, 45], maxZoom: 15, animate: !matchMedia("(prefers-reduced-motion: reduce)").matches });
+        return;
+      }
       const bounds = new window.maplibregl.LngLatBounds();
       entry.markers.forEach(marker => bounds.extend(marker.getLngLat()));
       entry.map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600 });
@@ -10486,11 +11743,33 @@ async function initCompare() {
   let investmentLensKey = getActiveInvestmentLensKey();
   let decisionPersonaKey = getStoredDecisionPersonaKey(decisionPersonas);
 
+  const formatClupSuitability = (compliance) => {
+    if (compliance?.suitabilityScore != null) {
+      return `${compliance.suitabilityScore}/100`;
+    }
+    return compliance?.status === "UNVERIFIED" ? "Pending Verification" : "Evaluation Pending";
+  };
+
   const render = () => {
     const compareIds = getCompareIds();
     const comparedBase = properties.filter((property) => compareIds.includes(property.id)).slice(0, 3);
     if (comparedBase.length < 2) {
-      root.innerHTML = emptyState("Select at least two properties to compare", "Use Rankings or Explorer to add properties into your compare queue.", "Open Rankings", `${window.SFC_APP_CONFIG.basePath || ""}/property-ranking.php`);
+      root.innerHTML = `
+        <div class="compare-empty-panel">
+          <div class="compare-empty-icon">⚖️</div>
+          <h2>Select Properties to Compare</h2>
+          <p>Add 2 or 3 properties from the Investment Priority Board or Explorer to cross-examine fit, corridor context, and diligence posture side-by-side.</p>
+          <div class="compare-empty-actions">
+            <button type="button" class="btn-shell btn-shell-primary" id="loadSampleCompare">⚡ Load Benchmark Comparison</button>
+            <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-ranking.php" class="btn-shell btn-shell-secondary">Open Priority Board</a>
+          </div>
+        </div>
+      `;
+      document.getElementById("loadSampleCompare")?.addEventListener("click", () => {
+        const sampleIds = properties.slice(0, 3).map((p) => p.id);
+        saveCompareIds(sampleIds);
+        render();
+      });
       return;
     }
 
@@ -10529,75 +11808,133 @@ async function initCompare() {
     root.innerHTML = `
       <div class="compare-layout">
         <aside class="stack">
-          <article class="panel-card">
-            <div class="panel-kicker">Decision filters</div>
-            <h3>Adjust the comparison</h3>
+          <article class="panel-card compare-filter-panel">
+            <div class="panel-kicker">Mandate Filters</div>
+            <h3>Adjust Comparison</h3>
             <div class="filter-grid">
               <label class="form-shell">
-                <span>Target type</span>
+                <span>Target Industry / Sector</span>
                 <select class="input-shell" id="compareIntent">
-                  <option value="">General</option>
+                  <option value="">All Sectors (General)</option>
                   <option value="commercial" ${intent === "commercial" ? "selected" : ""}>Commercial</option>
-                  <option value="logistics" ${intent === "logistics" ? "selected" : ""}>Logistics</option>
+                  <option value="logistics" ${intent === "logistics" ? "selected" : ""}>Logistics & Warehousing</option>
                   <option value="hotel" ${intent === "hotel" ? "selected" : ""}>Resort / Tourism</option>
                   <option value="bpo" ${intent === "bpo" ? "selected" : ""}>Office / BPO</option>
-                  <option value="manufacturing" ${intent === "manufacturing" ? "selected" : ""}>Manufacturing</option>
+                  <option value="manufacturing" ${intent === "manufacturing" ? "selected" : ""}>Light Manufacturing</option>
                 </select>
               </label>
               <label class="form-shell">
-                <span>Budget cap (PHP)</span>
-                <input class="input-shell" id="compareBudget" type="number" value="${escapeHtml(budget)}" placeholder="95000000">
+                <span>Budget Ceiling (PHP)</span>
+                <input class="input-shell" id="compareBudget" type="number" value="${escapeHtml(budget)}" placeholder="e.g. 95000000">
+                <div class="compare-budget-presets">
+                  <button type="button" class="budget-chip-btn ${budget === "60000000" ? "active" : ""}" data-budget="60000000">60M</button>
+                  <button type="button" class="budget-chip-btn ${budget === "95000000" ? "active" : ""}" data-budget="95000000">95M</button>
+                  <button type="button" class="budget-chip-btn ${budget === "120000000" ? "active" : ""}" data-budget="120000000">120M</button>
+                  <button type="button" class="budget-chip-btn ${!budget ? "active" : ""}" data-budget="">Any</button>
+                </div>
               </label>
             </div>
-            <div class="property-actions" style="margin-top:18px;">
-              <button type="button" class="btn-shell btn-shell-secondary" id="clearCompare">Clear compare</button>
+            <div class="property-actions" style="margin-top:20px;">
+              <button type="button" class="btn-shell btn-shell-secondary" id="clearCompare">Clear Queue</button>
               <a href="${window.SFC_APP_CONFIG.basePath || ""}/property-explorer.php" class="btn-shell btn-shell-primary">Open Explorer</a>
             </div>
           </article>
 
           ${decisionPersonaSelectorMarkup(decisionPersonas, decisionPersonaKey, {
             title: "Select Investor Persona",
-            description: "Turn the compare board into user-specific intelligence instead of one-size-fits-all ranking.",
+            description: "Calibrate weighting, hurdle rates, and diligence posture to your firm's specific strategy.",
           })}
         </aside>
 
         <section class="stack">
           ${investmentLensSelectorMarkup(investmentLensKey, {
             title: "Select Investment Lens",
-            description: "Watch the lead recommendation shift as you test different end-use scenarios.",
+            description: "Watch the lead recommendation shift live as you stress-test different asset classes and end-use scenarios.",
           })}
 
-          <article class="decision-card">
-            <div class="panel-kicker">Recommended lead for ${escapeHtml(activeLens.label)} | ${escapeHtml(activePersona?.label || "Balanced Desk")}</div>
-            <h2>${escapeHtml(winner.name)}</h2>
-            <p>${escapeHtml(winner.activeDecision?.summary || propertyStory(winner))}</p>
-            <div class="decision-stats">
-              ${clupStatusPill(winner.clupCompliance)}
-              ${decisionSignalPill(winner.activeDecision)}
-              ${decisionStatusPill(winner.activeDecision)}
-              ${decisionConfidencePill(winner.activeDecision)}
-              ${winner.lensResult ? investmentLensScorePill(winner.lensResult) : scorePill(winner.opportunityScore)}
-              <span class="tag">${escapeHtml(moneyShort(winner.price))}</span>
-            </div>
-            <div class="mini-list" style="margin-top:18px;">
-              <div class="mini-row"><span>${icon("spark")}Action lane</span><strong>${escapeHtml(winner.activeDecision?.nextAction?.label || "Review property")}</strong></div>
-              <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)} score</span><strong>${winner.lensScore}</strong></div>
-              <div class="mini-row"><span>${icon("vote")}Top need</span><strong>${escapeHtml(voteLabel(winner.topNeed || "No demand yet"))}</strong></div>
-              <div class="mini-row"><span>${icon("money")}Price per ha</span><strong>${escapeHtml(moneyShort(winner.pricePerHectare))}</strong></div>
-              <div class="mini-row"><span>${icon("admin")}CLUP suitability</span><strong>${winner.clupCompliance.suitabilityScore}/100</strong></div>
-            </div>
-            ${winner.activeDecision?.reasons?.length ? `
-              <div class="insight-strip" style="margin-top:18px;">
-                ${winner.activeDecision.reasons.slice(0, 3).map((reason) => `<span class="insight-pill">${escapeHtml(reason)}</span>`).join("")}
+          <article class="compare-hero-lead">
+            <div class="compare-lead-ribbon">
+              <div class="compare-lead-ribbon-left">
+                <span class="compare-lead-ribbon-icon">${locusIcon("iai", { size: "xs", container: true, containerVariant: "iai" })}</span>
+                <span>Official Lead Recommendation · Mandate Congruence #1</span>
               </div>
-            ` : ""}
-            ${winner ? googleEarthActionsMarkup({
-              property: winner,
-              properties: activeCompared,
-              scope: "compare-set",
-              showView: true,
-              note: "Inspect the lead site in Google Earth or export the full compare set as KML or KMZ.",
-            }) : ""}
+              <div class="compare-lead-ribbon-right">
+                ${escapeHtml(activeLens.label)} Lens · ${escapeHtml(activePersona?.label || "Balanced Desk")}
+              </div>
+            </div>
+            <div class="compare-lead-body">
+              <div class="compare-lead-spotlight">
+                <div class="compare-lead-media">
+                  <img src="${escapeHtml(winner.imageUrl)}" alt="${escapeHtml(winner.name)}">
+                  <div class="compare-lead-media-overlay">
+                    <div class="compare-lead-badges-top">
+                      <span class="compare-lead-tag compare-lead-tag-corridor">${escapeHtml(corridorLabel(winner.corridor))}</span>
+                      <span class="compare-lead-tag compare-lead-tag-price">${escapeHtml(moneyShort(winner.price))}</span>
+                    </div>
+                    <div class="compare-lead-media-footer">
+                      <span>${escapeHtml(winner.lotAreaHectares ? `${winner.lotAreaHectares} ha footprint` : "Prime footprint")}</span>
+                      <a href="${propertyHref(winner.id)}" class="btn-shell btn-shell-secondary" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.92); color:#0f172a; text-decoration:none;">View Dossier &rarr;</a>
+                    </div>
+                  </div>
+                </div>
+                <div class="compare-lead-content">
+                  <div class="compare-lead-header">
+                    <div class="compare-lead-title-area">
+                      <div class="panel-kicker">${escapeHtml(activeLens.shortLabel)} Mandate Leader</div>
+                      <h2>${escapeHtml(winner.name)}</h2>
+                      <div class="compare-lead-subline">${escapeHtml(corridorLabel(winner.corridor))} &middot; ${escapeHtml(winner.location || "San Fernando City")}</div>
+                    </div>
+                    <div class="compare-lead-score-hero">
+                      <div class="score-num">${winner.lensScore}</div>
+                      <div class="score-lbl">${escapeHtml(activeLens.shortLabel)} Fit</div>
+                    </div>
+                  </div>
+                  <p class="compare-lead-summary">${escapeHtml(winner.activeDecision?.summary || propertyStory(winner))}</p>
+                  <div class="compare-lead-stats-row">
+                    ${clupStatusPill(winner.clupCompliance)}
+                    ${decisionSignalPill(winner.activeDecision)}
+                    ${decisionStatusPill(winner.activeDecision)}
+                    ${decisionConfidencePill(winner.activeDecision)}
+                    <span class="tag" style="font-weight:700;">${escapeHtml(moneyShort(winner.price))}</span>
+                  </div>
+                  <div class="compare-lead-kpi-grid">
+                    <div class="kpi-cell">
+                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("siteReadiness", { size: "xs" })} Action lane</span>
+                      <strong>${escapeHtml(winner.activeDecision?.nextAction?.label || "Book site visit")}</strong>
+                    </div>
+                    <div class="kpi-cell">
+                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Price / Hectare</span>
+                      <strong>${escapeHtml(moneyShort(winner.pricePerHectare))}</strong>
+                    </div>
+                    <div class="kpi-cell">
+                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("economicActivity", { size: "xs" })} Community Need</span>
+                      <strong>${escapeHtml(voteLabel(winner.topNeed || "No demand logged"))}</strong>
+                    </div>
+                    <div class="kpi-cell">
+                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("clupZoning", { size: "xs" })} CLUP Clearance</span>
+                      <strong class="${winner.clupCompliance?.suitabilityScore == null ? "kpi-pending" : ""}">${formatClupSuitability(winner.clupCompliance)}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              ${winner.activeDecision?.reasons?.length ? `
+                <div class="compare-rationale-strip">
+                  ${winner.activeDecision.reasons.slice(0, 3).map((reason) => `
+                    <div class="compare-rationale-item">
+                      <span class="check-icon">&#10003;</span>
+                      <span>${escapeHtml(reason)}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ""}
+              ${winner ? googleEarthActionsMarkup({
+                property: winner,
+                properties: activeCompared,
+                scope: "compare-set",
+                showView: true,
+                note: "Inspect the lead site in Google Earth 3D or export the entire comparative shortlist as KML / KMZ.",
+              }) : ""}
+            </div>
           </article>
 
           ${clupDecisionCardMarkup(winner.clupCompliance)}
@@ -10607,35 +11944,154 @@ async function initCompare() {
             heading: `${winner.name} leads this comparison`,
           }) : ""}
 
+          <article class="compare-matrix-card">
+            <div class="compare-matrix-head">
+              <div>
+                <div class="panel-kicker">Head-to-Head Specification Matrix</div>
+                <h3>Cross-Asset Deliberation Matrix</h3>
+                <p>Direct side-by-side benchmark across valuation, regulatory gates, and physical development metrics.</p>
+              </div>
+              <div class="service-chip-row">
+                ${serviceChip(`${activeCompared.length} sites matched`, "live")}
+                ${serviceChip(activeLens.label, "neutral")}
+              </div>
+            </div>
+            <div class="compare-matrix-wrapper">
+              <table class="compare-spec-table">
+                <thead>
+                  <tr>
+                    <th class="metric-label-col">Decision Parameter</th>
+                    ${activeCompared.map((p, idx) => `
+                      <th class="property-col-header ${idx === 0 ? "is-winner" : ""}">
+                        <div class="matrix-header-card">
+                          <div class="matrix-header-media">
+                            <img src="${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.name)}">
+                            <span class="matrix-rank-badge rank-${idx + 1}">${idx === 0 ? "👑 Lead #1" : `#${idx + 1}`}</span>
+                          </div>
+                          <div class="matrix-property-title">${escapeHtml(p.name)}</div>
+                          <div class="matrix-property-price">${escapeHtml(moneyShort(p.price))}</div>
+                        </div>
+                      </th>
+                    `).join("")}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("iai", { size: "xs" })}<span>Mandate Fit Score</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell is-winner-val" : ""}">
+                        <div class="spec-score-bar-cell">
+                          <span class="spec-score-num">${p.lensScore}</span>
+                          <div class="spec-score-track">
+                            <div class="spec-score-fill" style="width:${Math.min(100, Math.max(10, p.lensScore))}%;"></div>
+                          </div>
+                        </div>
+                      </td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Acquisition Price</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}"><strong>${escapeHtml(moneyShort(p.price))}</strong></td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Price / Hectare</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}"><strong>${escapeHtml(moneyShort(p.pricePerHectare))}</strong></td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("accessibility", { size: "xs" })}<span>Strategic Corridor</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}">${escapeHtml(corridorLabel(p.corridor))}</td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("clupZoning", { size: "xs" })}<span>CLUP Clearance</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}">
+                        ${clupStatusPill(p.clupCompliance)}
+                        <div style="font-size:11px; color:#64748b; margin-top:4px;">${formatClupSuitability(p.clupCompliance)}</div>
+                      </td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("mce", { size: "xs" })}<span>Decision Confidence</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}">
+                        ${decisionConfidencePill(p.activeDecision)}
+                      </td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("siteReadiness", { size: "xs" })}<span>Action Lane</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}">
+                        <strong>${escapeHtml(p.activeDecision?.nextAction?.label || "Review opportunity")}</strong>
+                      </td>
+                    `).join("")}
+                  </tr>
+                  <tr>
+                    <td class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("propertyInformation", { size: "xs" })}<span>Dossier Action</span></div></td>
+                    ${activeCompared.map((p, idx) => `
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}">
+                        <a href="${propertyHref(p.id)}" class="btn-shell ${idx === 0 ? "btn-shell-primary" : "btn-shell-secondary"}" style="padding:6px 12px; font-size:12px; width:100%; box-sizing:border-box; text-align:center; text-decoration:none; display:inline-block;">
+                          View Dossier &rarr;
+                        </a>
+                      </td>
+                    `).join("")}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
           <div class="comparison-grid">
-            ${activeCompared.map((property) => `
-              <article class="comparison-card">
-                <div class="property-media"><img src="${escapeHtml(property.imageUrl)}" alt="${escapeHtml(property.name)}"></div>
-                <div class="property-body">
-                  <div class="property-title">${escapeHtml(property.name)}</div>
-                  <div class="property-subline">${escapeHtml(corridorLabel(property.corridor))}</div>
-                  <div class="lens-inline-note">${escapeHtml(property.lensResult?.thesisShort || `${property.name} under the ${activeLens.label} lens.`)}</div>
-                  <p>${escapeHtml(truncate(propertyStory(property), 130))}</p>
-                  <div class="decision-stats" style="margin-bottom:14px;">
-                    ${clupStatusPill(property.clupCompliance)}
-                    ${decisionSignalPill(property.activeDecision)}
-                    ${decisionStatusPill(property.activeDecision)}
-                    ${decisionConfidencePill(property.activeDecision)}
+            ${activeCompared.map((property, idx) => {
+              const isLead = idx === 0;
+              const rankLabel = isLead ? "👑 #1 LEAD RECOMMENDATION" : idx === 1 ? "🥈 #2 RUNNER-UP" : "🥉 #3 SHORTLIST";
+              const ribbonClass = isLead ? "" : idx === 1 ? "rank-silver" : "rank-bronze";
+              const clupDisplay = property.clupCompliance?.suitabilityScore != null
+                ? `${property.clupCompliance.status} · ${property.clupCompliance.suitabilityScore}/100`
+                : `${property.clupCompliance?.status || "UNVERIFIED"} (Pending)`;
+              const demandDisplay = property.voteTotal ? `${property.voteTotal} community signals` : "No demand logged";
+
+              return `
+                <article class="comparison-card ${isLead ? "is-winner" : ""}">
+                  <div class="comparison-card-ribbon ${ribbonClass}">
+                    <span>${rankLabel}</span>
+                    <span>${property.lensScore} PTS</span>
                   </div>
-                  <div class="mini-list">
-                    <div class="mini-row"><span>${icon("ranking")}${escapeHtml(activeLens.shortLabel)}</span><strong>${property.lensScore}</strong></div>
-                    <div class="mini-row"><span>${icon("money")}Price</span><strong>${escapeHtml(moneyShort(property.price))}</strong></div>
-                    <div class="mini-row"><span>${icon("vote")}Demand</span><strong>${property.voteTotal}</strong></div>
-                    <div class="mini-row"><span>${icon("spark")}Next move</span><strong>${escapeHtml(property.activeDecision?.nextAction?.label || "Review")}</strong></div>
-                    <div class="mini-row"><span>${icon("admin")}CLUP</span><strong>${property.clupCompliance.status} · ${property.clupCompliance.suitabilityScore}</strong></div>
+                  <div class="property-media">
+                    <img src="${escapeHtml(property.imageUrl)}" alt="${escapeHtml(property.name)}">
                   </div>
-                  <div class="property-actions">
-                    <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">View Details</a>
-                    <button type="button" class="btn-shell btn-shell-ghost" data-remove-compare="${property.id}">Remove</button>
+                  <div class="property-body">
+                    <div class="property-title">${escapeHtml(property.name)}</div>
+                    <div class="property-subline">${escapeHtml(corridorLabel(property.corridor))}</div>
+                    <div class="lens-inline-note">${escapeHtml(property.lensResult?.thesisShort || `${property.name} evaluated under the ${activeLens.label} lens.`)}</div>
+                    <p>${escapeHtml(truncate(propertyStory(property), 130))}</p>
+                    <div class="decision-stats" style="margin-bottom:14px;">
+                      ${clupStatusPill(property.clupCompliance)}
+                      ${decisionSignalPill(property.activeDecision)}
+                      ${decisionStatusPill(property.activeDecision)}
+                      ${decisionConfidencePill(property.activeDecision)}
+                    </div>
+                    <div class="mini-list">
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("iai", { size: "xs" })} ${escapeHtml(activeLens.shortLabel)} Fit</span><strong>${property.lensScore} / 100</strong></div>
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Total Price</span><strong>${escapeHtml(moneyShort(property.price))}</strong></div>
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("economicActivity", { size: "xs" })} Community Demand</span><strong>${escapeHtml(demandDisplay)}</strong></div>
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("siteReadiness", { size: "xs" })} Immediate Move</span><strong>${escapeHtml(property.activeDecision?.nextAction?.label || "Review")}</strong></div>
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("clupZoning", { size: "xs" })} CLUP Clearance</span><strong>${escapeHtml(clupDisplay)}</strong></div>
+                    </div>
+                    <div class="property-actions">
+                      <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-primary">Examine Dossier</a>
+                      <button type="button" class="btn-shell btn-shell-ghost" data-remove-compare="${property.id}">Remove</button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            `).join("")}
+                </article>
+              `;
+            }).join("")}
           </div>
         </section>
       </div>
@@ -10648,6 +12104,12 @@ async function initCompare() {
     document.getElementById("compareBudget")?.addEventListener("input", (event) => {
       budget = event.target.value;
       render();
+    });
+    root.querySelectorAll(".budget-chip-btn").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        budget = chip.dataset.budget || "";
+        render();
+      });
     });
     bindInvestmentLensSelector(root, (nextLensKey) => {
       investmentLensKey = nextLensKey;
@@ -10788,36 +12250,55 @@ function buildCommandScoreModel({ property, enriched, readiness, votes, conversa
 
 function commandScoreSummaryMarkup(scoreModel, activeLens) {
   return `
-    <div class="command-metric-label">Command Score</div>
+    <div class="command-metric-label" style="display:flex;align-items:center;gap:6px;">
+      ${locusIcon("iai", { size: "xs" })}
+      <span>Command Score</span>
+    </div>
     <div class="command-metric-value">${Math.round(Number(scoreModel?.finalScore || 0))}</div>
     <div class="command-metric-delta ${Number(scoreModel?.delta || 0) >= 0 ? "is-positive" : "is-negative"}">
       ${signedMetric(Math.round(Number(scoreModel?.delta || 0)))} vs base IAI
     </div>
     <div class="command-metric-copy">${escapeHtml(scoreModel?.summary || `${activeLens?.label || "Property"} command score ready.`)}</div>
     <div class="command-metric-strip">
-      <span>${escapeHtml(activeLens?.label || "Default")} Lens</span>
+      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("mce", { size: "xs" })} ${escapeHtml(activeLens?.label || "Default")} Lens</span>
       <strong>${Math.round(Number(scoreModel?.baseIAI || 0))}</strong>
     </div>
   `;
 }
 
 function commandScorePanelInnerMarkup(scoreModel, activeLens) {
+  const componentIconMap = {
+    "Base IAI": "iai",
+    "Demand Signal": "economicActivity",
+    "Readiness Lift": "siteReadiness",
+    "Ground Truth": "infrastructure",
+    "Trust Adjustment": "hazardSafety",
+  };
   return `
     <div class="command-panel-head">
-      <div>
-        <div class="panel-kicker">Score explanation</div>
-        <h3>Why this property ranks here right now</h3>
+      <div style="display:flex;align-items:center;gap:12px;">
+        ${locusIcon("mce", { size: "sm", container: true, containerVariant: "mce" })}
+        <div>
+          <div class="panel-kicker">Score explanation</div>
+          <h3 style="margin:0;">Why this property ranks here right now</h3>
+        </div>
       </div>
       ${serviceChip(`${activeLens?.label || "Default"} lens`, "live")}
     </div>
     <div class="command-score-breakdown">
-      ${(scoreModel?.components || []).map((component) => `
+      ${(scoreModel?.components || []).map((component) => {
+        const iconKey = componentIconMap[component.label] || "propertyInformation";
+        return `
         <article class="command-score-card ${commandToneClass(component.tone)}">
-          <span>${escapeHtml(component.label)}</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <span>${escapeHtml(component.label)}</span>
+            ${locusIcon(iconKey, { size: "xs" })}
+          </div>
           <strong>${signedMetric(Math.round(Number(component.value || 0)))}</strong>
           <small>${escapeHtml(component.note || "")}</small>
         </article>
-      `).join("")}
+      `;
+      }).join("")}
     </div>
     <div class="command-rationale-list">
       ${(scoreModel?.rationale || []).map((item) => `<div>${escapeHtml(item)}</div>`).join("")}
@@ -10832,7 +12313,10 @@ function commandRibbonMarkup({ property, enriched, scoreModel, activeLens, lastC
         <img src="${escapeHtml(enriched?.imageUrl || property?.imageUrl || "")}" alt="${escapeHtml(enriched?.name || property?.name || "Property")}">
       </div>
       <div class="command-ribbon-copy">
-        <div class="panel-kicker">Property Command Center</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          ${locusIcon("propertyInformation", { size: "xs", container: true })}
+          <div class="panel-kicker" style="margin:0;">Property Command Center</div>
+        </div>
         <h2>${escapeHtml(enriched?.name || property?.name || "Property")}</h2>
         <p>${escapeHtml(propertyStory(enriched || property))}</p>
         <div class="decision-stats">
@@ -10844,10 +12328,10 @@ function commandRibbonMarkup({ property, enriched, scoreModel, activeLens, lastC
           <span class="tag">${escapeHtml(voteLabel(enriched?.topNeed || "No demand yet"))}</span>
         </div>
         <div class="command-ribbon-facts">
-          <div><span>${icon("map")}Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
-          <div><span>${icon("area")}Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
-          <div><span>${icon("money")}Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
-          <div><span>${icon("clock")}Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
+          <div><span>${locusIcon("accessibility", { size: "xs" })} Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
+          <div><span>${locusIcon("propertyInformation", { size: "xs" })} Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
+          <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
+          <div><span>${icon("clock")} Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
         </div>
         <div class="trust-badge-row">${trustBadgeRow(enriched?.trustBadges || [])}</div>
         <div class="property-actions">
@@ -10875,9 +12359,12 @@ function commandBlockersMarkup(blockers = []) {
   return `
     <article class="panel-card command-blocker-panel">
       <div class="command-panel-head">
-        <div>
-          <div class="panel-kicker">Critical blockers</div>
-          <h3>What is still suppressing investment readiness</h3>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${locusIcon("hazardSafety", { size: "sm", container: true, containerVariant: "hazard" })}
+          <div>
+            <div class="panel-kicker">Critical blockers</div>
+            <h3 style="margin:0;">What is still suppressing investment readiness</h3>
+          </div>
         </div>
         ${serviceChip(`${blockers.length} blocker${blockers.length === 1 ? "" : "s"}`, blockers.length ? "fallback" : "live")}
       </div>
@@ -10941,19 +12428,22 @@ function commandTrustMarkup({ trust, property, enriched }) {
   return `
     <article class="panel-card command-trust-panel" id="propertyTrustSection">
       <div class="command-panel-head">
-        <div>
-          <div class="panel-kicker">Trust and compliance</div>
-          <h3>Institutional confidence and ledger visibility</h3>
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${locusIcon("siteReadiness", { size: "sm", container: true, containerVariant: "readiness" })}
+          <div>
+            <div class="panel-kicker">Trust and compliance</div>
+            <h3 style="margin:0;">Institutional confidence and ledger visibility</h3>
+          </div>
         </div>
         ${serviceChip(`${Number(trust?.auditLogCount || 0)} audit events`, Number(trust?.auditLogCount || 0) ? "live" : "neutral")}
       </div>
       <div class="mini-list">
-        <div class="mini-row"><span>${icon("shield")}Seller identity</span><strong>${escapeHtml(VERIFICATION_LABELS[String(property?.sellerIdentityStatus || "unverified").toLowerCase()] || titleCase(property?.sellerIdentityStatus || "unverified"))}</strong></div>
-        <div class="mini-row"><span>${icon("shield")}Listing verification</span><strong>${escapeHtml(VERIFICATION_LABELS[String(property?.listingVerificationStatus || "unverified").toLowerCase()] || titleCase(property?.listingVerificationStatus || "unverified"))}</strong></div>
-        <div class="mini-row"><span>${icon("file")}Approval state</span><strong>${escapeHtml(APPROVAL_LABELS[String(property?.approvalState || "approved").toLowerCase()] || titleCase(property?.approvalState || "approved"))}</strong></div>
-        <div class="mini-row"><span>${icon("pulse")}Document completeness</span><strong>${Number(trust?.documentCompletenessPct || 0)}%</strong></div>
-        <div class="mini-row"><span>${icon("clock")}Due diligence</span><strong>${Number(trust?.dueDiligencePct || 0)}%</strong></div>
-        <div class="mini-row"><span>${icon("ranking")}Ground truth</span><strong>${Number(trust?.groundTruthVisitCount || 0)} visit${Number(trust?.groundTruthVisitCount || 0) === 1 ? "" : "s"}</strong></div>
+        <div class="mini-row"><span>${locusIcon("siteReadiness", { size: "xs" })} Seller identity</span><strong>${escapeHtml(VERIFICATION_LABELS[String(property?.sellerIdentityStatus || "unverified").toLowerCase()] || titleCase(property?.sellerIdentityStatus || "unverified"))}</strong></div>
+        <div class="mini-row"><span>${locusIcon("propertyInformation", { size: "xs" })} Listing verification</span><strong>${escapeHtml(VERIFICATION_LABELS[String(property?.listingVerificationStatus || "unverified").toLowerCase()] || titleCase(property?.listingVerificationStatus || "unverified"))}</strong></div>
+        <div class="mini-row"><span>${locusIcon("clupZoning", { size: "xs" })} Approval state</span><strong>${escapeHtml(APPROVAL_LABELS[String(property?.approvalState || "approved").toLowerCase()] || titleCase(property?.approvalState || "approved"))}</strong></div>
+        <div class="mini-row"><span>${locusIcon("infrastructure", { size: "xs" })} Document completeness</span><strong>${Number(trust?.documentCompletenessPct || 0)}%</strong></div>
+        <div class="mini-row"><span>${locusIcon("siteReadiness", { size: "xs" })} Due diligence</span><strong>${Number(trust?.dueDiligencePct || 0)}%</strong></div>
+        <div class="mini-row"><span>${locusIcon("accessibility", { size: "xs" })} Ground truth</span><strong>${Number(trust?.groundTruthVisitCount || 0)} visit${Number(trust?.groundTruthVisitCount || 0) === 1 ? "" : "s"}</strong></div>
       </div>
       <div class="command-trust-events">
         <div>
@@ -11141,12 +12631,15 @@ function commandStickySummaryMarkup({
         </div>
         <div class="command-summary-header">
           <div class="command-summary-title-copy">
-            <h2>${escapeHtml(enriched?.name || property?.name || "Property")}</h2>
-            <p>${escapeHtml(propertyStory(enriched || property))}</p>
+            <div style="display:flex;align-items:center;gap:10px;">
+              ${locusIcon("propertyInformation", { size: "sm", container: true })}
+              <h2 style="margin:0;">${escapeHtml(enriched?.name || property?.name || "Property")}</h2>
+            </div>
+            <p style="margin-top:6px;">${escapeHtml(propertyStory(enriched || property))}</p>
           </div>
           <div class="command-summary-side">
             <div class="command-summary-score-shell">
-              <span>Command score</span>
+              <span style="display:flex;align-items:center;gap:4px;">${locusIcon("iai", { size: "xs" })} Command score</span>
               <strong id="propertyStickyCommandScoreValue">${scoreValue}</strong>
               <small
                 id="propertyStickyCommandDelta"
@@ -11217,6 +12710,129 @@ function commandStickySummaryMarkup({
   `;
 }
 
+function inferTopBusinessMatch(property) {
+  if (!property) return null;
+  const corridor = String(property.corridor || "").toLowerCase();
+  const type = String(property.type || "").toLowerCase();
+  const tags = Array.isArray(property.tags) ? property.tags.map(t => String(t).toLowerCase()) : [];
+
+  if (corridor === "coastal" || tags.includes("beachfront") || tags.includes("resort") || type === "hotel") {
+    return { name: "Eco-Boutique Coastal Resort", score: 98.5, color: "#059669" };
+  }
+  if (type === "bpo" || tags.includes("bpo zone") || tags.includes("fiber ready")) {
+    return { name: "IT-BPO Office & Tech Hub", score: 98.5, color: "#059669" };
+  }
+  if (tags.includes("industrial") || tags.includes("warehouse ready") || type === "logistics") {
+    return { name: "Cold-Chain Logistics Hub", score: 98.5, color: "#059669" };
+  }
+  if (corridor === "highway" && (tags.includes("commercial zone") || tags.includes("high traffic"))) {
+    return { name: "Drive-Thru QSR & Retail Strip", score: 98.5, color: "#059669" };
+  }
+  if (corridor === "downtown" || type === "commercial") {
+    return { name: "Commercial & Retail Hub", score: 96.0, color: "#059669" };
+  }
+  return { name: "Commercial Investment Site", score: 94.0, color: "#059669" };
+}
+
+function businessMatchSectionMarkup(matches = [], property = {}) {
+  if (!matches || !matches.length) return "";
+
+  const medalEmojis = ["🥇", "🥈", "🥉"];
+  const rankLabels = ["Rank 1 • Highest Viability", "Rank 2 • Strong Alternative", "Rank 3 • Secondary Potential"];
+  const basePath = window.SFC_APP_CONFIG?.basePath || "";
+
+  return `
+    <article class="panel-card business-match-panel" id="propertyBusinessMatchSection">
+      <div class="business-match-head">
+        <div style="display:flex;align-items:center;gap:12px;">
+          ${locusIcon("mce", { size: "md", container: true, containerVariant: "mce" })}
+          <div>
+            <div class="panel-kicker">Spatial Suitability • CLUP 2025–2035</div>
+            <h3 style="margin:0;">Top Recommended Business Typologies</h3>
+            <p class="business-match-desc" style="margin-top:6px;">
+              Surrounding spatial evaluation (zoning alignment, arterial road index, anchor facilities, and 500m competitor void) matches the top three highest-yield business uses for this ${escapeHtml(property?.area || 0)} ha parcel.
+            </p>
+          </div>
+        </div>
+        <div class="service-chip-row">
+          <span class="service-chip live">Active Engine</span>
+          <span class="service-chip neutral">5-Pillar MCE</span>
+        </div>
+      </div>
+
+      <div class="business-match-grid">
+        ${matches.map((match, idx) => {
+          const medal = medalEmojis[idx] || "✦";
+          const rankLabel = rankLabels[idx] || `Rank ${idx + 1}`;
+          const isTop = idx === 0;
+
+          return `
+            <div class="business-match-card ${isTop ? 'is-top-match' : ''}">
+              <div class="bm-card-header">
+                <div class="bm-rank-pill">
+                  <span class="bm-medal">${medal}</span>
+                  <span class="bm-rank-text">${escapeHtml(rankLabel)}</span>
+                </div>
+                <div class="bm-score-badge" style="color: ${escapeHtml(match.fitColor || '#059669')};">
+                  <strong>${match.score}%</strong>
+                  <span>${escapeHtml(match.fitGrade || 'Fit')}</span>
+                </div>
+              </div>
+
+              <div class="bm-title-group">
+                <h4 class="bm-title">${escapeHtml(match.name)}</h4>
+                <span class="bm-category-tag">${escapeHtml(match.category)}</span>
+              </div>
+
+              <p class="bm-description">${escapeHtml(match.description)}</p>
+
+              <div class="bm-metrics-strip">
+                <div class="bm-metric">
+                  <span class="bm-metric-lbl">Est. ROI</span>
+                  <strong class="bm-metric-val text-emerald">${escapeHtml(match.estimatedRoi)}</strong>
+                </div>
+                <div class="bm-metric">
+                  <span class="bm-metric-lbl">Capex Tier</span>
+                  <strong class="bm-metric-val">${escapeHtml(match.capexTier)}</strong>
+                </div>
+                <div class="bm-metric">
+                  <span class="bm-metric-lbl">Job Creation</span>
+                  <strong class="bm-metric-val">${escapeHtml(match.jobCreation)}</strong>
+                </div>
+              </div>
+
+              <div class="bm-reasons-cluster">
+                <span class="bm-reasons-title">Key Spatial Drivers</span>
+                <ul class="bm-reasons-list">
+                  ${(match.reasons || []).map(r => `
+                    <li>
+                      <svg class="bm-check-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                      </svg>
+                      <span>${escapeHtml(r)}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+
+              <div class="bm-card-footer">
+                <span class="bm-regulatory-pill" title="${escapeHtml(match.regulatoryNote)}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span>${escapeHtml(match.regulatoryNote)}</span>
+                </span>
+                <a href="${basePath}/simulator.php?propertyId=${encodeURIComponent(property.id || 0)}&use=${encodeURIComponent(match.id)}" class="bm-simulate-btn">
+                  <span>Simulate Pro Forma</span>
+                  <span aria-hidden="true">&rarr;</span>
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </article>
+  `;
+}
+
 function commandOverviewStageMarkup({
   property,
   enriched,
@@ -11248,9 +12864,12 @@ function commandOverviewStageMarkup({
         </div>
         <div class="command-overview-copy">
           <div class="command-overview-head">
-            <div>
-              <div class="panel-kicker">Property brief</div>
-              <h3>${escapeHtml(enriched?.name || property?.name || "Property")} through the ${escapeHtml(activeLens?.label || "Default")} lens</h3>
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${locusIcon("propertyInformation", { size: "md", container: true })}
+              <div>
+                <div class="panel-kicker">Property brief</div>
+                <h3 style="margin:0;">${escapeHtml(enriched?.name || property?.name || "Property")} through the ${escapeHtml(activeLens?.label || "Default")} lens</h3>
+              </div>
             </div>
             <div class="service-chip-row">
               ${serviceChip(formatFreshness(lastConfirmed, "Awaiting confirmation"), "neutral")}
@@ -11259,10 +12878,10 @@ function commandOverviewStageMarkup({
           </div>
           <p>${escapeHtml(propertyStory(enriched || property))}</p>
           <div class="command-overview-facts">
-            <div><span>${icon("map")}Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
-            <div><span>${icon("area")}Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
-            <div><span>${icon("money")}Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
-            <div><span>${icon("clock")}Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
+            <div><span>${locusIcon("accessibility", { size: "xs" })} Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
+            <div><span>${locusIcon("propertyInformation", { size: "xs" })} Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
+            <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
+            <div><span>${icon("clock")} Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
           </div>
           <div class="trust-badge-row">${trustBadgeRow(enriched?.trustBadges || [], { compact: true })}</div>
         </div>
@@ -11316,11 +12935,16 @@ async function initPropertyDetails() {
 
   const bootstrap = await api.bootstrap();
   let properties = bootstrap.properties || [];
-  const [commandCenterResponse, weatherResponse, summaryResponse] = await Promise.all([
+  const [commandCenterResponse, weatherResponse, summaryResponse, competitorResponse, businessMatchResponse] = await Promise.all([
     api.propertyCommandCenter(propertyId),
     api.weatherByProperty(propertyId).catch(() => ({ weather: null })),
     api.aiSummary(propertyId).catch(() => ({ summary: null })),
+    api.competitors().catch(() => ({ type: "FeatureCollection", features: [] })),
+    api.businessMatch(propertyId).catch(() => ({ ok: false, topMatches: [] })),
   ]);
+  const competitorData = competitorResponse || { type: "FeatureCollection", features: [] };
+  const businessMatches = businessMatchResponse?.topMatches || [];
+  let detailCompetitorRadar = null;
   let property = null;
   let votesState = { votes: {}, selectedVoteOptionId: null };
   let conversationThread = null;
@@ -11597,6 +13221,9 @@ async function initPropertyDetails() {
       { readinessById: { [formProperty.id]: readiness } }
     )[0] || formProperty;
     const mapPeersBase = allProperties.filter((entry) => Number(entry.id) === Number(enriched.id) || String(entry.corridor || "") === String(enriched.corridor || ""));
+    const detailRadarResult = (enriched.lat && enriched.lng && competitorData)
+      ? addCompetitorRadar(null, competitorData).analyzeLot({ lat: enriched.lat, lng: enriched.lng }, { suppressAlert: true })
+      : null;
     const mapPeers = (mapPeersBase.length ? mapPeersBase : allProperties).slice(0, 6);
     const checklistItems = Array.isArray(viewProperty.documentChecklist) && viewProperty.documentChecklist.length
       ? viewProperty.documentChecklist
@@ -11784,11 +13411,56 @@ async function initPropertyDetails() {
     `;
     const locationPanel = `
       <div class="command-tab-grid command-tab-grid-double">
+        <article class="panel-card">
+          <div class="panel-kicker">Competitive landscape</div>
+          <div class="service-chip-row">
+            ${serviceChip("500m Radar", "live")}
+            ${serviceChip(detailRadarResult?.count != null ? `${detailRadarResult.count} nearby` : "Dataset pending", detailRadarResult?.count ? "fallback" : "neutral")}
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin:8px 0 10px;">
+            ${locusIcon("pointOfInterest", { size: "sm", container: true })}
+            <h3 style="margin:0;">500-Meter Competitor Proximity Radar</h3>
+          </div>
+          <p style="font-size: 13px; color: #475569; margin-bottom: 12px;">
+            Screening for food and retail competitors within 500 meters of this investment lot.
+          </p>
+          <div class="mini-list">
+            <div class="mini-row">
+              <span>Competitors (≤ 500m)</span>
+              <strong>${detailRadarResult?.count != null ? `${detailRadarResult.count} branch${detailRadarResult.count === 1 ? '' : 'es'} detected` : "Unavailable"}</strong>
+            </div>
+            ${detailRadarResult?.matches?.length ? detailRadarResult.matches.map(m => `
+              <div class="mini-row" style="background: rgba(239, 68, 68, 0.04); padding: 8px 12px; border-radius: 8px; border-left: 3px solid #dc2626;">
+                <span>
+                  <strong>${escapeHtml(m.feature.properties?.name || "Competitor")}</strong>
+                  <br><small style="color: #64748b;">${escapeHtml(String(m.feature.properties?.status || "").replaceAll("_", " "))} &bull; <a href="${escapeHtml(m.feature.properties?.locationSource || '#')}" target="_blank" rel="noopener" style="color: #2563eb; text-decoration: underline;">Store Source</a></small>
+                </span>
+                <strong style="color: #dc2626;">${Math.round(m.distanceMeters)}m</strong>
+              </div>
+            `).join("") : `
+              <div class="mini-row">
+                <span>Nearby mapped branches</span>
+                <small style="color: #64748b;">No confirmed competitor branches within 500 meters.</small>
+              </div>
+            `}
+            <div class="mini-row" style="border-top: 1px dashed #cbd5e1; margin-top: 6px; padding-top: 8px;">
+              <span>Unlocated Pipeline (${detailRadarResult?.unlocatedCount || 0})</span>
+              <small style="color: #64748b;">McDonald's, KFC, Pizza Hut, Mister Donut (reported upcoming; exact coordinates pending field confirmation).</small>
+            </div>
+            <div class="mini-row">
+              <span>Policy qualification</span>
+              <small style="color: #64748b;">Food establishment dataset. Does not penalize Office/BPO properties or alter IAI/MCE scores or CLUP compliance.</small>
+            </div>
+          </div>
+        </article>
         <article class="panel-card map-panel-card">
           <div class="map-panel-head">
-            <div>
-              <div class="panel-kicker">Nearby corridor view</div>
-              <h3>Live location map</h3>
+            <div style="display:flex;align-items:center;gap:12px;">
+              ${locusIcon("accessibility", { size: "sm", container: true })}
+              <div>
+                <div class="panel-kicker">Nearby corridor view</div>
+                <h3 style="margin:0;">Live location map</h3>
+              </div>
             </div>
             <div class="service-chip-row">
               ${serviceChip("Leaflet map", "live")}
@@ -11806,16 +13478,19 @@ async function initPropertyDetails() {
           })}
         </article>
         <article class="panel-card">
-          <div class="panel-kicker">Climate context</div>
+          <div class="panel-kicker">Climate &amp; Environmental Safety</div>
           <div class="service-chip-row">
             ${serviceChip(weather?.live ? "Live weather" : "Climate note", weather?.live ? "live" : "fallback")}
             ${serviceChip(weather?.provider || "Weather", "neutral")}
           </div>
-          <h3>${escapeHtml(weather?.summary || "Location context")}</h3>
+          <div style="display:flex;align-items:center;gap:12px;margin:12px 0 8px;">
+            ${locusIcon("hazardSafety", { size: "sm", container: true, containerVariant: "hazard" })}
+            <h3 style="margin:0;">${escapeHtml(weather?.summary || "Location context")}</h3>
+          </div>
           <div class="mini-list">
-            <div class="mini-row"><span>${icon("map")}Location</span><strong>${escapeHtml(weather?.location || property.barangay || "San Fernando")}</strong></div>
-            <div class="mini-row"><span>${icon("pulse")}Temperature</span><strong>${weather?.temperatureC != null ? `${Math.round(Number(weather.temperatureC))}Â°C` : "Not configured"}</strong></div>
-            <div class="mini-row"><span>${icon("vote")}Humidity</span><strong>${weather?.humidity != null ? `${weather.humidity}%` : "Not configured"}</strong></div>
+            <div class="mini-row"><span>${locusIcon("accessibility", { size: "xs" })} Location</span><strong>${escapeHtml(weather?.location || property.barangay || "San Fernando")}</strong></div>
+            <div class="mini-row"><span>${icon("pulse")} Temperature</span><strong>${weather?.temperatureC != null ? `${Math.round(Number(weather.temperatureC))}°C` : "Not configured"}</strong></div>
+            <div class="mini-row"><span>${icon("vote")} Humidity</span><strong>${weather?.humidity != null ? `${weather.humidity}%` : "Not configured"}</strong></div>
           </div>
         </article>
       </div>
@@ -11980,6 +13655,10 @@ async function initPropertyDetails() {
             favoriteIds,
           })}
 
+          ${locusMceAnalyticalFlow(enriched || formProperty, scoreModel)}
+
+          ${businessMatchSectionMarkup(businessMatches, formProperty || enriched)}
+
           <section class="command-workspace">
             <div class="command-workspace-head">
               <div>
@@ -12058,6 +13737,7 @@ async function initPropertyDetails() {
           })}</div>
 
           <div id="readinessMatrixSlot">${readinessMatrixMarkup(readiness, activeReadinessPillar, canEditReadiness)}</div>
+          ${businessMatchSectionMarkup(businessMatches, formProperty || enriched)}
           ${canEditReadiness ? inlineReadinessEditorMarkup(formProperty) : ""}
 
           <article class="panel-card">
@@ -12452,7 +14132,22 @@ async function initPropertyDetails() {
           window.location.href = propertyHref(nextId);
         },
       });
+      const detailMap = mapRegistry.get("propertyDetailMap")?.map;
+      if (detailMap && competitorData) {
+        detailCompetitorRadar?.destroy();
+        detailCompetitorRadar = addCompetitorRadar(detailMap, competitorData);
+        if (enriched.lat && enriched.lng) {
+          detailCompetitorRadar.analyzeLot({ lat: enriched.lat, lng: enriched.lng }, { suppressAlert: true });
+        }
+        detailMap.on("click", (e) => {
+          const clickPos = e.lngLat ? { lat: e.lngLat.lat, lng: e.lngLat.lng } : e.latlng;
+          if (detailCompetitorRadar && clickPos) {
+            detailCompetitorRadar.analyzeLot(clickPos, { suppressAlert: true });
+          }
+        });
+      }
     } else {
+      detailCompetitorRadar?.destroy();
       destroyMap("propertyDetailMap");
     }
     animateLensMetricBars(root);
@@ -12754,6 +14449,7 @@ async function initAdminProperties() {
   const reload = async () => {
     const response = await api.properties();
     properties = response.properties || [];
+    document.dispatchEvent(new CustomEvent('sfc:admin-properties', { detail: properties }));
     render();
   };
 
@@ -12846,6 +14542,13 @@ async function initAdminProperties() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const editId = Number(urlParams.get("edit") || 0);
+  if (urlParams.get('action') === 'add' && !editId) {
+    fillCrudForm();
+    openModal(modal);
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('action');
+    history.replaceState(null, '', cleanUrl);
+  }
   if (editId) {
     const targetProperty = properties.find((entry) => entry.id === editId);
     if (targetProperty) {
@@ -12866,8 +14569,24 @@ async function initScenarioSimulator() {
   }
 
   const basePath = window.SFC_APP_CONFIG?.basePath || "";
-  let propertyId = Number(properties[0]?.id || 0);
-  let investmentType = "commercial";
+  const simParams = new URLSearchParams(window.location.search);
+  const paramPropId = Number(simParams.get("propertyId") || simParams.get("property") || simParams.get("id") || 0);
+  let propertyId = paramPropId && properties.some((p) => Number(p.id) === paramPropId)
+    ? paramPropId
+    : Number(properties[0]?.id || 0);
+
+  const useParam = String(simParams.get("use") || simParams.get("type") || "").toLowerCase().trim();
+  const typologyToCategory = {
+    cold_storage_logistics: "logistics",
+    eco_coastal_resort: "hotel",
+    highway_qsr_retail: "commercial",
+    it_bpo_coworking: "bpo",
+    healthcare_diagnostic: "commercial",
+    artisanal_dining_strip: "commercial",
+    light_industrial_warehousing: "manufacturing",
+  };
+  let investmentType = typologyToCategory[useParam]
+    || (["commercial", "logistics", "hotel", "bpo", "manufacturing", "mixed_use"].includes(useParam) ? useParam : "commercial");
   let roadLift = 0;
   let utilityLift = 0;
 

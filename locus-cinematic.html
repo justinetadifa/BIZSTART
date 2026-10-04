@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/intro.css?v=4">
+  <link rel="stylesheet" href="assets/css/locus-icons.css">
   <script defer src="assets/js/intro.js?v=4"></script>
 </head>
 <body class="locus-intro">
@@ -75,19 +76,31 @@
           <!-- Core Metrics Ticker -->
           <div class="hero-stats-rail" aria-label="City investment statistics">
             <div class="stat-pill">
-              <span class="stat-val is-amber">18+</span>
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                <span class="stat-val is-amber">18+</span>
+              </div>
               <span class="stat-lbl">Verified Sites</span>
             </div>
             <div class="stat-pill">
-              <span class="stat-val">3</span>
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                <span class="stat-val">3</span>
+              </div>
               <span class="stat-lbl">Strategic Belts</span>
             </div>
             <div class="stat-pill">
-              <span class="stat-val is-emerald">100%</span>
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <img src="assets/icons/clupzoning.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                <span class="stat-val is-emerald">100%</span>
+              </div>
               <span class="stat-lbl">CLUP Aligned</span>
             </div>
             <div class="stat-pill">
-              <span class="stat-val">₱14.8B</span>
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                <span class="stat-val">₱14.8B</span>
+              </div>
               <span class="stat-lbl">Active Pipeline</span>
             </div>
           </div>
@@ -157,15 +170,24 @@
               <!-- Specs Grid inside Deck -->
               <div class="deck-specs-grid">
                 <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl">Lot Area</span>
+                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
+                    <img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                    <span>Lot Area</span>
+                  </span>
                   <strong class="deck-spec-val" id="deckPropArea">2,400 m²</strong>
                 </div>
                 <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl">IAI Score</span>
+                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
+                    <img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                    <span>IAI Score</span>
+                  </span>
                   <strong class="deck-spec-val is-score" id="deckPropScore">94.2</strong>
                 </div>
                 <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl">Guide Price</span>
+                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
+                    <img src="assets/icons/birzonalvalue.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
+                    <span>Guide Price</span>
+                  </span>
                   <strong class="deck-spec-val" id="deckPropGuide">₱78.0M</strong>
                 </div>
               </div>
@@ -210,19 +232,19 @@
     <!-- Dialog Navigation Tabs Bar -->
     <div class="dialog-tabs-bar" role="tablist" aria-label="Platform feature previews">
       <button type="button" class="preview-tab-btn" id="tab-discover" role="tab" aria-selected="true" aria-controls="panel-discover" tabindex="0">
-        <span class="tab-icon" aria-hidden="true">🔍</span>
+        <span class="tab-icon" aria-hidden="true"><img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"></span>
         <span>Discover Sites</span>
       </button>
       <button type="button" class="preview-tab-btn" id="tab-compare" role="tab" aria-selected="false" aria-controls="panel-compare" tabindex="-1">
-        <span class="tab-icon" aria-hidden="true">⚖️</span>
+        <span class="tab-icon" aria-hidden="true"><img src="assets/icons/mce.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"></span>
         <span>Compare Engine</span>
       </button>
       <button type="button" class="preview-tab-btn" id="tab-simulate" role="tab" aria-selected="false" aria-controls="panel-simulate" tabindex="-1">
-        <span class="tab-icon" aria-hidden="true">⚡</span>
+        <span class="tab-icon" aria-hidden="true"><img src="assets/icons/clupzoning.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"></span>
         <span>CLUP Simulator</span>
       </button>
       <button type="button" class="preview-tab-btn" id="tab-corridors" role="tab" aria-selected="false" aria-controls="panel-corridors" tabindex="-1">
-        <span class="tab-icon" aria-hidden="true">🗺️</span>
+        <span class="tab-icon" aria-hidden="true"><img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"></span>
         <span>City Corridors</span>
       </button>
     </div>
@@ -320,24 +342,24 @@
             </div>
 
             <p class="inspector-thesis-box" id="inspectorPropThesis">
-              Strategic high-density retail footprint along the city center financial spine with verified municipal permits and multi-tenant capability.
+              Strategic high-density retail footprint along the city center financial spine with verified city permits and multi-tenant capability.
             </p>
 
             <div class="inspector-specs-table">
               <div class="spec-box">
-                <span class="spec-box-lbl">Zoning Code</span>
+                <span class="spec-box-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/clupzoning.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Zoning Code</span>
                 <span class="spec-box-val" id="inspectorPropZoning">C-2 High-Density</span>
               </div>
               <div class="spec-box">
-                <span class="spec-box-lbl">Land Area</span>
+                <span class="spec-box-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Land Area</span>
                 <span class="spec-box-val" id="inspectorPropArea">850 m²</span>
               </div>
               <div class="spec-box">
-                <span class="spec-box-lbl">Road Frontage</span>
+                <span class="spec-box-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Road Frontage</span>
                 <span class="spec-box-val" id="inspectorPropRoad">24m Frontage</span>
               </div>
               <div class="spec-box">
-                <span class="spec-box-lbl">CLUP Compliance</span>
+                <span class="spec-box-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/sitereadiness.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> CLUP Compliance</span>
                 <span class="spec-box-val" id="inspectorPropClup">PASS (Compliant)</span>
               </div>
             </div>
@@ -373,7 +395,7 @@
             <div class="compare-metrics-list">
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Attractiveness (IAI)</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Attractiveness (IAI)</span>
                   <span class="metric-meta-val">87.4 / 100</span>
                 </div>
                 <div class="metric-progress-track">
@@ -382,7 +404,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Infra Readiness</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/infrastructure.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Infra Readiness</span>
                   <span class="metric-meta-val">92%</span>
                 </div>
                 <div class="metric-progress-track">
@@ -391,7 +413,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Road Frontage</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Road Frontage</span>
                   <span class="metric-meta-val">24 meters</span>
                 </div>
                 <div class="metric-progress-track">
@@ -400,7 +422,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Footfall Density</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/economicActivity.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Footfall Density</span>
                   <span class="metric-meta-val">Very High (96%)</span>
                 </div>
                 <div class="metric-progress-track">
@@ -424,7 +446,7 @@
             <div class="compare-metrics-list">
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Attractiveness (IAI)</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Attractiveness (IAI)</span>
                   <span class="metric-meta-val">94.2 / 100</span>
                 </div>
                 <div class="metric-progress-track">
@@ -433,7 +455,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Infra Readiness</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/infrastructure.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Infra Readiness</span>
                   <span class="metric-meta-val">95%</span>
                 </div>
                 <div class="metric-progress-track">
@@ -442,7 +464,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Road Frontage</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Road Frontage</span>
                   <span class="metric-meta-val">42 meters (Port Spine)</span>
                 </div>
                 <div class="metric-progress-track">
@@ -451,7 +473,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Freight Clearance</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/sitereadiness.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Freight Clearance</span>
                   <span class="metric-meta-val">Tier-1 Heavy Truck</span>
                 </div>
                 <div class="metric-progress-track">
@@ -474,7 +496,7 @@
             <div class="compare-metrics-list">
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Attractiveness (IAI)</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Attractiveness (IAI)</span>
                   <span class="metric-meta-val">89.1 / 100</span>
                 </div>
                 <div class="metric-progress-track">
@@ -483,7 +505,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Infra Readiness</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/infrastructure.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Infra Readiness</span>
                   <span class="metric-meta-val">86%</span>
                 </div>
                 <div class="metric-progress-track">
@@ -492,7 +514,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Road Frontage</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Road Frontage</span>
                   <span class="metric-meta-val">38 meters (4-Lane Bypass)</span>
                 </div>
                 <div class="metric-progress-track">
@@ -501,7 +523,7 @@
               </div>
               <div class="compare-metric-row">
                 <div class="metric-meta-line">
-                  <span class="metric-meta-lbl">Expansion Runway</span>
+                  <span class="metric-meta-lbl" style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async"> Expansion Runway</span>
                   <span class="metric-meta-val">Very High (3,100 m²)</span>
                 </div>
                 <div class="metric-progress-track">
@@ -522,7 +544,7 @@
         <div class="preview-tab-kicker">
           <div>
             <h3>Interactive Land-Use & Suitability Simulator</h3>
-            <p>Select a target investment use case below to simulate municipal land-use compatibility in real time.</p>
+            <p>Select a target investment use case below to simulate city land-use compatibility in real time.</p>
           </div>
           <a href="simulator.php" class="dialog-tool-link">
             <span>Launch Full Simulator</span>

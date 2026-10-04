@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   role VARCHAR(40) NOT NULL,
   name VARCHAR(140) NOT NULL,
+  department VARCHAR(190) NULL DEFAULT NULL,
   email VARCHAR(190) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',
@@ -442,6 +443,12 @@ SQL,
     {
         if (!self::tableExists($pdo, 'users')) {
             return;
+        }
+
+        if (!self::columnExists($pdo, 'users', 'department')) {
+            $pdo->exec(
+                'ALTER TABLE users ADD COLUMN department VARCHAR(190) NULL DEFAULT NULL AFTER name'
+            );
         }
 
         if (!self::columnExists($pdo, 'users', 'identity_verification_status')) {

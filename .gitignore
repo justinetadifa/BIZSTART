@@ -6,3 +6,7 @@ Thumbs.db
 Desktop.ini
 
 .ui-audit/
+scratch/
+cookies.txt
+*.bak
+*_backup.*

@@ -61,6 +61,9 @@ function sfc_asset_version(string $relativePath): string
 function sfc_icon(string $name): string
 {
     $icons = [
+        'map' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2V6Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+        'clock' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        'inbox' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-5 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 9h10M7 13h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
         'home' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 21v-6h6v6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
         'explorer' => '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
         'compare' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M17 5v14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 8h4M10 12h6M10 16h3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -84,9 +87,99 @@ function sfc_icon(string $name): string
     return $icons[$name] ?? $icons['spark'];
 }
 
+function sfc_domain_icon(string $key, string $size = 'md', string $class = '', bool $container = false, string $alt = '', string $containerVariant = ''): string
+{
+    static $icons = [
+        'accessibility' => 'accessibility.png',
+        'road' => 'accessibility.png',
+        'access' => 'accessibility.png',
+        'connectivity' => 'accessibility.png',
+        'birzonalvalue' => 'birzonalvalue.png',
+        'bir' => 'birzonalvalue.png',
+        'zonal' => 'birzonalvalue.png',
+        'valuation' => 'birzonalvalue.png',
+        'landvalue' => 'birzonalvalue.png',
+        'clupzoning' => 'clupzoning.png',
+        'clup' => 'clupzoning.png',
+        'zoning' => 'clupzoning.png',
+        'landuse' => 'clupzoning.png',
+        'economicactivity' => 'economicActivity.png',
+        'economic' => 'economicActivity.png',
+        'density' => 'economicActivity.png',
+        'commerce' => 'economicActivity.png',
+        'faultline' => 'faultline.png',
+        'fault' => 'faultline.png',
+        'seismic' => 'faultline.png',
+        'floodsusceptible' => 'floodsusceptible.png',
+        'flood' => 'floodsusceptible.png',
+        'hazardsafety' => 'hazardsafety.png',
+        'hazard' => 'hazardsafety.png',
+        'safety' => 'hazardsafety.png',
+        'iai' => 'iai.png',
+        'attractiveness' => 'iai.png',
+        'score' => 'iai.png',
+        'infrastructure' => 'infrastructure.png',
+        'infra' => 'infrastructure.png',
+        'mce' => 'mce.png',
+        'evaluation' => 'mce.png',
+        'pointofinterest' => 'pointofinterest.png',
+        'poi' => 'pointofinterest.png',
+        'landmark' => 'pointofinterest.png',
+        'propertyinformation' => 'propertyinfo.png',
+        'propertyinfo' => 'propertyinfo.png',
+        'property' => 'propertyinfo.png',
+        'parcel' => 'propertyinfo.png',
+        'sitereadiness' => 'sitereadiness.png',
+        'readiness' => 'sitereadiness.png',
+        'irie' => 'sitereadiness.png',
+        'utilities' => 'utilities.png',
+        'utility' => 'utilities.png',
+        'power' => 'utilities.png',
+        'water' => 'utilities.png',
+    ];
+
+    static $labels = [
+        'accessibility.png' => 'Road Access & Transport Connectivity',
+        'birzonalvalue.png' => 'BIR Zonal Value & Land Valuation',
+        'clupzoning.png' => 'CLUP 2025–2035 Zoning Classification',
+        'economicActivity.png' => 'Commercial Density & Economic Activity',
+        'faultline.png' => 'Seismic Fault-Line Constraint',
+        'floodsusceptible.png' => 'Flood Susceptibility & Drainage Risk',
+        'hazardsafety.png' => 'Combined Hazard & Site Safety Index',
+        'iai.png' => 'Investment Attractiveness Index (IAI)',
+        'infrastructure.png' => 'Physical Infrastructure Readiness',
+        'mce.png' => 'Multi-Criteria Evaluation (MCE) Engine',
+        'pointofinterest.png' => 'Points of Interest & Service Catchment',
+        'propertyinfo.png' => 'Property Dossier & Parcel Profile',
+        'sitereadiness.png' => 'Investment Readiness & Verification (IRIE)',
+        'utilities.png' => 'Utility Grid Capacities (Power, Water, Fiber)',
+    ];
+
+    $norm = strtolower(str_replace(['-', '_', ' '], '', $key));
+    $file = $icons[$norm] ?? 'propertyinfo.png';
+    $label = $alt !== '' ? $alt : ($labels[$file] ?? 'LOCUS-SF Domain Icon');
+
+    $assetUrl = sfc_path('/assets/icons/' . $file);
+    $sizeClass = 'locus-icon--' . htmlspecialchars($size, ENT_QUOTES, 'UTF-8');
+    $extraClass = $class !== '' ? ' ' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') : '';
+
+    $img = '<img src="' . htmlspecialchars($assetUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '" class="locus-icon ' . $sizeClass . $extraClass . '" loading="lazy" decoding="async">';
+
+    if ($container) {
+        $boxClass = 'locus-icon-box locus-icon-box--' . htmlspecialchars($size, ENT_QUOTES, 'UTF-8');
+        if ($containerVariant !== '') {
+            $boxClass .= ' locus-icon-box--' . htmlspecialchars($containerVariant, ENT_QUOTES, 'UTF-8');
+        }
+        return '<span class="' . $boxClass . '">' . $img . '</span>';
+    }
+
+    return $img;
+}
+
 function sfc_render_head(string $title, array $context, array $bodyData = []): void
 {
     $pageName = (string) ($bodyData['page'] ?? '');
+
     $bodyAttributes = [];
     foreach ($bodyData as $key => $value) {
         $bodyAttributes[] = sprintf('data-%s="%s"', htmlspecialchars((string) $key, ENT_QUOTES, 'UTF-8'), htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'));
@@ -110,20 +203,32 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></title>
   <base href="<?= htmlspecialchars(($context['basePath'] === '' ? '/' : $context['basePath'] . '/'), ENT_QUOTES, 'UTF-8') ?>">
+  <script>
+    window.SFC_APP_CONFIG = <?= json_encode($clientConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+  </script>
   <style><?php readfile(dirname(__DIR__, 2) . '/assets/css/preloader.css'); ?></style>
   <script data-app-name="<?= htmlspecialchars($context['appName'], ENT_QUOTES, 'UTF-8') ?>" data-base-path="<?= htmlspecialchars($context['basePath'], ENT_QUOTES, 'UTF-8') ?>" data-logo="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8"><?php readfile(dirname(__DIR__, 2) . '/assets/js/preloader.js'); ?></script>
   <link rel="icon" type="image/png" sizes="32x32" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8">
   <link rel="icon" type="image/png" sizes="16x16" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8">
   <link rel="shortcut icon" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8">
   <link rel="apple-touch-icon" sizes="180x180" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+
+  <?php if ($pageName === 'admin-dashboard'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/leaflet/leaflet.css">
+  <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/leaflet/leaflet.js"></script>
+  <?php endif; ?>
   <?php if (in_array($pageName, ['property-explorer', 'property-explorer-terminal', 'property-details'], true)): ?>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css">
-  <script defer src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
   <?php endif; ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/portal.css<?= htmlspecialchars(sfc_asset_version('css/portal.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/locus-icons.css<?= htmlspecialchars(sfc_asset_version('css/locus-icons.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/locus-icons.js<?= htmlspecialchars(sfc_asset_version('js/locus-icons.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
   <?php if (in_array($pageName, ['landing', 'property-ranking'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/discovery.css<?= htmlspecialchars(sfc_asset_version('css/discovery.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
@@ -150,15 +255,18 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($pageName === 'city-pipeline'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/pipeline.css<?= htmlspecialchars(sfc_asset_version('css/pipeline.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if ($pageName === 'compare-decision'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/compare.css<?= htmlspecialchars(sfc_asset_version('css/compare.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if (in_array($pageName, ['property-details', 'property-explorer', 'property-explorer-terminal'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/business-match.css<?= htmlspecialchars(sfc_asset_version('css/business-match.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
   <?php if (in_array($pageName, ['admin-dashboard', 'admin-properties', 'admin-showcase'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin.css<?= htmlspecialchars(sfc_asset_version('css/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
-  <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+    <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body <?= implode(' ', $bodyAttributes) ?>>
-<script>
-  window.SFC_APP_CONFIG = <?= json_encode($clientConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
-</script>
 <div class="studio-transition" id="studioTransition" aria-hidden="true">
   <div class="studio-transition-line"></div>
 </div>
@@ -169,14 +277,15 @@ function sfc_render_header(array $context, string $active = ''): void
 {
     $user = $context['user'];
     $role = $user['role'] ?? 'guest';
+
     $isLanding = $active === 'landing';
     $dashboardHref = null;
     $dashboardKey = null;
     $navItems = match ($role) {
         'admin' => [
-            ['href' => sfc_path('/admin-dashboard.php'), 'label' => 'Workspace', 'icon' => 'home', 'key' => 'admin'],
-            ['href' => sfc_path('/admin-properties.php'), 'label' => 'Properties', 'icon' => 'inventory', 'key' => 'admin-properties'],
-            ['href' => sfc_path('/admin-showcase.php'), 'label' => 'Showcase', 'icon' => 'showcase', 'key' => 'admin-showcase'],
+            ['href' => sfc_path('/admin-dashboard.php'), 'label' => 'Overview', 'icon' => 'home', 'key' => 'admin'],
+            ['href' => sfc_path('/admin-properties.php'), 'label' => 'Land Parcels', 'icon' => 'inventory', 'key' => 'admin-properties'],
+            ['href' => sfc_path('/admin-showcase.php'), 'label' => 'MCE Engine', 'icon' => 'showcase', 'key' => 'admin-showcase'],
             ['href' => sfc_path('/reports.php'), 'label' => 'Reports', 'icon' => 'inventory', 'key' => 'reports'],
         ],
         'seller' => [
@@ -307,8 +416,8 @@ function sfc_render_header(array $context, string $active = ''): void
             <span class="session-chip-icon"><?= sfc_icon($role === 'admin' ? 'admin' : ($role === 'seller' ? 'seller' : 'investor')) ?></span>
             <span class="session-chip-text">
               <?php if ($role === 'admin'): ?>
-                <span class="admin-account-label">Admin</span>
-                <span class="admin-account-caption">City workspace</span>
+                <span class="admin-account-label"><?= htmlspecialchars((string) ($user['name'] ?? 'Admin'), ENT_QUOTES, 'UTF-8') ?></span>
+                <span class="admin-account-caption"><?= htmlspecialchars(!empty($user['department']) ? (string) $user['department'] : 'City workspace', ENT_QUOTES, 'UTF-8') ?></span>
               <?php else: ?>
                 <?= htmlspecialchars(sfc_role_label($role), ENT_QUOTES, 'UTF-8') ?>
               <?php endif; ?>

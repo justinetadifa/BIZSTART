@@ -5,11 +5,26 @@ require __DIR__ . '/app/Support/web.php';
 
 $context = sfc_web_context();
 $sceneImage = $context['assetBase'] . '/images/sfcpanoramicView.png';
+$mode = ($_GET['mode'] ?? $_POST['mode'] ?? 'login') === 'signup' ? 'signup' : 'login';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!sfc_verify_csrf_request()) {
         $error = 'Your security token expired. Refresh the page and try again.';
+    } elseif ($mode === 'signup') {
+        try {
+            sfc_register_admin(
+                (string) ($_POST['name'] ?? ''),
+                (string) ($_POST['email'] ?? ''),
+                (string) ($_POST['password'] ?? ''),
+                (string) ($_POST['confirm_password'] ?? ''),
+                (string) ($_POST['department'] ?? '')
+            );
+            header('Location: ' . sfc_path('/admin-dashboard.php'));
+            exit;
+        } catch (InvalidArgumentException $exception) {
+            $error = $exception->getMessage();
+        }
     } else {
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
@@ -21,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-sfc_render_head('Admin Login | LOCUS-SF', $context, ['page' => 'admin-login', 'role' => 'admin']);
+sfc_render_head(($mode === 'signup' ? 'Admin Registration' : 'Admin Login') . ' | LOCUS-SF', $context, ['page' => 'admin-login', 'role' => 'admin']);
 sfc_render_header($context);
 ?>
 <main class="page-shell auth-page auth-page-admin">
@@ -29,9 +44,9 @@ sfc_render_header($context);
     <!-- Visual Side -->
     <div class="auth-visual" style="--auth-image:url('<?= htmlspecialchars($sceneImage, ENT_QUOTES, 'UTF-8') ?>')">
       <div class="auth-visual-copy">
-        <span class="auth-role-chip">Municipal Administration</span>
+        <span class="auth-role-chip">City Administration</span>
         <h1>Platform governance with clarity and rigor.</h1>
-        <p>Sign in to manage candidate-site evidence, CLUP zoning alignment, and municipal development priorities.</p>
+        <p><?= $mode === 'signup' ? 'Create an administrative profile to direct city planning, zoning alignment, and candidate sites.' : 'Sign in to manage candidate-site evidence, CLUP zoning alignment, and city development priorities.' ?></p>
       </div>
 
       <div class="auth-signal-row" aria-label="Portal highlights">
@@ -55,13 +70,19 @@ sfc_render_header($context);
 
       <!-- 2-Role Workspace Switch (Investor & Admin Only) -->
       <div class="auth-role-switch">
-        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link">Investor</a>
-        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link is-active">Admin</a>
+        <a href="<?= htmlspecialchars(sfc_path('/investor-login.php' . ($mode === 'signup' ? '?mode=signup' : '')), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link">Investor</a>
+        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php' . ($mode === 'signup' ? '?mode=signup' : '')), ENT_QUOTES, 'UTF-8') ?>" class="auth-role-switch-link is-active">Admin</a>
       </div>
 
       <div class="auth-surface-head">
-        <h2>Admin login</h2>
-        <p>Sign in with your authorized administrator credentials.</p>
+        <h2><?= $mode === 'signup' ? 'Create admin account' : 'Admin login' ?></h2>
+        <p><?= $mode === 'signup' ? 'Register an authorized administrator account to oversee city datasets and operations.' : 'Sign in with your authorized administrator credentials.' ?></p>
+      </div>
+
+      <!-- Login / Signup Sub-tabs -->
+      <div class="auth-switch">
+        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="auth-switch-link <?= $mode === 'login' ? 'is-active' : '' ?>">Sign in</a>
+        <a href="<?= htmlspecialchars(sfc_path('/admin-login.php?mode=signup'), ENT_QUOTES, 'UTF-8') ?>" class="auth-switch-link <?= $mode === 'signup' ? 'is-active' : '' ?>">Create account</a>
       </div>
 
       <?php if ($error !== ''): ?>
@@ -70,6 +91,39 @@ sfc_render_header($context);
 
       <form method="post" class="auth-form" id="adminLoginForm">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(sfc_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="mode" value="<?= htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') ?>">
+
+        <?php if ($mode === 'signup'): ?>
+        <label class="form-shell" for="adminName">
+          <span>Full name</span>
+          <input 
+            type="text" 
+            id="adminName" 
+            name="name" 
+            class="input-shell" 
+            value="<?= htmlspecialchars((string) ($_POST['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" 
+            autocomplete="name" 
+            placeholder="e.g. Juan Dela Cruz" 
+            required
+          >
+        </label>
+
+        <label class="form-shell" for="adminDepartment">
+          <span>Department / Designation</span>
+          <select 
+            id="adminDepartment" 
+            name="department" 
+            class="input-shell select-shell" 
+            required
+          >
+            <option value="" disabled <?= empty($_POST['department']) ? 'selected' : '' ?>>Select department / designation</option>
+            <option value="City Planning and Development Office (CPDO)" <?= (($_POST['department'] ?? '') === 'City Planning and Development Office (CPDO)') ? 'selected' : '' ?>>City Planning and Development Office (CPDO)</option>
+            <option value="City Assessor's Office (CAO)" <?= (($_POST['department'] ?? '') === "City Assessor's Office (CAO)") ? 'selected' : '' ?>>City Assessor's Office (CAO)</option>
+            <option value="Local Economic and Business Development Office (LEBDO)" <?= (($_POST['department'] ?? '') === 'Local Economic and Business Development Office (LEBDO)') ? 'selected' : '' ?>>Local Economic and Business Development Office (LEBDO)</option>
+            <option value="City Information and Communications Technology Office (CICTO)" <?= (($_POST['department'] ?? '') === 'City Information and Communications Technology Office (CICTO)') ? 'selected' : '' ?>>City Information and Communications Technology Office (CICTO)</option>
+          </select>
+        </label>
+        <?php endif; ?>
 
         <label class="form-shell" for="adminEmail">
           <span>Email address</span>
@@ -78,11 +132,12 @@ sfc_render_header($context);
             type="email" 
             name="email" 
             class="input-shell" 
-            value="<?= htmlspecialchars((string) ($_POST['email'] ?? 'admin@sfcelerate.local'), ENT_QUOTES, 'UTF-8') ?>" 
+            value="<?= htmlspecialchars((string) ($_POST['email'] ?? ($mode === 'signup' ? '' : 'admin@sfcelerate.local')), ENT_QUOTES, 'UTF-8') ?>" 
             autocomplete="username" 
             autocapitalize="off" 
             spellcheck="false" 
             inputmode="email" 
+            placeholder="<?= $mode === 'signup' ? 'e.g. admin@cityplanning.gov.ph' : '' ?>"
             required
           >
         </label>
@@ -97,23 +152,45 @@ sfc_render_header($context);
             type="password" 
             name="password" 
             class="input-shell" 
-            value="Admin123!" 
-            autocomplete="current-password" 
+            value="<?= $mode === 'signup' ? '' : 'Admin123!' ?>" 
+            autocomplete="<?= $mode === 'signup' ? 'new-password' : 'current-password' ?>" 
+            placeholder="<?= $mode === 'signup' ? 'Minimum 8 characters' : '' ?>"
             required
           >
           <div class="caps-warning" id="capsWarning" style="display:none;">Caps Lock is ON</div>
         </label>
 
+        <?php if ($mode === 'signup'): ?>
+        <label class="form-shell" for="adminConfirmPassword">
+          <div class="auth-label-row">
+            <span>Confirm password</span>
+            <button type="button" class="btn-pwd-toggle" id="btnToggleConfirmPassword" tabindex="-1">Show</button>
+          </div>
+          <input 
+            type="password" 
+            id="adminConfirmPassword" 
+            name="confirm_password" 
+            class="input-shell" 
+            autocomplete="new-password" 
+            placeholder="Re-enter your password" 
+            required
+          >
+        </label>
+        <?php endif; ?>
+
+        <?php if ($mode === 'login'): ?>
         <label class="auth-checkbox-row">
           <input type="checkbox" name="remember" checked>
           <span>Remember this device</span>
         </label>
+        <?php endif; ?>
 
         <button type="submit" class="btn-shell btn-shell-primary btn-full" id="btnSubmit">
-          <span id="btnSubmitText">Continue to dashboard &rarr;</span>
+          <span id="btnSubmitText"><?= $mode === 'signup' ? 'Create admin account &rarr;' : 'Continue to dashboard &rarr;' ?></span>
         </button>
       </form>
 
+      <?php if ($mode === 'login'): ?>
       <!-- Clean Demo Credential Assistant -->
       <div class="auth-demo-hint">
         <div class="demo-hint-copy">
@@ -122,6 +199,11 @@ sfc_render_header($context);
         </div>
         <button type="button" class="btn-demo-autofill" id="btnAutoFill">Auto-fill</button>
       </div>
+      <?php else: ?>
+      <div class="auth-form-note">
+        Administrative accounts have governance privileges over city datasets, candidate-site reviews, and zoning configurations.
+      </div>
+      <?php endif; ?>
 
       <div class="auth-secondary-links">
         <a href="mailto:support@sfcelerate.local?subject=Admin%20Access%20Assistance">Need assistance?</a>
@@ -235,6 +317,98 @@ sfc_render_header($context);
   border-color: #93c5fd;
 }
 
+.auth-page-admin .auth-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(37, 99, 235, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+}
+
+.auth-page-admin .auth-switch-link {
+  min-height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  text-decoration: none;
+  transition: all 180ms ease;
+}
+
+.auth-page-admin .auth-switch-link:hover {
+  color: #1e293b;
+}
+
+.auth-page-admin .auth-switch-link.is-active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.auth-form-note {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(37, 99, 235, 0.04);
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.auth-page-admin select.input-shell,
+.auth-page-admin .select-shell {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: normal;
+  padding: 0 42px 0 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px 18px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 8px 20px rgba(15, 23, 42, 0.04);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.auth-page-admin select.input-shell:hover,
+.auth-page-admin .select-shell:hover {
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+.auth-page-admin select.input-shell:focus,
+.auth-page-admin .select-shell:focus {
+  outline: none;
+  background-color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14), 0 14px 32px rgba(37, 99, 235, 0.08);
+}
+
+.auth-page-admin select.input-shell option {
+  padding: 10px 14px;
+  color: #0f172a;
+  background: #ffffff;
+  font-size: 13.5px;
+}
+
+.auth-page-admin select.input-shell option:disabled {
+  color: #94a3b8;
+}
+
 .auth-secondary-links {
   display: flex;
   align-items: center;
@@ -261,6 +435,8 @@ sfc_render_header($context);
 document.addEventListener('DOMContentLoaded', function () {
   const pwdInput = document.getElementById('adminPassword');
   const toggleBtn = document.getElementById('btnTogglePassword');
+  const confirmPwdInput = document.getElementById('adminConfirmPassword');
+  const toggleConfirmBtn = document.getElementById('btnToggleConfirmPassword');
   const capsWarning = document.getElementById('capsWarning');
   const emailInput = document.getElementById('adminEmail');
   const btnAutoFill = document.getElementById('btnAutoFill');
@@ -275,6 +451,16 @@ document.addEventListener('DOMContentLoaded', function () {
       pwdInput.type = isPwd ? 'text' : 'password';
       toggleBtn.textContent = isPwd ? 'Hide' : 'Show';
       pwdInput.focus();
+    });
+  }
+
+  // Confirm password toggle
+  if (toggleConfirmBtn && confirmPwdInput) {
+    toggleConfirmBtn.addEventListener('click', function () {
+      const isPwd = confirmPwdInput.type === 'password';
+      confirmPwdInput.type = isPwd ? 'text' : 'password';
+      toggleConfirmBtn.textContent = isPwd ? 'Hide' : 'Show';
+      confirmPwdInput.focus();
     });
   }
 
@@ -307,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (form && submitBtn && submitText) {
     form.addEventListener('submit', function () {
       submitBtn.disabled = true;
-      submitText.textContent = 'Authenticating...';
+      submitText.textContent = <?= json_encode($mode === 'signup' ? 'Creating account...' : 'Authenticating...', JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     });
   }
 });

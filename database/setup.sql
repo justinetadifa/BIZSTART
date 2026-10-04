@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   role VARCHAR(40) NOT NULL,
   name VARCHAR(140) NOT NULL,
+  department VARCHAR(190) NULL DEFAULT NULL,
   email VARCHAR(190) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',

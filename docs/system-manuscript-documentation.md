@@ -74,7 +74,7 @@ Table 1. Implemented Pages and Access Scope
 | Page | Access Scope | Verified Purpose |
 | --- | --- | --- |
 | `index.php` | Public | Landing page and entry point into the platform |
-| `admin-login.php` | Public | Admin login screen |
+| `admin-login.php` | Public | Admin login and admin account creation |
 | `investor-login.php` | Public | Investor login and investor account creation |
 | `seller-login.php` | Public | Seller login and seller account creation |
 | `admin-dashboard.php` | Admin only | Admin operations dashboard, seller review, activity monitoring |
@@ -228,9 +228,9 @@ Sequence Diagrams: [TO BE PROVIDED MANUALLY]
 
 Feature Name: Authentication and Role-Based Access
 
-Description: The system provides separate login pages for admin, investor, and seller users. Investor registration creates a database-backed investor account. Seller registration creates a seller account, stores seller profile details, marks identity verification as pending, and notifies admins.
+Description: The system provides separate login and account creation workflows for admin, investor, and seller users. Admin registration creates a verified administrator account. Investor registration creates a database-backed investor account. Seller registration creates a seller account, stores seller profile details, marks identity verification as pending, and notifies admins.
 
-Process Flow: User opens a role-specific login page -> credentials are checked with `sfc_login()` or a new account is created through `sfc_register_investor()` or `sfc_register_seller()` -> session data is written to `$_SESSION['sfc_user']` -> protected pages enforce `sfc_require_role()` -> `logout.php` clears the session and redirects to the landing page.
+Process Flow: User opens a role-specific login page -> credentials are checked with `sfc_login()` or a new account is created through `sfc_register_admin()`, `sfc_register_investor()`, or `sfc_register_seller()` -> session data is written to `$_SESSION['sfc_user']` -> protected pages enforce `sfc_require_role()` -> `logout.php` clears the session and redirects to the landing page.
 
 Screenshot: [TO BE PROVIDED MANUALLY]
 

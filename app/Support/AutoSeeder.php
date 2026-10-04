@@ -28,6 +28,7 @@ final class AutoSeeder
             [
                 'role' => 'admin',
                 'name' => 'SFC Admin',
+                'department' => 'City Planning and Development Office (CPDO)',
                 'email' => 'admin@sfcelerate.local',
                 'password' => 'Admin123!',
                 'identity_status' => 'verified',
@@ -36,6 +37,7 @@ final class AutoSeeder
             [
                 'role' => 'seller',
                 'name' => 'Seller Studio',
+                'department' => null,
                 'email' => 'seller@sfcelerate.local',
                 'password' => 'Seller123!',
                 'identity_status' => 'verified',
@@ -44,6 +46,7 @@ final class AutoSeeder
             [
                 'role' => 'investor',
                 'name' => 'Investor Resident Hub',
+                'department' => null,
                 'email' => 'investor@sfcelerate.local',
                 'password' => 'Investor123!',
                 'identity_status' => 'unverified',
@@ -52,6 +55,7 @@ final class AutoSeeder
             [
                 'role' => 'investor',
                 'name' => 'Maria Santos',
+                'department' => null,
                 'email' => 'maria.santos@sfcelerate.local',
                 'password' => 'Investor123!',
                 'identity_status' => 'unverified',
@@ -61,19 +65,15 @@ final class AutoSeeder
 
         $select = $pdo->prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1');
         $insert = $pdo->prepare(
-            'INSERT INTO users (role, name, email, password_hash, identity_verification_status, identity_verified_at)
-             VALUES (:role, :name, :email, :password_hash, :identity_verification_status, :identity_verified_at)'
+            'INSERT INTO users (role, name, department, email, password_hash, identity_verification_status, identity_verified_at)
+             VALUES (:role, :name, :department, :email, :password_hash, :identity_verification_status, :identity_verified_at)'
         );
         $updateVerification = $pdo->prepare(
             'UPDATE users
              SET identity_verification_status = :identity_verification_status,
-                 identity_verified_at = :identity_verified_at
-             WHERE id = :id
-               AND (
-                    identity_verification_status IS NULL
-                    OR TRIM(identity_verification_status) = \'\'
-                    OR LOWER(identity_verification_status) = \'unverified\'
-               )'
+                 identity_verified_at = :identity_verified_at,
+                 department = COALESCE(department, :department)
+             WHERE id = :id'
         );
 
         $userIds = [];
@@ -86,6 +86,7 @@ final class AutoSeeder
                     'id' => (int) $existingId,
                     'identity_verification_status' => $user['identity_status'],
                     'identity_verified_at' => $user['identity_verified_at'],
+                    'department' => $user['department'],
                 ]);
                 continue;
             }
@@ -93,6 +94,7 @@ final class AutoSeeder
             $insert->execute([
                 'role' => $user['role'],
                 'name' => $user['name'],
+                'department' => $user['department'],
                 'email' => strtolower($user['email']),
                 'password_hash' => password_hash($user['password'], PASSWORD_DEFAULT),
                 'identity_verification_status' => $user['identity_status'],

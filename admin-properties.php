@@ -11,15 +11,16 @@ sfc_render_header($context, 'admin-properties');
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-property-editor.css<?= htmlspecialchars(sfc_asset_version('css/admin-property-editor.css'), ENT_QUOTES, 'UTF-8') ?>">
 
-<main class="page-shell admin-listings-page">
+<main class="page-shell admin-listings-page" id="adminMain" tabindex="-1">
   <section class="site-shell page-intro-card">
     <div>
       <div class="eyebrow">Admin workspace</div>
-      <h1>Properties</h1>
+      <h1>Land parcels</h1>
       <p>Manage listings, review evidence, and keep property records up to date.</p>
     </div>
     <div class="intro-actions">
-      <button type="button" class="btn-shell btn-shell-primary" id="adminAddProperty">Add Property</button>
+      <button type="button" class="btn-shell btn-shell-primary" id="adminAddProperty"><span aria-hidden="true">+</span> Add property</button>
+      <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php?admin_mode=add_site'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary" style="display:inline-flex; align-items:center; gap:6px;"><?= sfc_domain_icon('accessibility', 'xs') ?> Add Site from Map</a>
       <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View Rankings</a>
     </div>
   </section>
@@ -37,7 +38,7 @@ sfc_render_header($context, 'admin-properties');
     <div class="crud-header sfc-editor-header">
       <div class="sfc-editor-header-brand">
         <div class="sfc-editor-kicker">
-          <span class="sfc-kicker-dot"></span> Municipal Asset Registry
+          <span class="sfc-kicker-dot"></span> City Asset Registry
         </div>
         <h3 id="crudModalTitle">Add Property</h3>
         <p id="crudModalSubtitle" style="display:none;">Complete asset parameters to publish.</p>
@@ -47,21 +48,25 @@ sfc_render_header($context, 'admin-properties');
       <nav class="sfc-wizard-tabs" aria-label="Listing editor stages" id="wizardTabsNav">
         <button type="button" class="sfc-wizard-tab is-active" data-step-target="0" onclick="crudGoToStep(0)">
           <span class="sfc-tab-badge">01</span>
+          <?= sfc_domain_icon('propertyinfo', 'xs') ?>
           <span class="sfc-tab-title">Identity</span>
         </button>
         <span class="sfc-wizard-arrow" aria-hidden="true">&rsaquo;</span>
         <button type="button" class="sfc-wizard-tab" data-step-target="1" onclick="crudGoToStep(1)">
           <span class="sfc-tab-badge">02</span>
+          <?= sfc_domain_icon('accessibility', 'xs') ?>
           <span class="sfc-tab-title">Location</span>
         </button>
         <span class="sfc-wizard-arrow" aria-hidden="true">&rsaquo;</span>
         <button type="button" class="sfc-wizard-tab" data-step-target="2" onclick="crudGoToStep(2)">
           <span class="sfc-tab-badge">03</span>
+          <?= sfc_domain_icon('infrastructure', 'xs') ?>
           <span class="sfc-tab-title">Media</span>
         </button>
         <span class="sfc-wizard-arrow" aria-hidden="true">&rsaquo;</span>
         <button type="button" class="sfc-wizard-tab" data-step-target="3" onclick="crudGoToStep(3)">
           <span class="sfc-tab-badge">04</span>
+          <?= sfc_domain_icon('iai', 'xs') ?>
           <span class="sfc-tab-title">Review</span>
         </button>
       </nav>
@@ -292,9 +297,9 @@ sfc_render_header($context, 'admin-properties');
                     <input class="input-shell sfc-text-input" id="crudImagePath" value="assets/images/Property10.png" oninput="crudUpdateLivePreview();" placeholder="Asset image path" />
                   </div>
 
-                  <!-- Quick Municipal Library Presets -->
+                  <!-- Quick City Library Presets -->
                   <div class="sfc-preset-images">
-                    <span class="sfc-sublabel">Municipal Presets:</span>
+                    <span class="sfc-sublabel">City Presets:</span>
                     <div class="sfc-preset-thumbnails" id="presetThumbnails">
                       <button type="button" class="sfc-preset-thumb is-selected" onclick="crudSelectPresetImage('assets/images/Property10.png', this)" title="Catbangen Commercial">
                         <img src="assets/images/Property10.png" alt="Property 10" loading="lazy" />
@@ -426,22 +431,22 @@ sfc_render_header($context, 'admin-properties');
                   <div class="sfc-verification-toggles">
                     <div class="sfc-toggle-item">
                       <span>Documents Inspected</span>
-                      <div class="crud-options" id="seg-crud-docs">
-                        <button type="button" onclick="crudYesNo('seg-crud-docs','crudDocumentsReviewed',this,'1',true)" class="crud-seg-btn sfc-mini-toggle" data-val="1">&#10003; Yes</button>
-                        <button type="button" onclick="crudYesNo('seg-crud-docs','crudDocumentsReviewed',this,'0',false)" class="crud-seg-btn sfc-mini-toggle is-selected is-active" data-val="0" aria-pressed="true">&#10007; No</button>
+                      <div class="crud-options" id="seg-crud-docs" role="group" aria-label="Documents Inspected">
+                        <button type="button" onclick="crudYesNo('seg-crud-docs','crudDocumentsReviewed',this,'1',true)" class="crud-seg-btn sfc-mini-toggle sfc-mini-yes" data-val="1" aria-pressed="false">&#10003; Yes</button>
+                        <button type="button" onclick="crudYesNo('seg-crud-docs','crudDocumentsReviewed',this,'0',false)" class="crud-seg-btn sfc-mini-toggle sfc-mini-no is-selected is-active" data-val="0" aria-pressed="true">&#10007; No</button>
                       </div>
-                      <select class="input-shell" id="crudDocumentsReviewed" aria-hidden="true" tabindex="-1">
+                      <select class="input-shell" id="crudDocumentsReviewed" aria-hidden="true" tabindex="-1" style="display:none;" hidden>
                         <option value="0">No</option><option value="1">Yes</option>
                       </select>
                     </div>
 
                     <div class="sfc-toggle-item">
                       <span>Site Verified</span>
-                      <div class="crud-options" id="seg-crud-site">
-                        <button type="button" onclick="crudYesNo('seg-crud-site','crudSiteVerified',this,'1',true)" class="crud-seg-btn sfc-mini-toggle" data-val="1">&#10003; Yes</button>
-                        <button type="button" onclick="crudYesNo('seg-crud-site','crudSiteVerified',this,'0',false)" class="crud-seg-btn sfc-mini-toggle is-selected is-active" data-val="0" aria-pressed="true">&#10007; No</button>
+                      <div class="crud-options" id="seg-crud-site" role="group" aria-label="Site Verified">
+                        <button type="button" onclick="crudYesNo('seg-crud-site','crudSiteVerified',this,'1',true)" class="crud-seg-btn sfc-mini-toggle sfc-mini-yes" data-val="1" aria-pressed="false">&#10003; Yes</button>
+                        <button type="button" onclick="crudYesNo('seg-crud-site','crudSiteVerified',this,'0',false)" class="crud-seg-btn sfc-mini-toggle sfc-mini-no is-selected is-active" data-val="0" aria-pressed="true">&#10007; No</button>
                       </div>
-                      <select class="input-shell" id="crudSiteVerified" aria-hidden="true" tabindex="-1">
+                      <select class="input-shell" id="crudSiteVerified" aria-hidden="true" tabindex="-1" style="display:none;" hidden>
                         <option value="0">No</option><option value="1">Yes</option>
                       </select>
                     </div>
@@ -481,6 +486,19 @@ sfc_render_header($context, 'admin-properties');
                   <button type="button" class="sfc-chip" onclick="crudSetNowAvailability()">Set Today</button>
                 </div>
                 <input type="datetime-local" class="input-shell sfc-text-input" id="crudLastConfirmedAvailableAt" />
+              </div>
+
+              <!-- Spatial Engine: Top 3 Recommended Business Typologies for this Parcel -->
+              <div class="sfc-bm-review-block" id="crudBmReviewBlock">
+                <div class="sfc-bm-review-head">
+                  <span class="sfc-bm-review-title">
+                    <span style="color:#059669;">✦</span> Spatial Decision Support: Recommended Business Typologies
+                  </span>
+                  <span class="sfc-bm-review-badge">CLUP 2025–2035 MCE</span>
+                </div>
+                <div class="sfc-bm-review-list" id="crudBmReviewList">
+                  <!-- Populated dynamically via JS -->
+                </div>
               </div>
             </div>
           </section>
@@ -534,7 +552,7 @@ sfc_render_header($context, 'admin-properties');
             <!-- Card Body -->
             <div class="sfc-preview-body">
               <div class="sfc-preview-price-row">
-                <span class="sfc-preview-price-label">Guide Price</span>
+                <span class="sfc-preview-price-label" style="display:inline-flex; align-items:center; gap:4px;"><?= sfc_domain_icon('birzonalvalue', 'xs') ?> Guide Price</span>
                 <div class="sfc-preview-price" id="livePreviewPrice">PHP 75.0M</div>
               </div>
 
@@ -544,15 +562,15 @@ sfc_render_header($context, 'admin-properties');
               <!-- Metrics Grid -->
               <div class="sfc-preview-metrics">
                 <div class="sfc-metric-cell">
-                  <span class="sfc-metric-label">Land Scale</span>
+                  <span class="sfc-metric-label" style="display:inline-flex; align-items:center; justify-content:center; gap:4px;"><?= sfc_domain_icon('propertyinfo', 'xs') ?> Land Scale</span>
                   <strong class="sfc-metric-val" id="livePreviewArea">8.5 Ha</strong>
                 </div>
                 <div class="sfc-metric-cell">
-                  <span class="sfc-metric-label">Market Score</span>
+                  <span class="sfc-metric-label" style="display:inline-flex; align-items:center; justify-content:center; gap:4px;"><?= sfc_domain_icon('iai', 'xs') ?> Market Score</span>
                   <strong class="sfc-metric-val sfc-metric-accent" id="livePreviewScore">82<span>/100</span></strong>
                 </div>
                 <div class="sfc-metric-cell">
-                  <span class="sfc-metric-label">Road Access</span>
+                  <span class="sfc-metric-label" style="display:inline-flex; align-items:center; justify-content:center; gap:4px;"><?= sfc_domain_icon('accessibility', 'xs') ?> Road Access</span>
                   <strong class="sfc-metric-val" id="livePreviewAccess">85<span>/100</span></strong>
                 </div>
               </div>
@@ -560,7 +578,7 @@ sfc_render_header($context, 'admin-properties');
               <!-- Due Diligence Status Tracker -->
               <div class="sfc-preview-diligence">
                 <div class="sfc-diligence-header">
-                  <span>Due Diligence Readiness</span>
+                  <span style="display:inline-flex; align-items:center; gap:5px;"><?= sfc_domain_icon('sitereadiness', 'xs') ?> Due Diligence Readiness</span>
                   <strong id="livePreviewDocSummary">0 / 6 Docs</strong>
                 </div>
                 <div class="sfc-diligence-bar-wrap">
@@ -572,13 +590,23 @@ sfc_render_header($context, 'admin-properties');
               <div class="sfc-preview-trust-row" id="livePreviewTrust">
                 <span class="sfc-trust-chip">✓ Approved Listing</span>
               </div>
+
+              <!-- Recommended Business Match Mini-Strip -->
+              <div class="sfc-preview-business-match" id="livePreviewBusinessMatch">
+                <div class="sfc-bm-header">
+                  <span class="sfc-bm-kicker" style="display:inline-flex; align-items:center; gap:4px;"><?= sfc_domain_icon('mce', 'xs') ?> Recommended Best Use</span>
+                  <span class="sfc-bm-badge" id="livePreviewBmScore">98.5% Fit</span>
+                </div>
+                <div class="sfc-bm-name" id="livePreviewBmName">Drive-Thru QSR & Commercial Retail Strip</div>
+                <div class="sfc-bm-rationale" id="livePreviewBmRationale">CLUP corridor alignment & arterial frontage match.</div>
+              </div>
             </div>
           </article>
 
           <!-- Executive Publication Status Strip -->
           <div class="sfc-preview-status-strip">
             <span class="sfc-strip-dot"></span>
-            <span>Real-time municipal GIS synchronization</span>
+            <span>Real-time City GIS synchronization</span>
           </div>
         </div>
       </aside>
@@ -798,14 +826,22 @@ sfc_render_header($context, 'admin-properties');
   window.crudYesNo = function (groupId, selectId, btn, val, isYes) {
     var grp = document.getElementById(groupId);
     if (!grp) return;
+    var targetBtn = (btn && btn.closest) ? btn.closest('.crud-seg-btn') : (btn || grp.querySelector('[data-val="' + val + '"]'));
     grp.querySelectorAll('.crud-seg-btn').forEach(function (b) {
       b.setAttribute('aria-pressed', 'false');
       b.classList.remove('is-selected', 'is-active');
     });
-    btn.setAttribute('aria-pressed', 'true');
-    btn.classList.add('is-selected', 'is-active');
+    if (targetBtn) {
+      targetBtn.setAttribute('aria-pressed', 'true');
+      targetBtn.classList.add('is-selected', 'is-active');
+    }
     var sel = document.getElementById(selectId);
-    if (sel) sel.value = val;
+    if (sel) {
+      sel.value = String(val);
+      try {
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (err) {}
+    }
     crudUpdateLivePreview();
   };
 
@@ -1097,12 +1133,95 @@ sfc_render_header($context, 'admin-properties');
       var sellerVal = (document.getElementById('crudSellerIdentityStatus') || {}).value || 'unverified';
       var html = '';
       if (approvalVal === 'approved') html += '<span class="sfc-trust-chip">✓ Approved Listing</span>';
-      else if (approvalVal === 'pending_review') html += '<span class="sfc-trust-chip" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">⏳ Pending Municipal Review</span>';
+      else if (approvalVal === 'pending_review') html += '<span class="sfc-trust-chip" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">⏳ Pending City Review</span>';
       else html += '<span class="sfc-trust-chip" style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;">Draft Record</span>';
 
       if (sellerVal === 'verified') html += '<span class="sfc-trust-chip">🛡️ Verified Seller</span>';
       if (reviewedCount >= 4) html += '<span class="sfc-trust-chip">📜 Due Diligence Cleared</span>';
+      var docsVal = (document.getElementById('crudDocumentsReviewed') || {}).value;
+      var siteVal = (document.getElementById('crudSiteVerified') || {}).value;
+      if (docsVal === '1' || docsVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">✓ Documents Inspected</span>';
+      if (siteVal === '1' || siteVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">✓ Site Verified</span>';
       trustRow.innerHTML = html;
+    }
+
+    // Business Match Dynamic Computation
+    var corridorVal = (document.getElementById('crudCorridor') || {}).value || 'highway';
+    var typeVal = (document.getElementById('crudPropertyType') || {}).value || 'commercial';
+    var bmList = [
+      {
+        id: 'highway_qsr_retail',
+        name: 'Drive-Thru QSR & Commercial Retail Strip',
+        score: corridorVal === 'highway' ? 98.5 : (corridorVal === 'downtown' ? 95.0 : 82.0),
+        fitGrade: 'Prime Fit',
+        roi: '19% – 26% p.a.',
+        capex: '₱20M – ₱38M',
+        rationale: 'Arterial frontage & high vehicular catchment along corridor.'
+      },
+      {
+        id: 'it_bpo_coworking',
+        name: 'IT-BPO Office & Tech Innovation Hub',
+        score: typeVal === 'bpo' || corridorVal === 'downtown' ? 98.0 : (corridorVal === 'highway' ? 94.5 : 78.0),
+        fitGrade: 'Prime Fit',
+        roi: '15% – 20% p.a.',
+        capex: '₱30M – ₱55M',
+        rationale: 'Tier-2 fiber connectivity & central white-collar workforce radius.'
+      },
+      {
+        id: 'cold_storage_logistics',
+        name: 'Cold-Chain & Fishery Logistics Hub',
+        score: typeVal === 'logistics' || corridorVal === 'highway' ? 97.0 : 84.0,
+        fitGrade: 'Prime Fit',
+        roi: '18% – 23% p.a.',
+        capex: '₱35M – ₱65M',
+        rationale: 'Regional agri-fishery harvest staging & Poro Freeport link.'
+      },
+      {
+        id: 'eco_coastal_resort',
+        name: 'Eco-Boutique Coastal Resort & Wellness Hub',
+        score: corridorVal === 'coastal' || typeVal === 'hotel' ? 98.5 : 72.0,
+        fitGrade: corridorVal === 'coastal' ? 'Prime Fit' : 'Moderate Fit',
+        roi: '16% – 21% p.a.',
+        capex: '₱45M – ₱85M',
+        rationale: 'Seaside frontage & San Fernando surf-tourism corridor synergy.'
+      },
+      {
+        id: 'healthcare_diagnostic',
+        name: 'Specialized Outpatient & Diagnostic Center',
+        score: corridorVal === 'downtown' || corridorVal === 'highway' ? 96.0 : 86.0,
+        fitGrade: 'Prime Fit',
+        roi: '14% – 18% p.a.',
+        capex: '₱28M – ₱50M',
+        rationale: 'Direct arterial connectivity & Region I tertiary referral radius.'
+      }
+    ];
+    bmList.sort(function(a, b) { return b.score - a.score; });
+    var top3 = bmList.slice(0, 3);
+
+    // Update Right-Column Preview Card Business Match Strip
+    var bmNameEl = document.getElementById('livePreviewBmName');
+    var bmScoreEl = document.getElementById('livePreviewBmScore');
+    var bmRatEl = document.getElementById('livePreviewBmRationale');
+    if (bmNameEl && top3[0]) {
+      bmNameEl.textContent = top3[0].name;
+      if (bmScoreEl) bmScoreEl.textContent = top3[0].score + '% Fit';
+      if (bmRatEl) bmRatEl.textContent = top3[0].rationale;
+    }
+
+    // Update Step 4 Review & Publish 3-Card List
+    var bmReviewList = document.getElementById('crudBmReviewList');
+    if (bmReviewList) {
+      var medals = ['🥇', '🥈', '🥉'];
+      bmReviewList.innerHTML = top3.map(function(item, idx) {
+        return '<div class="sfc-bm-review-item ' + (idx === 0 ? 'is-top' : '') + '">' +
+          '<div class="sfc-bm-item-topline">' +
+            '<span class="sfc-bm-item-rank">' + medals[idx] + ' Rank ' + (idx + 1) + '</span>' +
+            '<span class="sfc-bm-item-score">' + item.score + '%</span>' +
+          '</div>' +
+          '<div class="sfc-bm-item-name">' + item.name + '</div>' +
+          '<div class="sfc-bm-item-meta">' + item.roi + ' &bull; ' + item.capex + '</div>' +
+        '</div>';
+      }).join('');
     }
   };
 
@@ -1140,7 +1259,7 @@ sfc_render_header($context, 'admin-properties');
       var sel = document.getElementById(pair[0]);
       var grp = document.getElementById(pair[1]);
       if (!sel || !grp) return;
-      var val = sel.value;
+      var val = String(sel.value || '0');
       grp.querySelectorAll('.crud-seg-btn').forEach(function (b) {
         b.setAttribute('aria-pressed', 'false');
         b.classList.remove('is-selected', 'is-active');
@@ -1204,6 +1323,21 @@ sfc_render_header($context, 'admin-properties');
     // Refresh live preview
     crudUpdateLivePreview();
   }
+
+  // Delegated click listeners for compliance toggles as redundant safety
+  ['seg-crud-docs', 'seg-crud-site'].forEach(function (gid) {
+    var grp = document.getElementById(gid);
+    if (!grp) return;
+    var selId = gid === 'seg-crud-docs' ? 'crudDocumentsReviewed' : 'crudSiteVerified';
+    grp.addEventListener('click', function (e) {
+      var btn = e.target.closest('.crud-seg-btn');
+      if (!btn) return;
+      var val = btn.getAttribute('data-val');
+      if (val !== null && val !== undefined) {
+        crudYesNo(gid, selId, btn, val, val === '1');
+      }
+    });
+  });
 
   // MutationObserver to detect modal show/hide
   var _modal = document.getElementById('propertyCrudModal');

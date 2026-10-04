@@ -28,6 +28,7 @@ require_once __DIR__ . '/Repositories/NotificationRepository.php';
 require_once __DIR__ . '/Repositories/SpatialOverlayRepository.php';
 require_once __DIR__ . '/Repositories/VisitLogRepository.php';
 require_once __DIR__ . '/Support/NotificationEngine.php';
+require_once __DIR__ . '/Support/BusinessMatchEngine.php';
 
 use App\Core\Database;
 use App\Core\SchemaManager;

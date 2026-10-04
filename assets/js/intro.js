@@ -171,7 +171,7 @@
     center: {
       name: 'Fabro Commercial Complex',
       tag: 'City Center Core · Commercial Belt',
-      summary: 'Prime high-footfall commercial corner frontage along the central banking and municipal services corridor.',
+      summary: 'Prime high-footfall commercial corner frontage along the central banking and city services corridor.',
       img: 'assets/images/landing-FabroBldg.jpg',
       area: '850 m²',
       score: '87.4',
@@ -231,7 +231,7 @@
       title: 'Fabro Commercial Complex',
       corridor: 'City Center Core',
       img: 'assets/images/landing-FabroBldg.jpg',
-      thesis: 'Strategic high-density retail footprint along the city center financial spine with verified municipal permits and multi-tenant capability.',
+      thesis: 'Strategic high-density retail footprint along the city center financial spine with verified city permits and multi-tenant capability.',
       zoning: 'C-2 Commercial High-Density',
       area: '850 m²',
       roadAccess: '24m Frontage · Arterial Access',
@@ -355,7 +355,7 @@
       check1: 'Structural Clearance: Complies with National Building Code wind load',
       check2: 'Grid Interconnection: La Union Electric distribution tie-in verified',
       check3: 'Renewable Incentive: Qualifies for city green building tax rebate',
-      notice: 'City green zoning grants a 15% discount on municipal business permit fees for renewable-powered commercial parcels.'
+      notice: 'City green zoning grants a 15% discount on city business permit fees for renewable-powered commercial parcels.'
     },
     healthcare: {
       title: 'Tertiary Healthcare & Medical Specialty Clinic',
@@ -367,7 +367,7 @@
       check1: 'Emergency Access: Direct connection to Bypass Highway spine',
       check2: 'Sanitary & Waste: Medical waste disposal routing pre-approved',
       check3: 'DOH Licensing: Complies with Level 2 hospital spacing guidelines',
-      notice: 'San Fernando City prioritizes private healthcare infrastructure with fast-tracked municipal site endorsements.'
+      notice: 'San Fernando City prioritizes private healthcare infrastructure with fast-tracked city site endorsements.'
     }
   };
 

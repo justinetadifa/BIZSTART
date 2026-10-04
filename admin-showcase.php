@@ -9,11 +9,11 @@ $context = sfc_web_context();
 sfc_render_head('Admin Showcase Studio | LOCUS-SF', $context, ['page' => 'admin-showcase', 'role' => 'admin']);
 sfc_render_header($context, 'admin-showcase');
 ?>
-<main class="page-shell admin-showcase-page">
+<main class="page-shell admin-showcase-page" id="adminMain" tabindex="-1">
   <section class="site-shell page-intro-card">
     <div>
       <div class="eyebrow">Admin workspace</div>
-      <h1>Showcase</h1>
+      <h1>Opportunity studio</h1>
       <p>Curate the Offer Board and City Pipeline. Create, publish, and arrange city opportunities.</p>
     </div>
     <div class="intro-actions">

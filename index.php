@@ -99,7 +99,7 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
       <span class="locus-beacon__card" role="tooltip">
         <span class="locus-beacon__card-badge">Commercial Belt</span>
         <strong class="locus-beacon__card-title">City Center &amp; Civic Hub</strong>
-        <span class="locus-beacon__card-desc">Core financial spine, municipal services & retail district</span>
+        <span class="locus-beacon__card-desc">Core financial spine, city services & retail district</span>
         <span class="locus-beacon__card-meta">
           <span>Demand Pull</span>
           <strong>88.7 Score</strong>

@@ -85,6 +85,12 @@ export const api = {
   bootstrap() {
     return request("bootstrap.php");
   },
+  competitors() {
+    return request("competitors.php").catch(() => {
+      const basePath = String(window.SFC_APP_CONFIG?.basePath || "").replace(/\/$/, "");
+      return fetch(`${basePath}/assets/data/competitors.json`).then((r) => r.json());
+    });
+  },
   properties() {
     return request("properties.php");
   },
@@ -396,6 +402,9 @@ export const api = {
   },
   aiSummary(propertyId) {
     return request(`external-ai-summary.php?propertyId=${propertyId}`);
+  },
+  businessMatch(propertyId) {
+    return request(`business-match.php?property_id=${encodeURIComponent(propertyId)}`);
   },
   health() {
     return request("health.php");

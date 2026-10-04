@@ -1,0 +1,83 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "jollibee-sevilla",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.318362, 16.602109]
+      },
+      "properties": {
+        "name": "Jollibee San Fernando 3 - Sevilla",
+        "status": "existing",
+        "locationSource": "https://order.jollibee.com/en/ph/stores/jollibee-san-fernando-3-sevilla",
+        "checkedOn": "2026-10-03",
+        "note": "Official store-locator pin; not a field survey."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "jollibee-robinsons",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.318618, 16.600306]
+      },
+      "properties": {
+        "name": "Jollibee Robinsons La Union",
+        "status": "existing",
+        "locationSource": "https://order.jollibee.com/en/ph/stores/jollibee-robinsons-la-union",
+        "checkedOn": "2026-10-03",
+        "note": "Locator displays Temporarily closed; confirm operating status."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mcdonalds-upcoming",
+      "geometry": null,
+      "properties": {
+        "name": "McDonald's",
+        "status": "reported_under_construction",
+        "locationSource": null,
+        "reportSource": "https://www.facebook.com/skyscrapercitylaunion/posts/1688000539777635/",
+        "note": "Reported upcoming outlet; exact location and status need confirmation."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "kfc-upcoming",
+      "geometry": null,
+      "properties": {
+        "name": "KFC",
+        "status": "reported_under_construction",
+        "locationSource": null,
+        "reportSource": "https://www.facebook.com/skyscrapercitylaunion/posts/1688000539777635/",
+        "note": "Reported upcoming outlet; exact location and status need confirmation."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "pizza-hut-upcoming",
+      "geometry": null,
+      "properties": {
+        "name": "Pizza Hut",
+        "status": "reported_under_construction",
+        "locationSource": null,
+        "reportSource": "https://www.facebook.com/skyscrapercitylaunion/posts/1688000539777635/",
+        "note": "Reported upcoming outlet; exact location and status need confirmation."
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mister-donut-upcoming",
+      "geometry": null,
+      "properties": {
+        "name": "Mister Donut",
+        "status": "reported_planned",
+        "locationSource": null,
+        "reportSource": "https://www.facebook.com/skyscrapercitylaunion/posts/1688000539777635/",
+        "note": "Reported upcoming outlet; exact location and status need confirmation."
+      }
+    }
+  ]
+}

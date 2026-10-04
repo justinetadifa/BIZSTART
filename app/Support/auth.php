@@ -149,6 +149,41 @@ function sfc_register_investor(string $name, string $email, string $password, st
     return $user;
 }
 
+function sfc_register_admin(string $name, string $email, string $password, string $confirmPassword, ?string $department = null): array
+{
+    sfc_start_session();
+
+    $name = trim($name);
+    $email = strtolower(trim($email));
+    $department = $department !== null ? trim($department) : '';
+    if ($department === '') {
+        $department = 'City Planning and Development Office (CPDO)';
+    }
+
+    if ($name === '') {
+        throw new InvalidArgumentException('Your full name is required.');
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InvalidArgumentException('A valid email address is required.');
+    }
+    if (strlen($password) < 8) {
+        throw new InvalidArgumentException('Password must be at least 8 characters.');
+    }
+    if ($password !== $confirmPassword) {
+        throw new InvalidArgumentException('Password confirmation does not match.');
+    }
+
+    $user = sfc_user_repository()->create('admin', $name, $email, $password, $department);
+    session_regenerate_id(true);
+    unset($_SESSION['sfc_csrf_token']);
+    $_SESSION['sfc_user'] = sfc_user_session_payload($user);
+    $_SESSION['sfc_authenticated_at'] = time();
+    $_SESSION['sfc_last_activity_at'] = time();
+    sfc_csrf_token();
+
+    return $user;
+}
+
 function sfc_register_seller(array $payload): array
 {
     sfc_start_session();
@@ -301,6 +336,7 @@ function sfc_user_session_payload(array $user): array
         'id' => (int) ($user['id'] ?? 0),
         'role' => (string) ($user['role'] ?? 'guest'),
         'name' => (string) ($user['name'] ?? ''),
+        'department' => (string) ($user['department'] ?? ''),
         'email' => (string) ($user['email'] ?? ''),
         'identityVerificationStatus' => (string) ($user['identityVerificationStatus'] ?? 'unverified'),
         'identityVerifiedAt' => (string) ($user['identityVerifiedAt'] ?? ''),

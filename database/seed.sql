@@ -19,12 +19,12 @@ TRUNCATE TABLE users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO users (
-  id, role, name, email, password_hash, identity_verification_status, identity_verified_at
+  id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at
 ) VALUES
-  (1, 'admin', 'SFC Admin', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
-  (2, 'seller', 'Seller Studio', 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'verified', '2026-03-16 10:00:00'),
-  (3, 'investor', 'Investor Resident Hub', 'investor@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL),
-  (4, 'investor', 'Maria Santos', 'maria.santos@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL);
+  (1, 'admin', 'SFC Admin', 'City Planning and Development Office (CPDO)', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
+  (2, 'seller', 'Seller Studio', NULL, 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'verified', '2026-03-16 10:00:00'),
+  (3, 'investor', 'Investor Resident Hub', NULL, 'investor@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL),
+  (4, 'investor', 'Maria Santos', NULL, 'maria.santos@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL);
 
 INSERT INTO user_preferences (user_id, notification_cadence) VALUES
   (1, 'instant'),
