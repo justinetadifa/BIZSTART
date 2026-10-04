@@ -243,10 +243,18 @@ sfc_render_header($context, 'landing');
               <span class="eyebrow">City Investment Gateway</span>
             </span>
             <span class="hero-location-seal">San Fernando, La Union</span>
+            <button type="button" class="hero-replay-btn" data-replay-hero title="Replay Entrance Animation">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>Replay Entrance</span>
+            </button>
           </div>
         </div>
 
-        <h1 class="hero-headline" id="heroHeadline">Find your next investment in <span class="hero-headline-place">San Fernando.</span></h1>
+        <h1 class="hero-headline" id="heroHeadline">
+          <span class="hero-headline-line hero-headline-line--1"><span class="hero-headline-word">Find your next</span></span>
+          <span class="hero-headline-line hero-headline-line--2"><span class="hero-headline-word">investment in</span></span>
+          <span class="hero-headline-line hero-headline-line--3"><span class="hero-headline-word hero-headline-place">San Fernando.</span></span>
+        </h1>
         <p class="hero-subhead" id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
 
         <div class="hero-focus-block">
