@@ -6,16 +6,127 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const sessionKey = `locus-sf.cinematic:${location.pathname.replace(/\/[^/]*$/, '')}`;
   let navigating = false;
+  let navigationHref = 'index.php?welcome=off#main-content';
   let exitTimer;
+  let entrance = null;
+
+  const cinematicEase = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+  function createEntranceOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'locusEntranceOverlay';
+    overlay.className = 'locus-entrance';
+    overlay.dataset.phase = 'cover';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.innerHTML = '<div class="locus-entrance__curtain"><div class="locus-entrance__panel locus-entrance__panel--left"></div><div class="locus-entrance__panel locus-entrance__panel--right"></div><div class="locus-entrance__identity"><span class="locus-entrance__brand">LOCUS-SF</span><span class="locus-entrance__pipeline">SITE DATA &rarr; MCE &rarr; IAI</span></div></div>';
+    return overlay;
+  }
+
+  function animateEntrance(runtime, element, keyframes, options) {
+    const animation = element.animate(keyframes, { easing: cinematicEase, fill: 'both', ...options });
+    runtime.animations.add(animation);
+    return animation.finished.catch(() => {});
+  }
+
+  function waitEntrance(runtime, duration) {
+    return new Promise(resolve => {
+      runtime.resolveWait = resolve;
+      runtime.timer = setTimeout(() => {
+        runtime.resolveWait = null;
+        resolve();
+      }, duration);
+    });
+  }
+
+  function restoreEntrance(runtime) {
+    if (runtime.restored) return;
+    runtime.restored = true;
+    document.documentElement.style.overflow = runtime.htmlOverflow;
+    document.body.style.overflow = runtime.bodyOverflow;
+    document.body.style.paddingRight = runtime.bodyPadding;
+    scene.inert = runtime.inert;
+    runtime.overlay.remove();
+    if (!navigating && !document.hidden && !scene.inert &&
+        (!document.activeElement || document.activeElement === document.body || document.activeElement === document.documentElement)) {
+      continueLink?.focus({ preventScroll: true });
+    }
+  }
+
+  function cancelEntrance() {
+    const runtime = entrance;
+    if (!runtime) return;
+    runtime.cancelled = true;
+    clearTimeout(runtime.timer);
+    runtime.resolveWait?.();
+    runtime.animations.forEach(animation => animation.cancel());
+    restoreEntrance(runtime);
+    scene?.classList.remove('is-cinematic-active');
+    entrance = null;
+  }
+
+  async function playCinematicEntrance(event) {
+    event.preventDefault();
+    if (!scene || entrance || navigating) return;
+    if (reducedMotion.matches || typeof scene.animate !== 'function') {
+      scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.LOCUS_HERO?.playEntrance();
+      return;
+    }
+
+    const overlay = createEntranceOverlay();
+    const runtime = {
+      overlay, animations: new Set(), cancelled: false, restored: false,
+      htmlOverflow: document.documentElement.style.overflow,
+      bodyOverflow: document.body.style.overflow,
+      bodyPadding: document.body.style.paddingRight,
+      inert: scene.inert
+    };
+    entrance = runtime;
+    const gutter = innerWidth - document.documentElement.clientWidth;
+    if (gutter > 0) document.body.style.paddingRight = `${parseFloat(getComputedStyle(document.body).paddingRight) + gutter}px`;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    scene.inert = true;
+    scene.classList.add('is-cinematic-active');
+    document.body.append(overlay);
+
+    const curtain = overlay.querySelector('.locus-entrance__curtain');
+    const identity = overlay.querySelector('.locus-entrance__identity');
+    animateEntrance(runtime, scene, [{ transform: 'scale(1)' }, { transform: 'scale(.98)' }], { duration: 300 });
+    animateEntrance(runtime, identity, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 180, delay: 170 });
+    await animateEntrance(runtime, curtain, [{ transform: 'translate3d(0,100%,0)' }, { transform: 'translate3d(0,0,0)' }], { duration: 300 });
+    if (runtime.cancelled) return;
+    overlay.dataset.phase = 'hold';
+    await waitEntrance(runtime, 200);
+    if (runtime.cancelled) return;
+
+    overlay.dataset.phase = 'reveal';
+    scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const heroEntrance = window.LOCUS_HERO?.playEntrance();
+    const reveal = [
+      animateEntrance(runtime, overlay.querySelector('.locus-entrance__panel--left'), [{ transform: 'translateX(0)' }, { transform: 'translateX(-102%)' }], { duration: 260 }),
+      animateEntrance(runtime, overlay.querySelector('.locus-entrance__panel--right'), [{ transform: 'translateX(0)' }, { transform: 'translateX(102%)' }], { duration: 260 }),
+      animateEntrance(runtime, identity, [{ opacity: 1 }, { opacity: 0 }], { duration: 140 }),
+      animateEntrance(runtime, scene, [{ transform: 'scale(.98)' }, { transform: 'scale(1)' }], { duration: 340 })
+    ];
+    await Promise.all(reveal);
+    if (runtime.cancelled) return;
+    runtime.animations.forEach(animation => animation.cancel());
+    restoreEntrance(runtime);
+    await heroEntrance;
+    if (runtime.cancelled) return;
+    scene.classList.remove('is-cinematic-active');
+    entrance = null;
+  }
+
+  continueLink?.addEventListener('click', playCinematicEntrance);
+  window.addEventListener('pagehide', cancelEntrance);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelEntrance(); });
 
   // Native URLs remain usable without scripts, storage, or successful animations.
   function finishNavigation() {
     clearTimeout(exitTimer);
-    if (continueLink) {
-      location.assign(continueLink.href);
-    } else {
-      location.assign('index.php?welcome=off#main-content');
-    }
+    location.assign(navigationHref);
   }
 
   document.querySelectorAll('[data-enter]').forEach(link => {
@@ -24,6 +135,8 @@
       if (navigating) { event.preventDefault(); return; }
       try { sessionStorage.setItem(sessionKey, '1'); } catch { /* Storage is optional. */ }
       navigating = true;
+      navigationHref = link.href;
+      cancelEntrance();
       if (reducedMotion.matches) return;
       event.preventDefault();
       scene?.classList.add('is-exiting');
@@ -32,10 +145,12 @@
   });
 
   reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) cancelEntrance();
     if (navigating && reducedMotion.matches && exitTimer) finishNavigation();
   });
 
   window.addEventListener('pageshow', () => {
+    cancelEntrance();
     clearTimeout(exitTimer);
     exitTimer = undefined;
     navigating = false;

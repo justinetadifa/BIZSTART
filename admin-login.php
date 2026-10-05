@@ -45,8 +45,20 @@ sfc_render_header($context);
     <div class="auth-visual" style="--auth-image:url('<?= htmlspecialchars($sceneImage, ENT_QUOTES, 'UTF-8') ?>')">
       <div class="auth-visual-copy">
         <span class="auth-role-chip">City Administration</span>
-        <h1>Platform governance with clarity and rigor.</h1>
+        <span class="auth-location">SAN FERNANDO CITY, LA UNION</span>
+        <h1 class="auth-poster-title"><span class="auth-title-lead">FROM CITY DATA TO</span> <strong class="auth-title-gold">PLANNING PRIORITY</strong></h1>
         <p><?= $mode === 'signup' ? 'Create an administrative profile to direct city planning, zoning alignment, and candidate sites.' : 'Sign in to manage candidate-site evidence, CLUP zoning alignment, and city development priorities.' ?></p>
+      </div>
+
+      <div class="auth-analysis-flow" aria-label="Site data feeds Multi-Criteria Evaluation and the Investment Attractiveness Index.">
+        <div class="auth-data-icons">
+          <span class="auth-data-icon"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/propertyinfo.png" alt="Property information" width="2000" height="2000"></span>
+          <span class="auth-data-icon"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/accessibility.png" alt="Accessibility" width="2000" height="2000"></span>
+          <span class="auth-data-icon"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/clupzoning.png" alt="CLUP zoning" width="2000" height="2000"></span>
+          <span class="auth-data-icon"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/hazardsafety.png" alt="Hazard safety" width="2000" height="2000"></span>
+        </div>
+        <span class="auth-flow-arrow" aria-hidden="true"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/yellow_arrow.png" alt="" width="2000" height="2000"></span>
+        <div class="auth-flow-output"><small>SITE DATA</small><strong>MCE &rarr; IAI</strong><span class="auth-flow-caption">INVESTMENT ATTRACTIVENESS INDEX</span></div>
       </div>
 
       <div class="auth-signal-row" aria-label="Portal highlights">
@@ -55,13 +67,7 @@ sfc_render_header($context);
         <span class="auth-signal-pill">CPDO Alignment</span>
       </div>
 
-      <div class="auth-visual-stack">
-        <article class="auth-floating-card auth-floating-card-accent">
-          <span>Operational Oversight</span>
-          <strong>Executive Back Office</strong>
-          <p>Curate candidate sites, inspect suitability data, and prepare investment recommendations for the City of San Fernando.</p>
-        </article>
-      </div>
+      <div class="auth-visual-footer"><strong>LOCUS-SF</strong><span>SITE DATA &rarr; MCE &rarr; IAI</span></div>
     </div>
 
     <!-- Surface Side -->
@@ -145,7 +151,7 @@ sfc_render_header($context);
         <label class="form-shell" for="adminPassword">
           <div class="auth-label-row">
             <span>Password</span>
-            <button type="button" class="btn-pwd-toggle" id="btnTogglePassword" tabindex="-1">Show</button>
+            <button type="button" class="btn-pwd-toggle" id="btnTogglePassword" aria-controls="adminPassword" aria-pressed="false">Show</button>
           </div>
           <input 
             id="adminPassword" 
@@ -164,7 +170,7 @@ sfc_render_header($context);
         <label class="form-shell" for="adminConfirmPassword">
           <div class="auth-label-row">
             <span>Confirm password</span>
-            <button type="button" class="btn-pwd-toggle" id="btnToggleConfirmPassword" tabindex="-1">Show</button>
+            <button type="button" class="btn-pwd-toggle" id="btnToggleConfirmPassword" aria-controls="adminConfirmPassword" aria-pressed="false">Show</button>
           </div>
           <input 
             type="password" 
@@ -185,8 +191,14 @@ sfc_render_header($context);
         </label>
         <?php endif; ?>
 
-        <button type="submit" class="btn-shell btn-shell-primary btn-full" id="btnSubmit">
-          <span id="btnSubmitText"><?= $mode === 'signup' ? 'Create admin account &rarr;' : 'Continue to dashboard &rarr;' ?></span>
+        <button type="submit" class="btn-shell btn-shell-primary btn-full auth-image-submit" id="btnSubmit">
+          <span class="auth-blue-button-art" aria-hidden="true">
+            <?php foreach (['left', 'center', 'right'] as $buttonPart): ?>
+            <span class="auth-blue-part auth-blue-part-<?= $buttonPart ?>"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/blue_button.png" alt="" width="2000" height="2000"></span>
+            <?php endforeach; ?>
+          </span>
+          <span id="btnSubmitText"><?= $mode === 'signup' ? 'Create admin account' : 'Continue to dashboard' ?></span>
+          <span class="auth-submit-arrow" aria-hidden="true"><img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/icons/yellow_arrow.png" alt="" width="2000" height="2000"></span>
         </button>
       </form>
 
@@ -450,6 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const isPwd = pwdInput.type === 'password';
       pwdInput.type = isPwd ? 'text' : 'password';
       toggleBtn.textContent = isPwd ? 'Hide' : 'Show';
+      toggleBtn.setAttribute('aria-pressed', String(isPwd));
       pwdInput.focus();
     });
   }
@@ -460,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const isPwd = confirmPwdInput.type === 'password';
       confirmPwdInput.type = isPwd ? 'text' : 'password';
       toggleConfirmBtn.textContent = isPwd ? 'Hide' : 'Show';
+      toggleConfirmBtn.setAttribute('aria-pressed', String(isPwd));
       confirmPwdInput.focus();
     });
   }

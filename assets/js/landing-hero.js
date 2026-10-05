@@ -184,6 +184,11 @@
         clearProcessing();
         orbitEntranceDone = false;
         iaiEntranceDone = false;
+        // Cover the image's baked-in bar before the IAI figure becomes visible.
+        // Replays keep the already completed score intact.
+        if (iaiProgress && !iaiStarted && !iaiCompleted && !reducedMotion) {
+            iaiProgress.hidden = false;
+        }
 
         const run = { id: ++entranceRun, animations: new Set(), jobs: [], assetsReady: false, done: false, resolve: null };
         const completion = new Promise((resolve) => { run.resolve = resolve; });
@@ -256,7 +261,7 @@
     }
 
     function startIai() {
-        if (iaiStarted || !iaiEntranceDone || !iaiReady || !iaiVisible || document.hidden || !pageActive) return;
+        if (iaiStarted || iaiCompleted || !iaiEntranceDone || !iaiReady || !iaiVisible || document.hidden || !pageActive) return;
         iaiStarted = true;
         if (reducedMotion || !iaiGraphic || typeof iaiGraphic.animate !== 'function') {
             finishIai();
@@ -308,7 +313,7 @@
             clearProcessing();
         }
 
-        if (reducedMotion && iaiStarted && !iaiCompleted) finishIai();
+        if (reducedMotion && !iaiCompleted) finishIai();
         if (!iaiCompleted) {
             const pauseIai = pagePaused || !iaiVisible || !iaiEntranceDone;
             iaiAnimations.forEach((animation) => {

@@ -1345,3 +1345,390 @@ body[data-page="compare-decision"] {
   gap: 12px;
   margin-top: 8px;
 }
+
+/* Layout refinement: retain the existing typography and palette. */
+body[data-page="compare-decision"] .compare-page {
+  padding-top: 28px;
+}
+
+.compare-page :is(.compare-hero-lead, .compare-matrix-card, .comparison-grid) {
+  scroll-margin-top: 124px;
+}
+
+.compare-page :is(.compare-root-grid, .compare-layout, .compare-layout > .stack,
+  .compare-lead-content, .compare-lead-title-area, .comparison-card,
+  .property-body, .mini-list, .kpi-cell, .clup-fact-grid > div) {
+  min-width: 0;
+}
+
+.compare-page .compare-layout {
+  grid-template-columns: 288px minmax(0, 1fr);
+  gap: 24px;
+}
+
+/* A long persona rail should scroll with the document on shorter displays. */
+.compare-page .compare-layout > aside.stack {
+  position: static;
+  gap: 20px;
+}
+
+.compare-page .compare-layout > section.stack {
+  gap: 24px;
+}
+
+.compare-page .page-intro-card {
+  padding: 30px 32px;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.compare-page .page-intro-card > div:first-child {
+  min-width: 0;
+}
+
+.compare-page .compare-filter-panel {
+  padding: 22px;
+}
+
+.compare-page .compare-filter-panel .input-shell {
+  min-height: 48px;
+}
+
+.compare-page .compare-budget-presets {
+  gap: 8px;
+}
+
+.compare-page .budget-chip-btn {
+  min-height: 32px;
+  min-width: 42px;
+}
+
+.compare-page .compare-filter-panel .property-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compare-page .compare-filter-panel .property-actions .btn-shell {
+  min-height: 44px;
+  padding: 10px 8px;
+  text-align: center;
+  white-space: normal;
+}
+
+.compare-page .decision-persona-panel {
+  padding: 22px;
+}
+
+.compare-page .decision-persona-panel .investment-intent-head {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compare-page .decision-persona-panel .intent-card {
+  padding: 12px;
+}
+
+.compare-page .decision-persona-panel .intent-card:is(:hover, .active) {
+  transform: none;
+}
+
+.compare-page :is(.investment-intent-head, .thesis-head, .compare-matrix-head,
+  .clup-card-head) {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.compare-page :is(.investment-intent-head, .thesis-head, .compare-matrix-head,
+  .clup-card-head) > div:first-child {
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.compare-page .decision-persona-panel .investment-intent-head > div:first-child {
+  flex: 0 1 auto;
+}
+
+.compare-page .service-chip-row {
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.compare-page .investment-intent .intent-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.compare-page .investment-intent .intent-card {
+  min-width: 0;
+  min-height: 102px;
+}
+
+.compare-page .investment-intent .intent-card.active {
+  transform: none;
+}
+
+.compare-page .compare-lead-ribbon {
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.compare-page .compare-lead-ribbon-left {
+  min-width: 0;
+  flex: 1 1 280px;
+  align-items: flex-start;
+}
+
+.compare-page .compare-lead-ribbon-icon,
+.compare-page .compare-lead-score-hero {
+  flex-shrink: 0;
+}
+
+.compare-page .compare-lead-ribbon-right {
+  max-width: 100%;
+}
+
+.compare-page .compare-lead-stats-row,
+.compare-page .clup-evidence-row,
+.compare-page .clup-score-lockup,
+.compare-page .thesis-metric-meta {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compare-page .compare-lead-kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compare-page .clup-fact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.compare-page .comparison-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* Remove inherited panel padding so media and ribbons meet the card edges. */
+.compare-page .comparison-card {
+  padding: 0;
+  container-type: inline-size;
+  container-name: compare-card;
+}
+
+.compare-page .comparison-card-ribbon {
+  min-height: 56px;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.compare-page .comparison-card-ribbon > span:first-child {
+  min-width: 0;
+}
+
+.compare-page .comparison-card-ribbon > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.compare-page .comparison-card .property-body {
+  gap: 12px;
+  padding: 20px;
+}
+
+.compare-page .comparison-card .property-title {
+  min-height: 43px;
+  margin-bottom: 0;
+}
+
+.compare-page .comparison-card .property-subline {
+  margin-bottom: 0;
+}
+
+.compare-page .comparison-card .lens-inline-note {
+  min-height: 42px;
+  margin-bottom: 0;
+}
+
+.compare-page .comparison-card p {
+  min-height: 59px;
+  margin: 0;
+}
+
+.compare-page .comparison-card .decision-stats {
+  justify-content: flex-start;
+  align-items: flex-start;
+  align-content: flex-start;
+  min-height: 108px;
+  gap: 6px;
+}
+
+.compare-page .comparison-card .mini-list {
+  padding: 8px;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.compare-page .comparison-card .mini-row {
+  display: grid;
+  grid-template-columns: minmax(0, .95fr) minmax(0, 1.15fr);
+  align-items: start;
+  min-height: 58px;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: 12px;
+}
+
+.compare-page .comparison-card .mini-row > span {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.compare-page .comparison-card .mini-row .locus-icon {
+  flex-shrink: 0;
+}
+
+.compare-page .comparison-card .mini-row strong {
+  min-width: 0;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.compare-page .comparison-card .property-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.compare-page .comparison-card .property-actions .btn-shell {
+  min-height: 44px;
+  padding: 10px 12px;
+  white-space: normal;
+}
+
+.compare-page .comparison-card .property-actions .btn-shell-primary {
+  flex: 1 1 150px;
+}
+
+.compare-page .compare-empty-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+@container compare-card (max-width: 280px) {
+  .compare-page .comparison-card .mini-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .compare-page .comparison-card .mini-row strong {
+    text-align: left;
+  }
+}
+
+@media (max-width: 1180px) {
+  .compare-page .compare-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compare-page .compare-layout > aside.stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .compare-page .decision-persona-panel .intent-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .compare-page .page-intro-card {
+    padding: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .compare-page .compare-layout > aside.stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compare-page .investment-intent .intent-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compare-page :is(.investment-intent, .clup-decision-card, .thesis-card,
+    .compare-matrix-card) {
+    padding: 22px;
+  }
+
+  .compare-page .compare-lead-body {
+    padding: 22px;
+  }
+
+  .compare-page .compare-lead-ribbon {
+    padding: 12px 22px;
+  }
+
+  .compare-page .compare-lead-header {
+    flex-wrap: wrap;
+  }
+
+  .compare-page .compare-lead-title-area {
+    flex: 1 1 160px;
+  }
+
+  .compare-page .compare-lead-score-hero {
+    min-width: 80px;
+    padding: 10px 12px;
+  }
+
+  .compare-page .clup-fact-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .compare-page .compare-matrix-wrapper {
+    margin: 0 -22px -22px;
+    padding: 0 22px 22px;
+  }
+
+  .compare-page .compare-empty-panel {
+    padding: 36px 24px;
+    margin: 16px auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .compare-page :is(.compare-hero-lead, .compare-matrix-card, .comparison-grid) {
+    scroll-margin-top: 94px;
+  }
+}
+
+@media (max-width: 420px) {
+  .compare-page .decision-persona-panel .intent-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compare-page .investment-intent .intent-card {
+    padding: 12px;
+  }
+
+  .compare-page .compare-lead-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compare-page .compare-lead-media-overlay {
+    padding: 10px;
+  }
+
+  .compare-page .compare-lead-badges-top,
+  .compare-page .compare-lead-media-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

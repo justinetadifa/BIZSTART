@@ -1,0 +1,339 @@
+@font-face {
+  font-family: "Locus Auth Editorial";
+  src: url("../fonts/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+body:is([data-page="investor-login"], [data-page="admin-login"]) { background: #f6f5ef; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page {
+  --auth-ink: #101a28;
+  --auth-gold: #ffca05;
+  padding: 36px 0;
+  min-height: calc(100svh - 104px);
+  background: transparent;
+  font-family: "Locus Auth Editorial", Arial, sans-serif;
+  color: var(--auth-ink);
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page::before,
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page::after { display: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 1fr);
+  align-items: stretch;
+  gap: 0;
+  width: min(1240px, calc(100% - 48px));
+  max-width: 1240px;
+  min-height: 640px;
+  margin: 0 auto;
+  border: 1px solid #e5dfd3;
+  border-radius: 30px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #fffdf8;
+  box-shadow: 0 22px 65px -26px rgba(58, 48, 27, .22), inset 0 1px 0 #fff;
+  backdrop-filter: none;
+  transform: none;
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage::before,
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage::after { display: none; }
+
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(.auth-visual, .auth-surface) {
+  min-width: 0;
+  transform: none !important;
+  opacity: 1 !important;
+  animation: none;
+  transition: none;
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: clamp(28px, 3.2vw, 44px);
+  min-height: 640px;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  background: #eeece5;
+  color: var(--auth-ink);
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(150deg, rgba(255, 253, 246, .96) 8%, rgba(255, 253, 246, .87) 40%, rgba(255, 253, 246, .36) 100%), var(--auth-image) center / cover;
+  transform: none;
+  opacity: 1;
+  animation: none;
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual::after { display: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual > * { position: relative; z-index: 1; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-copy { display: block; max-width: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-chip {
+  display: inline-flex;
+  min-height: 30px;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 30px;
+  background: linear-gradient(110deg, #ffc600, #ff8a17);
+  color: #18202a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  backdrop-filter: none;
+}
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-location { display: block; margin: 15px 0 34px; color: #66717d; font-size: 9px; font-weight: 650; letter-spacing: .12em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-poster-title { margin: 0; color: var(--auth-ink); font-family: inherit; font-weight: 900; letter-spacing: -.045em; word-spacing: .08em; text-transform: uppercase; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-lead { display: block; font-size: clamp(27px, 3.1vw, 41px); line-height: 1.07; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-gold { display: block; margin-top: 5px; font-size: clamp(42px, 4.5vw, 60px); line-height: 1.03; font-weight: 900; color: var(--auth-gold); -webkit-text-stroke: 1.4px var(--auth-ink); paint-order: stroke fill; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-copy p { margin: 23px 0 0; max-width: 440px; color: #4e5f70; font-size: 14px; line-height: 1.75; }
+
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-analysis-flow { display: grid; grid-template-columns: auto 24px minmax(0, 1fr); align-items: center; gap: 16px; margin-top: 36px; min-width: 0; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-data-icons { display: grid; grid-template-columns: repeat(4, 42px); gap: 7px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-data-icon { position: relative; display: block; width: 42px; aspect-ratio: 1; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-data-icon img { position: absolute; width: 114%; height: auto; max-width: none; top: -7%; left: -7%; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(.auth-flow-arrow, .auth-submit-arrow) { position: relative; display: block; width: 24px; aspect-ratio: 1316 / 1500; flex: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(.auth-flow-arrow, .auth-submit-arrow) img { position: absolute; width: 151.98%; height: auto; max-width: none; left: -30.7%; top: -13.6%; pointer-events: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-flow-output { display: grid; gap: 3px; min-width: 0; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-flow-output small { color: #5d6b79; font-size: 8px; font-weight: 750; letter-spacing: .13em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-flow-output strong { color: var(--auth-ink); font-size: 25px; font-weight: 850; letter-spacing: -.035em; white-space: nowrap; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-flow-caption { max-width: 180px; color: #516171; font-size: 8px; font-weight: 650; line-height: 1.5; letter-spacing: .015em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-signal-row { display: flex; flex-wrap: wrap; gap: 7px; margin: 27px 0 32px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-signal-pill { padding: 7px 10px; border: 1px solid rgba(82, 93, 98, .19); border-radius: 30px; background: rgba(255, 253, 248, .6); color: #4d5b66; font-size: 8px; font-weight: 750; letter-spacing: .06em; backdrop-filter: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 28px; color: #24303d; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-footer strong { font-size: 15px; font-weight: 850; letter-spacing: -.035em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-footer span { font-size: 8px; font-weight: 750; letter-spacing: .11em; }
+
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface { display: flex; flex-direction: column; align-items: stretch; gap: 18px; padding: 37px 40px 28px; border: 0; border-left: 1px solid #e5dfd3; border-radius: 0; background: linear-gradient(160deg, #fffefa, #faf8f1); box-shadow: none; backdrop-filter: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface::before,
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface::after { display: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-brand-line { display: flex; align-items: center; gap: 9px; color: #6d7781; font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-brand-line::before { content: ""; width: 24px; height: 3px; border-radius: 3px; background: var(--auth-gold); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border: 1px solid #ddd8cd; border-radius: 16px; background: #f0eee7; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-switch-link { display: flex; justify-content: center; align-items: center; min-height: 44px; padding: 8px; border: 0; border-radius: 12px; color: #64717d; font-size: 10px; font-weight: 750; letter-spacing: .08em; text-decoration: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-switch-link.is-active { background: #152232; color: #fff8e7; box-shadow: inset 0 1px 0 rgba(255, 224, 142, .2), 0 3px 8px rgba(15, 28, 45, .13); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head { display: block; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head h2 { margin: 3px 0 9px; color: var(--auth-ink); font-family: inherit; font-size: 30px; line-height: 1.15; font-weight: 850; letter-spacing: -.04em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head p { margin: 0; color: #65717e; font-size: 13px; line-height: 1.65; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-switch { display: flex; gap: 22px; padding: 0; border: 0; border-bottom: 1px solid #e4ded2; border-radius: 0; background: transparent; box-shadow: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-switch-link { position: relative; display: flex; align-items: center; min-height: 44px; padding: 0 2px; border: 0; border-radius: 0; background: transparent; color: #78818a; font-size: 12px; font-weight: 700; text-decoration: none; box-shadow: none; transform: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-switch-link.is-active { color: var(--auth-ink); background: transparent; box-shadow: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-switch-link.is-active::after { content: ""; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; border-radius: 2px; background: var(--auth-gold); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; margin: 0; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .form-shell { display: grid; gap: 7px; min-width: 0; margin: 0; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .form-shell > span,
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-label-row > span { color: #4d5a67; font-size: 11px; font-weight: 650; letter-spacing: .025em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-label-row { display: flex; align-items: center; justify-content: space-between; min-height: 34px; margin-block: -6px -2px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .btn-pwd-toggle { min-width: 52px; min-height: 44px; padding: 0 7px; color: #78623d; font-family: inherit; font-size: 10px; font-weight: 750; border-radius: 8px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .input-shell { width: 100%; max-width: 100%; min-width: 0; min-height: 52px; height: 52px; padding: 0 15px; border: 1px solid #dcdad2; border-radius: 13px; color: #19283a; background-color: #fffefa; font-family: inherit; font-size: 14px; line-height: normal; box-shadow: inset 0 1px 0 #fff; text-overflow: ellipsis; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form select.input-shell { padding-right: 40px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .input-shell:hover { border-color: #bcb9af; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .input-shell:focus { outline: none; border-color: #b98b23; background-color: #fff; box-shadow: 0 0 0 3px rgba(255, 196, 22, .18); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(a, button):focus-visible { outline: 2px solid #b68b2b; outline-offset: 3px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-checkbox-row { display: flex; align-items: center; gap: 9px; min-height: 44px; margin: -4px 0; color: #5c6977; font-size: 12px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-checkbox-row input { width: 16px; height: 16px; accent-color: #a37b24; }
+
+/* Keep the supplied capsule's end caps round while its center fills the form. */
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface .auth-image-submit { --blue-button-height: 60px; position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; gap: 16px; width: 100%; height: var(--blue-button-height); min-height: var(--blue-button-height); padding: 14px 26px; border: 0; border-radius: 20px; overflow: visible; background: none; color: #071a2e; box-shadow: none; filter: drop-shadow(0 3px 3px rgba(40, 70, 105, .12)); transition: transform 180ms ease, filter 180ms ease; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-image-submit::before,
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-image-submit::after { display: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-button-art { position: absolute; z-index: -1; inset: 0; pointer-events: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part { position: absolute; inset-block: 0; overflow: hidden; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-left { left: 0; width: 46px; z-index: 1; -webkit-mask-image: linear-gradient(to right, #000 58%, transparent); mask-image: linear-gradient(to right, #000 58%, transparent); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-right { right: 0; width: 46px; z-index: 1; -webkit-mask-image: linear-gradient(to left, #000 58%, transparent); mask-image: linear-gradient(to left, #000 58%, transparent); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-center { left: 25px; right: 25px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part img { position: absolute; height: 228.31%; width: calc(var(--blue-button-height) * 2.2831); max-width: none; top: -62.56%; object-fit: fill; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-left img { left: calc(var(--blue-button-height) * -.169); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-right img { right: calc(var(--blue-button-height) * -.179); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-center img { left: -100%; width: 300%; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page #btnSubmitText { position: relative; color: #071a2e; font-size: 14px; font-weight: 800; letter-spacing: -.025em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-submit-arrow { width: 21px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-image-submit:hover { transform: translateY(-1px); filter: drop-shadow(0 5px 4px rgba(40, 70, 105, .18)); }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-image-submit:disabled { opacity: .7; cursor: progress; transform: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-demo-hint { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; margin: 0; padding: 10px 12px; border: 1px solid #e6decf; border-radius: 13px; background: #f7f2e7; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .demo-hint-copy { min-width: 0; gap: 4px; color: #55616f; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .demo-hint-label { color: #7b693f; font-size: 8px; font-weight: 800; letter-spacing: .11em; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .demo-hint-copy code { color: #465464; font-size: 10px; font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .btn-demo-autofill { min-height: 44px; padding: 0 11px; border-color: #dfd3ba; border-radius: 10px; color: #705931; background: #fffdf7; font-size: 10px; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .btn-demo-autofill:hover { background: #fff4d5; border-color: #cbb986; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-secondary-links { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-secondary-links a { display: flex; align-items: center; min-height: 44px; color: #65717e; font-size: 11px; font-weight: 600; line-height: 1.5; text-decoration: none; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-secondary-links a:hover { color: #705931; text-decoration: underline; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form-note { padding: 12px; border: 1px solid #e6decf; border-radius: 13px; background: #f7f2e7; color: #606d79; font-size: 12px; line-height: 1.7; }
+body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-error { padding: 12px 14px; border: 1px solid #efc8b4; border-radius: 12px; background: #fff2ec; color: #8b341c; font-size: 12px; line-height: 1.65; }
+
+@media (max-width: 1100px) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual { padding: 28px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface { padding: 30px 28px 22px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-data-icons { grid-template-columns: repeat(4, 34px); gap: 5px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-data-icon { width: 34px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-analysis-flow { gap: 12px; }
+}
+@media (max-width: 900px) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage { width: min(620px, calc(100% - 32px)); min-height: 0; grid-template-columns: minmax(0, 1fr); border-radius: 24px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual { min-height: 0; padding: 28px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-lead { font-size: 28px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-gold { font-size: 44px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-analysis-flow { margin-top: 22px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-signal-row { margin: 20px 0 0; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual-footer { display: none; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface { border-left: 0; border-top: 1px solid #e5dfd3; padding: 30px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .input-shell { font-size: 16px; }
+}
+@media (max-width: 600px) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page { padding: 20px 0 28px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage { width: calc(100% - 24px); border-radius: 22px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual { padding: 22px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-chip { min-height: 24px; padding: 5px 10px; font-size: 8px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-location { margin: 9px 0 13px; font-size: 7px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-lead { font-size: clamp(20px, 5.6vw, 28px); }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-title-gold { margin-top: 3px; font-size: clamp(29px, 8.15vw, 42px); -webkit-text-stroke-width: 1px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(.auth-visual-copy p, .auth-analysis-flow, .auth-signal-row, .auth-brand-line) { display: none; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface { padding: 22px; gap: 14px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head h2 { font-size: 26px; margin: 2px 0 7px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head p { font-size: 12px; line-height: 1.6; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface .auth-image-submit { --blue-button-height: 58px; gap: 12px; padding-inline: 18px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page #btnSubmitText { font-size: 13px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-submit-arrow { width: 19px; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-secondary-links a { font-size: 10px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface { background: #fffdf8; backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page *,
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page *::before,
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page *::after { animation: none !important; transition: none !important; }
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-image-submit:hover { transform: none; }
+}
+
+/* Mobile access: a compact city banner and a clear, comfortable form. */
+@media (max-width: 900px) {
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page {
+    padding: 16px 0 max(24px, env(safe-area-inset-bottom));
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-stage {
+    width: min(620px, calc(100% - 24px));
+    border-radius: 22px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-visual {
+    padding: 18px 20px 20px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page :is(.auth-location, .auth-visual-copy p, .auth-analysis-flow, .auth-signal-row, .auth-brand-line) {
+    display: none;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-role-chip {
+    margin-bottom: 12px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface {
+    padding: 20px;
+    gap: 12px;
+    scroll-margin-top: 90px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface-head h2 {
+    margin-top: 0;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-switch {
+    gap: 24px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form {
+    gap: 12px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .form-shell > span {
+    margin-bottom: 0;
+  }
+
+  /* Place Show inside its input while retaining the native label and button. */
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-label-row {
+    display: contents;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-label-row > span {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-label-row > .btn-pwd-toggle {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    z-index: 1;
+    align-self: center;
+    justify-self: end;
+    height: 44px;
+    min-width: 56px;
+    margin-right: 4px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-form .form-shell:has(.auth-label-row) > .input-shell {
+    grid-column: 1;
+    grid-row: 2;
+    padding-right: 68px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .caps-warning {
+    grid-column: 1;
+    grid-row: 3;
+    margin-top: 0;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-error {
+    padding: 10px 12px;
+    overflow-wrap: anywhere;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface:has(.auth-error) {
+    gap: 10px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-surface .auth-image-submit {
+    --blue-button-height: 56px;
+    gap: 10px;
+    padding-inline: 18px;
+    margin-top: 2px;
+  }
+
+  /* Fit the supplied artwork's current visible bounds without cutting its rim. */
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part img {
+    height: 234.74%;
+    width: calc(var(--blue-button-height) * 2.3474);
+    top: -70.89%;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-left img {
+    left: calc(var(--blue-button-height) * -.1315);
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-right img {
+    right: calc(var(--blue-button-height) * -.1315);
+    transform: scaleX(-1);
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-blue-part-center img {
+    width: 300%;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-demo-hint {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  body:is([data-page="investor-login"], [data-page="admin-login"]) .auth-page .auth-secondary-links {
+    flex-wrap: wrap;
+    gap: 0 12px;
+  }
+}

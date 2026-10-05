@@ -1,0 +1,87 @@
+/* Motion layers preserve the reference poster's geometry. */
+.locus-intro .poster-scene.is-cinematic-active {
+  transform-origin: 50% 45vh;
+  will-change: transform;
+}
+
+.locus-entrance {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  contain: layout paint;
+  pointer-events: auto;
+}
+
+.locus-entrance__curtain {
+  position: absolute;
+  inset: 0;
+  transform: translate3d(0, 100%, 0);
+  will-change: transform;
+}
+
+.locus-entrance__panel {
+  position: absolute;
+  inset-block: 0;
+  width: 50.5%;
+  background: #070e1b;
+  will-change: transform;
+}
+.locus-entrance__panel--left { left: 0; }
+.locus-entrance__panel--right { right: 0; }
+
+.locus-entrance__identity {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  opacity: 0;
+}
+.locus-entrance__brand {
+  color: #f8fafc;
+  font: 800 clamp(30px, 4vw, 54px)/1.1 "Locus Editorial", Arial, sans-serif;
+  letter-spacing: -.055em;
+}
+.locus-entrance__pipeline {
+  color: #ffd348;
+  font: 600 clamp(10px, 1.2vw, 13px)/1.5 "Locus Editorial", Arial, sans-serif;
+  letter-spacing: .2em;
+}
+
+.locus-intro .poster-mce-sweep::after { animation: none; opacity: 0; }
+.locus-intro .is-mce-processing .poster-mce-sweep::after {
+  animation: locus-mce-scan 1050ms cubic-bezier(.22, 1, .36, 1) both;
+}
+.locus-intro .poster-mce-crop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 30% 25%, rgba(223,255,173,.2), transparent 70%);
+  opacity: 0;
+}
+.locus-intro .is-mce-processing .poster-mce-crop::after {
+  animation: locus-mce-process 1050ms ease-out both;
+}
+@keyframes locus-mce-scan {
+  0% { opacity: 0; transform: translateX(-160%); }
+  25% { opacity: .5; }
+  100% { opacity: 0; transform: translateX(210%); }
+}
+@keyframes locus-mce-process {
+  0%, 100% { opacity: 0; }
+  35% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-entrance { display: none; }
+  .locus-intro .poster-scene.is-cinematic-active { transform: none; }
+  .locus-intro .is-mce-processing .poster-mce-sweep::after,
+  .locus-intro .is-mce-processing .poster-mce-crop::after { animation: none; opacity: 0; }
+}

@@ -264,6 +264,12 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if (in_array($pageName, ['admin-dashboard', 'admin-properties', 'admin-showcase'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin.css<?= htmlspecialchars(sfc_asset_version('css/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if (($context['user']['role'] ?? 'guest') === 'admin'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-navigation.css<?= htmlspecialchars(sfc_asset_version('css/admin-navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if (in_array($pageName, ['investor-login', 'admin-login'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/auth-poster.css<?= htmlspecialchars(sfc_asset_version('css/auth-poster.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
     <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body <?= implode(' ', $bodyAttributes) ?>>
