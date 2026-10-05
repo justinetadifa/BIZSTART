@@ -5,206 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f8fafc">
   <meta name="description" content="Explore verified candidate properties, compare site conditions, and simulate CLUP zoning compliance in San Fernando City, La Union.">
-  <title>LOCUS-SF — Discover the place. See the potential.</title>
+  <title>LOCUS-SF | From Site Data to Investment Priority</title>
   <link rel="icon" href="assets/images/webLogoSfc-favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/intro.css?v=4">
   <link rel="stylesheet" href="assets/css/locus-icons.css">
+  <link rel="stylesheet" href="assets/css/landing-poster.css?v=2">
   <script defer src="assets/js/intro.js?v=4"></script>
+  <script defer src="assets/js/landing-hero.js?v=2"></script>
 </head>
 <body class="locus-intro">
-  <div class="intro-scene" id="introScene">
-    <!-- Scenic Canvas Background & GIS Atmosphere -->
+  <div class="intro-scene poster-scene" id="introScene" data-locus-hero>
     <div class="scenic-canvas" aria-hidden="true">
       <img src="assets/images/introlocus-sf.png" alt="" class="scenic-image" width="3120" height="1755" fetchpriority="high">
       <div class="scenic-gradient"></div>
-      <div class="scenic-grid-mesh"></div>
     </div>
 
-    <!-- Elevated Header Navigation Bar -->
-    <header class="intro-header intro-width">
-      <a href="index.php?welcome=off#main-content" class="brand-identity" data-enter aria-label="LOCUS-SF home">
-        <img src="assets/images/webLogoSfc-favicon.png" alt="LOCUS-SF Logo" class="brand-logo-img" width="40" height="40">
-        <div class="brand-text-block">
-          <span class="brand-name">LOCUS-SF</span>
-          <span class="brand-tagline">San Fernando City, La Union</span>
-        </div>
+    <header class="poster-header poster-width">
+      <a href="index.php?welcome=off#main-content" class="poster-brand" data-enter aria-label="LOCUS-SF home">
+        <img src="assets/images/webLogoSfc-favicon.png" alt="" width="44" height="44">
+        <span class="poster-brand-copy">
+          <span class="poster-brand-name">LOCUS-SF</span>
+          <span class="poster-brand-place">San Fernando City, La Union</span>
+        </span>
       </a>
-
-      <div class="header-telemetry-badge" aria-hidden="true">
-        <span class="telemetry-live-dot"></span>
-        <span>CLUP 2025–2035 Active · Spatial Intelligence</span>
-      </div>
-
-      <div class="header-nav-actions">
-        <a href="property-explorer.php" class="header-link-btn">
-          <span>Explore Map</span>
-          <span aria-hidden="true">↗</span>
-        </a>
-        <button type="button" class="header-link-btn header-preview-trigger" id="headerPreviewBtn" data-open-preview="panel-discover">
-          <span class="preview-sparkle" aria-hidden="true">✦</span>
-          <span>Preview Platform</span>
-        </button>
-        <a href="index.php?welcome=off#main-content" class="header-cta-btn" data-enter>
-          <span>Enter Portal</span>
-          <span aria-hidden="true">→</span>
-        </a>
-      </div>
+      <nav class="poster-nav" aria-label="Primary navigation">
+        <a href="property-explorer.php" class="poster-nav-button"><img src="assets/icons/blue_button.png" alt="" width="2000" height="2000"><span>MAP</span></a>
+        <a href="index.php?welcome=off#main-content" class="poster-nav-button" data-enter><img src="assets/icons/blue_button.png" alt="" width="2000" height="2000"><span>ENTER</span></a>
+      </nav>
     </header>
 
-    <!-- Main Hero Stage with Split Two-Column Grid -->
-    <main class="intro-main intro-width">
-      <div class="intro-hero-grid">
-        <!-- Left Column: Authoritative Editorial Story -->
-        <section class="intro-hero-copy" aria-labelledby="introHeadline">
-          <div class="hero-authority-badge">
-            <span class="authority-pulse-dot" aria-hidden="true"></span>
-            <span>City Investment &amp; Planning Gateway</span>
-          </div>
-
-          <h1 class="intro-title" id="introHeadline">
-            <span class="title-line">Discover the place.</span>
-            <span class="title-line title-line--two">See the <span class="potential-gradient">potential.</span></span>
+    <main class="poster-main poster-width" id="main-content">
+      <div class="poster-grid">
+        <section class="poster-copy" aria-labelledby="introHeadline">
+          <p class="poster-eyebrow">CITY INVESTMENT &amp; PLANNING GATEWAY</p>
+          <h1 class="poster-title" id="introHeadline">
+            <span class="poster-title-lead">FROM SITE DATA TO</span>
+            <strong class="poster-title-gold">INVESTMENT PRIORITY</strong>
           </h1>
+          <p class="poster-supporting">Compare candidate sites, evaluate infrastructure, zoning, accessibility, and risk, and identify stronger investment opportunities across San Fernando City.</p>
 
-          <p class="intro-supporting">
-            The premier geospatial intelligence portal for San Fernando City. Compare verified candidate parcels, evaluate corridor infrastructure fit, and simulate real-time CLUP land-use suitability across the city’s primary growth belts.
-          </p>
-
-          <!-- Core Metrics Ticker -->
-          <div class="hero-stats-rail" aria-label="City investment statistics">
-            <div class="stat-pill">
-              <div style="display:inline-flex; align-items:center; gap:6px;">
-                <img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                <span class="stat-val is-amber">18+</span>
-              </div>
-              <span class="stat-lbl">Verified Sites</span>
-            </div>
-            <div class="stat-pill">
-              <div style="display:inline-flex; align-items:center; gap:6px;">
-                <img src="assets/icons/accessibility.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                <span class="stat-val">3</span>
-              </div>
-              <span class="stat-lbl">Strategic Belts</span>
-            </div>
-            <div class="stat-pill">
-              <div style="display:inline-flex; align-items:center; gap:6px;">
-                <img src="assets/icons/clupzoning.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                <span class="stat-val is-emerald">100%</span>
-              </div>
-              <span class="stat-lbl">CLUP Aligned</span>
-            </div>
-            <div class="stat-pill">
-              <div style="display:inline-flex; align-items:center; gap:6px;">
-                <img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                <span class="stat-val">₱14.8B</span>
-              </div>
-              <span class="stat-lbl">Active Pipeline</span>
-            </div>
+          <div class="poster-inputs">
+            <span class="poster-input-label">MULTIPLE SITE DATA</span>
+            <ul class="poster-criteria" aria-label="Site evaluation criteria">
+              <li><button type="button" class="poster-criterion" aria-label="Property information" aria-describedby="criterion-name-0"><span class="poster-icon-art"><img src="assets/icons/propertyinfo.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-0" role="tooltip">Property information</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Utilities" aria-describedby="criterion-name-1"><span class="poster-icon-art"><img src="assets/icons/utilities.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-1" role="tooltip">Utilities</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Infrastructure" aria-describedby="criterion-name-2"><span class="poster-icon-art"><img src="assets/icons/infrastructure.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-2" role="tooltip">Infrastructure</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Points of interest" aria-describedby="criterion-name-3"><span class="poster-icon-art"><img src="assets/icons/pointofinterest.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-3" role="tooltip">Points of interest</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Accessibility" aria-describedby="criterion-name-4"><span class="poster-icon-art"><img src="assets/icons/accessibility.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-4" role="tooltip">Accessibility</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Hazard safety" aria-describedby="criterion-name-5"><span class="poster-icon-art"><img src="assets/icons/hazardsafety.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-5" role="tooltip">Hazard safety</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="CLUP zoning" aria-describedby="criterion-name-6"><span class="poster-icon-art"><img src="assets/icons/clupzoning.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-6" role="tooltip">CLUP zoning</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="BIR zonal value" aria-describedby="criterion-name-7"><span class="poster-icon-art"><img src="assets/icons/birzonalvalue.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-7" role="tooltip">BIR zonal value</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Economic activity" aria-describedby="criterion-name-8"><span class="poster-icon-art"><img src="assets/icons/economicActivity.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-8" role="tooltip">Economic activity</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Fault line proximity" aria-describedby="criterion-name-9"><span class="poster-icon-art"><img src="assets/icons/faultline.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-9" role="tooltip">Fault line proximity</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Flood susceptibility" aria-describedby="criterion-name-10"><span class="poster-icon-art"><img src="assets/icons/floodsusceptible.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-10" role="tooltip">Flood susceptibility</span></button></li>
+              <li><button type="button" class="poster-criterion" aria-label="Site readiness" aria-describedby="criterion-name-11"><span class="poster-icon-art"><img src="assets/icons/sitereadiness.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="criterion-name-11" role="tooltip">Site readiness</span></button></li>
+            </ul>
+            <span class="poster-input-arrow" aria-hidden="true"><span class="poster-arrow-art"><img src="assets/icons/yellow_arrow.png" alt="" width="2000" height="2000"></span></span>
           </div>
-
-          <!-- Hero Actions -->
-          <div class="intro-actions">
-            <a href="index.php?welcome=off#main-content" class="btn-primary-action" id="continueButton" data-enter>
-              <span>Continue to LOCUS-SF</span>
-              <span class="action-arrow" aria-hidden="true">→</span>
-            </a>
-            <button type="button" class="btn-preview-action" id="openPreviewBtn" aria-haspopup="dialog" aria-controls="previewDialogModal" aria-expanded="false" data-open-preview="panel-discover">
-              <span class="preview-sparkle" aria-hidden="true">✦</span>
-              <span>Preview the Platform</span>
-            </button>
-          </div>
-
-          <!-- Quick Shortcuts -->
-          <div class="hero-quick-shortcuts" aria-label="Direct navigation shortcuts">
-            <span>Quick jump:</span>
-            <a href="property-ranking.php" class="shortcut-link">Investment Leaderboard ↗</a>
-            <a href="property-explorer.php" class="shortcut-link">Spatial Map ↗</a>
-            <a href="simulator.php" class="shortcut-link">Zoning Simulator ↗</a>
-          </div>
+          <a href="index.php?welcome=off#main-content" class="poster-cta" id="continueButton" data-hero-continue data-enter role="button">
+            <span>CONTINUE TO LOCUS-SF</span><span aria-hidden="true">&rarr;</span>
+          </a>
         </section>
 
-        <!-- Right Column: Interactive Corridor Telemetry Deck -->
-        <aside class="intro-hero-deck" aria-label="Live Corridor Telemetry">
-          <div class="hero-terminal-card">
-            <div class="terminal-head">
-              <div class="terminal-radar-badge">
-                <span class="telemetry-live-dot"></span>
-                <span>LIVE CORRIDOR TELEMETRY</span>
-              </div>
-              <span class="terminal-focus-label" id="terminalFocusLabel">Poro Point Focus</span>
-            </div>
-
-            <!-- Corridor Selector Row -->
-            <div class="corridor-selector-deck" role="group" aria-label="Corridor selector">
-              <button type="button" class="corridor-chip-btn is-active" data-hero-corridor="poro">
-                <span class="chip-idx">01</span>
-                <span class="chip-name">Poro Point</span>
-              </button>
-              <button type="button" class="corridor-chip-btn" data-hero-corridor="center">
-                <span class="chip-idx">02</span>
-                <span class="chip-name">City Center</span>
-              </button>
-              <button type="button" class="corridor-chip-btn" data-hero-corridor="civic">
-                <span class="chip-idx">03</span>
-                <span class="chip-name">Civic Belt</span>
-              </button>
-            </div>
-
-            <!-- Active Opportunity Showcase Card -->
-            <article class="deck-opportunity-card">
-              <div class="deck-card-media-row">
-                <div class="deck-media-thumb">
-                  <img src="assets/images/landing-FerarenProperty.jpg" alt="Feraren Prime Logistics Lot" id="deckPropImg">
-                  <span class="deck-media-badge">✓ VERIFIED</span>
-                </div>
-                <div class="deck-info-block">
-                  <span class="deck-corridor-tag" id="deckCorridorTag">Poro Point Freeport · Logistics Spine</span>
-                  <h3 class="deck-prop-title" id="deckPropTitle">Feraren Prime Logistics Lot</h3>
-                  <p class="deck-prop-summary" id="deckPropSummary">Direct deep-water port proximity with high-clearance truck turning bays and 3-phase heavy industrial power.</p>
-                </div>
-              </div>
-
-              <!-- Specs Grid inside Deck -->
-              <div class="deck-specs-grid">
-                <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
-                    <img src="assets/icons/propertyinfo.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                    <span>Lot Area</span>
-                  </span>
-                  <strong class="deck-spec-val" id="deckPropArea">2,400 m²</strong>
-                </div>
-                <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
-                    <img src="assets/icons/iai.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                    <span>IAI Score</span>
-                  </span>
-                  <strong class="deck-spec-val is-score" id="deckPropScore">94.2</strong>
-                </div>
-                <div class="deck-spec-cell">
-                  <span class="deck-spec-lbl" style="display:inline-flex; align-items:center; gap:4px;">
-                    <img src="assets/icons/birzonalvalue.png" alt="" class="locus-icon locus-icon--xs" loading="lazy" decoding="async">
-                    <span>Guide Price</span>
-                  </span>
-                  <strong class="deck-spec-val" id="deckPropGuide">₱78.0M</strong>
-                </div>
-              </div>
-
-              <!-- Action Button inside Deck -->
-              <button type="button" class="deck-action-btn" data-open-preview="panel-discover">
-                <span>Inspect in Platform Preview</span>
-                <span aria-hidden="true">↗</span>
-              </button>
-            </article>
-
-            <!-- Signal Ticker Bar -->
-            <div class="deck-signal-ticker">
-              <span class="telemetry-live-dot" aria-hidden="true"></span>
-              <span id="deckSignalText">High demand for cold chain & seaport warehousing detected.</span>
+        <aside class="poster-analysis" aria-label="Multiple site data feeds Multi-Criteria Evaluation, producing the Investment Attractiveness Index. The supplied IAI graphic illustrates a score of 95 out of 100.">
+          <div class="poster-mce-stage" data-criterion-orbit role="group" aria-label="Criteria around the MCE analysis">
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="0" style="--static-x:50.00%;--static-y:9.00%" aria-label="Property information" aria-describedby="orbit-name-0"><span class="poster-icon-art"><img src="assets/icons/propertyinfo.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-0" role="tooltip">Property information</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="1" style="--static-x:71.50%;--static-y:14.49%" aria-label="Utilities" aria-describedby="orbit-name-1"><span class="poster-icon-art"><img src="assets/icons/utilities.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-1" role="tooltip">Utilities</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="2" style="--static-x:87.24%;--static-y:29.50%" aria-label="Infrastructure" aria-describedby="orbit-name-2"><span class="poster-icon-art"><img src="assets/icons/infrastructure.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-2" role="tooltip">Infrastructure</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="3" style="--static-x:93.00%;--static-y:50.00%" aria-label="Points of interest" aria-describedby="orbit-name-3"><span class="poster-icon-art"><img src="assets/icons/pointofinterest.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-3" role="tooltip">Points of interest</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="4" style="--static-x:87.24%;--static-y:70.50%" aria-label="Accessibility" aria-describedby="orbit-name-4"><span class="poster-icon-art"><img src="assets/icons/accessibility.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-4" role="tooltip">Accessibility</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="5" style="--static-x:71.50%;--static-y:85.51%" aria-label="Hazard safety" aria-describedby="orbit-name-5"><span class="poster-icon-art"><img src="assets/icons/hazardsafety.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-5" role="tooltip">Hazard safety</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="6" style="--static-x:50.00%;--static-y:91.00%" aria-label="CLUP zoning" aria-describedby="orbit-name-6"><span class="poster-icon-art"><img src="assets/icons/clupzoning.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-6" role="tooltip">CLUP zoning</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="7" style="--static-x:28.50%;--static-y:85.51%" aria-label="BIR zonal value" aria-describedby="orbit-name-7"><span class="poster-icon-art"><img src="assets/icons/birzonalvalue.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-7" role="tooltip">BIR zonal value</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="8" style="--static-x:12.76%;--static-y:70.50%" aria-label="Economic activity" aria-describedby="orbit-name-8"><span class="poster-icon-art"><img src="assets/icons/economicActivity.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-8" role="tooltip">Economic activity</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="9" style="--static-x:7.00%;--static-y:50.00%" aria-label="Fault line proximity" aria-describedby="orbit-name-9"><span class="poster-icon-art"><img src="assets/icons/faultline.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-9" role="tooltip">Fault line proximity</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="10" style="--static-x:12.76%;--static-y:29.50%" aria-label="Flood susceptibility" aria-describedby="orbit-name-10"><span class="poster-icon-art"><img src="assets/icons/floodsusceptible.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-10" role="tooltip">Flood susceptibility</span></button>
+            <button type="button" class="poster-orbit-icon" data-orbit-icon data-orbit-index="11" style="--static-x:28.50%;--static-y:14.49%" aria-label="Site readiness" aria-describedby="orbit-name-11"><span class="poster-icon-art"><img src="assets/icons/sitereadiness.png" alt="" width="2000" height="2000" decoding="sync"></span><span class="poster-icon-name" id="orbit-name-11" role="tooltip">Site readiness</span></button>
+            <div class="poster-mce-graphic">
+              <div class="poster-mce-crop"><img src="assets/icons/mce_graphics.png" alt="MCE: Multi-Criteria Evaluation analyzes zoning, utilities, and hazard safety." width="2000" height="2000" fetchpriority="high"></div>
+              <span class="poster-mce-sweep" aria-hidden="true"></span>
             </div>
           </div>
+          <span class="poster-output-arrow" aria-hidden="true"><span class="poster-arrow-art"><img src="assets/icons/yellow_arrow.png" alt="" width="2000" height="2000"></span></span>
+          <figure class="poster-iai-stage" data-iai-stage>
+            <img src="assets/icons/iai_graphics.png" alt="IAI: Investment Attractiveness Index. Illustrated score: 95 out of 100. Inputs include access, titles, CLUP, BIR valuation, roads, and utilities." width="2000" height="2000" data-iai-graphic>
+            <span class="poster-iai-progress" data-iai-progress aria-hidden="true" hidden></span>
+          </figure>
         </aside>
       </div>
     </main>
