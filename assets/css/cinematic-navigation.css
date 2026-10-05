@@ -1,0 +1,148 @@
+/* The standalone gateway shares the application's pale glass navigation. */
+.locus-intro .poster-header {
+  --cinematic-nav-ink: #1e293b;
+  --cinematic-nav-muted: #526176;
+  width: min(1280px, calc(100% - 48px));
+  min-height: 76px;
+  margin-top: max(14px, env(safe-area-inset-top));
+  padding: 10px 16px;
+  gap: 20px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 28px;
+  background: linear-gradient(120deg, #f9fbfe, #edf2f9);
+  box-shadow: 0 12px 36px rgba(39, 58, 86, .08), 0 2px 5px rgba(39, 58, 86, .035),
+    0 0 0 1px rgba(96, 116, 146, .09), inset 0 1px 0 rgba(255, 255, 255, .95);
+  color: var(--cinematic-nav-ink);
+}
+
+.locus-intro .poster-header .poster-brand {
+  min-width: 0;
+  min-height: 44px;
+  gap: 11px;
+  border-radius: 16px;
+}
+
+.locus-intro .poster-header .poster-brand > img {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, .92);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .92), rgba(248, 249, 253, .5));
+  box-shadow: 0 2px 7px rgba(49, 68, 100, .045), inset 0 1px 0 #fff;
+}
+
+.locus-intro .poster-header .poster-brand-copy { gap: 4px; }
+.locus-intro .poster-header .poster-brand-name {
+  color: var(--cinematic-nav-ink);
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -.04em;
+}
+.locus-intro .poster-header .poster-brand-place {
+  max-width: none;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  line-height: 1.4;
+}
+
+.locus-intro .poster-header .poster-nav {
+  flex-shrink: 0;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid rgba(83, 111, 154, .055);
+  border-radius: 22px;
+  background: rgba(71, 103, 151, .04);
+  box-shadow: inset 0 1px 2px rgba(51, 76, 112, .025), 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+.locus-intro .poster-header .poster-nav-button {
+  width: auto;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 10px 18px;
+  aspect-ratio: auto;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  color: var(--cinematic-nav-muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .015em;
+  filter: none;
+  transform: none;
+  transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.locus-intro .poster-header .poster-nav-button img { display: none; }
+.locus-intro .poster-header .poster-nav-button:last-child {
+  border-color: rgba(255, 255, 255, .95);
+  background: linear-gradient(160deg, rgba(255, 255, 255, .94), rgba(216, 231, 253, .78));
+  color: #1d549e;
+  box-shadow: 0 2px 8px rgba(47, 79, 124, .065), inset 0 1px 0 #fff;
+}
+.locus-intro .poster-header .poster-nav-button:hover {
+  background-color: rgba(255, 255, 255, .78);
+  color: #1d549e;
+  box-shadow: inset 0 1px 0 #fff, 0 3px 10px rgba(51, 76, 112, .065);
+  filter: none;
+  transform: none;
+}
+.locus-intro .poster-header .poster-nav-button:active {
+  background-color: #dce9fa;
+  box-shadow: inset 0 1px 3px rgba(47, 79, 124, .08);
+}
+.locus-intro .poster-header a:focus-visible {
+  outline: 2px solid #387ce0;
+  outline-offset: 3px;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .locus-intro .poster-header {
+    background: linear-gradient(120deg, rgba(255, 255, 255, .78), rgba(239, 245, 253, .65) 48%, rgba(229, 238, 250, .72));
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+  }
+}
+
+@media (max-width: 540px) {
+  .locus-intro .poster-header {
+    width: calc(100% - 24px);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 24px;
+  }
+  .locus-intro .poster-header .poster-brand {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+  .locus-intro .poster-header .poster-brand-name { font-size: 17px; }
+  .locus-intro .poster-header .poster-brand-place { font-size: 8px; }
+  .locus-intro .poster-header .poster-nav { width: 100%; }
+  .locus-intro .poster-header .poster-nav-button { flex: 1; min-width: 0; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .locus-intro .poster-header {
+    background: linear-gradient(120deg, #f9fbfe, #edf2f9);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .locus-intro .poster-header .poster-nav { background: #eaf0f8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-intro .poster-header a { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .locus-intro .poster-header,
+  .locus-intro .poster-header .poster-nav,
+  .locus-intro .poster-header .poster-nav-button { border: 1px solid ButtonText; }
+  .locus-intro .poster-header a:focus-visible { outline-color: Highlight; }
+}

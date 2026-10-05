@@ -119,7 +119,6 @@
     entrance = null;
   }
 
-  continueLink?.addEventListener('click', playCinematicEntrance);
   window.addEventListener('pagehide', cancelEntrance);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelEntrance(); });
 

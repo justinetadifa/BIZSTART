@@ -224,28 +224,11 @@ sfc_render_header($context, 'landing');
         </button>
       </div>
 
-      <!-- Geospatial Planning Telemetry Header -->
-      <div class="hero-telemetry-overlay" aria-hidden="true">
-        <span class="telemetry-coord">16°37′03″N · 120°19′11″E</span>
-        <span class="telemetry-clup">CLUP COMPREHENSIVE ZONING 2025–2035</span>
-        <span class="telemetry-datum">SURVEY ELEVATION +14M TO +82M</span>
-      </div>
-
       <div class="mouse-glow"></div>
     </div>
 
     <div class="site-shell hero-home-grid hero-home-grid-refined">
       <div class="hero-home-copy hero-home-copy-refined">
-        <div class="hero-prelude">
-          <div class="hero-prelude-copy">
-            <span class="hero-authority-seal">
-              <span class="hero-live-beacon-dot"></span>
-              <span class="eyebrow">City Investment Gateway</span>
-            </span>
-            <span class="hero-location-seal">San Fernando, La Union</span>
-          </div>
-        </div>
-
         <h1 class="hero-headline" id="heroHeadline">Find your next investment in <span class="hero-headline-place">San Fernando.</span></h1>
         <p class="hero-subhead" id="heroFocusSummary">Corridor fit, verified readiness, and local demand now sit inside one calmer first read of the city.</p>
 
@@ -276,28 +259,30 @@ sfc_render_header($context, 'landing');
         </div>
 
         <div class="hero-actions hero-command-actions hero-home-actions">
-          <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-primary">
+          <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-primary locus-blue-button">
+            <?= sfc_blue_button_art($context) ?>
             <span class="btn-shell-icon"><?= sfc_icon('ranking') ?></span>
             <span>View Top Opportunities</span>
-            <svg class="btn-arrow-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+            <svg class="btn-arrow-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
           </a>
           <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-secondary">
             <span class="btn-shell-icon"><?= sfc_icon('explorer') ?></span>
             <span>Explore Spatial Map</span>
           </a>
           <a href="<?= htmlspecialchars(sfc_path('/locus-cinematic.html?preview=open'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-hero is-preview" id="openPlatformPreviewHomeBtn" title="Launch Interactive Platform Preview">
-            <span class="btn-shell-icon"><?= sfc_icon('simulator') ?></span>
             <span>Platform Dossier</span>
           </a>
         </div>
 
         <div class="market-ticker-shell hero-sentiment-rail" tabindex="0" aria-label="City corridor insights. Focus here to pause scrolling.">
           <div class="hero-sentiment-top">
-            <span class="radar-live-indicator"><span class="radar-dot"></span> LIVE RADAR</span>
-            <span class="hero-sentiment-label">Corridor Feed: <strong id="heroTickerMeta">Logistics lens</strong></span>
+            <span class="radar-live-indicator"><span class="radar-dot"></span>Live radar</span>
+            <span class="hero-sentiment-label">Corridor feed<strong id="heroTickerMeta">Logistics lens</strong></span>
           </div>
-          <div class="market-ticker-track hero-sentiment-track" id="heroSentimentTicker">
-            <span class="market-ticker-item">Loading verified corridor signals...</span>
+          <div class="hero-sentiment-viewport">
+            <div class="market-ticker-track hero-sentiment-track" id="heroSentimentTicker">
+              <span class="market-ticker-item">Loading verified corridor signals...</span>
+            </div>
           </div>
         </div>
       </div>

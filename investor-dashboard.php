@@ -21,7 +21,10 @@ sfc_render_header($context, 'investor');
       <p>Explore candidate investment areas, compare suitability, and review CLUP compliance before advancing an opportunity.</p>
     </div>
     <div class="intro-actions">
-      <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-primary">Explore Candidate Sites</a>
+      <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell locus-blue-button">
+        <?= sfc_blue_button_art($context) ?>
+        <span>Explore Candidate Sites</span>
+      </a>
       <a href="<?= htmlspecialchars(sfc_path('/compare-decision.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Compare Board</a>
     </div>
   </section>

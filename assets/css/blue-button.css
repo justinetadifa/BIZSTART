@@ -1,0 +1,152 @@
+/* Selected primary actions share the supplied artwork without stretching its caps. */
+body[data-page] .locus-blue-button,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button {
+  --blue-button-height: 56px;
+  --blue-button-cap: calc(var(--blue-button-height) * .82);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--blue-button-height);
+  min-height: var(--blue-button-height);
+  padding: 0 26px;
+  border: 0;
+  border-radius: 999px;
+  overflow: visible;
+  background: #8fbcf0;
+  color: #092744;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 5px rgba(31, 76, 122, .13));
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -.015em;
+  line-height: 1.35;
+  text-transform: none;
+  text-decoration: none;
+  text-shadow: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+body[data-page] .locus-blue-button::before,
+body[data-page] .locus-blue-button::after,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button::before,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button::after { display: none; }
+
+body[data-page] .locus-blue-button > :not(.blue-button-art) { position: relative; z-index: 1; }
+body[data-page] .locus-blue-button > span:not(.blue-button-art):not(.btn-shell-icon) { min-width: 0; white-space: nowrap; }
+body[data-page] .locus-blue-button > .blue-button-art,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button > .blue-button-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: auto;
+  height: auto;
+  border-radius: inherit;
+  pointer-events: none;
+}
+body[data-page] .locus-blue-button .blue-button-slice { position: absolute; inset-block: 0; overflow: hidden; }
+body[data-page] .locus-blue-button .blue-button-slice-left,
+body[data-page] .locus-blue-button .blue-button-slice-right { width: var(--blue-button-cap); z-index: 1; }
+body[data-page] .locus-blue-button .blue-button-slice-left {
+  left: 0;
+  -webkit-mask-image: linear-gradient(to right, #000 58%, transparent);
+  mask-image: linear-gradient(to right, #000 58%, transparent);
+}
+body[data-page] .locus-blue-button .blue-button-slice-right {
+  right: 0;
+  -webkit-mask-image: linear-gradient(to left, #000 58%, transparent);
+  mask-image: linear-gradient(to left, #000 58%, transparent);
+}
+body[data-page] .locus-blue-button .blue-button-slice-center { left: calc(var(--blue-button-height) * .4); right: calc(var(--blue-button-height) * .4); }
+body[data-page] .locus-blue-button .blue-button-slice img {
+  position: absolute;
+  top: -70.89%;
+  height: 234.74%;
+  width: calc(var(--blue-button-height) * 2.3474);
+  max-width: none;
+  object-fit: fill;
+}
+body[data-page] .locus-blue-button .blue-button-slice-left img { left: calc(var(--blue-button-height) * -.1315); }
+body[data-page] .locus-blue-button .blue-button-slice-right img { right: calc(var(--blue-button-height) * -.1315); transform: scaleX(-1); }
+body[data-page] .locus-blue-button .blue-button-slice-center img { left: -100%; width: 300%; }
+
+body[data-page] .locus-blue-button .btn-shell-icon,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button .btn-shell-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  box-shadow: none;
+  transform: none;
+}
+body[data-page] .locus-blue-button :is(.btn-arrow-icon, .adm-btn-arrow) { flex: none; transform: none; transition: transform 180ms ease; }
+
+@media (hover: hover) {
+  body[data-page] .locus-blue-button:hover,
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:hover {
+    background: #8fbcf0;
+    color: #092744;
+    border: 0;
+    box-shadow: none;
+    transform: translateY(-1px);
+    filter: drop-shadow(0 5px 7px rgba(31, 76, 122, .18));
+  }
+  body[data-page] .locus-blue-button:hover :is(.btn-arrow-icon, .adm-btn-arrow),
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:hover .btn-arrow-icon { transform: translateX(2px); }
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:hover .btn-shell-icon { transform: none; background: none; }
+}
+body[data-page] .locus-blue-button:active,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:active { transform: translateY(1px); }
+body[data-page] .locus-blue-button:focus-visible,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:focus-visible { outline: 2px solid #17569e; outline-offset: 4px; }
+body[data-page] .locus-blue-button:disabled { opacity: .65; cursor: progress; transform: none; }
+
+/* Legacy landing styles force a different button shape and type below 769px. */
+@media (max-width: 768px) {
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button {
+    border-radius: 999px !important;
+    font-size: 14px !important;
+    letter-spacing: -.015em !important;
+  }
+}
+
+@media (max-width: 600px) {
+  body[data-page] .locus-blue-button,
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button {
+    --blue-button-height: 52px;
+    gap: 9px;
+    font-size: 13px;
+    padding: 0 18px;
+  }
+  /* The landing page's phone layout defines these dimensions with !important. */
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button {
+    min-height: var(--blue-button-height) !important;
+    padding: 0 18px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-page] .locus-blue-button,
+  body[data-page] .locus-blue-button *,
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button { transition: none !important; animation: none !important; }
+  body[data-page] .locus-blue-button:is(:hover, :active),
+  body[data-page] .locus-blue-button:is(:hover, :active) :is(.btn-arrow-icon, .adm-btn-arrow),
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:is(:hover, :active),
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button:is(:hover, :active) .btn-arrow-icon { transform: none; }
+}
+
+@media print {
+  body[data-page] .locus-blue-button .blue-button-art { display: none; }
+  body[data-page] .locus-blue-button,
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button { background: #d9e9fb; color: #092744; filter: none; }
+}

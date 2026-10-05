@@ -61,7 +61,8 @@ $initialProperties = \App\Support\JsonData::properties();
 
         <!-- Action Commands: Tactile Apple Buttons -->
         <div class="admin-hero-actions no-print">
-          <a href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>" class="adm-btn adm-btn-primary" id="btnManageLandParcels">
+          <a href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>" class="adm-btn locus-blue-button" id="btnManageLandParcels">
+            <?= sfc_blue_button_art($context) ?>
             <svg class="adm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
             <span>Manage Land Parcels</span>
             <span class="adm-btn-arrow" aria-hidden="true">&rarr;</span>

@@ -1,0 +1,376 @@
+/* ==========================================================================
+   Landing hero — controls styled after the admin navigation bar.
+   Same material recipe as glass-navigation.css: frosted white glass,
+   blur(28px) saturate(180%), a crisp white edge, quiet shadows and a
+   blue selection state. The primary blue button keeps its own artwork.
+   ========================================================================== */
+
+body[data-page="landing"] .hero-home-refined {
+  --nav-ink: #1e293b;
+  --nav-muted: #526176;
+  --nav-accent: #1d549e;
+  --nav-accent-icon: #2865b7;
+  --glass-fill: linear-gradient(120deg, rgba(255, 255, 255, .72), rgba(239, 245, 253, .5) 48%, rgba(229, 238, 250, .6));
+  --glass-fill-hover: linear-gradient(120deg, rgba(255, 255, 255, .84), rgba(243, 248, 255, .64) 48%, rgba(235, 243, 253, .74));
+  --glass-selection: linear-gradient(160deg, rgba(255, 255, 255, .94), rgba(216, 231, 253, .78));
+  --glass-blur: blur(28px) saturate(180%);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, .26), transparent 38%, transparent 76%, rgba(203, 221, 246, .12));
+  --glass-border: rgba(255, 255, 255, .88);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(103, 128, 163, .1);
+  --glass-shadow: 0 12px 36px rgba(10, 18, 32, .22), 0 2px 6px rgba(10, 18, 32, .12), 0 0 0 1px rgba(96, 116, 146, .09);
+  --glass-shadow-hover: 0 16px 42px rgba(10, 18, 32, .28), 0 3px 8px rgba(10, 18, 32, .14), 0 0 0 1px rgba(96, 116, 146, .12);
+  --glass-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* ---------- Sector selector: glass tray with a white selection thumb ---------- */
+body[data-page="landing"] .hero-home-refined .hero-focus-row {
+  isolation: isolate;
+  gap: 3px;
+  padding: 5px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+body[data-page="landing"] .hero-home-refined .hero-focus-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+  pointer-events: none;
+}
+
+body[data-page="landing"] .hero-home-refined .hero-focus-chip {
+  min-height: 54px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  border-radius: 19px;
+  background: transparent;
+  box-shadow: none;
+}
+body[data-page="landing"] .hero-home-refined .hero-focus-chip .chip-text { color: var(--nav-muted); font-weight: 550; letter-spacing: -.015em; }
+body[data-page="landing"] .hero-home-refined .hero-focus-chip .chip-num { color: #7a8aa1; font-weight: 600; }
+
+body[data-page="landing"] .hero-home-refined .hero-focus-chip:hover {
+  background: rgba(255, 255, 255, .42);
+  border-color: rgba(255, 255, 255, .7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85);
+  transform: translateY(-1px);
+}
+body[data-page="landing"] .hero-home-refined .hero-focus-chip:hover .chip-text { color: var(--nav-accent); }
+body[data-page="landing"] .hero-home-refined .hero-focus-chip:hover .chip-num { color: var(--nav-accent-icon); }
+
+body[data-page="landing"] .hero-home-refined .hero-focus-chip.is-active {
+  background: var(--glass-selection);
+  border-color: rgba(255, 255, 255, .95);
+  box-shadow: 0 2px 8px rgba(47, 79, 124, .1), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(145, 177, 220, .14);
+  transform: none;
+}
+body[data-page="landing"] .hero-home-refined .hero-focus-chip.is-active .chip-text { color: var(--nav-accent); font-weight: 600; }
+body[data-page="landing"] .hero-home-refined .hero-focus-chip.is-active .chip-num { color: var(--nav-accent-icon); }
+
+/* Sliding thumb used by the focus-marker script. */
+body[data-page="landing"] .hero-home-refined .hero-focus-row.has-focus-marker::before {
+  border: 1px solid rgba(255, 255, 255, .95);
+  border-radius: 19px;
+  background: var(--glass-selection);
+  box-shadow: 0 2px 8px rgba(47, 79, 124, .1), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(145, 177, 220, .14);
+}
+body[data-page="landing"] .hero-home-refined .hero-focus-row.has-focus-marker .hero-focus-chip.is-active {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* ---------- Action buttons ---------- */
+body[data-page="landing"] .hero-home-refined .hero-command-actions { gap: 12px; }
+
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview {
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+  min-height: 56px;
+  padding: 0 26px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  color: var(--nav-ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+  text-shadow: none;
+  transition: transform 320ms var(--glass-ease), background 240ms ease, border-color 240ms ease, box-shadow 320ms var(--glass-ease), color 200ms ease;
+}
+
+/* Top-light sheen, same gradient as the admin nav shell. */
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary::before,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview::before {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--glass-sheen);
+  pointer-events: none;
+}
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary::after,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview::after { display: none; }
+
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary:hover,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview:hover {
+  background: var(--glass-fill-hover);
+  border-color: #fff;
+  box-shadow: var(--glass-edge), var(--glass-shadow-hover);
+  color: var(--nav-accent);
+  transform: translateY(-2px);
+}
+
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary:active,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview:active {
+  transform: scale(.975);
+  box-shadow: var(--glass-edge), 0 4px 14px rgba(10, 18, 32, .2);
+  transition-duration: 90ms;
+}
+
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary:focus-visible,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview:focus-visible {
+  outline: 2px solid #387ce0;
+  outline-offset: 3px;
+}
+
+/* Icon sits directly on the glass — no tile behind it. */
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary .btn-shell-icon,
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary:hover .btn-shell-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--nav-accent-icon);
+  transform: none;
+}
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary .btn-shell-icon svg { width: 100%; height: 100%; }
+
+/* Primary blue button: same capsule footprint as its glass siblings. */
+body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button { width: 100%; }
+
+@media (max-width: 768px) {
+  body[data-page="landing"] .hero-home-refined .hero-focus-chip { min-height: 52px !important; border-radius: 17px !important; padding: 9px 12px !important; }
+  body[data-page="landing"] .hero-home-refined .hero-focus-row { border-radius: 22px; padding: 5px !important; gap: 3px !important; }
+  body[data-page="landing"] .hero-home-refined .hero-focus-row.has-focus-marker::before { border-radius: 17px; }
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary,
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-preview {
+    min-height: 54px !important;
+    padding: 0 22px !important;
+    border-radius: 999px !important;
+    font-size: 14px !important;
+  }
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.is-secondary .btn-shell-icon { width: 20px !important; height: 20px !important; }
+}
+
+/* Same fallbacks the admin nav uses. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero:is(.is-secondary, .is-preview),
+  body[data-page="landing"] .hero-home-refined .hero-focus-row { background: #eef3fa; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero:is(.is-secondary, .is-preview),
+  body[data-page="landing"] .hero-home-refined .hero-focus-row { background: #f2f5fa; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero:is(.is-secondary, .is-preview)::before,
+  body[data-page="landing"] .hero-home-refined .hero-focus-row::after { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero:is(.is-secondary, .is-preview) { transition: none; }
+  body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero:is(.is-secondary, .is-preview):is(:hover, :active) { transform: none; }
+}
+
+/* ==========================================================================
+   Live radar rail — a quiet glass strip instead of a stack of pills.
+   Plain sentence-case labels, one hairline under the header, and the
+   headlines run as a single line separated by slashes.
+   ========================================================================== */
+
+body[data-page="landing"] .hero-home-refined .market-ticker-shell.hero-sentiment-rail {
+  isolation: isolate;
+  width: 100%;
+  max-width: 540px;
+  margin: 24px 0 0;
+  padding: 14px 18px 15px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .04));
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .24), 0 10px 30px rgba(8, 10, 16, .26);
+  -webkit-mask-image: none;
+  mask-image: none;
+  overflow: hidden;
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail::before,
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail::after { display: none; }
+
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 11px;
+  padding: 0 0 11px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .11);
+  background: none;
+}
+
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .radar-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #86dfb8;
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .radar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4ade9b;
+  box-shadow: 0 0 0 0 rgba(74, 222, 155, .45);
+  animation: radarRing 2.6s ease-out infinite;
+}
+@keyframes radarRing {
+  0%   { box-shadow: 0 0 0 0 rgba(74, 222, 155, .45); }
+  70%  { box-shadow: 0 0 0 6px rgba(74, 222, 155, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 222, 155, 0); }
+}
+
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-label {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgba(255, 255, 255, .58);
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-label strong {
+  margin-left: 8px;
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, .22);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #fff;
+}
+
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  min-width: max-content;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, .8);
+  animation-duration: 70s;
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-viewport .market-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, .8);
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.5;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-viewport .market-ticker-item::after {
+  content: "/";
+  display: inline-block;
+  margin: 0 16px;
+  color: rgba(255, 255, 255, .26);
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  body[data-page="landing"] .hero-home-refined .market-ticker-shell.hero-sentiment-rail { max-width: none; padding: 13px 16px 14px; border-radius: 18px; }
+  body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-label { font-size: 11px; }
+  body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-label strong { font-size: 11px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body[data-page="landing"] .hero-home-refined .market-ticker-shell.hero-sentiment-rail { background: #2b2a26; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .radar-dot { animation: none; }
+  body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-track { animation: none; }
+  body[data-page="landing"] .hero-home-refined .hero-sentiment-rail .hero-sentiment-viewport { overflow-x: auto; scrollbar-width: none; }
+}
+
+/* ==========================================================================
+   Hero headline — Poppins ExtraBold, all caps, with the yellow line
+   outlined in white (a dark outline disappears on the hero photo).
+   ========================================================================== */
+
+body[data-page="landing"] .hero-home-refined .hero-home-copy h1.hero-headline {
+  max-width: none;
+  font-family: "Poppins", "Inter", "Segoe UI", sans-serif;
+  font-size: clamp(36px, 4.2vw, 58px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  margin: 0 0 24px;
+  color: #fffdf8;
+  text-shadow: none;
+}
+body[data-page="landing"] .hero-home-refined .hero-home-copy h1.hero-headline .hero-headline-place {
+  display: block;
+  margin-top: .02em;
+  font-weight: 900;
+  color: #ffc20e;
+  -webkit-text-fill-color: #ffc20e;
+  -webkit-text-stroke: .09em #fff;
+  paint-order: stroke fill;
+  text-shadow: none;
+}
+
+@media (max-width: 768px) {
+  body[data-page="landing"] .hero-home-refined .hero-home-copy h1.hero-headline {
+    font-size: clamp(30px, 8.6vw, 44px) !important;
+    line-height: 1.08 !important;
+    letter-spacing: -.015em !important;
+    margin: 0 0 20px !important;
+  }
+}

@@ -176,6 +176,16 @@ function sfc_domain_icon(string $key, string $size = 'md', string $class = '', b
     return $img;
 }
 
+function sfc_blue_button_art(array $context): string
+{
+    $imageUrl = htmlspecialchars($context['assetBase'] . '/icons/blue_button.png', ENT_QUOTES, 'UTF-8');
+    $art = '<span class="blue-button-art" aria-hidden="true">';
+    foreach (['left', 'center', 'right'] as $part) {
+        $art .= '<span class="blue-button-slice blue-button-slice-' . $part . '"><img src="' . $imageUrl . '" alt="" width="2000" height="2000"></span>';
+    }
+    return $art . '</span>';
+}
+
 function sfc_render_head(string $title, array $context, array $bodyData = []): void
 {
     $pageName = (string) ($bodyData['page'] ?? '');
@@ -214,7 +224,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="apple-touch-icon" sizes="180x180" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8">
     <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <?php if ($pageName === 'admin-dashboard'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/leaflet/leaflet.css">
@@ -264,12 +274,16 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if (in_array($pageName, ['admin-dashboard', 'admin-properties', 'admin-showcase'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin.css<?= htmlspecialchars(sfc_asset_version('css/admin.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
-  <?php if (($context['user']['role'] ?? 'guest') === 'admin'): ?>
-  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-navigation.css<?= htmlspecialchars(sfc_asset_version('css/admin-navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
-  <?php endif; ?>
   <?php if (in_array($pageName, ['investor-login', 'admin-login'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/auth-poster.css<?= htmlspecialchars(sfc_asset_version('css/auth-poster.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if (in_array($pageName, ['landing', 'investor-dashboard', 'admin-dashboard'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/blue-button.css<?= htmlspecialchars(sfc_asset_version('css/blue-button.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if ($pageName === 'landing'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/landing-glass.css<?= htmlspecialchars(sfc_asset_version('css/landing-glass.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/glass-navigation.css<?= htmlspecialchars(sfc_asset_version('css/glass-navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
     <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body <?= implode(' ', $bodyAttributes) ?>>
@@ -355,7 +369,7 @@ function sfc_render_header(array $context, string $active = ''): void
     $moreLabel = $isLanding ? 'Collections' : 'More';
     $guestCtaLabel = $isLanding ? 'Choose Workspace' : 'Enter Platform';
     ?>
-  <header class="site-header <?= $role === 'admin' ? 'admin-site-header' : '' ?>">
+  <header class="site-header glass-site-header <?= $role === 'admin' ? 'admin-site-header' : '' ?>">
     <div class="site-shell nav-shell">
       <div class="brand-link">
         <button
