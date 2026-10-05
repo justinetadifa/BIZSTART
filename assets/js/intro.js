@@ -7,136 +7,39 @@
   const sessionKey = `locus-sf.cinematic:${location.pathname.replace(/\/[^/]*$/, '')}`;
   let navigating = false;
   let exitTimer;
-  let navigationHref;
-  let entrance;
-  const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-  function playLaunchSonic() {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const now = ctx.currentTime;
-
-      // Primary rising resonance
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(440, now);
-      osc1.frequency.exponentialRampToValueAtTime(880, now + 0.45);
-      gain1.gain.setValueAtTime(0.04, now);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.6);
-
-      // High harmonic bell shimmer
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(659.25, now + 0.06);
-      osc2.frequency.exponentialRampToValueAtTime(1318.5, now + 0.48);
-      gain2.gain.setValueAtTime(0.02, now + 0.06);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.58);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.06);
-      osc2.stop(now + 0.6);
-
-      setTimeout(() => ctx.close().catch(() => {}), 700);
-    } catch (_) {}
+  // Native URLs remain usable without scripts, storage, or successful animations.
+  function finishNavigation() {
+    clearTimeout(exitTimer);
+    if (continueLink) {
+      location.assign(continueLink.href);
+    } else {
+      location.assign('index.php?welcome=off#main-content');
+    }
   }
 
-  function getOrCreateWarpOverlay() {
-    let overlay = document.getElementById('locusSpatialWarp');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'locusSpatialWarp';
-      overlay.className = 'locus-warp-overlay';
-      overlay.setAttribute('aria-hidden', 'true');
-      overlay.innerHTML = `
-        <div class="locus-warp-curtain"></div>
-        <div class="locus-warp-scanner"></div>
-        <div class="locus-warp-horizon"></div>
-        <div class="locus-warp-hud">
-          <span class="locus-warp-badge">
-            <span class="locus-warp-dot"></span>
-            LOCUS-SF SPATIAL ENGINE
-          </span>
-          <h2 class="locus-warp-title">Entering City Investment Atlas</h2>
-          <span class="locus-warp-coords">16°37′03″N · 120°19′11″E · SAN FERNANDO</span>
-          <div class="locus-warp-progress-track">
-            <div class="locus-warp-progress-bar"></div>
-          </div>
-        </div>
-      `;
-      document.body.append(overlay);
-    }
-    return overlay;
-  }
-
-  function proceedToHeroSection(event, sourceElement) {
-    if (event) event.preventDefault();
-    if (navigating) return;
-    navigating = true;
-
-    try {
-      sessionStorage.setItem('locus_hero_arriving', '1');
-      sessionStorage.setItem(sessionKey, '1');
-    } catch (_) {}
-
-    const targetHref = sourceElement?.getAttribute('href') || 'index.php?welcome=off&transit=1#main-content';
-
-    // Visual button trigger feedback
-    if (sourceElement) {
-      sourceElement.classList.add('is-firing');
-      const textSpan = sourceElement.querySelector('span:first-child');
-      if (textSpan && sourceElement.id === 'continueButton') {
-        textSpan.textContent = 'LAUNCHING INVESTOR ATLAS';
-      }
-    }
-
-    // Play synthesized sonic launch chord
-    playLaunchSonic();
-
-    // Trigger scene scale & blur convergence
-    scene?.classList.add('is-launching');
-
-    // Deploy full-screen spatial warp HUD
-    const overlay = getOrCreateWarpOverlay();
-    requestAnimationFrame(() => {
-      overlay.classList.add('is-active');
+  document.querySelectorAll('[data-enter]').forEach(link => {
+    link.addEventListener('click', event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (navigating) { event.preventDefault(); return; }
+      try { sessionStorage.setItem(sessionKey, '1'); } catch { /* Storage is optional. */ }
+      navigating = true;
+      if (reducedMotion.matches) return;
+      event.preventDefault();
+      scene?.classList.add('is-exiting');
+      exitTimer = setTimeout(finishNavigation, 240);
     });
+  });
 
-    // Navigate smoothly to the hero section at apex of the warp
-    exitTimer = setTimeout(() => {
-      location.assign(targetHref);
-    }, 620);
-  }
-
-  // Pre-insert warp overlay into DOM so there is zero creation delay on click
-  if (document.body) {
-    getOrCreateWarpOverlay();
-  } else {
-    document.addEventListener('DOMContentLoaded', getOrCreateWarpOverlay);
-  }
-
-  // Global event delegation for continue button and enter links
-  document.addEventListener('click', (event) => {
-    const continueTrigger = event.target.closest('#continueButton, [data-hero-continue], [data-enter]');
-    if (!continueTrigger) return;
-    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    proceedToHeroSection(event, continueTrigger);
+  reducedMotion.addEventListener('change', () => {
+    if (navigating && reducedMotion.matches && exitTimer) finishNavigation();
   });
 
   window.addEventListener('pageshow', () => {
     clearTimeout(exitTimer);
     exitTimer = undefined;
     navigating = false;
-    scene?.classList.remove('is-launching');
-    const overlay = document.getElementById('locusSpatialWarp');
-    if (overlay) overlay.classList.remove('is-active');
+    scene?.classList.remove('is-exiting');
   });
 
   // =========================================================================

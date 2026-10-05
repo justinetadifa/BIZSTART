@@ -65,9 +65,6 @@
     root.classList.remove('locus-welcome-active');
     welcome.remove();
     homepage?.focus({ preventScroll: true });
-    requestAnimationFrame(() => {
-      window.LOCUS_HERO_ARRIVAL?.play();
-    });
   };
 
   /* -------------------------------------------------------------
@@ -353,6 +350,11 @@
       window.sessionStorage.setItem(sessionKey, '1');
     } catch {
       // Continue for this visit even when session storage is unavailable.
+    }
+
+    if (prefersReduced) {
+      revealHomepage();
+      return;
     }
 
     const fallbackTimer = window.setTimeout(revealHomepage, 280);

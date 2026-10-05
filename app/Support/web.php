@@ -239,8 +239,6 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/navigation.css<?= htmlspecialchars(sfc_asset_version('css/navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php if ($pageName === 'landing'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/landing-refinements.css<?= htmlspecialchars(sfc_asset_version('css/landing-refinements.css'), ENT_QUOTES, 'UTF-8') ?>">
-  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/hero-entrance.css<?= htmlspecialchars(sfc_asset_version('css/hero-entrance.css'), ENT_QUOTES, 'UTF-8') ?>">
-  <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/hero-arrival.js<?= htmlspecialchars(sfc_asset_version('js/hero-arrival.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
   <?php endif; ?>
   <?php if ($pageName === 'decision-reports'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/reports.css<?= htmlspecialchars(sfc_asset_version('css/reports.css'), ENT_QUOTES, 'UTF-8') ?>">
