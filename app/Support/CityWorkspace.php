@@ -25,11 +25,6 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
      ========================================================================== -->
 <section class="locus-priority-hero" style="background: linear-gradient(180deg, rgba(17, 34, 77, 0.64) 0%, rgba(17, 34, 77, 0.80) 55%, rgba(17, 34, 77, 0.94) 100%), url('<?= $heroBgUrl ?>') center 46% / cover no-repeat;" aria-label="Strategic Investment Prioritization Platform">
   <div class="locus-hero-wrap">
-    <div class="locus-hero-badge">
-      <span class="badge-dot"></span>
-      <span>Strategic Municipal Platform · San Fernando City</span>
-    </div>
-    
     <h1 class="locus-hero-title">
       LOCUS-SF: Strategic Investment Prioritization Platform
     </h1>
