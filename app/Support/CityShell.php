@@ -57,6 +57,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
+  <?php if (in_array($page, ['city-investor', 'city-ranking'], true)): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/investor-priority-hero.css<?= sfc_asset_version('css/investor-priority-hero.css') ?>">
+  <?php endif; ?>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {

@@ -1,0 +1,673 @@
+/* ==========================================================================
+   LOCUS-SF: Strategic Investment Prioritization Platform Hero & Welcome UI
+   Inspired by LoopNet's commercial marketplace experience.
+   Strict adherence to City Red (#9E1B22) & City Navy (#11224D) brand identity.
+   ========================================================================== */
+
+/* Full-bleed Hero Container */
+.locus-priority-hero {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  background: 
+    linear-gradient(180deg, rgba(17, 34, 77, 0.58) 0%, rgba(17, 34, 77, 0.76) 55%, rgba(17, 34, 77, 0.92) 100%),
+    url('../images/locusherosec.png') center 46% / cover no-repeat;
+  color: #ffffff;
+  padding: 68px 24px 80px;
+  overflow: hidden;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.locus-hero-wrap {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* Hero Badge & Title */
+.locus-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.locus-hero-badge .badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f87171;
+  box-shadow: 0 0 10px #f87171;
+}
+
+.locus-hero-title {
+  font-size: clamp(28px, 4.2vw, 48px);
+  font-weight: 800;
+  line-height: 1.16;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  max-width: 960px;
+  margin: 0 auto 14px;
+  text-shadow: 0 2px 14px rgba(7, 16, 40, 0.45);
+}
+
+.locus-hero-sub {
+  font-size: clamp(14px, 1.6vw, 16.5px);
+  color: #e2e8f0;
+  max-width: 720px;
+  margin: 0 auto 38px;
+  line-height: 1.55;
+  font-weight: 400;
+  opacity: 0.95;
+}
+
+/* Glassmorphic Search & Filter Card */
+.locus-glass-card {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  background: rgba(17, 34, 77, 0.45);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 20px;
+  padding: 20px 24px 26px;
+  box-shadow: 0 24px 50px rgba(7, 16, 40, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  text-align: left;
+}
+
+/* Top Mode Tabs */
+.locus-glass-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.locus-glass-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.locus-glass-tab {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  position: relative;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s ease;
+}
+.locus-glass-tab:hover {
+  color: #ffffff;
+}
+.locus-glass-tab.is-active {
+  color: #ffffff;
+  font-weight: 700;
+}
+.locus-glass-tab.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: var(--city-red, #9E1B22);
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 0 8px rgba(158, 27, 34, 0.6);
+}
+
+/* Sector Quick Icon Chips */
+.locus-sector-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+  padding: 4px 2px 8px;
+  scrollbar-width: none;
+}
+.locus-sector-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.locus-sector-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 82px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  user-select: none;
+}
+.locus-sector-chip:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+.locus-sector-chip.is-active {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--city-navy, #11224D);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+.locus-sector-chip svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+.locus-sector-chip span {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+/* Glassy Search Input Bar */
+.locus-glass-searchbar {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 9999px;
+  padding: 6px 8px 6px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  gap: 12px;
+}
+.locus-glass-searchbar .search-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--city-navy, #11224D);
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.locus-glass-searchbar input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  color: var(--city-navy, #11224D) !important;
+  font-size: 14.5px !important;
+  font-weight: 500;
+  min-height: 42px !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+.locus-glass-searchbar input::placeholder {
+  color: #64748b;
+  font-weight: 400;
+}
+.locus-search-submit {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--city-red, #9E1B22);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all .2s ease;
+  box-shadow: 0 2px 8px rgba(158, 27, 34, 0.35);
+}
+.locus-search-submit:hover {
+  background: #80151b;
+  transform: scale(1.04);
+}
+.locus-search-submit svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+/* ==========================================================================
+   Welcome Onboarding Section (LoopNet Style)
+   ========================================================================== */
+.locus-welcome-section {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 68px 0 72px;
+  overflow: hidden;
+}
+
+.locus-welcome-container {
+  width: min(1200px, calc(100% - 48px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 56px;
+  align-items: center;
+}
+
+/* Left Column: Greeting & Checkpoints */
+.locus-welcome-heading {
+  font-size: clamp(30px, 3.8vw, 44px);
+  font-weight: 800;
+  color: var(--city-navy, #11224D);
+  letter-spacing: -0.035em;
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+
+.locus-welcome-sub {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 16px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.locus-red-rule {
+  width: 48px;
+  height: 3px;
+  background: var(--city-red, #9E1B22);
+  border-radius: 2px;
+  margin-bottom: 28px;
+}
+
+.locus-perks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.locus-perk-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.locus-perk-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: var(--city-red, #9E1B22);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.locus-perk-check svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.locus-perk-item strong {
+  color: var(--city-navy, #11224D);
+  font-weight: 700;
+}
+
+/* Action Buttons */
+.locus-welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.locus-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid var(--city-navy, #11224D);
+  background: #ffffff;
+  color: var(--city-navy, #11224D);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 11px 24px;
+  cursor: pointer;
+  transition: all .2s ease;
+  text-decoration: none;
+}
+.locus-btn-outline:hover {
+  background: var(--city-navy, #11224D);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.locus-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: all .2s ease;
+  text-decoration: none;
+}
+.locus-btn-secondary:hover {
+  background: #ffffff;
+  border-color: #94a3b8;
+  color: var(--city-navy, #11224D);
+}
+
+/* Right Column: Dual Device Showcase */
+.locus-showcase-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 440px;
+  perspective: 1000px;
+}
+
+.phone-mockup {
+  position: relative;
+  background: #ffffff;
+  border: 7px solid #0f172a;
+  border-radius: 36px;
+  box-shadow: 0 25px 60px -15px rgba(17, 34, 77, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  overflow: hidden;
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+
+.phone-notch {
+  width: 76px;
+  height: 14px;
+  background: #0f172a;
+  border-radius: 0 0 10px 10px;
+  margin: 0 auto 6px;
+}
+
+/* Phone 1: Foreground / Right */
+.phone-mockup.phone-primary {
+  width: 250px;
+  z-index: 3;
+  transform: rotate(2deg) translateY(-8px);
+}
+.phone-mockup.phone-primary:hover {
+  transform: rotate(0deg) translateY(-14px);
+  box-shadow: 0 32px 70px -15px rgba(17, 34, 77, 0.42);
+}
+
+/* Phone 2: Background / Left */
+.phone-mockup.phone-secondary {
+  width: 236px;
+  position: absolute;
+  left: 20px;
+  top: 24px;
+  z-index: 2;
+  opacity: 0.94;
+  transform: rotate(-6deg) translateY(6px);
+  filter: saturate(0.95);
+}
+.phone-mockup.phone-secondary:hover {
+  transform: rotate(-3deg) translateY(0);
+  opacity: 1;
+}
+
+/* Content Inside Phone Screens */
+.phone-screen {
+  padding: 0 10px 14px;
+  background: #f8fafc;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--city-navy, #11224D);
+  border-bottom: 1px solid #e2e8f0;
+}
+.phone-top-bar span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.phone-card-preview {
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(17, 34, 77, 0.05);
+}
+
+.phone-card-image {
+  height: 120px;
+  width: 100%;
+  position: relative;
+  background: #cbd5e1;
+  overflow: hidden;
+}
+.phone-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-tag-prime {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #059669;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.phone-card-content {
+  padding: 10px 10px 12px;
+}
+.phone-card-content strong {
+  display: block;
+  font-size: 12px;
+  color: var(--city-navy, #11224D);
+  line-height: 1.25;
+}
+.phone-card-content small {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  margin: 2px 0 8px;
+}
+
+.phone-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  font-size: 10.5px;
+}
+.phone-metric-row .score-label {
+  font-size: 9.5px;
+  color: #64748b;
+}
+.phone-metric-row .score-val {
+  font-weight: 800;
+  color: #059669;
+}
+
+.phone-incentive-pill {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  background: rgba(158, 27, 34, 0.06);
+  border: 1px solid rgba(158, 27, 34, 0.2);
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--city-red, #9E1B22);
+}
+
+/* Secondary phone ranking listing */
+.phone-ranking-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.phone-rank-row {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.phone-rank-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--city-red, #9E1B22);
+  width: 18px;
+}
+.phone-rank-info {
+  flex: 1;
+  min-width: 0;
+}
+.phone-rank-info strong {
+  display: block;
+  font-size: 10.5px;
+  color: var(--city-navy, #11224D);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.phone-rank-info small {
+  display: block;
+  font-size: 9px;
+  color: #64748b;
+}
+.phone-rank-score {
+  font-size: 11px;
+  font-weight: 800;
+  color: #059669;
+}
+
+/* Active Catalog Refinement Bar */
+.locus-catalog-wrap {
+  width: min(1200px, calc(100% - 48px));
+  margin: 36px auto 0;
+}
+
+.locus-catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.locus-catalog-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--city-navy, #11224D);
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+  .locus-welcome-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .locus-showcase-wrap {
+    min-height: 360px;
+    margin-top: 10px;
+  }
+  .phone-mockup.phone-primary {
+    width: 220px;
+  }
+  .phone-mockup.phone-secondary {
+    width: 205px;
+    left: 10px;
+  }
+  .locus-glass-card {
+    padding: 18px 16px 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  .locus-priority-hero {
+    padding: 44px 16px 56px;
+  }
+  .locus-hero-sub {
+    margin-bottom: 26px;
+  }
+  .locus-sector-chips {
+    justify-content: flex-start;
+  }
+  .locus-welcome-section {
+    padding: 48px 0 54px;
+  }
+  .phone-mockup.phone-secondary {
+    display: none;
+  }
+  .phone-mockup.phone-primary {
+    transform: none;
+  }
+  .locus-welcome-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .locus-welcome-actions a {
+    text-align: center;
+  }
+}
