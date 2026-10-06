@@ -35,12 +35,13 @@ function imageUrl(property) {
 function card(property, index) {
   return `<article class="city-property-card" data-property-id="${property.id}">
     <a class="city-card-image" href="${path(`property-details.php?id=${property.id}`)}"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">${String(property.status).toLowerCase() === 'available' ? '' : `<span class="city-card-status">${esc(property.status)}</span>`}</a>
-    <div class="city-card-body"><div class="city-card-category">${esc(property.subcategory || property.category || property.type)}</div>
+    <div class="city-card-body">
+      <div class="city-card-category"><span class="city-card-category-badge">${esc(property.subcategory || property.category || property.type)}</span></div>
       <h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3>
-      <div class="city-card-location">${esc(property.barangay || property.city)}</div>
-      <div class="city-card-price">${money(property.price)}<small>${number(property.area)} ha</small></div>
-      <div class="city-card-scores"><span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div>
-      ${property.assessmentComplete ? '' : '<p class="city-assessment-note" style="margin:8px 0 0">Awaiting assessment</p>'}
+      <div class="city-card-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px;opacity:0.7"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${esc(property.barangay || property.city)}</div>
+      <div class="city-card-price"><span>${money(property.price)}</span><small>${number(property.area)} ha</small></div>
+      <div class="city-card-scores"><span><span class="city-metric-label">MCE</span> <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span><span class="city-metric-label">IAI</span> <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div>
+      ${property.assessmentComplete ? '' : '<p class="city-assessment-note">Awaiting assessment</p>'}
       ${page === 'city-landing' ? '' : `<div class="city-card-actions">${investor ? `<button type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save'}</button>` : ''}<button type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare'}</button>${page === 'city-explorer' ? `<button type="button" data-locate="${property.id}">On map</button>` : ''}</div>`}
     </div></article>`;
 }

@@ -18,3 +18,145 @@
 dialog.city-dialog{border:1px solid var(--city-border,#dfe3e9);border-radius:6px;background:#fff;color:var(--city-navy,#11224D);padding:24px;box-shadow:0 12px 24px -6px rgba(17,34,77,.12),0 4px 8px -4px rgba(17,34,77,.06);margin:auto;max-height:90vh;overflow-y:auto}
 dialog.city-dialog::backdrop{background:rgba(17,34,77,.45)}
 @media print{body.printing-decision-memo>*:not(#evalReportResultModal),body:has(#evalReportResultModal[open])>*:not(#evalReportResultModal){display:none!important}body.printing-decision-memo #evalReportResultModal,body:has(#evalReportResultModal[open]) #evalReportResultModal{display:block!important;position:static!important;border:none!important;box-shadow:none!important;width:100%!important;max-width:100%!important;padding:24px 32px!important;margin:0!important;max-height:none!important;height:auto!important;overflow:visible!important;background:#fff!important;color:#11224D!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body.printing-decision-memo #evalReportResultModal::backdrop,body:has(#evalReportResultModal[open]) #evalReportResultModal::backdrop{display:none!important}body.printing-decision-memo #evalReportResultModal .close-report-modal,body.printing-decision-memo #evalReportResultModal .city-button,body.printing-decision-memo #evalReportResultModal #printReportMemoBtn,body.printing-decision-memo #evalReportResultModal #downloadReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal .close-report-modal,body:has(#evalReportResultModal[open]) #evalReportResultModal .city-button,body:has(#evalReportResultModal[open]) #evalReportResultModal #printReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal #downloadReportMemoBtn{display:none!important}}
+
+/* Sleek Brand Framing & Architectural Outlines */
+.city-property-card {
+  background: #fff;
+  border: 1px solid var(--city-border);
+  border-top: 3px solid transparent;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+  transition: border-color .2s ease, border-top-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.city-property-card:hover {
+  border-color: var(--city-navy);
+  border-top-color: var(--city-red);
+  box-shadow: 0 6px 20px rgba(17, 34, 77, 0.08);
+}
+.city-card-image {
+  border-bottom: 1px solid var(--city-border);
+}
+.city-card-category {
+  margin-bottom: 8px;
+}
+.city-card-category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--city-red);
+  background: rgba(158, 27, 34, 0.05);
+  color: var(--city-red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.city-card-body h3 a {
+  color: var(--city-navy);
+  transition: color .15s ease;
+}
+.city-card-body h3 a:hover {
+  color: var(--city-red);
+}
+.city-card-location {
+  display: flex;
+  align-items: center;
+  color: var(--city-muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.city-card-price {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--city-navy);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.city-card-price small {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--city-navy);
+  background: var(--city-paper);
+  border: 1px solid var(--city-border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  margin-left: 0;
+}
+.city-card-scores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  border: 1px solid var(--city-border);
+  border-radius: 4px;
+  background: var(--city-paper);
+  margin-top: 14px;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.city-card-scores > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--city-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.city-card-scores > span:first-child {
+  border-right: 1px solid var(--city-border);
+  padding-right: 8px;
+}
+.city-card-scores .city-metric-label {
+  font-weight: 700;
+  color: var(--city-navy);
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+.city-card-scores strong {
+  color: var(--city-green);
+  font-weight: 700;
+}
+.city-assessment-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--city-muted);
+  margin: 10px 0 0;
+  padding: 5px 8px;
+  border-radius: 3px;
+  border: 1px dashed var(--city-border);
+  background: #fff;
+}
+.city-assessment-note::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9aa4b2;
+}
+.city-card-status {
+  border: 1px solid var(--city-red);
+  background: #fff;
+  color: var(--city-red);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.12);
+}
+.city-account-gate {
+  border: 1px solid #1c3260;
+  border-left: 4px solid var(--city-red);
+}
+

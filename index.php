@@ -31,7 +31,10 @@ $cataloguePath = $context['user'] === null
   <section class="city-container city-section" id="why-invest">
     <div class="city-section-heading">
       <div>
-        <div class="city-eyebrow">Strategic Brief</div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] border border-[#9E1B22] text-[#9E1B22] text-[10px] font-bold uppercase tracking-widest bg-[#9E1B22]/5 mb-2.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#9E1B22]"></span>
+          Strategic Brief
+        </div>
         <h2 class="text-3xl font-bold text-[#11224D] tracking-tight">WHY SAN FERNANDO?</h2>
         <p class="text-sm text-[#697284] mt-1 font-normal">A city positioned for business, innovation, and strategic growth.</p>
       </div>
@@ -39,9 +42,12 @@ $cataloguePath = $context['user'] === null
 
     <!-- A. PRIORITY INVESTMENT SECTORS -->
     <div class="mb-10">
-      <div class="flex items-center justify-between mb-3 pb-2 border-b border-[#dfe3e9]">
-        <h3 class="text-xs font-bold uppercase tracking-wider text-[#11224D] m-0">Priority Investment Sectors</h3>
-        <span class="text-[11px] font-mono text-[#697284]">Ordinance No. 2024-41</span>
+      <div class="flex items-center justify-between mb-3.5 pb-2 border-b border-[#dfe3e9]">
+        <div class="flex items-center gap-2">
+          <span class="w-1 h-3.5 bg-[#9E1B22] rounded-[1px]"></span>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[#11224D] m-0">Priority Investment Sectors</h3>
+        </div>
+        <span class="text-[10px] font-mono font-semibold text-[#11224D] px-2.5 py-1 rounded-[3px] border border-[#dfe3e9] bg-white">Ordinance No. 2024-41</span>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         <?php
@@ -56,9 +62,16 @@ $cataloguePath = $context['user'] === null
         ];
         foreach ($sectors as $idx => $sectorName):
         ?>
-        <div class="bg-white border border-[#dfe3e9] rounded-[4px] p-3.5 flex items-start gap-3 hover:border-[#11224D] transition">
-          <span class="text-[11px] font-mono text-[#9E1B22] font-semibold pt-0.5"><?= sprintf('%02d', $idx + 1) ?></span>
-          <h4 class="text-xs font-semibold text-[#11224D] leading-snug m-0"><?= $e($sectorName) ?></h4>
+        <div class="group bg-white border border-[#dfe3e9] rounded-[4px] p-3.5 flex items-start gap-3 hover:border-[#11224D] transition-colors <?= $idx === 6 ? 'lg:col-span-2' : '' ?>">
+          <span class="flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-[3px] border border-[#9E1B22] text-[#9E1B22] bg-[#9E1B22]/5 font-mono text-[11px] font-bold group-hover:bg-[#9E1B22] group-hover:text-white transition-colors">
+            <?= sprintf('%02d', $idx + 1) ?>
+          </span>
+          <div class="min-w-0 flex-1 flex flex-col justify-center">
+            <h4 class="text-xs font-semibold text-[#11224D] leading-snug m-0"><?= $e($sectorName) ?></h4>
+            <?php if ($idx === 6): ?>
+            <span class="text-[10px] text-[#697284] font-mono mt-0.5 hidden lg:inline">Supply chain, cold chain & processing facilities</span>
+            <?php endif; ?>
+          </div>
         </div>
         <?php endforeach; ?>
       </div>
@@ -66,56 +79,85 @@ $cataloguePath = $context['user'] === null
 
     <!-- B. STRATEGIC INVESTMENT AREAS -->
     <div class="mb-10">
-      <div class="text-xs font-bold uppercase tracking-wider text-[#11224D] mb-3 pb-2 border-b border-[#dfe3e9]">
-        Strategic Investment Areas
+      <div class="flex items-center justify-between mb-3.5 pb-2 border-b border-[#dfe3e9]">
+        <div class="flex items-center gap-2">
+          <span class="w-1 h-3.5 bg-[#11224D] rounded-[1px]"></span>
+          <div class="text-xs font-bold uppercase tracking-wider text-[#11224D]">Strategic Investment Areas</div>
+        </div>
+        <span class="text-[10px] font-mono text-[#697284]">Prime Growth Corridors</span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white border border-[#dfe3e9] rounded-[4px] p-5 hover:border-[#11224D] transition">
-          <span class="block text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider mb-1">Special Economic & Tourism Zone</span>
-          <h3 class="text-base font-bold text-[#11224D] mb-1.5">Poro Point Freeport Zone</h3>
-          <p class="text-xs text-[#697284] leading-relaxed m-0">
-            An established economic and tourism zone with access to airport, seaport, mixed-use development, and major visitor destinations.
-          </p>
+        <div class="bg-white border border-[#dfe3e9] border-t-2 border-t-[#9E1B22] rounded-[4px] p-5 hover:border-[#11224D] transition flex flex-col justify-between">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#9E1B22] text-[#9E1B22] text-[10px] font-bold uppercase tracking-wider bg-[#9E1B22]/5 mb-2.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#9E1B22]"></span>
+              Special Economic & Tourism Zone
+            </div>
+            <h3 class="text-base font-bold text-[#11224D] mb-1.5">Poro Point Freeport Zone</h3>
+            <p class="text-xs text-[#697284] leading-relaxed m-0">
+              An established economic and tourism zone with access to airport, seaport, mixed-use development, and major visitor destinations.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-[#dfe3e9] flex flex-wrap items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-[2px] border border-[#dfe3e9] bg-[#F8F9FA] text-[10px] font-mono text-[#11224D]">Seaport & Airport Access</span>
+            <span class="px-2 py-0.5 rounded-[2px] border border-[#dfe3e9] bg-[#F8F9FA] text-[10px] font-mono text-[#11224D]">Tourism & Mixed-Use</span>
+          </div>
         </div>
 
-        <div class="bg-white border border-[#dfe3e9] rounded-[4px] p-5 hover:border-[#11224D] transition">
-          <span class="block text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider mb-1">Commercial Corridor</span>
-          <h3 class="text-base font-bold text-[#11224D] mb-1.5">Central Business District – Biday</h3>
-          <p class="text-xs text-[#697284] leading-relaxed m-0">
-            A growing commercial corridor positioned for retail, services, technology, and long-term urban investment.
-          </p>
+        <div class="bg-white border border-[#dfe3e9] border-t-2 border-t-[#11224D] rounded-[4px] p-5 hover:border-[#11224D] transition flex flex-col justify-between">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#11224D] text-[#11224D] text-[10px] font-bold uppercase tracking-wider bg-[#11224D]/5 mb-2.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#11224D]"></span>
+              Commercial Corridor
+            </div>
+            <h3 class="text-base font-bold text-[#11224D] mb-1.5">Central Business District – Biday</h3>
+            <p class="text-xs text-[#697284] leading-relaxed m-0">
+              A growing commercial corridor positioned for retail, services, technology, and long-term urban investment.
+            </p>
+          </div>
+          <div class="mt-4 pt-3 border-t border-[#dfe3e9] flex flex-wrap items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded-[2px] border border-[#dfe3e9] bg-[#F8F9FA] text-[10px] font-mono text-[#11224D]">Prime Commercial Arterial</span>
+            <span class="px-2 py-0.5 rounded-[2px] border border-[#dfe3e9] bg-[#F8F9FA] text-[10px] font-mono text-[#11224D]">Retail & Tech Corridor</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- C & D. DIGITAL CITY ADVANTAGE & INVESTMENT INCENTIVES -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-      <div class="bg-white border border-[#dfe3e9] rounded-[4px] p-5 flex flex-col justify-between">
+      <div class="bg-white border border-[#dfe3e9] border-t-2 border-t-[#11224D] rounded-[4px] p-5 flex flex-col justify-between hover:border-[#11224D] transition">
         <div>
-          <span class="block text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider mb-1">Digital Advantage</span>
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#11224D] text-[#11224D] text-[10px] font-bold uppercase tracking-wider bg-[#11224D]/5 mb-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#11224D]"></span>
+            Digital Advantage
+          </div>
           <h3 class="text-base font-bold text-[#11224D] mb-1.5">Recognized Digital City</h3>
           <p class="text-xs text-[#697284] leading-relaxed m-0">
             San Fernando City is recognized under the Digital Cities PH program, strengthening its position for ICT, IT-BPM, digital services, and innovation-driven enterprises.
           </p>
         </div>
-        <div class="mt-4 pt-3 border-t border-[#dfe3e9] text-[11px] text-[#697284]">
-          Digital Cities PH priority hub for technology and business process services.
+        <div class="mt-4 pt-3 border-t border-[#dfe3e9] flex items-center justify-between text-[11px] text-[#697284]">
+          <span>Digital Cities PH priority hub</span>
+          <span class="px-2 py-0.5 rounded-[2px] border border-[#11224D] bg-[#F8F9FA] text-[10px] font-mono font-bold text-[#11224D]">DICT Priority</span>
         </div>
       </div>
 
-      <div class="bg-white border border-[#dfe3e9] rounded-[4px] p-5 flex flex-col justify-between">
+      <div class="bg-white border border-[#dfe3e9] border-t-2 border-t-[#9E1B22] rounded-[4px] p-5 flex flex-col justify-between hover:border-[#11224D] transition">
         <div>
-          <span class="block text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider mb-1">Incentive Code</span>
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[3px] border border-[#9E1B22] text-[#9E1B22] text-[10px] font-bold uppercase tracking-wider bg-[#9E1B22]/5 mb-2.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#9E1B22]"></span>
+            Incentive Code
+          </div>
           <h3 class="text-base font-bold text-[#11224D] mb-1.5">Investment and Incentives Code</h3>
           <p class="text-xs text-[#697284] leading-relaxed m-0">
             Ordinance No. 2024-41 provides the city’s framework for qualified investments, incentives, and priority economic activities.
           </p>
         </div>
-        <div class="mt-4 pt-3 border-t border-[#dfe3e9] flex items-center justify-between">
-          <button type="button" id="openIncentivesModalBtn" class="city-button city-button-secondary city-button-small">
+        <div class="mt-4 pt-3 border-t border-[#dfe3e9] flex items-center justify-between gap-2">
+          <button type="button" id="openIncentivesModalBtn" class="city-button city-button-secondary city-button-small border-[#9E1B22] text-[#9E1B22] hover:bg-[#9E1B22] hover:text-white transition font-semibold">
             View Investment Incentives →
           </button>
-          <span class="text-[11px] font-mono text-[#697284]">Ordinance No. 2024-41</span>
+          <span class="text-[10px] font-mono font-semibold text-[#11224D] px-2 py-0.5 rounded-[2px] border border-[#dfe3e9] bg-[#F8F9FA]">Ordinance No. 2024-41</span>
         </div>
       </div>
     </div>
@@ -379,9 +421,31 @@ $cataloguePath = $context['user'] === null
     </div>
   </dialog>
   <section class="city-container city-section" id="properties">
-    <div class="city-section-heading"><div><div class="city-eyebrow">Find your place</div><h2>Featured properties.</h2><p>Three listings to get you started.</p></div><a class="city-link" href="<?= $e(sfc_path($cataloguePath)) ?>">View all properties →</a></div>
+    <div class="city-section-heading">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-[3px] border border-[#9E1B22] text-[#9E1B22] text-[10px] font-bold uppercase tracking-widest bg-[#9E1B22]/5 mb-2.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#9E1B22]"></span>
+          Find your place
+        </div>
+        <h2>Featured properties.</h2>
+        <p>Three listings to get you started.</p>
+      </div>
+      <a class="city-button city-button-secondary city-button-small border-[#11224D] text-[#11224D] hover:border-[#9E1B22] hover:text-[#9E1B22] font-semibold" href="<?= $e(sfc_path($cataloguePath)) ?>">View all properties →</a>
+    </div>
     <div class="city-property-grid" id="cityPropertyGrid" aria-live="polite"><div class="city-loading">Loading properties…</div></div>
-    <?php if ($context['user'] === null): ?><div class="city-account-gate"><div><h3>See the full picture.</h3><p>Create an account to explore every listing, save sites, and compare.</p></div><a class="city-button" href="<?= $e(sfc_path('/investor-login.php?mode=register')) ?>">Create account</a></div><?php endif; ?>
+    <?php if ($context['user'] === null): ?>
+    <div class="city-account-gate">
+      <div>
+        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[2px] border border-white/20 bg-white/10 text-white text-[10px] font-mono uppercase tracking-wider mb-2 font-semibold">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#9E1B22]"></span>
+          Full Catalogue Access
+        </div>
+        <h3>See the full picture.</h3>
+        <p>Create an account to explore every listing, save sites, and compare.</p>
+      </div>
+      <a class="city-button" href="<?= $e(sfc_path('/investor-login.php?mode=register')) ?>">Create account</a>
+    </div>
+    <?php endif; ?>
   </section>
   <section class="city-container city-section" id="about"><div class="city-about">
     <div><div class="city-eyebrow">About LOCUS-SF</div><h2>Local knowledge.<br>Clearer decisions.</h2><p>LOCUS-SF brings listings, maps, and departmental assessments into one place for investors in San Fernando City.</p><p>A research project by the LOCUS-SF development team.</p></div>
