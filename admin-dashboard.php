@@ -89,46 +89,92 @@ sfc_render_header($context, 'admin');
   <section class="city-panel"><div class="city-panel-heading"><h2>Department tools</h2></div><div class="city-tool-links"><a href="<?= htmlspecialchars(sfc_path('/admin-properties.php?add=1'), ENT_QUOTES, 'UTF-8') ?>">Add a property →</a><a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>">Map explorer →</a><a href="<?= htmlspecialchars(sfc_path('/profile.php'), ENT_QUOTES, 'UTF-8') ?>">Your profile →</a></div></section>
   <?php endif; ?>
   <?php if ($governance): ?>
-  <section class="city-panel city-broker-panel">
-    <div class="city-panel-heading">
+  <?php
+  $getInitials = static function(string $name): string {
+      $parts = preg_split('/\s+/', trim($name)) ?: [];
+      if (count($parts) >= 2) {
+          return strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
+      }
+      return strtoupper(substr($name, 0, 2));
+  };
+  $getRoleDesc = static function(string $dept): string {
+      return match (strtoupper($dept)) {
+          'ASSESSOR' => "CAO · Cadastral & MCE Assessment",
+          'LEBDO' => "LEBDO · Local Economic Development",
+          'CICTO' => "CICTO · Governance & Administration",
+          default => "Authorized Municipal Staff"
+      };
+  };
+  $cictoCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'CICTO'));
+  $assessorCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'ASSESSOR'));
+  $lebdoCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'LEBDO'));
+  ?>
+  <section class="city-panel city-broker-panel city-staff-panel">
+    <div class="city-panel-heading" style="border-bottom:1px solid #e2e8f0;padding-bottom:16px;margin-bottom:20px">
       <div>
-        <h2>City Staff Accounts</h2>
-        <p class="city-help" style="margin-top:4px">Provision and view authorized access for CICTO, Assessors, and LEBDO.</p>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:3px;border:1px solid #9E1B22;background:rgba(158,27,34,0.05);color:#9E1B22;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#9E1B22"></span>
+          Access &amp; Governance
+        </div>
+        <h2 style="font-size:22px;letter-spacing:-0.02em;color:#11224D;margin:0 0 4px">City Staff Accounts</h2>
+        <p class="city-help" style="margin:0">Provision, monitor, and manage authorized access for CICTO, Assessors, and LEBDO personnel.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="city-badge-count" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:4px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#11224D">
+          <span style="width:7px;height:7px;border-radius:50%;background:#10b981"></span>
+          <?= count($staffList) ?> Total Authorized
+        </span>
       </div>
     </div>
 
-    <?php
-    $cictoCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'CICTO'));
-    $assessorCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'ASSESSOR'));
-    $lebdoCount = count(array_filter($staffList, static fn (array $s): bool => ($s['department'] ?? '') === 'LEBDO'));
-    ?>
     <div class="city-staff-stat-bar">
       <div class="city-staff-stat-card cicto">
-        <span class="stat-dot"></span>
-        <div>
-          <strong>CICTO Governance</strong>
-          <span class="stat-count"><?= $cictoCount ?> Active Personnel</span>
+        <div class="stat-card-top">
+          <span class="stat-badge cicto">CICTO</span>
+          <span class="stat-status-dot"></span>
         </div>
+        <div class="stat-card-main">
+          <span class="stat-number"><?= $cictoCount ?></span>
+          <div class="stat-labels">
+            <strong>CICTO Governance</strong>
+            <span class="stat-count"><?= $cictoCount ?> Active Personnel</span>
+          </div>
+        </div>
+        <div class="stat-card-footer">PRC Review · System Admin</div>
       </div>
       <div class="city-staff-stat-card assessor">
-        <span class="stat-dot"></span>
-        <div>
-          <strong>City Assessor (CAO)</strong>
-          <span class="stat-count"><?= $assessorCount ?> Active Personnel</span>
+        <div class="stat-card-top">
+          <span class="stat-badge assessor">CAO</span>
+          <span class="stat-status-dot"></span>
         </div>
+        <div class="stat-card-main">
+          <span class="stat-number"><?= $assessorCount ?></span>
+          <div class="stat-labels">
+            <strong>City Assessor (CAO)</strong>
+            <span class="stat-count"><?= $assessorCount ?> Active Personnel</span>
+          </div>
+        </div>
+        <div class="stat-card-footer">Cadastral &amp; 7-Factor MCE</div>
       </div>
       <div class="city-staff-stat-card lebdo">
-        <span class="stat-dot"></span>
-        <div>
-          <strong>LEBDO Economic Dev</strong>
-          <span class="stat-count"><?= $lebdoCount ?> Active Personnel</span>
+        <div class="stat-card-top">
+          <span class="stat-badge lebdo">LEBDO</span>
+          <span class="stat-status-dot"></span>
         </div>
+        <div class="stat-card-main">
+          <span class="stat-number"><?= $lebdoCount ?></span>
+          <div class="stat-labels">
+            <strong>LEBDO Economic Dev</strong>
+            <span class="stat-count"><?= $lebdoCount ?> Active Personnel</span>
+          </div>
+        </div>
+        <div class="stat-card-footer">Corridors &amp; Commercial Match</div>
       </div>
     </div>
 
     <div class="city-staff-directory">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-        <h3 style="margin:0">Active Department Personnel</h3>
+      <div class="city-staff-directory-header">
+        <h3 style="margin:0;font-size:14px;font-weight:700;color:#11224D">Active Department Personnel</h3>
         <div class="city-staff-filter-bar">
           <button type="button" class="city-staff-filter-btn is-active" data-filter="all">All (<?= count($staffList) ?>)</button>
           <button type="button" class="city-staff-filter-btn" data-filter="cicto">CICTO</button>
@@ -147,12 +193,26 @@ sfc_render_header($context, 'admin');
             </tr>
           </thead>
           <tbody id="cityStaffList">
-            <?php foreach ($staffList as $staff): ?>
+            <?php foreach ($staffList as $staff): 
+              $sName = (string) ($staff['name'] ?? 'Staff');
+              $sDept = (string) ($staff['department'] ?? 'CICTO');
+              $sEmail = (string) ($staff['email'] ?? '');
+              $sInitials = $getInitials($sName);
+              $sRole = $getRoleDesc($sDept);
+            ?>
             <tr>
-              <td><strong><?= htmlspecialchars((string) ($staff['name'] ?? 'Staff'), ENT_QUOTES, 'UTF-8') ?></strong></td>
-              <td><span class="city-pill <?= strtolower((string) ($staff['department'] ?? '')) ?>"><?= htmlspecialchars((string) ($staff['department'] ?? 'CICTO'), ENT_QUOTES, 'UTF-8') ?></span></td>
-              <td><?= htmlspecialchars((string) ($staff['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-              <td><span class="city-pill approved">Active</span></td>
+              <td>
+                <div class="city-staff-user-cell">
+                  <span class="city-staff-avatar <?= strtolower($sDept) ?>"><?= htmlspecialchars($sInitials, ENT_QUOTES, 'UTF-8') ?></span>
+                  <div class="city-staff-user-meta">
+                    <strong><?= htmlspecialchars($sName, ENT_QUOTES, 'UTF-8') ?></strong>
+                    <small><?= htmlspecialchars($sRole, ENT_QUOTES, 'UTF-8') ?></small>
+                  </div>
+                </div>
+              </td>
+              <td><span class="city-pill <?= strtolower($sDept) ?>"><?= htmlspecialchars($sDept, ENT_QUOTES, 'UTF-8') ?></span></td>
+              <td><span class="city-staff-email"><?= htmlspecialchars($sEmail, ENT_QUOTES, 'UTF-8') ?></span></td>
+              <td><span class="city-pill approved"><span class="status-indicator-dot"></span> Active</span></td>
             </tr>
             <?php endforeach; ?>
           </tbody>
@@ -160,32 +220,90 @@ sfc_render_header($context, 'admin');
       </div>
     </div>
 
-    <details class="city-staff-provision-details" open style="margin-top:24px;border-top:1px solid #eef0f3;padding-top:20px">
-      <summary style="cursor:pointer;font-weight:600;color:#11224d">Provision New Department Account</summary>
-      <form id="cityStaffForm" class="city-form-grid" style="margin-top:18px">
+    <details class="city-staff-provision-details" open>
+      <summary class="city-provision-summary">
+        <div class="summary-left">
+          <div class="summary-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          </div>
+          <div>
+            <strong>Provision New Department Account</strong>
+            <p>Grant authenticated municipal dashboard credentials to authorized personnel.</p>
+          </div>
+        </div>
+        <span class="summary-badge">Authorized Staff Only</span>
+      </summary>
+      <form id="cityStaffForm" class="city-form-grid">
         <div class="city-span-2">
-          <span style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">Assigned Department</span>
+          <label class="city-label" style="display:block;margin-bottom:6px">Assigned Department</label>
           <div class="city-dept-radio-cards">
-            <label class="city-dept-radio-card is-selected">
-              <input type="radio" name="department" value="ASSESSOR" checked>
-              <strong>Assessors (CAO)</strong>
+            <label class="city-dept-radio-card is-selected" data-dept="ASSESSOR">
+              <div class="dept-radio-inner">
+                <input type="radio" name="department" value="ASSESSOR" checked>
+                <div class="dept-radio-text">
+                  <div class="dept-radio-head">
+                    <strong>Assessors (CAO)</strong>
+                    <span class="dept-chip assessor">Valuation</span>
+                  </div>
+                  <small>Cadastral Records &amp; 7-Factor MCE</small>
+                </div>
+              </div>
             </label>
-            <label class="city-dept-radio-card">
-              <input type="radio" name="department" value="LEBDO">
-              <strong>LEBDO Office</strong>
+            <label class="city-dept-radio-card" data-dept="LEBDO">
+              <div class="dept-radio-inner">
+                <input type="radio" name="department" value="LEBDO">
+                <div class="dept-radio-text">
+                  <div class="dept-radio-head">
+                    <strong>LEBDO Office</strong>
+                    <span class="dept-chip lebdo">Economic</span>
+                  </div>
+                  <small>Commercial Corridors &amp; Matching</small>
+                </div>
+              </div>
             </label>
-            <label class="city-dept-radio-card">
-              <input type="radio" name="department" value="CICTO">
-              <strong>CICTO Administrator</strong>
+            <label class="city-dept-radio-card" data-dept="CICTO">
+              <div class="dept-radio-inner">
+                <input type="radio" name="department" value="CICTO">
+                <div class="dept-radio-text">
+                  <div class="dept-radio-head">
+                    <strong>CICTO Admin</strong>
+                    <span class="dept-chip cicto">Governance</span>
+                  </div>
+                  <small>Broker Review &amp; Municipal Control</small>
+                </div>
+              </div>
             </label>
           </div>
         </div>
-        <label>Complete name<input name="name" required maxlength="140" autocomplete="name" placeholder="Full name of personnel"></label>
-        <label>Email<input name="email" type="email" required maxlength="190" autocomplete="email" placeholder="official.user@sfcelerate.local"></label>
-        <label>Password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
-        <label>Confirm password<input name="confirm_password" type="password" required minlength="8" autocomplete="new-password" placeholder="Re-type password"></label>
+        <div class="city-field-group">
+          <label class="city-label" for="staffInputName">Complete name</label>
+          <input id="staffInputName" name="name" required maxlength="140" autocomplete="name" placeholder="Full name of personnel">
+        </div>
+        <div class="city-field-group">
+          <label class="city-label" for="staffInputEmail">Official email</label>
+          <input id="staffInputEmail" name="email" type="email" required maxlength="190" autocomplete="email" placeholder="official.user@sfcelerate.local">
+          <span class="city-input-hint">Must be an authorized @sfcelerate.local address</span>
+        </div>
+        <div class="city-field-group">
+          <label class="city-label" for="staffInputPass">Password</label>
+          <input id="staffInputPass" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+          <span class="city-input-hint">Minimum 8 characters with numbers or symbols</span>
+        </div>
+        <div class="city-field-group">
+          <label class="city-label" for="staffInputConfirm">Confirm password</label>
+          <input id="staffInputConfirm" name="confirm_password" type="password" required minlength="8" autocomplete="new-password" placeholder="Re-type password">
+        </div>
         <p class="city-form-message city-span-2" id="cityStaffStatus" role="status"></p>
-        <div class="city-span-2"><button class="city-button" type="submit">Create department account</button></div>
+        <div class="city-span-2 city-form-actions">
+          <button class="city-button" type="submit">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            Create department account
+          </button>
+          <span class="city-security-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#059669;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Immediate activation with strict role RBAC
+          </span>
+        </div>
       </form>
     </details>
   </section>

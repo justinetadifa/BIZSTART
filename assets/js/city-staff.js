@@ -75,9 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Update stat count
       const deptLower = String(payload.user.department || '').toLowerCase();
-      const countEl = document.querySelector(`.city-staff-stat-card.${deptLower} .stat-count`);
-      if (countEl) {
-        countEl.textContent = `${parseInt(countEl.textContent || '0', 10) + 1} Active Personnel`;
+      const statCard = document.querySelector(`.city-staff-stat-card.${deptLower}`);
+      if (statCard) {
+        const numEl = statCard.querySelector('.stat-number');
+        if (numEl) {
+          numEl.textContent = String(parseInt(numEl.textContent || '0', 10) + 1);
+        }
+        const countEl = statCard.querySelector('.stat-count');
+        if (countEl) {
+          countEl.textContent = `${parseInt(countEl.textContent || '0', 10) + 1} Active Personnel`;
+        }
       }
 
       // Prepend to table
@@ -86,7 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const tr = document.createElement('tr');
         const safeName = String(payload.user.name || '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const dept = String(payload.user.department || 'CICTO');
-        tr.innerHTML = `<td><strong>${safeName}</strong></td><td><span class="city-pill ${dept.toLowerCase()}">${dept}</span></td><td>${String(payload.user.email || '')}</td><td><span class="city-pill approved">Active</span></td>`;
+        const initials = safeName.split(/\s+/).filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase() || 'ST';
+        const roleDesc = dept === 'ASSESSOR' ? 'CAO · Cadastral & MCE Assessment' : (dept === 'LEBDO' ? 'LEBDO · Local Economic Development' : 'CICTO · Governance & Administration');
+        tr.innerHTML = `<td><div class="city-staff-user-cell"><span class="city-staff-avatar ${dept.toLowerCase()}">${initials}</span><div class="city-staff-user-meta"><strong>${safeName}</strong><small>${roleDesc}</small></div></div></td><td><span class="city-pill ${dept.toLowerCase()}">${dept}</span></td><td><span class="city-staff-email">${String(payload.user.email || '')}</span></td><td><span class="city-pill approved"><span class="status-indicator-dot"></span> Active</span></td>`;
         list.prepend(tr);
       }
     } catch (error) {
