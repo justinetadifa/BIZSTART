@@ -534,7 +534,7 @@ final class NotificationEngine
                 'icon' => 'success',
                 'title' => 'Site Visit Confirmed',
                 'body' => sprintf('%s is now scheduled for %s.', $propertyName, $windowLabel),
-                'action_label' => 'Add to Calendar',
+                'action_label' => 'Review visit',
                 'action_url' => sprintf('/property-details.php?id=%d', $propertyId),
                 'property_id' => $propertyId,
                 'thread_id' => $threadId > 0 ? $threadId : null,
@@ -642,7 +642,47 @@ final class NotificationEngine
             return;
         }
 
-        $this->notifications->createForUsers($filtered, $payload);
+        $workflow = match ((string) ($payload['kind'] ?? '')) {
+            'new_inquiry', 'investor_followup', 'seller_reply' => 'messages',
+            'due_diligence_request', 'due_diligence_status' => 'documents',
+            'site_visit_reminder' => !empty($payload['document_request_id']) ? 'documents' : 'visits',
+            'site_visit_proposed', 'site_visit_counter', 'site_visit_confirmed', 'site_visit_completed', 'field_audit_submitted' => 'visits',
+            default => null,
+        };
+        $propertyId = (int) ($payload['property_id'] ?? 0);
+        if ($workflow === null || $propertyId < 1) {
+            $this->notifications->createForUsers($filtered, $payload);
+            return;
+        }
+
+        // Operational controls now live in different workspaces for each role.
+        $statement = $this->pdo->prepare('SELECT id, role FROM users WHERE id IN (' . implode(',', array_fill(0, count($filtered), '?')) . ')');
+        $statement->execute($filtered);
+        $groups = [];
+        foreach ($statement->fetchAll() as $recipient) {
+            $groups[(string) $recipient['role']][] = (int) $recipient['id'];
+        }
+        foreach ($groups as $role => $recipientIds) {
+            $routed = $payload;
+            if ($role === 'seller') {
+                $query = ['propertyId' => $propertyId];
+                if ($workflow === 'documents' && !empty($payload['document_request_id'])) {
+                    $query['documentRequestId'] = (int) $payload['document_request_id'];
+                } elseif (!empty($payload['thread_id'])) {
+                    $query['threadId'] = (int) $payload['thread_id'];
+                }
+                $panel = $workflow === 'documents' ? 'brokerDocumentsDetails' : 'brokerMessagesDetails';
+                $routed['action_url'] = '/seller-dashboard.php?' . http_build_query($query) . '#' . $panel;
+            } elseif ($role === 'investor') {
+                $panel = match ($workflow) { 'documents' => 'cityDocumentsPanel', 'visits' => 'cityVisitPanel', default => 'cityInquiryPanel' };
+                $routed['action_url'] = sprintf('/property-details.php?id=%d#%s', $propertyId, $panel);
+            } elseif ($role === 'admin') {
+                $routed['action_url'] = $workflow === 'documents'
+                    ? '/admin-properties.php?' . http_build_query(['propertyId' => $propertyId, 'documentRequestId' => (int) ($payload['document_request_id'] ?? 0)]) . '#cityDocumentRequests'
+                    : sprintf('/admin-properties.php?edit=%d', $propertyId);
+            }
+            $this->notifications->createForUsers($recipientIds, $routed);
+        }
     }
 
     private function propertyContext(int $propertyId): ?array
@@ -670,10 +710,11 @@ final class NotificationEngine
 
     private function userIdsByRole(string $role): array
     {
+        $departmentFilter = $role === 'admin' ? " AND department IN ('CICTO', 'ASSESSOR', 'LEBDO')" : '';
         $statement = $this->pdo->prepare(
             'SELECT id
              FROM users
-             WHERE role = :role
+             WHERE role = :role' . $departmentFilter . '
              ORDER BY id ASC'
         );
         $statement->execute(['role' => $role]);

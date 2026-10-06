@@ -30,8 +30,12 @@ final class ShowcaseRepository
             $params['feature_type'] = $normalizedFeatureType;
         }
 
-        if (($user['role'] ?? null) !== 'admin') {
+        if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
             $clauses[] = 's.is_published = 1';
+            $clauses[] = '(s.related_property_id IS NULL OR p.approval_state = \'approved\')';
+        }
+        if ($user === null) {
+            $clauses[] = '(s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
 
         $sql = $this->baseSelect();
@@ -50,8 +54,12 @@ final class ShowcaseRepository
     {
         $params = ['id' => $showcaseId];
         $sql = $this->baseSelect() . ' WHERE s.id = :id';
-        if (($user['role'] ?? null) !== 'admin') {
+        if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
             $sql .= ' AND s.is_published = 1';
+            $sql .= ' AND (s.related_property_id IS NULL OR p.approval_state = \'approved\')';
+        }
+        if ($user === null) {
+            $sql .= ' AND (s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
         $sql .= ' LIMIT 1';
 
@@ -68,6 +76,9 @@ final class ShowcaseRepository
 
     public function create(array $payload, ?array $actor = null): array
     {
+        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+            throw new InvalidArgumentException('Only CICTO can publish city showcases.');
+        }
         $item = $this->normalizePayload($payload, null, $actor);
         $statement = $this->pdo->prepare(
             'INSERT INTO showcase_items (
@@ -89,6 +100,9 @@ final class ShowcaseRepository
 
     public function update(int $showcaseId, array $payload, ?array $actor = null): array
     {
+        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+            throw new InvalidArgumentException('Only CICTO can publish city showcases.');
+        }
         $existing = $this->find($showcaseId, ['role' => 'admin']);
         $item = $this->normalizePayload($payload, $existing, $actor, $showcaseId);
         $item['id'] = $showcaseId;

@@ -1,0 +1,649 @@
+/* ==========================================================================
+   LOCUS-SF iOS / Apple-Grade Glass Navigation
+   Translucent frosted glass capsule, segmented pill controls,
+   squircle brand badge, specular lighting sheen, and fluid responsiveness.
+   ========================================================================== */
+
+:root {
+  --nav-ink: #11224d;
+  --nav-muted: #526176;
+  --nav-accent-red: #9e1b22;
+  --nav-accent-blue: #1d549e;
+  --nav-glass-fill: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(246, 249, 254, 0.6) 50%, rgba(238, 245, 253, 0.72));
+  --nav-glass-scrolled: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(246, 249, 254, 0.75) 50%, rgba(238, 245, 253, 0.84));
+  --nav-glass-panel: rgba(255, 255, 255, 0.95);
+  --nav-glass-border: rgba(255, 255, 255, 0.88);
+  --nav-glass-border-scrolled: rgba(255, 255, 255, 0.96);
+  --nav-glass-shadow: 0 12px 36px rgba(17, 34, 77, 0.08), 0 2px 6px rgba(17, 34, 77, 0.035), 0 0 0 1px rgba(96, 116, 146, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(103, 128, 163, 0.08);
+  --nav-glass-shadow-scrolled: 0 16px 42px rgba(17, 34, 77, 0.12), 0 4px 10px rgba(17, 34, 77, 0.05), inset 0 1px 0 #fff;
+  --nav-glass-blur: blur(28px) saturate(180%);
+}
+
+/* Floating header island container */
+.city-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  padding-top: 14px !important;
+  padding-bottom: 8px !important;
+  background: transparent !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  transition: padding 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", -apple-system, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.city-header.is-scrolled {
+  padding-top: 10px !important;
+  padding-bottom: 6px !important;
+}
+
+/* Translucent frosted glass capsule */
+.city-header .city-nav {
+  pointer-events: auto;
+  position: relative;
+  isolation: isolate;
+  width: min(1240px, calc(100% - 32px)) !important;
+  margin-inline: auto !important;
+  min-height: 66px !important;
+  padding: 8px 18px !important;
+  gap: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-radius: 28px !important;
+  border: 1px solid var(--nav-glass-border) !important;
+  background: var(--nav-glass-fill) !important;
+  -webkit-backdrop-filter: var(--nav-glass-blur) !important;
+  backdrop-filter: var(--nav-glass-blur) !important;
+  box-shadow: var(--nav-glass-shadow) !important;
+  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.city-header.is-scrolled .city-nav {
+  background: var(--nav-glass-scrolled) !important;
+  border-color: var(--nav-glass-border-scrolled) !important;
+  box-shadow: var(--nav-glass-shadow-scrolled) !important;
+}
+
+/* Dynamic specular pointer sheen */
+.city-header .city-nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 38%, transparent 75%, rgba(203, 221, 246, 0.1)),
+    radial-gradient(220px circle at var(--nav-pointer-x, 50%) var(--nav-pointer-y, 0%), rgba(255, 255, 255, 0.45), transparent 72%);
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.city-header .city-nav.is-pointer-lit::after {
+  opacity: 1;
+}
+
+/* Brand logo & title */
+.city-header .city-brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+  text-decoration: none !important;
+}
+
+.city-header .city-brand-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 13px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.12) !important;
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease !important;
+}
+
+.city-header .city-brand:hover .city-brand-badge {
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 4px 14px rgba(17, 34, 77, 0.18) !important;
+}
+
+.city-header .city-brand-badge img,
+.city-header .city-brand > img {
+  width: 44px !important;
+  height: 44px !important;
+  object-fit: contain !important;
+  border-radius: 13px !important;
+  display: block !important;
+}
+
+.city-header .city-brand-text,
+.city-header .city-brand > span {
+  display: grid !important;
+  gap: 2px !important;
+  text-align: left !important;
+}
+
+.city-header .city-brand strong {
+  font-size: 19px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.15 !important;
+  color: var(--nav-ink) !important;
+}
+
+.city-header .city-brand strong span {
+  color: var(--nav-accent-red) !important;
+}
+
+.city-header .city-brand small {
+  font-size: 9.5px !important;
+  color: var(--nav-muted) !important;
+  letter-spacing: 0.02em !important;
+  font-weight: 550 !important;
+  margin-top: 1px !important;
+}
+
+/* Navigation container */
+.city-header .city-navigation {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex: 1 !important;
+  gap: 20px !important;
+}
+
+/* Apple Segmented Control Navigation Tray */
+.city-header .city-navigation nav {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  padding: 4px !important;
+  border-radius: 22px !important;
+  border: 1px solid rgba(83, 111, 154, 0.07) !important;
+  background: rgba(71, 103, 151, 0.045) !important;
+  box-shadow: inset 0 1px 2px rgba(51, 76, 112, 0.03), 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  white-space: nowrap !important;
+}
+
+.city-header .city-navigation nav a {
+  min-height: 38px !important;
+  padding: 7px 16px !important;
+  padding-block: 7px !important;
+  gap: 6px !important;
+  border-radius: 17px !important;
+  border: 1px solid transparent !important;
+  color: var(--nav-muted) !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  letter-spacing: -0.015em !important;
+  text-decoration: none !important;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  background: transparent !important;
+}
+
+.city-header .city-navigation nav a:hover {
+  color: var(--nav-ink) !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Active iOS Selection Pill */
+.city-header .city-navigation nav a[aria-current="page"],
+.city-header .city-navigation nav a.is-active {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(235, 243, 253, 0.85)) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  color: var(--nav-ink) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.07), inset 0 1px 0 #fff !important;
+}
+
+.city-header .city-navigation nav a[aria-current="page"]::after,
+.city-header .city-navigation nav a.is-active::after {
+  display: none !important;
+}
+
+/* Right Action Links */
+.city-header .city-account-links {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  white-space: nowrap !important;
+}
+
+/* Secondary / Log In Pill */
+.city-header .city-account-links a:not(.city-button) {
+  min-height: 40px !important;
+  padding: 8px 18px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  letter-spacing: -0.01em !important;
+  color: #334155 !important;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.35)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 4px rgba(51, 76, 112, 0.035) !important;
+  text-decoration: none !important;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.city-header .city-account-links a:not(.city-button):hover {
+  background: #ffffff !important;
+  color: var(--nav-ink) !important;
+  border-color: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: inset 0 1px 0 #fff, 0 3px 10px rgba(17, 34, 77, 0.08) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Primary "Create account" iOS CTA Pill */
+.city-header .city-account-links .city-button {
+  min-height: 40px !important;
+  padding: 8px 20px !important;
+  border-radius: 999px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  background: linear-gradient(145deg, var(--nav-accent-red), #84151b) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(158, 27, 34, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+}
+
+.city-header .city-account-links .city-button:hover {
+  background: linear-gradient(145deg, #ad1e27, #741117) !important;
+  box-shadow: 0 6px 18px rgba(158, 27, 34, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* User Profile chip */
+.city-header .city-profile-link {
+  min-height: 40px !important;
+  padding: 4px 14px 4px 6px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0.42)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  box-shadow: inset 0 1px 0 #fff, 0 1px 4px rgba(17, 34, 77, 0.04) !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+  color: var(--nav-ink) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.city-header .city-profile-link img {
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* Sign out link */
+.city-header .city-account-links .city-signout-link {
+  color: #64748b !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.city-header .city-account-links .city-signout-link:hover {
+  color: var(--nav-accent-red) !important;
+  background: rgba(158, 27, 34, 0.06) !important;
+  border-color: rgba(158, 27, 34, 0.15) !important;
+}
+
+/* Mobile menu toggle */
+.city-header .city-menu-button {
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.4)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 999px !important;
+  color: var(--nav-ink) !important;
+  width: 42px !important;
+  height: 42px !important;
+  box-shadow: inset 0 1px 0 #fff, 0 1px 4px rgba(17, 34, 77, 0.05) !important;
+  margin-left: auto !important;
+  padding: 0 !important;
+  transition: all 0.18s ease !important;
+}
+
+.city-header .city-menu-button:hover,
+.city-header .city-menu-button[aria-expanded="true"] {
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.08) !important;
+}
+
+.city-header .city-menu-button svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Responsive Breakpoints */
+@media (min-width: 851px) and (max-width: 1120px) {
+  .city-header .city-nav {
+    gap: 16px !important;
+    padding: 8px 14px !important;
+  }
+  .city-header .city-navigation nav,
+  .city-header .city-account-links {
+    gap: 8px !important;
+  }
+  .city-header .city-navigation nav a {
+    padding: 7px 12px !important;
+    font-size: 12.5px !important;
+  }
+  .city-header .city-brand small {
+    display: none !important;
+  }
+}
+
+@media (max-width: 850px) {
+  .city-header {
+    padding-top: 8px !important;
+    padding-bottom: 6px !important;
+  }
+  .city-header .city-nav {
+    min-height: 58px !important;
+    padding: 6px 14px !important;
+    border-radius: 24px !important;
+    position: relative !important;
+  }
+  .city-header .city-menu-button {
+    display: inline-flex !important;
+  }
+  .city-header .city-navigation {
+    display: none !important;
+    position: absolute !important;
+    top: calc(100% + 10px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 16px !important;
+    background: var(--nav-glass-panel) !important;
+    -webkit-backdrop-filter: var(--nav-glass-blur) !important;
+    backdrop-filter: var(--nav-glass-blur) !important;
+    border: 1px solid rgba(255, 255, 255, 0.95) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 24px 60px rgba(17, 34, 77, 0.15), 0 4px 12px rgba(17, 34, 77, 0.05), inset 0 1px 0 #fff !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+  .city-header .city-navigation.is-open {
+    display: flex !important;
+    animation: cityNavSlideDown 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  }
+  @keyframes cityNavSlideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .city-header .city-navigation nav {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    gap: 4px !important;
+  }
+  .city-header .city-navigation nav a {
+    min-height: 44px !important;
+    padding: 10px 14px !important;
+    border-radius: 14px !important;
+    font-size: 14px !important;
+    justify-content: flex-start !important;
+  }
+  .city-header .city-account-links {
+    border-top: 1px solid rgba(83, 111, 154, 0.12) !important;
+    padding-top: 14px !important;
+    margin-top: 2px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .city-header .city-account-links a:not(.city-button),
+  .city-header .city-account-links .city-button {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .city-header .city-nav {
+    width: calc(100% - 20px) !important;
+    padding: 6px 12px !important;
+  }
+  .city-header .city-brand strong {
+    font-size: 17px !important;
+  }
+  .city-header .city-brand small {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-header .city-nav,
+  .city-header .city-nav *,
+  .city-header .city-navigation.is-open {
+    animation: none !important;
+    transition: none !important;
+  }
+  .city-header .city-nav::after {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   Hero Section with Dual Red/Blue Accent Lines & High-Impact Typography
+   Matches the exact reference: 69.3% Red / 30.7% Navy stripes,
+   white text with crimson stroke, deep red pill button, and rich left overlay.
+   ========================================================================== */
+
+.city-hero-frame {
+  position: relative;
+  width: 100%;
+  background: var(--city-paper, #f8f9fa);
+  padding: 4px 0 10px;
+}
+
+/* Dual Red & Navy Accent Lines (Top: 71.5% Red / 28.5% Navy, Bottom: 48% Red / 52% Navy with clean gap) */
+.city-accent-stripe {
+  display: flex !important;
+  width: 100% !important;
+  height: 6px !important;
+  background: transparent !important;
+  overflow: hidden !important;
+  position: relative !important;
+  z-index: 2 !important;
+  box-sizing: border-box !important;
+  gap: 6px !important;
+}
+
+.city-accent-stripe-top {
+  margin-bottom: 7px !important;
+}
+
+.city-accent-stripe-bottom {
+  margin-top: 7px !important;
+}
+
+.city-accent-stripe .stripe-segment {
+  display: block !important;
+  height: 100% !important;
+}
+
+.city-accent-stripe-top .stripe-red {
+  flex: 0 0 calc(71.5% - 3px) !important;
+  width: calc(71.5% - 3px) !important;
+  background: #BC1823 !important;
+}
+
+.city-accent-stripe-top .stripe-blue {
+  flex: 1 1 auto !important;
+  background: #122348 !important;
+}
+
+.city-accent-stripe-bottom .stripe-red {
+  flex: 0 0 calc(48% - 3px) !important;
+  width: calc(48% - 3px) !important;
+  background: #BC1823 !important;
+}
+
+.city-accent-stripe-bottom .stripe-blue {
+  flex: 1 1 auto !important;
+  background: #122348 !important;
+}
+
+/* Hero Section */
+.city-hero {
+  position: relative !important;
+  min-height: 520px !important;
+  display: flex !important;
+  align-items: center !important;
+  color: #fff !important;
+  background: var(--city-navy, #11224d) !important;
+  overflow: hidden !important;
+}
+
+.city-hero > img {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  inset: 0 !important;
+}
+
+/* Smooth deep navy gradient overlay on left */
+.city-hero::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 26, 56, 0.94) 0%,
+    rgba(14, 26, 56, 0.84) 34%,
+    rgba(14, 26, 56, 0.48) 56%,
+    rgba(14, 26, 56, 0.1) 78%,
+    transparent 100%
+  ) !important;
+  pointer-events: none !important;
+}
+
+.city-hero-content {
+  position: relative !important;
+  z-index: 1 !important;
+  padding-block: 60px !important;
+}
+
+/* High-Impact Hero Headline: White text with deep crimson outline */
+.city-hero-title {
+  font-family: "Montserrat", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: clamp(38px, 5.2vw, 74px) !important;
+  font-weight: 900 !important;
+  line-height: 0.92 !important;
+  letter-spacing: -0.025em !important;
+  text-transform: uppercase !important;
+  color: #ffffff !important;
+  -webkit-text-stroke: 3.5px #8A050C !important;
+  paint-order: stroke fill !important;
+  margin: 0 0 18px 0 !important;
+  max-width: 720px !important;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Subtitle */
+.city-hero-subtitle {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif !important;
+  font-size: clamp(14px, 1.25vw, 17px) !important;
+  line-height: 1.5 !important;
+  font-weight: 450 !important;
+  max-width: 530px !important;
+  margin: 0 0 24px 0 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Deep Crimson Pill CTA Button */
+.city-hero-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #8A050C !important;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  padding: 10px 28px !important;
+  min-height: 42px !important;
+  border-radius: 999px !important;
+  text-decoration: none !important;
+  border: 0 !important;
+  box-shadow: 0 4px 16px rgba(138, 5, 12, 0.45) !important;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.city-hero-btn:hover {
+  background: #a30811 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 22px rgba(138, 5, 12, 0.58) !important;
+}
+
+@media (max-width: 850px) {
+  .city-hero {
+    min-height: 460px !important;
+  }
+  .city-hero-title {
+    font-size: clamp(32px, 8vw, 48px) !important;
+    -webkit-text-stroke: 2.2px #8A050C !important;
+    line-height: 1 !important;
+  }
+  .city-hero-subtitle {
+    font-size: 14.5px !important;
+  }
+  .city-hero-btn {
+    padding: 11px 24px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .city-hero-content {
+    padding-block: 42px !important;
+  }
+  .city-hero-title {
+    font-size: 34px !important;
+    -webkit-text-stroke: 2px #8A050C !important;
+  }
+}
+

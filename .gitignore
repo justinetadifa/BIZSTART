@@ -10,3 +10,5 @@ scratch/
 cookies.txt
 *.bak
 *_backup.*
+assets/uploads/profiles/*
+!assets/uploads/profiles/.htaccess

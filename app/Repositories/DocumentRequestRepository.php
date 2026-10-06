@@ -68,7 +68,7 @@ final class DocumentRequestRepository
     {
         $role = (string) ($user['role'] ?? 'guest');
         $userId = (int) ($user['id'] ?? 0);
-        if ($role === 'guest' || $userId < 1) {
+        if ($role === 'guest' || $userId < 1 || ($role === 'admin' && !\sfc_can_manage_properties($user))) {
             return [];
         }
 
@@ -240,7 +240,7 @@ final class DocumentRequestRepository
         $userId = (int) ($user['id'] ?? 0);
 
         return match ($role) {
-            'admin' => true,
+            'admin' => \sfc_can_manage_properties($user),
             'seller' => $userId > 0 && $userId === (int) ($property['seller_user_id'] ?? 0),
             'investor' => strtolower((string) ($property['approval_state'] ?? 'approved')) === 'approved',
             default => false,
@@ -250,7 +250,7 @@ final class DocumentRequestRepository
     private function canCreateRequest(array $property, array $user): bool
     {
         $role = (string) ($user['role'] ?? 'guest');
-        if ($role === 'admin') {
+        if ($role === 'admin' && \sfc_can_manage_properties($user)) {
             return true;
         }
 
@@ -263,7 +263,7 @@ final class DocumentRequestRepository
         $userId = (int) ($user['id'] ?? 0);
 
         return match ($role) {
-            'admin' => true,
+            'admin' => \sfc_can_manage_properties($user),
             'seller' => $userId > 0 && $userId === (int) ($request['property_seller_user_id'] ?? $request['seller_user_id'] ?? 0),
             default => false,
         };
@@ -275,7 +275,7 @@ final class DocumentRequestRepository
         $userId = (int) ($user['id'] ?? 0);
 
         return match ($role) {
-            'admin' => true,
+            'admin' => \sfc_can_manage_properties($user),
             'seller' => $userId > 0 && $userId === (int) ($request['property_seller_user_id'] ?? $request['seller_user_id'] ?? 0),
             'investor' => $userId > 0 && $userId === (int) ($request['requester_user_id'] ?? 0),
             default => false,

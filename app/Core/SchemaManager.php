@@ -11,6 +11,13 @@ final class SchemaManager
     {
         $statements = [
             <<<'SQL'
+CREATE TABLE IF NOT EXISTS site_metrics (
+  metric VARCHAR(40) NOT NULL PRIMARY KEY,
+  value BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
+SQL,
+            <<<'SQL'
 CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   role VARCHAR(40) NOT NULL,
@@ -20,6 +27,12 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',
   identity_verified_at TIMESTAMP NULL DEFAULT NULL,
+  phone VARCHAR(60) NULL,
+  address_line VARCHAR(255) NULL,
+  profile_image_url VARCHAR(255) NULL,
+  privacy_consent_at TIMESTAMP NULL DEFAULT NULL,
+  privacy_consent_version VARCHAR(40) NULL,
+  privacy_consent_text TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_users_email (email),
@@ -46,6 +59,8 @@ CREATE TABLE IF NOT EXISTS seller_profiles (
   company_name VARCHAR(190) NULL,
   business_registration_no VARCHAR(120) NULL,
   government_id_no VARCHAR(120) NULL,
+  prc_registration_no VARCHAR(40) NULL,
+  prc_valid_until DATE NULL,
   address_line VARCHAR(255) NULL,
   barangay VARCHAR(120) NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
@@ -463,6 +478,22 @@ SQL,
             );
         }
 
+        foreach ([
+            'phone' => 'VARCHAR(60) NULL',
+            'address_line' => 'VARCHAR(255) NULL',
+            'profile_image_url' => 'VARCHAR(255) NULL',
+            'privacy_consent_at' => 'TIMESTAMP NULL DEFAULT NULL',
+            'privacy_consent_version' => 'VARCHAR(40) NULL',
+            'privacy_consent_text' => 'TEXT NULL',
+        ] as $column => $definition) {
+            if (!self::columnExists($pdo, 'users', $column)) {
+                $pdo->exec('ALTER TABLE users ADD COLUMN ' . $column . ' ' . $definition);
+            }
+        }
+        // Existing administrators become the CICTO account owners. New accounts
+        // must use a department explicitly allowed by the authorization service.
+        $pdo->exec("UPDATE users SET department = 'CICTO' WHERE role = 'admin' AND (department IS NULL OR TRIM(department) = '' OR department = 'City Planning and Development Office (CPDO)')");
+
         $pdo->exec(
             "UPDATE users
              SET identity_verification_status = 'unverified'
@@ -474,6 +505,12 @@ SQL,
     {
         if (!self::tableExists($pdo, 'seller_profiles')) {
             return;
+        }
+
+        foreach (['prc_registration_no' => 'VARCHAR(40) NULL', 'prc_valid_until' => 'DATE NULL'] as $column => $definition) {
+            if (!self::columnExists($pdo, 'seller_profiles', $column)) {
+                $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN ' . $column . ' ' . $definition);
+            }
         }
 
         if (!self::columnExists($pdo, 'seller_profiles', 'seller_type')) {
@@ -556,6 +593,21 @@ SQL,
     {
         if (!self::tableExists($pdo, 'properties')) {
             return;
+        }
+
+        foreach ([
+            'category' => 'VARCHAR(64) NULL',
+            'subcategory' => 'VARCHAR(96) NULL',
+            'assessment_json' => 'LONGTEXT NULL',
+            'assessment_tags_json' => 'LONGTEXT NULL',
+            'contact_mode' => "VARCHAR(24) NOT NULL DEFAULT 'open_listing'",
+            'contact_broker_user_id' => 'INT UNSIGNED NULL',
+            'review_note' => 'TEXT NULL',
+            'created_by_user_id' => 'INT NULL',
+        ] as $column => $definition) {
+            if (!self::columnExists($pdo, 'properties', $column)) {
+                $pdo->exec('ALTER TABLE properties ADD COLUMN ' . $column . ' ' . $definition);
+            }
         }
 
         if (!self::columnExists($pdo, 'properties', 'city')) {
@@ -892,6 +944,7 @@ SQL,
 
     private static function ensureIndexes(PDO $pdo): void
     {
+        self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_prc', 'CREATE UNIQUE INDEX uniq_seller_profiles_prc ON seller_profiles (prc_registration_no)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_seller_user', 'CREATE INDEX idx_properties_seller_user ON properties (seller_user_id)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_approval_state', 'CREATE INDEX idx_properties_approval_state ON properties (approval_state)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_last_confirmed_available', 'CREATE INDEX idx_properties_last_confirmed_available ON properties (last_confirmed_available_at)');

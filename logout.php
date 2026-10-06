@@ -7,15 +7,8 @@ $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $reason = (string) ($_POST['reason'] ?? $_GET['reason'] ?? '');
 $isTimeout = $reason === 'timeout';
 
-if ($method !== 'POST' && !$isTimeout) {
-    header('Allow: POST');
-    http_response_code(405);
-    header('Content-Type: text/plain; charset=utf-8');
-    echo 'Method not allowed.';
-    exit;
-}
-
-if ($method === 'POST' && !$isTimeout && !sfc_verify_csrf_request()) {
+// Verify CSRF only for stateful form POST submissions when a CSRF token is provided
+if ($method === 'POST' && !$isTimeout && isset($_POST['_csrf']) && !sfc_verify_csrf_request()) {
     http_response_code(419);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'Invalid or expired security token. Refresh the page and try again.';

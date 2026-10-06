@@ -46,7 +46,7 @@ final class PropertyCommandCenterService
     {
         $property = $this->properties->find($propertyId, $user);
         $votes = $this->votes->voteTallies($propertyId, isset($user['id']) ? (int) $user['id'] : null);
-        $dueState = $this->properties->dueDiligenceState($propertyId);
+        $dueState = $user !== null ? $this->properties->dueDiligenceState($propertyId) : [];
         $conversation = $this->messages->propertyConversation($propertyId, $user);
         $visit = is_array($conversation['thread'] ?? null) && isset($conversation['thread']['id'])
             ? $this->visits->findByThread((int) $conversation['thread']['id'], $user)
@@ -56,7 +56,7 @@ final class PropertyCommandCenterService
             ? $this->notifications->feedForProperty((int) ($user['id'] ?? 0), $propertyId, 14)
             : [];
         // Audit snapshots include actor details and previous owner contact data.
-        $auditLogs = ($user['role'] ?? null) === 'admin'
+        $auditLogs = \sfc_can_review_brokers($user ?? ['role' => 'guest'])
             ? $this->auditLogs->forProperty($propertyId, 18)
             : [];
         $blockers = $this->buildBlockers($property, $documentRequests, $visit, $conversation);
@@ -517,6 +517,6 @@ final class PropertyCommandCenterService
     private function canViewOperationalFeed(?array $user): bool
     {
         $role = (string) ($user['role'] ?? 'guest');
-        return in_array($role, ['investor', 'seller', 'admin'], true) && isset($user['id']);
+        return in_array($role, ['investor', 'seller', 'admin'], true) && isset($user['id']) && ($role !== 'admin' || \sfc_can_manage_properties($user));
     }
 }

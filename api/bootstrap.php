@@ -4,10 +4,16 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 
 use App\Support\JsonData;
+use App\Support\SiteMetrics;
+use App\Support\PropertyCatalog;
+
+require_once __DIR__ . '/../app/Support/SiteMetrics.php';
+require_once __DIR__ . '/../app/Support/PropertyCatalog.php';
 
 api_handle(function (array $container): array {
     $meta = JsonData::meta();
     $user = sfc_current_user();
+    SiteMetrics::recordVisit($container['pdo']);
     $properties = $container['properties']->all($user);
     $propertyIds = array_values(array_filter(array_map(
         static fn (array $property): int => (int) ($property['id'] ?? 0),
@@ -31,11 +37,10 @@ api_handle(function (array $container): array {
     return [
         'meta' => $meta,
         'properties' => $properties,
-        'stats' => [
-            'activeInquiries' => (int) ($meta['dashboard']['activeInquiries'] ?? 0),
-            'globalReach' => (int) ($meta['dashboard']['globalReach'] ?? 0),
-            'marketSnapshot' => $meta['services']['marketData'] ?? null,
-        ],
+        'stats' => SiteMetrics::summary($container['pdo']),
+        'categories' => PropertyCatalog::categories(),
+        'criteria' => PropertyCatalog::criteria(),
+        'publicPreview' => $user === null,
         'generatedAt' => gmdate(DATE_ATOM),
     ];
 });

@@ -2,129 +2,44 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/_listing-policy.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
-
     if ($method === 'GET') {
         $properties = $container['properties']->all($user);
-        $propertyIds = array_values(array_filter(array_map(
-            static fn (array $property): int => (int) ($property['id'] ?? 0),
-            $properties
-        )));
+        $propertyIds = array_column($properties, 'id');
+        $brokers = [];
+        if ($user !== null && sfc_can_manage_properties($user)) {
+            $brokers = $container['pdo']->query("SELECT u.id, u.name, sp.phone FROM users u INNER JOIN seller_profiles sp ON sp.user_id = u.id WHERE u.role = 'seller' AND u.identity_verification_status = 'verified' AND sp.application_status = 'verified' AND sp.seller_type = 'broker' AND sp.prc_registration_no REGEXP '^[0-9]{1,20}$' AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)) ORDER BY u.name")->fetchAll();
+        }
         return [
             'properties' => $container['decisionEngine']->decorateProperties($properties, [
                 'voteSummaries' => $container['votes']->summaryMap($propertyIds),
                 'messageSummaries' => $container['messages']->propertySummaryMap($propertyIds),
             ]),
+            'categories' => \App\Support\PropertyCatalog::categories(),
+            'criteria' => \App\Support\PropertyCatalog::criteria(),
+            'approvedBrokers' => $brokers,
+            'previewLimit' => $user === null ? 3 : null,
         ];
     }
-
     if ($method === 'POST') {
-        if ($user === null || !in_array($user['role'] ?? 'guest', ['admin', 'seller'], true)) {
-            return [403, ['error' => 'Only admin or seller accounts can create listings.']];
+        if ($user === null || (!sfc_can_manage_properties($user) && ($user['role'] ?? '') !== 'seller')) {
+            return [403, ['error' => 'A department or approved broker account is required.']];
         }
-        if (($user['role'] ?? null) === 'seller' && strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'verified') {
-            return [403, ['error' => 'Your seller account is still pending verification. Complete your seller profile and wait for admin approval before publishing listings.']];
+        if (($user['role'] ?? '') === 'seller' && !sfc_broker_can_submit($user)) {
+            return [403, ['error' => 'Your broker application is awaiting CICTO approval.']];
         }
-
-        $payload = read_request_input();
-        $uploadedImagePath = store_uploaded_property_image($_FILES['image_file'] ?? null);
-        if ($uploadedImagePath !== null) {
-            $payload['image_path'] = $uploadedImagePath;
+        $payload = sfc_listing_payload(read_request_input(), $user, true);
+        $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
+        if ($image !== null) {
+            $payload['image_path'] = $image;
         }
-        if (($user['role'] ?? null) === 'seller') {
-            unset(
-                $payload['approval_state'],
-                $payload['approvalState'],
-                $payload['documents_reviewed'],
-                $payload['documentsReviewed'],
-                $payload['documents_reviewed_at'],
-                $payload['documentsReviewedAt'],
-                $payload['site_verified'],
-                $payload['siteVerified'],
-                $payload['site_verified_at'],
-                $payload['siteVerifiedAt'],
-                $payload['dist_to_road_km'],
-                $payload['distToRoadKm'],
-                $payload['utility_status'],
-                $payload['utilityStatus'],
-                $payload['zoning_score'],
-                $payload['zoningScore'],
-                $payload['existing_land_use'],
-                $payload['existingLandUse'],
-                $payload['zoning_classification'],
-                $payload['zoningClassification'],
-                $payload['clup_allowed_uses'],
-                $payload['clupAllowedUses'],
-                $payload['clup_conditional_uses'],
-                $payload['clupConditionalUses'],
-                $payload['clup_restricted_uses'],
-                $payload['clupRestrictedUses'],
-                $payload['clup_source_reference'],
-                $payload['clupSourceReference'],
-                $payload['clup_verified'],
-                $payload['clupVerified'],
-                $payload['clup_verified_at'],
-                $payload['clupVerifiedAt'],
-                $payload['clup_profile'],
-                $payload['clupProfile'],
-                $payload['clup_compliance'],
-                $payload['clupCompliance'],
-                $payload['evidence_level'],
-                $payload['evidenceLevel'],
-                $payload['source_document_path'],
-                $payload['sourceDocumentPath'],
-                $payload['review_status'],
-                $payload['reviewStatus'],
-                $payload['dataset_id'],
-                $payload['datasetId'],
-                $payload['zone_id'],
-                $payload['zoneId'],
-                $payload['profile_id'],
-                $payload['profileId'],
-                $payload['assessed_value_sqm'],
-                $payload['assessedValueSqm'],
-                $payload['readiness_notes'],
-                $payload['readinessNotes'],
-                $payload['document_statuses'],
-                $payload['documentStatuses'],
-                $payload['seller_identity_verification_status'],
-                $payload['sellerIdentityVerificationStatus']
-            );
-            $payload['seller_user_id'] = (int) $user['id'];
-            $payload['owner_email'] = $payload['owner_email'] ?? $user['email'];
-            $payload['owner_name'] = $payload['owner_name'] ?? $user['name'];
-            $payload['approval_state'] = 'pending_review';
-            $payload['last_confirmed_available_at'] = $payload['last_confirmed_available_at'] ?? gmdate('Y-m-d H:i:s');
-        } elseif (!isset($payload['seller_user_id'], $payload['sellerUserId'])) {
-            $payload['seller_user_id'] = $container['users']->defaultSellerId();
-        }
-
-        if (($user['role'] ?? null) === 'admin' && !isset($payload['last_confirmed_available_at'], $payload['lastConfirmedAvailableAt'])) {
-            $payload['last_confirmed_available_at'] = gmdate('Y-m-d H:i:s');
-        }
-
         $property = $container['properties']->create($payload, $user);
-        $sellerIdentityStatus = string_or_null($payload['seller_identity_verification_status'] ?? $payload['sellerIdentityVerificationStatus'] ?? null);
-        if (($user['role'] ?? null) === 'admin' && $sellerIdentityStatus !== null && ($property['sellerUserId'] ?? null) !== null) {
-            $container['users']->updateIdentityVerificationStatus((int) $property['sellerUserId'], $sellerIdentityStatus);
-            $property = $container['properties']->find((int) $property['id'], $user);
-        }
-
         $container['line']->onListingCreated($property, $user);
-
-        return [
-            201,
-            [
-                'property' => $container['decisionEngine']->decorateProperty($property, [
-                    'voteSummary' => $container['votes']->summaryMap([(int) ($property['id'] ?? 0)])[(int) ($property['id'] ?? 0)] ?? [],
-                    'messageSummary' => $container['messages']->propertySummaryMap([(int) ($property['id'] ?? 0)])[(int) ($property['id'] ?? 0)] ?? [],
-                ]),
-            ],
-        ];
+        return [201, ['property' => $container['decisionEngine']->decorateProperty($property)]];
     }
-
     return [405, ['error' => 'Method not allowed.']];
 });

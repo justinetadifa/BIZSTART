@@ -34,6 +34,8 @@ final class SellerProfileRepository
                 sp.company_name,
                 sp.business_registration_no,
                 sp.government_id_no,
+                sp.prc_registration_no,
+                sp.prc_valid_until,
                 sp.address_line,
                 sp.barangay,
                 sp.city,
@@ -66,6 +68,8 @@ final class SellerProfileRepository
                 sp.company_name,
                 sp.business_registration_no,
                 sp.government_id_no,
+                sp.prc_registration_no,
+                sp.prc_valid_until,
                 sp.address_line,
                 sp.barangay,
                 sp.city,
@@ -120,6 +124,8 @@ final class SellerProfileRepository
                 sp.company_name,
                 sp.business_registration_no,
                 sp.government_id_no,
+                sp.prc_registration_no,
+                sp.prc_valid_until,
                 sp.address_line,
                 sp.barangay,
                 sp.city,
@@ -152,6 +158,8 @@ final class SellerProfileRepository
                 sp.company_name,
                 sp.business_registration_no,
                 sp.government_id_no,
+                sp.prc_registration_no,
+                sp.prc_valid_until,
                 sp.address_line,
                 sp.barangay,
                 sp.city,
@@ -200,11 +208,13 @@ final class SellerProfileRepository
                 'INSERT INTO seller_profiles (
                     user_id, seller_type, legal_name, display_name, phone, company_name,
                     business_registration_no, government_id_no, address_line, barangay, city,
+                    prc_registration_no, prc_valid_until,
                     authorization_basis, application_status, review_notes, submitted_at,
                     reviewed_at, reviewed_by_user_id
                  ) VALUES (
                     :user_id, :seller_type, :legal_name, :display_name, :phone, :company_name,
                     :business_registration_no, :government_id_no, :address_line, :barangay, :city,
+                    :prc_registration_no, :prc_valid_until,
                     :authorization_basis, :application_status, :review_notes, :submitted_at,
                     :reviewed_at, :reviewed_by_user_id
                  )'
@@ -220,6 +230,8 @@ final class SellerProfileRepository
                      company_name = :company_name,
                      business_registration_no = :business_registration_no,
                      government_id_no = :government_id_no,
+                     prc_registration_no = :prc_registration_no,
+                     prc_valid_until = :prc_valid_until,
                      address_line = :address_line,
                      barangay = :barangay,
                      city = :city,
@@ -244,12 +256,36 @@ final class SellerProfileRepository
 
     public function review(int $userId, string $status, ?int $reviewedByUserId = null, ?string $reviewNotes = null): array
     {
+        if ($reviewedByUserId === null || $reviewedByUserId < 1) {
+            throw new InvalidArgumentException('A CICTO reviewer is required.');
+        }
+        $reviewer = $this->pdo->prepare('SELECT role, department FROM users WHERE id = :id LIMIT 1');
+        $reviewer->execute(['id' => $reviewedByUserId]);
+        $reviewerUser = $reviewer->fetch();
+        if (!is_array($reviewerUser) || !\sfc_can_review_brokers($reviewerUser)) {
+            throw new InvalidArgumentException('Only CICTO can review broker applications.');
+        }
+        if (!in_array(strtolower(trim($status)), self::APPLICATION_STATUSES, true)) {
+            throw new InvalidArgumentException('Invalid broker review status.');
+        }
         $profile = $this->findByUserId($userId);
         if ($profile === null) {
             throw new InvalidArgumentException('Seller profile not found.');
         }
 
         $normalizedStatus = $this->normalizeApplicationStatus($status);
+        if ($normalizedStatus === 'verified' && $profile['sellerType'] === 'broker') {
+            $this->validateRegistrationPayload([
+                'seller_type' => 'broker',
+                'legal_name' => $profile['legalName'],
+                'phone' => $profile['phone'],
+                'address_line' => $profile['addressLine'],
+                'city' => $profile['city'],
+                'prc_registration_no' => $profile['prcRegistrationNo'],
+                'prc_valid_until' => $profile['prcValidUntil'],
+                'authorization_basis' => $profile['authorizationBasis'],
+            ], ['name' => $profile['legalName']]);
+        }
         $reviewedAt = in_array($normalizedStatus, ['verified', 'rejected', 'suspended'], true)
             ? gmdate('Y-m-d H:i:s')
             : null;
@@ -260,7 +296,7 @@ final class SellerProfileRepository
                  reviewed_at = :reviewed_at,
                  reviewed_by_user_id = :reviewed_by_user_id,
                  submitted_at = CASE
-                    WHEN :application_status = \'pending_review\'
+                    WHEN :submitted_status = \'pending_review\'
                     THEN COALESCE(submitted_at, CURRENT_TIMESTAMP)
                     ELSE submitted_at
                  END
@@ -269,6 +305,7 @@ final class SellerProfileRepository
         $statement->execute([
             'user_id' => $userId,
             'application_status' => $normalizedStatus,
+            'submitted_status' => $normalizedStatus,
             'review_notes' => string_or_null($reviewNotes),
             'reviewed_at' => $reviewedAt,
             'reviewed_by_user_id' => $reviewedByUserId,
@@ -336,6 +373,19 @@ final class SellerProfileRepository
             ?? string_or_null($existing['businessRegistrationNo'] ?? null);
         $governmentIdNo = string_or_null($payload['government_id_no'] ?? $payload['governmentIdNo'] ?? null)
             ?? string_or_null($existing['governmentIdNo'] ?? null);
+        $prcRegistrationNo = string_or_null($payload['prc_registration_no'] ?? $payload['prcRegistrationNo'] ?? null)
+            ?? string_or_null($existing['prcRegistrationNo'] ?? null);
+        $prcValidUntil = string_or_null($payload['prc_valid_until'] ?? $payload['prcValidUntil'] ?? null)
+            ?? string_or_null($existing['prcValidUntil'] ?? null);
+        if ($prcValidUntil !== null) {
+            if (!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/', $prcValidUntil)) {
+                throw new InvalidArgumentException('Enter the valid-until date on your PRC ID.');
+            }
+            $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $prcValidUntil);
+            if ($date === false || $date->format('Y-m-d') !== $prcValidUntil) {
+                throw new InvalidArgumentException('Enter the valid-until date on your PRC ID.');
+            }
+        }
         $addressLine = string_or_null($payload['address_line'] ?? $payload['addressLine'] ?? null)
             ?? string_or_null($existing['addressLine'] ?? null);
         $barangay = string_or_null($payload['barangay'] ?? null) ?? string_or_null($existing['barangay'] ?? null);
@@ -351,23 +401,51 @@ final class SellerProfileRepository
         $reviewedAt = $existing['reviewedAt'] ?? null;
         $reviewedByUserId = $existing['reviewedByUserId'] ?? null;
 
+        foreach ([[$legalName, 190], [$phone, 60], [$addressLine, 255], [$city, 120], [$companyName, 190], [$businessRegistrationNo, 120], [$governmentIdNo, 120], [$authorizationBasis, 190], [$displayName, 190], [$barangay, 120], [$prcRegistrationNo, 40]] as [$value, $limit]) {
+            if (mb_strlen((string) $value) > $limit) {
+                throw new InvalidArgumentException('A broker profile field exceeds its maximum length.');
+            }
+        }
+        if ($existing !== null && ($existing['applicationStatus'] ?? '') === 'suspended') {
+            throw new InvalidArgumentException('This account is suspended. Contact CICTO.');
+        }
+        // Editing verified identity credentials always returns the application to
+        // CICTO. A broker cannot keep approval while substituting another license.
+        if ($applicationStatus === 'verified' && (
+            $legalName !== ($existing['legalName'] ?? null)
+            || $prcRegistrationNo !== ($existing['prcRegistrationNo'] ?? null)
+            || $prcValidUntil !== ($existing['prcValidUntil'] ?? null)
+            || $sellerType !== ($existing['sellerType'] ?? null)
+        )) {
+            $submit = true;
+        }
+
         if ($submit) {
             $this->validateSubmissionFields(
                 $sellerType,
                 $legalName,
                 $phone,
-                $governmentIdNo,
+                $sellerType === 'broker' ? $prcRegistrationNo : $governmentIdNo,
                 $addressLine,
                 $city,
                 $authorizationBasis,
                 $businessRegistrationNo
             );
+            if ($sellerType === 'broker') {
+                if ($prcRegistrationNo === null || !preg_match('/^[0-9]{1,20}$/', $prcRegistrationNo)) {
+                    throw new InvalidArgumentException('Enter a valid PRC registration number.');
+                }
+                $expiry = $prcValidUntil !== null ? \DateTimeImmutable::createFromFormat('!Y-m-d', $prcValidUntil) : false;
+                if ($expiry === false || $expiry->format('Y-m-d') !== $prcValidUntil || $prcValidUntil < (new \DateTimeImmutable('now', new \DateTimeZone('Asia/Manila')))->format('Y-m-d')) {
+                    throw new InvalidArgumentException('Enter the valid-until date on your current PRC ID.');
+                }
+            }
             $applicationStatus = 'pending_review';
             $reviewNotes = null;
             $submittedAt = gmdate('Y-m-d H:i:s');
             $reviewedAt = null;
             $reviewedByUserId = null;
-        } elseif (!in_array($applicationStatus, ['verified', 'suspended'], true)) {
+        } elseif ($existing === null) {
             $applicationStatus = 'draft';
         }
 
@@ -379,6 +457,8 @@ final class SellerProfileRepository
             'company_name' => $companyName,
             'business_registration_no' => $businessRegistrationNo,
             'government_id_no' => $governmentIdNo,
+            'prc_registration_no' => $prcRegistrationNo,
+            'prc_valid_until' => $prcValidUntil,
             'address_line' => $addressLine,
             'barangay' => $barangay,
             'city' => $city,
@@ -407,8 +487,11 @@ final class SellerProfileRepository
         if ($phone === null) {
             throw new InvalidArgumentException('A seller contact number is required.');
         }
+        if (!preg_match('/^[+()0-9 .-]{7,30}$/', $phone)) {
+            throw new InvalidArgumentException('Enter a valid contact number.');
+        }
         if ($governmentIdNo === null) {
-            throw new InvalidArgumentException('A government ID or license number is required.');
+            throw new InvalidArgumentException('A PRC registration or identity number is required.');
         }
         if ($addressLine === null) {
             throw new InvalidArgumentException('A business or mailing address is required.');
@@ -419,7 +502,7 @@ final class SellerProfileRepository
         if ($authorizationBasis === null) {
             throw new InvalidArgumentException('Please describe your authority to represent the property.');
         }
-        if (in_array($sellerType, ['company', 'broker'], true) && $businessRegistrationNo === null) {
+        if ($sellerType === 'company' && $businessRegistrationNo === null) {
             throw new InvalidArgumentException('A business registration or broker license number is required for this seller type.');
         }
     }
@@ -429,6 +512,7 @@ final class SellerProfileRepository
         $this->assertUniqueValue('phone', $payload['phone'], $userId, 'That phone number is already attached to another seller account.');
         $this->assertUniqueValue('government_id_no', $payload['government_id_no'], $userId, 'That government ID or license number is already attached to another seller account.');
         $this->assertUniqueValue('business_registration_no', $payload['business_registration_no'], $userId, 'That business registration number is already attached to another seller account.');
+        $this->assertUniqueValue('prc_registration_no', $payload['prc_registration_no'], $userId, 'That PRC registration is already attached to another broker account.');
     }
 
     private function assertUniqueValue(string $column, ?string $value, int $userId, string $message): void
@@ -468,6 +552,8 @@ final class SellerProfileRepository
             'companyName' => null,
             'businessRegistrationNo' => null,
             'governmentIdNo' => null,
+            'prcRegistrationNo' => null,
+            'prcValidUntil' => null,
             'addressLine' => null,
             'barangay' => null,
             'city' => 'San Fernando, La Union',
@@ -501,6 +587,8 @@ final class SellerProfileRepository
             'companyName' => $row['company_name'] !== null ? (string) $row['company_name'] : null,
             'businessRegistrationNo' => $row['business_registration_no'] !== null ? (string) $row['business_registration_no'] : null,
             'governmentIdNo' => $row['government_id_no'] !== null ? (string) $row['government_id_no'] : null,
+            'prcRegistrationNo' => $row['prc_registration_no'] ?? null,
+            'prcValidUntil' => $row['prc_valid_until'] ?? null,
             'addressLine' => $row['address_line'] !== null ? (string) $row['address_line'] : null,
             'barangay' => $row['barangay'] !== null ? (string) $row['barangay'] : null,
             'city' => $row['city'] !== null ? (string) $row['city'] : 'San Fernando, La Union',
@@ -527,6 +615,11 @@ final class SellerProfileRepository
     {
         $normalized = strtolower(trim($sellerType));
         return in_array($normalized, self::SELLER_TYPES, true) ? $normalized : 'individual';
+    }
+
+    public function validateRegistrationPayload(array $payload, array $user): void
+    {
+        $this->normalizePayload($payload, $user, null, true);
     }
 
     private function normalizeApplicationStatus(string $status): string

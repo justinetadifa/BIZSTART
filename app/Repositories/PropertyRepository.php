@@ -4,10 +4,15 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Support\JsonData;
+use App\Support\PropertyCatalog;
+use App\Support\PropertyAssessment;
 use InvalidArgumentException;
 use OutOfBoundsException;
 use PDO;
 use Throwable;
+
+require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
+require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 
 final class PropertyRepository
 {
@@ -72,17 +77,18 @@ final class PropertyRepository
         $statement->execute($params);
         $rows = $statement->fetchAll();
 
-        return $this->hydrateProperties($rows);
+        return $this->presentProperties($this->hydrateProperties($rows), $user);
     }
 
     public function find(int $propertyId, ?array $user = null): array
     {
-        return $this->hydrateProperties([$this->rawPropertyRow($propertyId, $user, true)])[0];
+        return $this->presentProperties($this->hydrateProperties([$this->rawPropertyRow($propertyId, $user, true)]), $user)[0];
     }
 
     public function create(array $payload, ?array $actor = null): array
     {
         $property = $this->normalizePropertyPayload($payload);
+        $property['created_by_user_id'] = isset($actor['id']) ? (int) $actor['id'] : null;
 
         $statement = $this->pdo->prepare(
             'INSERT INTO properties (
@@ -91,14 +97,16 @@ final class PropertyRepository
                 documents_json, seller_user_id, documents_reviewed_at, site_verified_at, last_confirmed_available_at,
                 dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
                 clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
-                clup_verified_at, assessed_value_sqm, readiness_notes
+                clup_verified_at, assessed_value_sqm, readiness_notes,
+                category, subcategory, assessment_json, assessment_tags_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
                 :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
                 :documents_json, :seller_user_id, :documents_reviewed_at, :site_verified_at, :last_confirmed_available_at,
                 :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
                 :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
-                :clup_verified_at, :assessed_value_sqm, :readiness_notes
+                :clup_verified_at, :assessed_value_sqm, :readiness_notes,
+                :category, :subcategory, :assessment_json, :assessment_tags_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
             )'
         );
 
@@ -165,7 +173,14 @@ final class PropertyRepository
                 clup_source_reference = :clup_source_reference,
                 clup_verified_at = :clup_verified_at,
                 assessed_value_sqm = :assessed_value_sqm,
-                readiness_notes = :readiness_notes
+                readiness_notes = :readiness_notes,
+                category = :category,
+                subcategory = :subcategory,
+                assessment_json = :assessment_json,
+                assessment_tags_json = :assessment_tags_json,
+                contact_mode = :contact_mode,
+                contact_broker_user_id = :contact_broker_user_id,
+                review_note = :review_note
              WHERE id = :id'
         );
 
@@ -352,9 +367,18 @@ final class PropertyRepository
             'SELECT
                 p.*,
                 seller.identity_verification_status AS seller_identity_verification_status,
-                seller.identity_verified_at AS seller_identity_verified_at
+                seller.identity_verified_at AS seller_identity_verified_at,
+                CASE WHEN seller.identity_verification_status = \'verified\' AND seller_profile.seller_type = \'broker\' AND seller_profile.application_status = \'verified\' AND seller_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND seller_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)) THEN 1 ELSE 0 END AS seller_broker_verified,
+                broker.name AS contact_broker_name,
+                broker.email AS contact_broker_email,
+                broker_profile.phone AS contact_broker_phone,
+                broker_profile.application_status AS contact_broker_status,
+                (SELECT COUNT(*) FROM property_shortlists saved WHERE saved.property_id = p.id) AS save_count
              FROM properties p
-             LEFT JOIN users seller ON seller.id = p.seller_user_id';
+             LEFT JOIN users seller ON seller.id = p.seller_user_id
+             LEFT JOIN seller_profiles seller_profile ON seller_profile.user_id = seller.id
+             LEFT JOIN users broker ON broker.id = p.contact_broker_user_id AND broker.identity_verification_status = \'verified\'
+             LEFT JOIN seller_profiles broker_profile ON broker_profile.user_id = broker.id AND broker_profile.seller_type = \'broker\' AND broker_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND broker_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))';
     }
 
     private function visibilityCondition(?array $user, array &$params): string
@@ -362,13 +386,21 @@ final class PropertyRepository
         $role = (string) ($user['role'] ?? 'guest');
         $userId = (int) ($user['id'] ?? 0);
 
-        if ($role === 'admin') {
+        if ($role === 'admin' && !sfc_can_manage_properties($user)) {
+            throw new InvalidArgumentException('A recognized city department account is required.');
+        }
+
+        if ($role === 'admin' && sfc_can_manage_properties($user)) {
             return '';
         }
 
         if ($role === 'seller' && $userId > 0) {
             $params['visible_seller_user_id'] = $userId;
             return '(p.approval_state = \'approved\' OR p.seller_user_id = :visible_seller_user_id)';
+        }
+
+        if ($userId < 1) {
+            return 'p.approval_state = \'approved\' AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
         }
 
         return 'p.approval_state = \'approved\'';
@@ -409,8 +441,9 @@ final class PropertyRepository
         $dueDiligenceSummaryMap = $this->dueDiligenceSummaryMap($propertyIds);
         $groundTruthSummaryMap = $this->groundTruthSummaryMap($propertyIds);
         $priceBenchmarkMap = $this->priceBenchmarkMap();
+        $assessmentRanks = $this->assessmentRanks();
 
-        return array_map(function (array $row) use ($mediaMap, $documentRequestSummaryMap, $dueDiligenceSummaryMap, $groundTruthSummaryMap, $priceBenchmarkMap): array {
+        return array_map(function (array $row) use ($mediaMap, $documentRequestSummaryMap, $dueDiligenceSummaryMap, $groundTruthSummaryMap, $priceBenchmarkMap, $assessmentRanks): array {
             $propertyId = (int) $row['id'];
             $media = $mediaMap[$propertyId] ?? [];
             $documentStatuses = $this->normalizeDocumentStatuses($this->decodeJson($row['documents_json'] ?? '{}'));
@@ -471,6 +504,7 @@ final class PropertyRepository
                 'documentCompletenessPct' => $documentCompletenessPct,
                 'listingVerificationStatus' => $listingVerificationStatus,
                 'sellerIdentityStatus' => $sellerIdentityStatus,
+                'sellerBrokerVerified' => (bool) ($row['seller_broker_verified'] ?? false),
                 'distToRoadKm' => $distToRoadKm,
                 'utilityStatus' => $utilityStatus,
                 'zoningScore' => $zoningScore,
@@ -482,7 +516,10 @@ final class PropertyRepository
                 'priceBenchmark' => $priceBenchmarkMap[(string) $row['type']] ?? ($priceBenchmarkMap['*'] ?? null),
             ]);
 
-            return [
+            $assessment = PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'));
+            [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
+
+            return array_merge([
                 'id' => $propertyId,
                 'name' => (string) $row['name'],
                 'propertyName' => (string) $row['name'],
@@ -498,6 +535,20 @@ final class PropertyRepository
                 'marketScore' => $marketScore,
                 'type' => (string) $row['type'],
                 'propertyType' => (string) $row['type'],
+                'category' => $category,
+                'subcategory' => $subcategory,
+                'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
+                'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
+                'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
+                'brokerContact' => ($row['contact_broker_status'] ?? null) === 'verified' ? [
+                    'name' => (string) ($row['contact_broker_name'] ?? ''),
+                    'phone' => (string) ($row['contact_broker_phone'] ?? ''),
+                    'email' => (string) ($row['contact_broker_email'] ?? ''),
+                ] : null,
+                'reviewNote' => (string) ($row['review_note'] ?? ''),
+                'saveCount' => (int) ($row['save_count'] ?? 0),
+                'mceRank' => $assessmentRanks[$propertyId]['mceRank'] ?? null,
+                'iaiRank' => $assessmentRanks[$propertyId]['iaiRank'] ?? null,
                 'corridor' => (string) $row['corridor'],
                 'tags' => $this->decodeJson($row['tags_json'] ?? '[]'),
                 'facilities' => $this->decodeJson($row['facilities_json'] ?? '[]'),
@@ -508,7 +559,9 @@ final class PropertyRepository
                 'barangay' => $row['barangay'] !== null ? (string) $row['barangay'] : null,
                 'ownerContact' => $this->decodeJson($row['owner_contact_json'] ?? '{}'),
                 'sellerUserId' => isset($row['seller_user_id']) ? int_or_null($row['seller_user_id']) : null,
+                'createdByUserId' => int_or_null($row['created_by_user_id'] ?? null),
                 'sellerIdentityStatus' => $sellerIdentityStatus,
+                'sellerBrokerVerified' => (bool) ($row['seller_broker_verified'] ?? false),
                 'sellerIdentityVerifiedAt' => $this->normalizeTimestamp($row['seller_identity_verified_at'] ?? null),
                 'documentsReviewedAt' => $documentsReviewedAt,
                 'siteVerifiedAt' => $siteVerifiedAt,
@@ -554,8 +607,37 @@ final class PropertyRepository
                 'media' => $media,
                 'createdAt' => $this->normalizeTimestamp($row['created_at'] ?? null),
                 'updatedAt' => $updatedAt,
-            ];
+            ], $assessment);
         }, $rows);
+    }
+
+    private function assessmentRanks(): array
+    {
+        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE approval_state = 'approved'")->fetchAll();
+        $properties = array_map(fn (array $row): array => array_merge(['id' => (int) $row['id']], PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'))), $rows);
+        return PropertyAssessment::ranks($properties);
+    }
+
+    private function presentProperties(array $properties, ?array $user): array
+    {
+        if ((int) ($user['id'] ?? 0) > 0) {
+            return $properties;
+        }
+        return array_map(static function (array $property): array {
+            $property['ownerContact'] = null;
+            $property['brokerContact'] = null;
+            $property['contactBrokerUserId'] = null;
+            $property['reviewNote'] = '';
+            $property['sellerUserId'] = null;
+            $property['createdByUserId'] = null;
+            $property['sellerIdentityStatus'] = 'not_disclosed';
+            $property['sellerBrokerVerified'] = false;
+            $property['sellerIdentityVerifiedAt'] = null;
+            $property['documentStatuses'] = [];
+            $property['latestFieldAudit'] = [];
+            $property['media'] = array_values(array_filter($property['media'], static fn (array $item): bool => in_array($item['kind'] ?? '', ['image', 'photo'], true)));
+            return $property;
+        }, $properties);
     }
 
     private function mediaMap(array $propertyIds): array
@@ -786,8 +868,8 @@ final class PropertyRepository
 
         $lat = float_or_null($payload['lat'] ?? ($existing['lat'] ?? null));
         $lng = float_or_null($payload['lng'] ?? ($existing['lng'] ?? null));
-        if ($lat === null || $lng === null) {
-            ['lat' => $lat, 'lng' => $lng] = $this->defaultCoordinates($corridor);
+        if ($lat === null || $lng === null || !is_finite($lat) || !is_finite($lng) || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+            throw new InvalidArgumentException('Valid latitude and longitude are required.');
         }
 
         $imageUrl = string_or_null($payload['image_path'] ?? $payload['imageUrl'] ?? ($existing['image_url'] ?? null))
@@ -795,11 +877,11 @@ final class PropertyRepository
 
         $tags = $this->normalizeStringList(
             $payload['tags'] ?? $payload['tags_csv'] ?? $this->decodeExistingValue($existing['tags_json'] ?? null),
-            $this->defaultTags($type, $corridor, $barangay)
+            []
         );
         $facilities = $this->normalizeStringList(
             $payload['facilities'] ?? $payload['facilities_csv'] ?? $this->decodeExistingValue($existing['facilities_json'] ?? null),
-            $this->defaultFacilities($corridor, $type)
+            []
         );
         $ownerContact = $this->normalizeOwnerContact(
             $payload,
@@ -857,6 +939,37 @@ final class PropertyRepository
             $payload['assessed_value_sqm'] ?? $payload['assessedValueSqm'] ?? ($existing['assessed_value_sqm'] ?? null)
         );
         $readinessNotes = string_or_null($payload['readiness_notes'] ?? $payload['readinessNotes'] ?? ($existing['readiness_notes'] ?? null));
+        [$category, $subcategory] = PropertyCatalog::normalizeCategory(
+            string_or_null($payload['category'] ?? ($existing['category'] ?? null)),
+            string_or_null($payload['subcategory'] ?? ($existing['subcategory'] ?? null)),
+            $type
+        );
+        $assessment = PropertyAssessment::normalize($payload['assessmentCriteria'] ?? $payload['assessment_criteria'] ?? $this->decodeExistingValue($existing['assessment_json'] ?? null));
+        $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
+        $assessmentTags = array_values(array_unique(array_map(static fn (string $tag): string => strtoupper(trim($tag)), $assessmentTags)));
+        foreach ($assessmentTags as $tag) {
+            if (!in_array($tag, PropertyCatalog::contextTags(), true)) {
+                throw new InvalidArgumentException('Choose a valid property context tag.');
+            }
+        }
+        $contactMode = (string) ($payload['contactMode'] ?? $payload['contact_mode'] ?? ($existing['contact_mode'] ?? 'open_listing'));
+        if (!in_array($contactMode, ['open_listing', 'broker'], true)) {
+            throw new InvalidArgumentException('Choose open listing or an approved broker.');
+        }
+        $contactBrokerUserId = int_or_null($payload['contactBrokerUserId'] ?? $payload['contact_broker_user_id'] ?? ($existing['contact_broker_user_id'] ?? null));
+        if ($contactMode === 'open_listing') {
+            $contactBrokerUserId = null;
+        } else {
+            $broker = $this->pdo->prepare("SELECT u.id FROM users u INNER JOIN seller_profiles sp ON sp.user_id = u.id WHERE u.id = :id AND u.role = 'seller' AND u.identity_verification_status = 'verified' AND sp.application_status = 'verified' AND sp.seller_type = 'broker' AND sp.prc_registration_no REGEXP '^[0-9]{1,20}$' AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))");
+            $broker->execute(['id' => $contactBrokerUserId ?? 0]);
+            if (!$broker->fetchColumn()) {
+                throw new InvalidArgumentException('The contact must be an approved broker.');
+            }
+        }
+        $reviewNote = string_or_null($payload['reviewNote'] ?? $payload['review_note'] ?? ($existing['review_note'] ?? null));
+        if (strlen($reviewNote ?? '') > 3000 || strlen($readinessNotes ?? '') > 10000) {
+            throw new InvalidArgumentException('The review or assessment note is too long.');
+        }
 
         return [
             'name' => $name,
@@ -895,6 +1008,13 @@ final class PropertyRepository
             'clup_verified_at' => $clupVerifiedAt,
             'assessed_value_sqm' => $assessedValueSqm,
             'readiness_notes' => $readinessNotes,
+            'category' => $category,
+            'subcategory' => $subcategory,
+            'assessment_json' => json_encode($assessment, JSON_UNESCAPED_UNICODE),
+            'assessment_tags_json' => json_encode($assessmentTags, JSON_UNESCAPED_UNICODE),
+            'contact_mode' => $contactMode,
+            'contact_broker_user_id' => $contactBrokerUserId,
+            'review_note' => $reviewNote,
         ];
     }
 
@@ -1015,11 +1135,11 @@ final class PropertyRepository
         $name = string_or_null($payloadContact['name'] ?? $payload['owner_name'] ?? ($existingContact['name'] ?? null))
             ?? sprintf('%s Desk', $propertyName);
         $email = string_or_null($payloadContact['email'] ?? $payload['owner_email'] ?? ($existingContact['email'] ?? null))
-            ?? 'portfolio@sfcelerate.local';
+            ?? '';
         $phone = string_or_null($payloadContact['phone'] ?? $payload['owner_phone'] ?? ($existingContact['phone'] ?? null))
-            ?? '+63 917 555 0199';
+            ?? '';
         $responseSla = string_or_null($payloadContact['responseSla'] ?? $payload['owner_response_sla'] ?? ($existingContact['responseSla'] ?? null))
-            ?? '24 HOURS';
+            ?? '';
 
         return [
             'name' => $name,
@@ -1093,7 +1213,7 @@ final class PropertyRepository
     {
         $normalized = strtolower(trim($state));
         if (!in_array($normalized, self::APPROVAL_STATES, true)) {
-            return 'approved';
+            throw new InvalidArgumentException('Choose a valid listing review status.');
         }
 
         return $normalized;
@@ -1820,6 +1940,7 @@ final class PropertyRepository
             'ownerContact' => $this->decodeJson($row['owner_contact_json'] ?? '{}'),
             'documents' => $this->normalizeDocumentStatuses($this->decodeJson($row['documents_json'] ?? '{}')),
             'sellerUserId' => isset($row['seller_user_id']) ? int_or_null($row['seller_user_id']) : null,
+            'createdByUserId' => int_or_null($row['created_by_user_id'] ?? null),
             'documentsReviewedAt' => $this->normalizeTimestamp($row['documents_reviewed_at'] ?? null),
             'siteVerifiedAt' => $this->normalizeTimestamp($row['site_verified_at'] ?? null),
             'lastConfirmedAvailableAt' => $this->normalizeTimestamp($row['last_confirmed_available_at'] ?? null),
@@ -1828,6 +1949,13 @@ final class PropertyRepository
             'zoningScore' => int_or_null($row['zoning_score'] ?? null),
             'assessedValueSqm' => $this->effectiveAssessedValueSqm($row['assessed_value_sqm'] ?? null, $pricePerSqm),
             'readinessNotes' => string_or_null($row['readiness_notes'] ?? null),
+            'category' => string_or_null($row['category'] ?? null),
+            'subcategory' => string_or_null($row['subcategory'] ?? null),
+            'assessmentCriteria' => $this->decodeJson($row['assessment_json'] ?? '{}'),
+            'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
+            'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
+            'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
+            'reviewNote' => string_or_null($row['review_note'] ?? null),
         ];
     }
 

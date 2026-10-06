@@ -14,7 +14,7 @@ api_handle(function (array $container): array {
         ];
     }
 
-    if (($user['role'] ?? null) !== 'admin') {
+    if (!sfc_can_review_brokers($user)) {
         return [403, ['error' => 'Only admin can manage showcase items.']];
     }
 

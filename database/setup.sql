@@ -1,8 +1,15 @@
+-- Combined fresh-database setup: schema.sql + seed.sql.
 CREATE DATABASE IF NOT EXISTS sfcelerate_bizstart
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
 USE sfcelerate_bizstart;
+
+CREATE TABLE IF NOT EXISTS site_metrics (
+  metric VARCHAR(40) NOT NULL PRIMARY KEY,
+  value BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -13,6 +20,12 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',
   identity_verified_at TIMESTAMP NULL DEFAULT NULL,
+  phone VARCHAR(60) NULL,
+  address_line VARCHAR(255) NULL,
+  profile_image_url VARCHAR(255) NULL,
+  privacy_consent_at TIMESTAMP NULL DEFAULT NULL,
+  privacy_consent_version VARCHAR(40) NULL,
+  privacy_consent_text TEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_users_email (email),
@@ -26,6 +39,40 @@ CREATE TABLE IF NOT EXISTS user_preferences (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_user_preferences_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS seller_profiles (
+  user_id INT NOT NULL PRIMARY KEY,
+  seller_type VARCHAR(40) NOT NULL DEFAULT 'individual',
+  legal_name VARCHAR(190) NULL,
+  display_name VARCHAR(190) NULL,
+  phone VARCHAR(60) NULL,
+  company_name VARCHAR(190) NULL,
+  business_registration_no VARCHAR(120) NULL,
+  government_id_no VARCHAR(120) NULL,
+  prc_registration_no VARCHAR(40) NULL,
+  prc_valid_until DATE NULL,
+  address_line VARCHAR(255) NULL,
+  barangay VARCHAR(120) NULL,
+  city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
+  authorization_basis VARCHAR(190) NULL,
+  application_status VARCHAR(40) NOT NULL DEFAULT 'draft',
+  review_notes TEXT NULL,
+  submitted_at TIMESTAMP NULL DEFAULT NULL,
+  reviewed_at TIMESTAMP NULL DEFAULT NULL,
+  reviewed_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_seller_profiles_phone (phone),
+  UNIQUE KEY uniq_seller_profiles_business_reg (business_registration_no),
+  UNIQUE KEY uniq_seller_profiles_government_id (government_id_no),
+  UNIQUE KEY uniq_seller_profiles_prc (prc_registration_no),
+  KEY idx_seller_profiles_status (application_status),
+  KEY idx_seller_profiles_reviewed_by (reviewed_by_user_id),
+  CONSTRAINT fk_seller_profiles_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_seller_profiles_reviewer
+    FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS properties (
@@ -66,6 +113,14 @@ CREATE TABLE IF NOT EXISTS properties (
   clup_verified_at TIMESTAMP NULL DEFAULT NULL,
   assessed_value_sqm INT NULL,
   readiness_notes TEXT NULL,
+  category VARCHAR(64) NULL,
+  subcategory VARCHAR(96) NULL,
+  assessment_json LONGTEXT NULL,
+  assessment_tags_json LONGTEXT NULL,
+  contact_mode VARCHAR(24) NOT NULL DEFAULT 'open_listing',
+  contact_broker_user_id INT UNSIGNED NULL,
+  review_note TEXT NULL,
+  created_by_user_id INT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_properties_seller_user (seller_user_id),
@@ -285,6 +340,46 @@ CREATE TABLE IF NOT EXISTS vote_options (
   KEY idx_vote_options_active (is_active, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS showcase_items (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  feature_type VARCHAR(40) NOT NULL,
+  title VARCHAR(190) NOT NULL,
+  slug VARCHAR(190) NOT NULL,
+  partner_label VARCHAR(160) NULL,
+  summary VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  category VARCHAR(120) NULL,
+  location_label VARCHAR(190) NULL,
+  barangay VARCHAR(120) NULL,
+  status VARCHAR(80) NOT NULL,
+  pipeline_mode VARCHAR(40) NULL,
+  supply_signal VARCHAR(40) NULL,
+  cover_image_url VARCHAR(255) NOT NULL,
+  primary_metric_label VARCHAR(120) NULL,
+  primary_metric_value VARCHAR(120) NULL,
+  secondary_metric_label VARCHAR(120) NULL,
+  secondary_metric_value VARCHAR(120) NULL,
+  investor_thesis VARCHAR(255) NULL,
+  ideal_operator VARCHAR(160) NULL,
+  avoidance_note VARCHAR(255) NULL,
+  countdown_at DATETIME NULL,
+  completion_target DATETIME NULL,
+  related_property_id INT NULL,
+  is_published TINYINT(1) NOT NULL DEFAULT 1,
+  is_featured TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_by_user_id INT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_showcase_items_slug (slug),
+  KEY idx_showcase_items_feature (feature_type, is_published, sort_order),
+  KEY idx_showcase_items_related_property (related_property_id),
+  CONSTRAINT fk_showcase_items_property
+    FOREIGN KEY (related_property_id) REFERENCES properties(id) ON DELETE SET NULL,
+  CONSTRAINT fk_showcase_items_creator
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS property_votes (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   property_id INT NOT NULL,
@@ -492,33 +587,24 @@ CREATE TABLE IF NOT EXISTS spatial_overlays (
     FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Development samples for a fresh, empty database after schema.sql.
+-- Existing records are never cleared. Use the PHP migration for upgrades.
+-- Sample listings have no departmental assessment, so MCE/IAI remain pending.
 USE sfcelerate_bizstart;
 
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE notifications;
-TRUNCATE TABLE user_preferences;
-TRUNCATE TABLE property_shortlists;
-TRUNCATE TABLE property_votes;
-TRUNCATE TABLE property_document_requests;
-TRUNCATE TABLE visit_logs;
-TRUNCATE TABLE property_messages;
-TRUNCATE TABLE message_threads;
-TRUNCATE TABLE investment_scenarios;
-TRUNCATE TABLE spatial_overlays;
-TRUNCATE TABLE property_due_diligence;
-TRUNCATE TABLE property_media;
-TRUNCATE TABLE vote_options;
-TRUNCATE TABLE properties;
-TRUNCATE TABLE users;
-SET FOREIGN_KEY_CHECKS = 1;
+START TRANSACTION;
 
 INSERT INTO users (
-  id, role, name, email, password_hash, identity_verification_status, identity_verified_at
+  id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at
 ) VALUES
-  (1, 'admin', 'SFC Admin', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
-  (2, 'seller', 'Seller Studio', 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'verified', '2026-03-16 10:00:00'),
-  (3, 'investor', 'Investor Resident Hub', 'investor@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL),
-  (4, 'investor', 'Maria Santos', 'maria.santos@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL);
+  (1, 'admin', 'SFC Admin', 'CICTO', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
+  (2, 'seller', 'Demo Broker', NULL, 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'unverified', NULL),
+  (3, 'investor', 'Investor Resident Hub', NULL, 'investor@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL),
+  (4, 'investor', 'Maria Santos', NULL, 'maria.santos@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL);
+
+-- No invented PRC number or consent is assigned to the demo broker.
+INSERT INTO seller_profiles (user_id, seller_type, legal_name, display_name, application_status, review_notes)
+VALUES (2, 'broker', 'Demo Broker', 'Demo Broker', 'draft', 'Complete your PRC credentials for CICTO review.');
 
 INSERT INTO user_preferences (user_id, notification_cadence) VALUES
   (1, 'instant'),
@@ -652,3 +738,5 @@ INSERT INTO audit_logs (
   (2, 1, 'EDIT', 'PROPERTY', 1, '{"eventType":"DATA_EDIT","targetLabel":"PROP_ID: #SFLU-001","summary":"Price Per Sqm changed from PHP 847 / sqm to PHP 882 / sqm.","streamGroup":"financials","changedFields":["pricePerSqm","price"],"before":{"price":72000000,"pricePerSqm":847,"name":"Fabro Building Prime Lot"},"after":{"price":75000000,"pricePerSqm":882,"name":"Fabro Building Prime Lot"}}', '2026-04-02 09:15:01'),
   (3, 1, 'DELETE', 'MESSAGE', 1, '{"eventType":"MSG_RESOLVE","targetLabel":"THREAD: #1","summary":"Flagged inappropriate content and cleared the thread for review.","badge":"MODERATED","streamGroup":"moderation","changedFields":["messageCount"],"before":{"messageCount":3},"after":{"messageCount":0,"messagesCleared":3}}', '2026-04-02 08:05:44'),
   (4, 4, 'EDIT', 'VOTE', 2, '{"eventType":"VOTE_SIGNAL","targetLabel":"PROP_ID: #SFLU-002","summary":"Vote pulse moved to Warehouse Or Logistics for LaFinns Beach Resort Land.","streamGroup":"all","changedFields":["votes","selectedVoteOptionId"],"before":{"votes":{"WAREHOUSE OR LOGISTICS":2}},"after":{"votes":{"WAREHOUSE OR LOGISTICS":3},"selectedVoteOptionId":8}}', '2026-04-01 17:18:22');
+
+COMMIT;

@@ -1,155 +1,131 @@
-<img src="assets/images/webLogoSfc.png" alt="LOCUS-SF logo" width="80" />
+<img src="assets/images/logoLocusRedBlue.png" alt="LOCUS-SF logo" width="80" />
 
 # LOCUS-SF
 
-**SFCelerate BizStart | San Fernando City, La Union, Philippines**
+**Investment properties in San Fernando City, La Union**
 
-LOCUS-SF is a web application for exploring commercial properties and comparing potential investment sites in San Fernando City. It brings property listings, map views, investment rankings, and supporting documents into one place so users can assess a site before arranging further review.
+LOCUS-SF helps investors discover properties, compare sites, and contact brokers. The interface uses the city palette: `#F8F9FA`, `#9E1B22`, `#11224D`, and `#2A603B`.
 
-The application provides separate workspaces for investors, property sellers, and administrators. It was developed as an undergraduate Information Technology capstone project.
+## Workspaces
 
-## Core features
+Guests see three approved property previews. Signing in unlocks the full property catalog, map, priority board, comparisons, and saved properties.
 
-- **Property discovery:** Browse listings on an interactive map and filter candidates by location, corridor, price, and land area. Property details include listing information, readiness indicators, and supporting records.
-- **Investment rankings:** Evaluate properties using seven sector lenses: logistics, commercial centers, office/BPO, resort/tourism, manufacturing, university, and hospital. View score breakdowns and the factors behind each ranking.
-- **Comparison and reports:** Compare up to three properties, save a shortlist, and print ranking or investment reports using the browser's Print or Save as PDF options.
-- **Local business context:** Inspect mapped competitors within a 500-meter radius and review suggested business types based on the application's stored property and competitor data.
-- **Investor and seller coordination:** Send inquiries, request documents, track document readiness, and coordinate site visits. Signed-in investors can vote on proposed business uses for individual properties.
-- **Administration:** Manage listings, review seller applications, curate showcase content and voting options, and inspect activity and audit logs.
-
-## User roles
-
-Visitors can browse the public property explorer, rankings, comparisons, and reports. Account access enables the following workflows:
-
-| Role | Workspace |
+| Account | Access |
 | --- | --- |
-| Investor | Shortlists, comparisons, demand voting, seller inquiries, document requests, and site visits |
-| Seller | Seller profile submission, listing management, inquiries, document responses, and visit coordination |
-| Administrator | Property moderation, seller review, showcase management, voting options, and activity monitoring |
+| Investor | Available area and site visits, property search, maps, MCE/IAI rankings, saved properties, comparison, broker contacts, messages, documents, and visits |
+| Broker | PRC application, own listing submissions, accepted/declined/pending totals, investor saves, CICTO review messages, and investor coordination |
+| CICTO | City overview, broker verification, listing approval or decline, fraud review, and city listing entry |
+| ASSESSOR | Property entry, data management, and departmental assessment |
+| LEBDO | Property entry, data management, and departmental assessment |
 
-## Technology
+All accounts can update their profile and photo through [profile.php](profile.php). Public registration creates investor or broker accounts. CICTO provisions city staff accounts.
 
-The backend uses PHP and PDO with MySQL or MariaDB. Pages are rendered in PHP, with HTML, CSS, and JavaScript modules handling the interface. Leaflet and MapLibre provide map views using OpenStreetMap and CARTO basemaps.
+CICTO can create ASSESSOR, LEBDO, or additional CICTO access through **City accounts** on the city overview. Existing account passwords are preserved during upgrades.
 
-JSON endpoints live in `api/`. Database access is handled by repositories in `app/Repositories/`, while shared business logic and integrations live in `app/Support/`. There is no Composer or npm install step for the application.
+Staff can also use **Activate account** with a city passkey issued by CICTO. Set `SFC_CITY_STAFF_PASSKEY` in the server environment to enable this flow in production; activation is disabled there when no key is configured. Configured keys replace development defaults and are never displayed on the access screen.
+
+**Updates** opens messages, document requests, and site visit notices in the appropriate workspace. City departments respond to document requests under **Listings → Document requests**. Visits use the broker assigned to the investor's conversation, including city listings with a verified broker contact; reassigning a listing preserves existing private conversations.
+
+Brokers provide their complete name, address, contact number, PRC registration number, and PRC ID validity. CICTO checks the credentials before approving submission access. New and edited broker listings return to the city review queue. Changes to verified broker credentials require another review.
+
+Registration records the submitted privacy consent, version, and time. The consent text identifies the City Government of San Fernando, RA 10173, and LOCUS-SF.
+
+## Listings and rankings
+
+The catalog supports 13 property categories and their subcategories: Retail, Multifamily, Office, Industrial, Hospitality, Mixed Use, Land, Self Storage, Mobile Home Park, Senior Living, Special Purpose, Note/Loan, and Business for Sale.
+
+City assessors record seven criteria: spatial accessibility, infrastructure readiness, economic viability, nearby businesses, zoning compatibility, risk constraints, and environmental safety. Site tags such as beach or agricultural support the assessment. Listings can use an open listing contact or a verified broker.
+
+MCE (Multi-Criteria Evaluation) and IAI (Investment Attractiveness Index) scores remain pending until all seven city criteria are recorded. Scores and rankings are decision aids based on the recorded assessment. Sample listings are unassessed; existing legacy scores are not official MCE/IAI assessments.
+
+The site visit counter uses persisted visits, counted once per browser session in each 30-minute window. It is not a unique-person count. Available area totals use approved, available listings.
+
+CLUP results are preliminary planning screens. The repository does not contain an authenticated official zoning map or cadastral parcel crosswalk. Final zoning compatibility and locational clearance require the authorized offices. See [CLUP governance](docs/CLUP_GOVERNANCE.md).
 
 ## Run locally
 
-The instructions below use XAMPP on Windows.
+The application uses PHP, PDO, MySQL/MariaDB, and JavaScript modules. No Composer or npm installation is required. Enable `pdo_mysql`, `mbstring`, and `fileinfo`; optional integrations can use `curl`.
 
-You will need:
-
-- XAMPP with Apache, PHP, and MySQL/MariaDB.
-- PHP extensions `pdo_mysql`, `mbstring`, and `fileinfo`. Enable `curl` if you plan to use the optional service integrations.
-- Git to clone the repository.
-
-1. Clone the project into XAMPP's web root:
-
-   ```powershell
-   Set-Location C:\xampp\htdocs
-   git clone https://github.com/justinetadifa/BIZSTART.git sfcelerate-bizstart
-   Set-Location sfcelerate-bizstart
-   ```
-
-2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
-
-3. Create your local configuration:
-
-   ```powershell
-   Copy-Item app/config.local.php.example app/config.local.php
-   ```
-
-   Edit `app/config.local.php` to match your database credentials. The template uses these local defaults:
-
-   | Setting | Default |
-   | --- | --- |
-   | Host | `127.0.0.1` |
-   | Port | `3306` |
-   | Database | `sfcelerate_bizstart` |
-   | User | `root` |
-   | Password | Empty |
-
-   The local configuration file is ignored by Git. Configuration defaults and supported environment variables are defined in [`app/config.php`](app/config.php).
-
+1. Put the repository in `C:\xampp\htdocs\sfcelerate-bizstart`.
+2. Start MySQL and Apache in XAMPP.
+3. Copy `app/config.local.php.example` to `app/config.local.php` and set your database credentials.
 4. Open [http://localhost/sfcelerate-bizstart/](http://localhost/sfcelerate-bizstart/).
 
-   With the default local settings, the application creates the database and tables and seeds missing demo records during initialization. The database account needs permission to create the database and update its schema.
+Local defaults use `127.0.0.1:3306`, database `sfcelerate_bizstart`, user `root`, and an empty password. Local configuration is ignored by Git. With `auto_migrate` and `auto_seed` enabled, initialization creates missing tables and local sample data. Configuration lives in [app/config.php](app/config.php).
 
-   To check the connection, open [http://localhost/sfcelerate-bizstart/api/health.php](http://localhost/sfcelerate-bizstart/api/health.php). A successful response contains `"status": "ok"` and `"connected": true`.
-
-For a manual SQL setup, import [`database/setup.sql`](database/setup.sql) through phpMyAdmin into a fresh local database. The script creates and selects `sfcelerate_bizstart`; keep that name aligned with your configuration. Separate schema and seed scripts are also available in `database/`.
-
-If the application cannot connect, confirm that MySQL is running and check the host, port, database name, and credentials in `app/config.local.php`. Map tiles and some frontend resources require an internet connection.
-
-## Demo accounts
-
-The local seed data includes accounts for each role:
-
-| Role | Email | Password | Sign-in page |
-| --- | --- | --- | --- |
-| Administrator | `admin@sfcelerate.local` | `Admin123!` | [`admin-login.php`](admin-login.php) |
-| Seller | `seller@sfcelerate.local` | `Seller123!` | [`seller-login.php`](seller-login.php) |
-| Investor | `investor@sfcelerate.local` | `Investor123!` | [`investor-login.php`](investor-login.php) |
-
-These are demonstration accounts for local development. Local defaults enable automatic schema updates and demo seeding through `auto_migrate` and `auto_seed` in the `app` configuration.
-
-## Optional integrations
-
-External service keys are optional for local use. Add them in `app/config.local.php` using the structure in [`app/config.local.php.example`](app/config.local.php.example), or supply the corresponding environment variables.
-
-| Service | Purpose | Environment variables |
-| --- | --- | --- |
-| LocationIQ | Location search and geocoding | `LOCATIONIQ_KEY` |
-| OpenWeather | Weather context | `OPENWEATHER_API_KEY` |
-| NewsAPI | Business and investment news | `NEWSAPI_KEY` |
-| Alpha Vantage | Market context | `ALPHA_VANTAGE_KEY` |
-| Gemini or OpenRouter | Generated opportunity summaries | `AI_PROVIDER` and either `GEMINI_API_KEY` or `OPENROUTER_API_KEY` |
-| Cloudinary | Hosted property images | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
-
-Without these keys, the application uses local uploads, stored context, or fallback responses where supported. Sample and fallback content should be treated as demonstration data rather than live market information.
-
-## Data and planning scope
-
-The repository includes sample listings, demand records, and local spatial datasets for development and demonstration. Rankings depend on those records and the selected scoring criteria.
-
-Comprehensive Land Use Plan (CLUP) results are preliminary planning screens. The repository does not include an authenticated official zoning map or a cadastral parcel crosswalk, so map positions and displayed zoning labels cannot establish a property's legal zoning. Final zoning compatibility and locational clearance require review by the authorized local government offices. See [`docs/CLUP_GOVERNANCE.md`](docs/CLUP_GOVERNANCE.md) for the evidence requirements and current data limitations.
-
-## Project layout
-
-```text
-api/                 JSON endpoints for listings, voting, messages, and documents
-app/
-  Core/              Database connection and schema initialization
-  Repositories/      Database access
-  Support/           Shared services, authentication, scoring, and integrations
-  config.php         Defaults and environment variable handling
-assets/              Stylesheets, JavaScript, images, and local map assets
-data/                Seed datasets, spatial records, metadata, and cache files
-database/            Schema, seed, and combined setup scripts
-docs/                Technical documentation, governance notes, and audit records
-tests/               Competitor radar verification
-*.php                Public pages, sign-in pages, and role dashboards
-```
-
-The main entry points are [`index.php`](index.php), [`property-explorer.php`](property-explorer.php), [`property-ranking.php`](property-ranking.php), [`property-details.php`](property-details.php), and [`compare-decision.php`](compare-decision.php).
-
-## Development checks
-
-The competitor radar verification script runs with Node.js and covers distance boundaries, duplicate records, missing coordinates, repeated selections, and empty datasets:
+For the PHP development server, run from the repository root while MySQL is running:
 
 ```powershell
+C:\xampp\php\php.exe -S 127.0.0.1:8088 router.php
+```
+
+Use `router.php` so development requests follow the same private-directory restrictions as Apache. PHP also needs a writable `session.save_path` for login and CSRF tokens.
+
+[api/health.php](api/health.php) reports database connectivity. Map tiles and some frontend assets require internet access.
+
+## Database setup and upgrades
+
+[database/setup.sql](database/setup.sql) combines the current schema and development seed for a **fresh, empty database**. [schema.sql](database/schema.sql) and [seed.sql](database/seed.sql) are also available separately. The seed does not delete existing data; do not import demo seeds into an existing deployment.
+
+For an existing database, inspect and apply the idempotent application schema update without demo seeding:
+
+```powershell
+C:\xampp\php\php.exe database/migrate-city-workspaces.php --dry-run
+C:\xampp\php\php.exe database/migrate-city-workspaces.php --apply
+```
+
+The dry run checks city workspace columns and the unique PRC index without changing records. The migration adds profile, consent, PRC, assessment, contact, provenance, and metric fields through `SchemaManager`. Legacy administrators with missing or old default departments become CICTO. It does not invent PRC registrations, consent, or city assessments.
+
+## Local demo accounts
+
+| Account | Email | Password |
+| --- | --- | --- |
+| CICTO | `admin@sfcelerate.local` | `Admin123!` |
+| Broker | `seller@sfcelerate.local` | `Seller123!` |
+| Investor | `investor@sfcelerate.local` | `Investor123!` |
+
+Demo access is for local development. The broker starts unverified, with no invented PRC credentials. Complete a valid application and city review to submit listings. ASSESSOR and LEBDO accounts are provisioned by CICTO.
+
+## Optional services
+
+Keys can be supplied in `app/config.local.php` or environment variables.
+
+| Service | Environment variables |
+| --- | --- |
+| LocationIQ | `LOCATIONIQ_KEY` |
+| OpenWeather | `OPENWEATHER_API_KEY` |
+| NewsAPI | `NEWSAPI_KEY` |
+| Alpha Vantage | `ALPHA_VANTAGE_KEY` |
+| Gemini or OpenRouter | `AI_PROVIDER`, `GEMINI_API_KEY` or `OPENROUTER_API_KEY` |
+| Cloudinary | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` |
+
+Without keys, supported features use local uploads, stored context, or fallback responses. Sample context is demonstration data.
+
+## Project and documentation
+
+The revision was checked in a real browser at desktop, 390px, and 320px widths. Checked flows include the three-listing guest preview, full investor catalogue, maps and satellite tiles, saves, comparison, profiles, departmental access, document responses, broker replies, and visit confirmation. Disposable browser accounts and records are removed after verification.
+
+Repository checks can be run from the project root:
+
+```powershell
+C:\xampp\php\php.exe tests/api-security.test.php
+C:\xampp\php\php.exe tests/upload-security.test.php
+C:\xampp\php\php.exe tests/account-workflow.test.php
+C:\xampp\php\php.exe tests/staff-onboarding-policy.test.php
+C:\xampp\php\php.exe tests/security/verify-admin-auth.php
+C:\xampp\php\php.exe tests/security/verify-listing-workflow.php --integration --write
+C:\xampp\php\php.exe tests/message-workflow.test.php --integration
+C:\xampp\php\php.exe tests/visit-workflow.test.php --integration
 node tests/competitor-radar.test.js
 ```
 
-## Documentation
+The integration checks require the local database and clean their own temporary records.
 
-- [System and manuscript documentation](docs/system-manuscript-documentation.md): architecture, modules, and API inventory.
-- [CLUP governance](docs/CLUP_GOVERNANCE.md): source evidence, planning limits, and verification requirements.
-- [Acceptance-readiness audit](docs/uat-audit.md): the October 1, 2026 audit and its findings. Some findings predate later implementation changes.
-- [Interface audit](docs/interface-audit.md): interface review notes.
+PHP pages are at the repository root. JSON endpoints are in `api/`; repositories, authentication, and scoring are in `app/`; frontend assets are in `assets/`.
 
-## Academic credits
+- [System documentation](docs/system-manuscript-documentation.md)
+- [CLUP governance](docs/CLUP_GOVERNANCE.md)
+- [Acceptance audit](docs/uat-audit.md) — some findings predate these revisions
+- [Interface audit](docs/interface-audit.md)
 
-Developed for the Bachelor of Science in Information Technology program at Don Mariano Marcos Memorial State University, Mid La Union Campus (DMMMSU-MLUC).
-
-Project team: Justine Tadifa, Dizon, and Estilong.
+The project is an Information Technology capstone at DMMMSU-MLUC. Complete author and external adviser names have not been supplied for the revised public credits. CICTO, the City Assessor's Office, and LEBDO are identified by office; individual identities and endorsements must be supplied before publication.

@@ -60,8 +60,8 @@ api_handle(function (array $container): array {
             ];
         }
 
-        if ($role !== 'admin') {
-            return [403, ['error' => 'Only seller or admin accounts can view seller profiles.']];
+        if (!sfc_can_review_brokers($user)) {
+            return [403, ['error' => 'Only CICTO can view broker verification details.']];
         }
 
         $scope = strtolower(trim((string) ($_GET['scope'] ?? 'queue')));
@@ -116,7 +116,7 @@ api_handle(function (array $container): array {
         if ($submit) {
             $adminIds = array_values(array_filter(array_map(
                 static fn (array $admin): int => (int) ($admin['id'] ?? 0),
-                $container['users']->allByRole('admin')
+                array_filter($container['users']->allByRole('admin'), 'sfc_can_review_brokers')
             )));
             if ($adminIds !== []) {
                 $container['notifications']->createForUsers($adminIds, [
@@ -149,8 +149,8 @@ api_handle(function (array $container): array {
     }
 
     if ($method === 'PATCH') {
-        if ($role !== 'admin') {
-            return [403, ['error' => 'Only admin accounts can review seller applications.']];
+        if (!sfc_can_review_brokers($user)) {
+            return [403, ['error' => 'Only CICTO can review broker applications.']];
         }
 
         $payload = read_json_input();
@@ -165,6 +165,15 @@ api_handle(function (array $container): array {
         }
 
         $reviewNotes = string_or_null($payload['reviewNotes'] ?? $payload['review_notes'] ?? null);
+        if (strtolower($status) === 'verified' && !filter_var($payload['prcChecked'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            throw new InvalidArgumentException('Confirm that you checked the broker registration with PRC.');
+        }
+        if (in_array(strtolower($status), ['rejected', 'suspended'], true) && $reviewNotes === null) {
+            throw new InvalidArgumentException('Add a message explaining your decision to the broker.');
+        }
+        if ($reviewNotes !== null && mb_strlen($reviewNotes) > 5000) {
+            throw new InvalidArgumentException('Review messages must be at most 5,000 characters.');
+        }
         $profile = $container['sellerProfiles']->review($targetUserId, $status, (int) $user['id'], $reviewNotes);
         $updatedUser = $container['users']->updateIdentityVerificationStatus(
             $targetUserId,
@@ -172,13 +181,13 @@ api_handle(function (array $container): array {
         );
 
         $notificationTitle = match (strtolower($status)) {
-            'verified' => 'Seller account verified',
-            'rejected' => 'Seller application needs revision',
-            'suspended' => 'Seller access suspended',
-            default => 'Seller application updated',
+            'verified' => 'Broker account verified',
+            'rejected' => 'Broker application needs revision',
+            'suspended' => 'Broker access suspended',
+            default => 'Broker application updated',
         };
         $notificationBody = match (strtolower($status)) {
-            'verified' => 'Your seller account is now verified. You can publish listings in the seller workspace.',
+            'verified' => 'CICTO verified your broker account. Submit listings for city review.',
             'rejected' => 'Your seller application needs revision before it can be approved.',
             'suspended' => 'Your seller access has been suspended. Please contact the platform admin.',
             default => 'Your seller application status was updated by the admin team.',

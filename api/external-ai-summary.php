@@ -9,7 +9,7 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('A valid property id is required.');
     }
 
-    $property = $container['properties']->find($propertyId);
+    $property = $container['properties']->find($propertyId, sfc_current_user());
     $votes = $container['properties']->voteTallies($propertyId);
 
     return [

@@ -1,0 +1,110 @@
+<?php
+declare(strict_types=1);
+
+function sfc_render_head(string $title, array $context, array $bodyData = []): void
+{
+    $page = (string) ($bodyData['page'] ?? '');
+    $user = $context['user'];
+    $config = [
+        'appName' => $context['appName'], 'basePath' => $context['basePath'],
+        'apiBase' => $context['apiBase'], 'assetBase' => $context['assetBase'],
+        'mapTileUrl' => $context['mapTileUrl'], 'mapAttribution' => $context['mapAttribution'],
+        'role' => $user['role'] ?? 'guest', 'user' => $user, 'csrfToken' => sfc_csrf_token(),
+        'sessionSecurity' => [
+            'enabled' => $user !== null, 'role' => $user['role'] ?? 'guest',
+            'timeoutSeconds' => sfc_inactivity_timeout_seconds($user['role'] ?? null),
+            'warningSeconds' => 60, 'pingUrl' => sfc_path('/api/session-ping.php'),
+            'logoutUrl' => sfc_path('/logout.php'),
+            'loginUrl' => sfc_path(match ($user['role'] ?? '') { 'admin' => '/admin-login.php', 'seller' => '/seller-login.php', default => '/investor-login.php' }),
+        ],
+    ];
+    $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    $legacy = !str_starts_with($page, 'city-') && !in_array($page, ['broker-workspace', 'admin-workspace', 'admin-listings', 'profile', 'investor-login', 'seller-login', 'admin-login'], true);
+    $GLOBALS['sfc_legacy_page'] = $legacy;
+    ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><?= $e($title) ?></title>
+  <base href="<?= $e(($context['basePath'] ?: '') . '/') ?>">
+  <link rel="icon" href="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png">
+  <script>window.SFC_APP_CONFIG = <?= json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;</script>
+  <?php if ($legacy): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/portal.css">
+  <?php foreach (['decision-reports' => 'reports', 'city-pipeline' => 'pipeline', 'scenario-simulator' => 'simulator', 'admin-showcase' => 'admin'] as $key => $style): if ($page === $key): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/<?= $style ?>.css">
+  <?php endif; endforeach; endif; ?>
+  <?php if (in_array($page, ['city-explorer', 'city-details', 'admin-workspace', 'admin-dashboard'], true)): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/MarkerCluster.css">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-map-crexi.css<?= sfc_asset_version('css/city-map-crexi.css') ?>">
+  <script src="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.js"></script>
+  <script src="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.markercluster.js"></script>
+  <?php endif; ?>
+  <?php if ($user !== null): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/session-guard.css"><?php endif; ?>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
+  <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
+</head>
+<body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
+<?php
+}
+
+function sfc_render_header(array $context, string $active = ''): void
+{
+    $user = $context['user'];
+    $role = $user['role'] ?? 'guest';
+    $home = match ($role) { 'admin' => '/admin-dashboard.php', 'seller' => '/seller-dashboard.php', 'investor' => '/investor-dashboard.php', default => '/index.php' };
+    $items = match ($role) {
+        'admin' => [['Overview', '/admin-dashboard.php', 'admin'], ['Listings', '/admin-properties.php', 'admin-properties'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
+        'seller' => [['My listings', '/seller-dashboard.php', 'seller'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
+        'investor' => [['Properties', '/investor-dashboard.php', 'investor'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Compare', '/compare-decision.php', 'compare'], ['Saved', '/investor-dashboard.php?view=saved', 'saved']],
+        default => [['Properties', '/index.php#properties', 'properties'], ['Why San Fernando', '/index.php#why-invest', 'why'], ['About', '/index.php#about', 'about']],
+    };
+    $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    ?>
+  <header class="city-header">
+    <div class="city-container city-nav">
+      <a class="city-brand" href="<?= $e(sfc_path($home)) ?>">
+        <span class="city-brand-badge"><img src="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png" alt="LOCUS-SF" width="38" height="38"></span>
+        <span class="city-brand-text"><strong>LOCUS<span>-SF</span></strong><small>San Fernando, La Union</small></span>
+      </a>
+      <button type="button" class="city-menu-button" id="cityMenuButton" aria-controls="cityNavigation" aria-expanded="false" aria-label="Open navigation"><?= sfc_icon('menu') ?></button>
+      <div class="city-navigation" id="cityNavigation">
+        <nav aria-label="Main navigation"><?php foreach ($items as [$label, $href, $key]): ?><a href="<?= $e(sfc_path($href)) ?>" <?= $active === $key ? 'aria-current="page"' : '' ?> class="<?= $active === $key ? 'is-active' : '' ?>"><?= $e($label) ?></a><?php endforeach; ?></nav>
+        <div class="city-account-links">
+          <?php if ($user !== null): ?>
+          <button class="city-updates-button" type="button" id="cityUpdatesButton" aria-haspopup="dialog" aria-controls="cityUpdatesDialog">Updates <span id="cityUpdatesCount" hidden></span></button>
+          <a class="city-profile-link" href="<?= $e(sfc_path('/profile.php')) ?>"><?php if (!empty($user['profileImageUrl'])): ?><img src="<?= $e(sfc_path('/' . ltrim($user['profileImageUrl'], '/'))) ?>" alt="" width="28" height="28"><?php endif; ?><span>Profile</span></a>
+          <a class="city-signout-link" href="<?= $e(sfc_path('/logout.php')) ?>">Sign out</a>
+          <?php else: ?>
+          <a class="city-login-link" href="<?= $e(sfc_path('/investor-login.php')) ?>">Log in</a>
+          <a class="city-button city-button-small city-cta-button" href="<?= $e(sfc_path('/investor-login.php?mode=register')) ?>">Create account</a>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+  </header>
+<?php
+}
+
+function sfc_render_footer(array $context): void
+{
+    $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    ?>
+  <footer class="city-footer"><div class="city-container city-footer-inner"><span>LOCUS-SF · San Fernando, La Union</span><div><a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a><a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a><a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a></div></div></footer>
+  <?php if (!empty($context['user'])): ?>
+  <dialog class="city-updates-dialog" id="cityUpdatesDialog" aria-labelledby="cityUpdatesTitle"><div class="city-updates-heading"><h2 id="cityUpdatesTitle">Updates</h2><button type="button" id="cityUpdatesClose" aria-label="Close updates">×</button></div><button class="city-link" type="button" id="cityUpdatesRead">Mark all read</button><div id="cityUpdatesList" aria-live="polite">Loading…</div></dialog>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/city-notifications.js<?= sfc_asset_version('js/city-notifications.js') ?>"></script>
+  <?php endif; ?>
+  <?php if (!empty($context['user'])): ?><script src="<?= $e($context['assetBase']) ?>/js/session-guard.js<?= sfc_asset_version('js/session-guard.js') ?>"></script><?php endif; ?>
+  <?php if (!empty($GLOBALS['sfc_legacy_page'])): ?><script type="module" src="<?= $e($context['assetBase']) ?>/js/portal.js<?= sfc_asset_version('js/portal.js') ?>"></script><?php endif; ?>
+</body>
+</html>
+<?php
+}

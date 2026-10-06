@@ -8,13 +8,13 @@ api_handle(function (array $container): array {
     $user = sfc_current_user();
 
     if ($method === 'GET') {
-        $includeInactive = ($user['role'] ?? null) === 'admin';
+        $includeInactive = sfc_can_review_brokers($user);
         return [
             'voteOptions' => $container['votes']->all($includeInactive),
         ];
     }
 
-    if (($user['role'] ?? null) !== 'admin') {
+    if (!sfc_can_review_brokers($user)) {
         return [403, ['error' => 'Only admin can manage vote options.']];
     }
 

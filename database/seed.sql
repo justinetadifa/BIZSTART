@@ -1,30 +1,21 @@
+-- Development samples for a fresh, empty database after schema.sql.
+-- Existing records are never cleared. Use the PHP migration for upgrades.
+-- Sample listings have no departmental assessment, so MCE/IAI remain pending.
 USE sfcelerate_bizstart;
 
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE notifications;
-TRUNCATE TABLE user_preferences;
-TRUNCATE TABLE property_shortlists;
-TRUNCATE TABLE property_votes;
-TRUNCATE TABLE property_document_requests;
-TRUNCATE TABLE visit_logs;
-TRUNCATE TABLE property_messages;
-TRUNCATE TABLE message_threads;
-TRUNCATE TABLE investment_scenarios;
-TRUNCATE TABLE spatial_overlays;
-TRUNCATE TABLE property_due_diligence;
-TRUNCATE TABLE property_media;
-TRUNCATE TABLE vote_options;
-TRUNCATE TABLE properties;
-TRUNCATE TABLE users;
-SET FOREIGN_KEY_CHECKS = 1;
+START TRANSACTION;
 
 INSERT INTO users (
   id, role, name, department, email, password_hash, identity_verification_status, identity_verified_at
 ) VALUES
-  (1, 'admin', 'SFC Admin', 'City Planning and Development Office (CPDO)', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
-  (2, 'seller', 'Seller Studio', NULL, 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'verified', '2026-03-16 10:00:00'),
+  (1, 'admin', 'SFC Admin', 'CICTO', 'admin@sfcelerate.local', '$2y$10$bjmoP9kI8cj05QgidqJ4LuA3wwainBr2mGNISIAq3rwN1fznDS2rq', 'verified', '2026-03-15 09:30:00'),
+  (2, 'seller', 'Demo Broker', NULL, 'seller@sfcelerate.local', '$2y$10$UAfzvRYqvlwOIKQvm9LZOuwjrI/GcC5CsnQmxKY4RXXRAhOpCDIGq', 'unverified', NULL),
   (3, 'investor', 'Investor Resident Hub', NULL, 'investor@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL),
   (4, 'investor', 'Maria Santos', NULL, 'maria.santos@sfcelerate.local', '$2y$10$/LAguT1IF4Uh5AT4TQQtTeukBI5DDktSbVTGKFctsOjm/CnF2Znoa', 'unverified', NULL);
+
+-- No invented PRC number or consent is assigned to the demo broker.
+INSERT INTO seller_profiles (user_id, seller_type, legal_name, display_name, application_status, review_notes)
+VALUES (2, 'broker', 'Demo Broker', 'Demo Broker', 'draft', 'Complete your PRC credentials for CICTO review.');
 
 INSERT INTO user_preferences (user_id, notification_cadence) VALUES
   (1, 'instant'),
@@ -158,3 +149,5 @@ INSERT INTO audit_logs (
   (2, 1, 'EDIT', 'PROPERTY', 1, '{"eventType":"DATA_EDIT","targetLabel":"PROP_ID: #SFLU-001","summary":"Price Per Sqm changed from PHP 847 / sqm to PHP 882 / sqm.","streamGroup":"financials","changedFields":["pricePerSqm","price"],"before":{"price":72000000,"pricePerSqm":847,"name":"Fabro Building Prime Lot"},"after":{"price":75000000,"pricePerSqm":882,"name":"Fabro Building Prime Lot"}}', '2026-04-02 09:15:01'),
   (3, 1, 'DELETE', 'MESSAGE', 1, '{"eventType":"MSG_RESOLVE","targetLabel":"THREAD: #1","summary":"Flagged inappropriate content and cleared the thread for review.","badge":"MODERATED","streamGroup":"moderation","changedFields":["messageCount"],"before":{"messageCount":3},"after":{"messageCount":0,"messagesCleared":3}}', '2026-04-02 08:05:44'),
   (4, 4, 'EDIT', 'VOTE', 2, '{"eventType":"VOTE_SIGNAL","targetLabel":"PROP_ID: #SFLU-002","summary":"Vote pulse moved to Warehouse Or Logistics for LaFinns Beach Resort Land.","streamGroup":"all","changedFields":["votes","selectedVoteOptionId"],"before":{"votes":{"WAREHOUSE OR LOGISTICS":2}},"after":{"votes":{"WAREHOUSE OR LOGISTICS":3},"selectedVoteOptionId":8}}', '2026-04-01 17:18:22');
+
+COMMIT;

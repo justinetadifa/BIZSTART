@@ -1,0 +1,595 @@
+/* ==========================================================================
+   LOCUS-SF Crexi-Grade SaaS Real Estate Map
+   Clean CartoDB Positron Canvas, Interactive SaaS Price & IAI Pill Markers,
+   High-Tech Clusters, Luxury Popup Flyers, and Two-Way Card Hover Sync.
+   ========================================================================== */
+
+/* ---------- Map Panel & Container ---------- */
+.city-map-panel {
+  position: sticky !important;
+  top: 96px !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(17, 34, 77, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 36px rgba(17, 34, 77, 0.08), 0 2px 6px rgba(17, 34, 77, 0.04) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.city-map-canvas {
+  height: 590px !important;
+  width: 100% !important;
+  background: #f1f5f9 !important;
+  z-index: 1 !important;
+}
+
+/* ---------- Leaflet Base Overrides ---------- */
+.leaflet-container {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif !important;
+  background: #edf2f7 !important;
+}
+
+.leaflet-div-icon.locus-pin,
+.leaflet-div-icon.locus-cluster {
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* Subtle sharpening on canvas tiles */
+.leaflet-tile-pane {
+  filter: contrast(1.02) brightness(1.01);
+}
+
+/* ---------- Map Controls Header ---------- */
+.city-map-controls {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  background: #ffffff !important;
+  border-bottom: 1px solid rgba(17, 34, 77, 0.08) !important;
+}
+
+/* Segmented Layer Switcher (Canvas / Streets / Satellite) */
+.city-map-segmented {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 3px !important;
+  background: #f1f5f9 !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(17, 34, 77, 0.06) !important;
+}
+
+.city-map-segmented button {
+  padding: 6px 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 7px !important;
+  border: 0 !important;
+  color: #64748b !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+  line-height: 1.2 !important;
+}
+
+.city-map-segmented button:hover {
+  color: #11224d !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.city-map-segmented button.is-active {
+  background: #ffffff !important;
+  color: #11224d !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 4px rgba(17, 34, 77, 0.1) !important;
+}
+
+/* Action button (Fit View) */
+.city-map-ctrl-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.city-map-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(17, 34, 77, 0.12) !important;
+  background: #ffffff !important;
+  color: #11224d !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.16s ease !important;
+  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.04) !important;
+}
+
+.city-map-btn:hover {
+  background: #f8fafc !important;
+  border-color: rgba(17, 34, 77, 0.22) !important;
+  transform: translateY(-1px) !important;
+}
+
+.city-map-btn svg {
+  flex-shrink: 0 !important;
+}
+
+/* ---------- Map Footer Options & Legend ---------- */
+.city-map-options {
+  padding: 9px 14px !important;
+  background: #fafbfd !important;
+  border-top: 1px solid rgba(17, 34, 77, 0.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  font-size: 11.5px !important;
+  flex-wrap: wrap !important;
+}
+
+.city-map-options label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  color: #475569 !important;
+  font-weight: 550 !important;
+  cursor: pointer !important;
+}
+
+.city-map-options input[type="checkbox"] {
+  accent-color: #9e1b22 !important;
+  margin: 0 !important;
+}
+
+.city-map-legend {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+  font-weight: 550 !important;
+}
+
+.city-map-legend span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.city-map-legend i {
+  display: inline-block !important;
+  width: 7px !important;
+  height: 7px !important;
+  border-radius: 50% !important;
+}
+
+.dot-prime { background: #10b981 !important; box-shadow: 0 0 4px rgba(16, 185, 129, 0.6) !important; }
+.dot-strong { background: #0ea5e9 !important; box-shadow: 0 0 4px rgba(14, 165, 233, 0.6) !important; }
+.dot-emerging { background: #f59e0b !important; box-shadow: 0 0 4px rgba(245, 158, 11, 0.6) !important; }
+
+/* ==========================================================================
+   Crexi SaaS Pill Markers
+   ========================================================================== */
+.locus-pin {
+  cursor: pointer !important;
+  z-index: 200 !important;
+}
+
+.locus-pin .pin-anchor {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: translate(-50%, -100%) !important;
+  pointer-events: auto !important;
+}
+
+.locus-pin .pin-drop {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2) !important;
+  transform-origin: bottom center !important;
+}
+
+.locus-pin .pin-body {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 4.5px 8.5px !important;
+  background: #11224d !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(17, 34, 77, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.22) !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.locus-pin .pin-price {
+  font-size: 11.5px !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.01em !important;
+  color: #ffffff !important;
+}
+
+.locus-pin .pin-iai-badge {
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #94a3b8 !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  padding: 1.5px 4px !important;
+  border-radius: 4px !important;
+  line-height: 1 !important;
+}
+
+.locus-pin .pin-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+
+.locus-pin .pin-dot.tier-prime { background: #10b981 !important; }
+.locus-pin .pin-dot.tier-strong { background: #38bdf8 !important; }
+.locus-pin .pin-dot.tier-emerging { background: #fbbf24 !important; }
+
+.locus-pin .pin-caret {
+  width: 7px !important;
+  height: 7px !important;
+  background: #11224d !important;
+  transform: rotate(45deg) !important;
+  margin-top: -3.5px !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  transition: background 0.18s ease !important;
+}
+
+/* Hover & Active Pin States */
+.locus-pin:hover .pin-drop,
+.locus-pin.is-hover .pin-drop {
+  transform: translateY(-4px) scale(1.08) !important;
+  z-index: 500 !important;
+}
+
+.locus-pin:hover .pin-body,
+.locus-pin.is-hover .pin-body {
+  background: #1d4ed8 !important;
+  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.35) !important;
+}
+
+.locus-pin:hover .pin-caret,
+.locus-pin.is-hover .pin-caret {
+  background: #1d4ed8 !important;
+}
+
+.locus-pin.is-active .pin-drop {
+  transform: translateY(-6px) scale(1.14) !important;
+  z-index: 1000 !important;
+}
+
+.locus-pin.is-active .pin-body {
+  background: #9e1b22 !important;
+  box-shadow: 0 12px 28px rgba(158, 27, 34, 0.5), 0 0 0 2.5px #ffffff !important;
+}
+
+.locus-pin.is-active .pin-caret {
+  background: #9e1b22 !important;
+}
+
+/* ==========================================================================
+   High-Tech Marker Clusters
+   ========================================================================== */
+.locus-cluster {
+  cursor: pointer !important;
+}
+
+.locus-cluster .cluster-badge {
+  position: relative !important;
+  width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.locus-cluster .cluster-pulse {
+  position: absolute !important;
+  inset: -3px !important;
+  border-radius: 50% !important;
+  background: rgba(29, 78, 216, 0.25) !important;
+  animation: clusterPulse 2.4s cubic-bezier(0.2, 0.9, 0.3, 1) infinite !important;
+}
+
+.locus-cluster .cluster-badge.is-prime .cluster-pulse {
+  background: rgba(16, 185, 129, 0.3) !important;
+}
+
+@keyframes clusterPulse {
+  0% { transform: scale(0.92); opacity: 0.8; }
+  50% { opacity: 0.3; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.locus-cluster .cluster-core {
+  position: relative !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, #1d4ed8, #0e2154) !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 8px 20px rgba(17, 34, 77, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  line-height: 1 !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.2s ease !important;
+}
+
+.locus-cluster:hover .cluster-core {
+  transform: scale(1.12) !important;
+  box-shadow: 0 12px 28px rgba(17, 34, 77, 0.48), 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+.locus-cluster .cluster-count {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.locus-cluster .cluster-sub {
+  font-size: 7.5px !important;
+  font-weight: 700 !important;
+  color: #93c5fd !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 1px !important;
+}
+
+.locus-cluster .cluster-badge.is-prime .cluster-sub {
+  color: #6ee7b7 !important;
+}
+
+/* Spiderfy legs */
+.leaflet-cluster-spider-leg {
+  stroke: #11224d !important;
+  stroke-width: 1.5 !important;
+  stroke-opacity: 0.45 !important;
+  stroke-dasharray: 4, 3 !important;
+}
+
+/* ==========================================================================
+   Luxury Crexi Popup Flyer
+   ========================================================================== */
+.leaflet-popup-content-wrapper {
+  padding: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  box-shadow: 0 24px 48px -8px rgba(17, 34, 77, 0.35), 0 0 0 1px rgba(17, 34, 77, 0.08) !important;
+  background: #ffffff !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  width: 270px !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+a.leaflet-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  color: #ffffff !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(6px) !important;
+  font: 500 16px/1 -apple-system, sans-serif !important;
+  transition: background 0.15s ease !important;
+  z-index: 10 !important;
+}
+
+a.leaflet-popup-close-button:hover {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: #ffffff !important;
+}
+
+.locus-popup-card {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.locus-popup-media {
+  position: relative !important;
+  width: 100% !important;
+  height: 125px !important;
+  overflow: hidden !important;
+  background: #0f172a !important;
+}
+
+.locus-popup-media img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: transform 0.3s ease !important;
+}
+
+.locus-popup-media:hover img {
+  transform: scale(1.05) !important;
+}
+
+.locus-popup-tags {
+  position: absolute !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  display: flex !important;
+  gap: 5px !important;
+  z-index: 2 !important;
+}
+
+.locus-popup-tag {
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  padding: 2.5px 7px !important;
+  border-radius: 5px !important;
+  background: rgba(17, 34, 77, 0.85) !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(4px) !important;
+  letter-spacing: 0.02em !important;
+}
+
+.locus-popup-tag.tag-muted {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #11224d !important;
+}
+
+.locus-popup-body {
+  padding: 12px 14px 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.locus-popup-title {
+  margin: 0 !important;
+  font-size: 14.5px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.locus-popup-title a {
+  color: #11224d !important;
+  text-decoration: none !important;
+}
+
+.locus-popup-title a:hover {
+  color: #9e1b22 !important;
+}
+
+.locus-popup-loc {
+  margin: 0 !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+}
+
+.locus-popup-pricing {
+  margin-top: 4px !important;
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.locus-popup-price {
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  color: #11224d !important;
+  letter-spacing: -0.02em !important;
+}
+
+.locus-popup-area {
+  font-size: 11px !important;
+  color: #64748b !important;
+  font-weight: 550 !important;
+}
+
+.locus-popup-metrics {
+  margin-top: 6px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid rgba(17, 34, 77, 0.08) !important;
+}
+
+.locus-metric-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  font-size: 11px !important;
+  margin-bottom: 4px !important;
+}
+
+.locus-metric-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.locus-metric-value {
+  color: #11224d !important;
+  font-weight: 800 !important;
+}
+
+.locus-metric-value small {
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
+}
+
+.locus-metric-bar {
+  width: 100% !important;
+  height: 4px !important;
+  background: #e2e8f0 !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+}
+
+.locus-metric-fill {
+  height: 100% !important;
+  border-radius: 999px !important;
+}
+
+.locus-metric-fill.tier-prime { background: linear-gradient(90deg, #34d399, #10b981) !important; }
+.locus-metric-fill.tier-strong { background: linear-gradient(90deg, #60a5fa, #0284c7) !important; }
+.locus-metric-fill.tier-emerging { background: linear-gradient(90deg, #fbbf24, #f59e0b) !important; }
+
+.locus-popup-footer {
+  margin-top: 8px !important;
+}
+
+.locus-popup-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  padding: 7px 12px !important;
+  border-radius: 7px !important;
+  background: #11224d !important;
+  color: #ffffff !important;
+  font-size: 11.5px !important;
+  font-weight: 650 !important;
+  text-decoration: none !important;
+  transition: background 0.16s ease !important;
+}
+
+.locus-popup-btn:hover {
+  background: #9e1b22 !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Two-Way Card Hover Sync State
+   ========================================================================== */
+.city-property-card {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
+}
+
+.city-property-card.is-map-hovered {
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 12px 28px rgba(29, 78, 216, 0.16), 0 0 0 2px rgba(29, 78, 216, 0.25) !important;
+  transform: translateY(-2px) !important;
+}

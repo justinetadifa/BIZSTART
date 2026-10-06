@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
+require_once __DIR__ . '/_listing-policy.php';
 
 use App\Support\JsonData;
 
@@ -11,7 +12,7 @@ api_handle(function (array $container): array {
     }
 
     $user = sfc_current_user();
-    if (($user['role'] ?? null) !== 'admin') {
+    if (!sfc_can_manage_properties($user)) {
         return [403, ['error' => 'Only admin accounts can update a candidate site barangay.']];
     }
 
@@ -27,7 +28,7 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('Barangay is not part of the approved list.');
     }
 
-    return [
-        'property' => $container['properties']->updateBarangay($propertyId, $barangay),
-    ];
+    $existing = $container['properties']->find($propertyId, $user);
+    $payload = sfc_listing_payload(['barangay' => $barangay], $user, false, $existing);
+    return ['property' => $container['properties']->update($propertyId, $payload, $user)];
 });

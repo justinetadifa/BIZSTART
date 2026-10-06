@@ -19,7 +19,6 @@ final class AutoSeeder
         self::seedDocumentRequests($pdo, $userIds);
         self::seedScenarios($pdo);
         self::seedAuditLogs($pdo, $userIds);
-        self::assignDefaultSeller($pdo, $userIds['seller@sfcelerate.local'] ?? null);
     }
 
     private static function seedUsers(PDO $pdo): array
@@ -28,8 +27,26 @@ final class AutoSeeder
             [
                 'role' => 'admin',
                 'name' => 'SFC Admin',
-                'department' => 'City Planning and Development Office (CPDO)',
+                'department' => 'CICTO',
                 'email' => 'admin@sfcelerate.local',
+                'password' => 'Admin123!',
+                'identity_status' => 'verified',
+                'identity_verified_at' => '2026-03-15 09:30:00',
+            ],
+            [
+                'role' => 'admin',
+                'name' => 'City Assessor',
+                'department' => 'ASSESSOR',
+                'email' => 'assessor@sfcelerate.local',
+                'password' => 'Admin123!',
+                'identity_status' => 'verified',
+                'identity_verified_at' => '2026-03-15 09:30:00',
+            ],
+            [
+                'role' => 'admin',
+                'name' => 'LEBDO Officer',
+                'department' => 'LEBDO',
+                'email' => 'lebdo@sfcelerate.local',
                 'password' => 'Admin123!',
                 'identity_status' => 'verified',
                 'identity_verified_at' => '2026-03-15 09:30:00',
@@ -40,8 +57,8 @@ final class AutoSeeder
                 'department' => null,
                 'email' => 'seller@sfcelerate.local',
                 'password' => 'Seller123!',
-                'identity_status' => 'verified',
-                'identity_verified_at' => '2026-03-16 10:00:00',
+                'identity_status' => 'unverified',
+                'identity_verified_at' => null,
             ],
             [
                 'role' => 'investor',
@@ -68,11 +85,9 @@ final class AutoSeeder
             'INSERT INTO users (role, name, department, email, password_hash, identity_verification_status, identity_verified_at)
              VALUES (:role, :name, :department, :email, :password_hash, :identity_verification_status, :identity_verified_at)'
         );
-        $updateVerification = $pdo->prepare(
+        $updateDepartment = $pdo->prepare(
             'UPDATE users
-             SET identity_verification_status = :identity_verification_status,
-                 identity_verified_at = :identity_verified_at,
-                 department = COALESCE(department, :department)
+             SET department = COALESCE(department, :department)
              WHERE id = :id'
         );
 
@@ -82,10 +97,8 @@ final class AutoSeeder
             $existingId = $select->fetchColumn();
             if ($existingId) {
                 $userIds[$user['email']] = (int) $existingId;
-                $updateVerification->execute([
+                $updateDepartment->execute([
                     'id' => (int) $existingId,
-                    'identity_verification_status' => $user['identity_status'],
-                    'identity_verified_at' => $user['identity_verified_at'],
                     'department' => $user['department'],
                 ]);
                 continue;
@@ -1014,20 +1027,6 @@ final class AutoSeeder
                 'created_at' => $entry['created_at'],
             ]);
         }
-    }
-
-    private static function assignDefaultSeller(PDO $pdo, ?int $sellerUserId): void
-    {
-        if ($sellerUserId === null) {
-            return;
-        }
-
-        $statement = $pdo->prepare(
-            'UPDATE properties
-             SET seller_user_id = :seller_user_id
-             WHERE seller_user_id IS NULL'
-        );
-        $statement->execute(['seller_user_id' => $sellerUserId]);
     }
 
     private static function defaultScore(array $property): int

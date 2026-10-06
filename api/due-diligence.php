@@ -6,6 +6,9 @@ require __DIR__ . '/_bootstrap.php';
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
+    if ($user === null || (($user['role'] ?? '') === 'admin' && !sfc_can_manage_properties($user))) {
+        return [403, ['error' => 'Sign in to view supporting evidence.']];
+    }
 
     if ($method === 'GET') {
         $propertyId = int_or_null($_GET['propertyId'] ?? null);
@@ -31,12 +34,11 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('A valid property id is required.');
     }
 
-    if ($user === null || !in_array($user['role'] ?? 'guest', ['admin', 'seller'], true)) {
-        return [403, ['error' => 'Only admin or the assigned seller can update due diligence.']];
+    if (!sfc_can_manage_properties($user)) {
+        return [403, ['error' => 'Only city departments can record a due diligence assessment.']];
     }
-    if (($user['role'] ?? null) === 'seller' && !$container['properties']->isOwnedBySeller($propertyId, (int) $user['id'])) {
-        return [403, ['error' => 'Sellers can only update due diligence for their own listings.']];
-    }
+
+    $container['properties']->find($propertyId, $user);
 
     $state = $input['state'] ?? [];
     if (!is_array($state)) {

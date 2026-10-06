@@ -47,16 +47,11 @@ final class MessageRepository
         }
 
         if ($role === 'seller') {
-            if ((int) ($property['seller_user_id'] ?? 0) !== $userId) {
-                return [
-                    'thread' => null,
-                    'messages' => [],
-                    'threads' => [],
-                    'summary' => $summary,
-                ];
-            }
-
-            $threads = $this->threadsByProperty($propertyId);
+            // Contact assignments do not transfer existing private conversations.
+            $threads = $this->threads(
+                'WHERE t.property_id = :property_id AND t.seller_user_id = :seller_user_id',
+                ['property_id' => $propertyId, 'seller_user_id' => $userId]
+            );
             $primary = $threads[0] ?? null;
             return [
                 'thread' => $primary,
@@ -66,7 +61,7 @@ final class MessageRepository
             ];
         }
 
-        if ($role === 'admin') {
+        if ($role === 'admin' && \sfc_can_manage_properties($user)) {
             $threads = $this->threadsByProperty($propertyId);
             $primary = $threads[0] ?? null;
             return [
@@ -98,7 +93,7 @@ final class MessageRepository
             return $this->threads('WHERE t.investor_user_id = :user_id', ['user_id' => $userId]);
         }
 
-        if ($role === 'admin') {
+        if ($role === 'admin' && \sfc_can_manage_properties($user)) {
             return $this->threads('', []);
         }
 
@@ -126,13 +121,17 @@ final class MessageRepository
         }
 
         $property = $this->propertyRow($propertyId);
-        $sellerUserId = int_or_null($property['seller_user_id'] ?? null);
-        if ($sellerUserId === null || $sellerUserId < 1) {
-            throw new InvalidArgumentException('This property does not have an assigned seller account yet.');
-        }
-
         $investorUserId = (int) ($user['id'] ?? 0);
         $thread = $this->threadByPropertyAndInvestor($propertyId, $investorUserId);
+        // Replies remain with the broker who received the original inquiry.
+        $sellerUserId = $thread !== null
+            ? int_or_null($thread['sellerUserId'] ?? null)
+            : int_or_null(($property['contact_mode'] ?? 'open_listing') === 'broker'
+                ? ($property['verified_contact_broker_user_id'] ?? null)
+                : ($property['seller_user_id'] ?? null));
+        if ($sellerUserId === null || $sellerUserId < 1) {
+            throw new InvalidArgumentException('An inquiry contact is unavailable. Use the listing contact information.');
+        }
         $this->pdo->beginTransaction();
 
         try {
@@ -215,6 +214,9 @@ final class MessageRepository
 
     public function clearThread(int $threadId, ?array $actor = null): void
     {
+        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+            throw new InvalidArgumentException('Only CICTO can clear a conversation.');
+        }
         $thread = $this->threadRow($threadId);
         $messages = $this->messagesByThread($threadId);
         $statement = $this->pdo->prepare('DELETE FROM property_messages WHERE thread_id = :thread_id');
@@ -520,7 +522,7 @@ final class MessageRepository
         $userId = (int) ($user['id'] ?? 0);
 
         return match ($role) {
-            'admin' => true,
+            'admin' => \sfc_can_manage_properties($user),
             'seller' => $userId > 0 && $userId === (int) ($thread['sellerUserId'] ?? 0),
             'investor' => $userId > 0 && $userId === (int) ($thread['investorUserId'] ?? 0),
             default => false,
@@ -530,9 +532,17 @@ final class MessageRepository
     private function propertyRow(int $propertyId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, name, seller_user_id
-             FROM properties
-             WHERE id = :id
+            'SELECT p.id, p.name, p.seller_user_id, p.contact_mode,
+                    CASE WHEN broker.identity_verification_status = \'verified\'
+                         AND sp.application_status = \'verified\'
+                         AND sp.seller_type = \'broker\'
+                         AND sp.prc_registration_no REGEXP \'^[0-9]{1,20}$\'
+                         AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))
+                         THEN broker.id ELSE NULL END AS verified_contact_broker_user_id
+             FROM properties p
+             LEFT JOIN users broker ON broker.id = p.contact_broker_user_id AND broker.role = \'seller\'
+             LEFT JOIN seller_profiles sp ON sp.user_id = broker.id
+             WHERE p.id = :id
              LIMIT 1'
         );
         $statement->execute(['id' => $propertyId]);

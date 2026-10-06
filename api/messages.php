@@ -6,6 +6,9 @@ require __DIR__ . '/_bootstrap.php';
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
+    if (($user['role'] ?? '') === 'admin' && !sfc_can_manage_properties($user)) {
+        return [403, ['error' => 'A recognized city department account is required.']];
+    }
     $attachVisit = static function (array $payload, ?array $currentUser, ?int $propertyId = null) use ($container): array {
         $thread = is_array($payload['thread'] ?? null) ? $payload['thread'] : null;
         $visit = null;
@@ -51,8 +54,8 @@ api_handle(function (array $container): array {
     }
 
     if ($method === 'DELETE') {
-        if (($user['role'] ?? null) !== 'admin') {
-            return [403, ['error' => 'Only admin can clear a conversation thread.']];
+        if (!sfc_can_review_brokers($user)) {
+            return [403, ['error' => 'Only CICTO can clear a conversation thread.']];
         }
 
         $input = read_json_input();

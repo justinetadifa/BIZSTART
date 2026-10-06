@@ -5,6 +5,10 @@ require __DIR__ . '/app/Support/web.php';
 
 $context = sfc_web_context();
 sfc_require_role('admin', sfc_path('/admin-login.php'));
+if (!sfc_can_review_brokers()) {
+    http_response_code(403);
+    exit('CICTO manages city showcase publishing.');
+}
 $context = sfc_web_context();
 sfc_render_head('Admin Showcase Studio | LOCUS-SF', $context, ['page' => 'admin-showcase', 'role' => 'admin']);
 sfc_render_header($context, 'admin-showcase');

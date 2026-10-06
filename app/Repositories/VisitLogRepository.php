@@ -87,21 +87,13 @@ final class VisitLogRepository
 
     public function propose(int $propertyId, array $user, array $payload): array
     {
-        if (($user['role'] ?? null) !== 'investor' || !isset($user['id'])) {
+        if (($user['role'] ?? null) !== 'investor' || (int) ($user['id'] ?? 0) < 1) {
             throw new InvalidArgumentException('Only investor accounts can propose a site visit.');
         }
 
         $property = $this->propertyRow($propertyId);
-        $sellerUserId = int_or_null($property['seller_user_id'] ?? null);
-        if ($sellerUserId === null || $sellerUserId < 1) {
-            throw new InvalidArgumentException('This property does not have an assigned seller yet.');
-        }
-
-        $investorUserId = (int) $user['id'];
-        $threadId = $this->ensureThread($propertyId, $investorUserId, $sellerUserId, (string) $property['name']);
-        $existing = $this->rawVisitByThread($threadId);
-        if ($existing !== null) {
-            throw new InvalidArgumentException('A logistics record already exists for this investor thread.');
+        if (strtolower((string) ($property['approval_state'] ?? '')) !== 'approved') {
+            throw new InvalidArgumentException('Site visits are available for approved listings.');
         }
 
         $purpose = string_or_null($payload['investmentPurpose'] ?? $payload['investment_purpose'] ?? null);
@@ -111,6 +103,19 @@ final class VisitLogRepository
 
         $primary = $this->requireWindow($payload, 'primary');
         $secondary = $this->requireWindow($payload, 'secondary');
+        $investorUserId = (int) $user['id'];
+        $contactUserId = int_or_null(($property['contact_mode'] ?? 'open_listing') === 'broker'
+            ? ($property['verified_contact_broker_user_id'] ?? null)
+            : ($property['seller_user_id'] ?? null));
+        // Visits and inquiries share one recipient. Existing private threads
+        // remain pinned even after the listing's contact broker changes.
+        $thread = $this->ensureThread($propertyId, $investorUserId, $contactUserId, (string) $property['name']);
+        $threadId = (int) $thread['id'];
+        $sellerUserId = (int) $thread['seller_user_id'];
+        $existing = $this->rawVisitByThread($threadId);
+        if ($existing !== null) {
+            throw new InvalidArgumentException('A logistics record already exists for this investor thread.');
+        }
         $createdAt = $this->now();
         $activity = [[
             'kind' => 'proposed',
@@ -397,10 +402,10 @@ final class VisitLogRepository
         $statement->execute($params);
     }
 
-    private function ensureThread(int $propertyId, int $investorUserId, int $sellerUserId, string $propertyName): int
+    private function ensureThread(int $propertyId, int $investorUserId, ?int $sellerUserId, string $propertyName): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id
+            'SELECT id, seller_user_id
              FROM message_threads
              WHERE property_id = :property_id
                AND investor_user_id = :investor_user_id
@@ -410,14 +415,21 @@ final class VisitLogRepository
             'property_id' => $propertyId,
             'investor_user_id' => $investorUserId,
         ]);
-        $threadId = int_or_null($statement->fetchColumn());
-        if ($threadId !== null) {
-            return $threadId;
+        $thread = $statement->fetch();
+        if (is_array($thread)) {
+            if ((int) ($thread['seller_user_id'] ?? 0) < 1) {
+                throw new InvalidArgumentException('This conversation has no available visit contact.');
+            }
+            return $thread;
+        }
+        if ($sellerUserId === null || $sellerUserId < 1) {
+            throw new InvalidArgumentException('An inquiry contact is unavailable. Use the listing contact information.');
         }
 
         $insert = $this->pdo->prepare(
             'INSERT INTO message_threads (property_id, investor_user_id, seller_user_id, subject, last_message_at)
-             VALUES (:property_id, :investor_user_id, :seller_user_id, :subject, CURRENT_TIMESTAMP)'
+             VALUES (:property_id, :investor_user_id, :seller_user_id, :subject, CURRENT_TIMESTAMP)
+             ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)'
         );
         $insert->execute([
             'property_id' => $propertyId,
@@ -426,7 +438,14 @@ final class VisitLogRepository
             'subject' => sprintf('%s site visit logistics', $propertyName),
         ]);
 
-        return (int) $this->pdo->lastInsertId();
+        // Read the winner if an inquiry opened this thread concurrently; never
+        // overwrite its broker assignment during a visit proposal.
+        $statement->execute(['property_id' => $propertyId, 'investor_user_id' => $investorUserId]);
+        $thread = $statement->fetch();
+        if (!is_array($thread) || (int) ($thread['seller_user_id'] ?? 0) < 1) {
+            throw new InvalidArgumentException('Unable to resolve the visit contact.');
+        }
+        return $thread;
     }
 
     private function touchThread(int $threadId): void
@@ -443,9 +462,17 @@ final class VisitLogRepository
     private function propertyRow(int $propertyId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, name, seller_user_id
-             FROM properties
-             WHERE id = :id
+            'SELECT p.id, p.name, p.seller_user_id, p.contact_mode, p.approval_state,
+                    CASE WHEN broker.identity_verification_status = \'verified\'
+                         AND sp.application_status = \'verified\'
+                         AND sp.seller_type = \'broker\'
+                         AND sp.prc_registration_no REGEXP \'^[0-9]{1,20}$\'
+                         AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))
+                         THEN broker.id ELSE NULL END AS verified_contact_broker_user_id
+             FROM properties p
+             LEFT JOIN users broker ON broker.id = p.contact_broker_user_id AND broker.role = \'seller\'
+             LEFT JOIN seller_profiles sp ON sp.user_id = broker.id
+             WHERE p.id = :id
              LIMIT 1'
         );
         $statement->execute(['id' => $propertyId]);
@@ -558,7 +585,7 @@ final class VisitLogRepository
         $role = (string) ($user['role'] ?? 'guest');
         $userId = (int) ($user['id'] ?? 0);
 
-        if ($role === 'admin') {
+        if ($role === 'admin' && \sfc_can_manage_properties($user)) {
             return;
         }
 
@@ -580,7 +607,7 @@ final class VisitLogRepository
     private function canResolveAccess(?array $user): bool
     {
         $role = (string) ($user['role'] ?? 'guest');
-        return in_array($role, ['investor', 'seller', 'admin'], true) && isset($user['id']);
+        return in_array($role, ['investor', 'seller', 'admin'], true) && isset($user['id']) && ($role !== 'admin' || \sfc_can_manage_properties($user));
     }
 
     private function assertCanAccessVisit(array $visit, array $user): void
@@ -589,7 +616,7 @@ final class VisitLogRepository
         $userId = (int) ($user['id'] ?? 0);
 
         $allowed = match ($role) {
-            'admin' => true,
+            'admin' => \sfc_can_manage_properties($user),
             'seller' => $userId > 0 && $userId === (int) ($visit['seller_user_id'] ?? 0),
             'investor' => $userId > 0 && $userId === (int) ($visit['investor_user_id'] ?? 0),
             default => false,

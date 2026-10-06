@@ -7,7 +7,7 @@ $basePath = rtrim(str_replace('/m.php', '', $scriptName), '/');
 $basePath = $basePath === '' ? '' : $basePath;
 
 $target = $propertyId > 0
-    ? ($basePath . '/property-details.php?' . http_build_query(['id' => $propertyId]) . '#propertyMessagingSection')
+    ? ($basePath . '/property-details.php?' . http_build_query(['id' => $propertyId]) . '#cityInquiryPanel')
     : ($basePath . '/property-explorer.php');
 
 header('Location: ' . $target, true, 302);

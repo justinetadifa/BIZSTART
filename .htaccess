@@ -1,2 +1,8 @@
 Options -Indexes
 DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^signout/?$ logout.php [L,QSA]
+RewriteRule ^logout/?$ logout.php [L,QSA]
+</IfModule>

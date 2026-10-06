@@ -6,6 +6,9 @@ require __DIR__ . '/_bootstrap.php';
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
+    if ($user === null || (($user['role'] ?? '') === 'admin' && !sfc_can_manage_properties($user))) {
+        return [403, ['error' => 'A signed-in account is required to view site visit records.']];
+    }
 
     if ($method === 'GET') {
         $threadId = int_or_null($_GET['threadId'] ?? null);
