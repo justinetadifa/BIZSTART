@@ -629,6 +629,9 @@ function renderEvaluationSection(property) {
         <button type="button" id="printReportMemoBtn" class="city-button city-button-small">
           Print / Save PDF
         </button>
+        <button type="button" id="downloadReportMemoBtn" class="city-button city-button-secondary city-button-small">
+          Save HTML Report
+        </button>
         <button type="button" class="close-report-modal city-button city-button-secondary city-button-small">
           Close
         </button>
@@ -758,11 +761,19 @@ function setupEvaluation(property) {
     toast('MCE and Policy Alignment evaluated.');
   });
 
-  // Compliance modal
+  // Compliance modal & Report modal
   const complianceModal = document.getElementById('evalComplianceModal');
   const reportModal = document.getElementById('evalReportResultModal');
   const agreeCheck = document.getElementById('complianceAgreeCheck');
   const confirmBtn = document.getElementById('confirmGenerateReportBtn');
+
+  // Relocate dialogs to body so they render properly as top-layer and print elements
+  if (complianceModal && complianceModal.parentElement !== document.body) {
+    document.body.appendChild(complianceModal);
+  }
+  if (reportModal && reportModal.parentElement !== document.body) {
+    document.body.appendChild(reportModal);
+  }
 
   document.getElementById('evalOpenReportBtn')?.addEventListener('click', () => {
     if (agreeCheck) agreeCheck.checked = false;
@@ -781,6 +792,88 @@ function setupEvaluation(property) {
   confirmBtn?.addEventListener('click', () => {
     complianceModal?.close();
     generateAndShowReport();
+  });
+
+  function closeReportModal() {
+    reportModal?.close();
+    document.body.classList.remove('printing-decision-memo');
+  }
+
+  reportModal?.addEventListener('close', () => {
+    document.body.classList.remove('printing-decision-memo');
+  });
+
+  document.querySelectorAll('.close-report-modal').forEach(btn => {
+    btn.addEventListener('click', closeReportModal);
+  });
+
+  document.getElementById('printReportMemoBtn')?.addEventListener('click', () => {
+    document.body.classList.add('printing-decision-memo');
+    window.print();
+  });
+
+  document.getElementById('downloadReportMemoBtn')?.addEventListener('click', () => {
+    const reportHtml = document.getElementById('evalReportContent')?.innerHTML || '';
+    const parcelName = esc(property.name || 'Parcel').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fullDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Decision Memo - ${esc(property.name)}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: #11224D; margin: 40px auto; max-width: 800px; padding: 20px; line-height: 1.5; }
+    h3, h4 { margin: 0; }
+    .memo-header { border-bottom: 2px solid #dfe3e9; padding-bottom: 12px; margin-bottom: 20px; }
+    .memo-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9E1B22; letter-spacing: 0.1em; }
+    .memo-title { font-size: 22px; font-weight: 700; color: #11224D; margin-top: 4px; }
+    .memo-sub { font-size: 12px; color: #697284; margin-top: 4px; }
+    .memo-card { background: #F8F9FA; border: 1px solid #dfe3e9; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
+    .memo-card-white { background: #fff; border: 1px solid #dfe3e9; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
+    .grid { display: grid; gap: 12px; }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); text-align: center; }
+    .text-muted { color: #697284; font-size: 11px; }
+    .score { font-size: 24px; font-weight: 700; }
+    .score-green { color: #2A603B; }
+    .score-red { color: #9E1B22; }
+    .score-navy { color: #11224D; }
+    ul { margin: 8px 0 0 18px; padding: 0; font-size: 12px; color: #697284; }
+    .footer-note { font-size: 11px; color: #697284; border-top: 1px solid #dfe3e9; padding-top: 12px; margin-top: 24px; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="memo-header">
+    <div class="memo-eyebrow">Decision Memorandum</div>
+    <div class="memo-title">Investment Decision Report</div>
+    <div class="memo-sub">City Government of San Fernando · Ordinance No. 2024-41 Policy Alignment</div>
+  </div>
+  ${reportHtml}
+  <div class="footer-note">
+    Official LOCUS-SF Decision Memo · City Government of San Fernando · Generated on ${new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+  </div>
+</body>
+</html>`;
+    const blob = new Blob([fullDoc], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LOCUS-SF_Decision_Memo_${parcelName}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Report downloaded.');
+  });
+
+  window.addEventListener('beforeprint', () => {
+    if (reportModal && reportModal.open) {
+      document.body.classList.add('printing-decision-memo');
+    }
+  });
+  window.addEventListener('afterprint', () => {
+    if (!reportModal || !reportModal.open) {
+      document.body.classList.remove('printing-decision-memo');
+    }
   });
 
   function generateAndShowReport() {
@@ -859,16 +952,9 @@ function setupEvaluation(property) {
       </div>
     `;
 
+    document.body.classList.add('printing-decision-memo');
     reportModal?.showModal();
   }
-
-  document.querySelectorAll('.close-report-modal').forEach(btn => {
-    btn.addEventListener('click', () => reportModal?.close());
-  });
-
-  document.getElementById('printReportMemoBtn')?.addEventListener('click', () => {
-    window.print();
-  });
 }
 
 async function renderDetails() {
