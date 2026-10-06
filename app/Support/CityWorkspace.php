@@ -4,7 +4,8 @@ declare(strict_types=1);
 function sfc_render_city_workspace(array $context, string $heading, string $description, string $mode): void
 {
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-    $isLoopNetView = in_array($mode, ['investor', 'ranking'], true);
+    // Only display the LoopNet-style hero and onboarding on properties (investor dashboard)
+    $isLoopNetView = $mode === 'investor';
 
     $rawName = trim((string) ($context['user']['name'] ?? ''));
     if ($rawName !== '' && !preg_match('/^investor(\s+resident)?/i', $rawName)) {
@@ -16,14 +17,13 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     $userUpper = strtoupper($firstName);
     $heroBgUrl = $e($context['assetBase']) . '/images/locusherosec.png';
     $mockupImg1 = $e($context['assetBase']) . '/images/landing-FabroBldg.jpg';
-    $mockupImg2 = $e($context['assetBase']) . '/images/landing-FerarenProperty.jpg';
     ?>
 
 <?php if ($isLoopNetView): ?>
 <!-- ==========================================================================
-     HERO SECTION: LoopNet-Style Prioritization Platform Header
+     HERO SECTION: Sleek, Minimized iOS Glass Prioritization Platform Header
      ========================================================================== -->
-<section class="locus-priority-hero" style="background: linear-gradient(180deg, rgba(17, 34, 77, 0.58) 0%, rgba(17, 34, 77, 0.78) 55%, rgba(17, 34, 77, 0.94) 100%), url('<?= $heroBgUrl ?>') center 46% / cover no-repeat;" aria-label="Strategic Investment Prioritization Platform">
+<section class="locus-priority-hero" style="background: linear-gradient(180deg, rgba(17, 34, 77, 0.64) 0%, rgba(17, 34, 77, 0.80) 55%, rgba(17, 34, 77, 0.94) 100%), url('<?= $heroBgUrl ?>') center 46% / cover no-repeat;" aria-label="Strategic Investment Prioritization Platform">
   <div class="locus-hero-wrap">
     <div class="locus-hero-badge">
       <span class="badge-dot"></span>
@@ -31,27 +31,26 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     </div>
     
     <h1 class="locus-hero-title">
-      LOCUS-SF: San Fernando City's Strategic Investment Prioritization Platform
+      LOCUS-SF: Strategic Investment Prioritization Platform
     </h1>
     
     <p class="locus-hero-sub">
-      <?= $mode === 'ranking' 
-        ? 'Official Municipal Priority Board · Cadastral Multi-Criteria Evaluation (MCE) & Investment Attractiveness (IAI) Assessments.' 
-        : 'Empowering high-impact capital allocation through cadastral MCE scoring, priority economic corridors, and verified municipal due diligence.' ?>
+      Empowering high-impact capital allocation through cadastral MCE scoring &amp; verified municipal intelligence.
     </p>
 
-    <!-- Glassmorphic Search & Filter Card -->
+    <!-- Apple / iOS-Grade Crystalline Glass Card -->
     <div class="locus-glass-card">
-      <!-- Top Navigation Tabs -->
-      <nav class="locus-glass-tabs" aria-label="Opportunity categories">
-        <button type="button" class="locus-glass-tab <?= $mode === 'investor' ? 'is-active' : '' ?>" data-tab-action="investor" data-target-url="<?= $e(sfc_path('/investor-dashboard.php')) ?>">For Lease / Sale</button>
-        <button type="button" class="locus-glass-tab <?= $mode === 'ranking' ? 'is-active' : '' ?>" data-tab-action="ranking" data-target-url="<?= $e(sfc_path('/property-ranking.php')) ?>">Priority Board</button>
-        <button type="button" class="locus-glass-tab" data-tab-action="prime">Prime IAI (90+)</button>
-        <button type="button" class="locus-glass-tab" data-tab-action="incentives">Ordinance 2024-41</button>
-        <button type="button" class="locus-glass-tab" data-tab-action="all">All Opportunities</button>
-      </nav>
+      <!-- iOS Segmented Control Tabs -->
+      <div class="locus-glass-tabs-wrap">
+        <nav class="locus-glass-tabs" aria-label="Opportunity categories">
+          <button type="button" class="locus-glass-tab is-active" data-tab-action="investor">For Lease / Sale</button>
+          <button type="button" class="locus-glass-tab" data-tab-action="prime">Prime IAI (90+)</button>
+          <button type="button" class="locus-glass-tab" data-tab-action="incentives">Ordinance 2024-41</button>
+          <button type="button" class="locus-glass-tab" data-tab-action="all">All Opportunities</button>
+        </nav>
+      </div>
 
-      <!-- Sector Quick Icon Chips -->
+      <!-- Compact Sector Quick Icon Pills -->
       <div class="locus-sector-chips" role="group" aria-label="Filter by priority sector">
         <button type="button" class="locus-sector-chip" data-sector-filter="Commercial">
           <svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"/></svg>
@@ -71,7 +70,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         </button>
         <button type="button" class="locus-sector-chip" data-sector-filter="Tech">
           <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          <span>ICT & Tech</span>
+          <span>ICT &amp; Tech</span>
         </button>
         <button type="button" class="locus-sector-chip" data-sector-filter="Infra">
           <svg viewBox="0 0 24 24"><path d="M2 22h20M6 18V6l4-4h4l4 4v12M10 10h4M10 14h4"/></svg>
@@ -79,7 +78,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         </button>
       </div>
 
-      <!-- Glassy Search Bar -->
+      <!-- Crystalline Glass Search Bar -->
       <div class="locus-glass-searchbar">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
@@ -100,7 +99,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 </section>
 
 <!-- ==========================================================================
-     WELCOME SECTION: LoopNet Onboarding Layout
+     WELCOME SECTION: LoopNet Onboarding Layout (Refined Poppins Styling)
      ========================================================================== -->
 <section class="locus-welcome-section" aria-labelledby="welcomeUserHeading">
   <div class="locus-welcome-container">
@@ -139,61 +138,13 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 
       <div class="locus-welcome-actions">
         <a class="locus-btn-outline" href="#propertyResults" id="startSearchingBtn">Start Searching</a>
-        <?php if ($mode !== 'ranking'): ?>
         <a class="locus-btn-secondary" href="<?= $e(sfc_path('/property-ranking.php')) ?>"><?= sfc_icon('ranking') ?> Priority Board</a>
-        <?php endif; ?>
         <a class="locus-btn-secondary" href="<?= $e(sfc_path('/property-explorer.php')) ?>"><?= sfc_icon('map') ?> Interactive Map</a>
       </div>
     </div>
 
-    <!-- Right Column: Dual Device Marketplace Showcase -->
+    <!-- Right Column: Sleek iPhone Mockup Preview -->
     <div class="locus-showcase-wrap" aria-hidden="true">
-      <!-- Phone 2: Secondary / Priority Board Index -->
-      <div class="phone-mockup phone-secondary">
-        <div class="phone-notch"></div>
-        <div class="phone-screen">
-          <div class="phone-top-bar">
-            <span>PRIORITY BOARD</span>
-            <span>MCE / IAI</span>
-          </div>
-          <div class="phone-ranking-list">
-            <div class="phone-rank-row">
-              <span class="phone-rank-num">#1</span>
-              <div class="phone-rank-info">
-                <strong>Quezon Commercial Corridor</strong>
-                <small>Barangay I · Commercial</small>
-              </div>
-              <span class="phone-rank-score">94.2</span>
-            </div>
-            <div class="phone-rank-row">
-              <span class="phone-rank-num">#2</span>
-              <div class="phone-rank-info">
-                <strong>Poro Maritime Logistics</strong>
-                <small>Poro Point · Logistics</small>
-              </div>
-              <span class="phone-rank-score">91.0</span>
-            </div>
-            <div class="phone-rank-row">
-              <span class="phone-rank-num">#3</span>
-              <div class="phone-rank-info">
-                <strong>Sevilla Agri-Tech Center</strong>
-                <small>Sevilla · Agribusiness</small>
-              </div>
-              <span class="phone-rank-score">88.5</span>
-            </div>
-            <div class="phone-rank-row">
-              <span class="phone-rank-num">#4</span>
-              <div class="phone-rank-info">
-                <strong>Lingsat Coastal Corridor</strong>
-                <small>Lingsat · Mixed-Use</small>
-              </div>
-              <span class="phone-rank-score">86.2</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Phone 1: Primary / Featured Property Preview -->
       <div class="phone-mockup phone-primary">
         <div class="phone-notch"></div>
         <div class="phone-screen">
@@ -411,12 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const action = tab.dataset.tabAction;
-      const targetUrl = tab.dataset.targetUrl;
-
-      if (targetUrl && !tab.classList.contains('is-active')) {
-        window.location.href = targetUrl;
-        return;
-      }
 
       tabs.forEach(t => t.classList.remove('is-active'));
       tab.classList.add('is-active');
