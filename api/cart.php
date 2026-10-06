@@ -25,6 +25,7 @@ api_handle(function (array $container): array {
     }
 
     if ($method === 'POST') {
+        $container['properties']->find($propertyId, $user);
         return [
             'propertyIds' => $container['shortlists']->add($investorUserId, $propertyId),
             'added' => true,

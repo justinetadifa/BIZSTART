@@ -24,6 +24,7 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('A valid property id is required.');
         }
 
+        $container['properties']->find($propertyId, $user);
         return [
             'requests' => $container['documentRequests']->listByProperty($propertyId, $user),
         ];
@@ -43,6 +44,7 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('A valid property id is required.');
         }
 
+        $container['properties']->find($propertyId, $user);
         $request = $container['documentRequests']->create($propertyId, $user, (string) $documentName, $note);
         $container['line']->onDocumentRequestCreated($request, $user);
         return [

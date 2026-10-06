@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 
 api_handle(function (array $container): array {
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $method = request_method();
     $user = sfc_current_user();
 
     if ($method === 'GET') {
@@ -18,6 +18,12 @@ api_handle(function (array $container): array {
             if ($propertyIds === []) {
                 throw new InvalidArgumentException('At least one valid property id is required.');
             }
+            if (count($propertyIds) > 100) {
+                throw new InvalidArgumentException('Request up to 100 properties per batch.');
+            }
+            foreach ($propertyIds as $id) {
+                $container['properties']->find($id, $user);
+            }
 
             return [
                 'tallies' => $container['votes']->voteTalliesMap($propertyIds, $user['id'] ?? null),
@@ -28,6 +34,7 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('A valid property id is required.');
         }
 
+        $container['properties']->find($propertyId, $user);
         $voteState = $container['votes']->voteTallies($propertyId, $user['id'] ?? null);
         return [
             'votes' => $voteState['votes'],
@@ -55,6 +62,7 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('A vote option is required.');
     }
 
+    $container['properties']->find($propertyId, $user);
     $beforeVoteState = $container['votes']->voteTallies($propertyId, (int) $user['id']);
     $voteState = $container['votes']->castVote($propertyId, (int) $user['id'], $voteOptionId, $label);
     $resolvedOption = $container['votes']->resolve($voteOptionId, $label);

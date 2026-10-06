@@ -1528,3 +1528,38 @@ body[data-page="property-ranking"] .inspector-title-group {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ==========================================================================
+   Ranking hero headline - matches the landing hero (landing-glass.css):
+   Poppins ExtraBold, all caps, accent line in yellow with a thin white outline.
+   ========================================================================== */
+body[data-page="property-ranking"] .ranking-intro-surface h1 {
+  max-width: 18ch;
+  font-family: "Poppins", "Inter", "Segoe UI", sans-serif;
+  font-size: clamp(36px, 4.2vw, 58px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: #fffdf8;
+}
+
+body[data-page="property-ranking"] .ranking-intro-surface h1 .ranking-headline-accent {
+  display: block;
+  margin-top: .02em;
+  font-weight: 900;
+  color: #ffc20e;
+  -webkit-text-fill-color: #ffc20e;
+  -webkit-text-stroke: .09em #fff;
+  paint-order: stroke fill;
+  text-shadow: none;
+}
+
+@media screen and (max-width: 680px) {
+  body[data-page="property-ranking"] .ranking-intro-surface h1 {
+    font-size: clamp(30px, 8.6vw, 44px);
+    line-height: 1.08;
+    letter-spacing: -.015em;
+  }
+}

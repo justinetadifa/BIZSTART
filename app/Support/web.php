@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+sfc_enforce_transport_security();
 
 function sfc_web_context(): array
 {
@@ -204,6 +205,20 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
         'role' => $context['user']['role'] ?? 'guest',
         'user' => $context['user'],
         'csrfToken' => sfc_csrf_token(),
+        'sessionSecurity' => [
+            'enabled' => (($context['user']['role'] ?? 'guest') !== 'guest') && !empty($context['user']),
+            'role' => (string) ($context['user']['role'] ?? 'guest'),
+            'timeoutSeconds' => sfc_inactivity_timeout_seconds($context['user']['role'] ?? null),
+            'warningSeconds' => 60,
+            'pingUrl' => sfc_path('/api/session-ping.php'),
+            'logoutUrl' => sfc_path('/logout.php'),
+            'loginUrl' => sfc_path(match ($context['user']['role'] ?? '') {
+                'admin' => '/admin-login.php?reason=timeout',
+                'seller' => '/seller-login.php?reason=timeout',
+                'investor' => '/investor-login.php?reason=timeout',
+                default => '/index.php?reason=timeout',
+            }),
+        ],
     ];
     ?>
 <!DOCTYPE html>
@@ -214,7 +229,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></title>
   <base href="<?= htmlspecialchars(($context['basePath'] === '' ? '/' : $context['basePath'] . '/'), ENT_QUOTES, 'UTF-8') ?>">
   <script>
-    window.SFC_APP_CONFIG = <?= json_encode($clientConfig, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+  window.SFC_APP_CONFIG = <?= json_encode($clientConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
   </script>
   <style><?php readfile(dirname(__DIR__, 2) . '/assets/css/preloader.css'); ?></style>
   <script data-app-name="<?= htmlspecialchars($context['appName'], ENT_QUOTES, 'UTF-8') ?>" data-base-path="<?= htmlspecialchars($context['basePath'], ENT_QUOTES, 'UTF-8') ?>" data-logo="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/webLogoSfc-favicon.png?v=8"><?php readfile(dirname(__DIR__, 2) . '/assets/js/preloader.js'); ?></script>
@@ -277,13 +292,25 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if (in_array($pageName, ['investor-login', 'admin-login'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/auth-poster.css<?= htmlspecialchars(sfc_asset_version('css/auth-poster.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
-  <?php if (in_array($pageName, ['landing', 'investor-dashboard', 'admin-dashboard'], true)): ?>
+  <?php if (in_array($pageName, ['landing', 'investor-dashboard', 'admin-dashboard', 'admin-properties', 'property-ranking', 'decision-reports'], true)): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/blue-button.css<?= htmlspecialchars(sfc_asset_version('css/blue-button.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
   <?php if ($pageName === 'landing'): ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/landing-glass.css<?= htmlspecialchars(sfc_asset_version('css/landing-glass.css'), ENT_QUOTES, 'UTF-8') ?>">
   <?php endif; ?>
+  <?php if ($pageName === 'decision-reports'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/reports-polish.css<?= htmlspecialchars(sfc_asset_version('css/reports-polish.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if (in_array($pageName, ['investor-dashboard', 'compare-decision'], true)): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/investor-workspace.css<?= htmlspecialchars(sfc_asset_version('css/investor-workspace.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
+  <?php if ($pageName === 'compare-decision'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/compare-polish.css<?= htmlspecialchars(sfc_asset_version('css/compare-polish.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
   <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/glass-navigation.css<?= htmlspecialchars(sfc_asset_version('css/glass-navigation.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php if (($context['user']['role'] ?? 'guest') !== 'guest'): ?>
+  <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/session-guard.css<?= htmlspecialchars(sfc_asset_version('css/session-guard.css'), ENT_QUOTES, 'UTF-8') ?>">
+  <?php endif; ?>
     <script defer src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/navigation.js<?= htmlspecialchars(sfc_asset_version('js/navigation.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </head>
 <body <?= implode(' ', $bodyAttributes) ?>>
@@ -762,6 +789,9 @@ function sfc_render_footer(array $context): void
     // The native login form is usable without portal data or optional modules.
     if (document.body.dataset.page?.endsWith('-login')) window.LOCUS_PRELOADER?.dismiss();
   </script>
+  <?php if (!empty($context['user']['role']) && $context['user']['role'] !== 'guest'): ?>
+  <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/session-guard.js<?= htmlspecialchars(sfc_asset_version('js/session-guard.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
+  <?php endif; ?>
   <script type="module" src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/portal.js<?= htmlspecialchars(sfc_asset_version('js/portal.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 </body>
 </html>

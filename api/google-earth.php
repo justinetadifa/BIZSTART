@@ -101,8 +101,6 @@ try {
 } catch (OutOfBoundsException $exception) {
     respond_json(['error' => $exception->getMessage()], 404);
 } catch (Throwable $exception) {
-    respond_json([
-        'error' => $exception->getMessage(),
-        'type' => get_class($exception),
-    ], 500);
+    error_log('[LOCUS-SF export] ' . $exception->getMessage());
+    respond_json(['error' => 'The property export could not be generated. Please try again later.'], 500);
 }

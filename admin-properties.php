@@ -10,18 +10,71 @@ sfc_render_head('Admin Listings | LOCUS-SF', $context, ['page' => 'admin-propert
 sfc_render_header($context, 'admin-properties');
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-property-editor.css<?= htmlspecialchars(sfc_asset_version('css/admin-property-editor.css'), ENT_QUOTES, 'UTF-8') ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-listings.css<?= htmlspecialchars(sfc_asset_version('css/admin-listings.css'), ENT_QUOTES, 'UTF-8') ?>">
 
 <main class="page-shell admin-listings-page" id="adminMain" tabindex="-1">
-  <section class="site-shell page-intro-card">
-    <div>
-      <div class="eyebrow">Admin workspace</div>
-      <h1>Land parcels</h1>
-      <p>Manage listings, review evidence, and keep property records up to date.</p>
-    </div>
-    <div class="intro-actions">
-      <button type="button" class="btn-shell btn-shell-primary" id="adminAddProperty"><span aria-hidden="true">+</span> Add property</button>
-      <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php?admin_mode=add_site'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary" style="display:inline-flex; align-items:center; gap:6px;"><?= sfc_domain_icon('accessibility', 'xs') ?> Add Site from Map</a>
-      <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">View Rankings</a>
+  <template id="adminBlueButtonArt"><?= sfc_blue_button_art($context) ?></template>
+
+  <!-- Executive Cinematic Civic Hero Deck -->
+  <section class="site-shell admin-hero-deck" aria-label="City Spatial Asset Registry">
+    <div class="admin-hero-grid">
+      <!-- Left Column: Civic Intelligence & Telemetry -->
+      <div class="admin-hero-content">
+        <h1 class="admin-hero-title">
+          Land Parcels<br>
+          <span class="admin-hero-title-gradient">Asset Registry</span>
+        </h1>
+        <p class="admin-hero-description">
+          Manage listings, audit due diligence documents, and keep spatial property records synchronized with San Fernando's Comprehensive Land Use Plan (CLUP 2025&ndash;2035).
+        </p>
+
+        <!-- Precision Telemetry Cluster -->
+        <div class="admin-telemetry-cluster" role="region" aria-label="Registry Telemetry">
+          <div class="adm-telemetry-chip adm-telemetry-chip-parcels">
+            <span class="adm-chip-icon" aria-hidden="true"><?= sfc_domain_icon('propertyinfo', 'xs') ?></span>
+            <div class="adm-chip-body">
+              <span class="adm-chip-kicker">Cataloged Parcels</span>
+              <strong class="adm-chip-val text-emerald tabular-nums" id="heroTotalParcels">10 Live Sites</strong>
+            </div>
+          </div>
+          <div class="adm-telemetry-chip adm-telemetry-chip-zoning">
+            <span class="adm-chip-icon" aria-hidden="true"><?= sfc_domain_icon('clupzoning', 'xs') ?></span>
+            <div class="adm-chip-body">
+              <span class="adm-chip-kicker">Zoning Alignment</span>
+              <strong class="adm-chip-val text-amber tabular-nums">CLUP 2025&ndash;2035</strong>
+            </div>
+          </div>
+          <div class="adm-telemetry-chip adm-telemetry-chip-review">
+            <span class="adm-chip-icon" aria-hidden="true"><?= sfc_domain_icon('sitereadiness', 'xs') ?></span>
+            <div class="adm-chip-body">
+              <span class="adm-chip-kicker">Due Diligence</span>
+              <strong class="adm-chip-val text-sky tabular-nums" id="heroVerifiedCount">Verified Pipeline</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Commands featuring the signature 3D locus-blue-button! -->
+        <div class="admin-hero-actions no-print">
+          <button type="button" class="locus-blue-button" id="adminAddProperty">
+            <?= sfc_blue_button_art($context) ?>
+            <svg class="adm-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" width="18" height="18">
+              <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+            </svg>
+            <span>Add Property</span>
+            <span class="adm-btn-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+          <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php?admin_mode=add_site'), ENT_QUOTES, 'UTF-8') ?>" class="adm-btn adm-btn-glass" id="btnAdminAddFromMap">
+            <?= sfc_domain_icon('accessibility', 'xs') ?>
+            <span>Add Site from Map</span>
+          </a>
+          <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>" class="adm-btn adm-btn-glass" id="btnAdminViewRankings">
+            <?= sfc_domain_icon('iai', 'xs') ?>
+            <span>View Rankings</span>
+            <span class="adm-btn-arrow" aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -109,23 +162,23 @@ sfc_render_header($context, 'admin-properties');
                 </div>
                 <div class="crud-options sfc-sector-cards" role="group" aria-labelledby="crudPropertyTypeLabel" id="seg-crud-type">
                   <button type="button" onclick="crudSeg('seg-crud-type','crudPropertyType',this,'commercial')" class="crud-seg-btn sfc-sector-card is-selected" data-val="commercial" aria-pressed="true">
-                    <span class="sfc-sector-icon">🏢</span>
+                    <span class="sfc-sector-icon">ðŸ¢</span>
                     <span class="sfc-sector-title">Commercial</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-type','crudPropertyType',this,'logistics')" class="crud-seg-btn sfc-sector-card" data-val="logistics">
-                    <span class="sfc-sector-icon">🚚</span>
+                    <span class="sfc-sector-icon">ðŸšš</span>
                     <span class="sfc-sector-title">Logistics</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-type','crudPropertyType',this,'hotel')" class="crud-seg-btn sfc-sector-card" data-val="hotel">
-                    <span class="sfc-sector-icon">🏖️</span>
+                    <span class="sfc-sector-icon">ðŸ–ï¸</span>
                     <span class="sfc-sector-title">Hospitality</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-type','crudPropertyType',this,'bpo')" class="crud-seg-btn sfc-sector-card" data-val="bpo">
-                    <span class="sfc-sector-icon">💼</span>
+                    <span class="sfc-sector-icon">ðŸ’¼</span>
                     <span class="sfc-sector-title">Corporate</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-type','crudPropertyType',this,'manufacturing')" class="crud-seg-btn sfc-sector-card" data-val="manufacturing">
-                    <span class="sfc-sector-icon">🏭</span>
+                    <span class="sfc-sector-icon">ðŸ­</span>
                     <span class="sfc-sector-title">Industrial</span>
                   </button>
                 </div>
@@ -185,15 +238,15 @@ sfc_render_header($context, 'admin-properties');
                 </div>
                 <div class="crud-options sfc-corridor-cards" role="group" aria-labelledby="crudCorridorLabel" id="seg-crud-corridor">
                   <button type="button" onclick="crudSeg('seg-crud-corridor','crudCorridor',this,'highway')" class="crud-seg-btn sfc-corridor-btn is-selected" data-val="highway" aria-pressed="true">
-                    <span class="sfc-corridor-icon">🛣️</span>
+                    <span class="sfc-corridor-icon">ðŸ›£ï¸</span>
                     <span>Highway Corridor</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-corridor','crudCorridor',this,'downtown')" class="crud-seg-btn sfc-corridor-btn" data-val="downtown">
-                    <span class="sfc-corridor-icon">🏛️</span>
+                    <span class="sfc-corridor-icon">ðŸ›ï¸</span>
                     <span>Downtown Core</span>
                   </button>
                   <button type="button" onclick="crudSeg('seg-crud-corridor','crudCorridor',this,'coastal')" class="crud-seg-btn sfc-corridor-btn" data-val="coastal">
-                    <span class="sfc-corridor-icon">⚓</span>
+                    <span class="sfc-corridor-icon">âš“</span>
                     <span>Coastal &amp; Port</span>
                   </button>
                 </div>
@@ -235,11 +288,11 @@ sfc_render_header($context, 'admin-properties');
                   <input type="number" class="input-shell sfc-text-input sfc-price-input" id="crudPrice" placeholder="e.g. 75000000" required oninput="crudFormatPrice(this.value); crudUpdateLivePreview();" />
                 </div>
                 <div class="sfc-quick-chips sfc-price-presets">
-                  <button type="button" class="sfc-chip" onclick="crudSetPrice(10000000)">₱10M</button>
-                  <button type="button" class="sfc-chip" onclick="crudSetPrice(25000000)">₱25M</button>
-                  <button type="button" class="sfc-chip" onclick="crudSetPrice(50000000)">₱50M</button>
-                  <button type="button" class="sfc-chip" onclick="crudSetPrice(75000000)">₱75M</button>
-                  <button type="button" class="sfc-chip" onclick="crudSetPrice(120000000)">₱120M</button>
+                  <button type="button" class="sfc-chip" onclick="crudSetPrice(10000000)">â‚±10M</button>
+                  <button type="button" class="sfc-chip" onclick="crudSetPrice(25000000)">â‚±25M</button>
+                  <button type="button" class="sfc-chip" onclick="crudSetPrice(50000000)">â‚±50M</button>
+                  <button type="button" class="sfc-chip" onclick="crudSetPrice(75000000)">â‚±75M</button>
+                  <button type="button" class="sfc-chip" onclick="crudSetPrice(120000000)">â‚±120M</button>
                 </div>
               </div>
 
@@ -263,10 +316,11 @@ sfc_render_header($context, 'admin-properties');
                   </div>
                 </div>
                 <div class="sfc-area-calc-pill">
-                  <span class="sfc-calc-icon">📐</span>
+                  <span class="sfc-calc-icon">ðŸ“</span>
                   <span id="crudLandAreaHint">8.5 ha = 85,000 sqm</span>
                 </div>
                 <input type="hidden" id="crudLandAreaUnit" value="ha" />
+                <input type="hidden" id="landAreaInput" value="" />
               </div>
             </div>
           </section>
@@ -286,7 +340,7 @@ sfc_render_header($context, 'admin-properties');
                   <div class="sfc-upload-dropzone" id="imageDropzone">
                     <input type="file" class="sfc-file-hidden" id="crudImage" accept="image/*" onchange="crudHandleFileSelect(this)" />
                     <div class="sfc-dropzone-content">
-                      <div class="sfc-dropzone-icon">📷</div>
+                      <div class="sfc-dropzone-icon">ðŸ“·</div>
                       <strong id="dropzoneLabel">Upload Photo</strong>
                       <p>Drag and drop or <span>Browse files</span></p>
                       <small>PNG, JPG, WebP up to 10MB</small>
@@ -337,12 +391,12 @@ sfc_render_header($context, 'admin-properties');
                 <div class="sfc-doc-matrix-grid">
                   <?php 
                   $docItems = [
-                    ['crudDocTitleCopy',       'Title Copy',         '📜'],
-                    ['crudDocTaxDeclaration',  'Tax Declaration',    '📑'],
-                    ['crudDocSurveyPlan',      'Survey Plan',        '📐'],
-                    ['crudDocZoningClearance', 'Zoning Conformance', '🏛️'],
-                    ['crudDocSitePhotos',      'Site Photos',        '📷'],
-                    ['crudDocHazardReport',    'Hazard Assessment',  '⚠️'],
+                    ['crudDocTitleCopy',       'Title Copy',         'ðŸ“œ'],
+                    ['crudDocTaxDeclaration',  'Tax Declaration',    'ðŸ“‘'],
+                    ['crudDocSurveyPlan',      'Survey Plan',        'ðŸ“'],
+                    ['crudDocZoningClearance', 'Zoning Conformance', 'ðŸ›ï¸'],
+                    ['crudDocSitePhotos',      'Site Photos',        'ðŸ“·'],
+                    ['crudDocHazardReport',    'Hazard Assessment',  'âš ï¸'],
                   ];
                   foreach ($docItems as [$id, $label, $icon]): ?>
                   <div class="sfc-doc-row" data-doc-id="<?= $id ?>">
@@ -492,9 +546,9 @@ sfc_render_header($context, 'admin-properties');
               <div class="sfc-bm-review-block" id="crudBmReviewBlock">
                 <div class="sfc-bm-review-head">
                   <span class="sfc-bm-review-title">
-                    <span style="color:#059669;">✦</span> Spatial Decision Support: Recommended Business Typologies
+                    <span style="color:#059669;">âœ¦</span> Spatial Decision Support: Recommended Business Typologies
                   </span>
-                  <span class="sfc-bm-review-badge">CLUP 2025–2035 MCE</span>
+                  <span class="sfc-bm-review-badge">CLUP 2025â€“2035 MCE</span>
                 </div>
                 <div class="sfc-bm-review-list" id="crudBmReviewList">
                   <!-- Populated dynamically via JS -->
@@ -509,6 +563,15 @@ sfc_render_header($context, 'admin-properties');
         <div class="crud-form-actions sfc-editor-actions">
           <div class="sfc-actions-left">
             <button type="button" class="btn-shell sfc-cancel-btn" data-modal-close="propertyCrudModal">Cancel</button>
+            <!-- Temporary Test Hazard Simulation Button -->
+            <button type="button" class="btn-shell btn-shell-hazard-test" id="btnTestHazard" onclick="testHazardWarning()" title="Simulate Spatial Geo-Hazard Detection">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span>Test Hazard</span>
+            </button>
           </div>
           <div class="sfc-actions-center">
             <span class="sfc-step-indicator" id="crudStepIndicator">Stage 1 of 4 &middot; Identity</span>
@@ -527,12 +590,43 @@ sfc_render_header($context, 'admin-properties');
         </div>
       </form>
 
-      <!-- Right Column: Live Opportunity Card Preview -->
+      <!-- Right Column: Live Opportunity Card Preview (Parcel Details Sidebar) -->
       <aside class="sfc-editor-preview-col" aria-label="Live Listing Preview">
         <div class="sfc-preview-sticky">
           <div class="sfc-preview-head">
-            <span class="sfc-preview-kicker">Live Investor Preview</span>
+            <span class="sfc-preview-kicker">Parcel Details &bull; Live Preview</span>
             <span class="sfc-preview-live-badge"><span class="sfc-live-pulse"></span> Dynamic</span>
+          </div>
+
+          <!-- Striking High-Visibility Geo-Hazard Warning Banner (Hidden by default) -->
+          <div id="hazardWarningBox" class="hazard-warning-banner hidden relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 via-rose-700 to-amber-700 p-4 text-white shadow-2xl ring-2 ring-red-400/80 mb-4 transition-all duration-300" role="alert" aria-live="assertive">
+            <div class="hazard-warning-top flex items-center justify-between gap-2 mb-2">
+              <span class="hazard-alert-pill inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-black/35 border border-white/20 text-amber-200">
+                <span class="hazard-pulse-dot w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
+                Geo-Hazard Alert &bull; PHIVOLCS / MGB
+              </span>
+              <button type="button" class="hazard-close-btn text-white/70 hover:text-white text-lg font-bold leading-none p-1 transition" onclick="document.getElementById('hazardWarningBox').classList.add('hidden')" title="Dismiss Alert">&times;</button>
+            </div>
+            <div class="hazard-body flex items-start gap-3">
+              <div class="hazard-icon-wrap flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl bg-white/20 border border-white/30 text-amber-200 shadow-inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p id="hazardWarningText" class="hazard-warning-text text-sm font-extrabold leading-snug tracking-tight text-white drop-shadow-sm break-words"></p>
+                <div class="hazard-footer mt-2 flex items-center gap-2 text-[11px] text-white/90">
+                  <span class="hazard-tag font-semibold text-amber-200 flex items-center gap-1">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    Mandatory CLUP Gate
+                  </span>
+                  <span class="text-white/40">&bull;</span>
+                  <span class="text-amber-100 font-medium">Environmental Overlay Flagged</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- The Live Preview Card -->
@@ -588,7 +682,7 @@ sfc_render_header($context, 'admin-properties');
 
               <!-- Live Trust & Verification Badges -->
               <div class="sfc-preview-trust-row" id="livePreviewTrust">
-                <span class="sfc-trust-chip">✓ Approved Listing</span>
+                <span class="sfc-trust-chip">âœ“ Approved Listing</span>
               </div>
 
               <!-- Recommended Business Match Mini-Strip -->
@@ -697,7 +791,7 @@ sfc_render_header($context, 'admin-properties');
 
     // Indicator & Prev/Next buttons
     var ind = document.getElementById('crudStepIndicator');
-    if (ind) ind.textContent = 'Stage ' + (_currentStep + 1) + ' of ' + TOTAL_STEPS + ' · ' + stepTitles[_currentStep];
+    if (ind) ind.textContent = 'Stage ' + (_currentStep + 1) + ' of ' + TOTAL_STEPS + ' Â· ' + stepTitles[_currentStep];
 
     var btnPrev = document.getElementById('crudBtnPrev');
     if (btnPrev) {
@@ -1064,7 +1158,7 @@ sfc_render_header($context, 'admin-properties');
     var cityVal = (document.getElementById('crudCity') || {}).value || 'San Fernando, La Union';
     var previewLoc = document.getElementById('livePreviewLocation');
     if (previewLoc) {
-      previewLoc.textContent = (brgyVal.trim() ? 'Brgy. ' + brgyVal.trim() + ' · ' : '') + cityVal;
+      previewLoc.textContent = (brgyVal.trim() ? 'Brgy. ' + brgyVal.trim() + ' Â· ' : '') + cityVal;
     }
 
     // Price
@@ -1132,16 +1226,16 @@ sfc_render_header($context, 'admin-properties');
       var approvalVal = (document.getElementById('crudApprovalState') || {}).value || 'draft';
       var sellerVal = (document.getElementById('crudSellerIdentityStatus') || {}).value || 'unverified';
       var html = '';
-      if (approvalVal === 'approved') html += '<span class="sfc-trust-chip">✓ Approved Listing</span>';
-      else if (approvalVal === 'pending_review') html += '<span class="sfc-trust-chip" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">⏳ Pending City Review</span>';
+      if (approvalVal === 'approved') html += '<span class="sfc-trust-chip">âœ“ Approved Listing</span>';
+      else if (approvalVal === 'pending_review') html += '<span class="sfc-trust-chip" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">â³ Pending City Review</span>';
       else html += '<span class="sfc-trust-chip" style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;">Draft Record</span>';
 
-      if (sellerVal === 'verified') html += '<span class="sfc-trust-chip">🛡️ Verified Seller</span>';
-      if (reviewedCount >= 4) html += '<span class="sfc-trust-chip">📜 Due Diligence Cleared</span>';
+      if (sellerVal === 'verified') html += '<span class="sfc-trust-chip">ðŸ›¡ï¸ Verified Seller</span>';
+      if (reviewedCount >= 4) html += '<span class="sfc-trust-chip">ðŸ“œ Due Diligence Cleared</span>';
       var docsVal = (document.getElementById('crudDocumentsReviewed') || {}).value;
       var siteVal = (document.getElementById('crudSiteVerified') || {}).value;
-      if (docsVal === '1' || docsVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">✓ Documents Inspected</span>';
-      if (siteVal === '1' || siteVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">✓ Site Verified</span>';
+      if (docsVal === '1' || docsVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">âœ“ Documents Inspected</span>';
+      if (siteVal === '1' || siteVal === 1) html += '<span class="sfc-trust-chip" style="background:#ecfdf5;color:#065f46;border-color:#a7f3d0;">âœ“ Site Verified</span>';
       trustRow.innerHTML = html;
     }
 
@@ -1154,8 +1248,8 @@ sfc_render_header($context, 'admin-properties');
         name: 'Drive-Thru QSR & Commercial Retail Strip',
         score: corridorVal === 'highway' ? 98.5 : (corridorVal === 'downtown' ? 95.0 : 82.0),
         fitGrade: 'Prime Fit',
-        roi: '19% – 26% p.a.',
-        capex: '₱20M – ₱38M',
+        roi: '19% â€“ 26% p.a.',
+        capex: 'â‚±20M â€“ â‚±38M',
         rationale: 'Arterial frontage & high vehicular catchment along corridor.'
       },
       {
@@ -1163,8 +1257,8 @@ sfc_render_header($context, 'admin-properties');
         name: 'IT-BPO Office & Tech Innovation Hub',
         score: typeVal === 'bpo' || corridorVal === 'downtown' ? 98.0 : (corridorVal === 'highway' ? 94.5 : 78.0),
         fitGrade: 'Prime Fit',
-        roi: '15% – 20% p.a.',
-        capex: '₱30M – ₱55M',
+        roi: '15% â€“ 20% p.a.',
+        capex: 'â‚±30M â€“ â‚±55M',
         rationale: 'Tier-2 fiber connectivity & central white-collar workforce radius.'
       },
       {
@@ -1172,8 +1266,8 @@ sfc_render_header($context, 'admin-properties');
         name: 'Cold-Chain & Fishery Logistics Hub',
         score: typeVal === 'logistics' || corridorVal === 'highway' ? 97.0 : 84.0,
         fitGrade: 'Prime Fit',
-        roi: '18% – 23% p.a.',
-        capex: '₱35M – ₱65M',
+        roi: '18% â€“ 23% p.a.',
+        capex: 'â‚±35M â€“ â‚±65M',
         rationale: 'Regional agri-fishery harvest staging & Poro Freeport link.'
       },
       {
@@ -1181,8 +1275,8 @@ sfc_render_header($context, 'admin-properties');
         name: 'Eco-Boutique Coastal Resort & Wellness Hub',
         score: corridorVal === 'coastal' || typeVal === 'hotel' ? 98.5 : 72.0,
         fitGrade: corridorVal === 'coastal' ? 'Prime Fit' : 'Moderate Fit',
-        roi: '16% – 21% p.a.',
-        capex: '₱45M – ₱85M',
+        roi: '16% â€“ 21% p.a.',
+        capex: 'â‚±45M â€“ â‚±85M',
         rationale: 'Seaside frontage & San Fernando surf-tourism corridor synergy.'
       },
       {
@@ -1190,8 +1284,8 @@ sfc_render_header($context, 'admin-properties');
         name: 'Specialized Outpatient & Diagnostic Center',
         score: corridorVal === 'downtown' || corridorVal === 'highway' ? 96.0 : 86.0,
         fitGrade: 'Prime Fit',
-        roi: '14% – 18% p.a.',
-        capex: '₱28M – ₱50M',
+        roi: '14% â€“ 18% p.a.',
+        capex: 'â‚±28M â€“ â‚±50M',
         rationale: 'Direct arterial connectivity & Region I tertiary referral radius.'
       }
     ];
@@ -1211,7 +1305,7 @@ sfc_render_header($context, 'admin-properties');
     // Update Step 4 Review & Publish 3-Card List
     var bmReviewList = document.getElementById('crudBmReviewList');
     if (bmReviewList) {
-      var medals = ['🥇', '🥈', '🥉'];
+      var medals = ['ðŸ¥‡', 'ðŸ¥ˆ', 'ðŸ¥‰'];
       bmReviewList.innerHTML = top3.map(function(item, idx) {
         return '<div class="sfc-bm-review-item ' + (idx === 0 ? 'is-top' : '') + '">' +
           '<div class="sfc-bm-item-topline">' +
@@ -1376,6 +1470,81 @@ sfc_render_header($context, 'admin-properties');
 
   // Initial UI Render
   _renderStepUI();
+})();
+
+// ============================================================================
+// Geo-Hazard Warning System (Gov GIS CLUP / PHIVOLCS / MGB Evaluation)
+// ============================================================================
+window.applySpatialHazardAssessment = function(inFloodZone, nearFaultLine) {
+  var warningContainer = document.getElementById('hazardWarningBox');
+  var warningText = document.getElementById('hazardWarningText');
+  if (!warningContainer || !warningText) return;
+
+  if (inFloodZone || nearFaultLine) {
+    warningContainer.classList.remove('hidden');
+    if (inFloodZone && nearFaultLine) {
+      warningText.innerHTML = "⚠️ <b>CRITICAL RISK:</b> Property is located within a flood zone AND is within 50 meters of an active fault line.";
+    } else if (inFloodZone) {
+      warningText.innerHTML = "⚠️ <b>WARNING:</b> Property intersects with a designated Flood Hazard Zone.";
+    } else if (nearFaultLine) {
+      warningText.innerHTML = "⚠️ <b>WARNING:</b> Property is located within 50 meters of a Fault Line.";
+    }
+    try {
+      warningContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) {}
+  } else {
+    warningContainer.classList.add('hidden');
+  }
+};
+
+window.testHazardWarning = function(scenario) {
+  var warningContainer = document.getElementById('hazardWarningBox');
+  var warningText = document.getElementById('hazardWarningText');
+  if (!warningContainer || !warningText) return;
+
+  var isCurrentlyHidden = warningContainer.classList.contains('hidden');
+
+  if (isCurrentlyHidden || scenario) {
+    warningContainer.classList.remove('hidden');
+    if (scenario === 'fault') {
+      warningText.innerHTML = "⚠️ <b>WARNING:</b> Property is located within 50 meters of a Fault Line.";
+    } else if (scenario === 'dual') {
+      warningText.innerHTML = "⚠️ <b>CRITICAL RISK:</b> Property is located within a flood zone AND is within 50 meters of an active fault line.";
+    } else {
+      // Default exact prompt text
+      warningText.innerHTML = "⚠️ <b>CRITICAL RISK:</b> Property intersects with a designated Flood Hazard Zone.";
+    }
+    try {
+      warningContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) {}
+  } else {
+    warningContainer.classList.add('hidden');
+  }
+};
+
+// Sync spatial landAreaInput with property editor fields
+(function() {
+  var areaInput = document.getElementById('landAreaInput');
+  if (areaInput) {
+    Object.defineProperty(areaInput, 'value', {
+      set: function(val) {
+        this.setAttribute('value', val);
+        var num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+          if (typeof crudSyncArea === 'function') {
+            crudSyncArea(num, 'sqm');
+          }
+          if (typeof crudUpdateLivePreview === 'function') {
+            crudUpdateLivePreview();
+          }
+        }
+      },
+      get: function() {
+        return this.getAttribute('value') || '';
+      },
+      configurable: true
+    });
+  }
 })();
 </script>
 <?php sfc_render_footer($context); ?>

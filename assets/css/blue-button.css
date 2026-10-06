@@ -33,6 +33,20 @@ body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-he
   transition: transform 180ms ease, filter 180ms ease;
 }
 
+body[data-page] .locus-blue-button.locus-blue-button-compact {
+  --blue-button-height: 38px;
+  padding: 0 16px;
+  font-size: 12px;
+  gap: 7px;
+}
+
+body[data-page] .locus-blue-button.locus-blue-button-sm {
+  --blue-button-height: 32px;
+  padding: 0 12px;
+  font-size: 11px;
+  gap: 5px;
+}
+
 body[data-page] .locus-blue-button::before,
 body[data-page] .locus-blue-button::after,
 body[data-page="landing"] .hero-home-refined .hero-command-actions .btn-shell-hero.locus-blue-button::before,

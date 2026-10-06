@@ -25,6 +25,9 @@ api_handle(function (array $container): array {
         if ($user === null || !in_array($user['role'] ?? 'guest', ['admin', 'seller'], true)) {
             return [403, ['error' => 'Only admin or seller accounts can create listings.']];
         }
+        if (($user['role'] ?? null) === 'seller' && strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'verified') {
+            return [403, ['error' => 'Your seller account is still pending verification. Complete your seller profile and wait for admin approval before publishing listings.']];
+        }
 
         $payload = read_request_input();
         $uploadedImagePath = store_uploaded_property_image($_FILES['image_file'] ?? null);
@@ -32,10 +35,6 @@ api_handle(function (array $container): array {
             $payload['image_path'] = $uploadedImagePath;
         }
         if (($user['role'] ?? null) === 'seller') {
-            if (strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'verified') {
-                return [403, ['error' => 'Your seller account is still pending verification. Complete your seller profile and wait for admin approval before publishing listings.']];
-            }
-
             unset(
                 $payload['approval_state'],
                 $payload['approvalState'],

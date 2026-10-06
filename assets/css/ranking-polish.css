@@ -1,0 +1,1213 @@
+/* A consistent visual hierarchy for the investment board. Print keeps the
+   existing compact shortlist layout from ranking.css. */
+@media screen {
+  body[data-page="property-ranking"] {
+    background: #f3f6fb;
+  }
+
+  body[data-page="property-ranking"] .ranking-page {
+    --rk-gold: #2563eb;
+    --rk-gold-glow: rgba(37, 99, 235, .12);
+    --rk-gold-light: #eff5ff;
+    --rk-card-border: #e3e9f2;
+    --rk-card-hover: #f7faff;
+    --rk-transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+    color: #17253e;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-studio-v2 {
+    gap: 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.ranking-lens-bar, .ranking-toolbar) {
+    border-color: #e1e8f2;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, .96);
+    box-shadow: 0 5px 20px rgba(26, 48, 82, .035);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-bar {
+    padding: 18px 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-bar-title {
+    color: #536783;
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-active-badge {
+    border-color: #d5e4ff;
+    background: #eff5ff;
+    color: #2354a6;
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-active-badge::before {
+    background: #3675de;
+    box-shadow: none;
+    animation: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-track {
+    gap: 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn {
+    min-height: 48px;
+    padding: 9px 13px;
+    border: 1px solid #e2e9f3;
+    border-radius: 12px;
+    background: #f8fafd;
+    color: #475d7c;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn:hover {
+    border-color: #b9d0f3;
+    background: #f3f8ff;
+    transform: none;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn.is-active {
+    border-color: #b7d0fb;
+    background: #eaf2ff;
+    color: #194f9f;
+    box-shadow: inset 0 1px 0 #fff;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn .lens-icon-wrap {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    border-radius: 8px;
+    background: #edf2f9;
+    color: #617794;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn.is-active .lens-icon-wrap {
+    background: #d9e8ff;
+    color: #235bb3;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn .lens-count-pill {
+    background: #edf1f7;
+    color: #63758e;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-lens-btn.is-active .lens-count-pill {
+    background: #fff;
+    color: #235bb3;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.ranking-search-input, .ranking-select) {
+    border: 1px solid #dfe7f2;
+    background-color: #f8fafd;
+    color: #354964;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.ranking-search-input, .ranking-select):focus {
+    border-color: #89b1ef;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(45, 108, 214, .1);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-reset-btn {
+    border-color: #d5e3f8;
+    background: #eef5ff;
+    color: #245aab;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-count-pill {
+    border-radius: 9px;
+    background: #edf3fc;
+    color: #2b4a73;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-split-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+    gap: 24px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-col {
+    gap: 12px;
+    scroll-margin-top: 110px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-header {
+    align-items: center;
+    gap: 12px;
+    min-height: 32px;
+    padding: 0 3px 5px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: #355072;
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: .095em;
+    white-space: nowrap;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-title :is(.ui-icon, svg) {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    color: #3779d8;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-hint {
+    color: #7d8ca3;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: right;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card {
+    grid-template-columns: 40px 64px minmax(0, 1fr) 84px;
+    gap: 13px;
+    min-height: 142px;
+    padding: 18px 16px;
+    border: 1px solid #e2e8f2;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(27, 47, 78, .025);
+    transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card:hover {
+    border-color: #c5d7f2;
+    background: #fcfdff;
+    box-shadow: 0 6px 20px rgba(33, 68, 118, .065);
+    transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card.is-selected {
+    border-color: #77a7ed;
+    background: linear-gradient(110deg, #f5f9ff, #fff 58%);
+    box-shadow: inset 3px 0 0 #3478dd, 0 5px 18px rgba(44, 94, 168, .08);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card:focus-visible {
+    outline: 3px solid #9abef4;
+    outline-offset: 3px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge {
+    width: 40px;
+    height: 55px;
+    gap: 3px;
+    border: 1px solid #e5ebf4;
+    border-radius: 12px;
+    background: #f4f7fc;
+    color: #63758c;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-rank-label {
+    font-family: "Inter", sans-serif;
+    font-size: 8px;
+    font-weight: 650;
+    letter-spacing: .06em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge strong {
+    font-family: "Inter", sans-serif;
+    font-size: 19px;
+    font-weight: 750;
+    line-height: 1.1;
+    letter-spacing: -.055em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge-1 {
+    border-color: #bfd4f6;
+    background: #e8f1ff;
+    color: #2461bd;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.rk-badge-2, .rk-badge-3) {
+    border-color: #dae4f2;
+    background: #eef3fb;
+    color: #4b6b97;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge-2 {
+    border-color: #dfe6f0;
+    background: #edf2f8;
+    color: #62758f;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge-3 {
+    border-color: #ebe2d7;
+    background: #f8f3ed;
+    color: #92734f;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-thumb {
+    width: 64px;
+    height: 76px;
+    border: 1px solid #e5ebf2;
+    border-radius: 13px;
+    background: #edf2f8;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-info {
+    gap: 6px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-info-head {
+    display: block;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-title {
+    margin: 0;
+    color: #182842;
+    font-family: "Manrope", "Inter", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.45;
+    letter-spacing: -.035em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-status-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    margin: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-status-row .clup-status {
+    min-height: 20px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 650;
+    line-height: 1.5;
+    letter-spacing: .03em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .clup-status-unverified {
+    border-color: #e1e7f0;
+    background: #f3f6fa;
+    color: #6b7a90;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-meta {
+    align-items: center;
+    gap: 5px;
+    color: #7989a0;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-meta > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-meta :is(.ui-icon, svg) {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    color: #8da0ba;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-numbers {
+    margin-top: 0;
+    gap: 7px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #5c6c84;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-price {
+    color: #334a69;
+    font-weight: 750;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-dot {
+    color: #c2ccda;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-block {
+    align-self: center;
+    align-items: stretch;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill {
+    width: 84px;
+    min-width: 0;
+    min-height: 80px;
+    padding: 11px 6px;
+    gap: 7px;
+    border: 1px solid #dfe9f8;
+    border-radius: 14px;
+    background: #f2f7ff;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill > .rk-score-label {
+    margin: 0;
+    color: #637fa7;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .09em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill > .rk-score-value {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    gap: 2px !important;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill strong {
+    color: #235eaf;
+    font-family: "Inter", sans-serif;
+    font-size: 31px;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: -.075em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-value > span {
+    margin: 0;
+    color: #7d93b3;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -.02em;
+    text-transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-score-guide {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 0;
+    padding: 15px 24px;
+    border-top: 1px solid #edf1f7;
+    background: #f9fbfe;
+    color: #7a8ba3;
+    font-size: 11px;
+    line-height: 1.65;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-score-guide :is(.ui-icon, svg, .locus-icon) {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    margin-top: 2px;
+    color: #7193c0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-score-guide p {
+    margin: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-inspector-col {
+    top: 110px;
+    scroll-margin-top: 110px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-card {
+    scroll-margin-top: 110px;
+    border: 1px solid #e0e7f1;
+    border-radius: 24px;
+    box-shadow: 0 12px 36px rgba(31, 52, 83, .07);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero {
+    min-height: 234px;
+    padding: 24px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-overlay {
+    background: linear-gradient(125deg, rgba(11, 30, 55, .8), rgba(17, 38, 66, .63)), linear-gradient(0deg, rgba(12, 27, 48, .9), transparent 90%);
+    backdrop-filter: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-content {
+    gap: 32px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-top {
+    align-items: center;
+    gap: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-rank-badge {
+    padding: 6px 10px;
+    border: 1px solid rgba(179, 213, 255, .23);
+    border-radius: 8px;
+    background: rgba(104, 158, 231, .16);
+    color: #d3e7ff;
+    font-family: "Inter", sans-serif;
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: .04em;
+    line-height: 1.6;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-statuses {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-statuses :is(.clup-status, .status-pill) {
+    padding: 4px 8px;
+    border: 1px solid rgba(222, 235, 255, .17);
+    border-radius: 7px;
+    background: rgba(220, 235, 255, .1);
+    color: #d5e1f2;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: .02em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-main {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group {
+    flex: 1 1 auto;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group h2 {
+    margin-bottom: 10px;
+    font-size: clamp(21px, 1.65vw, 26px);
+    line-height: 1.28;
+    letter-spacing: -.04em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group p {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #bdcee4;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group p :is(.ui-icon, svg) {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-main > .inspector-score-lockup {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex: 0 0 158px;
+    width: 158px;
+    min-width: 0;
+    gap: 10px;
+    padding: 14px 12px;
+    border: 1px solid rgba(162, 198, 244, .26);
+    border-radius: 16px;
+    background: rgba(10, 32, 62, .56);
+    backdrop-filter: blur(8px);
+    box-sizing: border-box;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-icon {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    margin: 1px 0 0;
+    border: 1px solid rgba(212, 230, 255, .23);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .93);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-lockup .locus-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy {
+    min-width: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy > .inspector-score-label {
+    display: block;
+    margin: 0 0 7px;
+    color: #b6cfee;
+    font-size: 8px;
+    line-height: 1.3;
+    letter-spacing: .06em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-value {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-value strong {
+    color: #fff;
+    font-family: "Inter", sans-serif;
+    font-size: 39px;
+    font-weight: 750;
+    line-height: 1;
+    letter-spacing: -.07em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-value > span {
+    color: #94b4de;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -.02em;
+    text-transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy > .inspector-score-caption {
+    display: block;
+    margin-top: 7px;
+    color: #90b8e8;
+    font-size: 9px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 17px 10px;
+    border-top: none;
+    border-bottom: 1px solid #e6edf6;
+    background: #f5f8fd;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip > .inspector-metric-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0 9px;
+    border-color: #dfe7f3;
+    text-align: left;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-cell > .inspector-metric-icon {
+    display: grid;
+    place-items: center;
+    flex-direction: row;
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    flex: 0 0 30px;
+    margin: 0;
+    gap: 0;
+    border: 1px solid #e1e9f5;
+    border-radius: 9px;
+    background: #fff;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-cell .locus-icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-copy {
+    min-width: 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-copy > span {
+    display: block;
+    margin-bottom: 4px;
+    color: #7c8da5;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-copy > strong {
+    display: block;
+    color: #233956;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+    letter-spacing: -.025em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar {
+    gap: 8px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e7edf6;
+    background: #fff;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar .btn-shell {
+    min-height: 44px;
+    height: 44px;
+    padding: 0 14px;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: -.015em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar :is(.btn-shell-secondary, .btn-shell-ghost) {
+    border: 1px solid #e0e8f3;
+    border-radius: 12px;
+    background: #f6f9fd;
+    color: #486385;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar :is(.btn-shell-secondary, .btn-shell-ghost):hover {
+    border-color: #bfd2ef;
+    background: #eef5ff;
+    color: #245fae;
+    transform: none;
+    box-shadow: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar .ranking-dossier-action.locus-blue-button,
+  body[data-page="property-ranking"] .ranking-page .ranking-intro-surface .intro-actions .ranking-map-action.locus-blue-button {
+    --blue-button-height: 46px;
+    height: var(--blue-button-height);
+    min-height: var(--blue-button-height);
+    padding: 0 19px;
+    border: 0;
+    border-radius: 999px;
+    background: #8fbcf0;
+    color: #163b63;
+    font-size: 12px;
+    font-weight: 650;
+    letter-spacing: -.015em;
+    box-shadow: none;
+    filter: drop-shadow(0 3px 5px rgba(31, 76, 122, .13));
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-map-action > svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tabs-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 7px 10px;
+    border-bottom: 1px solid #e6edf5;
+    background: #f9fbfe;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 46px;
+    padding: 7px;
+    gap: 7px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    background: transparent;
+    color: #71839d;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.4;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn.is-active {
+    border-color: #dde8f7;
+    background: #fff;
+    color: #285eaa;
+    box-shadow: 0 2px 7px rgba(36, 70, 116, .05);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn > .inspector-tab-icon {
+    display: grid;
+    place-items: center;
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+    flex-direction: row;
+    border-radius: 8px;
+    background: #edf3fb;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn .locus-icon {
+    width: 21px;
+    height: 21px;
+    opacity: .88;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn > span:not(.inspector-tab-icon) {
+    display: block;
+    flex-direction: row;
+    text-align: left;
+    line-height: 1.4;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-body {
+    padding: 24px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-thesis-text {
+    margin-bottom: 18px;
+    color: #63728a;
+    font-size: 13px;
+    line-height: 1.8;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-pillars-row {
+    gap: 7px;
+    margin-bottom: 23px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-pillar-tag {
+    padding: 6px 10px;
+    border: 1px solid #e7edf6;
+    border-radius: 8px;
+    background: #f7f9fd;
+    color: #667e9e;
+    font-size: 10px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-pillar-tag strong {
+    color: #49617f;
+    font-weight: 650;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metrics-list {
+    gap: 17px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-header {
+    gap: 8px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-header strong {
+    color: #3d526f;
+    font-weight: 650;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-header span {
+    color: #8a9ab1;
+    font-size: 10px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-progress-track {
+    height: 6px;
+    background: #eaf0f8;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-progress-fill {
+    display: block;
+    background: linear-gradient(90deg, #7ca9ec, #3879d6);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-empty-card {
+    border-color: #c7d8ef;
+    background: #fcfdff;
+  }
+}
+
+@media screen and (max-width: 1180px) and (min-width: 1025px) {
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card {
+    grid-template-columns: 38px minmax(0, 1fr) 72px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-thumb {
+    display: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-main {
+    gap: 14px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-cell:nth-child(2) {
+    border-right: none;
+  }
+}
+
+@media screen and (max-width: 1024px) {
+  body[data-page="property-ranking"] .ranking-page .ranking-split-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-inspector-col {
+    position: static;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group h2 {
+    font-size: 26px;
+  }
+}
+
+@media screen and (max-width: 680px) {
+  body[data-page="property-ranking"] .ranking-page .ranking-studio-v2 {
+    gap: 16px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.ranking-lens-bar, .ranking-toolbar) {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 2px 5px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-list-hint {
+    font-size: 10px;
+    text-align: left;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card {
+    grid-template-columns: 34px minmax(0, 1fr) 76px;
+    gap: 10px;
+    min-height: 138px;
+    padding: 16px 12px;
+    border-radius: 18px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-thumb {
+    display: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge {
+    width: 34px;
+    height: 47px;
+    border-radius: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge strong {
+    font-size: 17px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-rank-label {
+    font-size: 7px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-title {
+    font-size: 13px;
+    line-height: 1.4;
+    letter-spacing: -.035em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page :is(.rk-meta, .rk-numbers) {
+    font-size: 11px;
+    line-height: 1.5;
+    gap: 4px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-meta :is(.ui-icon, svg) {
+    width: 12px;
+    height: 12px;
+    flex-basis: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill {
+    width: 76px;
+    min-width: 0;
+    min-height: 77px;
+    padding: 11px 4px;
+    border-radius: 13px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill strong {
+    font-size: 30px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill > .rk-score-label {
+    font-size: 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-value > span {
+    font-size: 9px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-score-guide {
+    padding: 13px 17px;
+    font-size: 10px;
+    line-height: 1.7;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-card {
+    border-radius: 22px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero {
+    min-height: 0;
+    padding: 21px 20px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-content {
+    gap: 22px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-rank-badge {
+    font-size: 8px;
+    letter-spacing: .02em;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-main {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group h2 {
+    margin-bottom: 8px;
+    font-size: 23px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero-main > .inspector-score-lockup {
+    align-items: center;
+    flex-basis: auto;
+    width: 100%;
+    padding: 13px 14px;
+    gap: 13px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-icon {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+    margin: 0;
+    border-radius: 11px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-lockup .locus-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 14px;
+    flex: 1 1 auto;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy > .inspector-score-label {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    font-size: 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-value {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-value strong {
+    font-size: 41px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy > .inspector-score-caption {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 3px;
+    font-size: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 16px 12px;
+    gap: 16px 0;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip > .inspector-metric-cell {
+    padding: 0 8px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-cell:nth-child(2n) {
+    border-right: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-cell:nth-child(n + 3) {
+    border-top: none;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-copy > strong {
+    font-size: 13px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding: 15px 16px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar .btn-shell {
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-action-bar .ranking-dossier-action.locus-blue-button {
+    --blue-button-height: 48px;
+    grid-column: 1 / -1;
+    width: 100%;
+    font-size: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .ranking-intro-surface .intro-actions .ranking-map-action.locus-blue-button {
+    --blue-button-height: 48px;
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 0 18px;
+    font-size: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tabs-nav {
+    gap: 4px;
+    padding: 7px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn {
+    flex-direction: column;
+    min-height: 65px;
+    padding: 6px 4px;
+    gap: 5px;
+    font-size: 9px;
+    line-height: 1.3;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-btn > span:not(.inspector-tab-icon) {
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-tab-body {
+    padding: 20px 17px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-thesis-text {
+    font-size: 12px;
+    line-height: 1.75;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-header {
+    align-items: center;
+    font-size: 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-header span {
+    font-size: 9px;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  body[data-page="property-ranking"] .ranking-page .ranking-row-card {
+    grid-template-columns: 30px minmax(0, 1fr) 59px;
+    gap: 8px;
+    padding: 14px 10px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-badge {
+    width: 30px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill {
+    width: 59px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill strong {
+    font-size: 28px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-score-pill > .rk-score-value {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px !important;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .rk-title {
+    font-size: 12px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-hero {
+    padding: 19px 16px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-title-group h2 {
+    font-size: 21px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-score-copy {
+    column-gap: 9px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip {
+    padding-inline: 7px;
+  }
+
+  body[data-page="property-ranking"] .ranking-page .inspector-metric-strip > .inspector-metric-cell {
+    gap: 6px;
+    padding-inline: 6px;
+  }
+}
+
+@media screen and (prefers-reduced-motion: reduce) {
+  body[data-page="property-ranking"] .ranking-page :is(.ranking-row-card, .ranking-lens-btn, .inspector-tab-btn, .inspector-progress-fill) {
+    transition: none;
+  }
+}

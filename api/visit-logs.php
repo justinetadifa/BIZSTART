@@ -37,6 +37,7 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('A valid property id is required.');
         }
 
+        $container['properties']->find($propertyId, $user);
         $visit = $container['visits']->propose($propertyId, $user, $input);
         $container['line']->onVisitTransition(null, $visit, $user, 'propose');
         $threadPayload = $container['messages']->thread((int) $visit['threadId'], $user);

@@ -2419,45 +2419,107 @@ body[data-page="property-explorer-terminal"] .explorer-site-shell {
 }
 
 /* --------------------------------------------------------------------------
-   Map Markers: High-Visibility Glowing Amber & Crisp White Badges
+   Map Markers: Sleek Crexi-Style Dark-Blue IAI Badges
    -------------------------------------------------------------------------- */
 .explorer-studio .marker-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  background: #ffffff;
-  color: #0f172a;
-  font-family: "Space Grotesk", "Manrope", sans-serif;
+  padding: 6px 12px 6px 8px;
+  border-radius: 8px;
+  background: #1e3a8a;
+  color: #ffffff;
+  font-family: "Inter", "Space Grotesk", "Manrope", sans-serif;
   font-size: 11px;
-  font-weight: 750;
-  border: 1.5px solid #cbd5e1;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(15, 23, 42, 0.08);
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.explorer-studio .marker-pill::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: #1e3a8a;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  transform: rotate(45deg);
+  transition: background 0.2s ease;
+}
+
+.explorer-studio .marker-pill:hover,
+.locus-spatial-marker:hover .marker-pill {
+  background: #1d4ed8;
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 14px 30px -4px rgba(29, 78, 216, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.explorer-studio .marker-pill:hover::after {
+  background: #1d4ed8;
 }
 
 .explorer-studio .marker-pill.is-active {
-  background: linear-gradient(135deg, #ffb800 0%, #ff7a00 100%) !important;
+  background: #1d4ed8 !important;
   color: #ffffff !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 0 0 3.5px rgba(255, 122, 0, 0.4), 0 8px 24px rgba(255, 122, 0, 0.5) !important;
-  transform: scale(1.1);
+  border: 1.5px solid #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.45), 0 14px 32px rgba(15, 23, 42, 0.55) !important;
+  transform: translateY(-3px) scale(1.1);
   font-weight: 800;
 }
 
-.explorer-studio .marker-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+.explorer-studio .marker-pill.is-active::after {
+  background: #1d4ed8;
+  border-right: 1.5px solid #ffffff;
+  border-bottom: 1.5px solid #ffffff;
+  bottom: -6px;
 }
 
-.explorer-studio .marker-dot.is-pass { background: #10b981; }
-.explorer-studio .marker-dot.is-conditional { background: #f59e0b; }
-.explorer-studio .marker-dot.is-fail { background: #f43f5e; }
-.explorer-studio .marker-dot.is-unverified { background: #94a3b8; }
-.explorer-studio .marker-pill.is-active .marker-dot { border: 1px solid #ffffff; }
+.explorer-studio .marker-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.explorer-studio .marker-dot.tier-prime,
+.explorer-studio .marker-dot.is-prime { background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, 0.85); }
+.explorer-studio .marker-dot.tier-strong,
+.explorer-studio .marker-dot.is-strong { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.85); }
+.explorer-studio .marker-dot.tier-emerging,
+.explorer-studio .marker-dot.is-emerging { background: #fbbf24; box-shadow: 0 0 6px rgba(251, 191, 36, 0.85); }
+
+.explorer-studio .marker-score-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.explorer-studio .marker-score-val {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+}
+
+.explorer-studio .marker-price-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 750;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
 
 /* --------------------------------------------------------------------------
    Selected Property Dossier Card: Ultra-Cohesive Masterpiece
@@ -3751,28 +3813,27 @@ body[data-page="property-explorer-terminal"] .explorer-page-shell {
 .explorer-map-hint strong { color: #0f172a; font-weight: 800; }
 
 .explorer-studio .marker-pill {
-  padding: 6px 11px 6px 6px;
-  gap: 6px;
+  padding: 6px 10px 6px 7px;
+  gap: 5px;
   position: relative;
 }
 
 .marker-site-number {
   display: inline-grid;
   place-items: center;
-  min-width: 23px;
-  height: 22px;
-  border-radius: 50%;
-  background: #f1f5f9;
-  color: #475569;
+  min-width: 20px;
+  height: 19px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
   font-size: 9px;
+  font-weight: 700;
 }
 
-.marker-pill.is-active .marker-site-number { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
-.explorer-studio #explorerLeafletMap.is-overview .locus-spatial-marker:not(:hover):not(:focus-visible) .marker-pill:not(.is-active) { padding: 5px; gap: 3px; }
-.explorer-studio #explorerLeafletMap.is-overview .locus-spatial-marker:not(:hover):not(:focus-visible) .marker-pill:not(.is-active) .marker-price { display: none; }
+.marker-pill.is-active .marker-site-number { background: rgba(255, 255, 255, 0.26); color: #ffffff; }
+.explorer-studio #explorerLeafletMap.is-overview .locus-spatial-marker:not(:hover):not(:focus-visible) .marker-pill:not(.is-active) { padding: 5px 8px; gap: 4px; }
 .locus-spatial-marker:has(.marker-pill.is-active) { z-index: 4; }
 .locus-spatial-marker:hover, .locus-spatial-marker:focus-visible { z-index: 5; }
-.explorer-studio .marker-pill.is-active::after { content: ""; position: absolute; bottom: -7px; left: calc(50% - 5px); width: 10px; height: 10px; background: #ff9400; border-right: 2px solid #ffffff; border-bottom: 2px solid #ffffff; transform: rotate(45deg); }
 
 .explorer-studio .dossier-topline { flex-wrap: wrap; gap: 5px 10px; }
 .explorer-studio .dossier-title { font-size: 18px; }
@@ -3898,63 +3959,192 @@ body[data-page="property-explorer-terminal"] .explorer-studio {
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-ribbon {
-  padding: 22px 28px;
-  gap: 24px;
-  border-radius: 0;
-  border: 0;
-  border-bottom: 1px solid #dce3eb;
-  background: #ffffff;
-  box-shadow: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30px 38px;
+  gap: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 210, 132, 0.18), rgba(255, 210, 132, 0) 24%),
+    linear-gradient(90deg, rgba(8, 12, 20, 0.90) 0%, rgba(8, 12, 20, 0.80) 30%, rgba(8, 12, 20, 0.58) 65%, rgba(8, 12, 20, 0.35) 100%),
+    linear-gradient(180deg, rgba(8, 12, 20, 0.12), rgba(8, 12, 20, 0.45)),
+    url("../images/locusherosec.png") center 48% / cover no-repeat;
+  box-shadow:
+    0 24px 64px rgba(15, 23, 42, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
 }
 
-body[data-page="property-explorer-terminal"] .explorer-hero-ribbon::before,
-body[data-page="property-explorer-terminal"] .explorer-hero-ribbon::after,
+body[data-page="property-explorer-terminal"] .explorer-hero-ribbon::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(180deg, #ffc20e 0%, #ff8a17 100%);
+  z-index: 2;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-hero-ribbon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 40%);
+  pointer-events: none;
+  z-index: 1;
+}
+
 body[data-page="property-explorer-terminal"] .explorer-hero-caption {
   display: none;
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-copy {
+  position: relative;
+  z-index: 2;
+  gap: 8px;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-live-beacon {
+  display: inline-flex;
+  align-items: center;
   gap: 7px;
+  background: rgba(255, 194, 14, 0.15);
+  border: 1px solid rgba(255, 194, 14, 0.42);
+  color: #ffc20e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 0 16px rgba(255, 194, 14, 0.16);
+}
+
+body[data-page="property-explorer-terminal"] .explorer-live-beacon::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc20e;
+  box-shadow: 0 0 0 2px rgba(255, 194, 14, 0.45), 0 0 10px #ffc20e;
+  animation: exp-pulse 2s infinite;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-hero-location {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-copy h1 {
-  font-size: 30px;
-  line-height: 1.2;
-  letter-spacing: 0;
+  margin: 4px 0 2px;
+  font-family: "Poppins", "Inter", "Segoe UI", sans-serif;
+  font-size: clamp(34px, 3.8vw, 50px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: #ffc20e;
+  -webkit-text-fill-color: #ffc20e;
+  -webkit-text-stroke: .08em #fff;
+  paint-order: stroke fill;
+  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.5);
+}
+
+body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-copy h1 .explorer-headline-accent {
+  color: #ffc20e;
+  -webkit-text-fill-color: #ffc20e;
+  -webkit-text-stroke: .08em #fff;
+  paint-order: stroke fill;
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-copy p {
   margin: 0;
-  font-size: 13px;
-  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-actions {
-  gap: 12px;
+  position: relative;
+  z-index: 2;
+  gap: 14px;
 }
 
 body[data-page="property-explorer-terminal"] .explorer-hero-stats {
-  padding: 0;
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  backdrop-filter: none;
+  padding: 12px 20px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   gap: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 body[data-page="property-explorer-terminal"] .explorer-hero-stats > div + div {
   padding-left: 20px;
-  border-left: 1px solid #e2e8f0;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 body[data-page="property-explorer-terminal"] .explorer-hero-stats strong {
   font-size: 24px;
-  letter-spacing: 0;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 body[data-page="property-explorer-terminal"] .explorer-hero-stats span {
-  font-size: 9px;
-  letter-spacing: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.68);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-link.is-secondary {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-link.is-secondary:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-link.is-primary {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #ffb800 0%, #ff7a00 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 8px 24px rgba(255, 122, 0, 0.42), 0 2px 8px rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-link.is-primary:hover {
+  background: linear-gradient(135deg, #ffc21a 0%, #ff881a 100%);
+  transform: translateY(-1.5px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(255, 122, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.3);
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-lens-bar {
@@ -4088,8 +4278,8 @@ body[data-page="property-explorer-terminal"] .explorer-studio {
 }
 
 body[data-page="property-explorer-terminal"] .explorer-studio .explorer-hero-ribbon {
-  padding: 24px 28px;
-  border-radius: 16px;
+  padding: 28px 34px;
+  border-radius: 28px;
 }
 
 body[data-page="property-explorer-terminal"] .explorer-hero-copy {

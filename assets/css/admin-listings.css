@@ -1,0 +1,1270 @@
+/* ==========================================================================
+   LOCUS-SF &middot; LAND PARCELS CIVIC ASSET REGISTRY
+   Architectural Spatial Intelligence &middot; Ultra-Premium Administration
+   ========================================================================== */
+
+/* Page Canvas */
+body[data-page="admin-properties"] {
+  background: #f1f5f9;
+  color: #0f172a;
+  min-height: 100vh;
+}
+
+body[data-page="admin-properties"] .admin-listings-page {
+  width: min(1320px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 24px 0 64px;
+}
+
+/* ==========================================================================
+   EXECUTIVE HERO DECK &middot; LAND PARCELS
+   ========================================================================== */
+body[data-page="admin-properties"] .admin-hero-deck {
+  position: relative;
+  background: 
+    radial-gradient(circle at 82% 18%, rgba(255, 194, 14, 0.16), transparent 32%),
+    linear-gradient(90deg, rgba(8, 14, 26, 0.97) 0%, rgba(9, 16, 30, 0.92) 42%, rgba(10, 18, 34, 0.76) 75%, rgba(10, 18, 34, 0.58) 100%),
+    linear-gradient(180deg, rgba(8, 14, 26, 0.25) 0%, rgba(8, 14, 26, 0.92) 100%),
+    url("../images/locusherosec.png") center 45% / cover no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 
+    0 24px 64px -12px rgba(8, 14, 26, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  overflow: hidden;
+  padding: 36px 40px;
+  margin-bottom: 28px;
+}
+
+body[data-page="admin-properties"] .admin-hero-deck::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ffc20e 0%, #ff8a17 45%, rgba(56, 189, 248, 0.4) 85%, transparent 100%);
+  z-index: 2;
+}
+
+body[data-page="admin-properties"] .admin-hero-deck::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 25%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+body[data-page="admin-properties"] .admin-hero-grid {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 36px;
+  align-items: center;
+}
+
+body[data-page="admin-properties"] .admin-hero-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* Eyebrow Badge */
+body[data-page="admin-properties"] .admin-eyebrow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  background: rgba(255, 194, 14, 0.14);
+  border: 1px solid rgba(255, 194, 14, 0.38);
+  color: #ffc20e;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  align-self: flex-start;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 18px rgba(255, 194, 14, 0.16);
+}
+
+body[data-page="admin-properties"] .adm-radar-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffc20e;
+  box-shadow: 0 0 0 0 rgba(255, 194, 14, 0.8);
+  animation: admRadarPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes admRadarPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 194, 14, 0.8); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(255, 194, 14, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 194, 14, 0); }
+}
+
+/* Hero Title - Signature Yellow with White Outline */
+body[data-page="admin-properties"] .admin-hero-title {
+  margin: 0;
+  font-family: "Poppins", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  text-transform: uppercase;
+  color: #fffdf8;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+}
+
+body[data-page="admin-properties"] .admin-hero-title-gradient {
+  display: block;
+  margin-top: 0.04em;
+  font-weight: 900;
+  color: #ffc20e;
+  -webkit-text-fill-color: #ffc20e;
+  -webkit-text-stroke: .08em #fff;
+  paint-order: stroke fill;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  filter: drop-shadow(0 2px 10px rgba(255, 194, 14, 0.45));
+}
+
+body[data-page="admin-properties"] .admin-hero-description {
+  margin: 14px 0 22px;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 540px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Frosted summary tiles */
+body[data-page="admin-properties"] .admin-telemetry-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+body[data-page="admin-properties"] .adm-telemetry-chip {
+  --chip-tint: 100, 220, 176;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 82px;
+  gap: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .035)), rgba(20, 29, 44, .72);
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 22px;
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), inset 0 -1px 0 rgba(0, 0, 0, .12), 0 8px 20px rgba(0, 0, 0, .16);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+}
+
+body[data-page="admin-properties"] .adm-telemetry-chip:hover {
+  background: linear-gradient(155deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .035)), rgba(20, 29, 44, .72);
+  border-color: rgba(255, 255, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), inset 0 -1px 0 rgba(0, 0, 0, .12), 0 8px 20px rgba(0, 0, 0, .16);
+  transform: none;
+}
+
+body[data-page="admin-properties"] .adm-telemetry-chip-zoning { --chip-tint: 255, 207, 112; }
+body[data-page="admin-properties"] .adm-telemetry-chip-review { --chip-tint: 112, 199, 255; }
+
+body[data-page="admin-properties"] .adm-chip-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(var(--chip-tint), .22), rgba(var(--chip-tint), .08));
+  border: 1px solid rgba(var(--chip-tint), .2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+body[data-page="admin-properties"] .adm-chip-icon img { width: 24px; height: 24px; object-fit: contain; }
+
+body[data-page="admin-properties"] .admin-telemetry-cluster .text-emerald { color: #8aebbd !important; }
+body[data-page="admin-properties"] .admin-telemetry-cluster .text-amber { color: #ffda8a !important; }
+body[data-page="admin-properties"] .admin-telemetry-cluster .text-sky { color: #9bd6ff !important; }
+
+@media (max-width: 900px) {
+  body[data-page="admin-properties"] .admin-telemetry-cluster { grid-template-columns: 1fr; }
+}
+
+body[data-page="admin-properties"] .adm-chip-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 5px;
+}
+
+body[data-page="admin-properties"] .adm-chip-kicker {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .01em;
+  text-transform: none;
+  color: #bdc7d5;
+  line-height: 1.35;
+}
+
+body[data-page="admin-properties"] .adm-chip-val {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -.025em;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+body[data-page="admin-properties"] .text-emerald { color: #34d399 !important; }
+body[data-page="admin-properties"] .text-amber { color: #fbbf24 !important; }
+body[data-page="admin-properties"] .text-sky { color: #38bdf8 !important; }
+
+/* Hero Actions Deck */
+body[data-page="admin-properties"] .admin-hero-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Signature 3D Blue Button in Hero */
+body[data-page="admin-properties"] .admin-hero-actions #adminAddProperty.locus-blue-button {
+  --blue-button-height: 48px;
+  padding: 0 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  gap: 10px;
+}
+
+/* Secondary Frosted Glass Buttons */
+body[data-page="admin-properties"] .adm-btn-glass {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body[data-page="admin-properties"] .adm-btn-glass:hover {
+  background: rgba(255, 255, 255, 0.20);
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+body[data-page="admin-properties"] .adm-btn-arrow {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+body[data-page="admin-properties"] .adm-btn-glass:hover .adm-btn-arrow,
+body[data-page="admin-properties"] .locus-blue-button:hover .adm-btn-arrow {
+  transform: translateX(3px);
+}
+
+/* Right-Hand Spatial Overview Card */
+body[data-page="admin-properties"] .admin-properties-deck-stats {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-deck-stat-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-deck-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-deck-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+}
+
+.gis-beacon-cyan {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8);
+  animation: admRadarPulseCyan 2s infinite;
+}
+
+@keyframes admRadarPulseCyan {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+.admin-deck-stat-loc {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.admin-deck-stat-preview {
+  position: relative;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-deck-stat-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: contrast(1.05) brightness(0.9);
+}
+
+.admin-deck-stat-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 14, 26, 0.1) 0%, rgba(8, 14, 26, 0.82) 100%);
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px;
+}
+
+.admin-deck-pill-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deck-pill {
+  font-size: 10.5px;
+  font-weight: 750;
+  padding: 3px 9px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+}
+.deck-pill-cyan { background: rgba(56, 189, 248, 0.22); color: #bae6fd; border: 1px solid rgba(56, 189, 248, 0.35); }
+.deck-pill-emerald { background: rgba(16, 185, 129, 0.22); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.35); }
+
+.admin-deck-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-deck-metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.deck-metric-num {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.deck-metric-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   MAIN INVENTORY WORKSPACE GRID
+   ========================================================================== */
+.admin-listings-page .inventory-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+
+.admin-listings-page .inventory-layout > .stack {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+
+.admin-listings-page .inventory-layout > aside {
+  position: sticky;
+  top: 96px;
+  z-index: 5;
+}
+
+/* Filter Card */
+body[data-page="admin-properties"] .admin-filter-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+}
+
+.admin-filter-card .panel-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #2563eb;
+}
+
+.admin-kicker-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.5);
+}
+
+body[data-page="admin-properties"] .admin-filter-card h3 {
+  margin: 6px 0 18px;
+  font-size: 18px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.admin-inventory-filters {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-inventory-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.16s ease;
+}
+
+.admin-inventory-filter > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-inventory-filter strong {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 750;
+  transition: all 0.16s ease;
+}
+
+.admin-inventory-filter:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateX(2px);
+}
+
+.admin-inventory-filter[aria-pressed="true"] {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #93c5fd;
+  font-weight: 750;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.admin-inventory-filter[aria-pressed="true"] strong {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.admin-filter-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 18px 0 14px;
+}
+
+.admin-sidebar-quick-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-summary-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.admin-summary-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-summary-pill {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pill-published { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.pill-review { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+
+/* ==========================================================================
+   SEARCH & UTILITY PANEL
+   ========================================================================== */
+body[data-page="admin-properties"] .admin-search-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.05);
+}
+
+.admin-inventory-search-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-search-input-wrap {
+  position: relative;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.admin-search-glass-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.admin-search-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 42px 0 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.18s ease;
+}
+
+.admin-search-input:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.admin-search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  border: 0;
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.admin-search-clear:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.admin-search-result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.admin-result-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.admin-inventory-tools {
+  border-top: 1px solid #f1f5f9;
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.admin-inventory-tools summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #2563eb;
+  cursor: pointer;
+  user-select: none;
+}
+.admin-inventory-tools summary:hover {
+  color: #1d4ed8;
+}
+
+/* ==========================================================================
+   LISTING CARDS &middot; MODERN CIVIC ARCHITECTURE
+   ========================================================================== */
+.admin-listings-page .listing-stack {
+  display: grid;
+  gap: 20px;
+}
+
+body[data-page="admin-properties"] .admin-listing-row {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06);
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+}
+
+body[data-page="admin-properties"] .admin-listing-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.12);
+  border-color: #cbd5e1;
+}
+
+/* Left / Top Media Cover */
+.admin-listing-cover {
+  position: relative;
+  overflow: hidden;
+  background: #0f172a;
+  min-height: 240px;
+  display: flex;
+}
+
+.admin-cover-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.admin-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: block;
+}
+
+body[data-page="admin-properties"] .admin-listing-row:hover .admin-cover-img {
+  transform: scale(1.05);
+}
+
+.admin-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(8, 14, 26, 0.45) 0%, transparent 40%, rgba(8, 14, 26, 0.72) 100%);
+  pointer-events: none;
+}
+
+/* Floating Badges on Media */
+.admin-cover-tags {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admin-tag-chip {
+  font-size: 11px;
+  font-weight: 750;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+}
+
+.admin-cover-status-badges {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admin-cover-score-badge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.admin-cover-score-badge .score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-cover-score-badge strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.admin-cover-score-badge strong span {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Card Main Body */
+.admin-listing-body {
+  padding: 22px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.admin-listing-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-listing-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-listing-title-row .property-title {
+  font-size: 20px;
+  font-weight: 750;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.admin-listing-title-row .property-title:hover {
+  color: #2563eb;
+}
+
+.admin-property-id {
+  font-size: 11px;
+  font-weight: 750;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.admin-listing-body .property-subline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.admin-listing-desc {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Micro-Metric Cards Grid (4 columns) */
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.admin-metric-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-metric-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.admin-metric-label {
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
+.admin-metric-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.admin-metric-value small {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.admin-metric-value.text-price {
+  color: #1e3a8a;
+}
+
+.admin-metric-value.text-score {
+  color: #0369a1;
+}
+
+.admin-metric-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.admin-metric-diligence-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.admin-metric-diligence-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #38bdf8 100%);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Trust Badges & Meta Chips */
+.admin-listing-body .admin-listing-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.admin-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.chip-confirmed {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+
+.chip-seller-verified {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.chip-site-verified {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+/* ==========================================================================
+   CARD ACTIONS STRIP &middot; THE 3D BLUE BUTTON
+   ========================================================================== */
+.admin-listings-page .admin-listing-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #edf2f7;
+}
+
+.admin-listing-actions .btn-shell {
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+  border: 1px solid #dce3ee;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.admin-listing-actions .btn-shell:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+/* Compact 3D Blue Button on Cards */
+body[data-page="admin-properties"] .admin-listing-actions .locus-blue-button.locus-blue-button-compact {
+  --blue-button-height: 38px;
+  padding: 0 18px;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 7px;
+}
+
+.admin-listing-actions .btn-shell-danger {
+  margin-left: auto;
+  background: #fff;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.admin-listing-actions .btn-shell-danger:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN ACROSS ALL ASPECT RATIOS
+   ========================================================================== */
+
+/* Large Tablets & Small Laptops (<= 1100px) */
+@media (max-width: 1100px) {
+  body[data-page="admin-properties"] .admin-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  body[data-page="admin-properties"] .admin-properties-deck-stats {
+    display: none;
+  }
+  .admin-listings-page .inventory-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 20px;
+  }
+  body[data-page="admin-properties"] .admin-listing-row {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+}
+
+/* Tablets (<= 900px) */
+@media (max-width: 900px) {
+  body[data-page="admin-properties"] .admin-listings-page {
+    width: calc(100% - 32px);
+    padding: 16px 0 48px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-deck {
+    padding: 28px 24px;
+    border-radius: 22px;
+    margin-bottom: 20px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-title {
+    font-size: clamp(26px, 5.5vw, 36px);
+  }
+
+  .admin-listings-page .inventory-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .admin-listings-page .inventory-layout > aside {
+    position: static;
+  }
+
+  /* Transform Filter Sidebar into Touch-Scrollable Horizontal Pill Bar */
+  body[data-page="admin-properties"] .admin-filter-card {
+    padding: 14px 18px;
+    border-radius: 16px;
+  }
+
+  body[data-page="admin-properties"] .admin-filter-card h3 {
+    display: none;
+  }
+
+  .admin-inventory-filters {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+  }
+  .admin-inventory-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-inventory-filter {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 42px;
+    padding: 8px 14px;
+    white-space: nowrap;
+  }
+
+  .admin-filter-divider,
+  .admin-sidebar-quick-summary {
+    display: none;
+  }
+
+  /* Listing Cards switch to horizontal or stacked */
+  body[data-page="admin-properties"] .admin-listing-row {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .admin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+
+/* Mobile Devices (<= 720px) */
+@media (max-width: 720px) {
+  body[data-page="admin-properties"] .admin-listings-page {
+    width: calc(100% - 20px);
+    padding: 12px 0 40px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-deck {
+    padding: 22px 18px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-title {
+    font-size: clamp(22px, 6.8vw, 30px);
+    line-height: 1.12;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-description {
+    font-size: 13px;
+    margin: 10px 0 16px;
+    line-height: 1.55;
+  }
+
+  body[data-page="admin-properties"] .admin-telemetry-cluster {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+  }
+
+  body[data-page="admin-properties"] .admin-hero-actions #adminAddProperty.locus-blue-button,
+  body[data-page="admin-properties"] .adm-btn-glass {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Listing Card full vertical stack */
+  body[data-page="admin-properties"] .admin-listing-row {
+    grid-template-columns: 1fr;
+    border-radius: 18px;
+  }
+
+  .admin-listing-cover {
+    min-height: 190px;
+    max-height: 210px;
+  }
+
+  .admin-listing-body {
+    padding: 18px 16px 14px;
+    gap: 12px;
+  }
+
+  .admin-listing-title-row .property-title {
+    font-size: 18px;
+  }
+
+  .admin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .admin-metric-card {
+    padding: 9px 11px;
+  }
+
+  .admin-metric-value {
+    font-size: 15px;
+  }
+
+  .admin-listings-page .admin-listing-actions {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .admin-listing-actions .btn-shell,
+  body[data-page="admin-properties"] .admin-listing-actions .locus-blue-button.locus-blue-button-compact {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 11.5px;
+  }
+
+  .admin-listing-actions .btn-shell-danger {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+}
+
+/* Small Phones (<= 400px) */
+@media (max-width: 400px) {
+  body[data-page="admin-properties"] .admin-hero-title {
+    font-size: 22px;
+  }
+
+  .admin-listing-actions .btn-shell,
+  body[data-page="admin-properties"] .admin-listing-actions .locus-blue-button.locus-blue-button-compact {
+    flex: 1 1 100%;
+  }
+}

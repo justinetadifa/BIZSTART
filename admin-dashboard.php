@@ -20,11 +20,6 @@ $initialProperties = \App\Support\JsonData::properties();
     <div class="admin-hero-grid">
       <!-- Left Column: Civic Intelligence & Telemetry -->
       <div class="admin-hero-content">
-        <div class="admin-eyebrow-badge">
-          <span class="adm-radar-pulse" aria-hidden="true"></span>
-          <span class="adm-eyebrow-txt">LGU Geospatial Intelligence &bull; Region I</span>
-        </div>
-
         <h1 class="admin-hero-title">
           City Spatial<br>
           <span class="admin-hero-title-gradient">Decision Platform</span>

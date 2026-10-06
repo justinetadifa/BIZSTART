@@ -4,10 +4,12 @@ declare(strict_types=1);
 use App\Repositories\UserRepository;
 use App\Repositories\SellerProfileRepository;
 
+require_once __DIR__ . '/security.php';
+
 function sfc_start_session(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
-        $secure = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+        $secure = sfc_request_is_https();
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         ini_set('session.cookie_httponly', '1');
@@ -105,7 +107,7 @@ function sfc_login(string $role, string $email, string $password): bool
 {
     sfc_start_session();
     $user = sfc_user_repository()->authenticate($email, $password, $role);
-    if ($user === null) {
+    if ($user === null || !sfc_account_can_authenticate($user)) {
         return false;
     }
 
@@ -116,6 +118,30 @@ function sfc_login(string $role, string $email, string $password): bool
     $_SESSION['sfc_last_activity_at'] = time();
     sfc_csrf_token();
     return true;
+}
+
+function sfc_uses_default_demo_password(array $user): bool
+{
+    if (sfc_security_is_local()) {
+        return false;
+    }
+
+    $email = strtolower(trim((string) ($user['email'] ?? '')));
+    $hash = (string) ($user['passwordHash'] ?? '');
+    foreach (sfc_demo_credentials() as $credential) {
+        if ($email === $credential['email'] && password_verify($credential['password'], $hash)) {
+            return true;
+        }
+    }
+
+    return $email === 'maria.santos@sfcelerate.local'
+        && password_verify(sfc_demo_credentials()['investor']['password'], $hash);
+}
+
+function sfc_account_can_authenticate(array $user): bool
+{
+    return strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'suspended'
+        && !sfc_uses_default_demo_password($user);
 }
 
 function sfc_register_investor(string $name, string $email, string $password, string $confirmPassword): array
@@ -153,6 +179,13 @@ function sfc_register_admin(string $name, string $email, string $password, strin
 {
     sfc_start_session();
 
+    // Administrative privileges can only be granted by an existing administrator.
+    // Keep this check in the service so future callers cannot reopen public signup.
+    if (!sfc_has_role('admin')) {
+        throw new InvalidArgumentException('Administrator accounts must be provisioned by an authorized administrator.');
+    }
+    sfc_require_csrf_form();
+
     $name = trim($name);
     $email = strtolower(trim($email));
     $department = $department !== null ? trim($department) : '';
@@ -173,15 +206,7 @@ function sfc_register_admin(string $name, string $email, string $password, strin
         throw new InvalidArgumentException('Password confirmation does not match.');
     }
 
-    $user = sfc_user_repository()->create('admin', $name, $email, $password, $department);
-    session_regenerate_id(true);
-    unset($_SESSION['sfc_csrf_token']);
-    $_SESSION['sfc_user'] = sfc_user_session_payload($user);
-    $_SESSION['sfc_authenticated_at'] = time();
-    $_SESSION['sfc_last_activity_at'] = time();
-    sfc_csrf_token();
-
-    return $user;
+    return sfc_user_repository()->create('admin', $name, $email, $password, $department);
 }
 
 function sfc_register_seller(array $payload): array
@@ -260,13 +285,47 @@ function sfc_logout(): void
     session_destroy();
 }
 
+function sfc_inactivity_timeout_seconds(?string $role = null): int
+{
+    return match ($role) {
+        'admin' => 900,      // 15 minutes for LGU municipal administrators (high security)
+        'seller' => 1800,    // 30 minutes for property sellers
+        'investor' => 1800,  // 30 minutes for investors & residents
+        default => 1800,
+    };
+}
+
+function sfc_touch_session(): bool
+{
+    sfc_start_session();
+    $sessionUser = $_SESSION['sfc_user'] ?? null;
+    if (!is_array($sessionUser)) {
+        return false;
+    }
+    $now = time();
+    $role = (string) ($sessionUser['role'] ?? 'guest');
+    $timeout = sfc_inactivity_timeout_seconds($role);
+    $lastActivityAt = (int) ($_SESSION['sfc_last_activity_at'] ?? $now);
+
+    if (($now - $lastActivityAt) > $timeout) {
+        sfc_logout();
+        return false;
+    }
+
+    $_SESSION['sfc_last_activity_at'] = $now;
+    return true;
+}
+
 function sfc_current_user(): ?array
 {
     sfc_start_session();
     $now = time();
     $authenticatedAt = (int) ($_SESSION['sfc_authenticated_at'] ?? $now);
     $lastActivityAt = (int) ($_SESSION['sfc_last_activity_at'] ?? $now);
-    if (($now - $lastActivityAt) > 7200 || ($now - $authenticatedAt) > 43200) {
+    $sessionRole = isset($_SESSION['sfc_user']['role']) ? (string) $_SESSION['sfc_user']['role'] : null;
+    $timeout = sfc_inactivity_timeout_seconds($sessionRole);
+
+    if (($now - $lastActivityAt) > $timeout || ($now - $authenticatedAt) > 43200) {
         sfc_logout();
         return null;
     }
@@ -280,6 +339,10 @@ function sfc_current_user(): ?array
     if ($userId > 0) {
         $user = sfc_user_repository()->findById($userId);
         if ($user !== null) {
+            if (!sfc_account_can_authenticate($user)) {
+                sfc_logout();
+                return null;
+            }
             $_SESSION['sfc_user'] = sfc_user_session_payload($user);
             return $_SESSION['sfc_user'];
         }
@@ -289,6 +352,10 @@ function sfc_current_user(): ?array
     if ($email !== '') {
         $user = sfc_user_repository()->findByEmail($email);
         if ($user !== null) {
+            if (!sfc_account_can_authenticate($user)) {
+                sfc_logout();
+                return null;
+            }
             $_SESSION['sfc_user'] = sfc_user_session_payload($user);
             return $_SESSION['sfc_user'];
         }

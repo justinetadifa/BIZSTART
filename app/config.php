@@ -14,10 +14,25 @@ $normalizeBoolean = static function (mixed $value, bool $fallback): bool {
     return $normalized ?? $fallback;
 };
 
+$requestHost = strtolower((string) (parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'), PHP_URL_HOST) ?: ''));
+$isLocalRequest = PHP_SAPI === 'cli' && !isset($_SERVER['HTTP_HOST']);
+if (!$isLocalRequest) {
+    $isLocalRequest = in_array($requestHost, ['localhost', '127.0.0.1', '[::1]', '::1'], true)
+        && in_array((string) ($_SERVER['SERVER_ADDR'] ?? ''), ['127.0.0.1', '::1'], true)
+        && in_array((string) ($_SERVER['REMOTE_ADDR'] ?? ''), ['127.0.0.1', '::1'], true);
+}
+
 $defaults = [
     'app' => [
         'name' => 'LOCUS-SF',
-        'environment' => getenv('APP_ENV') ?: 'local',
+        'environment' => getenv('APP_ENV') ?: ($isLocalRequest ? 'local' : 'production'),
+        'url' => getenv('APP_URL') ?: '',
+    ],
+    'security' => [
+        'force_https' => $normalizeBoolean(getenv('APP_FORCE_HTTPS'), false),
+        'trusted_proxies' => array_values(array_filter(array_map('trim', explode(',', getenv('APP_TRUSTED_PROXIES') ?: '')))),
+        'hsts_max_age' => 31536000,
+        'rate_limit_path' => dirname(__DIR__) . '/data/cache/rate-limits',
     ],
     'db' => [
         'host' => getenv('DB_HOST') ?: '127.0.0.1',
@@ -79,6 +94,9 @@ if (is_file($localConfigPath)) {
 
 $environment = strtolower(trim((string) ($defaults['app']['environment'] ?? 'local')));
 $environment = $environment !== '' ? $environment : 'local';
+if (!$isLocalRequest && $environment === 'local') {
+    $environment = 'production';
+}
 $defaults['app']['environment'] = $environment;
 
 $appFlagDefaults = [
@@ -94,6 +112,10 @@ $appFlagEnvironmentVariables = [
 $localAppConfig = is_array($local['app'] ?? null) ? $local['app'] : [];
 
 foreach ($appFlagDefaults as $flag => $fallback) {
+    if ($environment === 'production') {
+        $defaults['app'][$flag] = false;
+        continue;
+    }
     $environmentValue = getenv($appFlagEnvironmentVariables[$flag]);
     if ($environmentValue !== false && trim((string) $environmentValue) !== '') {
         $defaults['app'][$flag] = $normalizeBoolean($environmentValue, $fallback);
@@ -106,6 +128,23 @@ foreach ($appFlagDefaults as $flag => $fallback) {
     }
 
     $defaults['app'][$flag] = $fallback;
+}
+
+$defaults['db']['auto_create'] = $environment === 'local' && $isLocalRequest && (bool) $defaults['app']['auto_migrate'];
+
+foreach (['url' => 'APP_URL'] as $key => $variable) {
+    $value = getenv($variable);
+    if ($value !== false && trim($value) !== '') {
+        $defaults['app'][$key] = trim($value);
+    }
+}
+$forceHttps = getenv('APP_FORCE_HTTPS');
+if ($forceHttps !== false && trim($forceHttps) !== '') {
+    $defaults['security']['force_https'] = $normalizeBoolean($forceHttps, false);
+}
+$trustedProxies = getenv('APP_TRUSTED_PROXIES');
+if ($trustedProxies !== false) {
+    $defaults['security']['trusted_proxies'] = array_values(array_filter(array_map('trim', explode(',', $trustedProxies))));
 }
 
 return $defaults;

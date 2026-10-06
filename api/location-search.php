@@ -8,8 +8,11 @@ api_handle(function (array $container): array {
     if ($query === null) {
         throw new InvalidArgumentException('A search query is required.');
     }
+    if (mb_strlen($query) > 160) {
+        throw new InvalidArgumentException('Search queries must be 160 characters or fewer.');
+    }
 
     return [
-        'search' => $container['external']->geocodeSearch($query, $container['properties']->all()),
+        'search' => $container['external']->geocodeSearch($query, $container['properties']->all(sfc_current_user())),
     ];
 });

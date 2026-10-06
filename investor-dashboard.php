@@ -9,28 +9,32 @@ $context = sfc_web_context();
 sfc_render_head('Investor Dashboard | LOCUS-SF', $context, ['page' => 'investor-dashboard', 'role' => 'investor']);
 sfc_render_header($context, 'investor');
 ?>
-<main class="page-shell dashboard-page">
-  <section class="site-shell page-intro-card">
-    <div>
-      <div class="eyebrow">Investor / Resident Dashboard</div>
-      <div class="page-role-strip">
-        <span class="page-role-pill is-role">Investor Workspace</span>
-        <span class="page-role-pill">Explore + compare + signal read</span>
+<main class="page-shell dashboard-page investor-page">
+  <template id="investorBlueButtonArt"><?= sfc_blue_button_art($context) ?></template>
+  <section class="site-shell investor-hero" aria-labelledby="investorHeadline">
+    <div class="investor-hero-copy">
+      <div class="investor-hero-eyebrow"><span></span> Your investor workspace</div>
+      <div class="investor-hero-location">San Fernando City, La Union</div>
+      <h1 id="investorHeadline">Good places.<br><em>Better possibilities.</em></h1>
+      <p>A considered view of your next investment. Discover local opportunities, compare what matters, and keep your best options close.</p>
+      <div class="intro-actions">
+        <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell locus-blue-button">
+          <?= sfc_blue_button_art($context) ?>
+          <span>Explore opportunities</span>
+          <span class="investor-action-icon" aria-hidden="true"><?= sfc_icon('explorer') ?></span>
+        </a>
+        <a href="<?= htmlspecialchars(sfc_path('/investor-dashboard.php#investorCompareQueue'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell investor-glass-button">Your compare board <span aria-hidden="true">&rarr;</span></a>
       </div>
-      <h1>A calmer starting point for opportunity and demand.</h1>
-      <p>Explore candidate investment areas, compare suitability, and review CLUP compliance before advancing an opportunity.</p>
+      <div class="investor-hero-footnote"><span></span> Local perspective. Informed decisions.</div>
     </div>
-    <div class="intro-actions">
-      <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell locus-blue-button">
-        <?= sfc_blue_button_art($context) ?>
-        <span>Explore Candidate Sites</span>
-      </a>
-      <a href="<?= htmlspecialchars(sfc_path('/compare-decision.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Open Compare Board</a>
-    </div>
+    <aside class="investor-hero-brief" id="investorHeroBrief" aria-label="Featured investment opportunity">
+      <div class="investor-brief-kicker">Opportunity in focus</div>
+      <div class="investor-brief-placeholder">Finding your next possibility&hellip;</div>
+    </aside>
   </section>
 
   <section class="site-shell dashboard-root-grid" id="investorDashboardRoot">
-    <div class="loading-panel">Loading investor dashboard...</div>
+    <div class="loading-panel" role="status">Preparing your investor workspace&hellip;</div>
   </section>
 </main>
 <?php sfc_render_footer($context); ?>

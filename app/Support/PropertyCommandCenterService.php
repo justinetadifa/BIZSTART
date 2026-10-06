@@ -55,7 +55,10 @@ final class PropertyCommandCenterService
         $notifications = $this->canViewOperationalFeed($user)
             ? $this->notifications->feedForProperty((int) ($user['id'] ?? 0), $propertyId, 14)
             : [];
-        $auditLogs = $this->auditLogs->forProperty($propertyId, 18);
+        // Audit snapshots include actor details and previous owner contact data.
+        $auditLogs = ($user['role'] ?? null) === 'admin'
+            ? $this->auditLogs->forProperty($propertyId, 18)
+            : [];
         $blockers = $this->buildBlockers($property, $documentRequests, $visit, $conversation);
         $property = $this->decisionEngine->decorateProperty($property, [
             'votes' => is_array($votes['votes'] ?? null) ? $votes['votes'] : [],

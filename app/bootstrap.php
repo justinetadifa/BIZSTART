@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Support/security.php';
+sfc_enforce_transport_security();
 require_once __DIR__ . '/Support/helpers.php';
 require_once __DIR__ . '/Support/SimpleCache.php';
 require_once __DIR__ . '/Support/ExternalServices.php';

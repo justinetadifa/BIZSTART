@@ -1,0 +1,125 @@
+/* Phone welcome: a compact introduction and a clearly spaced analysis flow. */
+@media (max-width: 600px) {
+  .locus-intro .poster-main.poster-width { width: calc(100% - 24px); }
+  .locus-intro .poster-main { padding-block: 24px 32px; }
+  .locus-intro .poster-grid { gap: 28px; }
+  .locus-intro .poster-copy { padding-top: 0; }
+  .locus-intro .poster-eyebrow {
+    max-width: 100%;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .015em;
+    line-height: 1.4;
+  }
+  .locus-intro .poster-title {
+    max-width: none;
+    font-size: clamp(28px, 7.8vw, 44px);
+    line-height: 1.06;
+    letter-spacing: -.055em;
+  }
+  .locus-intro .poster-title-lead { white-space: normal; }
+  .locus-intro .poster-title-gold {
+    max-width: none;
+    margin-top: 4px;
+    font-size: 1.14em;
+    line-height: 1.03;
+    letter-spacing: -.045em;
+    text-wrap: balance;
+    -webkit-text-stroke-width: .8px;
+    text-shadow: .5px .5px 0 var(--poster-ink);
+  }
+  .locus-intro .poster-supporting {
+    max-width: none;
+    margin-top: 16px;
+    color: #45566f;
+    font-size: 14px;
+    line-height: 1.55;
+    letter-spacing: -.015em;
+  }
+  .locus-intro .poster-inputs { margin-top: 20px; }
+  .locus-intro .poster-input-label { margin-bottom: 10px; font-size: 9px; letter-spacing: .13em; }
+  .locus-intro .poster-criteria {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-width: none;
+    gap: 6px;
+  }
+  .locus-intro .poster-criterion {
+    display: grid;
+    place-items: center;
+    max-width: none;
+    min-height: 48px;
+    height: clamp(48px, 12vw, 60px);
+    aspect-ratio: auto;
+    border: 1px solid rgba(255, 255, 255, .9);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .5);
+    box-shadow: 0 2px 6px rgba(39, 58, 86, .04);
+  }
+  .locus-intro .poster-criterion .poster-icon-art {
+    width: clamp(32px, 9vw, 44px);
+    height: clamp(32px, 9vw, 44px);
+  }
+  .locus-intro .poster-criteria > li:nth-child(6n + 1) .poster-icon-name { left: 0; transform: translate(0, 3px); }
+  .locus-intro .poster-criteria > li:nth-child(6n + 1) .poster-criterion:is(:hover, :focus) .poster-icon-name { transform: none; }
+  .locus-intro .poster-cta {
+    width: 100%;
+    min-height: 56px;
+    margin-top: 20px;
+    padding: 16px 20px;
+    gap: 14px;
+    border: 1px solid rgba(255, 255, 255, .55);
+    font-size: 14px;
+    letter-spacing: -.02em;
+    box-shadow: 0 12px 24px -12px rgba(226, 120, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .35);
+  }
+  .locus-intro .poster-cta > span:last-child { margin-left: auto; }
+  .locus-intro .poster-analysis {
+    width: 100%;
+    margin-top: 0;
+    padding-top: 18px;
+    gap: 12px;
+    border-top: 1px solid rgba(71, 103, 151, .12);
+  }
+  .locus-intro .poster-mce-stage { width: min(330px, 100%); aspect-ratio: 1.2; }
+  .locus-intro .poster-mce-graphic { width: 82%; }
+  .locus-intro .poster-orbit-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    aspect-ratio: auto;
+  }
+  .locus-intro .poster-orbit-icon .poster-icon-art { width: 30px; height: 30px; }
+  .locus-intro .poster-iai-stage { width: min(330px, 100%); border-radius: 16px; }
+  .locus-intro .poster-output-arrow { width: 22px; margin-block: -2px 0; }
+  .locus-intro .poster-scene .scenic-gradient {
+    background: linear-gradient(180deg, rgba(246, 248, 250, .97), rgba(246, 248, 250, .92) 43%, rgba(246, 248, 250, .76) 72%, #f6f8fa 100%);
+  }
+}
+
+@media (max-width: 360px) {
+  .locus-intro .poster-main { padding-top: 20px; }
+  .locus-intro .poster-eyebrow { font-size: 8px; padding: 7px 10px; margin-bottom: 14px; }
+  .locus-intro .poster-supporting { margin-top: 14px; font-size: 13px; line-height: 1.5; }
+  .locus-intro .poster-cta { margin-top: 18px; font-size: 13px; }
+}
+
+@media (max-width: 600px) and (prefers-reduced-transparency: reduce) {
+  .locus-intro .poster-criterion { background: #f8fafc; border-color: #e2e8f0; }
+}
+
+/* The tablet layout also needs finger-sized controls around the artwork. */
+@media (min-width: 601px) and (max-width: 900px) and (min-height: 561px) {
+  .locus-intro .poster-orbit-icon { display: grid; place-items: center; width: 44px; height: 44px; aspect-ratio: auto; }
+  .locus-intro .poster-orbit-icon .poster-icon-art { width: 30px; height: 30px; }
+}
+
+@media (min-width: 601px) and (max-width: 660px) and (min-height: 561px) {
+  .locus-intro .poster-criteria { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .locus-intro .poster-criteria > li:nth-child(6n) .poster-icon-name { left: auto; right: 0; transform: translate(0, 3px); }
+  .locus-intro .poster-criteria > li:nth-child(6n) .poster-criterion:is(:hover, :focus) .poster-icon-name { transform: none; }
+  .locus-intro .poster-criteria > li:nth-child(6n + 1) .poster-icon-name { left: 0; transform: translate(0, 3px); }
+  .locus-intro .poster-criteria > li:nth-child(6n + 1) .poster-criterion:is(:hover, :focus) .poster-icon-name { transform: none; }
+}

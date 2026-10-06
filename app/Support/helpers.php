@@ -16,14 +16,29 @@ function read_json_input(): array
     return $decoded;
 }
 
+function request_raw_method(): string
+{
+    return strtoupper(trim((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')));
+}
+
 function request_method(): string
 {
-    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $method = request_raw_method();
 
     if ($method === 'POST') {
         $override = $_POST['_method'] ?? $_GET['_method'] ?? null;
-        if (is_string($override) && trim($override) !== '') {
-            return strtoupper(trim($override));
+        if ($override !== null && $override !== '') {
+            if (!is_string($override)) {
+                throw new InvalidArgumentException('Invalid request method override.');
+            }
+            $override = strtoupper(trim($override));
+            if ($override === '') {
+                return $method;
+            }
+            if (!in_array($override, ['PUT', 'PATCH', 'DELETE'], true)) {
+                throw new InvalidArgumentException('Only PUT, PATCH, and DELETE method overrides are supported.');
+            }
+            return $override;
         }
     }
 
@@ -83,6 +98,45 @@ function float_or_null(mixed $value): ?float
     return (float) $value;
 }
 
+function public_image_file_metadata(string $path): array
+{
+    $size = filesize($path);
+    if ($size === false || $size < 1 || $size > 10 * 1024 * 1024) {
+        throw new InvalidArgumentException('Images must be between 1 byte and 10 MB.');
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = (string) $finfo->file($path);
+    $extension = match ($mime) {
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+        default => null,
+    };
+    if ($extension === null) {
+        throw new InvalidArgumentException('Only JPG, PNG, WEBP, and GIF images are supported.');
+    }
+
+    $dimensions = @getimagesize($path);
+    $width = (int) ($dimensions[0] ?? 0);
+    $height = (int) ($dimensions[1] ?? 0);
+    if ($dimensions === false || ($dimensions['mime'] ?? '') !== $mime || $width < 1 || $height < 1) {
+        throw new InvalidArgumentException('Uploaded image is invalid.');
+    }
+    if ($width > 12000 || $height > 12000 || $width * $height > 40000000) {
+        throw new InvalidArgumentException('Images must be at most 12,000 pixels per side and 40 megapixels.');
+    }
+
+    return [
+        'mime' => $mime,
+        'extension' => $extension,
+        'size' => $size,
+        'width' => $width,
+        'height' => $height,
+    ];
+}
+
 function store_uploaded_public_image(?array $file, string $folder = 'properties'): ?string
 {
     if ($file === null || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -98,19 +152,12 @@ function store_uploaded_public_image(?array $file, string $folder = 'properties'
         throw new InvalidArgumentException('Uploaded image is invalid.');
     }
 
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime = (string) $finfo->file($tmpName);
-    $extension = match ($mime) {
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/webp' => 'webp',
-        'image/gif' => 'gif',
-        default => null,
-    };
-
-    if ($extension === null) {
-        throw new InvalidArgumentException('Only JPG, PNG, WEBP, and GIF images are supported.');
-    }
+    $metadata = public_image_file_metadata($tmpName);
+    $extension = $metadata['extension'];
+    // External uploads receive server-validated metadata, never browser MIME/name claims.
+    $file['type'] = $metadata['mime'];
+    $file['size'] = $metadata['size'];
+    $file['name'] = 'property-image.' . $extension;
 
     if ($folder === 'properties') {
         try {
@@ -125,11 +172,6 @@ function store_uploaded_public_image(?array $file, string $folder = 'properties'
         }
     }
 
-    $originalName = pathinfo((string) ($file['name'] ?? 'property-image'), PATHINFO_FILENAME);
-    $safeName = preg_replace('/[^a-z0-9]+/i', '-', strtolower((string) $originalName));
-    $safeName = trim((string) $safeName, '-');
-    $safeName = $safeName !== '' ? $safeName : 'property-image';
-
     $safeFolder = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower(trim($folder))) ?: 'properties';
     $relativeDirectory = 'assets/uploads/' . $safeFolder;
     $absoluteDirectory = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $safeFolder;
@@ -137,7 +179,7 @@ function store_uploaded_public_image(?array $file, string $folder = 'properties'
         throw new InvalidArgumentException('Unable to create the property upload directory.');
     }
 
-    $fileName = sprintf('%s-%s.%s', date('Ymd-His'), bin2hex(random_bytes(4)), $extension);
+    $fileName = sprintf('%s-%s.%s', date('Ymd-His'), bin2hex(random_bytes(8)), $extension);
     $absolutePath = $absoluteDirectory . DIRECTORY_SEPARATOR . $fileName;
 
     if (!move_uploaded_file($tmpName, $absolutePath)) {
@@ -171,11 +213,11 @@ function store_uploaded_clup_evidence(?array $file): ?array
         throw new InvalidArgumentException('CLUP evidence upload failed.');
     }
     $tmpName = (string) ($file['tmp_name'] ?? '');
-    $size = (int) ($file['size'] ?? 0);
     if ($tmpName === '' || !is_uploaded_file($tmpName)) {
         throw new InvalidArgumentException('Uploaded CLUP evidence is invalid.');
     }
-    if ($size < 1 || $size > 15 * 1024 * 1024) {
+    $size = filesize($tmpName);
+    if ($size === false || $size < 1 || $size > 15 * 1024 * 1024) {
         throw new InvalidArgumentException('CLUP evidence must be between 1 byte and 15 MB.');
     }
     $finfo = new finfo(FILEINFO_MIME_TYPE);
@@ -190,6 +232,20 @@ function store_uploaded_clup_evidence(?array $file): ?array
     };
     if ($extension === null) {
         throw new InvalidArgumentException('Evidence must be PDF, JPG, PNG, WEBP, or GeoJSON.');
+    }
+    if ($extension === 'geojson') {
+        $geojson = json_decode((string) file_get_contents($tmpName), true);
+        $type = is_array($geojson) ? ($geojson['type'] ?? null) : null;
+        $valid = match ($type) {
+            'FeatureCollection' => isset($geojson['features']) && is_array($geojson['features']),
+            'Feature' => array_key_exists('geometry', $geojson) && ($geojson['geometry'] === null || is_array($geojson['geometry'])),
+            'GeometryCollection' => isset($geojson['geometries']) && is_array($geojson['geometries']),
+            'Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon' => isset($geojson['coordinates']) && is_array($geojson['coordinates']),
+            default => false,
+        };
+        if (!$valid || json_last_error() !== JSON_ERROR_NONE) {
+            throw new InvalidArgumentException('GeoJSON evidence must contain a valid GeoJSON object.');
+        }
     }
     $checksum = hash_file('sha256', $tmpName);
     if (!is_string($checksum) || strlen($checksum) !== 64) {

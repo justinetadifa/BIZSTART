@@ -91,6 +91,15 @@ sfc_render_header($context);
           <div><span>Reading mode</span><strong>Trust + response rhythm</strong></div>
         </div>
       </article>
+      <?php if (($_GET['reason'] ?? '') === 'timeout'): ?>
+      <div class="auth-notice is-timeout" role="status">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="auth-notice-icon" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div>
+          <strong>Security Timeout</strong>
+          <span>Your session was safely closed due to inactivity to protect your property listings. Please log in again.</span>
+        </div>
+      </div>
+      <?php endif; ?>
       <?php if ($error !== ''): ?><div class="auth-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>
       <form method="post" class="auth-form">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars(sfc_csrf_token(), ENT_QUOTES, 'UTF-8') ?>">

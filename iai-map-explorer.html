@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IAI Map Explorer | LOCUS-SF</title>
+  <meta name="description" content="Explore investment-ready parcels in San Fernando City, La Union ranked by the LOCUS-SF Investment Attractiveness Index (IAI) on an interactive clustered map.">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Leaflet + MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+
+  <!-- Tailwind CSS (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            float: '0 20px 45px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06)',
+            pill: '0 10px 25px -4px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15)',
+            glow: '0 0 0 3px rgba(37, 99, 235, 0.35), 0 12px 28px -4px rgba(30, 58, 138, 0.45)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ---------- Leaflet base overrides ---------- */
+    .leaflet-container { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; background: #e5e7eb; }
+    .leaflet-div-icon.locus-pin,
+    .leaflet-div-icon.locus-cluster { background: transparent; border: 0; }
+
+    /* ---------- Clean Basemap Pane Tuning ---------- */
+    .leaflet-tile-pane {
+      transition: filter 0.3s ease;
+    }
+    /* Subtle contrast & sharpness for crisp canvas display */
+    .basemap-canvas .leaflet-tile-pane {
+      filter: brightness(1.02) contrast(1.03);
+    }
+    .basemap-satellite .leaflet-tile-pane {
+      filter: saturate(1.05) contrast(1.05);
+    }
+
+    /* ---------- Custom pill marker animations & states ---------- */
+    @keyframes pin-drop {
+      0%   { opacity: 0; transform: translateY(-14px) scale(0.9); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .locus-pin .pin-drop {
+      transform-origin: bottom center;
+      transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      animation: pin-drop 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+    .locus-pin .pin-body,
+    .locus-pin .pin-caret { transition: all 0.2s ease; }
+    
+    .locus-pin:hover .pin-drop,
+    .locus-pin.is-hover .pin-drop {
+      transform: translateY(-4px) scale(1.08);
+      z-index: 50;
+    }
+    .locus-pin:hover .pin-body,
+    .locus-pin.is-hover .pin-body {
+      background-color: #1d4ed8 !important;
+      box-shadow: 0 14px 30px -4px rgba(29, 78, 216, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.3) !important;
+    }
+    .locus-pin:hover .pin-caret,
+    .locus-pin.is-hover .pin-caret {
+      background-color: #1d4ed8 !important;
+    }
+
+    .locus-pin.is-active .pin-drop {
+      transform: translateY(-5px) scale(1.12);
+      z-index: 100;
+    }
+    .locus-pin.is-active .pin-body {
+      background-color: #2563eb !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.45), 0 16px 36px -4px rgba(15, 23, 42, 0.6) !important;
+    }
+    .locus-pin.is-active .pin-caret {
+      background-color: #2563eb !important;
+      border-right-color: #ffffff !important;
+      border-bottom-color: #ffffff !important;
+    }
+
+    /* ---------- Custom cluster badge ---------- */
+    @keyframes cluster-pulse {
+      0%   { transform: scale(0.9); opacity: 0.7; }
+      50%  { opacity: 0.3; }
+      100% { transform: scale(1.6); opacity: 0; }
+    }
+    .locus-cluster .cluster-pulse { animation: cluster-pulse 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+    .locus-cluster .cluster-core { transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.22s ease; }
+    .locus-cluster:hover .cluster-core,
+    .locus-cluster.is-hover .cluster-core {
+      transform: scale(1.12);
+      box-shadow: 0 18px 36px -6px rgba(30, 58, 138, 0.55), 0 0 0 3px rgba(255, 255, 255, 0.4);
+    }
+
+    /* ---------- Spiderfy Lines ---------- */
+    .leaflet-cluster-spider-leg {
+      stroke: #1e3a8a;
+      stroke-opacity: 0.5;
+      stroke-dasharray: 4, 3;
+    }
+
+    /* ---------- Popup styling ---------- */
+    .locus-popup .leaflet-popup-content-wrapper {
+      padding: 0;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(15, 23, 42, 0.08);
+      background: #ffffff;
+    }
+    .locus-popup .leaflet-popup-content { margin: 0; width: 300px !important; line-height: 1.4; }
+    .locus-popup .leaflet-popup-tip { box-shadow: none; background: #ffffff; }
+    .locus-popup a.leaflet-popup-close-button {
+      top: 12px; right: 12px; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 999px; color: #ffffff; background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      font: 500 18px/1 'Inter', sans-serif; transition: background 0.15s ease;
+      z-index: 20;
+    }
+    .locus-popup a.leaflet-popup-close-button:hover { background: rgba(0, 0, 0, 0.55); color: #fff; }
+
+    /* ---------- Controls ---------- */
+    .leaflet-bar {
+      border: 0 !important; border-radius: 12px !important; overflow: hidden;
+      box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+    }
+    .leaflet-bar a {
+      width: 36px !important; height: 36px !important; line-height: 36px !important;
+      display: flex !important; align-items: center; justify-content: center;
+      color: #0f172a !important; background: rgba(255, 255, 255, 0.95) !important;
+      border-bottom: 1px solid #f1f5f9 !important; backdrop-filter: blur(12px);
+      transition: all 0.15s ease;
+    }
+    .leaflet-bar a:hover { background: #ffffff !important; color: #1d4ed8 !important; }
+    .leaflet-control-attribution {
+      border-radius: 8px 0 0 0; background: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(8px); font-size: 10px; color: #64748b;
+    }
+    .leaflet-control-attribution a { color: #1e3a8a; }
+
+    /* ---------- Scrollbar ---------- */
+    .nice-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .nice-scroll::-webkit-scrollbar { width: 5px; }
+    .nice-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .locus-pin .pin-drop, .locus-cluster .cluster-pulse { animation: none; }
+    }
+  </style>
+</head>
+
+<body class="h-full overflow-hidden bg-slate-100 font-sans text-slate-900 antialiased basemap-canvas">
+  <h1 class="sr-only">LOCUS-SF IAI Map Explorer: San Fernando City, La Union</h1>
+
+  <!-- Full-screen map container -->
+  <div id="map" class="absolute inset-0 z-0" role="application" aria-label="Interactive commercial real estate map of San Fernando City"></div>
+
+  <!-- ================= Top Navigation Bar ================= -->
+  <header class="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-3 md:p-4">
+    <nav class="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-white/92 px-3 py-2.5 shadow-float backdrop-blur-xl md:gap-3 md:px-4">
+      
+      <!-- Brand & Back -->
+      <a href="index.php" id="brandLink" class="group flex shrink-0 items-center gap-2.5 pr-1">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-blue-800 to-blue-950 text-sm font-black text-white shadow-md shadow-blue-900/30 transition duration-200 group-hover:scale-105">L</span>
+        <span class="hidden leading-tight sm:block">
+          <span class="block text-sm font-extrabold tracking-tight text-slate-900">LOCUS-SF</span>
+          <span class="block text-[10.5px] font-semibold uppercase tracking-wider text-blue-700">IAI SaaS Explorer</span>
+        </span>
+      </a>
+
+      <span class="hidden h-7 w-px bg-slate-200 sm:block"></span>
+
+      <!-- Search Input -->
+      <div class="relative flex min-w-0 flex-1 items-center md:max-w-md">
+        <svg class="pointer-events-none absolute left-3 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="Search barangay, corridor, or property…"
+          class="w-full rounded-xl border-0 bg-slate-100/90 py-2 pl-9 pr-8 text-sm text-slate-900 placeholder:text-slate-400 ring-1 ring-inset ring-transparent transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <button id="searchClearBtn" type="button" class="absolute right-2.5 hidden h-4 w-4 text-slate-400 hover:text-slate-700" title="Clear search">✕</button>
+      </div>
+
+      <!-- Basemap Layer Switcher (Canvas / Streets / Satellite) -->
+      <div class="hidden items-center rounded-xl bg-slate-100/90 p-0.5 ring-1 ring-inset ring-slate-200/80 md:flex" role="group" aria-label="Map style switcher">
+        <button type="button" data-layer="canvas" class="layer-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-white bg-blue-900 shadow-sm transition">Canvas</button>
+        <button type="button" data-layer="streets" class="layer-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Streets</button>
+        <button type="button" data-layer="satellite" class="layer-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Satellite</button>
+      </div>
+
+      <!-- Right Actions -->
+      <div class="ml-auto flex items-center gap-2 md:gap-3">
+        <!-- Search-as-I-move toggle -->
+        <label for="syncToggle" class="hidden cursor-pointer select-none items-center gap-2 text-xs font-medium text-slate-600 lg:flex">
+          <input id="syncToggle" type="checkbox" class="peer sr-only" checked>
+          <span class="relative h-5 w-9 rounded-full bg-slate-300 transition peer-checked:bg-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-600 peer-focus-visible:ring-offset-2 after:absolute after:left-0.5 after:top-0.5 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-4"></span>
+          Search as I move
+        </label>
+
+        <!-- Live IAI Beacon -->
+        <span class="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 md:inline-flex">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          </span>
+          Live IAI Engine
+        </span>
+
+        <!-- Mobile Drawer Toggle -->
+        <button id="listToggleBtn" type="button" aria-controls="listPanel" aria-expanded="false"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-blue-900 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-blue-900/30 transition hover:bg-blue-800 md:hidden">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+          List (<span id="mobileCount">24</span>)
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ================= Left Listing Drawer ================= -->
+  <aside id="listPanel" aria-label="Property listings"
+    class="absolute inset-x-3 bottom-3 z-[900] hidden h-[50vh] flex-col overflow-hidden rounded-2xl bg-white/94 shadow-float backdrop-blur-xl md:bottom-4 md:left-4 md:right-auto md:top-[88px] md:flex md:h-[calc(100vh-106px)] md:w-[390px]">
+    
+    <!-- Panel Header & KPIs -->
+    <div class="border-b border-slate-200/80 px-4 pb-3 pt-4">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">San Fernando City · La Union</p>
+          </div>
+          <h2 class="mt-0.5 text-lg font-extrabold tracking-tight text-slate-900">
+            <span id="resultCount">24</span> properties <span id="resultScope" class="text-xs font-semibold text-slate-400">in view</span>
+          </h2>
+        </div>
+        <select id="sortSelect" aria-label="Sort properties"
+          class="rounded-lg border-0 bg-slate-100 py-1.5 pl-2.5 pr-7 text-xs font-semibold text-slate-700 shadow-sm focus:ring-2 focus:ring-blue-600">
+          <option value="score-desc">IAI: High → Low</option>
+          <option value="price-asc">Price: Low → High</option>
+          <option value="price-desc">Price: High → Low</option>
+          <option value="area-desc">Lot Area: Largest</option>
+        </select>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="mt-3 grid grid-cols-3 gap-2">
+        <div class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-slate-50 to-white p-2 text-center">
+          <p class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Avg IAI</p>
+          <p id="kpiAvg" class="text-base font-extrabold tabular-nums text-slate-900">85</p>
+        </div>
+        <div class="rounded-xl border border-blue-200/60 bg-gradient-to-br from-blue-50/60 to-white p-2 text-center">
+          <p class="text-[9.5px] font-bold uppercase tracking-wider text-blue-800">Top IAI</p>
+          <p id="kpiTop" class="text-base font-extrabold tabular-nums text-blue-900">97</p>
+        </div>
+        <div class="rounded-xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/60 to-white p-2 text-center">
+          <p class="text-[9.5px] font-bold uppercase tracking-wider text-emerald-800">Prime 90+</p>
+          <p id="kpiPrime" class="text-base font-extrabold tabular-nums text-emerald-900">8</p>
+        </div>
+      </div>
+
+      <!-- Tier Filter Segmented Control -->
+      <div id="tierFilters" class="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1" role="group" aria-label="Filter by IAI score tier">
+        <button type="button" data-tier="all" class="tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-white bg-blue-900 shadow-sm transition">All <span id="countAll" class="opacity-80">(24)</span></button>
+        <button type="button" data-tier="prime" class="tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-slate-600 hover:text-slate-900 transition">Prime <span id="countPrime" class="text-emerald-600">(8)</span></button>
+        <button type="button" data-tier="strong" class="tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-slate-600 hover:text-slate-900 transition">Strong <span id="countStrong" class="text-sky-600">(10)</span></button>
+        <button type="button" data-tier="emerging" class="tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-slate-600 hover:text-slate-900 transition">&lt;80 <span id="countEmerging" class="text-amber-600">(6)</span></button>
+      </div>
+    </div>
+
+    <!-- Scrollable Results Feed -->
+    <div id="listContainer" class="nice-scroll flex-1 space-y-2.5 overflow-y-auto p-3" aria-live="polite"></div>
+  </aside>
+
+  <!-- ================= Bottom Legend Pill ================= -->
+  <div class="pointer-events-none absolute bottom-5 left-1/2 z-[800] hidden -translate-x-1/2 md:left-[calc(50%+195px)] md:block">
+    <div class="pointer-events-auto flex items-center gap-3.5 rounded-full bg-white/92 px-4 py-2 text-xs font-semibold text-slate-700 shadow-float backdrop-blur-xl ring-1 ring-black/5">
+      <span class="font-extrabold uppercase tracking-wider text-[10.5px] text-slate-400">IAI Score</span>
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>Prime 90+</span>
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-sky-400 shadow-sm shadow-sky-400"></span>Strong 80–89</span>
+      <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-400 shadow-sm shadow-amber-400"></span>Emerging &lt;80</span>
+      <span class="h-3.5 w-px bg-slate-200"></span>
+      <span class="flex items-center gap-1.5"><span class="grid h-4 w-4 place-items-center rounded-full bg-blue-900 text-[8.5px] font-black text-white">4</span>Clustered</span>
+    </div>
+  </div>
+
+  <!-- Leaflet Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script>
+  (() => {
+    'use strict';
+
+    /* =========================================================
+     * 1. DATASET — San Fernando City, La Union
+     * ========================================================= */
+    const PROPERTIES = [
+      // Poblacion / Downtown Core
+      { id: 'SF-001', name: 'Quezon Ave. Corner Lot',        barangay: 'Barangay I (Poblacion)', type: 'Commercial Lot', zoning: 'C-2 Commercial', area: 620,   price: 38400000,  score: 95, lat: 16.6162, lng: 120.3172 },
+      { id: 'SF-002', name: 'Gov. Luna Retail Strip',        barangay: 'Barangay II (Poblacion)', type: 'Retail',        zoning: 'C-2 Commercial', area: 410,   price: 24600000,  score: 91, lat: 16.6151, lng: 120.3181 },
+      { id: 'SF-003', name: 'Town Plaza Mixed-Use Block',    barangay: 'Barangay III (Poblacion)', type: 'Mixed-Use',    zoning: 'C-3 High-Density', area: 1150,  price: 61800000,  score: 88, lat: 16.6170, lng: 120.3160 },
+      { id: 'SF-004', name: 'Ortega St. Office Building',    barangay: 'Barangay IV (Poblacion)', type: 'Office',        zoning: 'C-2 Commercial', area: 540,   price: 32900000,  score: 84, lat: 16.6143, lng: 120.3165 },
+      { id: 'SF-005', name: 'Rizal Ave. Shophouse',          barangay: 'Ilocanos Sur',            type: 'Retail',        zoning: 'C-1 Commercial', area: 260,   price: 11800000,  score: 79, lat: 16.6135, lng: 120.3190 },
+      { id: 'SF-006', name: 'Mabini Corner Frontage',        barangay: 'Parian',                  type: 'Commercial Lot', zoning: 'C-1 Commercial', area: 480,   price: 19700000,  score: 86, lat: 16.6128, lng: 120.3176 },
+      { id: 'SF-007', name: 'Ilocanos Norte Food Park',      barangay: 'Ilocanos Norte',          type: 'Retail',        zoning: 'C-1 Commercial', area: 900,   price: 27500000,  score: 89, lat: 16.6185, lng: 120.3150 },
+
+      // National Highway North
+      { id: 'SF-008', name: 'Tanqui Highway Frontage',       barangay: 'Tanqui',                  type: 'Commercial Lot', zoning: 'C-3 High-Density', area: 1800,  price: 72000000,  score: 93, lat: 16.6205, lng: 120.3215 },
+      { id: 'SF-009', name: 'Pagdaraoan Commercial Block',   barangay: 'Pagdaraoan',              type: 'Mixed-Use',     zoning: 'C-2 Commercial', area: 1320,  price: 52800000,  score: 90, lat: 16.6232, lng: 120.3198 },
+      { id: 'SF-010', name: 'Catbangen Bayfront Parcel',     barangay: 'Catbangen',               type: 'Hospitality',   zoning: 'T-1 Tourism',     area: 2400,  price: 115200000, score: 97, lat: 16.6262, lng: 120.3110 },
+      { id: 'SF-011', name: 'Lingsat Warehouse Lot',         barangay: 'Lingsat',                 type: 'Warehouse',     zoning: 'I-1 Industrial',  area: 3200,  price: 48000000,  score: 82, lat: 16.6290, lng: 120.3168 },
+      { id: 'SF-012', name: 'MacArthur Hwy. Flagship Site',  barangay: 'Lingsat',                 type: 'Commercial Lot', zoning: 'C-3 High-Density', area: 2100,  price: 88200000,  score: 94, lat: 16.6310, lng: 120.3135 },
+      { id: 'SF-013', name: 'Canaoay Mixed Development',     barangay: 'Canaoay',                 type: 'Mixed-Use',     zoning: 'C-2 Commercial', area: 4800,  price: 96000000,  score: 87, lat: 16.6315, lng: 120.3260 },
+      { id: 'SF-014', name: 'Carlatan Logistics Yard',       barangay: 'Carlatan',                type: 'Warehouse',     zoning: 'I-1 Industrial',  area: 5600,  price: 61600000,  score: 77, lat: 16.6385, lng: 120.3160 },
+      { id: 'SF-015', name: 'Biday Hillside Residences',     barangay: 'Biday',                   type: 'Residential',   zoning: 'R-2 Residential', area: 7200,  price: 57600000,  score: 74, lat: 16.6420, lng: 120.3250 },
+      { id: 'SF-016', name: 'Bangcusay Light Industrial',    barangay: 'Bangcusay',               type: 'Warehouse',     zoning: 'I-1 Industrial',  area: 8800,  price: 79200000,  score: 81, lat: 16.6480, lng: 120.3195 },
+      { id: 'SF-017', name: 'Cabaroan Residential Estate',   barangay: 'Cabaroan',                type: 'Residential',   zoning: 'R-1 Residential', area: 6400,  price: 44800000,  score: 76, lat: 16.6255, lng: 120.3330 },
+
+      // Poro Point / Southern Districts
+      { id: 'SF-018', name: 'Poro Point Freeport Gateway',   barangay: 'Poro',                    type: 'Commercial Lot', zoning: 'SEZ Freeport',   area: 3600,  price: 129600000, score: 96, lat: 16.6080, lng: 120.3080 },
+      { id: 'SF-019', name: 'Poro Pier Hospitality Lot',     barangay: 'Poro',                    type: 'Hospitality',   zoning: 'T-1 Tourism',     area: 2800,  price: 92400000,  score: 92, lat: 16.6040, lng: 120.3035 },
+      { id: 'SF-020', name: 'Sevilla Retail Hub',            barangay: 'Sevilla',                 type: 'Retail',        zoning: 'C-2 Commercial', area: 1500,  price: 42000000,  score: 85, lat: 16.6010, lng: 120.3220 },
+      { id: 'SF-021', name: 'Pagudpud Corner Lot',           barangay: 'Pagudpud',                type: 'Commercial Lot', zoning: 'C-1 Commercial', area: 720,   price: 21600000,  score: 83, lat: 16.6090, lng: 120.3305 },
+      { id: 'SF-022', name: 'San Agustin Townhouse Site',    barangay: 'San Agustin',             type: 'Residential',   zoning: 'R-2 Residential', area: 3900,  price: 31200000,  score: 78, lat: 16.5980, lng: 120.3270 },
+      { id: 'SF-023', name: 'Madayegdeg Agri-Commercial',    barangay: 'Madayegdeg',              type: 'Mixed-Use',     zoning: 'A-C Mixed',       area: 9500,  price: 38000000,  score: 72, lat: 16.5935, lng: 120.3145 },
+      { id: 'SF-024', name: 'Sagayad Mountain-View Parcel',  barangay: 'Sagayad',                 type: 'Residential',   zoning: 'R-1 Residential', area: 12000, price: 36000000,  score: 70, lat: 16.6150, lng: 120.3420 },
+    ];
+
+    /* =========================================================
+     * 2. HELPERS & TIERS
+     * ========================================================= */
+    const SF_CENTER = [16.6180, 120.3180];
+
+    const TIERS = {
+      prime:    { label: 'Prime',    dot: 'bg-emerald-400', chip: 'bg-emerald-400/15 text-emerald-200 ring-emerald-300/30' },
+      strong:   { label: 'Strong',   dot: 'bg-sky-400',     chip: 'bg-sky-400/15 text-sky-200 ring-sky-300/30' },
+      emerging: { label: 'Emerging', dot: 'bg-amber-400',   chip: 'bg-amber-400/15 text-amber-200 ring-amber-300/30' },
+    };
+    const tierKey = (score) => (score >= 90 ? 'prime' : score >= 80 ? 'strong' : 'emerging');
+
+    const ICON_PATHS = {
+      'Commercial Lot': 'M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z',
+      Retail: 'M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z',
+      Office: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
+      'Mixed-Use': 'M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3',
+      Warehouse: 'M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12',
+      Residential: 'm2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25',
+      Hospitality: 'M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z',
+    };
+
+    const svg = (d, cls = 'h-5 w-5', { fill = 'none', stroke = 1.8 } = {}) =>
+      `<svg class="${cls}" fill="${fill}" viewBox="0 0 24 24" stroke-width="${stroke}" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>`;
+
+    const escapeHtml = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const formatPrice = (n) => (n >= 1e6 ? `₱${(n / 1e6).toFixed(1)}M` : `₱${Math.round(n / 1e3)}K`);
+    const formatArea = (n) => `${n.toLocaleString('en-PH')} sqm`;
+    const pricePerSqm = (p) => `₱${Math.round(p.price / p.area).toLocaleString('en-PH')}`;
+    const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+
+    /* =========================================================
+     * 3. STATE & MAP SETUP
+     * ========================================================= */
+    const state = {
+      tier: 'all',
+      query: '',
+      sort: 'score-desc',
+      syncToBounds: true,
+      activeId: null,
+      hoverId: null,
+      activeLayer: 'canvas',
+      saved: new Set(),
+    };
+
+    const markerById = new Map();
+    const propertyById = new Map(PROPERTIES.map((p) => [p.id, p]));
+
+    const map = L.map('map', {
+      center: SF_CENTER,
+      zoom: 14,
+      minZoom: 12,
+      maxZoom: 19,
+      zoomControl: false,
+      zoomSnap: 0.25,
+      worldCopyJump: false,
+    });
+
+    /* =========================================================
+     * 4. CLEAN BASEMAP LAYERS (NO WATERMARKS!)
+     *    - Canvas: Esri World Light Gray Base + Reference Labels
+     *    - Streets: OpenStreetMap Humanitarian Detailed
+     *    - Satellite: Esri World Imagery + Labels
+     * ========================================================= */
+    const baseLayers = {
+      canvas: L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '&copy; Esri &copy; OpenStreetMap contributors',
+          maxNativeZoom: 16,
+          maxZoom: 20,
+        }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '',
+          maxNativeZoom: 16,
+          maxZoom: 20,
+          opacity: 0.9,
+        })
+      ]),
+      streets: L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }),
+      satellite: L.layerGroup([
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+          maxZoom: 19,
+        }),
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+          attribution: '',
+          maxNativeZoom: 16,
+          maxZoom: 19,
+          opacity: 0.85,
+        })
+      ])
+    };
+
+    // Add default Canvas basemap
+    baseLayers.canvas.addTo(map);
+
+    function setBaseLayer(name) {
+      if (!baseLayers[name] || state.activeLayer === name) return;
+      map.removeLayer(baseLayers[state.activeLayer]);
+      baseLayers[name].addTo(map);
+      state.activeLayer = name;
+      document.body.className = document.body.className.replace(/basemap-\w+/, `basemap-${name}`);
+
+      document.querySelectorAll('[data-layer]').forEach((btn) => {
+        const on = btn.dataset.layer === name;
+        btn.className = on
+          ? 'layer-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-white bg-blue-900 shadow-sm transition'
+          : 'layer-btn rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 transition';
+      });
+    }
+
+    // Zoom & Reset Controls
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const FitControl = L.Control.extend({
+      options: { position: 'bottomright' },
+      onAdd() {
+        const wrap = L.DomUtil.create('div', 'leaflet-bar');
+        wrap.innerHTML = `<a href="#" id="fitAllBtn" role="button" title="Fit all properties" aria-label="Fit all properties">
+          ${svg('M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15', 'h-4 w-4')}
+        </a>`;
+        L.DomEvent.disableClickPropagation(wrap);
+        L.DomEvent.on(wrap.firstElementChild, 'click', (e) => {
+          L.DomEvent.preventDefault(e);
+          fitToResults();
+        });
+        return wrap;
+      },
+    });
+    new FitControl().addTo(map);
+
+    /* =========================================================
+     * 5. SLEEK DARK-BLUE PILL MARKER (L.divIcon)
+     * ========================================================= */
+    function createScorePillIcon(property, index = 0) {
+      const tier = TIERS[tierKey(property.score)];
+      return L.divIcon({
+        className: 'locus-pin',
+        iconSize: null,
+        html: `
+          <div class="absolute left-0 top-0 w-max -translate-x-1/2 -translate-y-full">
+            <div class="pin-drop flex flex-col items-center" style="animation-delay:${Math.min(index * 25, 500)}ms">
+              <div class="pin-body flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-blue-900 px-2.5 py-1.5 text-xs font-bold leading-none text-white shadow-pill ring-1 ring-white/15">
+                <span class="h-1.5 w-1.5 rounded-full ${tier.dot} shadow-sm"></span>
+                <span>Score: <span class="tabular-nums">${property.score}</span></span>
+              </div>
+              <span class="pin-caret -mt-[4px] block h-2.5 w-2.5 rotate-45 rounded-[1.5px] bg-blue-900 border-r border-b border-white/20"></span>
+            </div>
+          </div>`,
+      });
+    }
+
+    /* =========================================================
+     * 6. HIGH-TECH CLUSTERS (Leaflet.markercluster)
+     *    Tuned with radius:78 to eliminate overlapping markers!
+     * ========================================================= */
+    function createClusterIcon(cluster) {
+      const children = cluster.getAllChildMarkers();
+      const count = children.length;
+      const avg = Math.round(children.reduce((sum, m) => sum + m.options.property.score, 0) / count);
+      const isPrimeCluster = avg >= 90;
+      const size = count < 4 ? 48 : count < 8 ? 56 : 64;
+      const core = size - 10;
+
+      return L.divIcon({
+        className: 'locus-cluster',
+        iconSize: [size, size],
+        html: `
+          <div class="relative flex h-full w-full items-center justify-center">
+            <span class="cluster-pulse absolute inset-0 rounded-full ${isPrimeCluster ? 'bg-emerald-500/30' : 'bg-blue-600/30'}"></span>
+            <span class="absolute inset-[2px] rounded-full bg-blue-950/20 ring-1 ring-white/40"></span>
+            <div class="cluster-core relative flex flex-col items-center justify-center rounded-full bg-gradient-to-br from-blue-800 via-blue-900 to-indigo-950 text-white shadow-xl shadow-blue-950/40 ring-2 ring-white" style="width:${core}px;height:${core}px">
+              <span class="text-sm font-black leading-none tabular-nums">${count}</span>
+              <span class="mt-0.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8.5px] font-bold uppercase leading-none tracking-wide ${isPrimeCluster ? 'text-emerald-300 bg-emerald-950/60' : 'text-blue-200 bg-blue-950/60'}">
+                <span class="h-1 w-1 rounded-full ${isPrimeCluster ? 'bg-emerald-400' : 'bg-sky-400'}"></span>avg ${avg}
+              </span>
+            </div>
+          </div>`,
+      });
+    }
+
+    const clusterGroup = L.markerClusterGroup({
+      iconCreateFunction: createClusterIcon,
+      showCoverageOnHover: false,
+      maxClusterRadius: 78,           // Larger radius prevents pills from awkwardly touching
+      spiderfyDistanceMultiplier: 1.6, // Generous spacing when expanding overlapping sites
+      spiderLegPolylineOptions: { weight: 1.5, color: '#1e3a8a', opacity: 0.6 },
+      zoomToBoundsOnClick: true,
+      animate: true,
+      chunkedLoading: true,
+      disableClusteringAtZoom: 18,
+    });
+    map.addLayer(clusterGroup);
+
+    /* =========================================================
+     * 7. LUXURY POPUP FLYER
+     * ========================================================= */
+    function popupHtml(p) {
+      const tier = TIERS[tierKey(p.score)];
+      const saved = state.saved.has(p.id);
+      return `
+        <div class="overflow-hidden rounded-2xl bg-white">
+          <div class="relative bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 px-4 pb-4 pt-3.5 text-white">
+            <div class="flex items-center justify-between">
+              <p class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-blue-200">
+                ${svg(ICON_PATHS[p.type] || ICON_PATHS['Commercial Lot'], 'h-3.5 w-3.5')} ${escapeHtml(p.type)}
+              </p>
+              <span class="rounded-md bg-white/10 px-1.5 py-0.5 text-[9.5px] font-bold text-blue-200 backdrop-blur">${escapeHtml(p.zoning)}</span>
+            </div>
+            <h3 class="mt-1.5 pr-6 text-base font-extrabold leading-snug">${escapeHtml(p.name)}</h3>
+            <p class="mt-0.5 text-xs text-blue-200/90">${escapeHtml(p.barangay)}, San Fernando City</p>
+            
+            <div class="mt-3.5 flex items-end justify-between">
+              <div>
+                <p class="text-[9.5px] font-bold uppercase tracking-wider text-blue-300">Investment Index</p>
+                <p class="text-3xl font-black leading-none tabular-nums">${p.score}<span class="ml-0.5 text-sm font-semibold text-blue-300">/100</span></p>
+              </div>
+              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${tier.chip}">
+                <span class="h-1.5 w-1.5 rounded-full ${tier.dot}"></span>${tier.label} Tier
+              </span>
+            </div>
+            
+            <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-white/20">
+              <div class="h-full rounded-full bg-gradient-to-r from-sky-300 to-emerald-300" style="width:${p.score}%"></div>
+            </div>
+          </div>
+
+          <dl class="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 text-center bg-slate-50/50">
+            <div class="px-2 py-2.5">
+              <dt class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Asking Price</dt>
+              <dd class="text-[13px] font-extrabold text-slate-900">${formatPrice(p.price)}</dd>
+            </div>
+            <div class="px-2 py-2.5">
+              <dt class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Lot Area</dt>
+              <dd class="text-[13px] font-extrabold text-slate-900">${formatArea(p.area)}</dd>
+            </div>
+            <div class="px-2 py-2.5">
+              <dt class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">₱ / sqm</dt>
+              <dd class="text-[13px] font-extrabold text-slate-900">${pricePerSqm(p)}</dd>
+            </div>
+          </dl>
+
+          <div class="flex gap-2 p-3">
+            <button type="button" data-action="zoom" data-id="${p.id}"
+              class="flex-1 rounded-xl bg-blue-900 px-3 py-2 text-xs font-bold text-white shadow-md shadow-blue-900/25 transition hover:bg-blue-800">
+              Zoom to parcel
+            </button>
+            <button type="button" data-action="save" data-id="${p.id}" aria-pressed="${saved}"
+              class="inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${saved ? 'border-rose-200 bg-rose-50 text-rose-600' : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}">
+              ${svg('M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z', 'h-4 w-4', { fill: saved ? 'currentColor' : 'none' })}${saved ? 'Saved' : 'Save'}
+            </button>
+          </div>
+        </div>`;
+    }
+
+    /* =========================================================
+     * 8. BUILD MARKERS
+     * ========================================================= */
+    PROPERTIES.forEach((p, i) => {
+      const marker = L.marker([p.lat, p.lng], {
+        icon: createScorePillIcon(p, i),
+        property: p,
+        title: `${p.name} — Score: ${p.score}`,
+        riseOnHover: true,
+        keyboard: true,
+      });
+
+      marker.bindPopup(() => popupHtml(p), {
+        className: 'locus-popup',
+        offset: [0, -32],
+        maxWidth: 320,
+        minWidth: 300,
+        autoPanPaddingTopLeft: L.point(isDesktop() ? 410 : 20, 100),
+        autoPanPaddingBottomRight: L.point(70, 40),
+      });
+
+      marker.on('click', () => setActive(p.id, { scrollCard: true }));
+      marker.on('mouseover', () => setHover(p.id));
+      marker.on('mouseout', () => setHover(null));
+      marker.on('add', () => syncMarkerClasses(p.id));
+      marker.on('popupclose', () => { if (state.activeId === p.id) setActive(null); });
+
+      markerById.set(p.id, marker);
+    });
+
+    function bindPopupActions(popup) {
+      popup.getElement()?.querySelectorAll('[data-action]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (btn.dataset.action === 'zoom') {
+            const p = propertyById.get(id);
+            map.flyTo([p.lat, p.lng], 18, { duration: 0.8 });
+          } else if (btn.dataset.action === 'save') {
+            state.saved.has(id) ? state.saved.delete(id) : state.saved.add(id);
+            popup.update();
+            bindPopupActions(popup);
+            renderList();
+          }
+        });
+      });
+    }
+    map.on('popupopen', (e) => bindPopupActions(e.popup));
+
+    /* =========================================================
+     * 9. FILTERING & SYNC
+     * ========================================================= */
+    function getFiltered() {
+      const q = state.query.trim().toLowerCase();
+      return PROPERTIES.filter((p) => {
+        if (state.tier !== 'all' && tierKey(p.score) !== state.tier) return false;
+        if (!q) return true;
+        return [p.name, p.barangay, p.type, p.zoning, p.id].some((v) => v.toLowerCase().includes(q));
+      });
+    }
+
+    function applyFilters({ refit = false } = {}) {
+      const filtered = getFiltered();
+      clusterGroup.clearLayers();
+      clusterGroup.addLayers(filtered.map((p) => markerById.get(p.id)));
+      if (state.activeId && !filtered.some((p) => p.id === state.activeId)) {
+        map.closePopup();
+        state.activeId = null;
+      }
+      if (refit && filtered.length) fitToResults();
+      renderList();
+    }
+
+    function fitToResults() {
+      const filtered = getFiltered();
+      if (!filtered.length) return;
+      const bounds = L.latLngBounds(filtered.map((p) => [p.lat, p.lng]));
+      map.flyToBounds(bounds, {
+        paddingTopLeft: isDesktop() ? [420, 110] : [30, 90],
+        paddingBottomRight: isDesktop() ? [80, 70] : [30, Math.round(window.innerHeight * 0.5)],
+        maxZoom: 16,
+        duration: 0.7,
+      });
+    }
+
+    function setActive(id, { pan = false, scrollCard = false } = {}) {
+      state.activeId = id;
+      refreshHighlights();
+      if (!id) return;
+
+      const marker = markerById.get(id);
+      if (pan && marker) {
+        clusterGroup.zoomToShowLayer(marker, () => marker.openPopup());
+      }
+      if (scrollCard) {
+        document.querySelector(`[data-card-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    function setHover(id) {
+      state.hoverId = id;
+      refreshHighlights();
+    }
+
+    function syncMarkerClasses(id) {
+      const marker = markerById.get(id);
+      const el = marker?.getElement();
+      if (!el) return;
+      const active = state.activeId === id;
+      const hover = state.hoverId === id;
+      el.classList.toggle('is-active', active);
+      el.classList.toggle('is-hover', hover && !active);
+      marker.setZIndexOffset(active ? 2000 : hover ? 1000 : 0);
+    }
+
+    function refreshHighlights() {
+      markerById.forEach((_, id) => syncMarkerClasses(id));
+
+      document.querySelectorAll('.locus-cluster.is-hover').forEach((el) => el.classList.remove('is-hover'));
+      if (state.hoverId) {
+        const marker = markerById.get(state.hoverId);
+        const parent = marker && clusterGroup.hasLayer(marker) ? clusterGroup.getVisibleParent(marker) : null;
+        if (parent && parent !== marker) parent.getElement()?.classList.add('is-hover');
+      }
+
+      document.querySelectorAll('[data-card-id]').forEach((card) => {
+        const id = card.dataset.cardId;
+        const isSel = id === state.activeId;
+        const isHov = id === state.hoverId;
+        card.classList.toggle('ring-2', isSel);
+        card.classList.toggle('ring-blue-600', isSel);
+        card.classList.toggle('border-blue-300', isHov && !isSel);
+        card.classList.toggle('shadow-lg', isHov || isSel);
+      });
+    }
+
+    /* =========================================================
+     * 10. LISTING PANEL & PROPERTY CARDS
+     * ========================================================= */
+    const els = {
+      list: document.getElementById('listContainer'),
+      count: document.getElementById('resultCount'),
+      scope: document.getElementById('resultScope'),
+      mobileCount: document.getElementById('mobileCount'),
+      kpiAvg: document.getElementById('kpiAvg'),
+      kpiTop: document.getElementById('kpiTop'),
+      kpiPrime: document.getElementById('kpiPrime'),
+      search: document.getElementById('searchInput'),
+      searchClear: document.getElementById('searchClearBtn'),
+      sort: document.getElementById('sortSelect'),
+      sync: document.getElementById('syncToggle'),
+      tierWrap: document.getElementById('tierFilters'),
+      panel: document.getElementById('listPanel'),
+      listToggle: document.getElementById('listToggleBtn'),
+      countAll: document.getElementById('countAll'),
+      countPrime: document.getElementById('countPrime'),
+      countStrong: document.getElementById('countStrong'),
+      countEmerging: document.getElementById('countEmerging'),
+    };
+
+    const SORTERS = {
+      'score-desc': (a, b) => b.score - a.score,
+      'price-asc': (a, b) => a.price - b.price,
+      'price-desc': (a, b) => b.price - a.price,
+      'area-desc': (a, b) => b.area - a.area,
+    };
+
+    const GRADIENTS = {
+      'Commercial Lot': 'from-blue-800 via-indigo-900 to-slate-900',
+      Retail: 'from-sky-700 via-blue-800 to-indigo-950',
+      Office: 'from-slate-700 via-slate-800 to-slate-950',
+      'Mixed-Use': 'from-indigo-700 via-purple-900 to-slate-950',
+      Warehouse: 'from-slate-600 via-blue-900 to-slate-950',
+      Residential: 'from-teal-700 via-emerald-800 to-slate-950',
+      Hospitality: 'from-cyan-600 via-blue-800 to-slate-950',
+    };
+
+    function cardHtml(p) {
+      const tier = TIERS[tierKey(p.score)];
+      const saved = state.saved.has(p.id);
+      const grad = GRADIENTS[p.type] || 'from-blue-800 to-slate-950';
+
+      return `
+        <article data-card-id="${p.id}" id="card-${p.id}" tabindex="0" role="button" aria-label="${escapeHtml(p.name)}, IAI score ${p.score}"
+          class="group relative cursor-pointer rounded-2xl border border-slate-200/90 bg-white p-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+          <div class="flex gap-3">
+            
+            <!-- Visual Badge Thumbnail -->
+            <div class="relative grid h-[88px] w-24 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br ${grad} text-white shadow-inner">
+              <div class="absolute inset-0 opacity-25" style="background-image:radial-gradient(circle at 20% 20%, rgba(255,255,255,.6), transparent 50%), linear-gradient(135deg, transparent 45%, rgba(255,255,255,.15) 50%, transparent 55%); background-size:auto, 12px 12px"></div>
+              
+              ${svg(ICON_PATHS[p.type] || ICON_PATHS['Commercial Lot'], 'relative h-7 w-7 text-white/90 transition duration-300 group-hover:scale-110')}
+              
+              <span class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md bg-blue-950/85 px-1.5 py-0.5 text-[10px] font-black text-white shadow-sm backdrop-blur">
+                <span class="h-1.5 w-1.5 rounded-full ${tier.dot}"></span>${p.score}
+              </span>
+              
+              ${saved ? `<span class="absolute bottom-1.5 right-1.5 text-rose-300">${svg('M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z', 'h-3.5 w-3.5', { fill: 'currentColor' })}</span>` : ''}
+            </div>
+
+            <!-- Info Details -->
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-1">
+                <p class="truncate text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(p.type)}</p>
+                <span class="rounded bg-slate-100 px-1 py-0.5 text-[9px] font-semibold text-slate-600">${escapeHtml(p.zoning.split(' ')[0])}</span>
+              </div>
+              <h3 class="truncate text-[13.5px] font-bold text-slate-900 group-hover:text-blue-900 transition-colors">${escapeHtml(p.name)}</h3>
+              <p class="truncate text-xs text-slate-500">${escapeHtml(p.barangay)}</p>
+              
+              <div class="mt-2 flex items-baseline justify-between gap-2 border-t border-slate-100 pt-1.5">
+                <span class="text-sm font-extrabold tracking-tight text-slate-900">${formatPrice(p.price)}</span>
+                <span class="text-[11px] font-medium text-slate-500">${formatArea(p.area)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Score Progress Bar -->
+          <div class="mt-2.5 flex items-center gap-2">
+            <div class="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+              <div class="h-full rounded-full bg-gradient-to-r from-blue-900 to-blue-500" style="width:${p.score}%"></div>
+            </div>
+            <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">${tier.label} Tier</span>
+          </div>
+        </article>`;
+    }
+
+    function updateTierCounts() {
+      const q = state.query.trim().toLowerCase();
+      const base = PROPERTIES.filter((p) => {
+        if (!q) return true;
+        return [p.name, p.barangay, p.type, p.zoning, p.id].some((v) => v.toLowerCase().includes(q));
+      });
+      els.countAll.textContent = `(${base.length})`;
+      els.countPrime.textContent = `(${base.filter((p) => p.score >= 90).length})`;
+      els.countStrong.textContent = `(${base.filter((p) => p.score >= 80 && p.score < 90).length})`;
+      els.countEmerging.textContent = `(${base.filter((p) => p.score < 80).length})`;
+    }
+
+    function renderList() {
+      let items = getFiltered();
+      if (state.syncToBounds) {
+        const bounds = map.getBounds();
+        items = items.filter((p) => bounds.contains([p.lat, p.lng]));
+      }
+      items.sort(SORTERS[state.sort]);
+
+      els.count.textContent = items.length;
+      els.mobileCount.textContent = items.length;
+      els.scope.textContent = state.syncToBounds ? 'in view' : 'matching';
+      els.kpiAvg.textContent = items.length ? Math.round(items.reduce((s, p) => s + p.score, 0) / items.length) : '–';
+      els.kpiTop.textContent = items.length ? Math.max(...items.map((p) => p.score)) : '–';
+      els.kpiPrime.textContent = items.filter((p) => p.score >= 90).length;
+
+      updateTierCounts();
+
+      if (!items.length) {
+        els.list.innerHTML = `
+          <div class="flex h-full flex-col items-center justify-center px-6 py-12 text-center">
+            <div class="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+              ${svg(ICON_PATHS['Commercial Lot'], 'h-6 w-6')}
+            </div>
+            <p class="mt-3 text-sm font-bold text-slate-900">No properties in view</p>
+            <p class="mt-1 text-xs text-slate-500">Pan or zoom the map, or adjust your score tier filter.</p>
+            <button type="button" id="resetFiltersBtn" class="mt-4 rounded-xl bg-blue-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-blue-800">
+              Reset all filters
+            </button>
+          </div>`;
+        document.getElementById('resetFiltersBtn')?.addEventListener('click', resetFilters);
+        return;
+      }
+
+      els.list.innerHTML = items.map(cardHtml).join('');
+      refreshHighlights();
+    }
+
+    function resetFilters() {
+      state.tier = 'all';
+      state.query = '';
+      els.search.value = '';
+      els.searchClear.classList.add('hidden');
+      paintTierChips();
+      applyFilters({ refit: true });
+    }
+
+    function paintTierChips() {
+      els.tierWrap.querySelectorAll('[data-tier]').forEach((btn) => {
+        const on = btn.dataset.tier === state.tier;
+        btn.className = on
+          ? 'tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-white bg-blue-900 shadow-sm transition'
+          : 'tier-pill rounded-lg py-1 text-center text-[11px] font-bold text-slate-600 hover:text-slate-900 transition';
+      });
+    }
+
+    /* =========================================================
+     * 11. EVENT LISTENERS
+     * ========================================================= */
+    // Card Delegated Actions
+    els.list.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-card-id]');
+      if (card) setActive(card.dataset.cardId, { pan: true });
+    });
+    els.list.addEventListener('keydown', (e) => {
+      const card = e.target.closest('[data-card-id]');
+      if (card && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        setActive(card.dataset.cardId, { pan: true });
+      }
+    });
+    els.list.addEventListener('mouseover', (e) => {
+      const card = e.target.closest('[data-card-id]');
+      if (card && state.hoverId !== card.dataset.cardId) setHover(card.dataset.cardId);
+    });
+    els.list.addEventListener('mouseleave', () => setHover(null));
+
+    // Search Input
+    let searchTimer;
+    els.search.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      const val = els.search.value;
+      els.searchClear.classList.toggle('hidden', !val);
+      searchTimer = setTimeout(() => {
+        state.query = val;
+        applyFilters({ refit: Boolean(val.trim()) });
+      }, 160);
+    });
+    els.searchClear.addEventListener('click', () => {
+      els.search.value = '';
+      els.searchClear.classList.add('hidden');
+      state.query = '';
+      applyFilters({ refit: true });
+    });
+
+    els.sort.addEventListener('change', () => {
+      state.sort = els.sort.value;
+      renderList();
+    });
+    els.sync.addEventListener('change', () => {
+      state.syncToBounds = els.sync.checked;
+      renderList();
+    });
+
+    els.tierWrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tier]');
+      if (!btn) return;
+      state.tier = btn.dataset.tier;
+      paintTierChips();
+      applyFilters({ refit: true });
+    });
+
+    // Basemap Switcher Buttons
+    document.querySelectorAll('[data-layer]').forEach((btn) => {
+      btn.addEventListener('click', () => setBaseLayer(btn.dataset.layer));
+    });
+
+    // Mobile Panel Drawer
+    els.listToggle.addEventListener('click', () => {
+      const open = els.panel.classList.toggle('hidden') === false;
+      els.panel.classList.toggle('flex', open);
+      els.listToggle.setAttribute('aria-expanded', String(open));
+    });
+
+    // Move/Zoom Sync
+    let moveFrame;
+    map.on('moveend zoomend', () => {
+      cancelAnimationFrame(moveFrame);
+      moveFrame = requestAnimationFrame(() => {
+        if (state.syncToBounds) renderList();
+        else refreshHighlights();
+      });
+    });
+    clusterGroup.on('animationend', refreshHighlights);
+
+    /* =========================================================
+     * 12. INITIAL BOOT
+     * ========================================================= */
+    paintTierChips();
+    applyFilters();
+    const allBounds = L.latLngBounds(PROPERTIES.map((p) => [p.lat, p.lng]));
+    map.fitBounds(allBounds, {
+      paddingTopLeft: isDesktop() ? [420, 100] : [30, 80],
+      paddingBottomRight: isDesktop() ? [70, 60] : [30, Math.round(window.innerHeight * 0.45)],
+      maxZoom: 15,
+    });
+    renderList();
+  })();
+  </script>
+</body>
+</html>

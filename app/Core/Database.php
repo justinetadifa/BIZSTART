@@ -31,13 +31,13 @@ final class Database
         $charset = (string) ($this->config['charset'] ?? 'utf8mb4');
 
         try {
-            $serverPdo = new PDO(sprintf('mysql:host=%s;port=%d;charset=%s', $host, $port, $charset), $user, $pass, [
+            if ((bool) ($this->config['auto_create'] ?? false) && $name !== '') {
+                $serverPdo = new PDO(sprintf('mysql:host=%s;port=%d;charset=%s', $host, $port, $charset), $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
 
-            if ($name !== '') {
                 $serverPdo->exec(
                     sprintf(
                         'CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET %s COLLATE %s_unicode_ci',

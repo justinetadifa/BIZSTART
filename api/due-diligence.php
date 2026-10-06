@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 
 api_handle(function (array $container): array {
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $method = request_method();
     $user = sfc_current_user();
 
     if ($method === 'GET') {
@@ -12,6 +12,9 @@ api_handle(function (array $container): array {
         if ($propertyId === null || $propertyId < 1) {
             throw new InvalidArgumentException('A valid property id is required.');
         }
+
+        // Apply listing visibility before loading its supporting evidence.
+        $container['properties']->find($propertyId, $user);
 
         return [
             'state' => $container['properties']->dueDiligenceState($propertyId),

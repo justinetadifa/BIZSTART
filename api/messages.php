@@ -4,7 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 
 api_handle(function (array $container): array {
-    $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+    $method = request_method();
     $user = sfc_current_user();
     $attachVisit = static function (array $payload, ?array $currentUser, ?int $propertyId = null) use ($container): array {
         $thread = is_array($payload['thread'] ?? null) ? $payload['thread'] : null;
@@ -46,6 +46,7 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('A valid property id is required.');
         }
 
+        $container['properties']->find($propertyId, $user);
         return $attachVisit($container['messages']->propertyConversation($propertyId, $user), $user, $propertyId);
     }
 
@@ -92,6 +93,7 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('A valid property id is required.');
     }
 
+    $container['properties']->find($propertyId, $user);
     $existingConversation = $container['messages']->propertyConversation($propertyId, $user);
     $isNewConversation = !is_array($existingConversation['thread'] ?? null);
     $result = $container['messages']->sendToProperty($propertyId, $user, $text);

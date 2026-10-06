@@ -199,6 +199,7 @@ sfc_render_head('LOCUS-SF', $context, ['page' => 'landing', 'role' => $context['
 sfc_render_header($context, 'landing');
 ?>
 <main class="page-shell landing-shell landing-editorial-shell landing-calm-shell" id="main-content" tabindex="-1">
+  <template id="landingBlueButtonArt"><?= sfc_blue_button_art($context) ?></template>
   <section class="hero-home hero-home-editorial hero-home-refined" data-hero-stage aria-labelledby="heroHeadline" style="--hero-image:url('<?= htmlspecialchars($heroImage, ENT_QUOTES, 'UTF-8') ?>')">
     <div class="hero-canvas" id="hero-canvas" aria-hidden="true">
       <div class="hero-home-backdrop"></div>
@@ -460,21 +461,45 @@ sfc_render_header($context, 'landing');
         <p>San Fernando works because transport, commerce, social services, and future growth all remain visible in one frame. That makes the city easier to read and easier to curate convincingly.</p>
       </div>
       <div class="landing-city-pillars">
-        <article class="landing-pillar-card">
-          <span>Corridor Strength</span>
-          <strong>Port, highway, and frontage alignment create stronger logistics logic than isolated land plays.</strong>
+        <article class="landing-pillar-card" data-pillar="corridor">
+          <div class="pillar-card-head">
+            <span class="pillar-icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 19L8 5m8 14l4-14M12 5v14M12 9h.01M12 15h.01"/></svg>
+            </span>
+            <span class="pillar-kicker">Corridor Strength · 01</span>
+          </div>
+          <strong class="pillar-title">Logistics &amp; Port Access</strong>
+          <p class="pillar-desc">Port, highway, and frontage alignment create stronger logistics logic than isolated land plays.</p>
         </article>
-        <article class="landing-pillar-card">
-          <span>Demand Anchors</span>
-          <strong>Schools, hospitals, and civic movement reveal what each district can realistically support next.</strong>
+        <article class="landing-pillar-card" data-pillar="anchors">
+          <div class="pillar-card-head">
+            <span class="pillar-icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M15 10v11M12 2L3 7v3h18V7L12 2z"/></svg>
+            </span>
+            <span class="pillar-kicker">Demand Anchors · 02</span>
+          </div>
+          <strong class="pillar-title">Civic &amp; Institutional Gravity</strong>
+          <p class="pillar-desc">Schools, hospitals, and civic movement reveal what each district can realistically support next.</p>
         </article>
-        <article class="landing-pillar-card">
-          <span>Urban Services</span>
-          <strong>City-center activity gives mixed-use, retail, and service opportunities a clearer real-world floor.</strong>
+        <article class="landing-pillar-card" data-pillar="services">
+          <div class="pillar-card-head">
+            <span class="pillar-icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <span class="pillar-kicker">Urban Services · 03</span>
+          </div>
+          <strong class="pillar-title">Commerce &amp; Mixed-Use Floor</strong>
+          <p class="pillar-desc">City-center activity gives mixed-use, retail, and service opportunities a clearer real-world floor.</p>
         </article>
-        <article class="landing-pillar-card">
-          <span>Expansion Runway</span>
-          <strong>Emerging frontage and larger land scale open room for slower, longer-horizon development bets.</strong>
+        <article class="landing-pillar-card" data-pillar="expansion">
+          <div class="pillar-card-head">
+            <span class="pillar-icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </span>
+            <span class="pillar-kicker">Expansion Runway · 04</span>
+          </div>
+          <strong class="pillar-title">Long-Horizon Scale</strong>
+          <p class="pillar-desc">Emerging frontage and larger land scale open room for slower, longer-horizon development bets.</p>
         </article>
       </div>
     </div>
@@ -512,16 +537,76 @@ sfc_render_header($context, 'landing');
     </div>
   </section>
 
-  <section class="site-shell final-cta-card landing-final-cta">
+  <section class="site-shell final-cta-card landing-final-cta" id="role-entry">
     <div class="landing-final-cta-copy">
-      <div class="eyebrow">Role Entry</div>
+      <div class="eyebrow">
+        <span class="cta-glow-dot" aria-hidden="true"></span>
+        Role-Based Workspaces
+      </div>
       <h2>Enter through the workflow that matches the kind of decision you need to make.</h2>
-      <p>Choose the workspace that matches your role, with the same clear visual language carried into every next step.</p>
+      <p>Choose the workspace tailored for your objectives, with the same clear spatial intelligence carried into every next step.</p>
     </div>
-    <div class="cta-card-actions">
-      <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-ghost">Admin</a>
-      <a href="<?= htmlspecialchars(sfc_path('/simulator.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-secondary">Scenario Simulator</a>
-      <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="btn-shell btn-shell-primary">Investor / Resident</a>
+    <div class="cta-card-actions landing-role-gateway-grid">
+      <!-- Admin Workspace -->
+      <a href="<?= htmlspecialchars(sfc_path('/admin-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="landing-gateway-card gateway-admin">
+        <div class="gateway-card-top">
+          <span class="gateway-badge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </span>
+          <span class="gateway-role-tag">Municipal Governance</span>
+        </div>
+        <div class="gateway-card-body">
+          <strong class="gateway-title">Admin Portal</strong>
+          <p class="gateway-desc">Validate candidate parcels, govern CLUP rules, verify land documents &amp; monitor city listings.</p>
+        </div>
+        <div class="gateway-card-footer">
+          <span class="gateway-action-link">
+            <span>Admin Sign In</span>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- Scenario Simulator -->
+      <a href="<?= htmlspecialchars(sfc_path('/simulator.php'), ENT_QUOTES, 'UTF-8') ?>" class="landing-gateway-card gateway-simulator">
+        <div class="gateway-card-top">
+          <span class="gateway-badge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          </span>
+          <span class="gateway-role-tag">Strategy Sandbox</span>
+        </div>
+        <div class="gateway-card-body">
+          <strong class="gateway-title">Scenario Simulator</strong>
+          <p class="gateway-desc">Simulate corridor developments, test policy impacts &amp; evaluate mixed-use ROI forecasts.</p>
+        </div>
+        <div class="gateway-card-footer">
+          <span class="gateway-action-link">
+            <span>Launch Sandbox</span>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14" aria-hidden="true"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- Investor / Resident (Primary Featured Gateway) -->
+      <div class="landing-gateway-card gateway-investor is-featured">
+        <div class="gateway-card-top">
+          <span class="gateway-badge-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </span>
+          <span class="gateway-featured-pill">Primary Entry</span>
+        </div>
+        <div class="gateway-card-body">
+          <strong class="gateway-title">Investor &amp; Resident</strong>
+          <p class="gateway-desc">Explore ranked real estate opportunities, due diligence ratings, demand signals, and zoning fit.</p>
+        </div>
+        <div class="gateway-card-footer">
+          <a href="<?= htmlspecialchars(sfc_path('/investor-login.php'), ENT_QUOTES, 'UTF-8') ?>" class="locus-blue-button locus-blue-button-compact gateway-blue-button">
+            <?= sfc_blue_button_art($context) ?>
+            <span class="locus-btn-label">Enter Investor Portal</span>
+            <svg class="btn-arrow-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </a>
+        </div>
+      </div>
     </div>
   </section>
 </main>
