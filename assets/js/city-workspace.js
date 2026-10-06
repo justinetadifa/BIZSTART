@@ -431,125 +431,115 @@ function renderEvaluationSection(property) {
 
   return `
   <section class="city-detail-panel" id="investmentEvaluationSection">
-    <div class="flex items-center justify-between pb-3.5 border-b border-[#dfe3e9] mb-4">
+    <div class="flex items-center justify-between pb-3 border-b border-[#dfe3e9] mb-4">
       <div>
-        <div class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider">Policy Support & Evaluation</div>
-        <h2 class="text-xl font-bold text-[#11224D] mt-0.5">Investment Evaluation</h2>
+        <span class="city-eyebrow" style="margin-bottom:2px">Policy Support</span>
+        <h2 class="text-xl font-bold text-[#11224D] m-0">Investment evaluation & policy alignment</h2>
       </div>
-      <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold bg-red-50 text-[#9E1B22] border border-red-200">
+      <span class="text-xs font-semibold text-[#697284]">
         ${esc(policy.ordinance_number)}
       </span>
     </div>
 
     <!-- Step 1: Proposed Business Type -->
-    <div class="space-y-3 mb-5">
-      <div>
-        <label for="evalBusinessType" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-          Proposed Business Type
-        </label>
-        <select id="evalBusinessType" class="w-full bg-white border border-[#dfe3e9] rounded-xl px-3.5 py-2.5 text-sm text-[#11224D] font-medium focus:ring-2 focus:ring-[#9E1B22] focus:border-[#9E1B22] shadow-sm">
-          <option value="">Select proposed business activity...</option>
-          <optgroup label="Priority Investment Sectors (Ordinance No. 2024-41)">
-            <option value="ict" data-sector="Information & Communication Technology" data-priority="true">Information & Communication Technology (IT-BPM / Software / Tech)</option>
-            <option value="tourism" data-sector="Tourism & Transportation" data-priority="true">Tourism & Transportation (Hospitality / Eco-Resort / Transit)</option>
-            <option value="agri" data-sector="Agriculture, Agribusiness & Fishery" data-priority="true">Agriculture, Agribusiness & Fishery (Commercial Agri-Aqua)</option>
-            <option value="agri_support" data-sector="Support Facilities for Agriculture and Food Production" data-priority="true">Support Facilities for Agriculture and Food Production</option>
-            <option value="manufacturing" data-sector="Manufacturing & Processing" data-priority="true">Manufacturing & Processing (Light & Medium Industry)</option>
-            <option value="infra" data-sector="Infrastructure, Water, Sanitation & Property Development" data-priority="true">Infrastructure, Water, Sanitation & Property Development</option>
-            <option value="waste" data-sector="Ecological Solid Waste Management" data-priority="true">Ecological Solid Waste Management (Recycling / Green Facilities)</option>
-          </optgroup>
-          <optgroup label="Standard Commercial Sectors">
-            <option value="retail" data-sector="General Retail & Storefront" data-priority="false">General Retail & Storefront Services</option>
-            <option value="dining" data-sector="General Dining & Food Service" data-priority="false">General Dining & Food Service</option>
-            <option value="other" data-sector="Other Commercial Activity" data-priority="false">Other General Commercial Activity</option>
-          </optgroup>
-        </select>
-      </div>
+    <div class="mb-5">
+      <label for="evalBusinessType" class="block text-xs font-bold uppercase tracking-wider text-[#11224D] mb-1.5">
+        Proposed Business Type
+      </label>
+      <select id="evalBusinessType" class="w-full bg-white border border-[#dfe3e9] rounded-[4px] px-3 py-2 text-sm text-[#11224D] font-medium focus:outline-none focus:border-[#9E1B22]">
+        <option value="">Select proposed business activity...</option>
+        <optgroup label="Priority Investment Sectors (Ordinance No. 2024-41)">
+          <option value="ict" data-sector="Information & Communication Technology" data-priority="true">Information & Communication Technology (IT-BPM / Software / Tech)</option>
+          <option value="tourism" data-sector="Tourism & Transportation" data-priority="true">Tourism & Transportation (Hospitality / Eco-Resort / Transit)</option>
+          <option value="agri" data-sector="Agriculture, Agribusiness & Fishery" data-priority="true">Agriculture, Agribusiness & Fishery (Commercial Agri-Aqua)</option>
+          <option value="agri_support" data-sector="Support Facilities for Agriculture and Food Production" data-priority="true">Support Facilities for Agriculture and Food Production</option>
+          <option value="manufacturing" data-sector="Manufacturing & Processing" data-priority="true">Manufacturing & Processing (Light & Medium Industry)</option>
+          <option value="infra" data-sector="Infrastructure, Water, Sanitation & Property Development" data-priority="true">Infrastructure, Water, Sanitation & Property Development</option>
+          <option value="waste" data-sector="Ecological Solid Waste Management" data-priority="true">Ecological Solid Waste Management (Recycling / Green Facilities)</option>
+        </optgroup>
+        <optgroup label="Standard Commercial Sectors">
+          <option value="retail" data-sector="General Retail & Storefront" data-priority="false">General Retail & Storefront Services</option>
+          <option value="dining" data-sector="General Dining & Food Service" data-priority="false">General Dining & Food Service</option>
+          <option value="other" data-sector="Other Commercial Activity" data-priority="false">Other General Commercial Activity</option>
+        </optgroup>
+      </select>
 
       <!-- Priority Alignment Callout -->
-      <div id="evalAlignmentCallout" class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3 transition">
-        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold mt-0.5 flex-shrink-0">i</span>
-        <div>
-          <div class="text-xs font-bold text-slate-700 uppercase tracking-wide" id="evalAlignmentTitle">Select Proposed Business Activity</div>
-          <p class="text-xs text-slate-600 mt-0.5 leading-relaxed font-normal" id="evalAlignmentMessage">
-            Choose an activity above to evaluate alignment with San Fernando City priority sectors.
-          </p>
-          <div id="evalSectorTag" class="hidden text-[11px] font-semibold text-emerald-800 mt-1"></div>
-        </div>
+      <div id="evalAlignmentCallout" class="mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition">
+        <div class="text-xs font-bold text-[#11224D]" id="evalAlignmentTitle">Select Proposed Business Activity</div>
+        <p class="text-xs text-[#697284] mt-0.5 m-0 leading-relaxed font-normal" id="evalAlignmentMessage">
+          Choose an activity above to evaluate alignment with San Fernando City priority sectors.
+        </p>
+        <div id="evalSectorTag" class="hidden text-[11px] font-semibold text-[#2A603B] mt-1"></div>
       </div>
     </div>
 
     <!-- Step 2: Proposed Capitalization & Potential Incentive -->
-    <div class="space-y-3 mb-5 pt-3 border-t border-[#dfe3e9]">
-      <div>
-        <label for="evalCapital" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-          Proposed Capitalization (PHP)
-        </label>
-        <div class="relative">
-          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold text-sm">₱</span>
-          <input type="number" id="evalCapital" min="0" step="500000" placeholder="e.g. 15000000" class="w-full bg-white border border-[#dfe3e9] rounded-xl pl-8 pr-3.5 py-2.5 text-sm text-[#11224D] font-medium focus:ring-2 focus:ring-[#9E1B22] focus:border-[#9E1B22] shadow-sm">
-        </div>
-        <div class="flex flex-wrap gap-1.5 pt-1.5">
-          <button type="button" class="eval-cap-chip px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium transition" data-amount="2500000">₱2.5M</button>
-          <button type="button" class="eval-cap-chip px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium transition" data-amount="5000000">₱5M</button>
-          <button type="button" class="eval-cap-chip px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium transition" data-amount="15000000">₱15M</button>
-          <button type="button" class="eval-cap-chip px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md font-medium transition" data-amount="30000000">₱30M</button>
-        </div>
+    <div class="mb-5 pt-4 border-t border-[#dfe3e9]">
+      <label for="evalCapital" class="block text-xs font-bold uppercase tracking-wider text-[#11224D] mb-1.5">
+        Proposed Capitalization (PHP)
+      </label>
+      <input type="number" id="evalCapital" min="0" step="500000" placeholder="e.g. 15000000" class="w-full bg-white border border-[#dfe3e9] rounded-[4px] px-3 py-2 text-sm text-[#11224D] font-medium focus:outline-none focus:border-[#9E1B22]">
+      <div class="flex flex-wrap gap-1.5 pt-1.5">
+        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="2500000">₱2.5M</button>
+        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="5000000">₱5M</button>
+        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="15000000">₱15M</button>
+        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="30000000">₱30M</button>
       </div>
 
       <!-- Small Card: Potential Incentive -->
-      <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+      <div class="mt-3 p-3.5 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] space-y-1.5">
         <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">POTENTIAL INCENTIVE</span>
-          <span id="evalIncentiveBadge" class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 text-slate-700">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-[#697284]">POTENTIAL INCENTIVE</span>
+          <span id="evalIncentiveBadge" class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
             Awaiting Capital
           </span>
         </div>
-        <p id="evalIncentiveCopy" class="text-xs text-slate-700 font-medium leading-relaxed">
+        <p id="evalIncentiveCopy" class="text-xs text-[#11224D] font-medium m-0 leading-relaxed">
           Enter proposed capitalization above to evaluate potential local tax incentives under Ordinance No. 2024-41.
         </p>
-        <p class="text-[11px] text-slate-500 italic pt-1 border-t border-slate-200/60">
+        <p class="text-[11px] text-[#697284] italic m-0 pt-1 border-t border-[#dfe3e9]">
           “Final eligibility is subject to LGU review and applicable requirements.”
         </p>
       </div>
     </div>
 
     <!-- Step 3: Run MCE Evaluation & Visually Separated IAI Results -->
-    <div class="space-y-3 mb-5 pt-3 border-t border-[#dfe3e9]">
-      <div class="flex items-center justify-between">
+    <div class="mb-5 pt-4 border-t border-[#dfe3e9]">
+      <div class="flex items-center justify-between mb-3">
         <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-700">Multi-Criteria Evaluation</span>
-          <p class="text-xs text-slate-500">${isAssessed ? 'Official assessment loaded' : 'Provisional simulation baseline (official assessment pending)'}</p>
+          <span class="text-xs font-bold uppercase tracking-wider text-[#11224D]">Multi-Criteria Evaluation</span>
+          <p class="text-xs text-[#697284] m-0">${isAssessed ? 'Official assessment loaded' : 'Provisional simulation baseline (official assessment pending)'}</p>
         </div>
-        <button type="button" id="evalRunMceBtn" class="px-3.5 py-1.5 text-xs font-semibold bg-[#11224D] hover:bg-[#1e293b] text-white rounded-lg transition shadow-sm">
+        <button type="button" id="evalRunMceBtn" class="city-button city-button-secondary city-button-small">
           Run MCE
         </button>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <!-- Base IAI -->
-        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-xl text-center shadow-sm">
-          <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Base IAI</span>
+        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
+          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Base IAI</span>
           <strong id="evalBaseIaiVal" class="block text-2xl font-bold text-[#11224D] mt-1">${displayBaseIai.toFixed(1)}</strong>
-          <span class="block text-[10px] text-slate-400 mt-0.5">${isAssessed ? 'Recorded score' : 'Provisional baseline'}</span>
+          <span class="block text-[10px] text-[#697284] mt-0.5">${isAssessed ? 'Recorded score' : 'Provisional baseline'}</span>
         </div>
 
         <!-- Policy Priority Adjustment -->
-        <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-center shadow-sm">
-          <span class="block text-[11px] font-bold text-amber-800 uppercase tracking-wider">Policy Priority Adjustment</span>
-          <strong id="evalAdjVal" class="block text-2xl font-bold text-amber-700 mt-1">0%</strong>
-          <span id="evalAdjPts" class="block text-[10px] text-amber-800 font-medium mt-0.5">+0.0 pts</span>
+        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
+          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Policy Priority Adjustment</span>
+          <strong id="evalAdjVal" class="block text-2xl font-bold text-[#9E1B22] mt-1">0%</strong>
+          <span id="evalAdjPts" class="block text-[10px] font-mono text-[#697284] font-medium mt-0.5">+0.0 pts</span>
         </div>
 
         <!-- Final IAI -->
-        <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center shadow-sm">
-          <span class="block text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Final IAI</span>
-          <strong id="evalFinalIaiVal" class="block text-2xl font-bold text-emerald-700 mt-1">${displayBaseIai.toFixed(1)}</strong>
-          <span class="block text-[10px] text-emerald-800 font-medium mt-0.5">Cap at 100</span>
+        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
+          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Final IAI</span>
+          <strong id="evalFinalIaiVal" class="block text-2xl font-bold text-[#2A603B] mt-1">${displayBaseIai.toFixed(1)}</strong>
+          <span class="block text-[10px] text-[#2A603B] font-semibold mt-0.5">Cap at 100</span>
         </div>
       </div>
 
-      <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 leading-relaxed">
+      <div class="mt-3 p-3 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] text-xs text-[#697284] leading-relaxed">
         <strong class="text-[#11224D]">Adjustment Rationale:</strong>
         <span id="evalRationaleText">
           Final IAI reflects a +${policy.policy_priority_adjustment_percent}% policy-priority adjustment applied to Base IAI under the city's investment incentive framework. This policy adjustment is distinct from the base multi-criteria spatial evaluation (MCE).
@@ -559,100 +549,87 @@ function renderEvaluationSection(property) {
 
     <!-- Step 4: Generate Report Trigger -->
     <div class="pt-2">
-      <button type="button" id="evalOpenReportBtn" class="city-button w-full justify-center text-sm py-3 font-semibold shadow-sm">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      <button type="button" id="evalOpenReportBtn" class="city-button w-full justify-center">
         Generate Investment Report →
       </button>
     </div>
   </section>
 
   <!-- MODAL: INVESTMENT COMPLIANCE CHECK -->
-  <dialog id="evalComplianceModal" class="city-dialog max-w-xl w-full p-6 bg-white rounded-2xl border border-slate-200 shadow-2xl backdrop:bg-slate-900/40">
-    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+  <dialog id="evalComplianceModal" class="city-dialog max-w-lg w-full p-6 bg-white rounded-[6px] border border-[#dfe3e9] shadow-lg">
+    <div class="flex items-center justify-between pb-3 border-b border-[#dfe3e9]">
       <div>
-        <span class="text-xs font-bold text-[#9E1B22] uppercase tracking-wider">Statutory Verification</span>
-        <h3 class="text-xl font-bold text-[#11224D] mt-0.5">INVESTMENT COMPLIANCE CHECK</h3>
+        <span class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider block">Statutory Verification</span>
+        <h3 class="text-base font-bold text-[#11224D] mt-0.5 m-0">INVESTMENT COMPLIANCE CHECK</h3>
       </div>
-      <button type="button" class="close-compliance-modal text-slate-400 hover:text-slate-600 text-2xl font-light">&times;</button>
+      <button type="button" class="close-compliance-modal text-slate-400 hover:text-[#11224D] text-2xl font-light bg-transparent border-0 p-0 leading-none">&times;</button>
     </div>
-    <div class="py-5 space-y-3.5">
-      <p class="text-xs text-slate-600 leading-relaxed">
+    <div class="py-4 space-y-3">
+      <p class="text-xs text-[#697284] leading-relaxed m-0">
         Prior to generating and finalizing an investment report, review the following verified statutory compliance obligations:
       </p>
 
-      <!-- Checklist Rows (not paragraphs) -->
-      <div class="space-y-2.5">
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
-          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-          <div>
-            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">Workforce Requirement</h4>
-            <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
-              “Maintain the required proportion of qualified San Fernando City residents in the workforce.”
-            </p>
-          </div>
+      <!-- Checklist Rows -->
+      <div class="space-y-2">
+        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
+          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">Workforce Requirement</h4>
+          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
+            Maintain the required proportion of qualified San Fernando City residents in the workforce.
+          </p>
         </div>
 
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
-          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-          <div>
-            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">CSR Commitment</h4>
-            <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
-              “Allocate the required portion of availed incentives to qualified CSR initiatives within the prescribed period.”
-            </p>
-          </div>
+        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
+          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">CSR Commitment</h4>
+          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
+            Allocate the required portion of availed incentives to qualified CSR initiatives within the prescribed period.
+          </p>
         </div>
 
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
-          <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-          <div>
-            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide">Zoning Compliance</h4>
-            <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
-              “Investment activities must comply with applicable zoning and land-use regulations.”
-            </p>
-          </div>
+        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
+          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">Zoning Compliance</h4>
+          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
+            Investment activities must comply with applicable zoning and land-use regulations.
+          </p>
         </div>
       </div>
 
       <div class="pt-2">
-        <label class="flex items-center gap-3 p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl cursor-pointer">
+        <label class="flex items-center gap-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] cursor-pointer">
           <input type="checkbox" id="complianceAgreeCheck" class="w-4 h-4 rounded text-[#9E1B22] focus:ring-[#9E1B22] border-slate-300">
-          <span class="text-xs font-semibold text-slate-800">I understand these requirements</span>
+          <span class="text-xs font-semibold text-[#11224D]">I understand these requirements</span>
         </label>
       </div>
     </div>
-    <div class="pt-4 border-t border-slate-200 flex justify-end gap-2.5">
-      <button type="button" class="close-compliance-modal px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800">Cancel</button>
-      <button type="button" id="confirmGenerateReportBtn" disabled class="px-4 py-2 bg-[#9E1B22] hover:bg-[#82171d] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg transition shadow-sm">
+    <div class="pt-3 border-t border-[#dfe3e9] flex justify-end gap-2">
+      <button type="button" class="close-compliance-modal city-button city-button-secondary city-button-small">Cancel</button>
+      <button type="button" id="confirmGenerateReportBtn" disabled class="city-button city-button-small disabled:opacity-40 disabled:cursor-not-allowed">
         Finalize & Generate Report
       </button>
     </div>
   </dialog>
 
   <!-- MODAL: FINAL INVESTMENT DECISION REPORT -->
-  <dialog id="evalReportResultModal" class="city-dialog max-w-2xl w-full p-8 bg-white rounded-2xl border border-slate-200 shadow-2xl backdrop:bg-slate-900/40">
-    <div class="flex items-start justify-between pb-4 border-b border-slate-200">
+  <dialog id="evalReportResultModal" class="city-dialog max-w-2xl w-full p-6 md:p-8 bg-white rounded-[6px] border border-[#dfe3e9] shadow-lg">
+    <div class="flex items-start justify-between pb-3 border-b border-[#dfe3e9]">
       <div>
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-[#9E1B22]"></span>
-          <span class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider">LOCUS-SF Decision Memo</span>
-        </div>
-        <h3 class="text-2xl font-bold text-[#11224D] mt-1">Investment Decision Report</h3>
-        <p class="text-xs text-slate-500 mt-0.5">San Fernando City · Ordinance No. 2024-41 Policy Alignment</p>
+        <span class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider block">Decision Memorandum</span>
+        <h3 class="text-lg font-bold text-[#11224D] mt-0.5 m-0">Investment Decision Report</h3>
+        <p class="text-xs text-[#697284] mt-0.5 m-0">City Government of San Fernando · Ordinance No. 2024-41 Policy Alignment</p>
       </div>
-      <button type="button" class="close-report-modal text-slate-400 hover:text-slate-600 text-2xl font-light leading-none">&times;</button>
+      <button type="button" class="close-report-modal text-slate-400 hover:text-[#11224D] text-2xl font-light leading-none bg-transparent border-0 p-0">&times;</button>
     </div>
 
-    <div class="py-6 space-y-5" id="evalReportContent">
+    <div class="py-5 space-y-3" id="evalReportContent">
       <!-- Injected Dynamically -->
     </div>
 
-    <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
-      <span class="text-[11px] text-slate-400">Preliminary Decision Memo · Non-binding until official LGU review</span>
+    <div class="pt-3 border-t border-[#dfe3e9] flex items-center justify-between">
+      <span class="text-[11px] text-[#697284]">Preliminary Decision Memo · Non-binding until official LGU review</span>
       <div class="flex gap-2">
-        <button type="button" id="printReportMemoBtn" class="px-4 py-2 bg-[#11224D] hover:bg-[#1e293b] text-white text-xs font-semibold rounded-lg transition shadow-sm">
+        <button type="button" id="printReportMemoBtn" class="city-button city-button-small">
           Print / Save PDF
         </button>
-        <button type="button" class="close-report-modal px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">
+        <button type="button" class="close-report-modal city-button city-button-secondary city-button-small">
           Close
         </button>
       </div>
@@ -697,10 +674,10 @@ function setupEvaluation(property) {
   function updateAlignment() {
     const selectedOption = typeSelect.options[typeSelect.selectedIndex];
     if (!typeSelect.value) {
-      alignmentCallout.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3 transition';
-      alignmentTitle.className = 'text-xs font-bold text-slate-700 uppercase tracking-wide';
+      alignmentCallout.className = 'mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition';
+      alignmentTitle.className = 'text-xs font-bold text-[#11224D]';
       alignmentTitle.textContent = 'Select Proposed Business Activity';
-      alignmentMessage.className = 'text-xs text-slate-600 mt-0.5 leading-relaxed font-normal';
+      alignmentMessage.className = 'text-xs text-[#697284] mt-0.5 leading-relaxed font-normal';
       alignmentMessage.textContent = 'Choose an activity above to evaluate alignment with San Fernando City priority sectors.';
       sectorTag.classList.add('hidden');
       return { isPriority: false, sector: '' };
@@ -709,18 +686,18 @@ function setupEvaluation(property) {
     const sector = selectedOption.dataset.sector || '';
 
     if (isPriority) {
-      alignmentCallout.className = 'p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3 transition';
-      alignmentTitle.className = 'text-xs font-bold text-emerald-900 uppercase tracking-wide';
+      alignmentCallout.className = 'mt-2.5 p-3 bg-white border border-[#2A603B] rounded-[4px] transition';
+      alignmentTitle.className = 'text-xs font-bold text-[#2A603B] uppercase tracking-wider';
       alignmentTitle.textContent = 'Priority Investment Alignment';
-      alignmentMessage.className = 'text-xs text-emerald-800 mt-0.5 leading-relaxed font-medium';
-      alignmentMessage.textContent = '“This proposed activity aligns with a priority investment sector identified by the City of San Fernando.”';
+      alignmentMessage.className = 'text-xs text-[#11224D] mt-0.5 leading-relaxed font-medium';
+      alignmentMessage.textContent = 'This proposed activity aligns with a priority investment sector identified by the City of San Fernando.';
       sectorTag.textContent = `Sector: ${sector}`;
       sectorTag.classList.remove('hidden');
     } else {
-      alignmentCallout.className = 'p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3 transition';
-      alignmentTitle.className = 'text-xs font-bold text-slate-700 uppercase tracking-wide';
+      alignmentCallout.className = 'mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition';
+      alignmentTitle.className = 'text-xs font-bold text-[#697284] uppercase tracking-wider';
       alignmentTitle.textContent = 'Standard Commercial Activity';
-      alignmentMessage.className = 'text-xs text-slate-600 mt-0.5 leading-relaxed font-normal';
+      alignmentMessage.className = 'text-xs text-[#697284] mt-0.5 leading-relaxed font-normal';
       alignmentMessage.textContent = 'This proposed activity is evaluated under the standard commercial baseline (no policy-priority modifier applied).';
       sectorTag.classList.add('hidden');
     }
@@ -733,19 +710,19 @@ function setupEvaluation(property) {
     const tier2 = policy.incentive_thresholds?.tier2_min_capital ?? 3000000;
 
     if (cap >= tier1) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300';
+      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#2A603B] border border-[#2A603B]';
       incentiveBadge.textContent = '1-Year LBT Exemption';
-      incentiveCopy.textContent = '“Potentially eligible for a 1-year Local Business Tax exemption.”';
+      incentiveCopy.textContent = 'Potentially eligible for a 1-year Local Business Tax exemption.';
     } else if (cap >= tier2) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-800 border border-blue-300';
+      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#11224D] border border-[#11224D]';
       incentiveBadge.textContent = '10% LBT Discount';
-      incentiveCopy.textContent = '“Potentially eligible for a 10% Local Business Tax discount.”';
+      incentiveCopy.textContent = 'Potentially eligible for a 10% Local Business Tax discount.';
     } else if (cap > 0) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300';
+      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#697284] border border-[#dfe3e9]';
       incentiveBadge.textContent = 'Small Enterprise / BMBE';
-      incentiveCopy.textContent = '“May fall within the applicable small-enterprise/BMBE qualification range, subject to eligibility requirements.”';
+      incentiveCopy.textContent = 'May fall within the applicable small-enterprise/BMBE qualification range, subject to eligibility requirements.';
     } else {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-200 text-slate-700';
+      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-medium bg-[#F8F9FA] text-[#697284] border border-[#dfe3e9]';
       incentiveBadge.textContent = 'Awaiting Capital Input';
       incentiveCopy.textContent = 'Enter proposed project capitalization in PHP to evaluate potential incentive tiers under Ordinance No. 2024-41.';
     }
@@ -814,67 +791,67 @@ function setupEvaluation(property) {
     const reportContent = document.getElementById('evalReportContent');
 
     reportContent.innerHTML = `
-      <div class="p-4 bg-[#F8F9FA] rounded-xl border border-[#dfe3e9] space-y-2">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Candidate Parcel</div>
-        <h4 class="text-lg font-bold text-[#11224D]">${esc(property.name)}</h4>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1 border-t border-slate-200">
-          <div><span class="text-slate-500">Location:</span> <strong class="text-slate-800">${esc(property.barangay || 'San Fernando')}</strong></div>
-          <div><span class="text-slate-500">Area:</span> <strong class="text-slate-800">${number(property.area)} ha</strong></div>
-          <div><span class="text-slate-500">Category:</span> <strong class="text-slate-800">${esc(property.category)}</strong></div>
-          <div><span class="text-slate-500">Zoning:</span> <strong class="text-slate-800">${esc(property.clupProfile?.zoningClassification || 'Awaiting Review')}</strong></div>
+      <div class="p-4 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] space-y-2">
+        <div class="text-[11px] font-bold text-[#697284] uppercase tracking-wider">Candidate Parcel</div>
+        <h4 class="text-base font-bold text-[#11224D] m-0">${esc(property.name)}</h4>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2 border-t border-[#dfe3e9]">
+          <div><span class="text-[#697284]">Location:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.barangay || 'San Fernando')}</strong></div>
+          <div><span class="text-[#697284]">Area:</span> <strong class="text-[#11224D] block sm:inline">${number(property.area)} ha</strong></div>
+          <div><span class="text-[#697284]">Category:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.category)}</strong></div>
+          <div><span class="text-[#697284]">Zoning:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.clupProfile?.zoningClassification || 'Awaiting Review')}</strong></div>
         </div>
       </div>
 
-      <div class="p-4 bg-white rounded-xl border border-[#dfe3e9] space-y-3">
+      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-2.5">
         <div class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider">Proposed Activity & Policy Alignment</div>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div class="text-sm font-bold text-[#11224D]">${esc(selectedText)}</div>
-            <div class="text-xs text-slate-500">${sector ? `Priority Sector: ${esc(sector)}` : 'Standard Commercial'}</div>
+            <div class="text-xs text-[#697284]">${sector ? `Priority Sector: ${esc(sector)}` : 'Standard Commercial Activity'}</div>
           </div>
-          <span class="inline-flex items-center px-2.5 py-1 rounded text-xs font-semibold ${isPriority ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-700'}">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-[3px] text-xs font-semibold ${isPriority ? 'bg-white text-[#2A603B] border border-[#2A603B]' : 'bg-[#F8F9FA] text-[#697284] border border-[#dfe3e9]'}">
             ${isPriority ? 'Priority Aligned' : 'Standard Baseline'}
           </span>
         </div>
-        ${isPriority ? `<p class="text-xs text-emerald-800 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 leading-relaxed font-medium">“This proposed activity aligns with a priority investment sector identified by the City of San Fernando.”</p>` : ''}
+        ${isPriority ? `<p class="text-xs text-[#2A603B] bg-[#F8F9FA] p-2.5 rounded-[3px] border border-[#2A603B] leading-relaxed font-medium m-0">This proposed activity aligns with a priority investment sector identified by the City of San Fernando.</p>` : ''}
       </div>
 
-      <div class="p-4 bg-white rounded-xl border border-[#dfe3e9] space-y-3">
+      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-3">
         <div class="text-[11px] font-bold text-[#11224D] uppercase tracking-wider">Analytical Score Breakdown</div>
         <div class="grid grid-cols-3 gap-3 text-center">
-          <div class="p-3 bg-[#F8F9FA] rounded-lg">
-            <span class="block text-[10px] font-bold text-slate-500 uppercase">Base IAI</span>
+          <div class="p-3 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9]">
+            <span class="block text-[10px] font-bold text-[#697284] uppercase">Base IAI</span>
             <strong class="text-xl font-bold text-[#11224D]">${baseScore.toFixed(1)}</strong>
           </div>
-          <div class="p-3 bg-amber-50 rounded-lg">
-            <span class="block text-[10px] font-bold text-amber-800 uppercase">Policy Priority Adj.</span>
-            <strong class="text-xl font-bold text-amber-700">+${adjustmentPercent}%</strong>
-            <span class="block text-[10px] text-amber-800">+${adjustmentPoints.toFixed(1)} pts</span>
+          <div class="p-3 bg-white rounded-[4px] border border-[#dfe3e9]">
+            <span class="block text-[10px] font-bold text-[#9E1B22] uppercase">Policy Priority Adj.</span>
+            <strong class="text-xl font-bold text-[#9E1B22]">+${adjustmentPercent}%</strong>
+            <span class="block text-[10px] font-mono text-[#697284]">+${adjustmentPoints.toFixed(1)} pts</span>
           </div>
-          <div class="p-3 bg-emerald-50 rounded-lg">
-            <span class="block text-[10px] font-bold text-emerald-800 uppercase">Final IAI</span>
-            <strong class="text-xl font-bold text-emerald-700">${finalScore.toFixed(1)}</strong>
-            <span class="block text-[10px] text-emerald-800">Capped at 100</span>
+          <div class="p-3 bg-white rounded-[4px] border border-[#2A603B]">
+            <span class="block text-[10px] font-bold text-[#2A603B] uppercase">Final IAI</span>
+            <strong class="text-xl font-bold text-[#2A603B]">${finalScore.toFixed(1)}</strong>
+            <span class="block text-[10px] text-[#2A603B] font-medium">Capped at 100</span>
           </div>
         </div>
-        <p class="text-[11px] text-slate-500 leading-relaxed">
+        <p class="text-[11px] text-[#697284] leading-relaxed m-0">
           * Final IAI reflects a +${adjustmentPercent}% policy-priority adjustment applied to Base IAI under the city's investment incentive framework. This policy adjustment is distinct from the base multi-criteria spatial evaluation (MCE).
         </p>
       </div>
 
-      <div class="p-4 bg-white rounded-xl border border-[#dfe3e9] space-y-2">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estimated Incentives (Ordinance No. 2024-41)</div>
+      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-2">
+        <div class="text-[11px] font-bold text-[#697284] uppercase tracking-wider">Estimated Incentives (Ordinance No. 2024-41)</div>
         <div class="flex items-center justify-between">
-          <span class="text-xs text-slate-600">Capitalization: <strong>${cap > 0 ? money(cap) : 'Not Specified'}</strong></span>
-          <span class="text-xs font-semibold px-2 py-0.5 rounded ${incentiveBadge.className}">${incentiveBadge.textContent}</span>
+          <span class="text-xs text-[#697284]">Capitalization: <strong class="text-[#11224D]">${cap > 0 ? money(cap) : 'Not Specified'}</strong></span>
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-[3px] ${incentiveBadge.className}">${incentiveBadge.textContent}</span>
         </div>
-        <p class="text-xs text-slate-700 font-medium">${incentiveCopy.textContent}</p>
-        <p class="text-[10px] text-slate-400 italic">“Final eligibility is subject to LGU review and applicable requirements.”</p>
+        <p class="text-xs text-[#11224D] font-medium m-0">${incentiveCopy.textContent}</p>
+        <p class="text-[10px] text-[#697284] italic m-0">Final eligibility is subject to LGU review and applicable requirements.</p>
       </div>
 
-      <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-        <div class="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Statutory Compliance Acknowledged</div>
-        <ul class="text-xs text-slate-600 space-y-1 pl-4 list-disc">
+      <div class="p-4 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] space-y-1.5">
+        <div class="text-[11px] font-bold text-[#11224D] uppercase tracking-wider">Statutory Compliance Acknowledged</div>
+        <ul class="text-xs text-[#697284] space-y-1 pl-4 list-disc m-0">
           <li>Maintain the required proportion of qualified San Fernando City residents in the workforce.</li>
           <li>Allocate the required portion of availed incentives to qualified CSR initiatives within the prescribed period.</li>
           <li>Investment activities must comply with applicable zoning and land-use regulations.</li>
