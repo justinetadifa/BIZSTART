@@ -127,4 +127,5 @@ return [
     'decisionEngine' => $decisionEngine,
     'clup' => $clup,
     'commandCenter' => $commandCenter,
+    'config' => $config,
 ];

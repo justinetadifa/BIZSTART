@@ -17,6 +17,14 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
             'logoutUrl' => sfc_path('/logout.php'),
             'loginUrl' => sfc_path(match ($user['role'] ?? '') { 'admin' => '/admin-login.php', 'seller' => '/seller-login.php', default => '/investor-login.php' }),
         ],
+        'policy' => (require dirname(__DIR__) . '/config.php')['policy'] ?? [
+            'ordinance_number' => 'Ordinance No. 2024-41',
+            'policy_priority_adjustment_percent' => 10.0,
+            'incentive_thresholds' => [
+                'tier1_min_capital' => 15000000.0,
+                'tier2_min_capital' => 3000000.0,
+            ],
+        ],
     ];
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     $legacy = !str_starts_with($page, 'city-') && !in_array($page, ['broker-workspace', 'admin-workspace', 'admin-listings', 'profile', 'investor-login', 'seller-login', 'admin-login'], true);
@@ -49,6 +57,27 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700&family=Montserrat:wght@800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: { preflight: false },
+      theme: {
+        extend: {
+          colors: {
+            cityNavy: '#11224D',
+            cityRed: '#9E1B22',
+            cityPaper: '#F8F9FA',
+            cityBorder: '#dfe3e9',
+            cityMuted: '#697284',
+            cityGreen: '#2A603B',
+          },
+          fontFamily: {
+            sans: ['Inter', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>

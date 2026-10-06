@@ -40,6 +40,14 @@ api_handle(function (array $container): array {
         'stats' => SiteMetrics::summary($container['pdo']),
         'categories' => PropertyCatalog::categories(),
         'criteria' => PropertyCatalog::criteria(),
+        'policy' => $container['config']['policy'] ?? [
+            'ordinance_number' => 'Ordinance No. 2024-41',
+            'policy_priority_adjustment_percent' => 10.0,
+            'incentive_thresholds' => [
+                'tier1_min_capital' => 15000000.0,
+                'tier2_min_capital' => 3000000.0,
+            ],
+        ],
         'publicPreview' => $user === null,
         'generatedAt' => gmdate(DATE_ATOM),
     ];

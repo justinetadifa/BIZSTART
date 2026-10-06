@@ -86,4 +86,33 @@ final class PropertyAssessment
         }
         return $rankMap;
     }
+
+    public static function policyAdjustmentPercent(): float
+    {
+        $config = require dirname(__DIR__) . '/config.php';
+        return (float) ($config['policy']['policy_priority_adjustment_percent'] ?? 10.0);
+    }
+
+    public static function evaluateWithPolicy(?float $baseIai, bool $isPriority): array
+    {
+        $percent = self::policyAdjustmentPercent();
+        if ($baseIai === null) {
+            return [
+                'baseIai' => null,
+                'isPriority' => $isPriority,
+                'adjustmentPercent' => $isPriority ? $percent : 0.0,
+                'adjustmentPoints' => null,
+                'finalIai' => null,
+            ];
+        }
+        $adjustment = $isPriority ? round($baseIai * ($percent / 100), 1) : 0.0;
+        $finalIai = min(100.0, round($baseIai + $adjustment, 1));
+        return [
+            'baseIai' => $baseIai,
+            'isPriority' => $isPriority,
+            'adjustmentPercent' => $isPriority ? $percent : 0.0,
+            'adjustmentPoints' => $adjustment,
+            'finalIai' => $finalIai,
+        ];
+    }
 }

@@ -81,6 +81,24 @@ $defaults = [
             'units' => getenv('OPENWEATHER_UNITS') ?: 'metric',
         ],
     ],
+    'policy' => [
+        'ordinance_number' => 'Ordinance No. 2024-41',
+        'ordinance_title' => 'City Investment and Incentives Code',
+        'policy_priority_adjustment_percent' => (float) (getenv('POLICY_PRIORITY_ADJUSTMENT_PERCENT') ?: 10.0),
+        'incentive_thresholds' => [
+            'tier1_min_capital' => 15000000.0,
+            'tier2_min_capital' => 3000000.0,
+        ],
+        'priority_sectors' => [
+            'Agriculture, Agribusiness & Fishery',
+            'Tourism & Transportation',
+            'Information & Communication Technology',
+            'Manufacturing & Processing',
+            'Infrastructure, Water, Sanitation & Property Development',
+            'Ecological Solid Waste Management',
+            'Support Facilities for Agriculture and Food Production',
+        ],
+    ],
 ];
 
 $localConfigPath = __DIR__ . '/config.local.php';
