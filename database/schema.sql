@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS properties (
   category VARCHAR(64) NULL,
   subcategory VARCHAR(96) NULL,
   assessment_json LONGTEXT NULL,
+  automatic_assessment_json LONGTEXT NULL,
+  legacy_assessment_json LONGTEXT NULL,
   assessment_tags_json LONGTEXT NULL,
   nearby_properties_json LONGTEXT NULL,
   contact_mode VARCHAR(24) NOT NULL DEFAULT 'open_listing',

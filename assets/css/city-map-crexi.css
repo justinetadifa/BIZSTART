@@ -82,10 +82,10 @@
 }
 
 .city-map-segmented button.is-active {
-  background: #ffffff !important;
-  color: #11224d !important;
+  background: #9e1b22 !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  box-shadow: 0 1px 4px rgba(17, 34, 77, 0.1) !important;
+  box-shadow: 0 2px 6px rgba(158, 27, 34, 0.35) !important;
 }
 
 /* Action button (Fit View) */
@@ -170,9 +170,9 @@
   border-radius: 50% !important;
 }
 
-.dot-prime { background: #10b981 !important; box-shadow: 0 0 4px rgba(16, 185, 129, 0.6) !important; }
-.dot-strong { background: #0ea5e9 !important; box-shadow: 0 0 4px rgba(14, 165, 233, 0.6) !important; }
-.dot-emerging { background: #f59e0b !important; box-shadow: 0 0 4px rgba(245, 158, 11, 0.6) !important; }
+.dot-prime { background: #80141a !important; box-shadow: 0 0 4px rgba(128, 20, 26, 0.6) !important; }
+.dot-strong { background: #dc2626 !important; box-shadow: 0 0 4px rgba(220, 38, 38, 0.6) !important; }
+.dot-emerging { background: #f87171 !important; box-shadow: 0 0 4px rgba(248, 113, 113, 0.6) !important; }
 
 /* ==========================================================================
    Crexi SaaS Pill Markers
@@ -202,11 +202,11 @@
   display: inline-flex !important;
   align-items: center !important;
   gap: 5px !important;
-  padding: 4.5px 8.5px !important;
-  background: #11224d !important;
+  padding: 4.5px 9.5px !important;
+  background: #9e1b22 !important;
   color: #ffffff !important;
-  border-radius: 8px !important;
-  box-shadow: 0 6px 18px rgba(17, 34, 77, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.22) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 6px 18px rgba(158, 27, 34, 0.35), 0 0 0 1.5px #ffffff !important;
   white-space: nowrap !important;
   line-height: 1 !important;
   transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease !important;
@@ -222,8 +222,8 @@
 .locus-pin .pin-iai-badge {
   font-size: 9px !important;
   font-weight: 800 !important;
-  color: #94a3b8 !important;
-  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fecdd3 !important;
+  background: rgba(255, 255, 255, 0.2) !important;
   padding: 1.5px 4px !important;
   border-radius: 4px !important;
   line-height: 1 !important;
@@ -236,18 +236,18 @@
   flex-shrink: 0 !important;
 }
 
-.locus-pin .pin-dot.tier-prime { background: #10b981 !important; }
-.locus-pin .pin-dot.tier-strong { background: #38bdf8 !important; }
-.locus-pin .pin-dot.tier-emerging { background: #fbbf24 !important; }
+.locus-pin .pin-dot.tier-prime { background: #ffffff !important; }
+.locus-pin .pin-dot.tier-strong { background: #fecdd3 !important; }
+.locus-pin .pin-dot.tier-emerging { background: #fda4af !important; }
 
 .locus-pin .pin-caret {
   width: 7px !important;
   height: 7px !important;
-  background: #11224d !important;
+  background: #9e1b22 !important;
   transform: rotate(45deg) !important;
   margin-top: -3.5px !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-right: 1.5px solid #ffffff !important;
+  border-bottom: 1.5px solid #ffffff !important;
   transition: background 0.18s ease !important;
 }
 
@@ -260,13 +260,13 @@
 
 .locus-pin:hover .pin-body,
 .locus-pin.is-hover .pin-body {
-  background: #1d4ed8 !important;
-  box-shadow: 0 10px 24px rgba(29, 78, 216, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.35) !important;
+  background: #80141a !important;
+  box-shadow: 0 10px 24px rgba(128, 20, 26, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.45) !important;
 }
 
 .locus-pin:hover .pin-caret,
 .locus-pin.is-hover .pin-caret {
-  background: #1d4ed8 !important;
+  background: #80141a !important;
 }
 
 .locus-pin.is-active .pin-drop {
@@ -275,12 +275,12 @@
 }
 
 .locus-pin.is-active .pin-body {
-  background: #9e1b22 !important;
-  box-shadow: 0 12px 28px rgba(158, 27, 34, 0.5), 0 0 0 2.5px #ffffff !important;
+  background: #80141a !important;
+  box-shadow: 0 12px 28px rgba(128, 20, 26, 0.6), 0 0 0 2.5px #ffffff !important;
 }
 
 .locus-pin.is-active .pin-caret {
-  background: #9e1b22 !important;
+  background: #80141a !important;
 }
 
 /* ==========================================================================
@@ -301,14 +301,14 @@
 
 .locus-cluster .cluster-pulse {
   position: absolute !important;
-  inset: -3px !important;
+  inset: -4px !important;
   border-radius: 50% !important;
-  background: rgba(29, 78, 216, 0.25) !important;
+  background: rgba(158, 27, 34, 0.28) !important;
   animation: clusterPulse 2.4s cubic-bezier(0.2, 0.9, 0.3, 1) infinite !important;
 }
 
 .locus-cluster .cluster-badge.is-prime .cluster-pulse {
-  background: rgba(16, 185, 129, 0.3) !important;
+  background: rgba(158, 27, 34, 0.38) !important;
 }
 
 @keyframes clusterPulse {
@@ -322,9 +322,9 @@
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
-  background: linear-gradient(145deg, #1d4ed8, #0e2154) !important;
+  background: linear-gradient(145deg, #9e1b22, #7f1d1d) !important;
   border: 2px solid #ffffff !important;
-  box-shadow: 0 8px 20px rgba(17, 34, 77, 0.35) !important;
+  box-shadow: 0 8px 20px rgba(158, 27, 34, 0.4) !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -336,7 +336,7 @@
 
 .locus-cluster:hover .cluster-core {
   transform: scale(1.12) !important;
-  box-shadow: 0 12px 28px rgba(17, 34, 77, 0.48), 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 12px 28px rgba(158, 27, 34, 0.55), 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
 }
 
 .locus-cluster .cluster-count {
@@ -347,13 +347,13 @@
 .locus-cluster .cluster-sub {
   font-size: 7.5px !important;
   font-weight: 700 !important;
-  color: #93c5fd !important;
+  color: #fecdd3 !important;
   letter-spacing: -0.02em !important;
   margin-top: 1px !important;
 }
 
 .locus-cluster .cluster-badge.is-prime .cluster-sub {
-  color: #6ee7b7 !important;
+  color: #ffffff !important;
 }
 
 /* Spiderfy legs */
@@ -566,19 +566,105 @@ a.leaflet-popup-close-button:hover {
   align-items: center !important;
   justify-content: center !important;
   width: 100% !important;
-  padding: 7px 12px !important;
-  border-radius: 7px !important;
-  background: #11224d !important;
+  padding: 8px 14px !important;
+  border-radius: 9999px !important;
+  background: #9e1b22 !important;
   color: #ffffff !important;
   font-size: 11.5px !important;
   font-weight: 650 !important;
   text-decoration: none !important;
-  transition: background 0.16s ease !important;
+  transition: background 0.16s ease, transform 0.15s ease, box-shadow 0.16s ease !important;
+  box-shadow: 0 2px 8px rgba(158, 27, 34, 0.28) !important;
 }
 
 .locus-popup-btn:hover {
-  background: #9e1b22 !important;
+  background: #80141a !important;
   color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(158, 27, 34, 0.4) !important;
+}
+
+/* ==========================================================================
+   Map Explorer Layout & Zoom Controls
+   ========================================================================== */
+body[data-page="city-explorer"] .city-container {
+  width: min(1380px, calc(100% - 48px)) !important;
+  max-width: 1380px !important;
+}
+
+body[data-page="city-explorer"] .city-map-layout {
+  display: grid !important;
+  grid-template-columns: 1.08fr 1fr !important;
+  gap: 24px !important;
+  align-items: start !important;
+}
+
+body[data-page="city-explorer"] .city-property-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+@media (max-width: 1024px) {
+  body[data-page="city-explorer"] .city-map-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  body[data-page="city-explorer"] .city-property-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Leaflet Zoom & Locate at bottom left */
+.leaflet-left .leaflet-control-zoom,
+.leaflet-left .locus-locate-control {
+  margin-left: 14px !important;
+  margin-bottom: 8px !important;
+  border: 1px solid rgba(17, 34, 77, 0.12) !important;
+  border-radius: 9px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(17, 34, 77, 0.08) !important;
+  background: #ffffff !important;
+}
+
+.leaflet-control-zoom a,
+.locus-locate-control a {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-bottom: 1px solid rgba(17, 34, 77, 0.08) !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+  text-align: center !important;
+}
+
+.leaflet-control-zoom a:last-child {
+  border-bottom: 0 !important;
+}
+
+.leaflet-control-zoom a:hover,
+.locus-locate-control a:hover {
+  background: #f8fafc !important;
+  color: #9e1b22 !important;
+}
+
+/* Subtle Leaflet Attribution */
+.leaflet-control-attribution {
+  font-size: 9.5px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(4px) !important;
+  color: #94a3b8 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.leaflet-control-attribution a {
+  color: #64748b !important;
 }
 
 /* ==========================================================================

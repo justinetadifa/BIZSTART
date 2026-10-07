@@ -188,7 +188,7 @@ $cataloguePath = $context['user'] === null
     </div>
   </section>
   <section class="city-container city-section" id="properties">
-    <div class="city-section-heading tw-items-end tw-justify-between tw-mb-6">
+    <div class="city-section-heading tw-flex-wrap tw-items-end tw-justify-between tw-mb-6">
       <div>
         <h2 class="tw-m-0 tw-text-2xl sm:tw-text-3xl tw-font-black tw-italic tw-uppercase tw-tracking-tight tw-text-[#9E1B22]" style="font-family: 'Poppins', sans-serif;">FEATURED PROPERTIES.</h2>
         <p class="tw-mt-1.5 tw-mb-0 tw-text-sm sm:tw-text-base tw-font-semibold tw-text-[#11224D]">Three listings to get you started.</p>

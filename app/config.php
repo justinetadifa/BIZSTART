@@ -82,6 +82,7 @@ $defaults = [
         ],
     ],
     'policy' => require __DIR__ . '/investment-policy.php',
+    'automatic_assessment' => require __DIR__ . '/assessment-sources.php',
 ];
 
 $localConfigPath = __DIR__ . '/config.local.php';

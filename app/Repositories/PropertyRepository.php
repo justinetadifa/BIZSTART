@@ -6,6 +6,7 @@ namespace App\Repositories;
 use App\Support\JsonData;
 use App\Support\PropertyCatalog;
 use App\Support\PropertyAssessment;
+use App\Support\AutomaticPropertyAssessment;
 use App\Support\PropertyNearby;
 use InvalidArgumentException;
 use OutOfBoundsException;
@@ -14,6 +15,7 @@ use Throwable;
 
 require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
 require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
+require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
 
 final class PropertyRepository
@@ -100,7 +102,7 @@ final class PropertyRepository
                 dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
                 clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
                 clup_verified_at, assessed_value_sqm, readiness_notes,
-                category, subcategory, assessment_json, assessment_tags_json, nearby_properties_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
+                category, subcategory, assessment_json, automatic_assessment_json, legacy_assessment_json, assessment_tags_json, nearby_properties_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
                 :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
@@ -108,7 +110,7 @@ final class PropertyRepository
                 :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
                 :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
                 :clup_verified_at, :assessed_value_sqm, :readiness_notes,
-                :category, :subcategory, :assessment_json, :assessment_tags_json, :nearby_properties_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
+                :category, :subcategory, :assessment_json, :automatic_assessment_json, :legacy_assessment_json, :assessment_tags_json, :nearby_properties_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
             )'
         );
 
@@ -179,6 +181,8 @@ final class PropertyRepository
                 category = :category,
                 subcategory = :subcategory,
                 assessment_json = :assessment_json,
+                automatic_assessment_json = :automatic_assessment_json,
+                legacy_assessment_json = :legacy_assessment_json,
                 assessment_tags_json = :assessment_tags_json,
                 nearby_properties_json = :nearby_properties_json,
                 contact_mode = :contact_mode,
@@ -519,7 +523,11 @@ final class PropertyRepository
                 'priceBenchmark' => $priceBenchmarkMap[(string) $row['type']] ?? ($priceBenchmarkMap['*'] ?? null),
             ]);
 
-            $assessment = PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'));
+            $assessment = AutomaticPropertyAssessment::presentStored(
+                $this->decodeJson($row['assessment_json'] ?? '{}'),
+                $this->decodeJson($row['automatic_assessment_json'] ?? '{}'),
+                $this->decodeJson($row['legacy_assessment_json'] ?? '{}')
+            );
             [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
 
             return array_merge([
@@ -859,8 +867,10 @@ final class PropertyRepository
             throw new InvalidArgumentException('Price must be greater than zero.');
         }
 
-        $areaUnit = $this->normalizeLandAreaUnit($payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? null);
-        $rawArea = $payload['land_area'] ?? $payload['area'] ?? ($existing['area'] ?? null);
+        $submittedArea = $payload['land_area'] ?? $payload['area'] ?? null;
+        $areaUnit = $submittedArea !== null
+            ? $this->normalizeLandAreaUnit($payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? null) : 'ha';
+        $rawArea = $submittedArea ?? ($existing['area'] ?? null);
         if (is_string($rawArea)) {
             $rawArea = str_replace(',', '', trim($rawArea));
         }
@@ -868,9 +878,11 @@ final class PropertyRepository
             $rawArea,
             $areaUnit
         );
-        if ($area === null || $area <= 0) {
+        if ($area === null || !is_finite($area) || $area <= 0 || round($area, 4) <= 0) {
             throw new InvalidArgumentException('Land area must be greater than zero.');
         }
+        // Assess and price the exact hectare value that DECIMAL(12, 4) stores.
+        $area = round($area, 4);
 
         $storedScore = int_or_null($payload['score'] ?? $payload['market_score'] ?? $payload['marketScore'] ?? ($existing['score'] ?? null));
         $storedScore = $this->clamp($storedScore ?? 82, 40, 100);
@@ -883,6 +895,9 @@ final class PropertyRepository
         if ($lat === null || $lng === null || !is_finite($lat) || !is_finite($lng) || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
             throw new InvalidArgumentException('Valid latitude and longitude are required.');
         }
+        // Preview, evidence and change detection must use the persisted coordinate precision.
+        $lat = round($lat, 6);
+        $lng = round($lng, 6);
 
         $imageUrl = string_or_null($payload['image_path'] ?? $payload['imageUrl'] ?? ($existing['image_url'] ?? null))
             ?? $this->defaultImagePath($type);
@@ -960,7 +975,29 @@ final class PropertyRepository
             string_or_null($rawSubcat),
             $type
         );
-        $assessment = PropertyAssessment::normalize($payload['assessmentCriteria'] ?? $payload['assessment_criteria'] ?? $this->decodeExistingValue($existing['assessment_json'] ?? null));
+        $assessment = PropertyAssessment::normalize($this->decodeExistingValue($existing['assessment_json'] ?? null));
+        $automaticJson = $existing['automatic_assessment_json'] ?? null;
+        $legacyJson = $existing['legacy_assessment_json'] ?? null;
+        [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(
+            string_or_null($existing['category'] ?? null), string_or_null($existing['subcategory'] ?? null), (string) ($existing['type'] ?? $type)
+        );
+        $spatialChanged = $existing === null || abs($lat - (float) ($existing['lat'] ?? 0)) > 1e-10
+            || abs($lng - (float) ($existing['lng'] ?? 0)) > 1e-10
+            || round($area, 4) !== round((float) ($existing['area'] ?? 0), 4)
+            || $category !== $oldCategory || $subcategory !== $oldSubcategory;
+        if ($spatialChanged || filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if ($existing !== null && !$automaticJson && !$legacyJson && count(array_filter($assessment, static fn ($value): bool => $value !== null)) > 0) {
+                $legacyJson = json_encode([
+                    'assessmentMode' => 'legacy_manual', 'assessmentCriteria' => $assessment,
+                    'assessmentMethod' => PropertyAssessment::scores($assessment)['assessmentMethod'],
+                    'capturedAt' => gmdate('c'), 'inputs' => ['lat' => (float) $existing['lat'], 'lng' => (float) $existing['lng'],
+                        'landArea' => (float) $existing['area'], 'category' => $oldCategory, 'subcategory' => $oldSubcategory],
+                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            }
+            $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area]);
+            $assessment = $automatic['assessmentCriteria'];
+            $automaticJson = json_encode($automatic, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
         $nearbyProperties = PropertyNearby::normalize($payload['nearbyProperties'] ?? $this->decodeExistingValue($existing['nearby_properties_json'] ?? null));
         $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
         $assessmentTags = array_values(array_unique(array_map(static fn (string $tag): string => strtoupper(trim($tag)), $assessmentTags)));
@@ -1028,6 +1065,8 @@ final class PropertyRepository
             'category' => $category,
             'subcategory' => $subcategory,
             'assessment_json' => json_encode($assessment, JSON_UNESCAPED_UNICODE),
+            'automatic_assessment_json' => $automaticJson,
+            'legacy_assessment_json' => $legacyJson,
             'assessment_tags_json' => json_encode($assessmentTags, JSON_UNESCAPED_UNICODE),
             'nearby_properties_json' => json_encode($nearbyProperties, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'contact_mode' => $contactMode,
@@ -1970,6 +2009,8 @@ final class PropertyRepository
             'category' => string_or_null($row['category'] ?? null),
             'subcategory' => string_or_null($row['subcategory'] ?? null),
             'assessmentCriteria' => $this->decodeJson($row['assessment_json'] ?? '{}'),
+            'automaticAssessment' => $this->decodeJson($row['automatic_assessment_json'] ?? '{}'),
+            'legacyAssessment' => $this->decodeJson($row['legacy_assessment_json'] ?? '{}'),
             'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
             'nearbyProperties' => $this->decodeJson($row['nearby_properties_json'] ?? '[]'),
             'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),

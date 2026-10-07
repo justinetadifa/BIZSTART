@@ -1,4 +1,5 @@
-/* Compiled Tailwind utilities only; no reset so the LOCUS-SF shell is preserved. */
+/* Tailwind variable defaults and utilities; preflight is disabled to preserve the shell. */
+@tailwind base;
 @tailwind utilities;
 
 /* ==========================================================================
@@ -70,7 +71,7 @@
 }
 
 .city-property-card.is-expanded .locus-card-toggle-icon {
-  transform: rotate(-90deg) !important;
+  transform: rotate(180deg) !important;
 }
 
 /* Red Pill Action Buttons */
@@ -90,4 +91,22 @@
 
 .locus-btn-red-pill:active {
   transform: scale(0.98) !important;
+}
+
+/* ==========================================================================
+   LOCUS-SF Priority Board Styles
+   ========================================================================== */
+.priority-card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+
+.priority-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 28px -6px rgba(17, 34, 77, 0.1), 0 4px 10px -2px rgba(17, 34, 77, 0.04) !important;
+}
+
+.priority-hero-frame {
+  position: relative;
+  overflow: hidden;
+  background-color: #0B1528;
 }

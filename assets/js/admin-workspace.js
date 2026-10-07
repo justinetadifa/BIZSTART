@@ -120,6 +120,7 @@
   }
 
   function renderOverview() {
+    if (window.SFCAdminOverview) { window.SFCAdminOverview.renderOverview(properties, config); return; }
     const pending = properties.filter((property) => property.approvalState === 'pending_review');
     const approved = properties.filter((property) => property.approvalState === 'approved');
     const awaitingAssessment = properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
@@ -158,6 +159,7 @@
     try {
       const data = await request('seller-profiles.php?scope=queue');
       const profiles = (data.profiles || []).filter((profile) => ['pending_review', 'verified', 'rejected', 'suspended'].includes(profile.applicationStatus));
+      if (window.SFCAdminOverview?.renderBrokerProfiles) { panel.innerHTML = window.SFCAdminOverview.renderBrokerProfiles(profiles, config); return; }
       panel.innerHTML = profiles.length ? profiles.map((profile) => `
         <form class="city-broker-card" data-broker-review="${profile.userId}">
           <h3>${escape(profile.legalName || profile.userName)} <span class="city-pill ${escape(profile.applicationStatus)}">${escape(stateLabel(profile.applicationStatus))}</span></h3>
@@ -179,7 +181,8 @@
   const reviewDialog = document.getElementById('cityReviewDialog');
   const reviewForm = reviewDialog?.querySelector('[data-listing-review-form]');
   const nearby = window.SFCNearby?.(form?.querySelector('[data-nearby-editor]'));
-  const assessmentWeights = JSON.parse(document.getElementById('cityAssessmentWeights')?.textContent || '{}');
+  const automaticAssessment = window.SFCAutomaticAssessment?.(form, { apiBase, dialog: editor });
+  const locationEditor = window.SFCAdminLocation?.(form, { apiBase, dialog: editor });
   let editorStep = 0;
 
   function setEditorStep(step) {
@@ -199,6 +202,8 @@
     form.querySelector('[type="submit"]').hidden = step !== 2;
     form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of 3`;
     editor.scrollTop = 0;
+    if (step === 2) automaticAssessment?.refresh();
+    if (step === 1) locationEditor?.sync();
   }
 
   function validateEditor(container = form) {
@@ -261,6 +266,8 @@
     if (!areaInput || !areaUnit || !areaCalc) return;
     const rawVal = parseFloat(areaInput.value);
     const unit = areaUnit.value;
+    areaInput.min = unit === 'sqm' ? '1' : '0.0001';
+    areaInput.step = unit === 'sqm' ? '1' : '0.0001';
     if (isNaN(rawVal) || rawVal <= 0) {
       areaCalc.textContent = 'Calculated: —';
       return;
@@ -321,6 +328,7 @@
     if (!subcatTags || !subcatInput || !subcatTriggerText || !subcatCount) return;
     const list = Array.from(selectedSubcategories);
     subcatInput.value = list.join(', ');
+    subcatInput.dispatchEvent(new Event('input', {bubbles:true}));
 
     if (list.length === 0) {
       subcatTriggerText.textContent = 'Select subcategories...';
@@ -423,20 +431,6 @@
     renderSubcategoryTags();
   });
 
-  function liveScores() {
-    const fields = Array.from(form.querySelectorAll('[data-criterion]'));
-    if (fields.some((field) => field.value === '' || !field.validity.valid)) {
-      form.querySelector('[data-live-scores]').textContent = 'MCE — · IAI — · Complete all seven criteria to score';
-      return;
-    }
-    // Work in integer tenths so decimal halves match PHP's round(..., 1).
-    const tenths = Object.fromEntries(fields.map((field) => [field.dataset.criterion, Math.round(Number(field.value) * 10)]));
-    const mceTenths = Math.round(fields.reduce((total, field) => total + tenths[field.dataset.criterion] * assessmentWeights[field.dataset.criterion], 0) / 100);
-    const mce = mceTenths / 10;
-    const iai = Math.round((mceTenths * 60 + tenths.economic_viability * 20 + tenths.infrastructure_readiness * 20) / 100) / 10;
-    form.querySelector('[data-live-scores]').textContent = `MCE ${mce.toFixed(1)} · IAI ${iai.toFixed(1)}`;
-  }
-
   function openEditor(propertyId = null) {
     if (!form) return;
     form.reset();
@@ -455,7 +449,6 @@
         updateAreaCalculation();
       }
       updateSubcategories(property.subcategory || '');
-      form.querySelectorAll('[data-criterion]').forEach((field) => { field.value = property.assessmentCriteria?.[field.dataset.criterion] ?? ''; });
       form.querySelectorAll('[name="assessmentTags[]"]').forEach((field) => { field.checked = (property.assessmentTags || []).includes(field.value); });
     } else {
       form.elements.category.value = 'Land';
@@ -472,7 +465,7 @@
     message(form.querySelector('[data-editor-message]'), '');
     nearby?.set(property?.nearbyProperties || []);
     setEditorStep(0);
-    liveScores();
+    automaticAssessment?.setProperty(property);
     editor.showModal();
     form.elements.property_name.focus();
   }
@@ -502,7 +495,6 @@
   root.querySelector('[data-property-search]')?.addEventListener('input', renderProperties);
   root.querySelector('[data-property-state]')?.addEventListener('change', renderProperties);
   form?.elements.category.addEventListener('change', () => updateSubcategories());
-  form?.querySelectorAll('[data-criterion]').forEach((field) => field.addEventListener('input', liveScores));
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -521,7 +513,7 @@
     data.set('subcategory', Array.from(selectedSubcategories).join(', '));
     data.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
     data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
-    data.set('assessmentCriteria', JSON.stringify(Object.fromEntries(Array.from(form.querySelectorAll('[data-criterion]')).map((field) => [field.dataset.criterion, field.value === '' ? null : Number(field.value)]))));
+    data.set('recalculate_assessment', 'true');
     data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
     if (id) data.set('_method', 'PATCH');
     try {
@@ -571,5 +563,6 @@
     const params = new URLSearchParams(location.search);
     if (editor && params.has('add')) openEditor();
     if (editor && params.has('edit')) openEditor(params.get('edit'));
+    if (reviewDialog && params.has('review')) openReview(params.get('review'));
   }).catch((error) => message(status, error.message, true));
 })();

@@ -52,7 +52,7 @@ $rankMap = PropertyAssessment::ranks([['id' => 1, 'mceScore' => 80.0, 'iaiScore'
 listing_check($rankMap[1]['mceRank'] === 1 && $rankMap[2]['mceRank'] === 1 && $rankMap[3]['mceRank'] === 3 && $rankMap[1]['iaiRank'] === 3, 'Ties share a rank and MCE/IAI rankings are independent.');
 $payload = sfc_listing_payload(['approval_state' => 'approved', 'sellerUserId' => 99, 'assessmentCriteria' => array_fill_keys(array_keys(PropertyCatalog::criteria()), 100), 'reviewNote' => 'Self-approved', 'contactMode' => 'broker', 'contactBrokerUserId' => 99], $broker, false, $existing);
 listing_check($payload['approval_state'] === 'pending_review' && $payload['seller_user_id'] === 3 && !isset($payload['sellerUserId']), 'Broker cannot approve or reassign a submission.');
-listing_check($payload['assessmentCriteria'] === [] && !isset($payload['reviewNote']) && $payload['contactBrokerUserId'] === 3, 'Broker cannot forge an assessment, reviewer note or contact broker.');
+listing_check(!isset($payload['assessmentCriteria']) && !isset($payload['reviewNote']) && $payload['contactBrokerUserId'] === 3, 'Broker cannot forge an assessment, reviewer note or contact broker.');
 listing_reject(fn () => sfc_listing_payload([], array_replace($broker, ['identityVerificationStatus' => 'pending']), true), 'Unverified broker cannot submit.');
 listing_reject(fn () => sfc_listing_payload(['approval_state' => 'approved', 'reviewNote' => 'Checked'], $assessor, false, array_replace($existing, ['approvalState' => 'pending_review'])), 'Assessor cannot publish a listing.');
 listing_reject(fn () => sfc_listing_payload(['approval_state' => 'approved', 'reviewNote' => 'Checked'], $cicto, false, array_replace($existing, ['approvalState' => 'pending_review', 'sellerIdentityStatus' => 'pending', 'sellerBrokerVerified' => false])), 'CICTO cannot publish an unverified broker submission.');
@@ -112,10 +112,10 @@ if (in_array('--integration', $argv, true)) {
             $createdId = $created['id'];
             listing_check($created['category'] === 'Land' && $created['subcategory'] === 'Agricultural' && $created['area'] === .25, 'Taxonomy and square-meter area survive a repository write.');
             listing_check($created['createdByUserId'] === (int) $actor['id'] && $created['sellerUserId'] === null, 'City creator is stored without a submitting broker.');
-            listing_check($created['mceScore'] === 80.0 && $created['iaiScore'] === 80.0 && $created['mceRank'] === null, 'Stored assessment scores round trip without ranking unpublished listings.');
+            listing_check($created['assessmentMode'] === 'automatic' && $created['mceRank'] === null && $created['assessmentCriteria'] !== array_fill_keys(array_keys(PropertyCatalog::criteria()), 80.0), 'New records use server evidence, ignoring posted manual scores, without ranking unpublished listings.');
             listing_check($created['tags'] === [] && $created['facilities'] === [] && $created['ownerContact']['phone'] === '' && $created['ownerContact']['email'] === '', 'New records do not invent amenities or phone/email contacts.');
             $updated = $container['properties']->update($createdId, ['category' => 'Industrial', 'subcategory' => 'Warehouse', 'assessmentCriteria' => [], 'assessmentTags' => ['INDUSTRIAL']], $actor);
-            listing_check($updated['category'] === 'Industrial' && $updated['subcategory'] === 'Warehouse' && $updated['mceScore'] === null && $updated['assessmentTags'] === ['INDUSTRIAL'], 'Changed category and cleared assessment persist.');
+            listing_check($updated['category'] === 'Industrial' && $updated['subcategory'] === 'Warehouse' && $updated['assessmentMode'] === 'automatic' && $updated['automaticAssessment']['inputs']['category'] === 'Industrial' && $updated['assessmentTags'] === ['INDUSTRIAL'], 'Changed category recomputes a server assessment and preserves context tags.');
             App\Support\AutoSeeder::seedIfNeeded($container['pdo']);
             listing_check($container['properties']->find($createdId, $actor)['sellerUserId'] === null, 'AutoSeeder never transfers a city listing to the demo broker.');
         } finally {

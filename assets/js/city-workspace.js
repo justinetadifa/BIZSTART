@@ -1,10 +1,12 @@
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
+import { assessmentEvidenceMarkup } from './assessment-evidence.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
 const role = config.role || 'guest';
 const investor = role === 'investor';
+const isLoggedIn = Boolean(config.user && role !== 'guest');
 const params = new URLSearchParams(location.search);
 const path = route => `${config.basePath || ''}/${route}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -14,6 +16,7 @@ const score = value => value == null ? '—' : `${number(value)}/100`;
 const storageKey = `locus.compare:${config.basePath || ''}:${config.user?.id || 'guest'}`;
 let properties = [], categories = {}, criteria = {}, saved = new Set(), compare = [], filtered = [];
 let expandedCards = new Set();
+let currentRankingView = 'list';
 let map, markers, tileLayer;
 let businessLayer;
 let toastTimer;
@@ -36,6 +39,145 @@ function imageUrl(property) {
 
 function card(property, index) {
   const isExpanded = expandedCards.has(property.id);
+
+  if (page === 'city-explorer') {
+    const mceVal = property.mceScore != null ? score(property.mceScore) : '—';
+    const iaiVal = property.iaiScore != null ? score(property.iaiScore) : '—';
+    const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
+    const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
+    const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
+
+    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl hover:tw--translate-y-1 tw-transition-all tw-duration-300 tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
+      <!-- Media / Satellite Image Container -->
+      <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
+        <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
+
+        <!-- Top-left: ● Available Badge -->
+        <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-2.5 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
+          <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
+          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span>
+        </div>
+
+        <!-- Top-right: Circle Toggle Button -->
+        <button type="button" class="locus-card-toggle tw-absolute tw-right-3 tw-top-3 tw-z-10 tw-w-8 tw-h-8 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-shadow-sm tw-border tw-border-white/60 tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-white hover:tw-scale-105 tw-transition-all tw-cursor-pointer" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
+          <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <!-- Floating Frosted Glass Panel -->
+        <div class="locus-card-glass tw-absolute tw-inset-x-2.5 tw-bottom-2.5 tw-z-10 tw-p-3">
+          <div>
+            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[11px] tw-font-semibold tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-100/60">
+              ${esc(property.subcategory || property.category || property.type || 'Commercial')}
+            </span>
+            <h3 class="tw-mt-1 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
+              <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-max-w-full tw-truncate hover:tw-text-[#9E1B22] tw-transition-colors">
+                ${esc(property.name)}
+              </a>
+            </h3>
+            <div class="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-slate-500">
+              <svg class="tw-w-3.5 tw-h-3.5 tw-text-[#9E1B22] tw-flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span class="tw-truncate">${esc(locationLabel)}</span>
+            </div>
+          </div>
+
+          <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
+            <strong class="tw-text-lg sm:tw-text-xl tw-font-extrabold tw-text-slate-900 tw-tracking-tight">
+              ${money(property.price)}
+            </strong>
+            <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
+              ${number(property.area)} ha
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drop-down Drawer (Expanded Body) -->
+      <div class="locus-card-drawer tw-overflow-hidden ${isExpanded ? 'is-open' : ''}" aria-hidden="${isExpanded ? 'false' : 'true'}" ${isExpanded ? '' : 'inert'}>
+        <div class="locus-card-drawer-inner tw-min-h-0 tw-min-w-0">
+          <div class="tw-p-3 tw-pt-2 tw-bg-white">
+            <!-- 4-Column Horizontal Metric Strip -->
+            <div class="tw-bg-slate-50/90 tw-rounded-xl tw-py-2 tw-px-1 tw-border tw-border-slate-100 tw-grid tw-grid-cols-4 tw-divide-x tw-divide-slate-200/60 tw-text-center">
+              <!-- MCE -->
+              <div class="tw-px-1">
+                <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
+                <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-text-slate-700 tw-mt-0.5">${esc(mceVal)}</span>
+              </div>
+              <!-- IAI -->
+              <div class="tw-px-1">
+                <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">IAI</span>
+                <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-text-slate-700 tw-mt-0.5">${esc(iaiVal)}</span>
+              </div>
+              <!-- CLUP -->
+              <div class="tw-px-0.5">
+                <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">CLUP</span>
+                <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-medium tw-text-slate-600 tw-mt-0.5 tw-break-words">${esc(clupVal)}</span>
+              </div>
+              <!-- City Assessment -->
+              <div class="tw-px-0.5">
+                <span class="tw-block tw-text-[9px] sm:tw-text-[10px] tw-font-bold tw-text-slate-400 tw-whitespace-nowrap tw-truncate">City Assessment</span>
+                <span class="tw-inline-flex tw-items-center tw-justify-center tw-gap-0.5 tw-text-[10.5px] sm:tw-text-[11px] tw-font-bold ${property.assessmentComplete ? 'tw-text-emerald-600' : 'tw-text-slate-500'} tw-mt-0.5 tw-whitespace-nowrap">
+                  ${property.assessmentComplete ? '<svg class="tw-w-3 tw-h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Complete' : '<svg class="tw-w-3 tw-h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/></svg> Pending'}
+                </span>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <p class="tw-text-xs tw-text-slate-500 tw-leading-relaxed tw-mt-2.5 tw-mb-0 tw-line-clamp-2">
+              ${esc(descText)}
+            </p>
+
+            <!-- Full-width Red View details Pill Button -->
+            <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-w-full tw-mt-3 tw-py-2.5 tw-px-4 tw-rounded-full tw-bg-[#9E1B22] hover:tw-bg-[#80141a] tw-text-white tw-font-semibold tw-text-xs tw-flex tw-items-center tw-justify-center tw-gap-2 tw-shadow-sm hover:tw-shadow-md tw-transition-all tw-no-underline">
+              <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <span>View details</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Action Row (Compare / On map / Shortlist) -->
+      <div class="tw-p-3 ${isExpanded ? 'tw-pt-0' : 'tw-pt-3'} tw-bg-white tw-flex tw-items-center tw-gap-2">
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
+          <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+          </svg>
+          <span>${compare.includes(property.id) ? 'Compared' : 'Compare'}</span>
+        </button>
+
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-locate="${property.id}">
+          <svg class="tw-w-3.5 tw-h-3.5 tw-text-[#9E1B22]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>On map</span>
+        </button>
+
+        ${isExpanded ? `
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">
+          <svg class="tw-w-3.5 tw-h-3.5 ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+          <span>${saved.has(property.id) ? 'Saved' : 'Shortlist'}</span>
+        </button>
+        ` : `
+        <button type="button" class="tw-px-3.5 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-transition-all tw-cursor-pointer" data-save="${property.id}" aria-pressed="${saved.has(property.id)}" title="${saved.has(property.id) ? 'Saved' : 'Shortlist'}">
+          <svg class="tw-w-3.5 tw-h-3.5 ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+        `}
+      </div>
+    </article>`;
+  }
+
   const accent = ({
     Land: 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]',
     Commercial: 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]',
@@ -46,9 +188,9 @@ function card(property, index) {
 
   const mceVal = property.mceScore != null ? `${number(property.mceScore)}/100` : 'Not Available';
   const iaiVal = property.iaiScore != null ? `${number(property.iaiScore)}/100` : 'Not Available';
-  const clupVal = property.clupProfile?.zoningClassification || (property.assessmentComplete ? 'Compatible' : 'For assessment');
+  const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
   const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
-  const descText = property.description || property.thesis || `A ${number(property.area)}-hectare ${property.category?.toLowerCase() || 'prime'} parcel in ${property.barangay || property.city || 'San Fernando'}, ideal for business or mixed-use development.`;
+  const descText = property.description || property.thesis || `A ${number(property.area)}-hectare ${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
 
   return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl hover:tw--translate-y-1 tw-transition-all tw-duration-300 tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
     <!-- Media / Satellite Image Container -->
@@ -69,7 +211,7 @@ function card(property, index) {
               ${esc(property.subcategory || property.category || property.type || 'Commercial')}
             </span>
             <h3 class="tw-mt-1.5 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
-              <a href="${path(`property-details.php?id=${property.id}`)}" class="hover:tw-text-[#9E1B22] tw-transition-colors">
+              <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-max-w-full tw-truncate hover:tw-text-[#9E1B22] tw-transition-colors">
                 ${esc(property.name)}
               </a>
             </h3>
@@ -82,11 +224,19 @@ function card(property, index) {
             </div>
           </div>
 
-          <button type="button" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
+          ${isLoggedIn ? `
+          <button type="button" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
             <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
+          ` : `
+          <a href="${path('investor-login.php')}" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" title="Log in to view assessments and details" aria-label="Log in to view assessments and details">
+            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+          `}
         </div>
 
         <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2.5 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
@@ -100,9 +250,10 @@ function card(property, index) {
       </div>
     </div>
 
+    ${isLoggedIn ? `
     <!-- Drop-down Drawer (Expanded Body) -->
-    <div class="locus-card-drawer ${isExpanded ? 'is-open' : ''}" aria-hidden="${isExpanded ? 'false' : 'true'}">
-      <div class="locus-card-drawer-inner">
+    <div class="locus-card-drawer tw-overflow-hidden ${isExpanded ? 'is-open' : ''}" aria-hidden="${isExpanded ? 'false' : 'true'}" ${isExpanded ? '' : 'inert'}>
+      <div class="locus-card-drawer-inner tw-min-h-0 tw-min-w-0">
         <div class="tw-p-4 tw-pt-3 tw-bg-white">
           <!-- 2x2 Assessment Grid -->
           <div class="tw-grid tw-grid-cols-2 tw-gap-2.5">
@@ -157,8 +308,8 @@ function card(property, index) {
           </p>
 
           <!-- 3 Red Pill Action Buttons -->
-          <div class="tw-flex tw-items-center tw-gap-2 tw-mt-3.5">
-            <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap">
+          <div class="tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-3.5">
+            <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-red-pill tw-col-span-2 tw-min-h-11 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap">
               View details
             </a>
             <button type="button" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
@@ -174,6 +325,7 @@ function card(property, index) {
         </div>
       </div>
     </div>
+    ` : ''}
   </article>`;
 }
 
@@ -188,15 +340,247 @@ function renderTray() {
   document.getElementById('cityCompareCount').textContent = `${compare.length} of 3 properties selected`;
 }
 
+function cleanTitle(name) {
+  return String(name || '').replace(/\s*[–-]\s*San Fernando.*$/i, '').trim();
+}
+
+function updatePriorityStats() {
+  const statTotal = document.getElementById('priorityStatTotal');
+  const statReview = document.getElementById('priorityStatReview');
+  const statPublished = document.getElementById('priorityStatPublished');
+  const statNeedsAssessment = document.getElementById('priorityStatNeedsAssessment');
+  if (!statTotal) return;
+
+  const total = properties.length;
+  const review = properties.filter(p => p.approvalState === 'pending_review' || String(p.status).toLowerCase() === 'pending').length;
+  const published = properties.filter(p => p.approvalState === 'approved' || String(p.status).toLowerCase() === 'available').length;
+  const needsAssessment = properties.filter(p => !p.assessmentComplete && p.approvalState !== 'archived').length;
+
+  statTotal.textContent = String(total);
+  statReview.textContent = String(review);
+  statPublished.textContent = String(published);
+  statNeedsAssessment.textContent = String(needsAssessment);
+}
+
+function priorityListCard(property, idx) {
+  const isTopRanked = idx === 0;
+  const ppsqm = property.pricePerSqm || (property.area ? Math.round(property.price / (Number(property.area) * 10000)) : null);
+  const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
+  const titleClean = cleanTitle(property.name);
+  const isCompared = compare.includes(property.id);
+  const isSaved = saved.has(property.id);
+
+  const rawStatus = String(property.approvalState || property.status || '').toLowerCase();
+  let statusBadge = '';
+  if (rawStatus === 'approved' || (property.status === 'Available' && property.assessmentComplete)) {
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200">APPROVED</span>`;
+  } else if (rawStatus === 'archived') {
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200">ARCHIVED</span>`;
+  } else if (rawStatus === 'pending_review' || rawStatus === 'pending') {
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200">PENDING</span>`;
+  } else {
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-blue-50 tw-text-blue-700 tw-border tw-border-blue-200">FOR ASSESSMENT</span>`;
+  }
+
+  const metaParts = [
+    property.barangay || property.city || 'San Fernando',
+    property.subcategory || property.category || 'Commercial',
+    property.area != null ? `${number(property.area)} ha` : ''
+  ].filter(Boolean).join(' · ');
+
+  const areaLabel = Number(property.area) < 1
+    ? `${number(Number(property.area) * 10000)} m² ${property.area ? `(${number(property.area)} ha)` : ''}`
+    : `${number(property.area)} ha`;
+
+  if (isTopRanked) {
+    return `<article class="priority-card tw-relative tw-bg-white tw-rounded-2xl tw-border tw-border-rose-300/80 tw-shadow-sm hover:tw-shadow-md tw-transition-all tw-overflow-hidden tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch" data-property-id="${property.id}">
+      <div class="tw-w-full sm:tw-w-24 md:tw-w-28 tw-bg-[#8B1A1A] tw-text-white tw-p-4 sm:tw-py-6 tw-flex tw-flex-col tw-items-center tw-justify-center tw-text-center tw-shrink-0">
+        <svg class="tw-w-5 tw-h-5 tw-text-amber-400 tw-mb-1" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+        </svg>
+        <span class="tw-text-2xl sm:tw-text-3xl tw-font-black tw-tracking-tight tw-leading-tight">#1</span>
+        <span class="tw-text-[11px] tw-font-semibold tw-text-white/90 tw-mt-0.5">Top ranked</span>
+      </div>
+
+      <div class="tw-flex-1 tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4">
+        <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
+          <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-shrink-0 tw-overflow-hidden tw-rounded-xl">
+            <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full sm:tw-w-40 md:tw-w-44 tw-h-32 sm:tw-h-28 tw-object-cover tw-rounded-xl hover:tw-scale-105 tw-transition-transform tw-duration-300" loading="lazy">
+          </a>
+
+          <div class="tw-flex-1 tw-min-w-0">
+            <div class="tw-flex tw-items-center tw-gap-2">
+              <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-slate-100 tw-text-slate-600">${esc(property.category || 'Land')}</span>
+              ${statusBadge}
+            </div>
+            <h3 class="tw-text-base sm:tw-text-[17px] tw-font-bold tw-text-slate-900 tw-mt-1.5 tw-mb-0.5 tw-leading-snug">
+              <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-slate-900 hover:tw-text-[#9E1B22] tw-transition-colors">${esc(titleClean)}</a>
+            </h3>
+            <p class="tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-mt-0.5 tw-mb-2">${esc(metaParts)}</p>
+
+            <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mt-2 tw-text-xs tw-text-slate-600">
+              <div class="tw-flex tw-items-center tw-gap-1.5">
+                <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                <strong class="tw-font-bold tw-text-slate-900">${money(property.price)}</strong>
+                ${ppsqm ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
+              </div>
+              <div class="tw-flex tw-items-center tw-gap-1.5">
+                <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                </svg>
+                <span class="tw-text-slate-700">${esc(areaLabel)}</span>
+              </div>
+              <div class="tw-flex tw-items-center tw-gap-1.5">
+                <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="tw-text-slate-700">${esc(locationLabel)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tw-flex tw-items-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-self-end sm:tw-self-center">
+          <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-text-center tw-shrink-0">
+            <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
+            ${property.mceScore != null ? `
+              <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5">${number(property.mceScore)}</strong>
+              <div class="tw-w-8 tw-h-1 tw-bg-slate-700 tw-mx-auto tw-rounded-full tw-mt-1"></div>
+            ` : `
+              <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
+              <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
+            `}
+          </div>
+
+          <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl ${property.iaiScore != null ? 'tw-bg-[#FFF7ED] tw-border tw-border-orange-100' : 'tw-bg-slate-50 tw-border tw-border-slate-100'} tw-text-center tw-shrink-0">
+            <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${property.iaiScore != null ? 'tw-text-[#9E1B22]' : 'tw-text-slate-400'} tw-uppercase">IAI</span>
+            ${property.iaiScore != null ? `
+              <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5">${number(property.iaiScore)}</strong>
+              <div class="tw-w-8 tw-h-1 tw-bg-[#9E1B22] tw-mx-auto tw-rounded-full tw-mt-1"></div>
+            ` : `
+              <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
+              <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
+            `}
+          </div>
+
+          <button type="button" class="tw-p-2 tw-rounded-lg tw-text-slate-400 hover:tw-text-[#9E1B22] tw-border-0 tw-bg-transparent tw-cursor-pointer tw-transition-colors" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved' : 'Save property'}">
+            <svg class="tw-w-5 tw-h-5" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+          </button>
+
+          <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5 tw-min-w-[120px]">
+            <button type="button" class="tw-w-full tw-py-2 tw-px-3.5 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-slate-800 tw-text-white tw-text-xs tw-font-semibold tw-border-0 tw-shadow-sm tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${isCompared}">
+              ${isCompared ? 'Remove compare' : 'Add to compare'}
+            </button>
+            <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-xs tw-font-semibold tw-text-[#11224D] hover:tw-text-[#9E1B22] tw-transition-colors tw-flex tw-items-center tw-gap-1 tw-no-underline">
+              View details <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  return `<article class="priority-card tw-relative tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-md tw-transition-all tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-5" data-property-id="${property.id}">
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
+      <div class="tw-w-14 sm:tw-w-16 tw-h-14 sm:tw-h-16 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-flex tw-items-center tw-justify-center tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-700 tw-shrink-0">
+        #${idx + 1}
+      </div>
+
+      <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-shrink-0 tw-overflow-hidden tw-rounded-xl">
+        <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full sm:tw-w-40 md:tw-w-44 tw-h-32 sm:tw-h-28 tw-object-cover tw-rounded-xl hover:tw-scale-105 tw-transition-transform tw-duration-300" loading="lazy">
+      </a>
+
+      <div class="tw-flex-1 tw-min-w-0">
+        <div class="tw-flex tw-items-center tw-gap-2">
+          <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-slate-100 tw-text-slate-600">${esc(property.category || 'Land')}</span>
+          ${statusBadge}
+        </div>
+        <h3 class="tw-text-base sm:tw-text-[17px] tw-font-bold tw-text-slate-900 tw-mt-1.5 tw-mb-0.5 tw-leading-snug">
+          <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-slate-900 hover:tw-text-[#9E1B22] tw-transition-colors">${esc(titleClean)}</a>
+        </h3>
+        <p class="tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-mt-0.5 tw-mb-2">${esc(metaParts)}</p>
+
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mt-2 tw-text-xs tw-text-slate-600">
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+            </svg>
+            <strong class="tw-font-bold tw-text-slate-900">${money(property.price)}</strong>
+            ${ppsqm ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+            </svg>
+            <span class="tw-text-slate-700">${esc(areaLabel)}</span>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span class="tw-text-slate-700">${esc(locationLabel)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tw-flex tw-items-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-self-end sm:tw-self-center">
+      <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-text-center tw-shrink-0">
+        <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
+        ${property.mceScore != null ? `
+          <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5">${number(property.mceScore)}</strong>
+          <div class="tw-w-8 tw-h-1 tw-bg-slate-700 tw-mx-auto tw-rounded-full tw-mt-1"></div>
+        ` : `
+          <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
+          <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
+        `}
+      </div>
+
+      <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl ${property.iaiScore != null ? 'tw-bg-[#FFF7ED] tw-border tw-border-orange-100' : 'tw-bg-slate-50 tw-border tw-border-slate-100'} tw-text-center tw-shrink-0">
+        <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${property.iaiScore != null ? 'tw-text-[#9E1B22]' : 'tw-text-slate-400'} tw-uppercase">IAI</span>
+        ${property.iaiScore != null ? `
+          <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5">${number(property.iaiScore)}</strong>
+          <div class="tw-w-8 tw-h-1 tw-bg-[#9E1B22] tw-mx-auto tw-rounded-full tw-mt-1"></div>
+        ` : `
+          <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
+          <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
+        `}
+      </div>
+
+      <button type="button" class="tw-p-2 tw-rounded-lg tw-text-slate-400 hover:tw-text-[#9E1B22] tw-border-0 tw-bg-transparent tw-cursor-pointer tw-transition-colors" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved' : 'Save property'}">
+        <svg class="tw-w-5 tw-h-5" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+        </svg>
+      </button>
+
+      <div class="tw-flex tw-flex-col tw-items-center tw-gap-1.5 tw-min-w-[120px]">
+        <button type="button" class="tw-w-full tw-py-2 tw-px-3.5 tw-rounded-xl tw-bg-white hover:tw-bg-slate-50 tw-border tw-border-slate-200 tw-text-slate-800 tw-text-xs tw-font-semibold tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${isCompared}">
+          ${isCompared ? 'Remove compare' : 'Add to compare'}
+        </button>
+        <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-xs tw-font-semibold tw-text-[#11224D] hover:tw-text-[#9E1B22] tw-transition-colors tw-flex tw-items-center tw-gap-1 tw-no-underline">
+          View details <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </article>`;
+}
+
 function getFiltered() {
   const query = (document.getElementById('citySearch')?.value || '').toLowerCase().trim();
   const category = document.getElementById('cityCategory')?.value || '';
   const subcategory = document.getElementById('citySubcategory')?.value || '';
   const savedOnly = document.getElementById('citySavedOnly')?.checked;
   const result = properties.filter(property => (!query || `${property.name} ${property.barangay || ''} ${property.city}`.toLowerCase().includes(query)) && (!category || property.category === category) && (!subcategory || property.subcategory === subcategory) && (!savedOnly || saved.has(property.id)));
-  const sort = document.getElementById('citySort')?.value || 'newest';
+  const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' ? 'iai' : 'newest');
   if (sort === 'iai' || sort === 'mce') result.sort((a, b) => (b[`${sort}Score`] ?? -1) - (a[`${sort}Score`] ?? -1) || a.id - b.id);
-  else if (sort === 'price') result.sort((a, b) => a.price - b.price);
+  else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => a.price - b.price);
+  else if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
   else if (sort === 'area') result.sort((a, b) => b.area - a.area);
   return result;
 }
@@ -204,15 +588,34 @@ function getFiltered() {
 function renderRanking() {
   const root = document.getElementById('cityRankingTable');
   if (!root) return;
-  const assessed = filtered.filter(p => p.assessmentComplete);
-  root.innerHTML = `<div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><p class="tw-m-0 tw-text-xs tw-text-muted">${assessed.length} assessed · ${filtered.length - assessed.length} awaiting assessment</p><span class="tw-text-[11px] tw-text-muted">IAI / 100 · higher is more favorable</span></div>` + (filtered.length ? `<div class="tw-grid tw-gap-3">${filtered.map(property => `<article class="tw-grid tw-grid-cols-[auto_1fr] tw-items-center tw-gap-4 tw-rounded-xl tw-border tw-border-solid tw-border-line tw-bg-white tw-p-4 sm:tw-grid-cols-[40px_64px_1fr_160px_auto] sm:tw-p-5">
-    <div class="tw-hidden sm:tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-lg ${property.iaiRank === 1 ? 'tw-bg-amber-50 tw-text-amber-900' : 'tw-bg-paper tw-text-muted'} tw-text-sm tw-font-semibold">${property.iaiRank == null ? '—' : `#${property.iaiRank}`}</div>
-    <a class="tw-relative tw-block" href="${path(`property-details.php?id=${property.id}`)}" tabindex="-1" aria-hidden="true"><img class="tw-h-16 tw-w-16 tw-rounded-lg tw-object-cover" src="${esc(imageUrl(property))}" alt="" loading="lazy"></a>
-    <div class="tw-min-w-0"><a class="tw-text-sm tw-font-semibold" href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-muted">${esc(property.barangay || property.city)} · ${esc(property.category)} · ${number(property.area)} ha</p></div>
-    <div class="tw-col-span-2 tw-flex tw-items-center tw-gap-5 sm:tw-col-span-1"><div class="tw-min-w-16"><span class="tw-block tw-text-[10px] tw-text-muted">MCE</span><strong class="tw-text-base tw-tabular-nums">${property.mceScore == null ? '—' : number(property.mceScore)}</strong></div><div class="tw-flex-1"><span class="tw-block tw-text-[10px] tw-text-muted">IAI</span><strong class="tw-text-xl tw-tabular-nums tw-text-ink">${property.iaiScore == null ? '—' : number(property.iaiScore)}</strong>${property.iaiScore == null ? '<span class="tw-block tw-text-[10px] tw-text-muted">Awaiting assessment</span>' : `<progress class="tw-block tw-h-1 tw-w-full tw-accent-ink" value="${property.iaiScore}" max="100" aria-label="IAI score"></progress>`}</div></div>
-    <button class="tw-col-span-2 tw-min-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-line tw-bg-white tw-px-4 tw-text-xs tw-font-semibold sm:tw-col-span-1 hover:tw-bg-paper" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Selected' : 'Compare'}</button>
-  </article>`).join('')}</div>` : '<div class="city-empty">No matching properties. Try another category or barangay.</div>');
-  document.getElementById('cityAssessmentMethod').textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All seven criteria must be assessed before a score or rank is shown.';
+  updatePriorityStats();
+  const assessed = filtered.filter(p => p.assessmentComplete || p.iaiScore != null);
+  const awaiting = filtered.length - assessed.length;
+
+  const headerHtml = `<div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
+    <div class="tw-text-sm sm:tw-text-base">
+      <strong class="tw-font-bold tw-text-slate-900">${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}</strong>
+      <span class="tw-text-slate-500 tw-font-normal"> · ${assessed.length} assessed · ${awaiting} awaiting assessment</span>
+    </div>
+    <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-xs sm:tw-text-sm tw-text-slate-500">
+      <span>IAI / 100 · higher is more favorable</span>
+      <button type="button" class="tw-text-slate-400 hover:tw-text-slate-600 tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer" title="Multi-Criteria Evaluation (MCE) weighs seven city criteria. IAI combines MCE with economic viability and infrastructure readiness." aria-label="Assessment methodology info">ⓘ</button>
+    </div>
+  </div>`;
+
+  if (!filtered.length) {
+    root.innerHTML = headerHtml + '<div class="city-empty">No matching properties. Try another category or barangay.</div>';
+    return;
+  }
+
+  if (currentRankingView === 'grid') {
+    root.innerHTML = headerHtml + `<div class="city-property-grid tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">${filtered.map((property, idx) => card(property, idx)).join('')}</div>`;
+  } else {
+    root.innerHTML = headerHtml + `<div class="tw-flex tw-flex-col tw-gap-3.5 sm:tw-gap-4">${filtered.map((property, idx) => priorityListCard(property, idx)).join('')}</div>`;
+  }
+
+  const methodNote = document.getElementById('cityAssessmentMethod');
+  if (methodNote) methodNote.textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All seven criteria must be assessed before a score or rank is shown.';
 }
 
 function renderCompare() {
@@ -227,13 +630,17 @@ function renderCompare() {
 
 function render() {
   filtered = page === 'city-landing' ? properties.slice(0, 3) : getFiltered();
-  if (page === 'city-landing' && expandedCards.size === 0 && filtered.length > 0) {
+  if (page === 'city-explorer' && expandedCards.size === 0 && filtered.length > 0) {
     expandedCards.add(filtered[0].id);
   }
   const grid = document.getElementById('cityPropertyGrid');
   if (grid) grid.innerHTML = filtered.length ? filtered.map((property, idx) => card(property, idx)).join('') : '<div class="city-empty">No properties match your search.</div>';
   const count = document.getElementById('cityResultsCount');
-  if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}${role === 'guest' ? ' · public preview' : ''}`;
+  if (count) {
+    count.textContent = page === 'city-explorer'
+      ? `${filtered.length} properties`
+      : `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}${role === 'guest' ? ' · public preview' : ''}`;
+  }
   renderTray(); renderRanking(); renderCompare();
   if (map) renderMarkers();
 }
@@ -255,9 +662,53 @@ function setupFilters() {
   document.getElementById('citySort').addEventListener('change', render);
   document.getElementById('citySearch').addEventListener('input', render);
   document.getElementById('cityFilters').addEventListener('submit', event => event.preventDefault());
+
+  document.getElementById('cityResetFilters')?.addEventListener('click', () => {
+    const search = document.getElementById('citySearch');
+    const sort = document.getElementById('citySort');
+    if (search) search.value = '';
+    category.value = '';
+    updateSubcategories();
+    if (sort) sort.value = 'newest';
+    render();
+  });
+
   const only = document.getElementById('citySavedOnly');
   if (only) { only.checked = params.get('view') === 'saved'; only.addEventListener('change', render); }
-  if (page === 'city-ranking') document.getElementById('citySort').value = 'iai';
+  if (page === 'city-ranking') {
+    const sortEl = document.getElementById('citySort');
+    if (sortEl) sortEl.value = 'iai';
+
+    const btnList = document.getElementById('priorityViewList');
+    const btnGrid = document.getElementById('priorityViewGrid');
+
+    const updateToggleUI = () => {
+      if (!btnList || !btnGrid) return;
+      if (currentRankingView === 'list') {
+        btnList.className = 'tw-p-1.5 tw-rounded-lg tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-transition-all';
+        btnList.setAttribute('aria-pressed', 'true');
+        btnGrid.className = 'tw-p-1.5 tw-rounded-lg tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all';
+        btnGrid.setAttribute('aria-pressed', 'false');
+      } else {
+        btnGrid.className = 'tw-p-1.5 tw-rounded-lg tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-transition-all';
+        btnGrid.setAttribute('aria-pressed', 'true');
+        btnList.className = 'tw-p-1.5 tw-rounded-lg tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all';
+        btnList.setAttribute('aria-pressed', 'false');
+      }
+    };
+
+    btnList?.addEventListener('click', () => {
+      currentRankingView = 'list';
+      updateToggleUI();
+      renderRanking();
+    });
+
+    btnGrid?.addEventListener('click', () => {
+      currentRankingView = 'grid';
+      updateToggleUI();
+      renderRanking();
+    });
+  }
   const heroCategory = document.getElementById('cityHeroCategory');
   if (heroCategory) {
     Object.keys(categories).forEach(label => heroCategory.add(new Option(label,label)));
@@ -394,10 +845,33 @@ function setupMap() {
   }
   map = L.map('cityPropertyMap', {
     scrollWheelZoom: false,
-    zoomControl: true,
+    zoomControl: false,
     maxZoom: 19,
     minZoom: 9,
   }).setView([16.6159, 120.3166], 13);
+
+  L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+  const LocateControl = L.Control.extend({
+    options: { position: 'bottomleft' },
+    onAdd: function() {
+      const container = L.DomUtil.create('div', 'leaflet-bar locus-locate-control');
+      const btn = L.DomUtil.create('a', 'leaflet-bar-part', container);
+      btn.href = '#';
+      btn.role = 'button';
+      btn.title = 'Fit all properties';
+      btn.setAttribute('aria-label', 'Fit all properties');
+      btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;text-decoration:none;color:#1e293b;';
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></svg>`;
+      L.DomEvent.disableClickPropagation(container);
+      L.DomEvent.on(btn, 'click', function(e) {
+        L.DomEvent.preventDefault(e);
+        fitMap();
+      });
+      return container;
+    }
+  });
+  new LocateControl().addTo(map);
 
   // Initialize marker group with clustering support
   if (typeof L.markerClusterGroup === 'function') {
@@ -599,7 +1073,7 @@ async function renderDetails() {
   const canInquire = investor && (existingConversation?.thread || (property.contactMode === 'broker' ? broker : property.sellerUserId));
   root.innerHTML = `<div class="city-page-heading tw-flex-wrap tw-items-start"><div><div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div><h1>${esc(property.name)}</h1><p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p></div></div>
   <div class="city-detail-grid"><div><img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><section class="city-detail-panel" style="margin-top:20px"><h2>Property overview</h2><p>${esc(property.description)}</p><dl class="city-detail-list">${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}</section>${nearbyMarkup(property)}${evaluationMarkup(property, config.policy || {})}
-  <section class="city-detail-panel"><h2>City assessment</h2><div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px"><span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div><div class="city-detail-criteria">${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}</div><details class="city-assessment-note"><summary>Assessment method</summary><p>${esc(property.assessmentMethod)}</p></details></section></div>
+  <section class="city-detail-panel"><h2>City assessment</h2>${assessmentEvidenceMarkup(property)}<div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px"><span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div><div class="city-detail-criteria">${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}</div><details class="city-assessment-note"><summary>Assessment method</summary><p>${esc(property.assessmentMethod)}</p></details></section></div>
   <aside><section class="city-detail-panel"><div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div><div class="city-actions">${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button></div><hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0"><h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}</section><section class="city-detail-panel"><h3>Location</h3><div class="city-map-canvas tw-h-64" id="cityPropertyMap"></div></section>${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}${investor ? investorTools(property, Boolean(canInquire)) : ''}</aside></div>`;
   filtered = [property]; setupMap(); setupInvestmentEvaluation(property, config.policy || {});
   const form = document.getElementById('cityInquiryForm');
@@ -691,26 +1165,59 @@ async function loadConversation(id, initialPayload = null) {
 document.addEventListener('click', async event => {
   const toggleButton = event.target.closest('[data-toggle-card]');
   if (toggleButton) {
+    if (!isLoggedIn) {
+      event.preventDefault();
+      window.location.href = path('investor-login.php');
+      return;
+    }
     const id = Number(toggleButton.dataset.toggleCard);
     const cardEl = toggleButton.closest('.city-property-card');
     if (cardEl) {
       const drawer = cardEl.querySelector('.locus-card-drawer');
+      const toggleIcon = toggleButton.querySelector('.locus-card-toggle-icon');
       const isCurrentlyExpanded = expandedCards.has(id);
       if (isCurrentlyExpanded) {
         expandedCards.delete(id);
         cardEl.classList.remove('is-expanded');
         toggleButton.setAttribute('aria-expanded', 'false');
+        if (toggleIcon) toggleIcon.classList.remove('tw-rotate-180');
         if (drawer) {
           drawer.classList.remove('is-open');
           drawer.setAttribute('aria-hidden', 'true');
+        }
+        if (page === 'city-explorer') {
+          const saveBtn = cardEl.querySelector('[data-save]');
+          if (saveBtn) {
+            const isSaved = saved.has(id);
+            saveBtn.className = `tw-px-3.5 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${isSaved ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-transition-all tw-cursor-pointer`;
+            saveBtn.innerHTML = `
+              <svg class="tw-w-3.5 tw-h-3.5 ${isSaved ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            `;
+          }
         }
       } else {
         expandedCards.add(id);
         cardEl.classList.add('is-expanded');
         toggleButton.setAttribute('aria-expanded', 'true');
+        if (toggleIcon) toggleIcon.classList.add('tw-rotate-180');
         if (drawer) {
           drawer.classList.add('is-open');
           drawer.setAttribute('aria-hidden', 'false');
+        }
+        if (page === 'city-explorer') {
+          const saveBtn = cardEl.querySelector('[data-save]');
+          if (saveBtn) {
+            const isSaved = saved.has(id);
+            saveBtn.className = `tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${isSaved ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer`;
+            saveBtn.innerHTML = `
+              <svg class="tw-w-3.5 tw-h-3.5 ${isSaved ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>${isSaved ? 'Saved' : 'Shortlist'}</span>
+            `;
+          }
         }
       }
     }

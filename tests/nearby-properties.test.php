@@ -19,7 +19,7 @@ foreach ([array_fill(0, 7, $items[0]), [['name' => '']], [['name' => ['Invalid']
 }
 $broker = ['id' => 99, 'role' => 'seller', 'name' => 'Fixture Broker', 'email' => 'fixture@example.test', 'identityVerificationStatus' => 'verified'];
 $filtered = sfc_listing_payload(['nearbyProperties' => $items, 'assessmentCriteria' => ['nearby_businesses' => 100], 'approval_state' => 'approved'], $broker, true);
-$check($filtered['nearbyProperties'] === $items && $filtered['assessmentCriteria'] === [] && $filtered['approval_state'] === 'pending_review', 'Nearby evidence granted assessment or review authority.');
+$check($filtered['nearbyProperties'] === $items && !isset($filtered['assessmentCriteria']) && $filtered['approval_state'] === 'pending_review', 'Nearby evidence granted assessment or review authority.');
 
 if (in_array('--integration', $argv, true)) {
     $container = require dirname(__DIR__) . '/app/bootstrap.php';
@@ -32,7 +32,8 @@ if (in_array('--integration', $argv, true)) {
     try {
         $created = $container['properties']->create(['name' => 'Nearby fixture ' . bin2hex(random_bytes(6)), 'property_type' => 'commercial', 'category' => 'Land', 'description' => 'Temporary nearby property persistence verification.', 'barangay' => 'Biday', 'price' => 1000000, 'land_area' => 1000, 'land_area_unit' => 'sqm', 'lat' => 16.61, 'lng' => 120.32, 'approval_state' => 'pending_review', 'nearbyProperties' => $items], $actor);
         $id = $created['id'];
-        $check($created['nearbyProperties'] === $normalized && $created['mceScore'] === null && $created['iaiScore'] === null, 'Evidence failed to persist or fabricated an assessment.');
+        $serverAssessment = \App\Support\AutomaticPropertyAssessment::configured()->evaluate(['lat' => $created['lat'], 'lng' => $created['lng'], 'landArea' => $created['area'], 'category' => $created['category'], 'subcategory' => $created['subcategory']]);
+        $check($created['nearbyProperties'] === $normalized && $created['assessmentMode'] === 'automatic' && $created['assessmentCriteria'] === $serverAssessment['assessmentCriteria'], 'Nearby context must persist without changing the independently computed server assessment.');
         $updated = $container['properties']->update($id, ['description' => 'Updated fixture description.'], $actor);
         $check($updated['nearbyProperties'] === $normalized, 'Unrelated edits erased nearby places.');
         $cleared = $container['properties']->update($id, ['nearbyProperties' => []], $actor);

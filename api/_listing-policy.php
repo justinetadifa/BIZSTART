@@ -64,6 +64,12 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
     } else {
         throw new InvalidArgumentException('This account cannot manage listings.');
     }
+    // Numerical assessments and evidence are generated from trusted server sources only.
+    foreach (['assessmentCriteria', 'assessment_criteria', 'assessment_json', 'automatic_assessment_json', 'legacy_assessment_json', 'automaticAssessment', 'criteriaDetails', 'mceScore', 'iaiScore', 'assessmentMode', 'assessmentVersion', 'spatialContext'] as $field) {
+        unset($payload[$field]);
+    }
+    $recalculate = filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $payload['recalculate_assessment'] = sfc_can_manage_properties($user) && $recalculate;
     $payload['last_confirmed_available_at'] = gmdate('Y-m-d H:i:s');
     return $payload;
 }
