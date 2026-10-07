@@ -1,0 +1,10 @@
+{
+  "name": "locus-sf-ui",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.cjs -i assets/css/workspace-polish.input.css -o assets/css/workspace-polish.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

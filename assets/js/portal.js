@@ -1,3 +1,4 @@
+import { printWithCompliance } from './report-compliance.js';
 import { api } from "./api.js";
 import { addCompetitorRadar, calculateCompetitorProximity } from "./competitor-radar.js";
 if (typeof window !== "undefined") window.addCompetitorRadar = addCompetitorRadar;
@@ -13939,7 +13940,7 @@ async function initPropertyDetails() {
 
     bindCollectionActions(root, render);
     document.getElementById("propertyProspectusPrintButton")?.addEventListener("click", () => {
-      window.print();
+      printWithCompliance();
     });
     root.querySelectorAll("[data-command-tab]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -15254,7 +15255,7 @@ async function initDecisionReports() {
   const root = document.getElementById("decisionReportsRoot");
   if (!root) return;
   const blueButtonArt = document.getElementById("reportBlueButtonArt")?.innerHTML || "";
-  document.getElementById("printDecisionReport")?.addEventListener("click", () => window.print());
+  document.getElementById("printDecisionReport")?.addEventListener("click", printWithCompliance);
   const bootstrap = await api.bootstrap();
   const properties = bootstrap.properties || [];
   const investmentLensKey = getActiveInvestmentLensKey();

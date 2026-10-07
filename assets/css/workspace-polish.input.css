@@ -1,0 +1,93 @@
+/* Compiled Tailwind utilities only; no reset so the LOCUS-SF shell is preserved. */
+@tailwind utilities;
+
+/* ==========================================================================
+   LOCUS-SF Redesigned Property Cards & Modern Glassmorphism
+   ========================================================================== */
+.locus-property-card {
+  border-radius: 22px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+
+.locus-property-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 16px 36px -10px rgba(17, 34, 77, 0.12), 0 4px 12px -2px rgba(17, 34, 77, 0.04) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Glassmorphism Floating Panel */
+.locus-card-glass {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 8px 24px -4px rgba(17, 34, 77, 0.1), 0 2px 6px -1px rgba(17, 34, 77, 0.06) !important;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.locus-property-card:hover .locus-card-glass {
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: 0 12px 28px -4px rgba(17, 34, 77, 0.14), 0 3px 8px -1px rgba(17, 34, 77, 0.08) !important;
+}
+
+/* Smooth Accordion Dropdown Drawer */
+.locus-card-drawer {
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease !important;
+  opacity: 0 !important;
+}
+
+.locus-card-drawer.is-open {
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+}
+
+.locus-card-drawer-inner {
+  overflow: hidden !important;
+}
+
+/* Circle Toggle Button & Icon */
+.locus-card-toggle {
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.locus-card-toggle:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 6px 16px rgba(17, 34, 77, 0.15) !important;
+  background-color: #f8fafc !important;
+}
+
+.locus-card-toggle:active {
+  transform: scale(0.95) !important;
+}
+
+.locus-card-toggle-icon {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.city-property-card.is-expanded .locus-card-toggle-icon {
+  transform: rotate(-90deg) !important;
+}
+
+/* Red Pill Action Buttons */
+.locus-btn-red-pill {
+  background-color: #9E1B22 !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
+}
+
+.locus-btn-red-pill:hover {
+  background-color: #80141a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(158, 27, 34, 0.32) !important;
+}
+
+.locus-btn-red-pill:active {
+  transform: scale(0.98) !important;
+}

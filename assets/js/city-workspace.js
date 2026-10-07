@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
@@ -12,6 +13,7 @@ const money = value => `₱${number(value)}`;
 const score = value => value == null ? '—' : `${number(value)}/100`;
 const storageKey = `locus.compare:${config.basePath || ''}:${config.user?.id || 'guest'}`;
 let properties = [], categories = {}, criteria = {}, saved = new Set(), compare = [], filtered = [];
+let expandedCards = new Set();
 let map, markers, tileLayer;
 let businessLayer;
 let toastTimer;
@@ -33,17 +35,146 @@ function imageUrl(property) {
 }
 
 function card(property, index) {
-  return `<article class="city-property-card" data-property-id="${property.id}">
-    <a class="city-card-image" href="${path(`property-details.php?id=${property.id}`)}"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">${String(property.status).toLowerCase() === 'available' ? '' : `<span class="city-card-status">${esc(property.status)}</span>`}</a>
-    <div class="city-card-body">
-      <div class="city-card-category"><span class="city-card-category-badge">${esc(property.subcategory || property.category || property.type)}</span></div>
-      <h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3>
-      <div class="city-card-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:4px;opacity:0.7"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>${esc(property.barangay || property.city)}</div>
-      <div class="city-card-price"><span>${money(property.price)}</span><small>${number(property.area)} ha</small></div>
-      <div class="city-card-scores"><span><span class="city-metric-label">MCE</span> <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span><span class="city-metric-label">IAI</span> <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div>
-      ${property.assessmentComplete ? '' : '<p class="city-assessment-note">Awaiting assessment</p>'}
-      ${page === 'city-landing' ? '' : `<div class="city-card-actions">${investor ? `<button type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save'}</button>` : ''}<button type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare'}</button>${page === 'city-explorer' ? `<button type="button" data-locate="${property.id}">On map</button>` : ''}</div>`}
-    </div></article>`;
+  const isExpanded = expandedCards.has(property.id);
+  const accent = ({
+    Land: 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]',
+    Commercial: 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]',
+    Office: 'tw-bg-blue-50 tw-text-blue-900 tw-border-blue-200',
+    Hospitality: 'tw-bg-rose-50 tw-text-rose-900 tw-border-rose-200',
+    Industrial: 'tw-bg-stone-100 tw-text-stone-700 tw-border-stone-200'
+  })[property.category] || 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]';
+
+  const mceVal = property.mceScore != null ? `${number(property.mceScore)}/100` : 'Not Available';
+  const iaiVal = property.iaiScore != null ? `${number(property.iaiScore)}/100` : 'Not Available';
+  const clupVal = property.clupProfile?.zoningClassification || (property.assessmentComplete ? 'Compatible' : 'For assessment');
+  const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
+  const descText = property.description || property.thesis || `A ${number(property.area)}-hectare ${property.category?.toLowerCase() || 'prime'} parcel in ${property.barangay || property.city || 'San Fernando'}, ideal for business or mixed-use development.`;
+
+  return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl hover:tw--translate-y-1 tw-transition-all tw-duration-300 tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
+    <!-- Media / Satellite Image Container -->
+    <div class="tw-relative tw-h-[260px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
+      <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
+      
+      <!-- Top-left: ● Available Badge -->
+      <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-3 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
+        <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
+        <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span>
+      </div>
+
+      <!-- Floating Frosted Glass Panel -->
+      <div class="locus-card-glass tw-absolute tw-inset-x-2.5 tw-bottom-2.5 tw-z-10 tw-p-3.5">
+        <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
+          <div class="tw-min-w-0 tw-flex-1">
+            <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-md tw-text-[11px] tw-font-semibold tw-border ${accent}">
+              ${esc(property.subcategory || property.category || property.type || 'Commercial')}
+            </span>
+            <h3 class="tw-mt-1.5 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
+              <a href="${path(`property-details.php?id=${property.id}`)}" class="hover:tw-text-[#9E1B22] tw-transition-colors">
+                ${esc(property.name)}
+              </a>
+            </h3>
+            <div class="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-slate-500">
+              <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span class="tw-truncate">${esc(property.barangay || property.city || 'San Fernando')}</span>
+            </div>
+          </div>
+
+          <button type="button" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
+            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2.5 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
+          <strong class="tw-text-lg sm:tw-text-xl tw-font-bold tw-text-[#11224D] tw-tracking-tight">
+            ${money(property.price)}
+          </strong>
+          <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
+            ${number(property.area)} ha
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drop-down Drawer (Expanded Body) -->
+    <div class="locus-card-drawer ${isExpanded ? 'is-open' : ''}" aria-hidden="${isExpanded ? 'false' : 'true'}">
+      <div class="locus-card-drawer-inner">
+        <div class="tw-p-4 tw-pt-3 tw-bg-white">
+          <!-- 2x2 Assessment Grid -->
+          <div class="tw-grid tw-grid-cols-2 tw-gap-2.5">
+            <!-- MCE -->
+            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
+              <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div class="tw-min-w-0">
+                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">MCE</span>
+                <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(mceVal)}</span>
+              </div>
+            </div>
+
+            <!-- IAI -->
+            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
+              <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <div class="tw-min-w-0">
+                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">IAI</span>
+                <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(iaiVal)}</span>
+              </div>
+            </div>
+
+            <!-- CLUP Compatibility -->
+            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
+              <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <div class="tw-min-w-0">
+                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">CLUP Compatibility</span>
+                <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(clupVal)}</span>
+              </div>
+            </div>
+
+            <!-- City Assessment -->
+            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
+              <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div class="tw-min-w-0">
+                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">City Assessment</span>
+                <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(cityAssessmentVal)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <p class="tw-text-xs tw-text-slate-500 tw-leading-relaxed tw-mt-3.5 tw-mb-4 tw-line-clamp-2">
+            ${esc(descText)}
+          </p>
+
+          <!-- 3 Red Pill Action Buttons -->
+          <div class="tw-flex tw-items-center tw-gap-2 tw-mt-3.5">
+            <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap">
+              View details
+            </a>
+            <button type="button" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
+              ${compare.includes(property.id) ? 'Compared' : 'Compare'}
+            </button>
+            <button type="button" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-flex tw-items-center tw-justify-center tw-gap-1 tw-whitespace-nowrap" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">
+              <svg class="tw-w-3.5 tw-h-3.5" fill="${saved.has(property.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <span>${saved.has(property.id) ? 'Saved' : 'Shortlist'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>`;
 }
 
 function saveCompare() {
@@ -73,9 +204,15 @@ function getFiltered() {
 function renderRanking() {
   const root = document.getElementById('cityRankingTable');
   if (!root) return;
-  root.innerHTML = filtered.length ? `<div class="city-table-wrap"><table class="city-table"><thead><tr><th>IAI rank</th><th>Property</th><th>Category</th><th>MCE</th><th>IAI</th><th>Area</th><th></th></tr></thead><tbody>${filtered.map(property => `<tr><td class="city-rank">${property.iaiRank == null ? '—' : `#${property.iaiRank}`}</td><td><a href="${path(`property-details.php?id=${property.id}`)}"><strong>${esc(property.name)}</strong><br><small>${esc(property.barangay || property.city)}</small></a></td><td>${esc(property.category)}${property.subcategory ? `<br><small>${esc(property.subcategory)}</small>` : ''}</td><td>${score(property.mceScore)}${property.mceRank ? `<br><small>Rank #${property.mceRank}</small>` : ''}</td><td>${score(property.iaiScore)}</td><td>${number(property.area)} ha</td><td><button class="city-button city-button-secondary city-button-small" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Selected' : 'Compare'}</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="city-empty">No matching properties.</div>';
-  const method = properties.find(property => property.assessmentMethod)?.assessmentMethod;
-  document.getElementById('cityAssessmentMethod').textContent = method || 'All seven criteria must be assessed before a score or rank is shown.';
+  const assessed = filtered.filter(p => p.assessmentComplete);
+  root.innerHTML = `<div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><p class="tw-m-0 tw-text-xs tw-text-muted">${assessed.length} assessed · ${filtered.length - assessed.length} awaiting assessment</p><span class="tw-text-[11px] tw-text-muted">IAI / 100 · higher is more favorable</span></div>` + (filtered.length ? `<div class="tw-grid tw-gap-3">${filtered.map(property => `<article class="tw-grid tw-grid-cols-[auto_1fr] tw-items-center tw-gap-4 tw-rounded-xl tw-border tw-border-solid tw-border-line tw-bg-white tw-p-4 sm:tw-grid-cols-[40px_64px_1fr_160px_auto] sm:tw-p-5">
+    <div class="tw-hidden sm:tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-lg ${property.iaiRank === 1 ? 'tw-bg-amber-50 tw-text-amber-900' : 'tw-bg-paper tw-text-muted'} tw-text-sm tw-font-semibold">${property.iaiRank == null ? '—' : `#${property.iaiRank}`}</div>
+    <a class="tw-relative tw-block" href="${path(`property-details.php?id=${property.id}`)}" tabindex="-1" aria-hidden="true"><img class="tw-h-16 tw-w-16 tw-rounded-lg tw-object-cover" src="${esc(imageUrl(property))}" alt="" loading="lazy"></a>
+    <div class="tw-min-w-0"><a class="tw-text-sm tw-font-semibold" href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-muted">${esc(property.barangay || property.city)} · ${esc(property.category)} · ${number(property.area)} ha</p></div>
+    <div class="tw-col-span-2 tw-flex tw-items-center tw-gap-5 sm:tw-col-span-1"><div class="tw-min-w-16"><span class="tw-block tw-text-[10px] tw-text-muted">MCE</span><strong class="tw-text-base tw-tabular-nums">${property.mceScore == null ? '—' : number(property.mceScore)}</strong></div><div class="tw-flex-1"><span class="tw-block tw-text-[10px] tw-text-muted">IAI</span><strong class="tw-text-xl tw-tabular-nums tw-text-ink">${property.iaiScore == null ? '—' : number(property.iaiScore)}</strong>${property.iaiScore == null ? '<span class="tw-block tw-text-[10px] tw-text-muted">Awaiting assessment</span>' : `<progress class="tw-block tw-h-1 tw-w-full tw-accent-ink" value="${property.iaiScore}" max="100" aria-label="IAI score"></progress>`}</div></div>
+    <button class="tw-col-span-2 tw-min-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-line tw-bg-white tw-px-4 tw-text-xs tw-font-semibold sm:tw-col-span-1 hover:tw-bg-paper" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Selected' : 'Compare'}</button>
+  </article>`).join('')}</div>` : '<div class="city-empty">No matching properties. Try another category or barangay.</div>');
+  document.getElementById('cityAssessmentMethod').textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All seven criteria must be assessed before a score or rank is shown.';
 }
 
 function renderCompare() {
@@ -90,8 +227,11 @@ function renderCompare() {
 
 function render() {
   filtered = page === 'city-landing' ? properties.slice(0, 3) : getFiltered();
+  if (page === 'city-landing' && expandedCards.size === 0 && filtered.length > 0) {
+    expandedCards.add(filtered[0].id);
+  }
   const grid = document.getElementById('cityPropertyGrid');
-  if (grid) grid.innerHTML = filtered.length ? filtered.map(card).join('') : '<div class="city-empty">No properties match your search.</div>';
+  if (grid) grid.innerHTML = filtered.length ? filtered.map((property, idx) => card(property, idx)).join('') : '<div class="city-empty">No properties match your search.</div>';
   const count = document.getElementById('cityResultsCount');
   if (count) count.textContent = `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}${role === 'guest' ? ' · public preview' : ''}`;
   renderTray(); renderRanking(); renderCompare();
@@ -118,6 +258,24 @@ function setupFilters() {
   const only = document.getElementById('citySavedOnly');
   if (only) { only.checked = params.get('view') === 'saved'; only.addEventListener('change', render); }
   if (page === 'city-ranking') document.getElementById('citySort').value = 'iai';
+  const heroCategory = document.getElementById('cityHeroCategory');
+  if (heroCategory) {
+    Object.keys(categories).forEach(label => heroCategory.add(new Option(label,label)));
+    heroCategory.value = category.value;
+    category.addEventListener('change', () => heroCategory.value = category.value);
+    function applyHero() {
+      category.value = heroCategory.value;
+      document.getElementById('citySearch').value = document.getElementById('citySearchGlass').value;
+      updateSubcategories(); render();
+      document.getElementById('propertyResults').scrollIntoView({block:'start'});
+    }
+    document.getElementById('cityHeroSearch').addEventListener('submit', event => { event.preventDefault(); applyHero(); });
+    document.querySelectorAll('[data-quick-category]').forEach(button => button.addEventListener('click', () => {
+      heroCategory.value = button.dataset.quickCategory;
+      document.querySelectorAll('[data-quick-category]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      applyHero();
+    }));
+  }
 }
 
 const markerMap = new Map();
@@ -131,6 +289,7 @@ function formatShortPrice(num) {
 }
 
 function getIaiTier(scoreNum) {
+  if (scoreNum == null) return { key: 'pending', label: 'Awaiting assessment', class: 'tw-bg-slate-300' };
   const s = Number(scoreNum) || 0;
   if (s >= 90) return { key: 'prime', label: 'Prime', class: 'tier-prime' };
   if (s >= 80) return { key: 'strong', label: 'Strong', class: 'tier-strong' };
@@ -154,7 +313,7 @@ function createPillIcon(property, isHovered = false, isActive = false) {
           <div class="pin-body">
             <span class="pin-dot ${tier.class}" title="${tier.label} Tier (${property.iaiScore || 0}/100)"></span>
             <span class="pin-price">${priceLabel}</span>
-            ${iaiScore ? `<span class="pin-iai-badge">${iaiScore}</span>` : ''}
+            ${iaiScore != null ? `<span class="pin-iai-badge">${iaiScore}</span>` : ''}
           </div>
           <span class="pin-caret"></span>
         </div>
@@ -166,7 +325,7 @@ function createPillIcon(property, isHovered = false, isActive = false) {
 function createClusterIcon(cluster) {
   const children = cluster.getAllChildMarkers();
   const count = children.length;
-  const scores = children.map(m => m.propertyData?.iaiScore).filter(s => s != null && s > 0);
+  const scores = children.map(m => m.propertyData?.iaiScore).filter(s => s != null && Number.isFinite(Number(s)));
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const isPrime = avg && avg >= 90;
 
@@ -180,7 +339,7 @@ function createClusterIcon(cluster) {
         <span class="cluster-pulse"></span>
         <div class="cluster-core">
           <span class="cluster-count">${count}</span>
-          ${avg ? `<span class="cluster-sub">avg ${avg}</span>` : ''}
+          ${avg != null ? `<span class="cluster-sub">avg ${avg}</span>` : ''}
         </div>
       </div>
     `
@@ -191,11 +350,11 @@ function createPopupContent(property) {
   const tier = getIaiTier(property.iaiScore);
   const img = esc(imageUrl(property));
   const category = esc(property.subcategory || property.category || 'Commercial');
-  const zoning = esc(property.clupProfile?.zoningClassification || 'Commercial Zone');
+  const zoning = esc(property.clupProfile?.zoningClassification || 'Zoning awaiting review');
   const iaiVal = property.iaiScore != null ? Math.round(property.iaiScore) : null;
 
   return `
-    <div class="locus-popup-card">
+    <div class="locus-popup-card tw-w-[min(270px,calc(100vw-100px))]">
       <div class="locus-popup-media">
         <img src="${img}" alt="${esc(property.name)}" loading="lazy">
         <div class="locus-popup-tags">
@@ -210,7 +369,7 @@ function createPopupContent(property) {
           <div class="locus-popup-price">${money(property.price)}</div>
           <div class="locus-popup-area">${number(property.area)} ha · ${money(property.pricePerSqm)}/m²</div>
         </div>
-        ${iaiVal ? `
+        ${iaiVal != null ? `
           <div class="locus-popup-metrics">
             <div class="locus-metric-row">
               <span class="locus-metric-label"><i class="pin-dot ${tier.class}"></i> IAI Attractiveness</span>
@@ -420,542 +579,9 @@ function fitMap() {
   }
 }
 
-function renderEvaluationSection(property) {
-  const policy = config.policy || {
-    ordinance_number: 'Ordinance No. 2024-41',
-    policy_priority_adjustment_percent: 10.0,
-    incentive_thresholds: { tier1_min_capital: 15000000, tier2_min_capital: 3000000 }
-  };
-  const baseIaiScore = property.iaiScore != null ? Number(property.iaiScore) : null;
-  const isAssessed = baseIaiScore != null;
-  const displayBaseIai = isAssessed ? baseIaiScore : 75.0;
-
-  return `
-  <section class="city-detail-panel" id="investmentEvaluationSection">
-    <div class="flex items-center justify-between pb-3 border-b border-[#dfe3e9] mb-4">
-      <div>
-        <span class="city-eyebrow" style="margin-bottom:2px">Policy Support</span>
-        <h2 class="text-xl font-bold text-[#11224D] m-0">Investment evaluation & policy alignment</h2>
-      </div>
-      <span class="text-xs font-semibold text-[#697284]">
-        ${esc(policy.ordinance_number)}
-      </span>
-    </div>
-
-    <!-- Step 1: Proposed Business Type -->
-    <div class="mb-5">
-      <label for="evalBusinessType" class="block text-xs font-bold uppercase tracking-wider text-[#11224D] mb-1.5">
-        Proposed Business Type
-      </label>
-      <select id="evalBusinessType" class="w-full bg-white border border-[#dfe3e9] rounded-[4px] px-3 py-2 text-sm text-[#11224D] font-medium focus:outline-none focus:border-[#9E1B22]">
-        <option value="">Select proposed business activity...</option>
-        <optgroup label="Priority Investment Sectors (Ordinance No. 2024-41)">
-          <option value="ict" data-sector="Information & Communication Technology" data-priority="true">Information & Communication Technology (IT-BPM / Software / Tech)</option>
-          <option value="tourism" data-sector="Tourism & Transportation" data-priority="true">Tourism & Transportation (Hospitality / Eco-Resort / Transit)</option>
-          <option value="agri" data-sector="Agriculture, Agribusiness & Fishery" data-priority="true">Agriculture, Agribusiness & Fishery (Commercial Agri-Aqua)</option>
-          <option value="agri_support" data-sector="Support Facilities for Agriculture and Food Production" data-priority="true">Support Facilities for Agriculture and Food Production</option>
-          <option value="manufacturing" data-sector="Manufacturing & Processing" data-priority="true">Manufacturing & Processing (Light & Medium Industry)</option>
-          <option value="infra" data-sector="Infrastructure, Water, Sanitation & Property Development" data-priority="true">Infrastructure, Water, Sanitation & Property Development</option>
-          <option value="waste" data-sector="Ecological Solid Waste Management" data-priority="true">Ecological Solid Waste Management (Recycling / Green Facilities)</option>
-        </optgroup>
-        <optgroup label="Standard Commercial Sectors">
-          <option value="retail" data-sector="General Retail & Storefront" data-priority="false">General Retail & Storefront Services</option>
-          <option value="dining" data-sector="General Dining & Food Service" data-priority="false">General Dining & Food Service</option>
-          <option value="other" data-sector="Other Commercial Activity" data-priority="false">Other General Commercial Activity</option>
-        </optgroup>
-      </select>
-
-      <!-- Priority Alignment Callout -->
-      <div id="evalAlignmentCallout" class="mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition">
-        <div class="text-xs font-bold text-[#11224D]" id="evalAlignmentTitle">Select Proposed Business Activity</div>
-        <p class="text-xs text-[#697284] mt-0.5 m-0 leading-relaxed font-normal" id="evalAlignmentMessage">
-          Choose an activity above to evaluate alignment with San Fernando City priority sectors.
-        </p>
-        <div id="evalSectorTag" class="hidden text-[11px] font-semibold text-[#2A603B] mt-1"></div>
-      </div>
-    </div>
-
-    <!-- Step 2: Proposed Capitalization & Potential Incentive -->
-    <div class="mb-5 pt-4 border-t border-[#dfe3e9]">
-      <label for="evalCapital" class="block text-xs font-bold uppercase tracking-wider text-[#11224D] mb-1.5">
-        Proposed Capitalization (PHP)
-      </label>
-      <input type="number" id="evalCapital" min="0" step="500000" placeholder="e.g. 15000000" class="w-full bg-white border border-[#dfe3e9] rounded-[4px] px-3 py-2 text-sm text-[#11224D] font-medium focus:outline-none focus:border-[#9E1B22]">
-      <div class="flex flex-wrap gap-1.5 pt-1.5">
-        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="2500000">₱2.5M</button>
-        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="5000000">₱5M</button>
-        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="15000000">₱15M</button>
-        <button type="button" class="eval-cap-chip px-2 py-0.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-[3px] font-medium transition" data-amount="30000000">₱30M</button>
-      </div>
-
-      <!-- Small Card: Potential Incentive -->
-      <div class="mt-3 p-3.5 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] space-y-1.5">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-[#697284]">POTENTIAL INCENTIVE</span>
-          <span id="evalIncentiveBadge" class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
-            Awaiting Capital
-          </span>
-        </div>
-        <p id="evalIncentiveCopy" class="text-xs text-[#11224D] font-medium m-0 leading-relaxed">
-          Enter proposed capitalization above to evaluate potential local tax incentives under Ordinance No. 2024-41.
-        </p>
-        <p class="text-[11px] text-[#697284] italic m-0 pt-1 border-t border-[#dfe3e9]">
-          “Final eligibility is subject to LGU review and applicable requirements.”
-        </p>
-      </div>
-    </div>
-
-    <!-- Step 3: Run MCE Evaluation & Visually Separated IAI Results -->
-    <div class="mb-5 pt-4 border-t border-[#dfe3e9]">
-      <div class="flex items-center justify-between mb-3">
-        <div>
-          <span class="text-xs font-bold uppercase tracking-wider text-[#11224D]">Multi-Criteria Evaluation</span>
-          <p class="text-xs text-[#697284] m-0">${isAssessed ? 'Official assessment loaded' : 'Provisional simulation baseline (official assessment pending)'}</p>
-        </div>
-        <button type="button" id="evalRunMceBtn" class="city-button city-button-secondary city-button-small">
-          Run MCE
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <!-- Base IAI -->
-        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
-          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Base IAI</span>
-          <strong id="evalBaseIaiVal" class="block text-2xl font-bold text-[#11224D] mt-1">${displayBaseIai.toFixed(1)}</strong>
-          <span class="block text-[10px] text-[#697284] mt-0.5">${isAssessed ? 'Recorded score' : 'Provisional baseline'}</span>
-        </div>
-
-        <!-- Policy Priority Adjustment -->
-        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
-          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Policy Priority Adjustment</span>
-          <strong id="evalAdjVal" class="block text-2xl font-bold text-[#9E1B22] mt-1">0%</strong>
-          <span id="evalAdjPts" class="block text-[10px] font-mono text-[#697284] font-medium mt-0.5">+0.0 pts</span>
-        </div>
-
-        <!-- Final IAI -->
-        <div class="p-3.5 bg-white border border-[#dfe3e9] rounded-[4px] text-center">
-          <span class="block text-[11px] font-bold text-[#697284] uppercase tracking-wider">Final IAI</span>
-          <strong id="evalFinalIaiVal" class="block text-2xl font-bold text-[#2A603B] mt-1">${displayBaseIai.toFixed(1)}</strong>
-          <span class="block text-[10px] text-[#2A603B] font-semibold mt-0.5">Cap at 100</span>
-        </div>
-      </div>
-
-      <div class="mt-3 p-3 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] text-xs text-[#697284] leading-relaxed">
-        <strong class="text-[#11224D]">Adjustment Rationale:</strong>
-        <span id="evalRationaleText">
-          Final IAI reflects a +${policy.policy_priority_adjustment_percent}% policy-priority adjustment applied to Base IAI under the city's investment incentive framework. This policy adjustment is distinct from the base multi-criteria spatial evaluation (MCE).
-        </span>
-      </div>
-    </div>
-
-    <!-- Step 4: Generate Report Trigger -->
-    <div class="pt-2">
-      <button type="button" id="evalOpenReportBtn" class="city-button w-full justify-center">
-        Generate Investment Report →
-      </button>
-    </div>
-  </section>
-
-  <!-- MODAL: INVESTMENT COMPLIANCE CHECK -->
-  <dialog id="evalComplianceModal" class="city-dialog max-w-lg w-full p-6 bg-white rounded-[6px] border border-[#dfe3e9] shadow-lg">
-    <div class="flex items-center justify-between pb-3 border-b border-[#dfe3e9]">
-      <div>
-        <span class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider block">Statutory Verification</span>
-        <h3 class="text-base font-bold text-[#11224D] mt-0.5 m-0">INVESTMENT COMPLIANCE CHECK</h3>
-      </div>
-      <button type="button" class="close-compliance-modal text-slate-400 hover:text-[#11224D] text-2xl font-light bg-transparent border-0 p-0 leading-none">&times;</button>
-    </div>
-    <div class="py-4 space-y-3">
-      <p class="text-xs text-[#697284] leading-relaxed m-0">
-        Prior to generating and finalizing an investment report, review the following verified statutory compliance obligations:
-      </p>
-
-      <!-- Checklist Rows -->
-      <div class="space-y-2">
-        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
-          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">Workforce Requirement</h4>
-          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
-            Maintain the required proportion of qualified San Fernando City residents in the workforce.
-          </p>
-        </div>
-
-        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
-          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">CSR Commitment</h4>
-          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
-            Allocate the required portion of availed incentives to qualified CSR initiatives within the prescribed period.
-          </p>
-        </div>
-
-        <div class="p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px]">
-          <h4 class="text-xs font-bold text-[#11224D] uppercase tracking-wide m-0">Zoning Compliance</h4>
-          <p class="text-xs text-[#697284] mt-1 m-0 leading-relaxed">
-            Investment activities must comply with applicable zoning and land-use regulations.
-          </p>
-        </div>
-      </div>
-
-      <div class="pt-2">
-        <label class="flex items-center gap-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] cursor-pointer">
-          <input type="checkbox" id="complianceAgreeCheck" class="w-4 h-4 rounded text-[#9E1B22] focus:ring-[#9E1B22] border-slate-300">
-          <span class="text-xs font-semibold text-[#11224D]">I understand these requirements</span>
-        </label>
-      </div>
-    </div>
-    <div class="pt-3 border-t border-[#dfe3e9] flex justify-end gap-2">
-      <button type="button" class="close-compliance-modal city-button city-button-secondary city-button-small">Cancel</button>
-      <button type="button" id="confirmGenerateReportBtn" disabled class="city-button city-button-small disabled:opacity-40 disabled:cursor-not-allowed">
-        Finalize & Generate Report
-      </button>
-    </div>
-  </dialog>
-
-  <!-- MODAL: FINAL INVESTMENT DECISION REPORT -->
-  <dialog id="evalReportResultModal" class="city-dialog max-w-2xl w-full p-6 md:p-8 bg-white rounded-[6px] border border-[#dfe3e9] shadow-lg">
-    <div class="flex items-start justify-between pb-3 border-b border-[#dfe3e9]">
-      <div>
-        <span class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider block">Decision Memorandum</span>
-        <h3 class="text-lg font-bold text-[#11224D] mt-0.5 m-0">Investment Decision Report</h3>
-        <p class="text-xs text-[#697284] mt-0.5 m-0">City Government of San Fernando · Ordinance No. 2024-41 Policy Alignment</p>
-      </div>
-      <button type="button" class="close-report-modal text-slate-400 hover:text-[#11224D] text-2xl font-light leading-none bg-transparent border-0 p-0">&times;</button>
-    </div>
-
-    <div class="py-5 space-y-3" id="evalReportContent">
-      <!-- Injected Dynamically -->
-    </div>
-
-    <div class="pt-3 border-t border-[#dfe3e9] flex items-center justify-between">
-      <span class="text-[11px] text-[#697284]">Preliminary Decision Memo · Non-binding until official LGU review</span>
-      <div class="flex gap-2">
-        <button type="button" id="printReportMemoBtn" class="city-button city-button-small">
-          Print / Save PDF
-        </button>
-        <button type="button" id="downloadReportMemoBtn" class="city-button city-button-secondary city-button-small">
-          Save HTML Report
-        </button>
-        <button type="button" class="close-report-modal city-button city-button-secondary city-button-small">
-          Close
-        </button>
-      </div>
-    </div>
-  </dialog>
-  `;
-}
-
-function setupEvaluation(property) {
-  const policy = config.policy || {
-    ordinance_number: 'Ordinance No. 2024-41',
-    policy_priority_adjustment_percent: 10.0,
-    incentive_thresholds: { tier1_min_capital: 15000000, tier2_min_capital: 3000000 }
-  };
-  const baseIaiScore = property.iaiScore != null ? Number(property.iaiScore) : null;
-  const isAssessed = baseIaiScore != null;
-  const displayBaseIai = isAssessed ? baseIaiScore : 75.0;
-
-  const typeSelect = document.getElementById('evalBusinessType');
-  const capitalInput = document.getElementById('evalCapital');
-  const alignmentCallout = document.getElementById('evalAlignmentCallout');
-  const alignmentTitle = document.getElementById('evalAlignmentTitle');
-  const alignmentMessage = document.getElementById('evalAlignmentMessage');
-  const sectorTag = document.getElementById('evalSectorTag');
-  const incentiveBadge = document.getElementById('evalIncentiveBadge');
-  const incentiveCopy = document.getElementById('evalIncentiveCopy');
-  const adjVal = document.getElementById('evalAdjVal');
-  const adjPts = document.getElementById('evalAdjPts');
-  const finalIaiVal = document.getElementById('evalFinalIaiVal');
-  const rationaleText = document.getElementById('evalRationaleText');
-
-  if (!typeSelect || !capitalInput) return;
-
-  // Quick chips
-  document.querySelectorAll('.eval-cap-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      capitalInput.value = chip.dataset.amount;
-      updateIncentive();
-    });
-  });
-
-  function updateAlignment() {
-    const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-    if (!typeSelect.value) {
-      alignmentCallout.className = 'mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition';
-      alignmentTitle.className = 'text-xs font-bold text-[#11224D]';
-      alignmentTitle.textContent = 'Select Proposed Business Activity';
-      alignmentMessage.className = 'text-xs text-[#697284] mt-0.5 leading-relaxed font-normal';
-      alignmentMessage.textContent = 'Choose an activity above to evaluate alignment with San Fernando City priority sectors.';
-      sectorTag.classList.add('hidden');
-      return { isPriority: false, sector: '' };
-    }
-    const isPriority = selectedOption.dataset.priority === 'true';
-    const sector = selectedOption.dataset.sector || '';
-
-    if (isPriority) {
-      alignmentCallout.className = 'mt-2.5 p-3 bg-white border border-[#2A603B] rounded-[4px] transition';
-      alignmentTitle.className = 'text-xs font-bold text-[#2A603B] uppercase tracking-wider';
-      alignmentTitle.textContent = 'Priority Investment Alignment';
-      alignmentMessage.className = 'text-xs text-[#11224D] mt-0.5 leading-relaxed font-medium';
-      alignmentMessage.textContent = 'This proposed activity aligns with a priority investment sector identified by the City of San Fernando.';
-      sectorTag.textContent = `Sector: ${sector}`;
-      sectorTag.classList.remove('hidden');
-    } else {
-      alignmentCallout.className = 'mt-2.5 p-3 bg-[#F8F9FA] border border-[#dfe3e9] rounded-[4px] transition';
-      alignmentTitle.className = 'text-xs font-bold text-[#697284] uppercase tracking-wider';
-      alignmentTitle.textContent = 'Standard Commercial Activity';
-      alignmentMessage.className = 'text-xs text-[#697284] mt-0.5 leading-relaxed font-normal';
-      alignmentMessage.textContent = 'This proposed activity is evaluated under the standard commercial baseline (no policy-priority modifier applied).';
-      sectorTag.classList.add('hidden');
-    }
-    return { isPriority, sector };
-  }
-
-  function updateIncentive() {
-    const cap = parseFloat(capitalInput.value) || 0;
-    const tier1 = policy.incentive_thresholds?.tier1_min_capital ?? 15000000;
-    const tier2 = policy.incentive_thresholds?.tier2_min_capital ?? 3000000;
-
-    if (cap >= tier1) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#2A603B] border border-[#2A603B]';
-      incentiveBadge.textContent = '1-Year LBT Exemption';
-      incentiveCopy.textContent = 'Potentially eligible for a 1-year Local Business Tax exemption.';
-    } else if (cap >= tier2) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#11224D] border border-[#11224D]';
-      incentiveBadge.textContent = '10% LBT Discount';
-      incentiveCopy.textContent = 'Potentially eligible for a 10% Local Business Tax discount.';
-    } else if (cap > 0) {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-semibold bg-white text-[#697284] border border-[#dfe3e9]';
-      incentiveBadge.textContent = 'Small Enterprise / BMBE';
-      incentiveCopy.textContent = 'May fall within the applicable small-enterprise/BMBE qualification range, subject to eligibility requirements.';
-    } else {
-      incentiveBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-[3px] text-[11px] font-medium bg-[#F8F9FA] text-[#697284] border border-[#dfe3e9]';
-      incentiveBadge.textContent = 'Awaiting Capital Input';
-      incentiveCopy.textContent = 'Enter proposed project capitalization in PHP to evaluate potential incentive tiers under Ordinance No. 2024-41.';
-    }
-  }
-
-  function updateMceResult() {
-    const { isPriority } = updateAlignment();
-    const percent = isPriority ? (policy.policy_priority_adjustment_percent ?? 10.0) : 0.0;
-    const points = isPriority ? Math.round(displayBaseIai * (percent / 100) * 10) / 10 : 0.0;
-    const finalScore = Math.min(100.0, Math.round((displayBaseIai + points) * 10) / 10);
-
-    adjVal.textContent = isPriority ? `+${percent}%` : '0%';
-    adjPts.textContent = isPriority ? `+${points.toFixed(1)} pts (${selectedSectorName()})` : '+0.0 pts (Standard)';
-    finalIaiVal.textContent = finalScore.toFixed(1);
-
-    if (isPriority) {
-      rationaleText.textContent = `Final IAI reflects a +${percent}% policy-priority adjustment applied to Base IAI under the city's investment incentive framework. This policy adjustment is distinct from the base multi-criteria spatial evaluation (MCE).`;
-    } else {
-      rationaleText.textContent = `Standard commercial activity evaluated without policy modifier. Base IAI and Final IAI remain identical.`;
-    }
-    return { baseScore: displayBaseIai, adjustmentPercent: percent, adjustmentPoints: points, finalScore };
-  }
-
-  function selectedSectorName() {
-    const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-    return selectedOption?.dataset.sector || 'Priority';
-  }
-
-  typeSelect.addEventListener('change', () => { updateAlignment(); updateMceResult(); });
-  capitalInput.addEventListener('input', updateIncentive);
-  document.getElementById('evalRunMceBtn')?.addEventListener('click', () => {
-    updateMceResult();
-    toast('MCE and Policy Alignment evaluated.');
-  });
-
-  // Compliance modal & Report modal
-  const complianceModal = document.getElementById('evalComplianceModal');
-  const reportModal = document.getElementById('evalReportResultModal');
-  const agreeCheck = document.getElementById('complianceAgreeCheck');
-  const confirmBtn = document.getElementById('confirmGenerateReportBtn');
-
-  // Relocate dialogs to body so they render properly as top-layer and print elements
-  if (complianceModal && complianceModal.parentElement !== document.body) {
-    document.body.appendChild(complianceModal);
-  }
-  if (reportModal && reportModal.parentElement !== document.body) {
-    document.body.appendChild(reportModal);
-  }
-
-  document.getElementById('evalOpenReportBtn')?.addEventListener('click', () => {
-    if (agreeCheck) agreeCheck.checked = false;
-    if (confirmBtn) confirmBtn.disabled = true;
-    complianceModal?.showModal();
-  });
-
-  document.querySelectorAll('.close-compliance-modal').forEach(btn => {
-    btn.addEventListener('click', () => complianceModal?.close());
-  });
-
-  agreeCheck?.addEventListener('change', () => {
-    confirmBtn.disabled = !agreeCheck.checked;
-  });
-
-  confirmBtn?.addEventListener('click', () => {
-    complianceModal?.close();
-    generateAndShowReport();
-  });
-
-  function closeReportModal() {
-    reportModal?.close();
-    document.body.classList.remove('printing-decision-memo');
-  }
-
-  reportModal?.addEventListener('close', () => {
-    document.body.classList.remove('printing-decision-memo');
-  });
-
-  document.querySelectorAll('.close-report-modal').forEach(btn => {
-    btn.addEventListener('click', closeReportModal);
-  });
-
-  document.getElementById('printReportMemoBtn')?.addEventListener('click', () => {
-    document.body.classList.add('printing-decision-memo');
-    window.print();
-  });
-
-  document.getElementById('downloadReportMemoBtn')?.addEventListener('click', () => {
-    const reportHtml = document.getElementById('evalReportContent')?.innerHTML || '';
-    const parcelName = esc(property.name || 'Parcel').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const fullDoc = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Decision Memo - ${esc(property.name)}</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: #11224D; margin: 40px auto; max-width: 800px; padding: 20px; line-height: 1.5; }
-    h3, h4 { margin: 0; }
-    .memo-header { border-bottom: 2px solid #dfe3e9; padding-bottom: 12px; margin-bottom: 20px; }
-    .memo-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9E1B22; letter-spacing: 0.1em; }
-    .memo-title { font-size: 22px; font-weight: 700; color: #11224D; margin-top: 4px; }
-    .memo-sub { font-size: 12px; color: #697284; margin-top: 4px; }
-    .memo-card { background: #F8F9FA; border: 1px solid #dfe3e9; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
-    .memo-card-white { background: #fff; border: 1px solid #dfe3e9; border-radius: 4px; padding: 16px; margin-bottom: 16px; }
-    .grid { display: grid; gap: 12px; }
-    .grid-4 { grid-template-columns: repeat(4, 1fr); }
-    .grid-3 { grid-template-columns: repeat(3, 1fr); text-align: center; }
-    .text-muted { color: #697284; font-size: 11px; }
-    .score { font-size: 24px; font-weight: 700; }
-    .score-green { color: #2A603B; }
-    .score-red { color: #9E1B22; }
-    .score-navy { color: #11224D; }
-    ul { margin: 8px 0 0 18px; padding: 0; font-size: 12px; color: #697284; }
-    .footer-note { font-size: 11px; color: #697284; border-top: 1px solid #dfe3e9; padding-top: 12px; margin-top: 24px; font-style: italic; }
-  </style>
-</head>
-<body>
-  <div class="memo-header">
-    <div class="memo-eyebrow">Decision Memorandum</div>
-    <div class="memo-title">Investment Decision Report</div>
-    <div class="memo-sub">City Government of San Fernando · Ordinance No. 2024-41 Policy Alignment</div>
-  </div>
-  ${reportHtml}
-  <div class="footer-note">
-    Official LOCUS-SF Decision Memo · City Government of San Fernando · Generated on ${new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-  </div>
-</body>
-</html>`;
-    const blob = new Blob([fullDoc], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `LOCUS-SF_Decision_Memo_${parcelName}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast('Report downloaded.');
-  });
-
-  window.addEventListener('beforeprint', () => {
-    if (reportModal && reportModal.open) {
-      document.body.classList.add('printing-decision-memo');
-    }
-  });
-  window.addEventListener('afterprint', () => {
-    if (!reportModal || !reportModal.open) {
-      document.body.classList.remove('printing-decision-memo');
-    }
-  });
-
-  function generateAndShowReport() {
-    const { isPriority, sector } = updateAlignment();
-    const { baseScore, adjustmentPercent, adjustmentPoints, finalScore } = updateMceResult();
-    const cap = parseFloat(capitalInput.value) || 0;
-    const selectedText = typeSelect.options[typeSelect.selectedIndex]?.text || 'Not Specified';
-    const reportContent = document.getElementById('evalReportContent');
-
-    reportContent.innerHTML = `
-      <div class="p-4 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] space-y-2">
-        <div class="text-[11px] font-bold text-[#697284] uppercase tracking-wider">Candidate Parcel</div>
-        <h4 class="text-base font-bold text-[#11224D] m-0">${esc(property.name)}</h4>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-2 border-t border-[#dfe3e9]">
-          <div><span class="text-[#697284]">Location:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.barangay || 'San Fernando')}</strong></div>
-          <div><span class="text-[#697284]">Area:</span> <strong class="text-[#11224D] block sm:inline">${number(property.area)} ha</strong></div>
-          <div><span class="text-[#697284]">Category:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.category)}</strong></div>
-          <div><span class="text-[#697284]">Zoning:</span> <strong class="text-[#11224D] block sm:inline">${esc(property.clupProfile?.zoningClassification || 'Awaiting Review')}</strong></div>
-        </div>
-      </div>
-
-      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-2.5">
-        <div class="text-[11px] font-bold text-[#9E1B22] uppercase tracking-wider">Proposed Activity & Policy Alignment</div>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <div class="text-sm font-bold text-[#11224D]">${esc(selectedText)}</div>
-            <div class="text-xs text-[#697284]">${sector ? `Priority Sector: ${esc(sector)}` : 'Standard Commercial Activity'}</div>
-          </div>
-          <span class="inline-flex items-center px-2.5 py-1 rounded-[3px] text-xs font-semibold ${isPriority ? 'bg-white text-[#2A603B] border border-[#2A603B]' : 'bg-[#F8F9FA] text-[#697284] border border-[#dfe3e9]'}">
-            ${isPriority ? 'Priority Aligned' : 'Standard Baseline'}
-          </span>
-        </div>
-        ${isPriority ? `<p class="text-xs text-[#2A603B] bg-[#F8F9FA] p-2.5 rounded-[3px] border border-[#2A603B] leading-relaxed font-medium m-0">This proposed activity aligns with a priority investment sector identified by the City of San Fernando.</p>` : ''}
-      </div>
-
-      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-3">
-        <div class="text-[11px] font-bold text-[#11224D] uppercase tracking-wider">Analytical Score Breakdown</div>
-        <div class="grid grid-cols-3 gap-3 text-center">
-          <div class="p-3 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9]">
-            <span class="block text-[10px] font-bold text-[#697284] uppercase">Base IAI</span>
-            <strong class="text-xl font-bold text-[#11224D]">${baseScore.toFixed(1)}</strong>
-          </div>
-          <div class="p-3 bg-white rounded-[4px] border border-[#dfe3e9]">
-            <span class="block text-[10px] font-bold text-[#9E1B22] uppercase">Policy Priority Adj.</span>
-            <strong class="text-xl font-bold text-[#9E1B22]">+${adjustmentPercent}%</strong>
-            <span class="block text-[10px] font-mono text-[#697284]">+${adjustmentPoints.toFixed(1)} pts</span>
-          </div>
-          <div class="p-3 bg-white rounded-[4px] border border-[#2A603B]">
-            <span class="block text-[10px] font-bold text-[#2A603B] uppercase">Final IAI</span>
-            <strong class="text-xl font-bold text-[#2A603B]">${finalScore.toFixed(1)}</strong>
-            <span class="block text-[10px] text-[#2A603B] font-medium">Capped at 100</span>
-          </div>
-        </div>
-        <p class="text-[11px] text-[#697284] leading-relaxed m-0">
-          * Final IAI reflects a +${adjustmentPercent}% policy-priority adjustment applied to Base IAI under the city's investment incentive framework. This policy adjustment is distinct from the base multi-criteria spatial evaluation (MCE).
-        </p>
-      </div>
-
-      <div class="p-4 bg-white rounded-[4px] border border-[#dfe3e9] space-y-2">
-        <div class="text-[11px] font-bold text-[#697284] uppercase tracking-wider">Estimated Incentives (Ordinance No. 2024-41)</div>
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-[#697284]">Capitalization: <strong class="text-[#11224D]">${cap > 0 ? money(cap) : 'Not Specified'}</strong></span>
-          <span class="text-xs font-semibold px-2 py-0.5 rounded-[3px] ${incentiveBadge.className}">${incentiveBadge.textContent}</span>
-        </div>
-        <p class="text-xs text-[#11224D] font-medium m-0">${incentiveCopy.textContent}</p>
-        <p class="text-[10px] text-[#697284] italic m-0">Final eligibility is subject to LGU review and applicable requirements.</p>
-      </div>
-
-      <div class="p-4 bg-[#F8F9FA] rounded-[4px] border border-[#dfe3e9] space-y-1.5">
-        <div class="text-[11px] font-bold text-[#11224D] uppercase tracking-wider">Statutory Compliance Acknowledged</div>
-        <ul class="text-xs text-[#697284] space-y-1 pl-4 list-disc m-0">
-          <li>Maintain the required proportion of qualified San Fernando City residents in the workforce.</li>
-          <li>Allocate the required portion of availed incentives to qualified CSR initiatives within the prescribed period.</li>
-          <li>Investment activities must comply with applicable zoning and land-use regulations.</li>
-        </ul>
-      </div>
-    `;
-
-    document.body.classList.add('printing-decision-memo');
-    reportModal?.showModal();
-  }
+function nearbyMarkup(property) {
+  if (!property.nearbyProperties?.length) return '';
+  return `<section class="tw-mb-5 tw-rounded-xl tw-border tw-border-solid tw-border-line tw-bg-white tw-p-5"><h2 class="tw-mb-4 tw-text-xl">Around this property</h2><div class="tw-grid tw-gap-3 sm:tw-grid-cols-2">${property.nearbyProperties.map(item => `<article class="tw-flex tw-items-center tw-gap-3 tw-rounded-lg tw-bg-paper tw-p-3">${item.imageUrl ? `<img class="tw-h-16 tw-w-16 tw-shrink-0 tw-rounded-lg tw-object-cover" src="${esc(imageUrl(item))}" alt="${esc(item.name)}" loading="lazy">` : ''}<div class="tw-min-w-0"><strong class="tw-text-xs">${esc(item.name)}</strong><p class="tw-mb-0 tw-mt-1 tw-text-[11px]">${esc(item.type || 'Nearby property')}${item.distanceKm == null ? '' : ` · ${number(item.distanceKm)} km`}</p></div></article>`).join('')}</div></section>`;
 }
 
 async function renderDetails() {
@@ -971,11 +597,11 @@ async function renderDetails() {
   const broker = role !== 'guest' ? property.brokerContact : null;
   const existingConversation = investor ? await api.getMessages(id).catch(() => null) : null;
   const canInquire = investor && (existingConversation?.thread || (property.contactMode === 'broker' ? broker : property.sellerUserId));
-  root.innerHTML = `<div class="city-page-heading"><div><div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div><h1>${esc(property.name)}</h1><p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p></div></div>
-  <div class="city-detail-grid"><div><img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><section class="city-detail-panel" style="margin-top:20px"><h2>Property overview</h2><p>${esc(property.description)}</p><dl class="city-detail-list">${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}</section>${renderEvaluationSection(property)}
+  root.innerHTML = `<div class="city-page-heading tw-flex-wrap tw-items-start"><div><div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div><h1>${esc(property.name)}</h1><p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p></div></div>
+  <div class="city-detail-grid"><div><img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><section class="city-detail-panel" style="margin-top:20px"><h2>Property overview</h2><p>${esc(property.description)}</p><dl class="city-detail-list">${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}</section>${nearbyMarkup(property)}${evaluationMarkup(property, config.policy || {})}
   <section class="city-detail-panel"><h2>City assessment</h2><div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px"><span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div><div class="city-detail-criteria">${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}</div><details class="city-assessment-note"><summary>Assessment method</summary><p>${esc(property.assessmentMethod)}</p></details></section></div>
-  <aside><section class="city-detail-panel"><div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div><div class="city-actions">${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button></div><hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0"><h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}</section><section class="city-detail-panel"><h3>Location</h3><div class="city-map-canvas" id="cityPropertyMap"></div></section>${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}${investor ? investorTools(property, Boolean(canInquire)) : ''}</aside></div>`;
-  filtered = [property]; setupMap(); setupEvaluation(property);
+  <aside><section class="city-detail-panel"><div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div><div class="city-actions">${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button></div><hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0"><h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}</section><section class="city-detail-panel"><h3>Location</h3><div class="city-map-canvas tw-h-64" id="cityPropertyMap"></div></section>${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}${investor ? investorTools(property, Boolean(canInquire)) : ''}</aside></div>`;
+  filtered = [property]; setupMap(); setupInvestmentEvaluation(property, config.policy || {});
   const form = document.getElementById('cityInquiryForm');
   if (form) {
     if (existingConversation?.thread) loadConversation(id, existingConversation);
@@ -1063,6 +689,33 @@ async function loadConversation(id, initialPayload = null) {
 }
 
 document.addEventListener('click', async event => {
+  const toggleButton = event.target.closest('[data-toggle-card]');
+  if (toggleButton) {
+    const id = Number(toggleButton.dataset.toggleCard);
+    const cardEl = toggleButton.closest('.city-property-card');
+    if (cardEl) {
+      const drawer = cardEl.querySelector('.locus-card-drawer');
+      const isCurrentlyExpanded = expandedCards.has(id);
+      if (isCurrentlyExpanded) {
+        expandedCards.delete(id);
+        cardEl.classList.remove('is-expanded');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        if (drawer) {
+          drawer.classList.remove('is-open');
+          drawer.setAttribute('aria-hidden', 'true');
+        }
+      } else {
+        expandedCards.add(id);
+        cardEl.classList.add('is-expanded');
+        toggleButton.setAttribute('aria-expanded', 'true');
+        if (drawer) {
+          drawer.classList.add('is-open');
+          drawer.setAttribute('aria-hidden', 'false');
+        }
+      }
+    }
+    return;
+  }
   const saveButton = event.target.closest('[data-save]');
   const compareButton = event.target.closest('[data-compare]');
   const locateButton = event.target.closest('[data-locate]');
@@ -1113,59 +766,56 @@ function setupPrivacy() {
 }
 
 function setupLandingFeatures() {
-  const incentivesDialog = document.getElementById('investmentIncentivesDialog');
-  const openIncentivesBtn = document.getElementById('openIncentivesModalBtn');
-  if (incentivesDialog && openIncentivesBtn) {
-    openIncentivesBtn.addEventListener('click', () => {
-      if (typeof incentivesDialog.showModal === 'function') incentivesDialog.showModal();
-    });
-    incentivesDialog.querySelectorAll('.close-incentives-dialog').forEach(btn => {
-      btn.addEventListener('click', () => incentivesDialog.close());
-    });
-    incentivesDialog.addEventListener('click', event => {
-      if (event.target === incentivesDialog) incentivesDialog.close();
-    });
+  const select = document.getElementById('cityCostCategory');
+  if (select) {
+    const notes = {
+      wages: 'Check the current Region I wage order for the applicable activity and establishment size.',
+      rent: 'Compare the listing’s asking price and lease terms. Confirm deposits, fit-out costs and escalation with the property contact.',
+      power: 'Request the current commercial tariff and a connection estimate for the chosen site.',
+      water: 'Confirm the service area, commercial tariff and connection requirements with the site’s water provider.',
+      internet: 'Ask providers to confirm coverage, installation cost and the plan suited to your business at this address.'
+    };
+    select.addEventListener('change', () => document.getElementById('cityCostNote').textContent = notes[select.value]);
   }
 
-  const requirementsDialog = document.getElementById('businessRequirementsDialog');
-  const openRequirementsBtn = document.getElementById('openRequirementsModalBtn');
-  if (requirementsDialog && openRequirementsBtn) {
-    openRequirementsBtn.addEventListener('click', () => {
-      if (typeof requirementsDialog.showModal === 'function') requirementsDialog.showModal();
+  document.querySelectorAll('.city-why-btn[data-why-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const card = btn.closest('.city-why-card');
+      if (!card) return;
+      const isExpanded = card.classList.toggle('is-expanded');
+      btn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+      const details = card.querySelector('.city-why-details');
+      if (details) details.setAttribute('aria-hidden', isExpanded ? 'false' : 'true');
     });
-    requirementsDialog.querySelectorAll('.close-requirements-dialog').forEach(btn => {
-      btn.addEventListener('click', () => requirementsDialog.close());
-    });
-    requirementsDialog.addEventListener('click', event => {
-      if (event.target === requirementsDialog) requirementsDialog.close();
-    });
-  }
+  });
 
-  const tabBtns = document.querySelectorAll('#costTabsNav .cost-tab-btn');
-  const tabPanels = document.querySelectorAll('#costTabsContent .cost-tab-panel');
-  if (tabBtns.length && tabPanels.length) {
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const targetTab = btn.dataset.costTab;
-        tabBtns.forEach(b => {
-          const isActive = b.dataset.costTab === targetTab;
-          b.classList.toggle('active', isActive);
-          b.classList.toggle('bg-[#11224D]', isActive);
-          b.classList.toggle('text-white', isActive);
-          b.classList.toggle('bg-slate-100', !isActive);
-          b.classList.toggle('text-slate-700', !isActive);
-          b.classList.toggle('hover:bg-slate-200', !isActive);
-        });
-        tabPanels.forEach(panel => {
-          if (panel.dataset.costPanel === targetTab) {
-            panel.classList.remove('hidden');
-          } else {
-            panel.classList.add('hidden');
-          }
-        });
+  document.querySelectorAll('.city-about-btn[data-about-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const item = btn.closest('.city-about-item');
+      if (!item) return;
+      const wasOpen = item.classList.contains('is-open');
+
+      document.querySelectorAll('.city-about-item.is-open').forEach(other => {
+        if (other !== item) {
+          other.classList.remove('is-open');
+          const otherBtn = other.querySelector('.city-about-btn');
+          otherBtn?.classList.remove('is-open');
+          otherBtn?.setAttribute('aria-expanded', 'false');
+          const otherDrawer = other.querySelector('.city-about-drawer');
+          otherDrawer?.setAttribute('aria-hidden', 'true');
+        }
       });
+
+      const isOpen = !wasOpen;
+      item.classList.toggle('is-open', isOpen);
+      btn.classList.toggle('is-open', isOpen);
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const drawer = item.querySelector('.city-about-drawer');
+      if (drawer) drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     });
-  }
+  });
 }
 
 async function initialize() {

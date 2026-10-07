@@ -647,3 +647,515 @@
   }
 }
 
+/* ==========================================================================
+   WHY SAN FERNANDO SECTION & CARDS
+   Pixel-perfect match to user's design reference
+   ========================================================================== */
+
+.city-why-heading {
+  font-family: "Montserrat", "Poppins", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: clamp(32px, 3.8vw, 44px) !important;
+  font-weight: 900 !important;
+  font-style: italic !important;
+  line-height: 1.05 !important;
+  letter-spacing: -0.025em !important;
+  text-transform: uppercase !important;
+  color: #9E1B22 !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.city-why-card {
+  background-color: #11224D !important;
+  border-radius: 28px !important;
+  padding: 30px 26px !important;
+  color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  box-shadow: 0 8px 26px rgba(17, 34, 77, 0.12) !important;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+@media (min-width: 640px) {
+  .city-why-card {
+    padding: 34px 32px !important;
+  }
+}
+
+.city-why-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 14px 36px rgba(17, 34, 77, 0.22) !important;
+}
+
+.city-why-tag {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: #EA1B24 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 12px !important;
+}
+
+.city-why-tag-icon {
+  width: 20px !important;
+  height: 20px !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.city-why-tag-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+  stroke: #ffffff !important;
+}
+
+.city-why-title {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: clamp(21px, 2vw, 25px) !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.015em !important;
+  margin: 0 0 6px 0 !important;
+}
+
+.city-why-subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 14.5px !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  margin: 0 0 16px 0 !important;
+}
+
+.city-why-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  background-color: #EA1B24 !important;
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 6px 18px !important;
+  border-radius: 9999px !important;
+  text-decoration: none !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  width: fit-content !important;
+  margin-bottom: 0 !important;
+  outline: none !important;
+  transition: background-color 0.25s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease !important;
+}
+
+/* Hover effect turns to orange */
+.city-why-btn:hover {
+  background-color: #EA580C !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45) !important;
+}
+
+/* When tapped / active / expanded, stays orange matching Image 2 */
+.city-why-card.is-expanded .city-why-btn,
+.city-why-btn[aria-expanded="true"] {
+  background-color: #EA580C !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45) !important;
+}
+
+.city-why-card.is-expanded .city-why-btn:hover {
+  background-color: #F97316 !important;
+}
+
+.city-why-btn-triangle {
+  font-size: 9px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.city-why-card.is-expanded .city-why-btn-triangle {
+  transform: rotate(90deg) !important;
+}
+
+/* Modern, ultra-smooth auto-height grid disclosure */
+.city-why-details {
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease,
+              margin-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+}
+
+.city-why-details-inner {
+  overflow: hidden !important;
+  min-height: 0 !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: translateY(-8px) !important;
+}
+
+.city-why-card.is-expanded .city-why-details {
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+  margin-top: 24px !important;
+}
+
+.city-why-card.is-expanded .city-why-details-inner {
+  transform: translateY(0) !important;
+}
+
+.city-why-pill {
+  display: inline-block !important;
+  background-color: #C3D2DF !important;
+  color: #11224D !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-transform: uppercase !important;
+  padding: 5px 20px !important;
+  border-radius: 9999px !important;
+  margin-bottom: 10px !important;
+  width: fit-content !important;
+}
+
+.city-why-desc {
+  color: #ffffff !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+  margin: 0 0 20px 0 !important;
+}
+
+.city-why-desc:last-child {
+  margin-bottom: 0 !important;
+}
+
+.city-why-select {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 9999px !important;
+  padding: 8px 18px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  width: 100% !important;
+  margin-bottom: 14px !important;
+  outline: none !important;
+}
+
+.city-why-select option {
+  background-color: #11224D !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   LOCUS-SF General Footer & About Section (Pixel-Accurate Redesign)
+   ========================================================================== */
+
+/* About LOCUS-SF Section */
+.city-about {
+  display: grid !important;
+  grid-template-columns: 1.15fr 1fr !important;
+  gap: 72px !important;
+  border-top: 1px solid #DEE2E5 !important;
+  padding-top: 48px !important;
+  padding-bottom: 40px !important;
+  align-items: start !important;
+  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.city-about-intro {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.city-about-eyebrow {
+  text-transform: uppercase !important;
+  font-size: 11.5px !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
+  color: #1D2D53 !important;
+  margin-bottom: 12px !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.city-about-title {
+  font-family: "Montserrat", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 900 !important;
+  font-style: italic !important;
+  text-transform: uppercase !important;
+  color: #A62020 !important;
+  font-size: clamp(28px, 3.4vw, 38px) !important;
+  line-height: 1.06 !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+.city-about-lead {
+  font-size: 14.5px !important;
+  line-height: 1.55 !important;
+  color: #475569 !important;
+  max-width: 480px !important;
+  margin-top: 0 !important;
+  margin-bottom: 14px !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.city-about-sub {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: #475569 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.city-about-list {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  padding-top: 2px !important;
+}
+
+.city-about-item {
+  border-bottom: 1px solid #DEE2E5 !important;
+  padding-top: 15px !important;
+  padding-bottom: 15px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+.city-about-item:first-child {
+  padding-top: 2px !important;
+}
+
+/* Accordion trigger button */
+.city-about-btn {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: none !important;
+  background: transparent !important;
+  color: #526071 !important;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 6px 14px 6px 0 !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  line-height: 1.25 !important;
+  transition: background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.15s ease !important;
+  user-select: none !important;
+  position: relative !important;
+  max-width: 100% !important;
+}
+
+.city-about-icon {
+  font-size: 9px !important;
+  line-height: 1 !important;
+  color: #ffffff !important;
+  width: 0 !important;
+  opacity: 0 !important;
+  margin-right: 0 !important;
+  display: inline-block !important;
+  transform: translateX(-4px) !important;
+  transition: width 0.18s ease, opacity 0.18s ease, margin-right 0.18s ease, transform 0.18s ease !important;
+}
+
+/* Normal state: clean text without button pill */
+.city-about-btn:not(:hover):not(.is-open) {
+  background: transparent !important;
+  color: #526071 !important;
+  box-shadow: none !important;
+  padding: 6px 14px 6px 0 !important;
+}
+
+/* Hover state AND Tapped / Active / Open state: prominent red pill button */
+.city-about-btn:hover,
+.city-about-btn.is-open,
+.city-about-item.is-open .city-about-btn {
+  background-color: #EA1B24 !important;
+  color: #ffffff !important;
+  padding: 6px 18px 6px 14px !important;
+  box-shadow: 0 4px 14px rgba(234, 27, 36, 0.35) !important;
+}
+
+.city-about-btn:active {
+  transform: scale(0.98) !important;
+}
+
+.city-about-btn:hover .city-about-icon,
+.city-about-btn.is-open .city-about-icon,
+.city-about-item.is-open .city-about-btn .city-about-icon {
+  width: 10px !important;
+  opacity: 1 !important;
+  margin-right: 7px !important;
+  transform: translateX(0) !important;
+}
+
+/* Accordion Drawer */
+.city-about-drawer {
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease,
+              margin-top 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  width: 100% !important;
+}
+
+.city-about-drawer-inner {
+  overflow: hidden !important;
+  min-height: 0 !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transform: translateY(-6px) !important;
+}
+
+.city-about-item.is-open .city-about-drawer {
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+  margin-top: 12px !important;
+}
+
+.city-about-item.is-open .city-about-drawer-inner {
+  transform: translateY(0) !important;
+}
+
+.city-about-drawer p {
+  color: #475569 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  margin-top: 0 !important;
+  margin-bottom: 8px !important;
+  padding-left: 2px !important;
+}
+
+.city-about-drawer p:last-child {
+  margin-bottom: 4px !important;
+}
+
+.city-about-drawer a.city-link {
+  color: #EA1B24 !important;
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  text-decoration: none !important;
+}
+
+.city-about-drawer a.city-link:hover {
+  text-decoration: underline !important;
+}
+
+/* General Footer */
+.city-footer {
+  border-top: 0 !important;
+  border: 0 !important;
+  background-color: #88050B !important;
+  background: #88050B !important;
+  color: #ffffff !important;
+  margin-top: 60px !important;
+  padding: 0 !important;
+  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.city-footer-inner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-height: 76px !important;
+  padding: 22px 0 !important;
+  gap: 24px !important;
+  width: min(1240px, calc(100% - 64px)) !important;
+  margin-inline: auto !important;
+}
+
+.city-footer-brand {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+  color: #ffffff !important;
+}
+
+.city-footer-logo {
+  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 15.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.01em !important;
+  color: #ffffff !important;
+}
+
+.city-footer-location {
+  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14.5px !important;
+  font-weight: 400 !important;
+  color: #ffffff !important;
+  opacity: 0.95 !important;
+}
+
+.city-footer-links {
+  display: flex !important;
+  align-items: center !important;
+  gap: 36px !important;
+}
+
+.city-footer-links a {
+  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  transition: opacity 0.15s ease, text-decoration-color 0.15s ease !important;
+}
+
+.city-footer-links a:hover {
+  opacity: 0.82 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+}
+
+@media (max-width: 850px) {
+  .city-about {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .city-footer-inner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding: 22px 0 !important;
+  }
+  .city-footer-links {
+    gap: 24px !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+
+

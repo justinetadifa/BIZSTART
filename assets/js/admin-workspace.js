@@ -126,7 +126,7 @@
     const stats = governance
       ? [['Properties', properties.length], ['Awaiting review', pending.length], ['Approved', approved.length], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length]]
       : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
-    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="city-stat"><span>${escape(label)}</span><strong>${escape(value)}</strong></div>`).join('');
+    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-block tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-mt-3 tw-block tw-text-2xl tw-font-semibold tw-text-[#11224d]">${escape(value)}</strong></div>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
       ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${number(property.area * 10000)} m²</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} →</a></div>`).join('')
@@ -141,12 +141,14 @@
     const query = (root.querySelector('[data-property-search]')?.value || '').toLowerCase();
     const state = root.querySelector('[data-property-state]')?.value || 'all';
     const filtered = properties.filter((property) => (state === 'all' || state === property.approvalState) && `${property.name} ${property.barangay} ${property.category} ${property.subcategory || ''}`.toLowerCase().includes(query));
+    const summary = root.querySelector('[data-property-summary]');
+    if (summary) summary.innerHTML = [['All properties', properties.length, 'tw-text-[#11224d]'], ['Awaiting review', properties.filter((property) => property.approvalState === 'pending_review').length, 'tw-text-amber-700'], ['Published', properties.filter((property) => property.approvalState === 'approved').length, 'tw-text-emerald-700'], ['Needs assessment', properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived').length, 'tw-text-slate-500']].map(([label, value, color]) => `<div class="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4"><span class="tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-text-2xl tw-font-semibold ${color}">${value}</strong></div>`).join('');
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
-      <article class="city-property-row">
-        <img class="city-property-thumb" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
-        <div class="city-property-main"><h2><a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p>${escape(property.category)}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''} · ${escape(property.barangay || '')}</p><p>${number(property.area * 10000)} m² · ₱${number(property.price)}</p><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span></div>
-        <div class="city-property-scores"><span>MCE ${score(property.mceScore)}${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI ${score(property.iaiScore)}${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div>
-        <div class="city-property-actions"><button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit</button>${governance && property.approvalState !== 'archived' ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}</div>
+      <article class="tw-flex tw-flex-col tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-flex-row sm:tw-items-center sm:tw-p-5">
+        <img class="tw-h-36 tw-w-full tw-rounded-lg tw-object-cover sm:tw-h-24 sm:tw-w-28 sm:tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
+        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || 'San Fernando')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">₱${number(property.price)}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${number(property.area * 10000)} m²</p></div>
+        <div class="tw-flex tw-items-center tw-gap-2"><div class="tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-slate-500">MCE</span><strong class="tw-text-sm tw-font-semibold">${score(property.mceScore)}</strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-amber-800">IAI</span><strong class="tw-text-sm tw-font-semibold">${score(property.iaiScore)}</strong></div></div>
+        <div class="tw-flex tw-gap-2 sm:tw-flex-col"><button class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-[#11224d]" type="button" data-edit-property="${property.id}">Edit details</button>${governance && property.approvalState !== 'archived' ? `<button class="tw-rounded-lg tw-border-0 tw-bg-[#11224d] tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-white" type="button" data-review-property="${property.id}">Review</button>` : ''}</div>
       </article>`).join('') : '<p class="city-empty">No properties found.</p>';
   }
 
@@ -176,13 +178,250 @@
   const form = editor?.querySelector('[data-property-form]');
   const reviewDialog = document.getElementById('cityReviewDialog');
   const reviewForm = reviewDialog?.querySelector('[data-listing-review-form]');
+  const nearby = window.SFCNearby?.(form?.querySelector('[data-nearby-editor]'));
+  const assessmentWeights = JSON.parse(document.getElementById('cityAssessmentWeights')?.textContent || '{}');
+  let editorStep = 0;
+
+  function setEditorStep(step) {
+    editorStep = step;
+    form.querySelectorAll('[data-editor-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.editorPanel) !== step; });
+    form.querySelectorAll('[data-editor-step]').forEach((button) => {
+      const active = Number(button.dataset.editorStep) === step;
+      button.setAttribute('aria-current', active ? 'step' : 'false');
+      button.classList.toggle('tw-bg-[#11224d]', active);
+      button.classList.toggle('tw-text-white', active);
+      button.classList.toggle('tw-bg-slate-100', !active);
+      button.classList.toggle('tw-text-slate-500', !active);
+    });
+    form.querySelector('[data-editor-back]').disabled = step === 0;
+    form.querySelector('[data-editor-back]').classList.toggle('tw-opacity-40', step === 0);
+    form.querySelector('[data-editor-next]').hidden = step === 2;
+    form.querySelector('[type="submit"]').hidden = step !== 2;
+    form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of 3`;
+    editor.scrollTop = 0;
+  }
+
+  function validateEditor(container = form) {
+    const invalid = Array.from(container.querySelectorAll('input,select,textarea')).find((field) => !field.disabled && !field.checkValidity());
+    if (!invalid) return true;
+    const panel = invalid.closest('[data-editor-panel]');
+    if (panel) setEditorStep(Number(panel.dataset.editorPanel));
+    const disclosure = invalid.closest('details');
+    if (disclosure) disclosure.open = true;
+    invalid.focus();
+    invalid.reportValidity();
+    return false;
+  }
+
+  form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
+    if (validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) setEditorStep(Math.min(2, editorStep + 1));
+  });
+  form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+  form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
+    const target = Number(button.dataset.editorStep);
+    for (let step = 0; step < target; step++) if (!validateEditor(form.querySelector(`[data-editor-panel="${step}"]`))) return;
+    setEditorStep(target);
+  }));
+
+  // --- 1. Asking price auto-formatting with commas ---
+  const priceInput = form?.querySelector('[data-price-input]');
+  function formatPriceField(input) {
+    if (!input) return;
+    const original = input.value;
+    const cursorPos = input.selectionStart || 0;
+    const digitsBeforeCursor = original.slice(0, cursorPos).replace(/\D/g, '').length;
+    const raw = original.replace(/\D/g, '');
+    if (!raw) {
+      input.value = '';
+      return;
+    }
+    const formatted = Number(raw).toLocaleString('en-US');
+    input.value = formatted;
+    let newCursorPos = 0;
+    let digitsFound = 0;
+    for (let i = 0; i < formatted.length; i++) {
+      if (/\d/.test(formatted[i])) digitsFound++;
+      if (digitsFound === digitsBeforeCursor) {
+        newCursorPos = i + 1;
+        break;
+      }
+    }
+    if (digitsBeforeCursor === 0) newCursorPos = 0;
+    if (digitsFound < digitsBeforeCursor) newCursorPos = formatted.length;
+    try { input.setSelectionRange(newCursorPos, newCursorPos); } catch {}
+  }
+  priceInput?.addEventListener('input', () => formatPriceField(priceInput));
+
+  // --- 2. Area input group & dynamic auto-conversion helper ---
+  const areaInput = form?.querySelector('[data-area-input]');
+  const areaUnit = form?.querySelector('[data-area-unit]');
+  const areaCalc = form?.querySelector('[data-area-calc]');
+
+  function updateAreaCalculation() {
+    if (!areaInput || !areaUnit || !areaCalc) return;
+    const rawVal = parseFloat(areaInput.value);
+    const unit = areaUnit.value;
+    if (isNaN(rawVal) || rawVal <= 0) {
+      areaCalc.textContent = 'Calculated: —';
+      return;
+    }
+    if (unit === 'sqm') {
+      const hectares = rawVal / 10000;
+      const formattedHa = Number(hectares.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+      const label = hectares === 1 ? 'hectare' : 'hectares';
+      areaCalc.textContent = `Calculated: ${formattedHa} ${label}`;
+    } else {
+      const sqm = rawVal * 10000;
+      const formattedSqm = Number(sqm.toFixed(2)).toLocaleString('en-US', { maximumFractionDigits: 2 });
+      areaCalc.textContent = `Calculated: ${formattedSqm} sqm`;
+    }
+  }
+  areaInput?.addEventListener('input', updateAreaCalculation);
+  areaUnit?.addEventListener('change', updateAreaCalculation);
+
+  // --- 3. Subcategory multi-select dropdown checklist ---
+  const subcatWrapper = form?.querySelector('[data-subcategory-wrapper]');
+  const subcatTrigger = subcatWrapper?.querySelector('[data-subcategory-trigger]');
+  const subcatPopover = subcatWrapper?.querySelector('[data-subcategory-popover]');
+  const subcatGrid = subcatWrapper?.querySelector('[data-subcategory-grid]');
+  const subcatTriggerText = subcatWrapper?.querySelector('[data-subcategory-trigger-text]');
+  const subcatCount = subcatWrapper?.querySelector('[data-subcategory-count]');
+  const subcatTags = subcatWrapper?.querySelector('[data-subcategory-tags]');
+  const subcatInput = subcatWrapper?.querySelector('[data-subcategory-input]');
+  const subcatCaret = subcatWrapper?.querySelector('[data-subcategory-caret]');
+  let selectedSubcategories = new Set();
+
+  function toggleSubcatPopover(open = null) {
+    if (!subcatPopover || !subcatTrigger) return;
+    const isOpen = open !== null ? open : subcatPopover.classList.contains('tw-hidden');
+    subcatPopover.classList.toggle('tw-hidden', !isOpen);
+    subcatTrigger.setAttribute('aria-expanded', String(isOpen));
+    if (subcatCaret) subcatCaret.classList.toggle('tw-rotate-180', isOpen);
+  }
+
+  subcatTrigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleSubcatPopover();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (subcatWrapper && !subcatWrapper.contains(e.target)) {
+      toggleSubcatPopover(false);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && subcatPopover && !subcatPopover.classList.contains('tw-hidden')) {
+      toggleSubcatPopover(false);
+      subcatTrigger?.focus();
+    }
+  });
+
+  function renderSubcategoryTags() {
+    if (!subcatTags || !subcatInput || !subcatTriggerText || !subcatCount) return;
+    const list = Array.from(selectedSubcategories);
+    subcatInput.value = list.join(', ');
+
+    if (list.length === 0) {
+      subcatTriggerText.textContent = 'Select subcategories...';
+      subcatTriggerText.className = 'tw-truncate tw-text-sm tw-text-slate-500';
+      subcatCount.textContent = 'Optional · multi-select';
+      subcatTags.innerHTML = '';
+      return;
+    }
+
+    subcatTriggerText.textContent = list.length === 1 ? list[0] : `${list[0]}, ${list[1] || ''}${list.length > 2 ? ` (+${list.length - 2} more)` : ''}`.replace(',  ', ' ');
+    subcatTriggerText.className = 'tw-truncate tw-text-sm tw-font-medium tw-text-[#11224d]';
+    subcatCount.textContent = `${list.length} selected`;
+
+    subcatTags.innerHTML = list.map((tag) => `
+      <span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-px-2.5 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-900 tw-border tw-border-amber-200/80">
+        ${escape(tag)}
+        <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">×</button>
+      </span>
+    `).join('');
+
+    subcatTags.querySelectorAll('[data-remove-subcat]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = btn.dataset.removeSubcat;
+        selectedSubcategories.delete(tag);
+        const checkbox = subcatGrid?.querySelector(`input[value="${CSS.escape(tag)}"]`);
+        if (checkbox) checkbox.checked = false;
+        renderSubcategoryTags();
+      });
+    });
+  }
 
   function updateSubcategories(selected = '') {
-    const options = categories[form.elements.category.value] || [];
-    form.elements.subcategory.innerHTML = '<option value="">Select if applicable</option>' + options.map((item) => `<option value="${escape(item)}">${escape(item)}</option>`).join('');
-    form.elements.subcategory.value = selected;
-    form.elements.subcategory.disabled = options.length === 0;
+    if (!subcatGrid) return;
+    const categoryVal = form.elements.category.value;
+    const options = categories[categoryVal] || [];
+
+    if (Array.isArray(selected)) {
+      selectedSubcategories = new Set(selected.filter(Boolean));
+    } else if (typeof selected === 'string' && selected.trim()) {
+      selectedSubcategories = new Set(selected.split(',').map((s) => s.trim()).filter(Boolean));
+    } else {
+      selectedSubcategories = new Set();
+    }
+
+    if (options.length > 0) {
+      selectedSubcategories = new Set(Array.from(selectedSubcategories).filter((tag) => options.includes(tag)));
+    } else {
+      selectedSubcategories.clear();
+    }
+
+    if (options.length === 0) {
+      subcatGrid.innerHTML = '<p class="tw-col-span-full tw-py-3 tw-text-center tw-text-xs tw-text-slate-400">No subcategories for this category.</p>';
+      if (subcatTrigger) {
+        subcatTrigger.disabled = true;
+        subcatTrigger.classList.add('tw-opacity-60', 'tw-cursor-not-allowed');
+      }
+    } else {
+      if (subcatTrigger) {
+        subcatTrigger.disabled = false;
+        subcatTrigger.classList.remove('tw-opacity-60', 'tw-cursor-not-allowed');
+      }
+      subcatGrid.innerHTML = options.map((item) => {
+        const isChecked = selectedSubcategories.has(item);
+        return `
+          <label class="tw-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-rounded-lg tw-border tw-border-slate-100 tw-bg-slate-50/60 tw-px-2.5 tw-py-2 tw-text-xs tw-font-medium tw-text-[#11224d] hover:tw-border-amber-200 hover:tw-bg-amber-50/40 tw-transition-colors">
+            <input type="checkbox" value="${escape(item)}" class="tw-h-3.5 tw-w-3.5 tw-rounded tw-border-slate-300 tw-accent-[#11224d]" ${isChecked ? 'checked' : ''}>
+            <span class="tw-truncate">${escape(item)}</span>
+          </label>
+        `;
+      }).join('');
+
+      subcatGrid.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            selectedSubcategories.add(checkbox.value);
+          } else {
+            selectedSubcategories.delete(checkbox.value);
+          }
+          renderSubcategoryTags();
+        });
+      });
+    }
+
+    renderSubcategoryTags();
   }
+
+  subcatWrapper?.querySelector('[data-subcategory-select-all]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const options = categories[form.elements.category.value] || [];
+    options.forEach((opt) => selectedSubcategories.add(opt));
+    subcatGrid?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
+    renderSubcategoryTags();
+  });
+
+  subcatWrapper?.querySelector('[data-subcategory-clear-all]')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    selectedSubcategories.clear();
+    subcatGrid?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
+    renderSubcategoryTags();
+  });
 
   function liveScores() {
     const fields = Array.from(form.querySelectorAll('[data-criterion]'));
@@ -190,33 +429,49 @@
       form.querySelector('[data-live-scores]').textContent = 'MCE — · IAI — · Complete all seven criteria to score';
       return;
     }
-    const weights = { spatial_accessibility: 20, infrastructure_readiness: 20, economic_viability: 20, nearby_businesses: 10, zoning_compatibility: 15, risk_constraints: 10, environmental_safety: 5 };
-    const values = Object.fromEntries(fields.map((field) => [field.dataset.criterion, Number(field.value)]));
-    const mce = fields.reduce((total, field) => total + Number(field.value) * weights[field.dataset.criterion] / 100, 0);
-    const iai = mce * .6 + values.economic_viability * .2 + values.infrastructure_readiness * .2;
+    // Work in integer tenths so decimal halves match PHP's round(..., 1).
+    const tenths = Object.fromEntries(fields.map((field) => [field.dataset.criterion, Math.round(Number(field.value) * 10)]));
+    const mceTenths = Math.round(fields.reduce((total, field) => total + tenths[field.dataset.criterion] * assessmentWeights[field.dataset.criterion], 0) / 100);
+    const mce = mceTenths / 10;
+    const iai = Math.round((mceTenths * 60 + tenths.economic_viability * 20 + tenths.infrastructure_readiness * 20) / 100) / 10;
     form.querySelector('[data-live-scores]').textContent = `MCE ${mce.toFixed(1)} · IAI ${iai.toFixed(1)}`;
   }
 
   function openEditor(propertyId = null) {
     if (!form) return;
     form.reset();
+    toggleSubcatPopover(false);
     const property = properties.find((item) => item.id === Number(propertyId));
     form.elements.id.value = property?.id || '';
     editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'Add property';
     form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
     if (property) {
-      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, land_area: Math.round(property.area * 10000 * 100) / 100, price: property.price, lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes };
+      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes };
       Object.entries(values).forEach(([name, value]) => { if (form.elements[name]) form.elements[name].value = value ?? ''; });
+      if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
+      if (areaInput && areaUnit) {
+        areaUnit.value = 'sqm';
+        areaInput.value = Math.round((property.area || 0) * 10000 * 100) / 100;
+        updateAreaCalculation();
+      }
       updateSubcategories(property.subcategory || '');
       form.querySelectorAll('[data-criterion]').forEach((field) => { field.value = property.assessmentCriteria?.[field.dataset.criterion] ?? ''; });
       form.querySelectorAll('[name="assessmentTags[]"]').forEach((field) => { field.checked = (property.assessmentTags || []).includes(field.value); });
     } else {
       form.elements.category.value = 'Land';
+      if (priceInput) priceInput.value = '';
+      if (areaInput && areaUnit) {
+        areaUnit.value = 'sqm';
+        areaInput.value = '';
+        updateAreaCalculation();
+      }
       updateSubcategories();
       form.elements.lat.value = '';
       form.elements.lng.value = '';
     }
     message(form.querySelector('[data-editor-message]'), '');
+    nearby?.set(property?.nearbyProperties || []);
+    setEditorStep(0);
     liveScores();
     editor.showModal();
     form.elements.property_name.focus();
@@ -251,16 +506,20 @@
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!form.reportValidity()) return;
+    if (!validateEditor()) return;
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     const id = form.elements.id.value;
     const data = new FormData(form);
+    nearby?.append(data);
     data.delete('id');
-    data.set('land_area_unit', 'sqm');
+    const unitVal = areaUnit?.value || 'sqm';
+    data.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
+    data.set('land_area_unit', unitVal);
     const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
     data.set('property_type', type);
-    data.set('subcategory', form.elements.subcategory.value || '');
+    data.set('subcategory', Array.from(selectedSubcategories).join(', '));
+    data.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
     data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
     data.set('assessmentCriteria', JSON.stringify(Object.fromEntries(Array.from(form.querySelectorAll('[data-criterion]')).map((field) => [field.dataset.criterion, field.value === '' ? null : Number(field.value)]))));
     data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));

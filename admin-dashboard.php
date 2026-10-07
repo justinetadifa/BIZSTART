@@ -55,30 +55,28 @@ sfc_render_head($department . ' | LOCUS-SF', $context, ['page' => 'admin-workspa
 sfc_render_header($context, 'admin');
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-workspace.css<?= sfc_asset_version('css/admin-workspace.css') ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
 <main class="city-workspace" data-city-workspace="overview" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>">
 
-  <div class="dept-scope-banner <?= $profile['tag'] ?>">
-    <div class="dept-scope-info">
-      <span class="dept-scope-pill"><?= htmlspecialchars($profile['badge'], ENT_QUOTES, 'UTF-8') ?></span>
-      <h1><?= htmlspecialchars($profile['title'], ENT_QUOTES, 'UTF-8') ?></h1>
-      <p><?= htmlspecialchars($profile['subtitle'], ENT_QUOTES, 'UTF-8') ?></p>
-    </div>
-    <div class="dept-scope-responsibilities">
+  <div class="tw-mb-7 tw-rounded-2xl tw-bg-[#11224d] tw-p-6 sm:tw-p-8">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4"><span class="tw-inline-flex tw-rounded-full tw-border tw-border-white/20 tw-px-3 tw-py-1 tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-widest tw-text-white/80">City workspace · <?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?></span><span class="tw-text-xs tw-text-white/60"><?= htmlspecialchars($profile['badge'], ENT_QUOTES, 'UTF-8') ?></span></div>
+    <h1 class="tw-mb-0 tw-mt-5 tw-text-3xl tw-font-semibold tw-tracking-tight tw-text-white"><?= $governance ? 'A clear view of city listings.' : ($department === 'ASSESSOR' ? 'Assess sites with confidence.' : 'Connect investment to opportunity.') ?></h1><p class="tw-mb-0 tw-mt-3 tw-max-w-2xl tw-text-sm tw-leading-relaxed tw-text-white/70"><?= $governance ? 'Review properties, verify brokers, and manage your city team.' : ($department === 'ASSESSOR' ? 'Maintain land records and record evidence for all seven assessment criteria.' : 'Manage growth corridors, open listings, and investor inquiries.') ?></p>
+    <details class="tw-mt-5 tw-border-t tw-border-white/15 tw-pt-4"><summary class="tw-cursor-pointer tw-text-xs tw-font-medium tw-text-white/80">Your department's responsibilities</summary><div class="tw-mt-4 tw-grid tw-gap-4 sm:tw-grid-cols-3">
       <?php foreach ($profile['responsibilities'] as $respTitle => $respDesc): ?>
-      <div class="dept-resp-item">
-        <strong><?= htmlspecialchars($respTitle, ENT_QUOTES, 'UTF-8') ?></strong>
-        <span><?= htmlspecialchars($respDesc, ENT_QUOTES, 'UTF-8') ?></span>
+      <div class="tw-rounded-lg tw-bg-white/5 tw-p-4">
+        <strong class="tw-block tw-text-xs tw-font-medium tw-text-white"><?= htmlspecialchars($respTitle, ENT_QUOTES, 'UTF-8') ?></strong>
+        <span class="tw-mt-2 tw-block tw-text-xs tw-leading-relaxed tw-text-white/60"><?= htmlspecialchars($respDesc, ENT_QUOTES, 'UTF-8') ?></span>
       </div>
       <?php endforeach; ?>
-    </div>
+    </div></details>
   </div>
 
   <div class="city-page-heading">
-    <div><h2>Department summary &amp; pipeline</h2><p><?= $governance ? 'Monitor broker applications and listing decisions.' : 'Update property attributes and completed assessments.' ?></p></div>
+    <div><h2>Today's workspace</h2><p><?= $governance ? 'The reviews and decisions that need your attention.' : 'The sites ready for your department to assess.' ?></p></div>
     <a class="city-button" href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>"><?= $governance ? 'Review listings' : 'Manage properties' ?></a>
   </div>
   <p class="city-status" data-workspace-status role="status">Loading workspace…</p>
-  <section class="city-stats" aria-label="Overview" data-city-stats></section>
+  <section class="tw-mb-6 tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-4" aria-label="Overview" data-city-stats></section>
   <div class="city-workspace-grid">
     <section class="city-panel"><div class="city-panel-heading"><h2><?= $governance ? 'Listing reviews' : 'Assessment queue' ?></h2><a href="<?= htmlspecialchars(sfc_path('/admin-properties.php'), ENT_QUOTES, 'UTF-8') ?>">View all</a></div><div data-overview-listings></div></section>
     <section class="city-panel"><div class="city-panel-heading"><h2>MCE &amp; IAI</h2><a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>">Rankings</a></div><div data-assessment-ranking></div><details class="city-method"><summary>Scoring method</summary><p data-assessment-method></p></details></section>
@@ -220,7 +218,7 @@ sfc_render_header($context, 'admin');
       </div>
     </div>
 
-    <details class="city-staff-provision-details" open>
+    <details class="city-staff-provision-details">
       <summary class="city-provision-summary">
         <div class="summary-left">
           <div class="summary-icon">

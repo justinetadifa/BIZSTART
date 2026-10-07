@@ -31,7 +31,7 @@ try {
         'site_metrics' => ['metric', 'value', 'updated_at'],
         'users' => ['department', 'phone', 'address_line', 'profile_image_url', 'privacy_consent_at', 'privacy_consent_version', 'privacy_consent_text'],
         'seller_profiles' => ['prc_registration_no', 'prc_valid_until', 'application_status', 'review_notes', 'reviewed_by_user_id'],
-        'properties' => ['category', 'subcategory', 'assessment_json', 'assessment_tags_json', 'contact_mode', 'contact_broker_user_id', 'review_note', 'created_by_user_id'],
+        'properties' => ['category', 'subcategory', 'assessment_json', 'assessment_tags_json', 'nearby_properties_json', 'contact_mode', 'contact_broker_user_id', 'review_note', 'created_by_user_id'],
     ];
     $pending = [];
     foreach ($requirements as $table => $columns) {

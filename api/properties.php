@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/_listing-policy.php';
+require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -33,6 +34,7 @@ api_handle(function (array $container): array {
             return [403, ['error' => 'Your broker application is awaiting CICTO approval.']];
         }
         $payload = sfc_listing_payload(read_request_input(), $user, true);
+        $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);
         $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
         if ($image !== null) {
             $payload['image_path'] = $image;

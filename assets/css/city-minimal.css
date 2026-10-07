@@ -20,20 +20,22 @@ dialog.city-dialog::backdrop{background:rgba(17,34,77,.45)}
 @media print{body.printing-decision-memo>*:not(#evalReportResultModal),body:has(#evalReportResultModal[open])>*:not(#evalReportResultModal){display:none!important}body.printing-decision-memo #evalReportResultModal,body:has(#evalReportResultModal[open]) #evalReportResultModal{display:block!important;position:static!important;border:none!important;box-shadow:none!important;width:100%!important;max-width:100%!important;padding:24px 32px!important;margin:0!important;max-height:none!important;height:auto!important;overflow:visible!important;background:#fff!important;color:#11224D!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body.printing-decision-memo #evalReportResultModal::backdrop,body:has(#evalReportResultModal[open]) #evalReportResultModal::backdrop{display:none!important}body.printing-decision-memo #evalReportResultModal .close-report-modal,body.printing-decision-memo #evalReportResultModal .city-button,body.printing-decision-memo #evalReportResultModal #printReportMemoBtn,body.printing-decision-memo #evalReportResultModal #downloadReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal .close-report-modal,body:has(#evalReportResultModal[open]) #evalReportResultModal .city-button,body:has(#evalReportResultModal[open]) #evalReportResultModal #printReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal #downloadReportMemoBtn{display:none!important}}
 
 /* Sleek Brand Framing & Architectural Outlines */
+.city-property-grid {
+  align-items: start;
+}
 .city-property-card {
   background: #fff;
-  border: 1px solid var(--city-border);
-  border-top: 3px solid transparent;
-  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
   overflow: hidden;
   position: relative;
   min-width: 0;
-  transition: border-color .2s ease, border-top-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 .city-property-card:hover {
-  border-color: var(--city-navy);
-  border-top-color: var(--city-red);
-  box-shadow: 0 6px 20px rgba(17, 34, 77, 0.08);
+  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  box-shadow: 0 16px 36px -10px rgba(17, 34, 77, 0.12), 0 4px 12px -2px rgba(17, 34, 77, 0.04);
 }
 .city-card-image {
   border-bottom: 1px solid var(--city-border);

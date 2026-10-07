@@ -13,10 +13,10 @@ final class PropertyCatalog
             'Retail' => ['Bank', 'Convenience Store', 'Day Care/Nursery', 'QSR/Fast Food', 'Gas Station', 'Grocery Store', 'Pharmacy/Drug', 'Restaurant', 'Bar', 'Storefront', 'Shopping Center', 'Auto Shop'],
             'Multifamily' => ['Student Housing', 'Single Family Rental Portfolio', 'RV Park', 'Apartment Building'],
             'Office' => ['Traditional Office', 'Executive Office', 'Medical Office', 'Creative Office'],
-            'Industrial' => ['Distribution', 'Flex', 'Warehouse', 'R&D'],
+            'Industrial' => ['Distribution', 'Flex', 'Warehouse', 'Logistics', 'R&D'],
             'Hospitality' => ['Hotel', 'Motel', 'Casino'],
             'Mixed Use' => [],
-            'Land' => ['Agricultural', 'Residential', 'Commercial', 'Industrial', 'Islands', 'Farm', 'Ranch', 'Timber', 'Hunting/Recreational'],
+            'Land' => ['Agricultural', 'Residential', 'Commercial', 'Industrial', 'Logistics', 'Islands', 'Farm', 'Ranch', 'Timber', 'Hunting/Recreational'],
             'Self Storage' => [],
             'Mobile Home Park' => [],
             'Senior Living' => [],
@@ -59,8 +59,21 @@ final class PropertyCatalog
             throw new InvalidArgumentException('Choose a valid property category.');
         }
         $subcategory = $subcategory === null || trim($subcategory) === '' ? null : trim($subcategory);
-        if ($subcategory !== null && !in_array($subcategory, $categories[$category], true)) {
-            throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
+        if ($subcategory !== null) {
+            $parts = array_values(array_unique(array_filter(
+                array_map('trim', explode(',', $subcategory)),
+                static fn (string $item): bool => $item !== ''
+            )));
+            if (empty($parts)) {
+                $subcategory = null;
+            } else {
+                foreach ($parts as $part) {
+                    if (!in_array($part, $categories[$category], true)) {
+                        throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
+                    }
+                }
+                $subcategory = implode(', ', $parts);
+            }
         }
         return [$category, $subcategory];
     }

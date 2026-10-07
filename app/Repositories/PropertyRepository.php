@@ -6,6 +6,7 @@ namespace App\Repositories;
 use App\Support\JsonData;
 use App\Support\PropertyCatalog;
 use App\Support\PropertyAssessment;
+use App\Support\PropertyNearby;
 use InvalidArgumentException;
 use OutOfBoundsException;
 use PDO;
@@ -13,6 +14,7 @@ use Throwable;
 
 require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
 require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
+require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
 
 final class PropertyRepository
 {
@@ -98,7 +100,7 @@ final class PropertyRepository
                 dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
                 clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
                 clup_verified_at, assessed_value_sqm, readiness_notes,
-                category, subcategory, assessment_json, assessment_tags_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
+                category, subcategory, assessment_json, assessment_tags_json, nearby_properties_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
                 :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
@@ -106,7 +108,7 @@ final class PropertyRepository
                 :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
                 :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
                 :clup_verified_at, :assessed_value_sqm, :readiness_notes,
-                :category, :subcategory, :assessment_json, :assessment_tags_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
+                :category, :subcategory, :assessment_json, :assessment_tags_json, :nearby_properties_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
             )'
         );
 
@@ -178,6 +180,7 @@ final class PropertyRepository
                 subcategory = :subcategory,
                 assessment_json = :assessment_json,
                 assessment_tags_json = :assessment_tags_json,
+                nearby_properties_json = :nearby_properties_json,
                 contact_mode = :contact_mode,
                 contact_broker_user_id = :contact_broker_user_id,
                 review_note = :review_note
@@ -538,6 +541,7 @@ final class PropertyRepository
                 'category' => $category,
                 'subcategory' => $subcategory,
                 'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
+                'nearbyProperties' => $this->decodeJson($row['nearby_properties_json'] ?? '[]'),
                 'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
                 'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
                 'brokerContact' => ($row['contact_broker_status'] ?? null) === 'verified' ? [
@@ -846,14 +850,22 @@ final class PropertyRepository
             throw new InvalidArgumentException('Description is required.');
         }
 
-        $price = int_or_null($payload['price'] ?? ($existing['price'] ?? null));
+        $rawPrice = $payload['price'] ?? ($existing['price'] ?? null);
+        if (is_string($rawPrice)) {
+            $rawPrice = str_replace(',', '', trim($rawPrice));
+        }
+        $price = int_or_null($rawPrice);
         if ($price === null || $price <= 0) {
             throw new InvalidArgumentException('Price must be greater than zero.');
         }
 
         $areaUnit = $this->normalizeLandAreaUnit($payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? null);
+        $rawArea = $payload['land_area'] ?? $payload['area'] ?? ($existing['area'] ?? null);
+        if (is_string($rawArea)) {
+            $rawArea = str_replace(',', '', trim($rawArea));
+        }
         $area = $this->normalizeLandAreaValue(
-            $payload['land_area'] ?? $payload['area'] ?? ($existing['area'] ?? null),
+            $rawArea,
             $areaUnit
         );
         if ($area === null || $area <= 0) {
@@ -939,12 +951,17 @@ final class PropertyRepository
             $payload['assessed_value_sqm'] ?? $payload['assessedValueSqm'] ?? ($existing['assessed_value_sqm'] ?? null)
         );
         $readinessNotes = string_or_null($payload['readiness_notes'] ?? $payload['readinessNotes'] ?? ($existing['readiness_notes'] ?? null));
+        $rawSubcat = $payload['subcategory'] ?? ($existing['subcategory'] ?? null);
+        if (is_array($rawSubcat)) {
+            $rawSubcat = implode(', ', array_filter(array_map('trim', $rawSubcat), static fn ($s) => $s !== ''));
+        }
         [$category, $subcategory] = PropertyCatalog::normalizeCategory(
             string_or_null($payload['category'] ?? ($existing['category'] ?? null)),
-            string_or_null($payload['subcategory'] ?? ($existing['subcategory'] ?? null)),
+            string_or_null($rawSubcat),
             $type
         );
         $assessment = PropertyAssessment::normalize($payload['assessmentCriteria'] ?? $payload['assessment_criteria'] ?? $this->decodeExistingValue($existing['assessment_json'] ?? null));
+        $nearbyProperties = PropertyNearby::normalize($payload['nearbyProperties'] ?? $this->decodeExistingValue($existing['nearby_properties_json'] ?? null));
         $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
         $assessmentTags = array_values(array_unique(array_map(static fn (string $tag): string => strtoupper(trim($tag)), $assessmentTags)));
         foreach ($assessmentTags as $tag) {
@@ -1012,6 +1029,7 @@ final class PropertyRepository
             'subcategory' => $subcategory,
             'assessment_json' => json_encode($assessment, JSON_UNESCAPED_UNICODE),
             'assessment_tags_json' => json_encode($assessmentTags, JSON_UNESCAPED_UNICODE),
+            'nearby_properties_json' => json_encode($nearbyProperties, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'contact_mode' => $contactMode,
             'contact_broker_user_id' => $contactBrokerUserId,
             'review_note' => $reviewNote,
@@ -1953,6 +1971,7 @@ final class PropertyRepository
             'subcategory' => string_or_null($row['subcategory'] ?? null),
             'assessmentCriteria' => $this->decodeJson($row['assessment_json'] ?? '{}'),
             'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
+            'nearbyProperties' => $this->decodeJson($row['nearby_properties_json'] ?? '[]'),
             'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
             'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
             'reviewNote' => string_or_null($row['review_note'] ?? null),

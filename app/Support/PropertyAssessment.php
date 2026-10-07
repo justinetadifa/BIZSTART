@@ -90,7 +90,12 @@ final class PropertyAssessment
     public static function policyAdjustmentPercent(): float
     {
         $config = require dirname(__DIR__) . '/config.php';
-        return (float) ($config['policy']['policy_priority_adjustment_percent'] ?? 10.0);
+        $policy = $config['policy'];
+        if (($policy['priority_modifier_approved'] ?? false) !== true || trim((string) ($policy['priority_modifier_approval_reference'] ?? '')) === '') {
+            return 0.0;
+        }
+        $percent = (float) ($policy['policy_priority_adjustment_percent'] ?? 0.0);
+        return is_finite($percent) ? max(0.0, min(100.0, $percent)) : 0.0;
     }
 
     public static function evaluateWithPolicy(?float $baseIai, bool $isPriority): array

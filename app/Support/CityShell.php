@@ -17,14 +17,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
             'logoutUrl' => sfc_path('/logout.php'),
             'loginUrl' => sfc_path(match ($user['role'] ?? '') { 'admin' => '/admin-login.php', 'seller' => '/seller-login.php', default => '/investor-login.php' }),
         ],
-        'policy' => (require dirname(__DIR__) . '/config.php')['policy'] ?? [
-            'ordinance_number' => 'Ordinance No. 2024-41',
-            'policy_priority_adjustment_percent' => 10.0,
-            'incentive_thresholds' => [
-                'tier1_min_capital' => 15000000.0,
-                'tier2_min_capital' => 3000000.0,
-            ],
-        ],
+        'policy' => (require dirname(__DIR__) . '/config.php')['policy'],
     ];
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     $legacy = !str_starts_with($page, 'city-') && !in_array($page, ['broker-workspace', 'admin-workspace', 'admin-listings', 'profile', 'investor-login', 'seller-login', 'admin-login'], true);
@@ -41,9 +34,11 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <script>window.SFC_APP_CONFIG = <?= json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;</script>
   <?php if ($legacy): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/portal.css">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/blue-button.css<?= sfc_asset_version('css/blue-button.css') ?>">
   <?php foreach (['decision-reports' => 'reports', 'city-pipeline' => 'pipeline', 'scenario-simulator' => 'simulator', 'admin-showcase' => 'admin'] as $key => $style): if ($page === $key): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/<?= $style ?>.css">
   <?php endif; endforeach; endif; ?>
+  <?php if ($page === 'decision-reports'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/reports-polish.css<?= sfc_asset_version('css/reports-polish.css') ?>"><?php endif; ?>
   <?php if (in_array($page, ['city-explorer', 'city-details', 'admin-workspace', 'admin-dashboard'], true)): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/MarkerCluster.css">
@@ -57,30 +52,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700&family=Montserrat:wght@800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
-  <?php if ($page === 'city-investor'): ?>
-  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/investor-priority-hero.css<?= sfc_asset_version('css/investor-priority-hero.css') ?>">
-  <?php endif; ?>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      corePlugins: { preflight: false },
-      theme: {
-        extend: {
-          colors: {
-            cityNavy: '#11224D',
-            cityRed: '#9E1B22',
-            cityPaper: '#F8F9FA',
-            cityBorder: '#dfe3e9',
-            cityMuted: '#697284',
-            cityGreen: '#2A603B',
-          },
-          fontFamily: {
-            sans: ['Inter', 'Arial', 'sans-serif'],
-          }
-        }
-      }
-    };
-  </script>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
@@ -107,7 +79,7 @@ function sfc_render_header(array $context, string $active = ''): void
         <span class="city-brand-text"><strong>LOCUS<span>-SF</span></strong><small>San Fernando, La Union</small></span>
       </a>
       <button type="button" class="city-menu-button" id="cityMenuButton" aria-controls="cityNavigation" aria-expanded="false" aria-label="Open navigation"><?= sfc_icon('menu') ?></button>
-      <div class="city-navigation" id="cityNavigation">
+      <div class="city-navigation max-[850px]:tw-max-h-[calc(100svh-100px)] max-[850px]:tw-overflow-y-auto max-[850px]:tw-overscroll-contain [&>nav]:tw-shrink-0 [&>.city-account-links]:tw-shrink-0" id="cityNavigation">
         <nav aria-label="Main navigation"><?php foreach ($items as [$label, $href, $key]): ?><a href="<?= $e(sfc_path($href)) ?>" <?= $active === $key ? 'aria-current="page"' : '' ?> class="<?= $active === $key ? 'is-active' : '' ?>"><?= $e($label) ?></a><?php endforeach; ?></nav>
         <div class="city-account-links">
           <?php if ($user !== null): ?>
@@ -129,7 +101,19 @@ function sfc_render_footer(array $context): void
 {
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ?>
-  <footer class="city-footer"><div class="city-container city-footer-inner"><span>LOCUS-SF · San Fernando, La Union</span><div><a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a><a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a><a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a></div></div></footer>
+  <footer class="city-footer">
+    <div class="city-container city-footer-inner">
+      <div class="city-footer-brand">
+        <strong class="city-footer-logo">LOCUS-SF</strong>
+        <span class="city-footer-location">San Fernando, La Union</span>
+      </div>
+      <nav class="city-footer-links" aria-label="Footer navigation">
+        <a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a>
+        <a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a>
+        <a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a>
+      </nav>
+    </div>
+  </footer>
   <?php if (!empty($context['user'])): ?>
   <dialog class="city-updates-dialog" id="cityUpdatesDialog" aria-labelledby="cityUpdatesTitle"><div class="city-updates-heading"><h2 id="cityUpdatesTitle">Updates</h2><button type="button" id="cityUpdatesClose" aria-label="Close updates">×</button></div><button class="city-link" type="button" id="cityUpdatesRead">Mark all read</button><div id="cityUpdatesList" aria-live="polite">Loading…</div></dialog>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-notifications.js<?= sfc_asset_version('js/city-notifications.js') ?>"></script>

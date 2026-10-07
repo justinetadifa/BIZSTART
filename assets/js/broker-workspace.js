@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import './nearby-editor.js';
 
 const byId = (id) => document.getElementById(id);
 const user = window.SFC_APP_CONFIG?.user || {};
@@ -6,6 +7,7 @@ const basePath = String(window.SFC_APP_CONFIG?.basePath || '').replace(/\/$/, ''
 const categories = JSON.parse(byId('brokerCategoryData')?.textContent || '{}');
 const dialog = byId('brokerListingDialog');
 const form = byId('brokerListingForm');
+const nearby = window.SFCNearby(form.querySelector('[data-nearby-editor]'));
 const state = { properties: [], profile: null, threads: [], requests: [], activeThread: null, threadData: null, query: '', filter: 'all' };
 const labels = { approved: 'Accepted', pending_review: 'Pending review', rejected: 'Declined', verified: 'Verified broker', suspended: 'Suspended', draft: 'Complete verification', archived: 'Archived' };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -65,7 +67,7 @@ function renderStats() {
     ['Pending', properties.filter((property) => property.approvalState === 'pending_review').length],
     ['Investor saves', properties.reduce((sum, property) => sum + Number(property.saveCount || 0), 0)],
   ];
-  byId('brokerStats').innerHTML = counts.map(([label, value]) => `<article class="broker-stat"><span>${label}</span><strong>${number(value)}</strong></article>`).join('');
+  byId('brokerStats').innerHTML = counts.map(([label, value], index) => `<article class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-5"><span class="tw-text-xs tw-text-slate-500">${label}</span><strong class="tw-text-2xl tw-font-semibold ${index === 0 ? 'tw-text-emerald-700' : index === 2 ? 'tw-text-amber-700' : 'tw-text-[#11224d]'}">${number(value)}</strong></article>`).join('');
   byId('brokerListingCount').textContent = String(properties.length);
 }
 
@@ -79,7 +81,7 @@ function renderListings() {
   const own = ownProperties();
   const properties = own.filter((property) => (state.filter === 'all' || property.approvalState === state.filter) && [property.name, property.barangay, property.category, property.subcategory].join(' ').toLowerCase().includes(state.query));
   byId('brokerListings').innerHTML = properties.length ? properties.map((property) => `
-    <article class="broker-listing" data-broker-property="${Number(property.id)}">
+    <article class="broker-listing !tw-rounded-xl !tw-border tw-border-slate-200 !tw-bg-white !tw-p-4 tw-mt-3" data-broker-property="${Number(property.id)}">
       <img class="broker-listing-photo" src="${escape(property.imageUrl || `${basePath}/assets/images/Property10.png`)}" alt="" loading="lazy">
       <div>
         <div class="broker-listing-title"><a href="${basePath}/property-details.php?id=${Number(property.id)}">${escape(property.name)}</a>${badge(property.approvalState || 'pending_review')}</div>
@@ -88,7 +90,7 @@ function renderListings() {
         ${property.reviewNote ? `<p class="broker-review-note"><strong>CICTO message</strong> · ${escape(property.reviewNote)}</p>` : ''}
       </div>
       <div class="broker-listing-action"><a class="broker-button" href="${basePath}/property-details.php?id=${Number(property.id)}">View</a><button class="broker-button" data-broker-edit="${Number(property.id)}" ${canSubmit() ? '' : 'disabled'}>Edit</button></div>
-    </article>`).join('') : `<p class="broker-empty">${own.length ? 'No matching listings.' : 'Your first listing starts here. Submit a property when your account is verified.'}</p>`;
+    </article>`).join('') : own.length ? '<p class="broker-empty">No matching listings. Try a different search or status.</p>' : `<div class="tw-my-6 tw-rounded-xl tw-border tw-border-dashed tw-border-slate-200 tw-bg-slate-50 tw-px-5 tw-py-10 tw-text-center"><div class="tw-mx-auto tw-mb-4 tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-text-xl tw-text-amber-800" aria-hidden="true">+</div><h3 class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">Your next opportunity starts here</h3><p class="tw-mb-0 tw-mt-2 tw-text-sm tw-text-slate-500">${canSubmit() ? 'Add a property with its location, price, and a clear photo.' : 'Complete broker verification to start submitting properties.'}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-slate-400">Submit a listing → City review → Reach investors</p></div>`;
 }
 
 function updateSubcategories(selected = '') {
@@ -106,7 +108,7 @@ function openListing(property = null) {
   const values = {
     propertyId: property?.id || '', property_name: property?.name || '', category: property?.category || 'Retail',
     barangay: property?.barangay || '', city: property?.city || 'San Fernando, La Union', price: property?.price ?? '',
-    land_area: property?.area ?? '', description: property?.description || '', latitude: property?.lat ?? '', longitude: property?.lng ?? '',
+    land_area: property ? Math.round(property.area * 10000) : '', description: property?.description || '', latitude: property?.lat ?? '', longitude: property?.lng ?? '',
     corridor: property?.corridor || 'highway', status: property?.status || 'Available', owner_name: contact.name || state.profile?.legalName || user.name || '',
     owner_email: contact.email || user.email || '', owner_phone: contact.phone || state.profile?.phone || '', contactMode: property?.contactMode || 'broker',
   };
@@ -114,7 +116,8 @@ function openListing(property = null) {
   updateSubcategories(property?.subcategory || '');
   byId('brokerModalTitle').textContent = property ? 'Edit listing' : 'Submit listing';
   byId('brokerFormError').hidden = true;
-  form.querySelector('details').open = false;
+  nearby.set(property?.nearbyProperties || []);
+  form.querySelectorAll('details').forEach((details) => { details.open = false; });
   dialog.showModal();
 }
 
@@ -226,12 +229,22 @@ byId('brokerListings').addEventListener('click', (event) => {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!canSubmit()) return;
+  const invalid = Array.from(form.querySelectorAll('input,select,textarea')).find((field) => !field.disabled && !field.checkValidity());
+  if (invalid) {
+    const details = invalid.closest('details');
+    if (details) details.open = true;
+    invalid.focus();
+    invalid.reportValidity();
+    return;
+  }
   const button = byId('brokerSubmitListing');
   const errorNode = byId('brokerFormError');
   button.disabled = true;
   errorNode.hidden = true;
   try {
     const payload = new FormData(form);
+    nearby.append(payload);
+    payload.set('land_area_unit', 'sqm');
     const id = Number(payload.get('propertyId') || 0);
     payload.delete('propertyId');
     const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };

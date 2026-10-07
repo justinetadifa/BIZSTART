@@ -8,7 +8,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             throw new InvalidArgumentException('CICTO must approve your broker account before you submit listings.');
         }
         // An allowlist prevents assignment, review and assessment fields being injected.
-        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode'];
+        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties'];
         $payload = array_intersect_key($payload, array_flip($allowed));
         $payload['seller_user_id'] = (int) $user['id'];
         $payload['owner_name'] = $payload['owner_name'] ?? $user['name'];
