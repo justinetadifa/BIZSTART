@@ -54,7 +54,10 @@ const assessment = (value, complete = true) => ({assessmentMode:'automatic',asse
   form.elements.lng.value='120.316';const closing=card.refresh(true);const closedRequest=requests.at(-1);dialog.dispatch('close');closedRequest.resolve(response(assessment(100)));await closing;
   assert.equal(total.children['[data-total-mce]'].textContent,'—','Closing the editor must invalidate an outstanding preview');
   assert(closedRequest.options.signal.aborted);
-  const php=fs.readFileSync('admin-properties.php','utf8');const scorecard=php.slice(php.indexOf('<div data-automatic-assessment>'),php.indexOf('Assessment basis <span'));
+  const php=fs.readFileSync('app/Support/property-wizard-view.php','utf8');
+  const start=php.indexOf('data-automatic-assessment>');const end=php.indexOf('data-assessment-method',start);
+  assert(start>=0 && end>start,'The rendered wizard must contain the automatic scorecard');
+  const scorecard=php.slice(start,end);
   assert(!/<input\b/.test(scorecard),'Automatic criteria must have no editable or hidden score inputs');
   assert(!fs.readFileSync('assets/js/admin-workspace.js','utf8').includes("data.set('assessmentCriteria'"),'The browser must not submit numeric scores');
   console.log('PASS: read-only scorecard, zero/missing evidence, legacy separation, cache, stale requests and closing cancellation.');

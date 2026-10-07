@@ -1,0 +1,151 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "MacArthur Highway (Manila North Road)",
+                "highway": "primary",
+                "source": "DPWH Region 1 Road Inventory",
+                "reference": "DPWH-MNR-R1"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        120.316,
+                        16.58
+                    ],
+                    [
+                        120.318,
+                        16.6
+                    ],
+                    [
+                        120.32,
+                        16.615
+                    ],
+                    [
+                        120.321,
+                        16.62
+                    ],
+                    [
+                        120.322,
+                        16.635
+                    ],
+                    [
+                        120.325,
+                        16.66
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "San Fernando Bypass Road / Diversion Road",
+                "highway": "primary",
+                "source": "DPWH Region 1 Road Inventory",
+                "reference": "DPWH-SFC-BYPASS"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        120.325,
+                        16.59
+                    ],
+                    [
+                        120.328,
+                        16.61
+                    ],
+                    [
+                        120.33,
+                        16.625
+                    ],
+                    [
+                        120.332,
+                        16.645
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pennsylvania Avenue (Poro Point Road)",
+                "highway": "secondary",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-PENN"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        120.318,
+                        16.612
+                    ],
+                    [
+                        120.305,
+                        16.61
+                    ],
+                    [
+                        120.29,
+                        16.608
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Biday Commercial Access Road",
+                "highway": "residential",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-BIDAY"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        120.319,
+                        16.618
+                    ],
+                    [
+                        120.322,
+                        16.619
+                    ],
+                    [
+                        120.324,
+                        16.622
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Gov. Ortega Street (Downtown Central)",
+                "highway": "tertiary",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-ORTEGA"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [
+                        120.315,
+                        16.613
+                    ],
+                    [
+                        120.32,
+                        16.614
+                    ],
+                    [
+                        120.325,
+                        16.615
+                    ]
+                ]
+            }
+        }
+    ]
+}

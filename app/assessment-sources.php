@@ -13,4 +13,8 @@ return [
         'rules' => [],
     ],
     'business_radius_m' => 1000,
+    'parcel_context' => [
+        // The relevant office must approve the parcel-wide active fault review buffer.
+        'fault_buffer' => ['meters' => null, 'approved' => false, 'approval_reference' => null],
+    ],
 ];

@@ -8,6 +8,7 @@ use App\Support\PropertyCatalog;
 use App\Support\PropertyAssessment;
 use App\Support\AutomaticPropertyAssessment;
 use App\Support\PropertyNearby;
+use App\Support\PropertyParcel;
 use InvalidArgumentException;
 use OutOfBoundsException;
 use PDO;
@@ -17,6 +18,8 @@ require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
 require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
+require_once dirname(__DIR__) . '/Support/PropertyParcel.php';
+require_once dirname(__DIR__) . '/Support/auth.php';
 
 final class PropertyRepository
 {
@@ -102,7 +105,7 @@ final class PropertyRepository
                 dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
                 clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
                 clup_verified_at, assessed_value_sqm, readiness_notes,
-                category, subcategory, assessment_json, automatic_assessment_json, legacy_assessment_json, assessment_tags_json, nearby_properties_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
+                category, subcategory, assessment_json, automatic_assessment_json, legacy_assessment_json, assessment_tags_json, nearby_properties_json, parcel_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
                 :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
@@ -110,7 +113,7 @@ final class PropertyRepository
                 :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
                 :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
                 :clup_verified_at, :assessed_value_sqm, :readiness_notes,
-                :category, :subcategory, :assessment_json, :automatic_assessment_json, :legacy_assessment_json, :assessment_tags_json, :nearby_properties_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
+                :category, :subcategory, :assessment_json, :automatic_assessment_json, :legacy_assessment_json, :assessment_tags_json, :nearby_properties_json, :parcel_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
             )'
         );
 
@@ -124,14 +127,13 @@ final class PropertyRepository
             $this->ensureDueDiligenceRecord($propertyId);
             $created = $this->rawPropertyRow($propertyId, null, false);
             $this->recordPropertyAudit('CREATE', $propertyId, null, $created, $actor);
-
+            $result = $this->presentEvidence($this->hydrateProperties([$created])[0], $actor);
             $this->pdo->commit();
         } catch (Throwable $exception) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }
             throw $exception;
         }
-
-        return $this->hydrateProperties([$this->rawPropertyRow($propertyId, null, false)])[0];
+        return $result;
     }
 
     public function update(int $propertyId, array $payload, ?array $actor = null): array
@@ -185,6 +187,7 @@ final class PropertyRepository
                 legacy_assessment_json = :legacy_assessment_json,
                 assessment_tags_json = :assessment_tags_json,
                 nearby_properties_json = :nearby_properties_json,
+                parcel_json = :parcel_json,
                 contact_mode = :contact_mode,
                 contact_broker_user_id = :contact_broker_user_id,
                 review_note = :review_note
@@ -199,13 +202,13 @@ final class PropertyRepository
             $this->ensureDueDiligenceRecord($propertyId);
             $updated = $this->rawPropertyRow($propertyId, null, false);
             $this->recordPropertyAudit('EDIT', $propertyId, $existing, $updated, $actor);
+            $result = $this->presentEvidence($this->hydrateProperties([$updated])[0], $actor);
             $this->pdo->commit();
         } catch (Throwable $exception) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }
             throw $exception;
         }
-
-        return $this->hydrateProperties([$this->rawPropertyRow($propertyId, null, false)])[0];
+        return $result;
     }
 
     public function delete(int $propertyId, ?array $actor = null): void
@@ -528,6 +531,22 @@ final class PropertyRepository
                 $this->decodeJson($row['automatic_assessment_json'] ?? '{}'),
                 $this->decodeJson($row['legacy_assessment_json'] ?? '{}')
             );
+            if ($assessment['mceScore'] === null && (float) ($row['lat'] ?? 0) != 0 && (float) ($row['lng'] ?? 0) != 0) {
+                try {
+                    [$catFallback, $subcatFallback] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) ($row['type'] ?? 'Land'));
+                    $evaluated = AutomaticPropertyAssessment::configured()->evaluate([
+                        'lat' => (float) $row['lat'],
+                        'lng' => (float) $row['lng'],
+                        'category' => $catFallback,
+                        'subcategory' => $subcatFallback,
+                        'landArea' => (float) ($row['area'] ?? 0) > 0 ? (float) $row['area'] : 0.05,
+                    ]);
+                    if ($evaluated['mceScore'] !== null) {
+                        $assessment = $evaluated;
+                    }
+                } catch (\Throwable) {
+                }
+            }
             [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
 
             return array_merge([
@@ -550,6 +569,7 @@ final class PropertyRepository
                 'subcategory' => $subcategory,
                 'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
                 'nearbyProperties' => $this->decodeJson($row['nearby_properties_json'] ?? '[]'),
+                'parcel' => $this->decodeJson($row['parcel_json'] ?? '{}'),
                 'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
                 'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
                 'brokerContact' => ($row['contact_broker_status'] ?? null) === 'verified' ? [
@@ -630,8 +650,17 @@ final class PropertyRepository
         return PropertyAssessment::ranks($properties);
     }
 
+    private function presentEvidence(array $property, ?array $user): array
+    {
+        if ($user === null || !sfc_can_manage_properties($user)) {
+            unset($property['parcel']['attachments']);
+        }
+        return $property;
+    }
+
     private function presentProperties(array $properties, ?array $user): array
     {
+        $properties = array_map(fn (array $property): array => $this->presentEvidence($property, $user), $properties);
         if ((int) ($user['id'] ?? 0) > 0) {
             return $properties;
         }
@@ -853,31 +882,24 @@ final class PropertyRepository
         $corridor = string_or_null($payload['corridor'] ?? ($existing['corridor'] ?? null)) ?? 'highway';
         $status = string_or_null($payload['status'] ?? ($existing['status'] ?? null)) ?? 'Available';
         $approvalState = $this->normalizeApprovalState((string) ($payload['approval_state'] ?? $payload['approvalState'] ?? ($existing['approval_state'] ?? 'approved')));
-        $description = string_or_null($payload['description'] ?? ($existing['description'] ?? null));
-        if ($description === null) {
-            throw new InvalidArgumentException('Description is required.');
-        }
+        $rawDescription = array_key_exists('description', $payload) ? $payload['description'] : ($existing['description'] ?? '');
+        if ($rawDescription !== null && !is_string($rawDescription)) { throw new InvalidArgumentException('Description must be text.'); }
+        $description = trim($rawDescription ?? '');
 
-        $rawPrice = $payload['price'] ?? ($existing['price'] ?? null);
+        $rawPrice = array_key_exists('price', $payload) ? $payload['price'] : ($existing['price'] ?? 0);
         if (is_string($rawPrice)) {
             $rawPrice = str_replace(',', '', trim($rawPrice));
         }
+        if ($rawPrice === null || $rawPrice === '') { $rawPrice = 0; }
         $price = int_or_null($rawPrice);
-        if ($price === null || $price <= 0) {
-            throw new InvalidArgumentException('Price must be greater than zero.');
+        if ($price === null || $price < 0) {
+            throw new InvalidArgumentException('Asking price must be zero or a positive whole amount.');
         }
 
-        $submittedArea = $payload['land_area'] ?? $payload['area'] ?? null;
-        $areaUnit = $submittedArea !== null
-            ? $this->normalizeLandAreaUnit($payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? null) : 'ha';
-        $rawArea = $submittedArea ?? ($existing['area'] ?? null);
-        if (is_string($rawArea)) {
-            $rawArea = str_replace(',', '', trim($rawArea));
-        }
-        $area = $this->normalizeLandAreaValue(
-            $rawArea,
-            $areaUnit
-        );
+        $parcel = PropertyParcel::fromPayload($payload, $this->decodeJson($existing['parcel_json'] ?? '{}'));
+        $effectiveSqm = $parcel['surveyAreaSqm'] ?? $parcel['estimatedAreaSqm'];
+        $retainHistoricalArea = !array_key_exists('boundary', $payload) && ($payload['land_area'] ?? $payload['area'] ?? null) === null;
+        $area = $effectiveSqm !== null ? $effectiveSqm / 10000 : ($retainHistoricalArea ? float_or_null($existing['area'] ?? null) : null);
         if ($area === null || !is_finite($area) || $area <= 0 || round($area, 4) <= 0) {
             throw new InvalidArgumentException('Land area must be greater than zero.');
         }
@@ -996,7 +1018,7 @@ final class PropertyRepository
             }
             $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area]);
             $assessment = $automatic['assessmentCriteria'];
-            $automaticJson = json_encode($automatic, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $automaticJson = json_encode($automatic, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
         }
         $nearbyProperties = PropertyNearby::normalize($payload['nearbyProperties'] ?? $this->decodeExistingValue($existing['nearby_properties_json'] ?? null));
         $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
@@ -1069,6 +1091,7 @@ final class PropertyRepository
             'legacy_assessment_json' => $legacyJson,
             'assessment_tags_json' => json_encode($assessmentTags, JSON_UNESCAPED_UNICODE),
             'nearby_properties_json' => json_encode($nearbyProperties, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'parcel_json' => json_encode($parcel, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'contact_mode' => $contactMode,
             'contact_broker_user_id' => $contactBrokerUserId,
             'review_note' => $reviewNote,
@@ -1190,7 +1213,7 @@ final class PropertyRepository
         }
 
         $name = string_or_null($payloadContact['name'] ?? $payload['owner_name'] ?? ($existingContact['name'] ?? null))
-            ?? sprintf('%s Desk', $propertyName);
+            ?? '';
         $email = string_or_null($payloadContact['email'] ?? $payload['owner_email'] ?? ($existingContact['email'] ?? null))
             ?? '';
         $phone = string_or_null($payloadContact['phone'] ?? $payload['owner_phone'] ?? ($existingContact['phone'] ?? null))
@@ -2013,6 +2036,7 @@ final class PropertyRepository
             'legacyAssessment' => $this->decodeJson($row['legacy_assessment_json'] ?? '{}'),
             'assessmentTags' => $this->decodeJson($row['assessment_tags_json'] ?? '[]'),
             'nearbyProperties' => $this->decodeJson($row['nearby_properties_json'] ?? '[]'),
+            'parcel' => $this->decodeJson($row['parcel_json'] ?? '{}'),
             'contactMode' => (string) ($row['contact_mode'] ?? 'open_listing'),
             'contactBrokerUserId' => int_or_null($row['contact_broker_user_id'] ?? null),
             'reviewNote' => string_or_null($row['review_note'] ?? null),
@@ -2127,7 +2151,7 @@ final class PropertyRepository
             return $this->pricePerSqm($price, $area);
         }
 
-        return max(1, (int) ($row['price_per_sqm'] ?? 1));
+        return max(0, (int) ($row['price_per_sqm'] ?? 0));
     }
 
     private function effectiveAssessedValueSqm(mixed $value, int $pricePerSqm): ?int
@@ -2146,7 +2170,7 @@ final class PropertyRepository
 
     private function pricePerSqm(int $price, float $area): int
     {
-        return max(1, (int) round($price / max($area * 10000, 1)));
+        return $price <= 0 ? 0 : max(1, (int) round($price / max($area * 10000, 1)));
     }
 
     private function propertyTargetLabel(int $propertyId): string

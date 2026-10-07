@@ -182,7 +182,10 @@
   const reviewForm = reviewDialog?.querySelector('[data-listing-review-form]');
   const nearby = window.SFCNearby?.(form?.querySelector('[data-nearby-editor]'));
   const automaticAssessment = window.SFCAutomaticAssessment?.(form, { apiBase, dialog: editor });
-  const locationEditor = window.SFCAdminLocation?.(form, { apiBase, dialog: editor });
+  const propertyWizard = window.SFCPropertyWizard?.(form, { apiBase, dialog: editor, assessment: automaticAssessment });
+  propertyWizard?.setNearby(nearby);
+  const locationEditor = propertyWizard || window.SFCAdminLocation?.(form, { apiBase, dialog: editor });
+  const editorLastStep = propertyWizard ? 4 : 2;
   let editorStep = 0;
 
   function setEditorStep(step) {
@@ -191,19 +194,27 @@
     form.querySelectorAll('[data-editor-step]').forEach((button) => {
       const active = Number(button.dataset.editorStep) === step;
       button.setAttribute('aria-current', active ? 'step' : 'false');
-      button.classList.toggle('tw-bg-[#11224d]', active);
-      button.classList.toggle('tw-text-white', active);
-      button.classList.toggle('tw-bg-slate-100', !active);
-      button.classList.toggle('tw-text-slate-500', !active);
+      button.classList.toggle('is-active', active);
+      button.classList.toggle('is-complete', Number(button.dataset.editorStep) < step);
+      if (!propertyWizard) {
+        button.classList.toggle('tw-bg-[#11224d]', active);
+        button.classList.toggle('tw-text-white', active);
+        button.classList.toggle('tw-bg-slate-100', !active);
+        button.classList.toggle('tw-text-slate-500', !active);
+      }
     });
     form.querySelector('[data-editor-back]').disabled = step === 0;
     form.querySelector('[data-editor-back]').classList.toggle('tw-opacity-40', step === 0);
-    form.querySelector('[data-editor-next]').hidden = step === 2;
-    form.querySelector('[type="submit"]').hidden = step !== 2;
-    form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of 3`;
+    form.querySelector('[data-editor-next]').hidden = step === editorLastStep;
+    form.querySelector('[type="submit"]').hidden = step !== editorLastStep;
+    form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
+    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to boundary →', 'Save boundary & continue →', 'Save & continue →', 'Continue to review →'][step] || 'Continue →';
     editor.scrollTop = 0;
-    if (step === 2) automaticAssessment?.refresh();
-    if (step === 1) locationEditor?.sync();
+    if (propertyWizard) propertyWizard.onStep(step);
+    else {
+      if (step === 2) automaticAssessment?.refresh();
+      if (step === 1) locationEditor?.sync();
+    }
   }
 
   function validateEditor(container = form) {
@@ -213,18 +224,33 @@
     if (panel) setEditorStep(Number(panel.dataset.editorPanel));
     const disclosure = invalid.closest('details');
     if (disclosure) disclosure.open = true;
+    const evidencePanel = invalid.closest('[data-evidence-panel]');
+    if (evidencePanel) form.querySelector(`[data-evidence-tab="${evidencePanel.dataset.evidencePanel}"]`)?.click();
     invalid.focus();
     invalid.reportValidity();
     return false;
   }
 
+  function validateBoundary() {
+    if (!propertyWizard || propertyWizard.validateBoundary()) return true;
+    setEditorStep(1);
+    return false;
+  }
+
   form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
-    if (validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) setEditorStep(Math.min(2, editorStep + 1));
+    if (!validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) return;
+    if (editorStep === 1 && !validateBoundary()) return;
+    if (editorStep === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
+    setEditorStep(Math.min(editorLastStep, editorStep + 1));
   });
   form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
   form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
     const target = Number(button.dataset.editorStep);
-    for (let step = 0; step < target; step++) if (!validateEditor(form.querySelector(`[data-editor-panel="${step}"]`))) return;
+    for (let step = 0; step < target; step++) {
+      if (!validateEditor(form.querySelector(`[data-editor-panel="${step}"]`))) return;
+      if (step === 1 && !validateBoundary()) return;
+      if (step === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
+    }
     setEditorStep(target);
   }));
 
@@ -437,15 +463,17 @@
     toggleSubcatPopover(false);
     const property = properties.find((item) => item.id === Number(propertyId));
     form.elements.id.value = property?.id || '';
-    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'Add property';
+    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'New property';
+    const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
+    if (breadcrumb) breadcrumb.textContent = property ? 'Edit property' : 'Add property';
     form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
     if (property) {
-      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes };
+      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes, existing_land_use:property.existingLandUse, zoning_classification:property.zoningClassification, clup_source_reference:property.clupSourceReference };
       Object.entries(values).forEach(([name, value]) => { if (form.elements[name]) form.elements[name].value = value ?? ''; });
       if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
       if (areaInput && areaUnit) {
         areaUnit.value = 'sqm';
-        areaInput.value = Math.round((property.area || 0) * 10000 * 100) / 100;
+        areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : Math.round((property.area || 0) * 10000 * 100) / 100;
         updateAreaCalculation();
       }
       updateSubcategories(property.subcategory || '');
@@ -464,8 +492,12 @@
     }
     message(form.querySelector('[data-editor-message]'), '');
     nearby?.set(property?.nearbyProperties || []);
-    setEditorStep(0);
     automaticAssessment?.setProperty(property);
+    const restored = propertyWizard?.setProperty(property);
+    if (restored?.nearby) nearby?.set(restored.nearby);
+    if (restored?.values?.subcategory) updateSubcategories(restored.values.subcategory);
+    updateAreaCalculation();
+    setEditorStep(0);
     editor.showModal();
     form.elements.property_name.focus();
   }
@@ -498,12 +530,18 @@
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!validateEditor()) return;
+    if (editorStep !== editorLastStep) {
+      form.querySelector('[data-editor-next]').click();
+      return;
+    }
+    if (!validateEditor() || !validateBoundary()) return;
+    if (propertyWizard && !propertyWizard.validateSurroundings()) { setEditorStep(3); return; }
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     const id = form.elements.id.value;
     const data = new FormData(form);
     nearby?.append(data);
+    propertyWizard?.append(data);
     data.delete('id');
     const unitVal = areaUnit?.value || 'sqm';
     data.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
@@ -518,6 +556,7 @@
     if (id) data.set('_method', 'PATCH');
     try {
       await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });
+      propertyWizard?.saved();
       await refresh();
       editor.close();
       message(status, 'Property saved for CICTO review.');

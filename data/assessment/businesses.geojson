@@ -1,0 +1,165 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pig Out Bistro",
+                "category": "Restaurant",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-0129"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.321,
+                    16.619
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Halo-Halo de Iloko Mansion",
+                "category": "Restaurant",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-0412"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3185,
+                    16.6145
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "F4 Kainan and Store",
+                "category": "Restaurant",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-0881"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3202,
+                    16.6188
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "SM City La Union",
+                "category": "Shopping Mall",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1002"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3225,
+                    16.621
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Robinsons Place La Union",
+                "category": "Shopping Mall",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1005"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3195,
+                    16.595
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Jollibee Plaza",
+                "category": "Fast Food",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1201"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3175,
+                    16.6138
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "McDonald's Diversion",
+                "category": "Fast Food",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1209"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.323,
+                    16.6205
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Starbucks Biday",
+                "category": "Cafe",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1450"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3218,
+                    16.6202
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Lorma Medical Center",
+                "category": "Hospital",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-2001"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.324,
+                    16.624
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "7-Eleven Catbangen",
+                "category": "Convenience Store",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-3021"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.316,
+                    16.612
+                ]
+            }
+        }
+    ]
+}

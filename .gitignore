@@ -1,5 +1,9 @@
 app/config.local.php
 vendor/
+!assets/vendor/
+assets/vendor/*
+!assets/vendor/geoman/
+!assets/vendor/turf/
 node_modules/
 *.log
 Thumbs.db
@@ -8,6 +12,8 @@ Desktop.ini
 .ui-audit/
 scratch/
 cookies.txt
+data/property-evidence/
+data/cache/
 *.bak
 *_backup.*
 assets/uploads/profiles/*

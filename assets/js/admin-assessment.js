@@ -8,7 +8,7 @@
     const root = form.querySelector('[data-automatic-assessment]');
     const status = root.querySelector('[data-assessment-status]');
     const total = root.querySelector('[data-live-scores]');
-    const fields = ['lat', 'lng', 'category', 'subcategory', 'land_area', 'land_area_unit'];
+    const fields = ['lat', 'lng', 'category', 'subcategory', 'land_area', 'land_area_unit', 'calculated_area_sqm'];
     let controller;
     let timer;
     let revision = 0;
@@ -16,7 +16,19 @@
     let lastKey = '';
     let cached = null;
 
-    const inputs = () => Object.fromEntries(fields.map(key => [key, form.elements[key]?.value || '']));
+    const inputs = () => {
+      const data = Object.fromEntries(fields.map(key => [key, form.elements[key]?.value || '']));
+      if (!(Number(data.land_area) > 0) && Number(data.calculated_area_sqm) > 0) {
+        data.land_area = data.calculated_area_sqm;
+        data.land_area_unit = 'sqm';
+      }
+      if (!(Number(data.land_area) > 0)) {
+        data.land_area = '500';
+        data.land_area_unit = 'sqm';
+      }
+      delete data.calculated_area_sqm;
+      return data;
+    };
     const validLocation = data => data.lat !== '' && data.lng !== '' && Number.isFinite(Number(data.lat)) && Number.isFinite(Number(data.lng)) && Math.abs(Number(data.lat)) <= 90 && Math.abs(Number(data.lng)) <= 180;
     const notice = text => { status.textContent = text; };
 
@@ -33,7 +45,16 @@
         else bar.removeAttribute('aria-valuenow');
         bar.setAttribute('aria-valuetext', available ? `${score(value)} out of 100` : 'Awaiting source data');
         bar.querySelector('span').style.width = `${available ? Math.max(0, Math.min(100, Number(value))) : 0}%`;
-        card.querySelector('[data-score-justification]').textContent = detail?.justification || (waiting ? 'Checking location data and verified sources…' : 'Set the location in Step 2 to check verified source data.');
+        const nextActions = {
+          spatial_accessibility: 'Confirm road frontage and access evidence.',
+          infrastructure_readiness: 'Confirm electricity, water, and internet.',
+          economic_viability: 'Add a dated BIR zonal reference.',
+          nearby_businesses: 'Run the radar and confirm inventory coverage.',
+          zoning_compatibility: 'Add the parcel zoning and CLUP source.',
+          risk_constraints: 'Review hazard sources and parcel coverage.',
+          environmental_safety: 'Add environmental classification evidence.',
+        };
+        card.querySelector('[data-score-justification]').textContent = available ? (detail?.justification || 'Source evidence available.') : (waiting ? 'Checking source evidence…' : nextActions[key]);
         const evidence = card.querySelector('[data-score-evidence]');
         evidence.textContent = (detail?.evidence || []).map(item => [item.layer, item.source, item.version, item.reference].filter(Boolean).join(' · ')).join('; ');
         evidence.hidden = !evidence.textContent;
@@ -53,6 +74,7 @@
       context.querySelector('dl').innerHTML = rows.map(item => `<div class="tw-min-w-0"><dt class="tw-text-[10px] tw-text-slate-500">${escape(item.label)}</dt><dd class="tw-m-0 tw-mt-1 tw-break-words tw-text-xs tw-font-medium">${escape(item.value)}${item.unit ? ` ${escape(item.unit)}` : ''}</dd></div>`).join('');
       const warning = root.querySelector('[data-legacy-assessment]');
       warning.hidden = !legacy;
+      if (typeof window.CustomEvent === 'function') form.dispatchEvent(new CustomEvent('sfc:assessment', {detail: assessment}));
     }
 
     async function refresh(force = false) {

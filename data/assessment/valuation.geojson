@@ -1,0 +1,56 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "bir_value_sqm": 4500,
+                "applicable_categories": [
+                    "Retail",
+                    "Multifamily",
+                    "Office",
+                    "Industrial",
+                    "Hospitality",
+                    "Mixed Use",
+                    "Land",
+                    "Self Storage",
+                    "Mobile Home Park",
+                    "Senior Living",
+                    "Special Purpose",
+                    "Note/Loan",
+                    "Business for Sale"
+                ],
+                "zone_name": "San Fernando Urban Growth Corridor",
+                "source": "Bureau of Internal Revenue District 8",
+                "reference": "BIR-DO-014-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.25,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.55
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

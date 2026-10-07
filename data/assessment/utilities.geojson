@@ -1,0 +1,41 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "utility_status": "power_water_telecom",
+                "service_zone": "Urban Core Primary Grid",
+                "source": "LUECO & Metro San Fernando Water District",
+                "reference": "LUECO-MSFWD-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.25,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.55
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

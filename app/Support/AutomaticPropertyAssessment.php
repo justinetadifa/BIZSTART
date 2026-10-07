@@ -62,13 +62,17 @@ final class AutomaticPropertyAssessment
             throw new InvalidArgumentException('Valid latitude and longitude are required for automatic assessment.');
         }
         $rawArea = $input['land_area'] ?? $input['landArea'] ?? $input['area'] ?? null;
-        $area = self::number(is_string($rawArea) ? str_replace(',', '', trim($rawArea)) : $rawArea);
-        $unit = strtolower(trim((string) ($input['land_area_unit'] ?? $input['landAreaUnit'] ?? 'ha')));
-        if (in_array($unit, ['sqm', 'm2', 'square_meter', 'square_meters'], true) && $area !== null) {
-            $area /= 10000;
-        }
-        if ($area === null || $area <= 0 || round($area, 4) <= 0) {
-            throw new InvalidArgumentException('Land area must be greater than zero.');
+        if ($rawArea === null || $rawArea === '') {
+            $area = 0.05;
+        } else {
+            $area = self::number(is_string($rawArea) ? str_replace(',', '', trim($rawArea)) : $rawArea);
+            $unit = strtolower(trim((string) ($input['land_area_unit'] ?? $input['landAreaUnit'] ?? 'ha')));
+            if (in_array($unit, ['sqm', 'm2', 'square_meter', 'square_meters'], true) && $area !== null) {
+                $area /= 10000;
+            }
+            if ($area === null || $area <= 0 || round($area, 4) <= 0) {
+                throw new InvalidArgumentException('Land area must be greater than zero.');
+            }
         }
         [$category, $subcategory] = PropertyCatalog::normalizeCategory(
             isset($input['category']) ? (string) $input['category'] : null,

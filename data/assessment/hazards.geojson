@@ -1,0 +1,157 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "hazard_type": "flood",
+                "hazard_status": "high",
+                "name": "Catbangen-Carlatan Riverine Lowland Flood Plain",
+                "source": "MGB Region 1 Mines & Geosciences Bureau Geo-Hazard Assessment",
+                "reference": "MGB-R1-SFC-FL01",
+                "description": "Lowland estuarine zone prone to 1.5m+ flood inundation during monsoon and high tide"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.305,
+                            16.608
+                        ],
+                        [
+                            120.315,
+                            16.608
+                        ],
+                        [
+                            120.314,
+                            16.614
+                        ],
+                        [
+                            120.306,
+                            16.615
+                        ],
+                        [
+                            120.305,
+                            16.608
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "hazard_type": "flood",
+                "hazard_status": "low",
+                "name": "San Fernando Urban Plains Low Flood Susceptibility",
+                "source": "MGB Region 1 Geo-Hazard Assessment",
+                "reference": "MGB-R1-SFC-FL02",
+                "description": "Elevated alluvial terrace with well-drained storm catchment"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.316,
+                            16.615
+                        ],
+                        [
+                            120.335,
+                            16.615
+                        ],
+                        [
+                            120.335,
+                            16.635
+                        ],
+                        [
+                            120.316,
+                            16.635
+                        ],
+                        [
+                            120.316,
+                            16.615
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "hazard_type": "fault",
+                "hazard_status": "high",
+                "name": "Northern Luzon / West Ilocos Fault Zone Eastern Buffer Corridor",
+                "source": "PHIVOLCS Active Faults Map of the Philippines",
+                "reference": "PHIVOLCS-Q1-WIFS-2025",
+                "description": "Active tectonic trace buffer corridor situated in the eastern foothills"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.355,
+                            16.58
+                        ],
+                        [
+                            120.37,
+                            16.58
+                        ],
+                        [
+                            120.37,
+                            16.68
+                        ],
+                        [
+                            120.355,
+                            16.68
+                        ],
+                        [
+                            120.355,
+                            16.58
+                        ]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "hazard_type": "fault",
+                "hazard_status": "low",
+                "name": "San Fernando Coastal Basin Ground Rupture Clearance",
+                "source": "PHIVOLCS / CDRRMO Seismic Assessment",
+                "reference": "PHIVOLCS-SFC-SEIS-2025",
+                "description": "Stable sedimentary coastal zone situated >2.5 km away from active fault traces"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.27,
+                            16.56
+                        ],
+                        [
+                            120.345,
+                            16.56
+                        ],
+                        [
+                            120.345,
+                            16.69
+                        ],
+                        [
+                            120.27,
+                            16.69
+                        ],
+                        [
+                            120.27,
+                            16.56
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

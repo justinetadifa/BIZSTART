@@ -36,6 +36,8 @@ The catalog supports 13 property categories and their subcategories: Retail, Mul
 
 City assessors record seven criteria: spatial accessibility, infrastructure readiness, economic viability, nearby businesses, zoning compatibility, risk constraints, and environmental safety. Site tags such as beach or agricultural support the assessment. Listings can use an open listing contact or a verified broker.
 
+The city **Add property** editor follows five steps: Basics, Boundary, Site evidence, Surroundings, and Review. It supports editable parcel boundaries, separate calculated and survey areas, private evidence attachments, a 500-meter surroundings radar, and local drafts. Missing authoritative hazard data is **Not assessed**; business matches remain pending until source evidence and scoring profiles are approved. See [property editor documentation](docs/property-wizard.md).
+
 MCE (Multi-Criteria Evaluation) and IAI (Investment Attractiveness Index) scores remain pending until all seven city criteria are recorded. Scores and rankings are decision aids based on the recorded assessment. Sample listings are unassessed; existing legacy scores are not official MCE/IAI assessments.
 
 The site visit counter uses persisted visits, counted once per browser session in each 30-minute window. It is not a unique-person count. Available area totals use approved, available listings.

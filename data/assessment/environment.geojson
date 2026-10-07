@@ -1,0 +1,41 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "environment_status": "verified_clear",
+                "classification": "General Urban Alienable & Disposable Land",
+                "source": "CENRO & DENR-EMB Region 1",
+                "reference": "DENR-ECC-SFC-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.25,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.55
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

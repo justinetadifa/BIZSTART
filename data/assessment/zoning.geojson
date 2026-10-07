@@ -1,0 +1,61 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "zone": "C-1 Commercial / Mixed-Use Strategic Corridor",
+                "allowed_categories": [
+                    "Retail",
+                    "Multifamily",
+                    "Office",
+                    "Industrial",
+                    "Hospitality",
+                    "Mixed Use",
+                    "Land",
+                    "Self Storage",
+                    "Mobile Home Park",
+                    "Senior Living",
+                    "Special Purpose",
+                    "Note/Loan",
+                    "Business for Sale"
+                ],
+                "conditional_categories": [
+                    "Agricultural"
+                ],
+                "restricted_categories": [
+                    "Hazardous"
+                ],
+                "source": "CPDO CLUP 2026-2035 Zoning Ordinance",
+                "reference": "City Ordinance 2026-004"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [
+                            120.25,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.55
+                        ],
+                        [
+                            120.4,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.7
+                        ],
+                        [
+                            120.25,
+                            16.55
+                        ]
+                    ]
+                ]
+            }
+        }
+    ]
+}

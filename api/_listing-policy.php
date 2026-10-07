@@ -8,7 +8,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             throw new InvalidArgumentException('CICTO must approve your broker account before you submit listings.');
         }
         // An allowlist prevents assignment, review and assessment fields being injected.
-        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties'];
+        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference'];
         $payload = array_intersect_key($payload, array_flip($allowed));
         $payload['seller_user_id'] = (int) $user['id'];
         $payload['owner_name'] = $payload['owner_name'] ?? $user['name'];
@@ -65,7 +65,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
         throw new InvalidArgumentException('This account cannot manage listings.');
     }
     // Numerical assessments and evidence are generated from trusted server sources only.
-    foreach (['assessmentCriteria', 'assessment_criteria', 'assessment_json', 'automatic_assessment_json', 'legacy_assessment_json', 'automaticAssessment', 'criteriaDetails', 'mceScore', 'iaiScore', 'assessmentMode', 'assessmentVersion', 'spatialContext'] as $field) {
+    foreach (['assessmentCriteria', 'assessment_criteria', 'assessment_json', 'automatic_assessment_json', 'legacy_assessment_json', 'automaticAssessment', 'criteriaDetails', 'mceScore', 'iaiScore', 'assessmentMode', 'assessmentVersion', 'spatialContext', 'evidence_attachments', 'attachments', 'parcel', 'parcel_json'] as $field) {
         unset($payload[$field]);
     }
     $recalculate = filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN);

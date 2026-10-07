@@ -4,6 +4,7 @@ declare(strict_types=1);
 require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
+require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -34,6 +35,9 @@ api_handle(function (array $container): array {
             return [403, ['error' => 'You may only manage your own listings.']];
         }
     }
+    if (!sfc_can_manage_properties($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
+        return [403, ['error' => 'A city department account is required to attach assessment evidence.']];
+    }
     $before = $container['properties']->find($propertyId, $user);
     if ($method === 'DELETE') {
         $property = $container['properties']->update($propertyId, ['approval_state' => 'archived'], $user);
@@ -45,7 +49,17 @@ api_handle(function (array $container): array {
     if ($image !== null) {
         $payload['image_path'] = $image;
     }
-    $property = $container['properties']->update($propertyId, $payload, $user);
+    $evidence = ['created' => []];
+    if (sfc_can_manage_properties($user)) {
+        $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null, $before['parcel']['attachments'] ?? []);
+        $payload['evidence_attachments'] = $evidence['attachments'];
+    }
+    try {
+        $property = $container['properties']->update($propertyId, $payload, $user);
+    } catch (Throwable $error) {
+        \App\Support\PropertyEvidenceFiles::discard($evidence['created']);
+        throw $error;
+    }
     if (($before['approvalState'] ?? '') !== ($property['approvalState'] ?? '') && !empty($property['sellerUserId']) && ($user['role'] ?? '') === 'admin') {
         $container['notifications']->createForUsers([(int) $property['sellerUserId']], [
             'category' => 'operational', 'kind' => 'listing_review', 'priority' => 'normal', 'tone' => $property['approvalState'] === 'approved' ? 'success' : 'info',
