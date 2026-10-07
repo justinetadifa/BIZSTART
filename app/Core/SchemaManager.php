@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS users (
   privacy_consent_at TIMESTAMP NULL DEFAULT NULL,
   privacy_consent_version VARCHAR(40) NULL,
   privacy_consent_text TEXT NULL,
+  last_login_at TIMESTAMP NULL DEFAULT NULL,
+  last_active_at TIMESTAMP NULL DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_users_email (email),
@@ -485,6 +487,8 @@ SQL,
             'privacy_consent_at' => 'TIMESTAMP NULL DEFAULT NULL',
             'privacy_consent_version' => 'VARCHAR(40) NULL',
             'privacy_consent_text' => 'TEXT NULL',
+            'last_login_at' => 'TIMESTAMP NULL DEFAULT NULL',
+            'last_active_at' => 'TIMESTAMP NULL DEFAULT NULL',
         ] as $column => $definition) {
             if (!self::columnExists($pdo, 'users', $column)) {
                 $pdo->exec('ALTER TABLE users ADD COLUMN ' . $column . ' ' . $definition);

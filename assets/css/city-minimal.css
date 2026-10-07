@@ -3,18 +3,55 @@
 .city-map-options{padding:11px 15px;border-top:1px solid var(--city-border);font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:12px}.city-map-options label{display:flex;align-items:center;gap:7px}.city-map-options>span{color:var(--city-muted)}
 .city-card-status{position:absolute;left:12px;top:12px;padding:4px 10px;background:#fff;color:var(--city-red);font-size:11px;font-weight:600;border-radius:4px;border:1px solid var(--city-border)}
 @media(min-width:1500px){.city-hero{min-height:580px}}@media(max-width:1120px){.city-container,.site-shell{width:calc(100% - 40px)}.city-nav{gap:20px}.city-navigation nav,.city-account-links{gap:14px}.city-navigation a{font-size:12px}.city-navigation{gap:15px}.city-brand small{display:none}.city-map-layout{grid-template-columns:1fr 1fr}.city-map-layout .city-property-grid{grid-template-columns:1fr}.city-about{gap:40px}}@media(max-width:850px){.city-menu-button{display:block;margin-left:auto}.city-nav{min-height:70px;position:relative}.city-navigation{display:none;position:absolute;top:100%;left:-20px;right:-20px;padding:18px 24px;background:white;border-bottom:1px solid var(--city-border)}.city-navigation.is-open{display:block}.city-navigation nav{display:grid;gap:0}.city-navigation nav a{padding:12px 0}.city-account-links{border-top:1px solid var(--city-border);padding-top:18px;margin-top:10px;justify-content:space-between}.city-property-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.city-hero{min-height:470px}.city-hero h1{max-width:550px}.city-benefits{gap:22px}.city-benefits h3{font-size:20px}.city-toolbar{grid-template-columns:1fr 1fr}.city-about{grid-template-columns:1fr;gap:20px}.city-detail-grid{grid-template-columns:1fr}.city-detail-image{height:330px}.city-compare-matrix{grid-template-columns:repeat(2,1fr)}.city-footer-inner{padding-block:20px}.city-map-layout{grid-template-columns:1fr}.city-map-panel{position:relative;top:auto;grid-row:1}.city-map-canvas{height:380px}.city-map-layout .city-property-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.city-container,.site-shell{width:calc(100% - 32px)}.city-hero{min-height:480px}.city-hero-content{padding-block:48px}.city-hero h1{font-size:43px}.city-hero p{font-size:15px;max-width:330px}.city-section{padding-top:40px}.city-section-heading{align-items:start}.city-section-heading h2{font-size:26px}.city-section-heading>a{font-size:12px;white-space:normal;max-width:85px}.city-property-grid,.city-map-layout .city-property-grid,.city-compare-matrix{grid-template-columns:1fr}.city-card-image{height:230px}.city-benefits{grid-template-columns:1fr;gap:25px}.city-benefits p{max-width:none}.city-account-gate{display:block;padding:23px}.city-account-gate .city-button{margin-top:20px}.city-stats{grid-template-columns:1fr 1fr}.city-stat{padding:17px}.city-stat strong{font-size:23px}.city-stat:nth-child(2){border:0}.city-stat:last-child{grid-column:1/-1;border-top:1px solid var(--city-border)}.city-workspace{padding-top:26px}.city-page-heading{align-items:start}.city-page-heading h1{font-size:28px}.city-page-heading .city-actions{flex-direction:column}.city-toolbar{gap:10px}.city-field>span{font-size:10px}.city-toolbar input,.city-toolbar select{font-size:12px;min-width:0;width:100%;padding:10px}.city-map-canvas{height:340px}.city-footer-inner{align-items:start;flex-direction:column;gap:15px;font-size:11px}.city-footer-inner>div{gap:18px}.city-compare-tray{font-size:12px;padding:10px}.city-detail-image{height:260px}.city-detail-panel{padding:20px}.city-privacy-dialog{padding:23px}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}@media print{.city-header,.city-footer,.city-toolbar,.city-card-actions,.city-compare-tray,.city-menu-button{display:none}.city-container{width:100%}.city-property-grid{grid-template-columns:repeat(3,1fr)}body{background:#fff}.city-property-card,.city-compare-column{break-inside:avoid}}
-.city-updates-button{border:0;background:transparent;color:var(--city-navy,#11224D);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;padding:8px}
-.city-updates-button span{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:12px;background:#9E1B22;color:#fff;font-size:10px}
-.city-updates-button span[hidden]{display:none}
-.city-updates-dialog{width:min(480px,calc(100% - 32px));max-height:80vh;border:1px solid var(--city-border,#dde1e7);border-radius:16px;padding:24px;color:#11224D;background:#F8F9FA;overflow:auto}
-.city-updates-dialog::backdrop{background:rgba(17,34,77,.4)}
-.city-updates-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px}
-.city-updates-heading h2{margin:0;font-size:24px}
-.city-updates-heading button{border:0;background:transparent;font-size:26px;cursor:pointer;color:inherit}
-.city-updates-dialog>.city-link{border:0;background:transparent;cursor:pointer;padding:0;margin-bottom:16px}
-.city-update{padding:16px 0;border-top:1px solid var(--city-border,#dde1e7)}
-.city-update strong{font-size:14px}.city-update p{font-size:13px;margin:6px 0 10px;color:#58647a}
-.city-update.is-unread strong::before{content:'●';color:#9E1B22;margin-right:8px;font-size:10px}
+.city-updates-button{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--city-navy,#11224D);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;padding:7px 12px;border-radius:8px;transition:background-color .15s ease,color .15s ease}
+.city-updates-button:hover{background-color:rgba(17,34,77,.05);color:var(--city-red,#9E1B22)}
+.city-updates-button span{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:#9E1B22;color:#fff;font-size:11px;font-weight:700;line-height:1}
+.city-updates-button span[hidden]{display:none!important}
+.city-updates-dialog{width:min(450px,calc(100vw - 32px));max-height:min(88vh,780px);border:1px solid rgba(226,232,240,.9);border-radius:20px;padding:24px;color:#11224D;background:#ffffff;box-shadow:0 25px 50px -12px rgba(15,23,42,.18),0 0 0 1px rgba(0,0,0,.03);overflow-y:auto;overflow-x:hidden;box-sizing:border-box;margin:auto;font-family:inherit}
+.city-updates-dialog::backdrop{background:rgba(15,23,42,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.city-updates-header{margin-bottom:0}
+.city-updates-title-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.city-updates-title{margin:0;font-size:26px;font-weight:800;color:#11224D;letter-spacing:-.025em;line-height:1.2}
+.city-updates-close-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;background:transparent;border-radius:8px;cursor:pointer;color:#475569;transition:background-color .15s ease,color .15s ease;padding:0;margin:0}
+.city-updates-close-btn:hover{background-color:#f1f5f9;color:#0f172a}
+.city-updates-subtitle{margin:6px 0 14px 0;font-size:13.5px;color:#64748b;line-height:1.45;font-weight:400}
+.city-updates-read-all-btn{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;padding:0;margin:0;cursor:pointer;font-size:13.5px;font-weight:600;color:#9E1B22;transition:opacity .15s ease,transform .1s ease}
+.city-updates-read-all-btn:hover{opacity:.85;text-decoration:underline}
+.city-updates-read-all-btn:disabled{opacity:.5;cursor:not-allowed;text-decoration:none}
+.city-updates-read-all-btn svg{width:17px;height:17px;stroke:#9E1B22;flex-shrink:0}
+.city-updates-divider{border:0;border-top:1px solid #f1f5f9;margin:16px 0 18px 0}
+.city-updates-list{display:flex;flex-direction:column;gap:14px}
+.city-update-card{background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:16px 18px;display:flex;align-items:flex-start;gap:14px;transition:border-color .18s ease,box-shadow .18s ease;box-sizing:border-box}
+.city-update-card:hover{border-color:#cbd5e1;box-shadow:0 4px 12px -2px rgba(15,23,42,.05)}
+.city-update-icon-box{width:44px;height:44px;min-width:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.city-update-icon-box svg{width:20px;height:20px}
+.city-update-icon-red{background-color:#fdf2f2;color:#9E1B22}
+.city-update-icon-blue{background-color:#eff6ff;color:#1d4ed8}
+.city-update-icon-rose{background-color:#fff1f2;color:#9E1B22}
+.city-update-icon-green{background-color:#f0fdf4;color:#16a34a}
+.city-update-content{flex:1;min-width:0}
+.city-update-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.city-update-title-wrap{display:inline-flex;align-items:center;gap:8px;flex:1;min-width:0}
+.city-update-dot{width:7px;height:7px;min-width:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.city-update-dot-red{background-color:#9E1B22}
+.city-update-dot-blue{background-color:#2563eb}
+.city-update-title{margin:0;font-size:14.5px;font-weight:700;color:#11224D;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:normal}
+.city-update-time{font-size:12px;color:#64748b;font-weight:400;white-space:nowrap;flex-shrink:0;margin-left:auto}
+.city-update-body{margin:0 0 13px 0;font-size:13px;color:#475569;line-height:1.45;font-weight:400}
+.city-update-action-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:8px;font-size:12.5px;font-weight:600;color:#ffffff!important;text-decoration:none;border:0;cursor:pointer;transition:background-color .15s ease,transform .1s ease;line-height:1.4;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.city-update-btn-burgundy{background-color:#9E1B22}
+.city-update-btn-burgundy:hover{background-color:#83161c}
+.city-update-btn-navy{background-color:#11224D}
+.city-update-btn-navy:hover{background-color:#0b1735}
+.city-update-action-btn .city-update-arrow{font-size:14px;line-height:1;transition:transform .15s ease}
+.city-update-action-btn:hover .city-update-arrow{transform:translateX(2px)}
+.city-updates-empty{padding:40px 20px;text-align:center;color:#64748b}
+.city-updates-empty-icon{width:48px;height:48px;border-radius:50%;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.city-updates-empty h4{margin:0 0 4px;font-size:15px;font-weight:700;color:#11224D}
+.city-updates-empty p{margin:0;font-size:13px;color:#64748b}
+.city-updates-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:36px 20px;color:#64748b;font-size:13.5px}
+.city-updates-spinner{width:18px;height:18px;border:2px solid #e2e8f0;border-top-color:#9E1B22;border-radius:50%;animation:city-spin .7s linear infinite}
+@keyframes city-spin{to{transform:rotate(360deg)}}
 dialog.city-dialog{border:1px solid var(--city-border,#dfe3e9);border-radius:6px;background:#fff;color:var(--city-navy,#11224D);padding:24px;box-shadow:0 12px 24px -6px rgba(17,34,77,.12),0 4px 8px -4px rgba(17,34,77,.06);margin:auto;max-height:90vh;overflow-y:auto}
 dialog.city-dialog::backdrop{background:rgba(17,34,77,.45)}
 @media print{body.printing-decision-memo>*:not(#evalReportResultModal),body:has(#evalReportResultModal[open])>*:not(#evalReportResultModal){display:none!important}body.printing-decision-memo #evalReportResultModal,body:has(#evalReportResultModal[open]) #evalReportResultModal{display:block!important;position:static!important;border:none!important;box-shadow:none!important;width:100%!important;max-width:100%!important;padding:24px 32px!important;margin:0!important;max-height:none!important;height:auto!important;overflow:visible!important;background:#fff!important;color:#11224D!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body.printing-decision-memo #evalReportResultModal::backdrop,body:has(#evalReportResultModal[open]) #evalReportResultModal::backdrop{display:none!important}body.printing-decision-memo #evalReportResultModal .close-report-modal,body.printing-decision-memo #evalReportResultModal .city-button,body.printing-decision-memo #evalReportResultModal #printReportMemoBtn,body.printing-decision-memo #evalReportResultModal #downloadReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal .close-report-modal,body:has(#evalReportResultModal[open]) #evalReportResultModal .city-button,body:has(#evalReportResultModal[open]) #evalReportResultModal #printReportMemoBtn,body:has(#evalReportResultModal[open]) #evalReportResultModal #downloadReportMemoBtn{display:none!important}}

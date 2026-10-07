@@ -115,7 +115,29 @@ function sfc_render_footer(array $context): void
     </div>
   </footer>
   <?php if (!empty($context['user'])): ?>
-  <dialog class="city-updates-dialog" id="cityUpdatesDialog" aria-labelledby="cityUpdatesTitle"><div class="city-updates-heading"><h2 id="cityUpdatesTitle">Updates</h2><button type="button" id="cityUpdatesClose" aria-label="Close updates">×</button></div><button class="city-link" type="button" id="cityUpdatesRead">Mark all read</button><div id="cityUpdatesList" aria-live="polite">Loading…</div></dialog>
+  <dialog class="city-updates-dialog" id="cityUpdatesDialog" aria-labelledby="cityUpdatesTitle">
+    <div class="city-updates-header">
+      <div class="city-updates-title-row">
+        <h2 class="city-updates-title" id="cityUpdatesTitle">Updates</h2>
+        <button type="button" class="city-updates-close-btn" id="cityUpdatesClose" aria-label="Close updates">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <p class="city-updates-subtitle">Stay up to date with the latest activity in LOCUS-SF.</p>
+      <button class="city-updates-read-all-btn" type="button" id="cityUpdatesRead">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        <span>Mark all read</span>
+      </button>
+      <div class="city-updates-divider"></div>
+    </div>
+    <div id="cityUpdatesList" class="city-updates-list" aria-live="polite">Loading…</div>
+  </dialog>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-notifications.js<?= sfc_asset_version('js/city-notifications.js') ?>"></script>
   <?php endif; ?>
   <?php if (!empty($context['user'])): ?><script src="<?= $e($context['assetBase']) ?>/js/session-guard.js<?= sfc_asset_version('js/session-guard.js') ?>"></script><?php endif; ?>

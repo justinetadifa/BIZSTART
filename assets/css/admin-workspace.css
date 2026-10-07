@@ -123,3 +123,13 @@ body:has(.city-workspace){background:#f8f9fa!important;background-image:none!imp
   .city-staff-directory-header{flex-direction:column;align-items:flex-start}
 }
 
+/* Registered & Active Investors Panel */
+.city-investors-panel{margin-top:24px}
+.city-investors-table-wrap{border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;background:#ffffff;box-shadow:0 1px 3px rgba(17,34,77,0.02)}
+.city-investors-table-wrap table{width:100%;border-collapse:collapse;font-size:13px;margin:0}
+.city-investors-table-wrap thead th{background:#f8fafc;color:#475569;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:12px 14px;border-bottom:1px solid #e2e8f0}
+.city-investors-table-wrap tbody td{padding:12px 14px;border-top:1px solid #f1f5f9;color:#1e293b;vertical-align:middle}
+.city-investors-table-wrap tbody tr:hover{background:#f8fafc}
+#investorDossierDialog{border:0;padding:0;background:transparent;max-width:48rem;width:calc(100vw - 32px);max-height:calc(100dvh - 32px);border-radius:1rem;overflow:hidden;box-shadow:0 25px 60px -15px rgba(17,34,77,0.3)}
+#investorDossierDialog::backdrop{background:rgba(17,34,77,0.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+

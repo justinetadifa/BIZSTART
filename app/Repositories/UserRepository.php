@@ -218,6 +218,235 @@ final class UserRepository
         return $this->findById($userId) ?? throw new InvalidArgumentException('Account not found.');
     }
 
+    public function touchActivity(int $userId, bool $touchLogin = false): void
+    {
+        if ($userId <= 0) {
+            return;
+        }
+
+        $now = gmdate('Y-m-d H:i:s');
+        if ($touchLogin) {
+            $statement = $this->pdo->prepare(
+                'UPDATE users
+                 SET last_login_at = :login_at,
+                     last_active_at = :active_at
+                 WHERE id = :id'
+            );
+            $statement->execute(['id' => $userId, 'login_at' => $now, 'active_at' => $now]);
+        } else {
+            $statement = $this->pdo->prepare(
+                'UPDATE users
+                 SET last_active_at = :active_at
+                 WHERE id = :id'
+            );
+            $statement->execute(['id' => $userId, 'active_at' => $now]);
+        }
+    }
+
+    public function allInvestorsWithActivity(?int $currentUserId = null): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT *
+             FROM users
+             WHERE role = :role
+             ORDER BY COALESCE(last_active_at, last_login_at, created_at) DESC, id DESC'
+        );
+        $statement->execute(['role' => 'investor']);
+        $rows = $statement->fetchAll();
+        if (empty($rows)) {
+            return [];
+        }
+
+        $investorIds = array_map(static fn (array $row): int => (int) $row['id'], $rows);
+        $inPlaceholders = implode(',', array_fill(0, count($investorIds), '?'));
+
+        $shortlistsByInvestor = [];
+        $shortlistStmt = $this->pdo->prepare(
+            "SELECT s.investor_user_id, s.property_id, s.created_at AS shortlisted_at,
+                    p.name AS property_name, p.category, p.barangay, p.price, p.area, p.status, p.image_url
+             FROM property_shortlists s
+             INNER JOIN properties p ON p.id = s.property_id
+             WHERE s.investor_user_id IN ({$inPlaceholders})
+             ORDER BY s.created_at DESC"
+        );
+        $shortlistStmt->execute($investorIds);
+        foreach ($shortlistStmt->fetchAll() as $sRow) {
+            $invId = (int) $sRow['investor_user_id'];
+            $shortlistsByInvestor[$invId][] = [
+                'propertyId' => (int) $sRow['property_id'],
+                'propertyName' => (string) ($sRow['property_name'] ?? 'Property'),
+                'category' => (string) ($sRow['category'] ?? ''),
+                'barangay' => (string) ($sRow['barangay'] ?? 'San Fernando'),
+                'price' => (float) ($sRow['price'] ?? 0),
+                'area' => (float) ($sRow['area'] ?? 0),
+                'status' => (string) ($sRow['status'] ?? 'Available'),
+                'imageUrl' => (string) ($sRow['image_url'] ?? ''),
+                'shortlistedAt' => (string) ($sRow['shortlisted_at'] ?? ''),
+            ];
+        }
+
+        $visitsByInvestor = [];
+        $visitStmt = $this->pdo->prepare(
+            "SELECT v.id, v.investor_user_id, v.property_id, v.investment_purpose, v.status,
+                    v.primary_start_at, v.primary_end_at, v.counter_start_at, v.counter_end_at,
+                    v.confirmed_start_at, v.confirmed_end_at, v.visited_at, v.created_at,
+                    p.name AS property_name, p.barangay AS property_barangay
+             FROM visit_logs v
+             INNER JOIN properties p ON p.id = v.property_id
+             WHERE v.investor_user_id IN ({$inPlaceholders})
+             ORDER BY COALESCE(v.updated_at, v.created_at) DESC"
+        );
+        $visitStmt->execute($investorIds);
+        foreach ($visitStmt->fetchAll() as $vRow) {
+            $invId = (int) $vRow['investor_user_id'];
+            $visitsByInvestor[$invId][] = [
+                'id' => (int) $vRow['id'],
+                'propertyId' => (int) $vRow['property_id'],
+                'propertyName' => (string) ($vRow['property_name'] ?? 'Property'),
+                'propertyBarangay' => (string) ($vRow['property_barangay'] ?? ''),
+                'investmentPurpose' => (string) ($vRow['investment_purpose'] ?? ''),
+                'status' => (string) ($vRow['status'] ?? 'proposed'),
+                'primaryStartAt' => (string) ($vRow['primary_start_at'] ?? ''),
+                'primaryEndAt' => (string) ($vRow['primary_end_at'] ?? ''),
+                'counterStartAt' => $vRow['counter_start_at'] !== null ? (string) $vRow['counter_start_at'] : null,
+                'counterEndAt' => $vRow['counter_end_at'] !== null ? (string) $vRow['counter_end_at'] : null,
+                'confirmedStartAt' => $vRow['confirmed_start_at'] !== null ? (string) $vRow['confirmed_start_at'] : null,
+                'confirmedEndAt' => $vRow['confirmed_end_at'] !== null ? (string) $vRow['confirmed_end_at'] : null,
+                'visitedAt' => $vRow['visited_at'] !== null ? (string) $vRow['visited_at'] : null,
+                'createdAt' => (string) ($vRow['created_at'] ?? ''),
+            ];
+        }
+
+        $docRequestsByInvestor = [];
+        $docStmt = $this->pdo->prepare(
+            "SELECT r.id, r.requester_user_id, r.property_id, r.document_name, r.note,
+                    r.status, r.response_note, r.created_at, r.resolved_at,
+                    p.name AS property_name, p.barangay AS property_barangay
+             FROM property_document_requests r
+             INNER JOIN properties p ON p.id = r.property_id
+             WHERE r.requester_user_id IN ({$inPlaceholders})
+             ORDER BY r.created_at DESC"
+        );
+        $docStmt->execute($investorIds);
+        foreach ($docStmt->fetchAll() as $dRow) {
+            $invId = (int) $dRow['requester_user_id'];
+            $docRequestsByInvestor[$invId][] = [
+                'id' => (int) $dRow['id'],
+                'propertyId' => (int) $dRow['property_id'],
+                'propertyName' => (string) ($dRow['property_name'] ?? 'Property'),
+                'propertyBarangay' => (string) ($dRow['property_barangay'] ?? ''),
+                'documentName' => (string) ($dRow['document_name'] ?? ''),
+                'note' => $dRow['note'] !== null ? (string) $dRow['note'] : null,
+                'status' => (string) ($dRow['status'] ?? 'requested'),
+                'responseNote' => $dRow['response_note'] !== null ? (string) $dRow['response_note'] : null,
+                'createdAt' => (string) ($dRow['created_at'] ?? ''),
+                'resolvedAt' => $dRow['resolved_at'] !== null ? (string) $dRow['resolved_at'] : null,
+            ];
+        }
+
+        $threadsByInvestor = [];
+        $threadStmt = $this->pdo->prepare(
+            "SELECT t.id, t.investor_user_id, t.property_id, t.subject, t.last_message_at, t.created_at,
+                    p.name AS property_name,
+                    (SELECT COUNT(*) FROM property_messages m WHERE m.thread_id = t.id) AS message_count
+             FROM message_threads t
+             INNER JOIN properties p ON p.id = t.property_id
+             WHERE t.investor_user_id IN ({$inPlaceholders})
+             ORDER BY COALESCE(t.last_message_at, t.created_at) DESC"
+        );
+        $threadStmt->execute($investorIds);
+        foreach ($threadStmt->fetchAll() as $tRow) {
+            $invId = (int) $tRow['investor_user_id'];
+            $threadsByInvestor[$invId][] = [
+                'id' => (int) $tRow['id'],
+                'propertyId' => (int) $tRow['property_id'],
+                'propertyName' => (string) ($tRow['property_name'] ?? 'Property'),
+                'subject' => (string) ($tRow['subject'] ?? 'Property Inquiry'),
+                'messageCount' => (int) ($tRow['message_count'] ?? 0),
+                'lastMessageAt' => $tRow['last_message_at'] !== null ? (string) $tRow['last_message_at'] : null,
+                'createdAt' => (string) ($tRow['created_at'] ?? ''),
+            ];
+        }
+
+        $votesByInvestor = [];
+        $voteStmt = $this->pdo->prepare(
+            "SELECT voter_user_id, COUNT(*) AS vote_count
+             FROM property_votes
+             WHERE voter_user_id IN ({$inPlaceholders})
+             GROUP BY voter_user_id"
+        );
+        $voteStmt->execute($investorIds);
+        foreach ($voteStmt->fetchAll() as $vRow) {
+            $votesByInvestor[(int) $vRow['voter_user_id']] = (int) $vRow['vote_count'];
+        }
+
+        $now = time();
+        $manilaTz = new \DateTimeZone('Asia/Manila');
+        $utcTz = new \DateTimeZone('UTC');
+        $investors = [];
+        foreach ($rows as $row) {
+            $hydrated = $this->hydrate($row);
+            $userId = $hydrated['id'];
+            $lastActiveTimestamp = !empty($hydrated['lastActiveAt']) ? strtotime($hydrated['lastActiveAt'] . ' UTC') : 0;
+            $lastLoginTimestamp = !empty($hydrated['lastLoginAt']) ? strtotime($hydrated['lastLoginAt'] . ' UTC') : 0;
+            $createdTimestamp = !empty($hydrated['createdAt']) ? strtotime($hydrated['createdAt'] . ' UTC') : 0;
+
+            $formatDate = static function (int $ts) use ($manilaTz, $utcTz): string {
+                return (new \DateTimeImmutable('@' . $ts))->setTimezone($manilaTz)->format('M j, Y g:i A');
+            };
+
+            $isCurrent = ($currentUserId !== null && $userId === $currentUserId);
+            $isOnline = $isCurrent || ($lastActiveTimestamp > 0 && ($now - $lastActiveTimestamp) <= 900);
+            $isRecentToday = !$isOnline && ($lastActiveTimestamp > 0 && ($now - $lastActiveTimestamp) <= 86400);
+
+            if ($isOnline) {
+                $presenceState = 'online';
+                $presenceLabel = 'Active now';
+            } elseif ($isRecentToday) {
+                $presenceState = 'recent';
+                $diffMins = max(1, (int) round(($now - $lastActiveTimestamp) / 60));
+                if ($diffMins < 60) {
+                    $presenceLabel = "Active {$diffMins}m ago";
+                } else {
+                    $diffHours = (int) round($diffMins / 60);
+                    $presenceLabel = "Active {$diffHours}h ago";
+                }
+            } elseif ($lastActiveTimestamp > 0) {
+                $presenceState = 'offline';
+                $presenceLabel = 'Last active ' . $formatDate($lastActiveTimestamp);
+            } elseif ($lastLoginTimestamp > 0) {
+                $presenceState = 'offline';
+                $presenceLabel = 'Last logged in ' . $formatDate($lastLoginTimestamp);
+            } else {
+                $presenceState = 'offline';
+                $presenceLabel = 'Registered ' . $formatDate($createdTimestamp);
+            }
+
+            $invShortlists = $shortlistsByInvestor[$userId] ?? [];
+            $invVisits = $visitsByInvestor[$userId] ?? [];
+            $invDocRequests = $docRequestsByInvestor[$userId] ?? [];
+            $invThreads = $threadsByInvestor[$userId] ?? [];
+            $invVotes = $votesByInvestor[$userId] ?? 0;
+
+            $investors[] = array_merge($hydrated, [
+                'isOnline' => $isOnline,
+                'presenceState' => $presenceState,
+                'presenceLabel' => $presenceLabel,
+                'shortlistsCount' => count($invShortlists),
+                'shortlists' => $invShortlists,
+                'visitsCount' => count($invVisits),
+                'visits' => $invVisits,
+                'documentRequestsCount' => count($invDocRequests),
+                'documentRequests' => $invDocRequests,
+                'threadsCount' => count($invThreads),
+                'threads' => $invThreads,
+                'votesCount' => $invVotes,
+            ]);
+        }
+
+        return $investors;
+    }
+
     private function hydrate(array $row): array
     {
         $identityVerifiedAt = $row['identity_verified_at'] ?? null;
@@ -239,6 +468,8 @@ final class UserRepository
             'passwordHash' => (string) ($row['password_hash'] ?? ''),
             'identityVerificationStatus' => $this->normalizeIdentityVerificationStatus((string) ($row['identity_verification_status'] ?? 'unverified')),
             'identityVerifiedAt' => $identityVerifiedAt !== null ? (string) $identityVerifiedAt : null,
+            'lastLoginAt' => $row['last_login_at'] !== null ? (string) $row['last_login_at'] : null,
+            'lastActiveAt' => $row['last_active_at'] !== null ? (string) $row['last_active_at'] : null,
             'createdAt' => (string) ($row['created_at'] ?? ''),
             'updatedAt' => (string) ($row['updated_at'] ?? ''),
         ];

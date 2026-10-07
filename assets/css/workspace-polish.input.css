@@ -40,11 +40,13 @@
   grid-template-rows: 0fr !important;
   transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease !important;
   opacity: 0 !important;
+  pointer-events: none;
 }
 
 .locus-card-drawer.is-open {
   grid-template-rows: 1fr !important;
   opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .locus-card-drawer-inner {
@@ -76,15 +78,26 @@
 
 /* Red Pill Action Buttons */
 .locus-btn-red-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background-color: #9E1B22 !important;
   color: #ffffff !important;
+  border: 1px solid transparent !important;
   border-radius: 9999px !important;
   font-weight: 600 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: manipulation !important;
   transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
 }
 
 .locus-btn-red-pill:hover {
   background-color: #80141a !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 14px rgba(158, 27, 34, 0.32) !important;
 }

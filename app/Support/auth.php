@@ -126,6 +126,8 @@ function sfc_login(string $role, string $email, string $password): bool
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
     $_SESSION['sfc_authenticated_at'] = time();
     $_SESSION['sfc_last_activity_at'] = time();
+    $_SESSION['sfc_last_db_touch_at'] = time();
+    sfc_user_repository()->touchActivity((int) $user['id'], true);
     sfc_csrf_token();
     return true;
 }
@@ -206,11 +208,13 @@ function sfc_register_investor(string $name, string $email, string $password, st
         throw new InvalidArgumentException('Address must be at most 255 characters.');
     }
     $user = sfc_user_repository()->create('investor', $name, $email, $password, null, $privacy + ['phone' => $phone ?: null, 'address' => $address ?: null]);
+    sfc_user_repository()->touchActivity((int) $user['id'], true);
     session_regenerate_id(true);
     unset($_SESSION['sfc_csrf_token']);
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
     $_SESSION['sfc_authenticated_at'] = time();
     $_SESSION['sfc_last_activity_at'] = time();
+    $_SESSION['sfc_last_db_touch_at'] = time();
     sfc_csrf_token();
 
     return $user;
@@ -377,6 +381,17 @@ function sfc_touch_session(): bool
     }
 
     $_SESSION['sfc_last_activity_at'] = $now;
+    $userId = (int) ($sessionUser['id'] ?? 0);
+    if ($userId > 0) {
+        $lastDbTouch = (int) ($_SESSION['sfc_last_db_touch_at'] ?? 0);
+        if (($now - $lastDbTouch) >= 60) {
+            $_SESSION['sfc_last_db_touch_at'] = $now;
+            try {
+                sfc_user_repository()->touchActivity($userId, false);
+            } catch (Throwable) {
+            }
+        }
+    }
     return true;
 }
 
@@ -400,6 +415,16 @@ function sfc_current_user(): ?array
     }
 
     $userId = isset($sessionUser['id']) ? (int) $sessionUser['id'] : 0;
+    if ($userId > 0) {
+        $lastDbTouch = (int) ($_SESSION['sfc_last_db_touch_at'] ?? 0);
+        if (($now - $lastDbTouch) >= 60) {
+            $_SESSION['sfc_last_db_touch_at'] = $now;
+            try {
+                sfc_user_repository()->touchActivity($userId, false);
+            } catch (Throwable) {
+            }
+        }
+    }
     if ($userId > 0) {
         $user = sfc_user_repository()->findById($userId);
         if ($user !== null) {

@@ -226,13 +226,13 @@ function card(property, index) {
 
           ${isLoggedIn ? `
           <button type="button" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
-            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
           ` : `
           <a href="${path('investor-login.php')}" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" title="Log in to view assessments and details" aria-label="Log in to view assessments and details">
-            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </a>
@@ -309,7 +309,7 @@ function card(property, index) {
 
           <!-- 3 Red Pill Action Buttons -->
           <div class="tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-3.5">
-            <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-red-pill tw-col-span-2 tw-min-h-11 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap">
+            <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-red-pill tw-col-span-2 tw-min-h-11 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-flex tw-items-center tw-justify-center tw-no-underline tw-whitespace-nowrap">
               View details
             </a>
             <button type="button" class="locus-btn-red-pill tw-flex-1 tw-py-2 tw-px-2.5 tw-text-xs tw-text-center tw-whitespace-nowrap" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
@@ -1184,6 +1184,8 @@ document.addEventListener('click', async event => {
         if (drawer) {
           drawer.classList.remove('is-open');
           drawer.setAttribute('aria-hidden', 'true');
+          drawer.setAttribute('inert', '');
+          drawer.inert = true;
         }
         if (page === 'city-explorer') {
           const saveBtn = cardEl.querySelector('[data-save]');
@@ -1205,6 +1207,8 @@ document.addEventListener('click', async event => {
         if (drawer) {
           drawer.classList.add('is-open');
           drawer.setAttribute('aria-hidden', 'false');
+          drawer.removeAttribute('inert');
+          drawer.inert = false;
         }
         if (page === 'city-explorer') {
           const saveBtn = cardEl.querySelector('[data-save]');
@@ -1227,6 +1231,10 @@ document.addEventListener('click', async event => {
   const compareButton = event.target.closest('[data-compare]');
   const locateButton = event.target.closest('[data-locate]');
   if (saveButton) {
+    if (!isLoggedIn) {
+      window.location.href = path('investor-login.php');
+      return;
+    }
     const id=Number(saveButton.dataset.save); saveButton.disabled=true;
     try {
       const response=await fetch(`${config.apiBase}/cart.php`,{method:saved.has(id)?'DELETE':'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':config.csrfToken},credentials:'same-origin',body:JSON.stringify({propertyId:id})});
