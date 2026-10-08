@@ -158,6 +158,8 @@
       heatmapLayer.clearLayers();
 
       const mapped = properties.filter((p) => {
+        if (p.isDeleted) return false;
+        if (p.lat == null || p.lng == null || String(p.lat).trim() === '' || String(p.lng).trim() === '') return false;
         const lat = Number(p.lat);
         const lng = Number(p.lng);
         return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
@@ -165,7 +167,7 @@
 
       // Update Hero badge if count elements exist
       const heroParcelsBadge = document.querySelector('[data-hero-parcels-count]');
-      if (heroParcelsBadge && mapped.length > 0) {
+      if (heroParcelsBadge) {
         heroParcelsBadge.textContent = `${mapped.length} Live Sites`;
       }
 
@@ -216,7 +218,7 @@
               <span class="popup-score-badge">${score} SCORE</span>
             </div>
             <strong class="popup-title">${escapeHtml(property.name)}</strong>
-            <p class="popup-meta">${escapeHtml(property.barangay || 'San Fernando')} &bull; ${escapeHtml(property.area ? `${property.area} ha` : 'Assessed Lot')}</p>
+            <p class="popup-meta">${escapeHtml(property.barangay || property.city || 'Location provided')} &bull; ${escapeHtml(Number(property.area) > 0 ? `${property.area} ha` : 'Area not provided')}</p>
             <a href="${escapeHtml(basePath)}/property-details.php?id=${encodeURIComponent(property.id)}" class="popup-btn">
               <span>View Site Dossier</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

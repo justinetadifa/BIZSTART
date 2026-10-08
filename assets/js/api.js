@@ -42,9 +42,12 @@ async function request(path, options = {}) {
 
 export const api = {
   googleEarthViewUrl(target = {}) {
-    const lat = Number(target.lat ?? target.latitude ?? 0);
-    const lng = Number(target.lng ?? target.longitude ?? 0);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) {
+    const rawLat = target.lat ?? target.latitude;
+    const rawLng = target.lng ?? target.longitude;
+    const lat = Number(rawLat);
+    const lng = Number(rawLng);
+    if (rawLat == null || rawLng == null || String(rawLat).trim() === '' || String(rawLng).trim() === ''
+      || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
       return "";
     }
 

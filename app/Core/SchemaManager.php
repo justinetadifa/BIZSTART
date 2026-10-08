@@ -97,13 +97,15 @@ CREATE TABLE IF NOT EXISTS properties (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
-  lat DECIMAL(10, 6) NOT NULL,
-  lng DECIMAL(10, 6) NOT NULL,
-  area DECIMAL(12, 4) NOT NULL,
+  lat DECIMAL(10, 6) NULL,
+  lng DECIMAL(10, 6) NULL,
+  area DECIMAL(12, 4) NULL,
   price BIGINT NOT NULL,
   price_per_sqm INT NOT NULL,
   status VARCHAR(80) NOT NULL,
   approval_state VARCHAR(40) NOT NULL DEFAULT 'approved',
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  deleted_by_user_id INT NULL,
   score INT NOT NULL DEFAULT 82,
   type VARCHAR(80) NOT NULL,
   corridor VARCHAR(80) NOT NULL,
@@ -628,6 +630,8 @@ SQL,
             'contact_broker_user_id' => 'INT UNSIGNED NULL',
             'review_note' => 'TEXT NULL',
             'created_by_user_id' => 'INT NULL',
+            'deleted_at' => 'TIMESTAMP NULL DEFAULT NULL',
+            'deleted_by_user_id' => 'INT NULL',
         ] as $column => $definition) {
             if (!self::columnExists($pdo, 'properties', $column)) {
                 $pdo->exec('ALTER TABLE properties ADD COLUMN ' . $column . ' ' . $definition);
@@ -718,8 +722,15 @@ SQL,
 
         $areaColumn = self::columnDetails($pdo, 'properties', 'area');
         $areaScale = isset($areaColumn['NUMERIC_SCALE']) ? (int) $areaColumn['NUMERIC_SCALE'] : null;
-        if ($areaScale === null || $areaScale < 4) {
-            $pdo->exec('ALTER TABLE properties MODIFY area DECIMAL(12, 4) NOT NULL');
+        if ($areaScale === null || $areaScale < 4 || ($areaColumn['IS_NULLABLE'] ?? 'NO') !== 'YES') {
+            $pdo->exec('ALTER TABLE properties MODIFY area DECIMAL(12, 4) NULL');
+        }
+        foreach (['lat', 'lng'] as $coordinateColumn) {
+            $column = self::columnDetails($pdo, 'properties', $coordinateColumn);
+            $scale = isset($column['NUMERIC_SCALE']) ? (int) $column['NUMERIC_SCALE'] : null;
+            if ($scale === null || $scale < 6 || ($column['IS_NULLABLE'] ?? 'NO') !== 'YES') {
+                $pdo->exec('ALTER TABLE properties MODIFY ' . $coordinateColumn . ' DECIMAL(10, 6) NULL');
+            }
         }
 
         $pdo->exec(
@@ -749,6 +760,8 @@ SQL,
             'UPDATE properties
              SET last_confirmed_available_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
              WHERE last_confirmed_available_at IS NULL
+               AND deleted_at IS NULL
+               AND LOWER(status) IN (\'available\', \'active\', \'open\')
                AND LOWER(COALESCE(approval_state, \'approved\')) = \'approved\''
         );
         $statement->execute();
@@ -877,7 +890,7 @@ SQL,
 
             $update->execute([
                 'id' => (int) ($row['id'] ?? 0),
-                'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
             ]);
         }
     }
@@ -973,6 +986,7 @@ SQL,
         self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_prc_canonical', 'CREATE UNIQUE INDEX uniq_seller_profiles_prc_canonical ON seller_profiles (prc_canonical_no)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_seller_user', 'CREATE INDEX idx_properties_seller_user ON properties (seller_user_id)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_approval_state', 'CREATE INDEX idx_properties_approval_state ON properties (approval_state)');
+        self::ensureIndex($pdo, 'properties', 'idx_properties_deleted_at', 'CREATE INDEX idx_properties_deleted_at ON properties (deleted_at)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_last_confirmed_available', 'CREATE INDEX idx_properties_last_confirmed_available ON properties (last_confirmed_available_at)');
         self::ensureIndex($pdo, 'property_votes', 'idx_property_votes_vote_option', 'CREATE INDEX idx_property_votes_vote_option ON property_votes (vote_option_id)');
         self::ensureIndex($pdo, 'property_messages', 'idx_property_messages_thread', 'CREATE INDEX idx_property_messages_thread ON property_messages (thread_id)');
@@ -1032,7 +1046,7 @@ SQL,
     private static function columnDetails(PDO $pdo, string $tableName, string $columnName): ?array
     {
         $statement = $pdo->prepare(
-            'SELECT COLUMN_NAME, COLUMN_DEFAULT, EXTRA, COLUMN_TYPE, DATA_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE
+            'SELECT COLUMN_NAME, COLUMN_DEFAULT, EXTRA, COLUMN_TYPE, DATA_TYPE, NUMERIC_PRECISION, NUMERIC_SCALE, IS_NULLABLE
              FROM information_schema.columns
              WHERE table_schema = DATABASE()
                AND table_name = :table_name

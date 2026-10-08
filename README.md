@@ -82,6 +82,8 @@ The dry run checks city workspace columns and the unique PRC index without chang
 
 ## Local demo accounts
 
+For hosted administrator access, follow [the private account upload steps](docs/hosted-admin-login.md). The one-time `app/admin-access.local.php` file is excluded from Git, so include it explicitly in your upload. Remove it from the server after the first successful sign-in.
+
 | Account | Email | Password |
 | --- | --- | --- |
 | CICTO | `admin@sfcelerate.local` | `Admin123!` |

@@ -58,12 +58,13 @@ final class AutomaticPropertyAssessment
     {
         $lat = self::number($input['lat'] ?? null);
         $lng = self::number($input['lng'] ?? null);
-        if ($lat === null || $lng === null || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-            throw new InvalidArgumentException('Valid latitude and longitude are required for automatic assessment.');
+        if (($lat === null) !== ($lng === null) || ($lat !== null && ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180))
+            || (isset($input['lat']) && $input['lat'] !== '' && $lat === null) || (isset($input['lng']) && $input['lng'] !== '' && $lng === null)) {
+            throw new InvalidArgumentException('Provide both valid latitude and longitude, or leave both blank.');
         }
         $rawArea = $input['land_area'] ?? $input['landArea'] ?? $input['area'] ?? null;
         if ($rawArea === null || $rawArea === '') {
-            $area = 0.05;
+            $area = null;
         } else {
             $area = self::number(is_string($rawArea) ? str_replace(',', '', trim($rawArea)) : $rawArea);
             $unit = strtolower(trim((string) ($input['land_area_unit'] ?? $input['landAreaUnit'] ?? 'ha')));
@@ -74,12 +75,15 @@ final class AutomaticPropertyAssessment
                 throw new InvalidArgumentException('Land area must be greater than zero.');
             }
         }
+        if ($lat === null && $area === null) {
+            throw new InvalidArgumentException('Enter a positive area size or select the exact property location.');
+        }
         [$category, $subcategory] = PropertyCatalog::normalizeCategory(
             isset($input['category']) ? (string) $input['category'] : null,
             isset($input['subcategory']) ? (string) $input['subcategory'] : null,
             (string) ($input['property_type'] ?? $input['type'] ?? 'Land')
         );
-        return ['lat' => round($lat, 6), 'lng' => round($lng, 6), 'category' => $category, 'subcategory' => $subcategory, 'landArea' => round($area, 4), 'landAreaUnit' => 'hectares'];
+        return ['lat' => $lat === null ? null : round($lat, 6), 'lng' => $lng === null ? null : round($lng, 6), 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area === null ? null : round($area, 4), 'landAreaUnit' => 'hectares'];
     }
 
     public function evaluate(array $input): array
@@ -93,7 +97,9 @@ final class AutomaticPropertyAssessment
         $details = [];
         $context = [];
         foreach (self::METRICS as $key => [$layerKey, $metric, $label, $unit]) {
-            $measurement = $this->measure($layerKey, $point, $inputs);
+            $measurement = $inputs['lat'] === null
+                ? ['raw' => [], 'evidence' => [], 'missingData' => ['An exact property location is needed to assess city evidence layers.'], 'justification' => 'Area size is recorded. Spatial assessment will be available after the exact location is added.']
+                : $this->measure($layerKey, $point, $inputs);
             $missing = $measurement['missingData'];
             $score = null;
             $ruleText = null;
@@ -223,8 +229,10 @@ final class AutomaticPropertyAssessment
                     $result['missingData'][] = 'A dated BIR zonal valuation polygon applicable to the selected category, with a positive PHP/m² value, is required. Asking price is not a valuation source.';
                     return $result;
                 }
-                $result['raw'] = ['bir_value_sqm' => $value, 'bir_total_value' => round($value * $input['landArea'] * 10000, 2), 'valuation_effective_date' => $manifest['effective_date']];
-                $result['justification'] = 'Verified BIR zonal value is PHP ' . $value . '/m², effective ' . $manifest['effective_date'] . '; reference total = value × ' . ($input['landArea'] * 10000) . ' m². This baseline is not a market appraisal or proof of viability.';
+                $result['raw'] = ['bir_value_sqm' => $value, 'bir_total_value' => $input['landArea'] === null ? null : round($value * $input['landArea'] * 10000, 2), 'valuation_effective_date' => $manifest['effective_date']];
+                $result['justification'] = 'Verified BIR zonal value is PHP ' . $value . '/m², effective ' . $manifest['effective_date']
+                    . ($input['landArea'] === null ? '; total value awaits an area size.' : '; reference total = value × ' . ($input['landArea'] * 10000) . ' m².')
+                    . ' This baseline is not a market appraisal or proof of viability.';
             } elseif ($key === 'zoning') {
                 $status = null;
                 foreach (['allowed_categories' => 'permitted', 'conditional_categories' => 'conditional', 'restricted_categories' => 'prohibited'] as $field => $classification) {

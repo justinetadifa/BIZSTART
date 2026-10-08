@@ -22,10 +22,6 @@
         data.land_area = data.calculated_area_sqm;
         data.land_area_unit = 'sqm';
       }
-      if (!(Number(data.land_area) > 0)) {
-        data.land_area = '500';
-        data.land_area_unit = 'sqm';
-      }
       delete data.calculated_area_sqm;
       return data;
     };
@@ -84,7 +80,7 @@
       if (!force && cached && key === lastKey) { render(cached); return cached; }
       controller?.abort();
       const currentRevision = ++revision;
-      if (!validLocation(data)) { cached = null; render(); notice('Add valid latitude and longitude in Step 2.'); return null; }
+      if (!validLocation(data)) { cached = null; render(); notice(data.lat || data.lng ? 'Add valid latitude and longitude to calculate spatial scores. You can also clear both coordinates and submit with an area size.' : 'Your listing can be submitted with an area size. Add an exact location later to calculate spatial scores.'); return null; }
       controller = new AbortController();
       render(null, true); notice('Calculating from location and verified source data…');
       try {
@@ -120,7 +116,7 @@
       setProperty(property) {
         controller?.abort(); revision++; clearTimeout(timer); cached = null; lastKey = '';
         legacy = Boolean(property && property.assessmentMode !== 'automatic' && Object.values(property.assessmentCriteria || {}).some(value => value != null));
-        render(); notice('Set the location in Step 2. Scores are calculated by the system.');
+        render(); notice('Scores are optional at submission and depend on verified source evidence.');
       },
     };
   };

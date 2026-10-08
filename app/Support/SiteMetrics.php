@@ -20,7 +20,7 @@ final class SiteMetrics
 
     public static function summary(PDO $pdo): array
     {
-        $row = $pdo->query("SELECT COUNT(*) AS available_properties, COALESCE(SUM(area), 0) AS available_area FROM properties WHERE approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetch();
+        $row = $pdo->query("SELECT COUNT(*) AS available_properties, COALESCE(SUM(area), 0) AS available_area FROM properties WHERE deleted_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetch();
         $visits = $pdo->query("SELECT value FROM site_metrics WHERE metric = 'visits'")->fetchColumn();
         return [
             'availableProperties' => (int) $row['available_properties'],

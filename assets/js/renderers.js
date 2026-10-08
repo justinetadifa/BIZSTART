@@ -41,6 +41,17 @@ function labelize(value) {
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+function propertyAreaLabel(property) {
+  return property.area != null && Number.isFinite(Number(property.area)) && Number(property.area) > 0
+    ? `${property.area} HA` : "Not provided";
+}
+
+function propertyUnitPriceLabel(property) {
+  if (property.area == null || !Number.isFinite(Number(property.area)) || Number(property.area) <= 0) return "Area needed";
+  return property.pricePerSqm != null && Number.isFinite(Number(property.pricePerSqm)) && Number(property.pricePerSqm) > 0
+    ? `PHP ${Number(property.pricePerSqm).toLocaleString()}` : "Price on request";
+}
+
 function corridorLabel(value) {
   return CORRIDOR_LABELS[value] || labelize(value);
 }
@@ -160,11 +171,11 @@ function renderPropertyCard(property, viewMode, selectedPropertyId, compareList)
         <div class="property-specs">
           <div class="spec-item">
             <div class="spec-label">AREA</div>
-            <div class="spec-value">${escapeHtml(`${property.area} HA`)}</div>
+            <div class="spec-value">${escapeHtml(propertyAreaLabel(property))}</div>
           </div>
           <div class="spec-item">
             <div class="spec-label">PRICE PER SQM</div>
-            <div class="spec-value">PHP ${Number(property.pricePerSqm).toLocaleString()}</div>
+            <div class="spec-value">${escapeHtml(propertyUnitPriceLabel(property))}</div>
           </div>
           <div class="spec-item">
             <div class="spec-label">ACCESS</div>
@@ -533,11 +544,11 @@ export function renderPropertyDetail(property) {
           <h4>Investment Snapshot</h4>
           <div class="property-detail-metrics">
             <div class="kpi"><div class="k">Guide Price</div><div class="v">${escapeHtml(formatMoneyCompact(property.price).toUpperCase())}</div></div>
-            <div class="kpi"><div class="k">Land Area</div><div class="v">${escapeHtml(`${property.area} HA`)}</div></div>
+            <div class="kpi"><div class="k">Land Area</div><div class="v">${escapeHtml(propertyAreaLabel(property))}</div></div>
             <div class="kpi"><div class="k">Weighted Fit</div><div class="v">${property.score ?? 0}/100</div></div>
             <div class="kpi"><div class="k">Market Score</div><div class="v">${property.marketScore ?? 82}/100</div></div>
             <div class="kpi"><div class="k">Road Access</div><div class="v">${property.roadAccess}%</div></div>
-            <div class="kpi"><div class="k">Price / SQM</div><div class="v">PHP ${Number(property.pricePerSqm || 0).toLocaleString()}</div></div>
+            <div class="kpi"><div class="k">Price / SQM</div><div class="v">${escapeHtml(propertyUnitPriceLabel(property))}</div></div>
           </div>
         </section>
 
@@ -807,7 +818,7 @@ export function renderComparison(compareProperties) {
         </thead>
         <tbody>
           ${row("WEIGHTED SCORE", (property) => `${property.score}/100`)}
-          ${row("AREA", (property) => `${property.area} HA`)}
+          ${row("AREA", propertyAreaLabel)}
           ${row("PRICE", (property) => formatMoneyFull(property.price))}
           ${row("TYPE", (property) => escapeHtml(property.type.toUpperCase()))}
           ${row("CORRIDOR", (property) => escapeHtml(property.corridor.toUpperCase()))}
@@ -980,7 +991,7 @@ export function renderDecisionPack(property, model, inputs) {
             <div class="kpi"><div class="k">PAYBACK</div><div class="v">${escapeHtml(formatYears(model.payback).toUpperCase())}</div></div>
           </div>
           <div class="tiny">
-            AREA ${property.area} HA. PRICE PER SQM PHP ${Number(property.pricePerSqm).toLocaleString()}. ACCESS ${property.roadAccess}%.
+            AREA ${escapeHtml(propertyAreaLabel(property))}. PRICE PER SQM ${escapeHtml(propertyUnitPriceLabel(property))}. ACCESS ${property.roadAccess}%.
           </div>
         </div>
 

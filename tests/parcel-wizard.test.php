@@ -71,8 +71,10 @@ $check($update['parcel_json'] === $surveyRow['parcel_json'], 'An unrelated updat
 $clearPrice = $normalize->invoke($repository, ['price' => ''], $surveyRow);
 $check($clearPrice['price'] === 0 && $clearPrice['price_per_sqm'] === 0, 'Optional price cannot be cleared.');
 $reject(static fn () => $normalize->invoke($repository, array_replace($base, ['price' => -1])));
-$reject(static fn () => $normalize->invoke($repository, array_replace($base, ['boundary' => ''])));
-$reject(static fn () => $normalize->invoke($repository, ['boundary' => ''], $row));
+$withoutBoundary = $normalize->invoke($repository, array_replace($base, ['boundary' => '']));
+$check($withoutBoundary['area'] === null && $withoutBoundary['lat'] === 16.61, 'An exact location must allow an optional boundary and unknown area.');
+$clearedBoundary = $normalize->invoke($repository, ['boundary' => ''], $row);
+$check($clearedBoundary['area'] === null && json_decode($clearedBoundary['parcel_json'], true)['boundary'] === null, 'Clearing an estimated boundary must retain the exact location without inventing an area.');
 $reject(static fn () => PropertyParcel::boundary(['type' => 'Feature', 'geometry' => 'Polygon']));
 $reject(static fn () => PropertyParcel::fromPayload(['land_area' => 1, 'land_area_unit' => []]));
 $broker = ['id' => 99, 'role' => 'seller', 'name' => 'Fixture Broker', 'email' => 'fixture@example.test', 'identityVerificationStatus' => 'verified'];

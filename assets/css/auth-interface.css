@@ -1,4 +1,9 @@
 /* Auth-only styling; account.css is also shared by profile pages. */
+.account-access-help{margin:0 0 18px;color:#586378;font-size:12px;line-height:1.65}
+.account-access-notice{padding:18px;border:1px solid #e1e6ee;border-radius:8px;background:#f8fafc;font-size:13px;line-height:1.65}
+.account-access-notice strong{display:block;color:#11224d}
+.account-access-notice p{margin:8px 0 14px;color:#586378}
+.account-access-notice a{color:#9e1b22;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 .account-auth{position:relative;isolation:isolate;padding:48px 24px 68px;min-height:calc(100svh - 104px);background:#f5f7fa;overflow:hidden}
 .account-auth::before{content:"";position:absolute;z-index:-1;inset:0;background:var(--account-map) center/cover no-repeat;opacity:.065;pointer-events:none}
 .account-auth .account-shell{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);width:min(100%,1020px);margin:auto;overflow:hidden;border:1px solid #e1e6ee;border-radius:22px;background:#fff;box-shadow:0 20px 65px -30px #11224d35;animation:account-arrive .45s cubic-bezier(.2,.7,.3,1) both}

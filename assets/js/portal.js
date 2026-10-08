@@ -20,6 +20,17 @@ const page = document.body.dataset.page || "landing";
 const role = document.body.dataset.role || "guest";
 const currentUser = window.SFC_APP_CONFIG?.user || null;
 
+function hasPropertyCoordinates(property) {
+  return property?.lat != null && property?.lng != null
+    && String(property.lat).trim() !== "" && String(property.lng).trim() !== ""
+    && Number.isFinite(Number(property.lat)) && Number.isFinite(Number(property.lng))
+    && Math.abs(Number(property.lat)) <= 90 && Math.abs(Number(property.lng)) <= 180;
+}
+
+function activePropertyList(properties) {
+  return Array.isArray(properties) ? properties.filter((property) => !property.isDeleted) : [];
+}
+
 const STORAGE_KEYS = {
   compare: "sfc.portal.compare",
   favorites: "sfc.portal.favorites",
@@ -1568,7 +1579,7 @@ function demandSnapshotSvgMarkup({ property, properties = [], lensKey = DEFAULT_
     lat: Number(property?.lat || 0),
     lng: Number(property?.lng || 0),
   };
-  if (!Number.isFinite(active.lat) || !Number.isFinite(active.lng) || (active.lat === 0 && active.lng === 0)) {
+  if (!hasPropertyCoordinates(property)) {
     return `
       <svg viewBox="0 0 720 420" class="prospectus-map-svg" role="img" aria-label="Demand heatmap unavailable">
         <rect width="720" height="420" rx="24" fill="#f4f4f5"></rect>
@@ -1578,7 +1589,7 @@ function demandSnapshotSvgMarkup({ property, properties = [], lensKey = DEFAULT_
   }
 
   const validPoints = (Array.isArray(properties) ? properties : [])
-    .filter((entry) => Number.isFinite(Number(entry?.lat)) && Number.isFinite(Number(entry?.lng)))
+    .filter(hasPropertyCoordinates)
     .map((entry) => {
       const distanceKm = haversineKm(active, entry);
       const lensScore = Number(entry?.lensResult?.score ?? entry?.lensScore ?? entry?.marketScore ?? 0);
@@ -3654,8 +3665,9 @@ function animateNumericValue(node, target, options = {}) {
 }
 
 function cityGridBounds(properties) {
-  const latitudes = properties.map((property) => Number(property?.lat || 0)).filter((value) => Number.isFinite(value));
-  const longitudes = properties.map((property) => Number(property?.lng || 0)).filter((value) => Number.isFinite(value));
+  const mapped = properties.filter(hasPropertyCoordinates);
+  const latitudes = mapped.map((property) => Number(property.lat));
+  const longitudes = mapped.map((property) => Number(property.lng));
   if (!latitudes.length || !longitudes.length) {
     return {
       minLat: 0,
@@ -4257,7 +4269,7 @@ function landingHeroState(properties, votesMap, focusKey, nodeKey = null) {
   const node = cityGridNodeConfig(nodeKey, focus.defaultNode);
   const rankedProperties = enrichProperties(properties, properties, votesMap, null, focus.key);
   const bounds = cityGridBounds(properties);
-  const mappedProperties = rankedProperties.map((property) => ({
+  const mappedProperties = rankedProperties.filter(hasPropertyCoordinates).map((property) => ({
     ...property,
     votes: votesMap[property.id] || {},
     cityPoint: propertyCityPoint(property, bounds),
@@ -4789,7 +4801,7 @@ async function initLanding() {
     fetchShowcaseItems("offer_board", offerRoot),
     fetchShowcaseItems("city_pipeline", pipelineRoot),
   ]);
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const votesMap = await loadVoteTallies(properties);
   let heroFocusKey = landingHeroFocusConfig(getActiveInvestmentLensKey()).key;
   let selectedNodeKey = landingHeroFocusConfig(heroFocusKey).defaultNode;
@@ -4946,6 +4958,7 @@ async function initLanding() {
 }
 
 function locationBoard(properties, activeId, title = "Location view") {
+  properties = properties.filter(hasPropertyCoordinates);
   if (!properties.length) {
     return `<article class="location-board"><div class="loading-panel">No locations available.</div></article>`;
   }
@@ -6225,7 +6238,7 @@ async function initAdminDashboard() {
   document.fonts?.ready.then(updateTabIndicator);
 
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   document.dispatchEvent(new CustomEvent('sfc:admin-properties', { detail: properties }));
   const [votesMap, inquiryMap, inboxResponse, sellerQueueResponse, initialAuditResponse] = await Promise.all([
     loadVoteTallies(properties),
@@ -7046,7 +7059,7 @@ async function initInvestorDashboard() {
   const basePath = window.SFC_APP_CONFIG?.basePath || "";
   const blueButtonArt = document.getElementById("investorBlueButtonArt")?.innerHTML || "";
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const votesMap = await loadVoteTallies(properties);
   const enriched = enrichProperties(properties, properties, votesMap);
   const topDemand = aggregateVoteLabels(votesMap)[0];
@@ -7182,7 +7195,7 @@ async function initRankingPage() {
   const blueButtonArt = document.getElementById("rankingBlueButtonArt")?.innerHTML || "";
 
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const votesMap = await loadVoteTallies(properties);
   let type = "all";
   let corridor = "all";
@@ -8167,7 +8180,7 @@ async function initSellerDashboard() {
       api.getMessageInbox().catch(() => ({ threads: [] })),
       api.getDocumentRequestInbox().catch(() => ({ requests: [] })),
     ]);
-    properties = propertyResponse.properties || [];
+    properties = activePropertyList(propertyResponse.properties);
     sellerProfile = profileResponse.profile || null;
     inquiryMap = await loadInquiryCounts(properties);
     threads = inboxResponse.threads || [];
@@ -8238,7 +8251,7 @@ async function initVotingDashboard() {
   if (!root) return;
 
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const votesMap = await loadVoteTallies(properties);
   let voteOptions = (await api.voteOptions().catch(() => ({ voteOptions: [] }))).voteOptions || [];
   let activeId = parsePropertyParam() || properties[0]?.id || 0;
@@ -9326,7 +9339,7 @@ async function initCityPipeline() {
   ]);
 
   const items = showcaseRes.items || [];
-  const properties = bootstrapRes.properties || [];
+  const properties = activePropertyList(bootstrapRes.properties);
   const basePath = window.SFC_APP_CONFIG?.basePath || "";
 
   let activeLens = "all";
@@ -10316,7 +10329,7 @@ async function initAdminShowcase() {
   const reload = async () => {
     const [showcaseResponse, propertiesResponse] = await Promise.all([api.showcase(), api.properties()]);
     items = stampShowcaseItems(showcaseResponse.items || []);
-    properties = propertiesResponse.properties || [];
+    properties = activePropertyList(propertiesResponse.properties);
     render();
   };
 
@@ -10875,7 +10888,7 @@ async function initExplorer() {
   }
   let competitorRadarInstance = null;
   let activeRadarResult = null;
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   if (!properties.length) {
     root.innerHTML = emptyState("Explorer unavailable", "No properties are loaded yet. Add inventory to bring the map online.");
     return;
@@ -11102,7 +11115,7 @@ async function initExplorer() {
       activeId = visible[0]?.id || 0;
     }
     const active = visible.find((property) => property.id === activeId) || visible[0] || null;
-    if (active && competitorData && Number.isFinite(Number(active.lat)) && Number.isFinite(Number(active.lng))) {
+    if (hasPropertyCoordinates(active) && competitorData) {
       activeRadarResult = calculateCompetitorProximity(
         { lat: Number(active.lat), lng: Number(active.lng) },
         competitorData
@@ -11116,10 +11129,7 @@ async function initExplorer() {
     const comparedProperties = compareIds.map(id => properties.find(property => property.id === id)).filter(Boolean);
     const activeScore = Math.round(Number(active?.lensScore || 0));
     const activeDrivers = active?.lensResult?.topMetrics?.slice(0, 2) || [];
-    const mappedCount = visible.filter(property => property.lat != null && property.lng != null
-      && String(property.lat).trim() !== "" && String(property.lng).trim() !== ""
-      && Number.isFinite(Number(property.lat)) && Number.isFinite(Number(property.lng))
-      && Math.abs(Number(property.lat)) <= 90 && Math.abs(Number(property.lng)) <= 180).length;
+    const mappedCount = visible.filter(hasPropertyCoordinates).length;
 
     const focusControl = root.contains(document.activeElement) ? document.activeElement : null;
     const focusId = focusControl?.id;
@@ -11560,7 +11570,7 @@ async function initExplorer() {
       selectedSearchResult = null;
       if (window.innerWidth <= 900) mobileView = "map";
       const targetProp = properties.find((p) => p.id === activeId);
-      if (targetProp && competitorRadarInstance && Number.isFinite(Number(targetProp.lat)) && Number.isFinite(Number(targetProp.lng))) {
+      if (hasPropertyCoordinates(targetProp) && competitorRadarInstance) {
         competitorRadarInstance.updateTargetPosition(
           { lat: targetProp.lat, lng: targetProp.lng },
           { suppressAlert: true }
@@ -11687,7 +11697,7 @@ async function initExplorer() {
         if (map && competitorData) {
           competitorRadarInstance?.destroy();
           competitorRadarInstance = addCompetitorRadar(map, competitorData);
-          if (active && Number.isFinite(Number(active.lat)) && Number.isFinite(Number(active.lng))) {
+          if (hasPropertyCoordinates(active)) {
             activeRadarResult = competitorRadarInstance.analyzeLot(
               { lat: active.lat, lng: active.lng },
               { suppressAlert: true }
@@ -11757,7 +11767,7 @@ async function initCompare() {
   if (!root) return;
 
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const decisionPersonas = normalizeDecisionPersonas(bootstrap.meta?.decisionPersonas || []);
   const votesMap = await loadVoteTallies(properties);
   let intent = "";
@@ -12978,7 +12988,7 @@ async function initPropertyDetails() {
   }
 
   const bootstrap = await api.bootstrap();
-  let properties = bootstrap.properties || [];
+  let properties = activePropertyList(bootstrap.properties);
   const [commandCenterResponse, weatherResponse, summaryResponse, competitorResponse, businessMatchResponse] = await Promise.all([
     api.propertyCommandCenter(propertyId),
     api.weatherByProperty(propertyId).catch(() => ({ weather: null })),
@@ -14634,7 +14644,7 @@ async function initAdminProperties() {
 
   const reload = async () => {
     const response = await api.properties();
-    properties = response.properties || [];
+    properties = activePropertyList(response.properties);
 
     const heroParcels = document.getElementById("heroTotalParcels");
     if (heroParcels) heroParcels.textContent = `${properties.length} Live Sites`;
@@ -14768,7 +14778,7 @@ async function initScenarioSimulator() {
   const root = document.getElementById("scenarioSimulatorRoot");
   if (!root) return;
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   if (!properties.length) {
     root.innerHTML = emptyState("No candidate sites available", "Add an approved candidate site to the system before running scenario simulations.");
     return;
@@ -15257,7 +15267,7 @@ async function initDecisionReports() {
   const blueButtonArt = document.getElementById("reportBlueButtonArt")?.innerHTML || "";
   document.getElementById("printDecisionReport")?.addEventListener("click", printWithCompliance);
   const bootstrap = await api.bootstrap();
-  const properties = bootstrap.properties || [];
+  const properties = activePropertyList(bootstrap.properties);
   const investmentLensKey = getActiveInvestmentLensKey();
   const enriched = enrichProperties(properties, properties, {}, null, investmentLensKey);
   const counts = { PASS: 0, CONDITIONAL: 0, FAIL: 0, UNVERIFIED: 0 };

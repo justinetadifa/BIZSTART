@@ -11,6 +11,7 @@ require_once __DIR__ . '/Core/SchemaManager.php';
 require_once __DIR__ . '/Core/ClupSchemaManager.php';
 require_once __DIR__ . '/Support/JsonData.php';
 require_once __DIR__ . '/Support/AutoSeeder.php';
+require_once __DIR__ . '/Support/AdminAccountSetup.php';
 require_once __DIR__ . '/Support/GoogleEarthService.php';
 require_once __DIR__ . '/Support/DecisionEngineService.php';
 require_once __DIR__ . '/Support/ClupComplianceService.php';
@@ -50,6 +51,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\VisitLogRepository;
 use App\Repositories\VoteOptionRepository;
 use App\Support\AutoSeeder;
+use App\Support\AdminAccountSetup;
 use App\Support\DecisionEngineService;
 use App\Support\ClupComplianceService;
 use App\Support\ExternalServices;
@@ -70,6 +72,20 @@ if ($autoMigrate) {
 }
 if ($autoSeed) {
     AutoSeeder::seedIfNeeded($pdo);
+}
+$privateAdminSettingsPath = __DIR__ . '/admin-access.local.php';
+if (is_file($privateAdminSettingsPath)) {
+    try {
+        $privateAdminSettings = require $privateAdminSettingsPath;
+        if (!is_array($privateAdminSettings)) {
+            throw new RuntimeException('Private administrator settings must be an array.');
+        }
+        AdminAccountSetup::ensure($pdo, $privateAdminSettings);
+    } catch (Throwable) {
+        // Account conflicts or a missing schema must not interrupt public pages.
+        // Never log the operator's configuration, password or password hash.
+        error_log('Private administrator setup could not finish. Check app/admin-access.local.php and the existing users table.');
+    }
 }
 $auditLogs = new AuditLogRepository($pdo);
 $clupGovernance = new ClupGovernanceRepository($pdo, $auditLogs);

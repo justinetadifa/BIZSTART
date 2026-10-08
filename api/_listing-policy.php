@@ -3,12 +3,14 @@ declare(strict_types=1);
 
 function sfc_listing_payload(array $payload, array $user, bool $creating, ?array $existing = null): array
 {
+    // Deletion metadata is exclusively written by the audited lifecycle operations.
+    unset($payload['deleted_at'], $payload['deletedAt'], $payload['deleted_by_user_id'], $payload['isDeleted']);
     if (($user['role'] ?? '') === 'seller') {
         if (strtolower((string) ($user['identityVerificationStatus'] ?? '')) !== 'verified') {
             throw new InvalidArgumentException('CICTO must approve your broker account before you submit listings.');
         }
         // An allowlist prevents assignment, review and assessment fields being injected.
-        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
+        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'area_method', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
         $payload = array_intersect_key($payload, array_flip($allowed));
         $payload['seller_user_id'] = (int) $user['id'];
         $payload['owner_name'] = $payload['owner_name'] ?? $user['name'];

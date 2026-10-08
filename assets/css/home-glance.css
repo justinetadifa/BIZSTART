@@ -1,0 +1,150 @@
+/* Homepage city statistics, styled to keep the eight figures easy to scan. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/inter-latin.woff2') format('woff2');
+}
+
+body[data-page="city-landing"] .home-glance {
+  padding-block: 40px 8px;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.home-glance .home-glance-panel {
+  padding: 8px 24px 26px;
+  border: 1px solid #e7edf3;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(245, 248, 250, .78));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .95), 0 2px 8px rgba(17, 34, 77, .025);
+}
+
+.home-glance .home-glance-title {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0 0 20px -8px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #b0001b, #730c00);
+  color: #fff;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+  text-transform: uppercase;
+}
+
+.home-glance .home-glance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-glance .glance-card {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 104px;
+  gap: 14px;
+  padding: 18px;
+  border: 1.5px solid #c61121;
+  border-radius: 19px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 2px 5px rgba(17, 34, 77, .035), inset 0 1px 0 #fff;
+}
+
+.home-glance .glance-card:hover {
+  transform: none !important;
+  border-color: #c61121 !important;
+  box-shadow: 0 2px 5px rgba(17, 34, 77, .035), inset 0 1px 0 #fff !important;
+}
+
+.home-glance .glance-icon {
+  display: flex;
+  flex: 0 0 56px;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid #ffe7ea;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #ffe8eb, #fff1f3);
+}
+
+.home-glance .glance-card:nth-child(2) .glance-icon,
+.home-glance .glance-card:nth-child(4) .glance-icon,
+.home-glance .glance-card:nth-child(7) .glance-icon {
+  border-color: #fff0c8;
+  background: radial-gradient(circle at center, #fff2cc, #fff8e3);
+}
+
+.home-glance .glance-card:nth-child(5) .glance-icon {
+  border-color: #e5efff;
+  background: radial-gradient(circle at center, #e1ecff, #eff5ff);
+}
+
+.home-glance .glance-card svg {
+  width: 28px;
+  height: 28px;
+}
+
+.home-glance .glance-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-glance .glance-label {
+  display: block;
+  margin-bottom: 3px;
+  color: #8493b0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+}
+
+.home-glance .glance-value {
+  color: #1b2f60;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -.02em;
+}
+
+.home-glance .glance-card:nth-child(2) .glance-value {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.home-glance .glance-card sup {
+  font-size: .62em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .home-glance .glance-card { gap: 12px; padding: 16px; }
+  .home-glance .glance-value { font-size: 17px; }
+}
+
+@media (max-width: 1023px) {
+  .home-glance .home-glance-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  body[data-page="city-landing"] .home-glance { padding-top: 28px; }
+  .home-glance .home-glance-panel { padding: 10px 14px 16px; border-radius: 20px; }
+  .home-glance .home-glance-title { margin: 0 0 16px; padding: 13px 18px; font-size: 18px; line-height: 1.3; }
+  .home-glance .home-glance-grid { grid-template-columns: minmax(0, 1fr); gap: 11px; }
+  .home-glance .glance-card { min-height: 94px; padding: 16px 18px; border-radius: 17px; }
+}
+
+@media (max-width: 360px) {
+  .home-glance .home-glance-title { padding-inline: 14px; font-size: 16px; }
+  .home-glance .glance-card { gap: 12px; padding-inline: 14px; }
+  .home-glance .glance-value { font-size: 17px; }
+}

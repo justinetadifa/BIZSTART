@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { assessmentEvidenceMarkup } from './assessment-evidence.js';
+import { propertyDetailsMarkup, setupPropertyDetailsPrint } from './property-details-view.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
@@ -13,6 +13,14 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp
 const number = value => new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 }).format(Number(value) || 0);
 const money = value => `₱${number(value)}`;
 const score = value => value == null ? '—' : `${number(value)}/100`;
+const hasArea = property => Number.isFinite(Number(property.area)) && Number(property.area) > 0;
+const areaText = property => hasArea(property) ? `${number(property.area)} ha` : 'Area not provided';
+const pricePerSqmText = property => hasArea(property) && Number(property.pricePerSqm) > 0 ? money(property.pricePerSqm) : 'Not available';
+const hasCoordinates = item => item && item.lat != null && item.lng != null
+  && String(item.lat).trim() !== '' && String(item.lng).trim() !== ''
+  && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))
+  && Math.abs(Number(item.lat)) <= 90 && Math.abs(Number(item.lng)) <= 180
+  && !(Number(item.lat) === 0 && Number(item.lng) === 0);
 const storageKey = `locus.compare:${config.basePath || ''}:${config.user?.id || 'guest'}`;
 let properties = [], categories = {}, criteria = {}, saved = new Set(), compare = [], filtered = [];
 let expandedCards = new Set();
@@ -90,7 +98,7 @@ function card(property, index) {
               ${money(property.price)}
             </strong>
             <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
-              ${number(property.area)} ha
+              ${areaText(property)}
             </span>
           </div>
         </div>
@@ -190,7 +198,7 @@ function card(property, index) {
   const iaiVal = property.iaiScore != null ? `${number(property.iaiScore)}/100` : 'Not Available';
   const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
   const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
-  const descText = property.description || property.thesis || `A ${number(property.area)}-hectare ${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
+  const descText = property.description || property.thesis || `A ${hasArea(property) ? `${number(property.area)}-hectare ` : ''}${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
 
   return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl hover:tw--translate-y-1 tw-transition-all tw-duration-300 tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
     <!-- Media / Satellite Image Container -->
@@ -244,7 +252,7 @@ function card(property, index) {
             ${money(property.price)}
           </strong>
           <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
-            ${number(property.area)} ha
+            ${areaText(property)}
           </span>
         </div>
       </div>
@@ -364,7 +372,7 @@ function updatePriorityStats() {
 
 function priorityListCard(property, idx) {
   const isTopRanked = idx === 0;
-  const ppsqm = property.pricePerSqm || (property.area ? Math.round(property.price / (Number(property.area) * 10000)) : null);
+  const ppsqm = hasArea(property) ? Number(property.pricePerSqm) > 0 ? property.pricePerSqm : Math.round(property.price / (Number(property.area) * 10000)) : null;
   const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
   const titleClean = cleanTitle(property.name);
   const isCompared = compare.includes(property.id);
@@ -385,10 +393,10 @@ function priorityListCard(property, idx) {
   const metaParts = [
     property.barangay || property.city || 'San Fernando',
     property.subcategory || property.category || 'Commercial',
-    property.area != null ? `${number(property.area)} ha` : ''
+    areaText(property)
   ].filter(Boolean).join(' · ');
 
-  const areaLabel = Number(property.area) < 1
+  const areaLabel = !hasArea(property) ? 'Area not provided' : Number(property.area) < 1
     ? `${number(Number(property.area) * 10000)} m² ${property.area ? `(${number(property.area)} ha)` : ''}`
     : `${number(property.area)} ha`;
 
@@ -624,7 +632,7 @@ function renderCompare() {
   const selected = compare.map(id => properties.find(property => property.id === id)).filter(Boolean);
   if (!selected.length) { root.innerHTML = `<div class="city-empty"><h3>Choose properties to compare.</h3><p>Add up to three listings from the property list.</p><a class="city-button" href="${path(investor ? 'investor-dashboard.php' : 'property-explorer.php')}">Explore properties</a></div>`; return; }
   root.innerHTML = selected.map(property => `<article class="city-compare-column"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><div><h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3><dl>${[
-    ['Category', property.subcategory || property.category], ['Location', property.barangay || property.city], ['Price', money(property.price)], ['Area', `${number(property.area)} ha`], ['Price / m²', money(property.pricePerSqm)], ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? '—' : `#${property.mceRank}`], ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? '—' : `#${property.iaiRank}`], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'], ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]), ['Context', property.assessmentTags?.join(', ') || '—']
+    ['Category', property.subcategory || property.category], ['Location', property.barangay || property.city], ['Price', money(property.price)], ['Area', areaText(property)], ['Price / m²', pricePerSqmText(property)], ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? '—' : `#${property.mceRank}`], ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? '—' : `#${property.iaiRank}`], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'], ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]), ['Context', property.assessmentTags?.join(', ') || '—']
   ].map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><div class="city-card-actions"><button type="button" data-compare="${property.id}">Remove</button></div></div></article>`).join('');
 }
 
@@ -818,7 +826,7 @@ function createPopupContent(property) {
         <p class="locus-popup-loc">${esc(property.barangay || property.city)}, San Fernando</p>
         <div class="locus-popup-pricing">
           <div class="locus-popup-price">${money(property.price)}</div>
-          <div class="locus-popup-area">${number(property.area)} ha · ${money(property.pricePerSqm)}/m²</div>
+          <div class="locus-popup-area">${areaText(property)}${hasArea(property) && Number(property.pricePerSqm) > 0 ? ` · ${money(property.pricePerSqm)}/m²` : ''}</div>
         </div>
         ${iaiVal != null ? `
           <div class="locus-popup-metrics">
@@ -981,7 +989,7 @@ function renderMarkers() {
   markerMap.clear();
 
   filtered.forEach(property => {
-    if (!Number.isFinite(Number(property.lat)) || !Number.isFinite(Number(property.lng))) return;
+    if (property.hasExactLocation === false || !hasCoordinates(property)) return;
 
     const marker = L.marker([property.lat, property.lng], {
       icon: createPillIcon(property)
@@ -1105,6 +1113,7 @@ function getCategoryColorClass(color) {
 
 function printHeaderMarkup(property) {
   const printDate = new Date().toLocaleDateString('en-PH', {
+    timeZone: 'Asia/Shanghai',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -1118,10 +1127,10 @@ function printHeaderMarkup(property) {
           <div class="city-print-office-title">Local Economic and Business Development Office (LEBDO) &middot; CPDO</div>
         </div>
         <div class="city-print-meta-col">
-          <span class="city-print-tag">Official Investment Dossier</span>
+          <span class="city-print-tag">Property information & assessment</span>
           <div class="city-print-meta-item">Ref ID: <strong>LOCUS-SF-PRP-${property.id}</strong></div>
           <div class="city-print-meta-item">Date Printed: <strong>${esc(printDate)}</strong></div>
-          <div class="city-print-meta-item">CLUP Status: <strong>${esc(property.clupProfile?.zoningClassification || 'Zoning Verified')}</strong></div>
+          <div class="city-print-meta-item">Zoning: <strong>${esc(property.clupProfile?.zoningClassification || 'Awaiting verification')}</strong></div>
         </div>
       </div>
       <div class="city-print-divider"></div>
@@ -1134,7 +1143,7 @@ function printFooterMarkup(property) {
     <footer class="city-print-dossier-footer print:tw-block tw-hidden">
       <p class="tw-m-0">
         <strong>LOCUS-SF &middot; City of San Fernando Investment Intelligence System</strong><br>
-        Official spatial decision brief verified under City Land Use Plan (CLUP 2025&ndash;2035). Distances use geodesic WGS84 coordinates. Advisory decision support; does not supersede official permits issued by City Hall.
+        Property information and recorded assessment evidence as of printing. Advisory decision support; source dates and any pending evidence are listed in this sheet. Confirm legal boundaries, current availability and applicable permits with the responsible offices.
       </p>
     </footer>
   `;
@@ -1142,7 +1151,7 @@ function printFooterMarkup(property) {
 
 function printButtonMarkup(id = '') {
   return `
-    <button class="city-button city-button-secondary city-print-trigger-btn print:tw-hidden" type="button" ${id ? `id="${id}"` : ''} title="Print official property information sheet">
+    <button class="city-button city-button-secondary city-print-trigger-btn print:tw-hidden" type="button" ${id ? `id="${id}"` : ''} title="Print property information and MCE / IAI calculation sheet">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="6 9 6 2 18 2 18 9"></polyline>
         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
@@ -1163,9 +1172,9 @@ function nearbyBusinessesMarkup(property) {
             <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
             <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
           </div>
-          <span class="tw-text-xs tw-text-slate-400 print:tw-hidden">Proximity Radius: 2.0 km</span>
+          <span class="tw-text-xs tw-text-slate-400 print:tw-hidden">Search radius: 2.5 km</span>
         </div>
-        <p class="tw-text-sm tw-text-slate-500 tw-m-0">No registered commercial anchors mapped within the immediate straight-line radius of this parcel.</p>
+        <p class="tw-text-sm tw-text-slate-500 tw-m-0">No nearby places are available in this listing's mapped directory. This does not establish that businesses are absent.</p>
       </section>
     `;
   }
@@ -1180,7 +1189,7 @@ function nearbyBusinessesMarkup(property) {
           <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
           <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
           <p class="tw-m-0 tw-mt-1 tw-text-xs tw-text-slate-500">
-            Operating commercial brands, financial facilities, retail, and dining anchors detected within walking and driving proximity.
+            Up to 12 mapped places within 2.5 km. Distances are straight-line estimates; walking times do not establish a usable route.
           </p>
         </div>
         ${count ? `
@@ -1203,7 +1212,7 @@ function nearbyBusinessesMarkup(property) {
           ${businesses.map((biz, idx) => {
             const iconSvg = getCategoryIconSvg(biz.icon || 'store');
             return `
-              <article class="nearby-biz-card tw-flex tw-items-start tw-gap-3.5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200/80 tw-bg-slate-50/70 tw-p-3.5 tw-transition-all hover:tw-border-slate-300 hover:tw-bg-white hover:tw-shadow-sm" data-biz-lat="${biz.lat}" data-biz-lng="${biz.lng}">
+              <article class="nearby-biz-card tw-flex tw-items-start tw-gap-3.5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200/80 tw-bg-slate-50/70 tw-p-3.5 tw-transition-all hover:tw-border-slate-300 hover:tw-bg-white hover:tw-shadow-sm"${hasCoordinates(biz) ? ` data-biz-lat="${Number(biz.lat)}" data-biz-lng="${Number(biz.lng)}"` : ''}>
                 <div class="nearby-biz-icon-box tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg ${getCategoryColorClass(biz.categoryColor)}">
                   ${iconSvg}
                 </div>
@@ -1220,11 +1229,11 @@ function nearbyBusinessesMarkup(property) {
                   <div class="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2">
                     <span class="nearby-biz-status-badge tw-inline-flex tw-items-center tw-gap-1 tw-text-[9.5px] tw-font-semibold tw-text-emerald-700">
                       <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500"></span>
-                      ${biz.status === 'operating' ? 'Operating &amp; Verified' : 'Under Development'}
+                      ${biz.status === 'operating' ? 'Recorded as operating' : 'Under development'}
                     </span>
-                    <button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
+                    ${hasCoordinates(property) && property.hasExactLocation !== false && hasCoordinates(biz) ? `<button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
                       Locate on map &rarr;
-                    </button>
+                    </button>` : ''}
                   </div>
                 </div>
               </article>
@@ -1270,79 +1279,26 @@ async function renderDetails() {
   const broker = role !== 'guest' ? property.brokerContact : null;
   const existingConversation = investor ? await api.getMessages(id).catch(() => null) : null;
   const canInquire = investor && (existingConversation?.thread || (property.contactMode === 'broker' ? broker : property.sellerUserId));
-  root.innerHTML = `
-  ${printHeaderMarkup(property)}
-  <div class="city-page-heading tw-flex-wrap tw-items-start tw-justify-between tw-gap-4">
-    <div>
-      <div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div>
-      <h1>${esc(property.name)}</h1>
-      <p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p>
-    </div>
-    <div class="city-heading-actions tw-flex tw-items-center tw-gap-2.5 print:tw-hidden">
-      ${printButtonMarkup('cityPrintPropertyTopBtn')}
-    </div>
-  </div>
-  <div class="city-detail-grid">
-    <div>
-      <img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}">
-      <section class="city-detail-panel" style="margin-top:20px">
-        <h2>Property overview</h2>
-        <p>${esc(property.description)}</p>
-        <dl class="city-detail-list">
-          ${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}
-        </dl>
-        ${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}
-      </section>
-      ${nearbyBusinessesMarkup(property)}
-      ${evaluationMarkup(property, config.policy || {})}
-      <section class="city-detail-panel">
-        <h2>City assessment</h2>
-        ${assessmentEvidenceMarkup(property)}
-        <div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px">
-          <span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span>
-          <span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span>
-        </div>
-        <div class="city-detail-criteria">
-          ${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}
-        </div>
-        <details class="city-assessment-note">
-          <summary>Assessment method</summary>
-          <p>${esc(property.assessmentMethod)}</p>
-        </details>
-      </section>
-    </div>
-    <aside>
-      <section class="city-detail-panel">
-        <div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div>
-        <div class="city-actions">
-          ${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}
-          <button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button>
-          ${printButtonMarkup('cityPrintPropertyAsideBtn')}
-        </div>
-        <hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0">
-        <h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>
-        ${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}
-      </section>
-      <section class="city-detail-panel">
-        <h3>Location</h3>
-        <div class="city-map-canvas tw-h-64" id="cityPropertyMap"></div>
-      </section>
-      ${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}
-      ${investor ? investorTools(property, Boolean(canInquire)) : ''}
-    </aside>
-  </div>
-  ${printFooterMarkup(property)}
-  `;
+  root.innerHTML = propertyDetailsMarkup(property, {
+    role, investor, saved, compare, broker, canInquire, path, imageUrl,
+    printHeaderMarkup, printFooterMarkup, printButtonMarkup, nearbyBusinessesMarkup,
+    evaluationMarkup, investorTools, policy: config.policy || {},
+  });
+  const printState = setupPropertyDetailsPrint(root);
 
   filtered = [property];
   setupMap();
+  if (map && property.parcel?.boundary && window.L) {
+    const boundary = L.geoJSON(property.parcel.boundary, { style: { color: '#9e1b22', weight: 2, fillColor: '#9e1b22', fillOpacity: 0.1 } }).addTo(map);
+    if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
+  }
   setupInvestmentEvaluation(property, config.policy || {});
 
   // Add nearby business markers to map if map is initialized
   if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {
     const bizGroup = L.layerGroup();
     property.nearbyBusinesses.forEach(biz => {
-      if (!Number.isFinite(Number(biz.lat)) || !Number.isFinite(Number(biz.lng))) return;
+      if (!hasCoordinates(biz)) return;
       const marker = L.circleMarker([biz.lat, biz.lng], {
         radius: 6,
         color: '#ffffff',
@@ -1366,6 +1322,7 @@ async function renderDetails() {
   // Wire Print buttons
   root.querySelectorAll('.city-print-trigger-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+      printState.expand();
       window.print();
     });
   });
@@ -1375,7 +1332,7 @@ async function renderDetails() {
     btn.addEventListener('click', () => {
       const idx = Number(btn.dataset.locateBiz);
       const biz = property.nearbyBusinesses?.[idx];
-      if (biz && map && Number.isFinite(Number(biz.lat)) && Number.isFinite(Number(biz.lng))) {
+      if (map && hasCoordinates(biz)) {
         map.setView([biz.lat, biz.lng], 16, { animate: true });
         if (biz._marker) {
           biz._marker.openPopup();
@@ -1644,7 +1601,7 @@ function setupLandingFeatures() {
 async function initialize() {
   setupPrivacy();
   setupLandingFeatures();
-  const bootstrap=await api.bootstrap();properties=bootstrap.properties||[];categories=bootstrap.categories||{};criteria=bootstrap.criteria||{};
+  const bootstrap=await api.bootstrap();properties=(bootstrap.properties||[]).filter(property=>!property.isDeleted);categories=bootstrap.categories||{};criteria=bootstrap.criteria||{};
   compare=compare.filter(id=>properties.some(property=>property.id===id)).slice(0,3);saveCompare();
   if(investor){const result=await api.shortlist();saved=new Set(result.propertyIds||[]);}
   if(page==='city-investor'){

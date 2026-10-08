@@ -139,6 +139,9 @@ final class PropertyRepository
     public function update(int $propertyId, array $payload, ?array $actor = null): array
     {
         $existing = $this->rawPropertyRow($propertyId, null, false);
+        if (!empty($existing['deleted_at'])) {
+            throw new InvalidArgumentException('Restore this property from Recently deleted before editing it.');
+        }
         $property = $this->normalizePropertyPayload($payload, $existing);
         $property['id'] = $propertyId;
 
@@ -213,19 +216,63 @@ final class PropertyRepository
 
     public function delete(int $propertyId, ?array $actor = null): void
     {
-        $existing = $this->rawPropertyRow($propertyId, null, false);
+        $this->changeLifecycle($propertyId, 'delete', null, $actor);
+    }
 
-        $statement = $this->pdo->prepare('DELETE FROM properties WHERE id = :id');
+    public function restore(int $propertyId, ?array $actor = null): array
+    {
+        return $this->changeLifecycle($propertyId, 'restore', null, $actor);
+    }
+
+    public function setAvailability(int $propertyId, string $status, ?array $actor = null): array
+    {
+        return $this->changeLifecycle($propertyId, 'availability', $this->normalizeAvailability($status), $actor);
+    }
+
+    private function changeLifecycle(int $propertyId, string $action, ?string $status, ?array $actor): array
+    {
+        if ($actor === null || !sfc_can_manage_properties($actor)) {
+            throw new InvalidArgumentException('A recognized city department account is required to manage property availability and Recently deleted.');
+        }
         $this->pdo->beginTransaction();
-
         try {
-            $this->recordPropertyAudit('DELETE', $propertyId, $existing, null, $actor);
-            $statement->execute(['id' => $propertyId]);
+            // Serialize lifecycle changes without deleting inquiries, evidence or audit history.
+            $lock = $this->pdo->prepare('SELECT id FROM properties WHERE id = :id FOR UPDATE');
+            $lock->execute(['id' => $propertyId]);
+            $existing = $this->rawPropertyRow($propertyId, null, false);
+            if ($action === 'restore') {
+                if (empty($existing['deleted_at'])) { throw new InvalidArgumentException('This property is not in Recently deleted.'); }
+                $statement = $this->pdo->prepare("UPDATE properties SET deleted_at = NULL, deleted_by_user_id = NULL, approval_state = 'pending_review' WHERE id = :id");
+                $statement->execute(['id' => $propertyId]);
+            } elseif ($action === 'delete') {
+                if (!empty($existing['deleted_at'])) { throw new InvalidArgumentException('This property is already in Recently deleted.'); }
+                $statement = $this->pdo->prepare('UPDATE properties SET deleted_at = UTC_TIMESTAMP(), deleted_by_user_id = :actor WHERE id = :id');
+                $statement->execute(['id' => $propertyId, 'actor' => (int) $actor['id']]);
+            } else {
+                if (!empty($existing['deleted_at'])) { throw new InvalidArgumentException('Restore this property before changing availability.'); }
+                $statement = $this->pdo->prepare('UPDATE properties SET status = :status, last_confirmed_available_at = CASE WHEN :is_available = 1 THEN UTC_TIMESTAMP() ELSE NULL END WHERE id = :id');
+                $statement->execute(['id' => $propertyId, 'status' => $status, 'is_available' => $status === 'Available' ? 1 : 0]);
+            }
+            $updated = $this->rawPropertyRow($propertyId, null, false);
+            $this->recordPropertyAudit($action === 'delete' ? 'DELETE' : ($action === 'restore' ? 'RESTORE' : 'EDIT'), $propertyId, $existing, $updated, $actor);
+            $result = $this->presentEvidence($this->hydrateProperties([$updated])[0], $actor);
             $this->pdo->commit();
+            return $result;
         } catch (Throwable $exception) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) { $this->pdo->rollBack(); }
             throw $exception;
         }
+    }
+
+    private function normalizeAvailability(string $value): string
+    {
+        return match (strtolower(trim($value))) {
+            'available', 'active', 'open' => 'Available',
+            'unavailable' => 'Unavailable',
+            'reserved', 'under review', 'pending' => 'Reserved',
+            'availed', 'sold', 'leased', 'taken' => 'Availed',
+            default => throw new InvalidArgumentException('Choose Available, Unavailable or Availed.'),
+        };
     }
 
     public function updateBarangay(int $propertyId, ?string $barangay): array
@@ -354,6 +401,8 @@ final class PropertyRepository
             return null;
         }
 
+        $properties = array_values(array_filter($properties, static fn (array $property): bool => isset($property['lat'], $property['lng'])));
+        if ($properties === []) { return null; }
         $latitudes = array_map(static fn (array $property): float => (float) $property['lat'], $properties);
         $longitudes = array_map(static fn (array $property): float => (float) $property['lng'], $properties);
 
@@ -406,14 +455,14 @@ final class PropertyRepository
 
         if ($role === 'seller' && $userId > 0) {
             $params['visible_seller_user_id'] = $userId;
-            return '(p.approval_state = \'approved\' OR p.seller_user_id = :visible_seller_user_id)';
+            return 'p.deleted_at IS NULL AND ((p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')) OR p.seller_user_id = :visible_seller_user_id)';
         }
 
         if ($userId < 1) {
-            return 'p.approval_state = \'approved\' AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
+            return 'p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\') AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
         }
 
-        return 'p.approval_state = \'approved\'';
+        return 'p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')';
     }
 
     private function rawPropertyRow(int $propertyId, ?array $user = null, bool $enforceVisibility = true): array
@@ -503,8 +552,8 @@ final class PropertyRepository
                 'type' => (string) $row['type'],
                 'corridor' => (string) $row['corridor'],
                 'barangay' => $row['barangay'] !== null ? (string) $row['barangay'] : null,
-                'lat' => (float) $row['lat'],
-                'lng' => (float) $row['lng'],
+                'lat' => float_or_null($row['lat'] ?? null),
+                'lng' => float_or_null($row['lng'] ?? null),
                 'roadAccess' => $roadAccess,
                 'pricePerSqm' => $pricePerSqm,
                 'marketScore' => $marketScore,
@@ -531,15 +580,15 @@ final class PropertyRepository
                 $this->decodeJson($row['automatic_assessment_json'] ?? '{}'),
                 $this->decodeJson($row['legacy_assessment_json'] ?? '{}')
             );
-            if ($assessment['mceScore'] === null && (float) ($row['lat'] ?? 0) != 0 && (float) ($row['lng'] ?? 0) != 0) {
+            if ($assessment['mceScore'] === null && isset($row['lat'], $row['lng'])) {
                 try {
                     [$catFallback, $subcatFallback] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) ($row['type'] ?? 'Land'));
                     $evaluated = AutomaticPropertyAssessment::configured()->evaluate([
-                        'lat' => (float) $row['lat'],
-                        'lng' => (float) $row['lng'],
+                        'lat' => float_or_null($row['lat'] ?? null),
+                        'lng' => float_or_null($row['lng'] ?? null),
                         'category' => $catFallback,
                         'subcategory' => $subcatFallback,
-                        'landArea' => (float) ($row['area'] ?? 0) > 0 ? (float) $row['area'] : 0.05,
+                        'landArea' => float_or_null($row['area'] ?? null),
                     ]);
                     if ($evaluated['mceScore'] !== null) {
                         $assessment = $evaluated;
@@ -554,14 +603,18 @@ final class PropertyRepository
                 'name' => (string) $row['name'],
                 'propertyName' => (string) $row['name'],
                 'city' => (string) ($row['city'] ?? self::DEFAULT_CITY),
-                'lat' => (float) $row['lat'],
-                'lng' => (float) $row['lng'],
-                'area' => (float) $row['area'],
-                'landArea' => (float) $row['area'],
+                'lat' => float_or_null($row['lat'] ?? null),
+                'lng' => float_or_null($row['lng'] ?? null),
+                'hasExactLocation' => isset($row['lat'], $row['lng']),
+                'area' => float_or_null($row['area'] ?? null),
+                'landArea' => float_or_null($row['area'] ?? null),
+                'areaKnown' => isset($row['area']) && (float) $row['area'] > 0,
                 'price' => (int) $row['price'],
                 'pricePerSqm' => $pricePerSqm,
                 'status' => (string) $row['status'],
                 'approvalState' => $approvalState,
+                'deletedAt' => string_or_null($this->normalizeTimestamp($row['deleted_at'] ?? null)),
+                'isDeleted' => !empty($row['deleted_at']),
                 'marketScore' => $marketScore,
                 'type' => (string) $row['type'],
                 'propertyType' => (string) $row['type'],
@@ -645,7 +698,7 @@ final class PropertyRepository
 
     private function assessmentRanks(): array
     {
-        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE approval_state = 'approved'")->fetchAll();
+        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE deleted_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetchAll();
         $properties = array_map(fn (array $row): array => array_merge(['id' => (int) $row['id']], PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'))), $rows);
         return PropertyAssessment::ranks($properties);
     }
@@ -834,7 +887,9 @@ final class PropertyRepository
         $statement = $this->pdo->query(
             'SELECT type, price, area, price_per_sqm
              FROM properties
-             WHERE price > 0
+             WHERE deleted_at IS NULL
+               AND LOWER(status) IN (\'available\', \'active\', \'open\')
+               AND price > 0
                AND area > 0'
         );
 
@@ -880,7 +935,7 @@ final class PropertyRepository
         }
 
         $corridor = string_or_null($payload['corridor'] ?? ($existing['corridor'] ?? null)) ?? 'highway';
-        $status = string_or_null($payload['status'] ?? ($existing['status'] ?? null)) ?? 'Available';
+        $status = $this->normalizeAvailability(string_or_null($payload['status'] ?? ($existing['status'] ?? null)) ?? 'Available');
         $approvalState = $this->normalizeApprovalState((string) ($payload['approval_state'] ?? $payload['approvalState'] ?? ($existing['approval_state'] ?? 'approved')));
         $rawDescription = array_key_exists('description', $payload) ? $payload['description'] : ($existing['description'] ?? '');
         if ($rawDescription !== null && !is_string($rawDescription)) { throw new InvalidArgumentException('Description must be text.'); }
@@ -900,11 +955,11 @@ final class PropertyRepository
         $effectiveSqm = $parcel['surveyAreaSqm'] ?? $parcel['estimatedAreaSqm'];
         $retainHistoricalArea = !array_key_exists('boundary', $payload) && ($payload['land_area'] ?? $payload['area'] ?? null) === null;
         $area = $effectiveSqm !== null ? $effectiveSqm / 10000 : ($retainHistoricalArea ? float_or_null($existing['area'] ?? null) : null);
-        if ($area === null || !is_finite($area) || $area <= 0 || round($area, 4) <= 0) {
+        if ($area !== null && (!is_finite($area) || $area <= 0 || round($area, 4) <= 0)) {
             throw new InvalidArgumentException('Land area must be greater than zero.');
         }
         // Assess and price the exact hectare value that DECIMAL(12, 4) stores.
-        $area = round($area, 4);
+        $area = $area === null ? null : round($area, 4);
 
         $storedScore = int_or_null($payload['score'] ?? $payload['market_score'] ?? $payload['marketScore'] ?? ($existing['score'] ?? null));
         $storedScore = $this->clamp($storedScore ?? 82, 40, 100);
@@ -912,14 +967,20 @@ final class PropertyRepository
         $roadAccess = int_or_null($payload['road_access'] ?? $payload['roadAccess'] ?? ($existing['road_access'] ?? null));
         $roadAccess = $this->clamp($roadAccess ?? 85, 40, 100);
 
-        $lat = float_or_null($payload['lat'] ?? ($existing['lat'] ?? null));
-        $lng = float_or_null($payload['lng'] ?? ($existing['lng'] ?? null));
-        if ($lat === null || $lng === null || !is_finite($lat) || !is_finite($lng) || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
-            throw new InvalidArgumentException('Valid latitude and longitude are required.');
+        $latInput = array_key_exists('lat', $payload) ? $payload['lat'] : ($existing['lat'] ?? null);
+        $lngInput = array_key_exists('lng', $payload) ? $payload['lng'] : ($existing['lng'] ?? null);
+        $lat = float_or_null($latInput);
+        $lng = float_or_null($lngInput);
+        if (($latInput !== null && $latInput !== '' && $lat === null) || ($lngInput !== null && $lngInput !== '' && $lng === null)
+            || ($lat === null) !== ($lng === null) || ($lat !== null && (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180))) {
+            throw new InvalidArgumentException('Provide both valid latitude and longitude, or leave both blank.');
+        }
+        if ($area === null && $lat === null) {
+            throw new InvalidArgumentException('Enter a positive area size or select the exact property location. Drawing a boundary is optional.');
         }
         // Preview, evidence and change detection must use the persisted coordinate precision.
-        $lat = round($lat, 6);
-        $lng = round($lng, 6);
+        $lat = $lat === null ? null : round($lat, 6);
+        $lng = $lng === null ? null : round($lng, 6);
 
         $imageUrl = string_or_null($payload['image_path'] ?? $payload['imageUrl'] ?? ($existing['image_url'] ?? null))
             ?? $this->defaultImagePath($type);
@@ -1003,17 +1064,17 @@ final class PropertyRepository
         [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(
             string_or_null($existing['category'] ?? null), string_or_null($existing['subcategory'] ?? null), (string) ($existing['type'] ?? $type)
         );
-        $spatialChanged = $existing === null || abs($lat - (float) ($existing['lat'] ?? 0)) > 1e-10
-            || abs($lng - (float) ($existing['lng'] ?? 0)) > 1e-10
-            || round($area, 4) !== round((float) ($existing['area'] ?? 0), 4)
+        $spatialChanged = $existing === null || $lat !== float_or_null($existing['lat'] ?? null)
+            || $lng !== float_or_null($existing['lng'] ?? null)
+            || $area !== float_or_null($existing['area'] ?? null)
             || $category !== $oldCategory || $subcategory !== $oldSubcategory;
         if ($spatialChanged || filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             if ($existing !== null && !$automaticJson && !$legacyJson && count(array_filter($assessment, static fn ($value): bool => $value !== null)) > 0) {
                 $legacyJson = json_encode([
                     'assessmentMode' => 'legacy_manual', 'assessmentCriteria' => $assessment,
                     'assessmentMethod' => PropertyAssessment::scores($assessment)['assessmentMethod'],
-                    'capturedAt' => gmdate('c'), 'inputs' => ['lat' => (float) $existing['lat'], 'lng' => (float) $existing['lng'],
-                        'landArea' => (float) $existing['area'], 'category' => $oldCategory, 'subcategory' => $oldSubcategory],
+                    'capturedAt' => gmdate('c'), 'inputs' => ['lat' => float_or_null($existing['lat'] ?? null), 'lng' => float_or_null($existing['lng'] ?? null),
+                        'landArea' => float_or_null($existing['area'] ?? null), 'category' => $oldCategory, 'subcategory' => $oldSubcategory],
                 ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             }
             $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area]);
@@ -1052,7 +1113,7 @@ final class PropertyRepository
             'city' => $city,
             'lat' => $lat,
             'lng' => $lng,
-            'area' => round($area, 4),
+            'area' => $area,
             'price' => $price,
             'price_per_sqm' => $this->pricePerSqm($price, $area),
             'status' => $status,
@@ -1071,7 +1132,7 @@ final class PropertyRepository
             'seller_user_id' => $sellerUserId,
             'documents_reviewed_at' => $documentsReviewedAt,
             'site_verified_at' => $siteVerifiedAt,
-            'last_confirmed_available_at' => $lastConfirmedAvailableAt,
+            'last_confirmed_available_at' => $status === 'Available' ? $lastConfirmedAvailableAt : null,
             'dist_to_road_km' => $distToRoadKm,
             'utility_status' => $utilityStatus,
             'zoning_score' => $zoningScore,
@@ -1524,8 +1585,8 @@ final class PropertyRepository
             $this->readinessIndicator(
                 'map_confidence',
                 'Map Confidence',
-                ((float) $context['lat'] !== 0.0 || (float) $context['lng'] !== 0.0) ? 'Mapped coordinates available' : 'Mapped coordinates missing',
-                ((float) $context['lat'] !== 0.0 || (float) $context['lng'] !== 0.0) ? 95 : 30
+                isset($context['lat'], $context['lng']) ? 'Mapped coordinates available' : 'Mapped coordinates missing',
+                isset($context['lat'], $context['lng']) ? 95 : null
             ),
         ];
 
@@ -1965,6 +2026,8 @@ final class PropertyRepository
             $eventType = 'LISTING_CREATE';
         } elseif ($baseActionType === 'DELETE') {
             $eventType = 'LISTING_DELETE';
+        } elseif ($baseActionType === 'RESTORE') {
+            $eventType = 'LISTING_RESTORE';
         } elseif ($beforeApproval !== $afterApproval && $afterApproval !== '') {
             $actionType = 'APPROVE';
             $eventType = 'LISTING_APPROVAL';
@@ -2003,13 +2066,15 @@ final class PropertyRepository
             'name' => (string) ($row['name'] ?? ''),
             'city' => (string) ($row['city'] ?? self::DEFAULT_CITY),
             'barangay' => string_or_null($row['barangay'] ?? null),
-            'lat' => isset($row['lat']) ? (float) $row['lat'] : 0.0,
-            'lng' => isset($row['lng']) ? (float) $row['lng'] : 0.0,
-            'area' => isset($row['area']) ? (float) $row['area'] : 0.0,
+            'lat' => float_or_null($row['lat'] ?? null),
+            'lng' => float_or_null($row['lng'] ?? null),
+            'area' => float_or_null($row['area'] ?? null),
             'price' => isset($row['price']) ? (int) $row['price'] : 0,
             'pricePerSqm' => $pricePerSqm,
             'status' => (string) ($row['status'] ?? ''),
             'approvalState' => (string) ($row['approval_state'] ?? ''),
+            'deletedAt' => string_or_null($this->normalizeTimestamp($row['deleted_at'] ?? null)),
+            'deletedByUserId' => int_or_null($row['deleted_by_user_id'] ?? null),
             'marketScore' => isset($row['score']) ? (int) $row['score'] : 0,
             'type' => (string) ($row['type'] ?? ''),
             'corridor' => (string) ($row['corridor'] ?? ''),
@@ -2078,7 +2143,10 @@ final class PropertyRepository
         }
 
         if ($actionType === 'DELETE') {
-            return sprintf('Removed listing %s from the platform ledger.', (string) ($before['name'] ?? 'Untitled Property'));
+            return sprintf('Moved listing %s to Recently deleted; its evidence and history are retained.', (string) ($before['name'] ?? 'Untitled Property'));
+        }
+        if ($actionType === 'RESTORE') {
+            return sprintf('Restored listing %s for review before publishing.', (string) ($after['name'] ?? 'Untitled Property'));
         }
 
         if ($actionType === 'APPROVE') {
@@ -2168,9 +2236,9 @@ final class PropertyRepository
         return $assessedValueSqm;
     }
 
-    private function pricePerSqm(int $price, float $area): int
+    private function pricePerSqm(int $price, ?float $area): int
     {
-        return $price <= 0 ? 0 : max(1, (int) round($price / max($area * 10000, 1)));
+        return $price <= 0 || $area === null || $area <= 0 ? 0 : max(1, (int) round($price / ($area * 10000)));
     }
 
     private function propertyTargetLabel(int $propertyId): string

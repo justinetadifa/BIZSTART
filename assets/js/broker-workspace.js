@@ -225,7 +225,7 @@ function renderListings() {
         <p class="broker-listing-location">${escape([property.barangay, property.subcategory || property.category].filter(Boolean).join(' · '))}</p>
         <div class="broker-listing-meta">
           <span><strong>${money(property.price)}</strong></span>
-          <span>${number(property.area)} ha</span>
+          <span>${property.area > 0 ? `${number(property.area)} ha` : 'Area not provided'}</span>
           <span>${number(property.saveCount)} saved</span>
           ${score(property, 'mce')}
           ${score(property, 'iai')}
@@ -300,8 +300,10 @@ function setEditorStep(step) {
   const progressText = form?.querySelector('[data-editor-progress]');
   if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
   if (propertyWizard && nextBtn) {
-    nextBtn.textContent = ['Continue to boundary →', 'Save boundary & continue →', 'Save & continue →', 'Continue to review →'][step] || 'Continue →';
+    nextBtn.textContent = ['Continue to location →', 'Continue to site evidence →', 'Continue to surroundings →', 'Continue to review →'][step] || 'Continue →';
   }
+  const skip = form?.querySelector('[data-skip-enrichment]');
+  if (skip) skip.hidden = ![1,2,3].includes(step);
   if (editor) editor.scrollTop = 0;
   if (propertyWizard) propertyWizard.onStep(step);
   else {
@@ -316,6 +318,7 @@ function validateEditor(container = form) {
   if (!invalid) return true;
   const panel = invalid.closest('[data-editor-panel]');
   if (panel) setEditorStep(Number(panel.dataset.editorPanel));
+  if (['lat','lng'].includes(invalid.name)) form.querySelector('[data-location-method="pin"]')?.click();
   const disclosure = invalid.closest('details');
   if (disclosure) disclosure.open = true;
   const evidencePanel = invalid.closest('[data-evidence-panel]');
@@ -338,6 +341,10 @@ form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
   setEditorStep(Math.min(editorLastStep, editorStep + 1));
 });
 form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+form?.querySelector('[data-skip-enrichment]')?.addEventListener('click', () => {
+  if (!validateEditor() || !validateBoundary()) return;
+  setEditorStep(editorLastStep);
+});
 form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
   const target = Number(button.dataset.editorStep);
   for (let step = 0; step < target; step++) {
@@ -385,9 +392,9 @@ function updateAreaCalculation() {
   const rawVal = parseFloat(areaInput.value);
   const unit = areaUnit.value;
   areaInput.min = unit === 'sqm' ? '1' : '0.0001';
-  areaInput.step = unit === 'sqm' ? '1' : '0.0001';
+  areaInput.step = propertyWizard ? 'any' : (unit === 'sqm' ? '1' : '0.0001');
   if (isNaN(rawVal) || rawVal <= 0) {
-    areaCalc.textContent = 'Calculated: —';
+    areaCalc.textContent = 'Enter an area size, or leave it blank and provide an exact location.';
     return;
   }
   if (unit === 'sqm') {
@@ -598,7 +605,7 @@ function openListing(property = null) {
     if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
     if (areaInput && areaUnit) {
       areaUnit.value = 'sqm';
-      areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : Math.round((property.area || 0) * 10000 * 100) / 100;
+      areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : (property.area > 0 ? Math.round(property.area * 10000 * 100) / 100 : '');
       updateAreaCalculation();
     }
     updateSubcategories(property.subcategory || '');
@@ -634,9 +641,11 @@ function openListing(property = null) {
   if (restored?.nearby) nearby?.set(restored.nearby);
   if (restored?.values?.subcategory) updateSubcategories(restored.values.subcategory);
   updateAreaCalculation();
-  setEditorStep(0);
+  const restoredStep = Number(restored?.step);
+  setEditorStep(Number.isInteger(restoredStep) ? Math.max(0, Math.min(editorLastStep, restoredStep)) : 0);
   editor.showModal();
-  form.elements.property_name.focus();
+  const focusField = Array.from(form.querySelectorAll('[data-editor-panel]:not([hidden]) input:not([type="hidden"]), [data-editor-panel]:not([hidden]) select, [data-editor-panel]:not([hidden]) textarea')).find((element) => !element.disabled && element.getClientRects().length);
+  (focusField || form.elements.property_name).focus();
 }
 
 function renderThreads() {
@@ -840,21 +849,22 @@ form?.addEventListener('submit', async (event) => {
   const payload = new FormData(form);
   nearby?.append(payload);
   propertyWizard?.append(payload);
-  payload.delete('id');
-
-  const unitVal = areaUnit?.value || 'sqm';
-  payload.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
-  payload.set('land_area_unit', unitVal);
-  const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
-  payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
-  payload.set('subcategory', Array.from(selectedSubcategories).join(', '));
-  payload.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
-  payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
-  payload.set('recalculate_assessment', 'true');
-  payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
-
-  const photo = payload.get('image_file');
-  if (!photo?.size) payload.delete('image_file');
+  if (propertyWizard) propertyWizard.buildSubmission(payload, selectedSubcategories);
+  else {
+    payload.delete('id');
+    const unitVal = areaUnit?.value || 'sqm';
+    payload.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
+    payload.set('land_area_unit', unitVal);
+    const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
+    payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
+    payload.set('subcategory', Array.from(selectedSubcategories).join(', '));
+    payload.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
+    payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
+    payload.set('recalculate_assessment', 'true');
+    payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+    const photo = payload.get('image_file');
+    if (!photo?.size) payload.delete('image_file');
+  }
 
   if (id) payload.set('_method', 'PATCH');
 

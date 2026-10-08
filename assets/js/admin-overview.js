@@ -80,9 +80,15 @@
     return String(name || 'Broker').trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || '').join('').toUpperCase() || 'BR';
   }
 
-  function renderPendingBrokerCard(profile) {
-    const name = profile.legalName || profile.userName || 'Broker';
-    const initials = brokerInitials(name);
+  function brokerAvatar(profile, name, config, large = false) {
+    const source = String(profile.profileImageUrl || '').trim();
+    const url = /^assets\/[a-zA-Z0-9_./-]+\.(?:jpg|jpeg|png|webp|gif)$/i.test(source) && !source.split('/').includes('..')
+      ? path(source, config) : '';
+    return `<span class="broker-avatar${large ? ' broker-avatar--large' : ''}"><span data-broker-avatar-initials>${escape(brokerInitials(name))}</span>${url ? `<img data-broker-avatar-image src="${escape(url)}" alt="" width="${large ? 48 : 40}" height="${large ? 48 : 40}">` : ''}</span>`;
+  }
+
+  function renderPendingBrokerCard(profile, config = window.SFC_APP_CONFIG || {}) {
+    const name = profile.legalName || profile.name || profile.userName || 'Broker';
     const email = profile.email || profile.userEmail || 'Email not provided';
     const phone = profile.phone || 'Contact not provided';
     const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
@@ -96,7 +102,7 @@
           <div class="tw-min-w-0">
             <span class="tw-block tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-400 tw-mb-4">PENDING APPLICATION</span>
             <div class="tw-flex tw-items-center tw-gap-3.5 tw-mb-5">
-              <span class="tw-flex tw-h-12 tw-w-12 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-sm tw-font-bold tw-text-slate-800">${escape(initials)}</span>
+              ${brokerAvatar(profile, name, config, true)}
               <div class="tw-min-w-0">
                 <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
                   <h3 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-900">${escape(name)}</h3>
@@ -172,9 +178,8 @@
     `;
   }
 
-  function renderReviewedBrokerCard(profile) {
-    const name = profile.legalName || profile.userName || 'Broker';
-    const initials = brokerInitials(name);
+  function renderReviewedBrokerCard(profile, config = window.SFC_APP_CONFIG || {}) {
+    const name = profile.legalName || profile.name || profile.userName || 'Broker';
     const email = profile.email || profile.userEmail || 'Email not provided';
     const phone = profile.phone || 'Contact not provided';
     const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
@@ -193,7 +198,7 @@
         <!-- Top row: Avatar, Name, Pill, Actions -->
         <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
           <div class="tw-flex tw-items-center tw-gap-3.5">
-            <span class="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-xs tw-font-bold tw-text-slate-800">${escape(initials)}</span>
+            ${brokerAvatar(profile, name, config)}
             <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
               <strong class="tw-text-sm sm:tw-text-base tw-font-bold tw-text-slate-900">${escape(name)}</strong>
               <span class="tw-inline-flex tw-items-center tw-rounded-full ${pillClass} tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-medium">${escape(statusText)}</span>
@@ -265,13 +270,13 @@
     `;
   }
 
-  function renderBrokerProfiles(profiles) {
+  function renderBrokerProfiles(profiles, config = window.SFC_APP_CONFIG || {}) {
     const items = Array.isArray(profiles) ? profiles : [];
     const pending = items.filter((profile) => profile.applicationStatus === 'pending_review');
     const reviewed = items.filter((profile) => ['verified', 'rejected', 'suspended'].includes(profile.applicationStatus));
 
     const pendingSection = pending.length
-      ? pending.map(renderPendingBrokerCard).join('')
+      ? pending.map((profile) => renderPendingBrokerCard(profile, config)).join('')
       : '<div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-8 tw-text-center tw-text-slate-500 tw-mb-6"><p class="tw-m-0 tw-text-xs">No broker applications are awaiting review.</p></div>';
 
     const reviewedSection = reviewed.length ? `
@@ -279,13 +284,17 @@
         <h3 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">Previously reviewed brokers (${reviewed.length})</h3>
         <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Brokers that have been reviewed and processed.</p>
       </div>
-      <div>${reviewed.map(renderReviewedBrokerCard).join('')}</div>
+      <div>${reviewed.map((profile) => renderReviewedBrokerCard(profile, config)).join('')}</div>
     ` : '';
 
     return pendingSection + reviewedSection;
   }
 
   window.SFCAdminOverview = { renderOverview, renderBrokerProfiles, renderPendingBrokerCard, renderReviewedBrokerCard };
+
+  document.addEventListener('error', (event) => {
+    if (event.target.matches?.('[data-broker-avatar-image]')) event.target.hidden = true;
+  }, true);
 
   document.addEventListener('click', (event) => {
     const toggleBtn = event.target.closest('[data-toggle-broker-details], [data-reverify-broker]');

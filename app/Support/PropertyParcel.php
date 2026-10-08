@@ -26,9 +26,11 @@ final class PropertyParcel
             ? self::boundary($payload['boundary']) : self::boundary($existing['boundary'] ?? null);
         $estimated = $boundary === null ? null : round(self::area($boundary), 2);
         $survey = $existing['surveyAreaSqm'] ?? null;
+        $areaMethod = $existing['areaMethod'] ?? ($survey === null ? 'declared' : 'survey');
         // Explicit null retains historical area, matching the existing property PATCH contract.
         $area = $payload['land_area'] ?? $payload['area'] ?? null;
         if ($area !== null) {
+            $areaMethod = $payload['area_method'] ?? 'declared';
             $survey = self::optionalNumber($area, 'Recorded survey area');
             $rawUnit = $payload['land_area_unit'] ?? $payload['landAreaUnit'] ?? 'ha';
             if (!is_string($rawUnit)) { throw new InvalidArgumentException('Choose square meters or hectares for the survey area.'); }
@@ -38,6 +40,10 @@ final class PropertyParcel
             }
             if ($survey !== null && in_array($unit, ['ha', 'hectare', 'hectares'], true)) { $survey *= 10000; }
             if ($survey !== null && $survey <= 0) { throw new InvalidArgumentException('Recorded survey area must be greater than zero.'); }
+        }
+        if (array_key_exists('area_method', $payload)) { $areaMethod = $payload['area_method']; }
+        if (!is_string($areaMethod) || !in_array($areaMethod, ['declared', 'survey'], true)) {
+            throw new InvalidArgumentException('Choose declared area or recorded survey for the area source.');
         }
         $reference = $existing['referencePoint'] ?? null;
         if (array_key_exists('reference_lat', $payload) || array_key_exists('reference_lng', $payload)) {
@@ -74,7 +80,7 @@ final class PropertyParcel
             $observations['bir_date'] = $date;
         }
         return ['boundary' => $boundary, 'estimatedAreaSqm' => $estimated,
-            'surveyAreaSqm' => $survey === null ? null : round((float) $survey, 2),
+            'surveyAreaSqm' => $survey === null ? null : round((float) $survey, 2), 'areaMethod' => $areaMethod,
             'referencePoint' => $reference, 'observations' => $observations,
             'attachments' => PropertyEvidenceFiles::normalizeAttachments($payload['evidence_attachments'] ?? $existing['attachments'] ?? [])];
     }

@@ -51,7 +51,9 @@ const assessment = (value, complete = true) => ({assessmentMode:'automatic',asse
   assert.equal(total.children['[data-total-mce]'].textContent,'—','Incomplete source coverage must not produce a total');
   assert.equal(cards[0].children['[data-score-value]'].textContent,'0.0%','Known zero remains visible in a partial assessment');
   form.elements.lng.value='';await card.refresh();assert(root.children['[data-assessment-status]'].textContent.includes('valid latitude'));
-  form.elements.lng.value='120.316';const closing=card.refresh(true);const closedRequest=requests.at(-1);dialog.dispatch('close');closedRequest.resolve(response(assessment(100)));await closing;
+  form.elements.lng.value='120.316';form.elements.land_area.value='';const closing=card.refresh(true);const closedRequest=requests.at(-1);
+  assert.equal(new URL(closedRequest.url,'https://example.test').searchParams.get('land_area'),'','Unknown area must remain blank in a location-only assessment request');
+  dialog.dispatch('close');closedRequest.resolve(response(assessment(100)));await closing;
   assert.equal(total.children['[data-total-mce]'].textContent,'—','Closing the editor must invalidate an outstanding preview');
   assert(closedRequest.options.signal.aborted);
   const php=fs.readFileSync('app/Support/property-wizard-view.php','utf8');

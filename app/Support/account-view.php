@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/staff-onboarding.php';
+
 function sfc_account_escape(mixed $value): string
 {
     return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES, 'UTF-8');
@@ -63,6 +65,7 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
 {
     $signup = $mode === 'signup' && $role !== 'admin';
     $activation = $role === 'admin' && $mode === 'activate';
+    $activationAvailable = $role === 'admin' && sfc_city_staff_onboarding_enabled() && sfc_city_staff_passkey_unexpired();
     $label = match ($role) { 'seller' => 'Broker', 'admin' => 'City staff', default => 'Investor' };
     $route = '/' . ($role === 'seller' ? 'seller' : ($role === 'admin' ? 'admin' : 'investor')) . '-login.php';
     $GLOBALS['sfc_account_field_errors'] = $fieldErrors;
@@ -100,6 +103,7 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
           </div>
           <noscript><p class="account-switch"><a href="<?= sfc_account_escape(sfc_path($route . ($activation ? '' : '?mode=activate'))) ?>"><?= $activation ? 'Sign in' : 'Activate account' ?></a></p></noscript>
           <div id="adminSignInSection" role="tabpanel" aria-labelledby="btnAdminSignInTab" <?= $activation ? 'hidden' : '' ?>>
+          <p class="account-access-help">Use the email and password for your existing city staff account. Investor and broker accounts use their own sign-in portals.</p>
           <?php endif; ?>
           <?php $GLOBALS['sfc_account_form_prefix'] = $signup ? 'signup' : 'login'; if ($activation) { $GLOBALS['sfc_account_field_errors'] = []; } ?>
           <form method="post" action="<?= sfc_account_escape(sfc_path($route)) ?>" class="account-form <?= $signup ? 'account-form-grid' : '' ?>" data-account-form novalidate>
@@ -135,9 +139,11 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
           <?php if ($role !== 'admin'): ?>
           <p class="account-switch"><?= $signup ? 'Already have an account?' : 'New to LOCUS-SF?' ?> <a href="<?= sfc_account_escape(sfc_path($route . ($signup ? '' : '?mode=signup'))) ?>"><?= $signup ? 'Sign in' : 'Create account' ?></a></p>
           <?php else: ?>
-          <p class="account-staff-note">Need an activation code? Contact CICTO.</p>
+          <p class="account-staff-note">Need a city staff account? CICTO can create one through City accounts.</p>
           </div>
           <div id="adminOnboardSection" role="tabpanel" aria-labelledby="btnAdminOnboardTab" <?= !$activation ? 'hidden' : '' ?>>
+            <?php if ($activationAvailable): ?>
+            <p class="account-access-help">Create a new city staff account using the email authorized by CICTO and the activation code they issued. If you already have an account, choose Sign in.</p>
             <?php $GLOBALS['sfc_account_form_prefix'] = 'activation'; $GLOBALS['sfc_account_field_errors'] = $activation ? $fieldErrors : []; $departmentError = (string) ($GLOBALS['sfc_account_field_errors']['department'] ?? ''); ?>
             <form method="post" action="<?= sfc_account_escape(sfc_path($route)) ?>" id="adminOnboardForm" class="account-form account-form-grid" data-account-form novalidate>
               <input type="hidden" name="_csrf" value="<?= sfc_account_escape(sfc_csrf_token()) ?>">
@@ -152,6 +158,13 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
               <div class="account-consents"><?php sfc_account_consent('privacy_consent', 'I agree to the Privacy Notice.'); ?></div>
               <?php sfc_account_submit('Activate account', 'Activating your account…'); ?>
             </form>
+            <?php else: ?>
+            <div class="account-access-notice" role="status">
+              <strong>Account activation is unavailable</strong>
+              <p>Ask CICTO to create your city staff account through City accounts. If you already have a city staff account, sign in with its email and password.</p>
+              <a href="<?= sfc_account_escape(sfc_path($route)) ?>">Return to sign in</a>
+            </div>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
         </section>

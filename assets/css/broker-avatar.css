@@ -1,0 +1,18 @@
+.broker-avatar {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 700;
+}
+.broker-avatar--large { flex-basis: 48px; width: 48px; height: 48px; font-size: 14px; }
+.broker-avatar > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.broker-avatar > [hidden] { display: none !important; }

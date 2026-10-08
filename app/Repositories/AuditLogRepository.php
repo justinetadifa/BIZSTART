@@ -26,7 +26,7 @@ final class AuditLogRepository
             'action_type' => $this->normalizeActionType($actionType),
             'entity_type' => $this->normalizeEntityType($entityType),
             'entity_id' => $entityId,
-            'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION),
         ]);
 
         return $this->find((int) $this->pdo->lastInsertId());

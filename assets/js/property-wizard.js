@@ -46,7 +46,7 @@
     let concentricRings = [], hoverVectorLayer = null, radarLayerItems = new Map(), radarMapFilter = 'all', radarSearchQuery = '';
     let boundary = null, estimatedArea = 0, history = [], context = null, nearbyEditor = null, savedAttachments = [], propertyId = null;
     let hazardLayers = [], radarLayers = [], radarTab = 'competitors', step = 0;
-    let placingReference = false, dirtyReference = false, imageObjectUrl = null, existingImage = '';
+    let placingReference = false, dirtyReference = false, imageObjectUrl = null, existingImage = '', locationMethod = 'area';
     let controller, searchController, matchController, revision = 0, matchRevision = 0, draftKey = '', selectedMatches = [], lastAssessment = null;
     let radarState = 'idle', radarError = null, radarData = null, radarController = null, radarRevision = 0, radarDebounceTimer = null;
     let radarGroups = {competitors:[],complementary:[],unclassified:[],roads:[]};
@@ -62,6 +62,22 @@
       return payload;
     }
     const setText = (selector, text) => all(selector).forEach(node => { node.textContent = text; });
+    const enteredAreaSqm = () => +value('land_area') > 0 ? +value('land_area') * (value('land_area_unit') === 'hectares' ? 10000 : 1) : null;
+    function selectLocationMethod(method, sync = true) {
+      locationMethod = ['area','pin','draw'].includes(method) ? method : 'area';
+      all('[data-location-method]').forEach(button => {
+        const active = button.dataset.locationMethod === locationMethod;
+        button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));
+      });
+      $('[data-location-map-card]').hidden = locationMethod === 'area';
+      $('[data-drawing-tools]').hidden = locationMethod !== 'draw';
+      $('[data-editor-panel="1"]').classList.toggle('pw-area-only',locationMethod === 'area');
+      setText('[data-location-heading]',locationMethod === 'draw' ? 'Outline the plot' : 'Pinpoint the property');
+      setText('[data-location-help]',locationMethod === 'draw' ? 'Draw a closed boundary to estimate area. You can also continue with a known area or a location pin.' : 'Search for the site, then click its exact position or enter coordinates below.');
+      boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();
+      if (sync && locationMethod !== 'area') {syncLocation();renderLayers();}
+    }
+    all('[data-location-method]').forEach(button => button.addEventListener('click',()=>selectLocationMethod(button.dataset.locationMethod)));
     function tabs(buttonAttribute, panelAttribute, selected) {
       all(`[${buttonAttribute}]`).forEach(button => {
         const active = button.getAttribute(buttonAttribute) === selected;
@@ -91,7 +107,12 @@
       for (const [selector, text] of [['[data-preview-category]', value('category')==='Land'?'Vacant land':value('category') || 'Land'], ['[data-preview-status]', value('status') || 'Available']]) {
         const badge = $(selector); if (badge) (badge.querySelector('span') || badge).textContent = text;
       }
-      setText('[data-preview-area]', estimatedArea ? `${number(estimatedArea)} m² estimated area` : 'Area will be calculated after you draw the boundary.');
+      const entered = enteredAreaSqm(), located = point();
+      const areaText = entered ? `${number(entered)} m² ${value('area_method') === 'survey' ? 'recorded area' : 'declared area'}` : estimatedArea ? `${number(estimatedArea)} m² plot estimate` : located ? 'Exact location provided · Area not specified' : 'Add an area size or exact location in the next step.';
+      setText('[data-preview-area]',areaText);
+      setText('[data-location-summary]',entered || estimatedArea || located ? `${entered ? `${number(entered)} m² entered` : estimatedArea ? `${number(estimatedArea)} m² estimated` : 'Area not specified'} · ${located ? 'Exact location provided' : 'Location can be added later'}` : 'Add an area or an exact location to continue.');
+      $('[data-location-summary]')?.classList.toggle('is-ready',Boolean(entered || estimatedArea || located));
+      if ($('[data-boundary-estimate]')) $('[data-boundary-estimate]').hidden = !estimatedArea;
       const image = $('[data-photo-preview]');
       if (image) {
         const source = imageObjectUrl || existingImage;
@@ -99,7 +120,9 @@
         else { image.innerHTML = source ? `<img src="${escape(source)}" alt="Property photo">` : emptyPhoto; }
       }
       const propertyReview = $('[data-review-property]');
-      if (propertyReview) propertyReview.innerHTML = `<strong>${escape(value('property_name') || 'New property')}</strong><span>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</span><span>${estimatedArea ? `${number(estimatedArea)} m² mapped estimate` : 'Boundary not drawn'}${+value('land_area') > 0 ? ` · ${number(+value('land_area') * (value('land_area_unit') === 'hectares' ? 10000 : 1))} m² recorded survey` : ''}</span>`;
+      if (propertyReview) propertyReview.innerHTML = `<strong>${escape(value('property_name') || 'New property')}</strong><span>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</span><span>${escape(areaText)}${located ? ` · ${number(located[0])}, ${number(located[1])}` : ''}</span>`;
+      const summary = $('[data-review-summary]');
+      if (summary) summary.innerHTML = `<div><span class="pw-eyebrow">READY FOR REVIEW</span><h3>${escape(value('property_name') || 'New property')}</h3><p>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</p></div><div><strong>${escape(areaText)}</strong><p>${located ? `Location: ${located[0].toFixed(6)}, ${located[1].toFixed(6)}` : 'Exact location not yet specified'}</p></div>`;
     }
     function photo(file) {
       if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
@@ -182,7 +205,7 @@
       locationStatus('Location updated. Confirm the parcel and barangay against the property records.');
     }
     function syncLocation(move = true) {
-      if (!window.L) {locationStatus('The map could not load. You can enter coordinates and a recorded survey area.');return;}
+      if (!window.L) {locationStatus('The map could not load. Enter an area size or exact coordinates to continue.');return;}
       if (!boundaryMap) {
         boundaryMap = tileMap($('[data-location-map]'));
         boundaryMap.on('click', event => {if (!boundaryMap.pm?.globalDrawModeEnabled() && !parcelLayer?.pm?.enabled()) place(event.latlng,false);});
@@ -240,7 +263,7 @@
     }
     all('[data-boundary-action]').forEach(button => button.addEventListener('click', () => {
       syncLocation(false);
-      if (!boundaryMap?.pm || !window.turf) {locationStatus('Boundary tools could not load. Enter the recorded survey area and coordinates, or reload to draw the parcel.');return;}
+      if (!boundaryMap?.pm || !window.turf) {locationStatus('Drawing tools could not load. Enter an area size or exact coordinates to continue.');return;}
       const action=button.dataset.boundaryAction;
       if (action === 'draw') {
         parcelLayer?.pm.disable();boundaryMap.pm.enableDraw('Polygon',{allowSelfIntersection:false,snappable:true,pathOptions:{color:'#11224d',fillColor:'#fbbf24',fillOpacity:.3}});
@@ -272,7 +295,7 @@
           const result=document.createElement('button');result.type='button';result.className='pw-search-result';result.textContent=[item.label,item.subtitle].filter(Boolean).join(' · ');
           result.addEventListener('click',()=>{place({lat:+item.lat,lng:+item.lng});list.innerHTML='';});list.append(result);
         });
-        locationStatus(matches.length?'Choose a place, then outline the parcel.':'No matching places. Use the map or enter the coordinates.');
+        locationStatus(matches.length?'Choose a place, then adjust the pin to the exact property location.':'No matching places. Use the map or enter the coordinates.');
       } catch(error){if(error.name!=='AbortError')locationStatus(`${error.message} You can use the map or enter coordinates.`);}
       finally{button.disabled=false;}
     }
@@ -288,8 +311,8 @@
         ? 'Enter coordinates or click map to screen against hazard layers.'
         : !assessed
         ? 'Verified data and complete coverage are required.'
-        : (key==='flood'?'No mapped overlap found. Location is clear of high/moderate flood inundation zones (MGB Geo-Hazard Survey).':'No mapped overlap found. Location is situated safely outside active fault buffer corridors (PHIVOLCS Active Faults).');
-      return `<article class="pw-hazard ${intersects?'pw-hazard--warning':''}"><span class="pw-hazard-icon" aria-hidden="true">${intersects?'⚠':'✓'}</span><div><strong>${escape(title)}</strong><span class="pw-pill ${intersects?'pw-pill--amber':''}">${status}</span><p>${escape(text)}</p>${layer?.source ? `<small>${escape(layer.source)}${layer.date?` · ${escape(layer.date)}`:''}</small>`:''}${key==='faults' && layer?.bufferMeters ? `<small>Verified review buffer: ${number(layer.bufferMeters)} meters</small>`:''}<button type="button" class="pw-text-button" data-show-hazard-source="${key}">Review ${key==='flood'?'flood':'fault'} evidence →</button></div></article>`;
+        : (key==='flood'?'No overlap found with the mapped flood zones in the available source.':'No overlap found with the mapped active-fault review buffers in the available source.');
+      return `<article class="pw-hazard ${intersects?'pw-hazard--warning':''}"><span class="pw-hazard-icon" aria-hidden="true">${intersects?'⚠':assessed?'✓':'i'}</span><div><strong>${escape(title)}</strong><span class="pw-pill ${intersects?'pw-pill--amber':''}">${status}</span><p>${escape(text)}${point() && !boundary ? ' This result covers the location pin only.' : ''}</p>${layer?.source ? `<small>${escape(layer.source)}${layer.date?` · ${escape(layer.date)}`:''}</small>`:''}${key==='faults' && layer?.bufferMeters ? `<small>Verified review buffer: ${number(layer.bufferMeters)} meters</small>`:''}<button type="button" class="pw-text-button" data-show-hazard-source="${key}">Review ${key==='flood'?'flood':'fault'} evidence →</button></div></article>`;
     }
     function assessHazards() {
       const pt = point();
@@ -371,6 +394,9 @@
       return 'unclassified';
     }
     function syncRadar() {
+      if (!point('reference_lat','reference_lng') && point() && !placingReference) {
+        field('reference_label').value = boundary ? 'center' : 'location';setReference(point());
+      }
       if(!window.L || !window.turf){setText('[data-radar-coverage]','The map tools are unavailable. Reload to run geographic distance checks.');return;}
       if(!radarMap){
         radarMap=tileMap($('[data-radar-map]'));
@@ -816,7 +842,9 @@
     });
     field('radar_business_type')?.addEventListener('change',()=>{if(point('reference_lat','reference_lng'))syncRadar();});
     field('reference_label')?.addEventListener('change',()=>{
-      if(value('reference_label')==='center'){
+      if(value('reference_label')==='location'){
+        setReference(point());placingReference=false;syncRadar();
+      } else if(value('reference_label')==='center'){
         if(boundary && window.turf){
           const center=turf.centerOfMass(boundary).geometry.coordinates;
           setReference([center[1],center[0]]);dirtyReference=true;placingReference=false;$('[data-place-reference]')?.classList.remove('is-active');
@@ -883,7 +911,7 @@
     });
     function assessmentInputs() {
       const survey=+value('land_area');
-      const areaVal = survey > 0 ? value('land_area') : (estimatedArea > 0 ? String(estimatedArea) : '500');
+      const areaVal = survey > 0 ? value('land_area') : (estimatedArea > 0 ? String(estimatedArea) : '');
       const unitVal = survey > 0 ? value('land_area_unit') : 'sqm';
       return {lat:value('lat'),lng:value('lng'),category:value('category'),subcategory:value('subcategory'),land_area:areaVal,land_area_unit:unitVal};
     }
@@ -891,6 +919,9 @@
       matchController?.abort();matchController=new AbortController();
       const current=++matchRevision;
       const container=$('[data-business-matches]');if(!container)return;
+      if (!point()) {
+        clearMatchDetails();container.innerHTML='<div class="pw-match-pending"><span class="pw-pill">Location pending</span><h3>Listing ready for city review</h3><p>Add an exact location later to check spatial evidence and potential business matches.</p></div>';return;
+      }
       container.innerHTML='<p class="pw-empty-state">Checking assessment evidence and approved business profiles…</p>';
       clearMatchDetails();
       try{
@@ -931,7 +962,7 @@
         else values[element.name]=element.value;
       }
       const nearbyData=new FormData();nearbyEditor?.append(nearbyData);
-      return {values,step,savedAt:new Date().toISOString(),hasPhoto:Boolean(field('image_file')?.files.length || evidenceFiles?.files.length) || [...nearbyData.keys()].some(key=>key.startsWith('nearby_photo_')),nearby:JSON.parse(nearbyData.get('nearbyProperties') || '[]'),radarEnabled:$('[data-radar-toggle]')?.checked,referenceConfirmed:dirtyReference};
+      return {values,step,locationMethod,savedAt:new Date().toISOString(),hasPhoto:Boolean(field('image_file')?.files.length || evidenceFiles?.files.length) || [...nearbyData.keys()].some(key=>key.startsWith('nearby_photo_')),nearby:JSON.parse(nearbyData.get('nearbyProperties') || '[]'),radarEnabled:$('[data-radar-toggle]')?.checked,referenceConfirmed:dirtyReference};
     }
     $('[data-save-exit]')?.addEventListener('click',()=>{
       try{localStorage.setItem(draftKey,JSON.stringify(draft()));dialog.close();const workspace=document.querySelector('[data-workspace-status]');if(workspace)workspace.textContent='Draft saved on this device. Open the property form to resume.';}
@@ -945,25 +976,21 @@
       inputs:assessmentInputs,
       setNearby(editor){nearbyEditor=editor;},
       validateBoundary(){
-        const hasCoords = Boolean(value('lat') && value('lng'));
-        if (!(estimatedArea > 0) && !(+value('land_area') > 0) && !hasCoords) {
-          locationStatus('Enter coordinates or click the map to place the location before continuing.');
-          notify('Enter coordinates or place a point on the map.');
+        if ((value('lat') !== '' || value('lng') !== '') && !point()) {
+          selectLocationMethod('pin');notify('Provide both valid latitude and longitude, or clear both fields and enter an area size.');
+          field(value('lat') === '' ? 'lat' : 'lng')?.focus();
           return false;
         }
-        if (!(estimatedArea > 0) && !(+value('land_area') > 0) && hasCoords) {
-          if (field('land_area') && !field('land_area').value) field('land_area').value = '500';
-          if (field('land_area_unit') && !field('land_area_unit').value) field('land_area_unit').value = 'sqm';
-          estimatedArea = 500;
+        if (!(estimatedArea > 0) && !enteredAreaSqm() && !point()) {
+          notify('Enter an area size, pin the exact location, or draw a plot to continue.');
+          selectLocationMethod('area');field('land_area')?.focus();return false;
         }
         return true;
       },
       validateSurroundings(){
-        const ref=point('reference_lat','reference_lng');
-        if(!ref){notify('Place or select a reference point on the surroundings map before continuing.');$('[data-place-reference]')?.focus();return false;}
         return true;
       },
-      onStep(next){step=next;preview();if(next===1){syncLocation();renderLayers();}if(next===3)syncRadar();if(next===4){assessment?.refresh();matches();}if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Save for review still works when browser storage is unavailable. */}}},
+      onStep(next){step=next;preview();if(next===1 && locationMethod!=='area'){syncLocation();renderLayers();}if(next===3)syncRadar();if(next===4){assessment?.refresh();matches();}if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}},
       setProperty(property){
         controller?.abort();radarController?.abort();searchController?.abort();matchController?.abort();revision++;radarRevision++;matchRevision++;lastAssessment=null;clearMatchDetails();
         parcelLayer?.remove();parcelLayer=null;locationMarker?.remove();locationMarker=null;
@@ -972,6 +999,7 @@
         if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);imageObjectUrl=null;
         existingImage=property?.imageUrl ? (/^https?:\/\//.test(property.imageUrl)?property.imageUrl:`${config.basePath || ''}/${property.imageUrl.replace(/^\//,'')}`) : '';
         const parcel=property?.parcel;
+        if(field('area_method'))field('area_method').value=parcel?.areaMethod || (property?.area>0?'survey':'declared');
         propertyId=property?.id || null;savedAttachments=parcel?.attachments || [];showEvidenceFiles();
         if(parcel?.boundary || parcel?.surveyAreaSqm>0){field('land_area').value=parcel.surveyAreaSqm>0?parcel.surveyAreaSqm:'';field('land_area_unit').value='sqm';}
         for(const [name,val] of Object.entries(parcel?.observations || {})){if(field(name))field(name).value=val ?? '';}
@@ -991,10 +1019,11 @@
         try{const saved=localStorage.getItem(draftKey);if(saved){restored=JSON.parse(saved);for(const [name,val] of Object.entries(restored.values || {})){const controls=[...form.elements].filter(element=>element.name===name && element.type!=='file');for(const control of controls){if(control.type==='checkbox')control.checked=Array.isArray(val) && val.includes(control.value);else if(control.type==='radio')control.checked=control.value===val;else control.value=val;}}if($('[data-radar-toggle]'))$('[data-radar-toggle]').checked=restored.radarEnabled!==false;boundary=value('boundary')?JSON.parse(value('boundary')):null;dirtyReference=restored.referenceConfirmed===true;notify(`Draft restored from this device.${restored.hasPhoto?' Choose photos and evidence files again before saving.':''}`);}}
         catch{notify('The saved draft could not be restored. Enter the property details again.');}
         if(boundary && window.turf)estimatedArea=turf.area(boundary);
+        selectLocationMethod(restored?.locationMethod || (boundary?'draw':point()?'pin':'area'),false);
         if(boundaryMap && boundary)loadBoundary(boundary);
         updateBoundary(true);preview();ready();tabs('data-evidence-tab','data-evidence-panel','access');tabs('data-review-tab','data-review-panel','assessment');radarTab='competitors';tabs('data-radar-tab','data-radar-unused-panel','competitors');
         setText('[data-photo-file-name]','JPG, PNG or WEBP. Photos are optional.');
-        setText('[data-location-status]','Search for the site or use the map. Draw the parcel to calculate its area.');
+        setText('[data-location-status]','Pin the exact property location, enter coordinates, or draw an optional boundary.');
         const searchResults=$('[data-location-results]');if(searchResults)searchResults.innerHTML='';
         const searchInput=$('[data-location-search]');if(searchInput)searchInput.value='';
         setTimeout(loadContext,0);
@@ -1013,6 +1042,19 @@
         }
         data.set('boundary',boundary?JSON.stringify(boundary):'');
         data.set('calculated_area_sqm',String(estimatedArea));
+      },
+      buildSubmission(data, subcategories = []) {
+        data.delete('id');
+        data.set('land_area',value('land_area'));
+        data.set('land_area_unit',value('land_area_unit') || 'sqm');
+        data.set('property_type',({Industrial:'manufacturing',Hospitality:'hotel',Office:'bpo'})[value('category')] || 'commercial');
+        data.set('subcategory',Array.from(subcategories).join(', '));
+        data.set('price',value('price').replace(/[^\d]/g,''));
+        data.set('contactMode',value('contactBrokerUserId')?'broker':'open_listing');
+        data.set('recalculate_assessment','true');
+        data.set('assessmentTags',JSON.stringify(all('[name="assessmentTags[]"]:checked').map(element=>element.value)));
+        if (!data.get('image_file')?.size) data.delete('image_file');
+        return data;
       },
       saved(){try{localStorage.removeItem(draftKey);}catch{/* Property already saved on the server. */}},
     };

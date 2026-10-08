@@ -52,6 +52,7 @@ final class SellerProfileRepository
                 sp.updated_at,
                 u.name AS user_name,
                 u.email AS user_email,
+                u.profile_image_url,
                 u.identity_verification_status,
                 u.identity_verified_at,
                 reviewer.name AS reviewed_by_name,
@@ -86,6 +87,7 @@ final class SellerProfileRepository
                 sp.updated_at,
                 u.name,
                 u.email,
+                u.profile_image_url,
                 u.identity_verification_status,
                 u.identity_verified_at,
                 reviewer.name
@@ -142,6 +144,7 @@ final class SellerProfileRepository
                 sp.updated_at,
                 u.name AS user_name,
                 u.email AS user_email,
+                u.profile_image_url,
                 u.identity_verification_status,
                 u.identity_verified_at,
                 reviewer.name AS reviewed_by_name,
@@ -176,6 +179,7 @@ final class SellerProfileRepository
                 sp.updated_at,
                 u.name,
                 u.email,
+                u.profile_image_url,
                 u.identity_verification_status,
                 u.identity_verified_at,
                 reviewer.name
@@ -377,13 +381,14 @@ final class SellerProfileRepository
                 'role' => 'seller',
                 'name' => (string) ($fallback['name'] ?? ''),
                 'email' => (string) ($fallback['email'] ?? ''),
+                'profileImageUrl' => string_or_null($fallback['profileImageUrl'] ?? null),
                 'identityVerificationStatus' => (string) ($fallback['identityVerificationStatus'] ?? 'unverified'),
                 'identityVerifiedAt' => $fallback['identityVerifiedAt'] ?? null,
             ];
         }
 
         $statement = $this->pdo->prepare(
-            'SELECT id, role, name, email, identity_verification_status, identity_verified_at
+            'SELECT id, role, name, email, profile_image_url, identity_verification_status, identity_verified_at
              FROM users
              WHERE id = :id
              LIMIT 1'
@@ -399,6 +404,7 @@ final class SellerProfileRepository
             'role' => 'seller',
             'name' => (string) ($row['name'] ?? ''),
             'email' => (string) ($row['email'] ?? ''),
+            'profileImageUrl' => string_or_null($row['profile_image_url'] ?? null),
             'identityVerificationStatus' => (string) ($row['identity_verification_status'] ?? 'unverified'),
             'identityVerifiedAt' => $row['identity_verified_at'] !== null ? (string) $row['identity_verified_at'] : null,
         ];
@@ -614,6 +620,7 @@ final class SellerProfileRepository
             'updatedAt' => null,
             'name' => (string) ($user['name'] ?? ''),
             'email' => (string) ($user['email'] ?? ''),
+            'profileImageUrl' => string_or_null($user['profileImageUrl'] ?? null),
             'identityVerificationStatus' => (string) ($user['identityVerificationStatus'] ?? 'unverified'),
             'identityVerifiedAt' => $user['identityVerifiedAt'] ?? null,
             'listingCount' => 0,
@@ -649,6 +656,7 @@ final class SellerProfileRepository
             'updatedAt' => $row['updated_at'] !== null ? (string) $row['updated_at'] : null,
             'name' => (string) ($row['user_name'] ?? ''),
             'email' => (string) ($row['user_email'] ?? ''),
+            'profileImageUrl' => string_or_null($row['profile_image_url'] ?? null),
             'identityVerificationStatus' => (string) ($row['identity_verification_status'] ?? 'unverified'),
             'identityVerifiedAt' => $row['identity_verified_at'] !== null ? (string) $row['identity_verified_at'] : null,
             'listingCount' => (int) ($row['listing_count'] ?? 0),

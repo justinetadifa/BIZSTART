@@ -88,13 +88,15 @@ CREATE TABLE IF NOT EXISTS properties (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
-  lat DECIMAL(10, 6) NOT NULL,
-  lng DECIMAL(10, 6) NOT NULL,
-  area DECIMAL(12, 4) NOT NULL,
+  lat DECIMAL(10, 6) NULL,
+  lng DECIMAL(10, 6) NULL,
+  area DECIMAL(12, 4) NULL,
   price BIGINT NOT NULL,
   price_per_sqm INT NOT NULL,
   status VARCHAR(80) NOT NULL,
   approval_state VARCHAR(40) NOT NULL DEFAULT 'approved',
+  deleted_at TIMESTAMP NULL DEFAULT NULL,
+  deleted_by_user_id INT NULL,
   score INT NOT NULL DEFAULT 82,
   type VARCHAR(80) NOT NULL,
   corridor VARCHAR(80) NOT NULL,
@@ -138,6 +140,7 @@ CREATE TABLE IF NOT EXISTS properties (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_properties_seller_user (seller_user_id),
   KEY idx_properties_approval_state (approval_state),
+  KEY idx_properties_deleted_at (deleted_at),
   KEY idx_properties_last_confirmed_available (last_confirmed_available_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

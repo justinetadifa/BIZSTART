@@ -43,10 +43,29 @@ api_handle(function (array $container): array {
     }
     $before = $container['properties']->find($propertyId, $user);
     if ($method === 'DELETE') {
-        $property = $container['properties']->update($propertyId, ['approval_state' => 'archived'], $user);
+        if (sfc_can_manage_properties($user)) {
+            $container['properties']->delete($propertyId, $user);
+            $property = $container['properties']->find($propertyId, $user);
+        } else {
+            $property = $container['properties']->update($propertyId, ['approval_state' => 'archived'], $user);
+        }
         return ['propertyId' => $propertyId, 'property' => $property];
     }
-    $payload = sfc_listing_payload(read_request_input(), $user, false, $before);
+    $input = read_request_input();
+    if (array_key_exists('action', $input)) {
+        if (!sfc_can_manage_properties($user)) { return [403, ['error' => 'A city department account is required to manage property availability and Recently deleted.']]; }
+        if ($input['action'] === 'restore') {
+            return ['property' => $container['properties']->restore($propertyId, $user)];
+        }
+        if ($input['action'] === 'availability' && is_string($input['status'] ?? null)) {
+            return ['property' => $container['properties']->setAvailability($propertyId, $input['status'], $user)];
+        }
+        throw new InvalidArgumentException('Choose a valid property action.');
+    }
+    if (!empty($before['isDeleted'])) {
+        throw new InvalidArgumentException('Restore this property from Recently deleted before editing it.');
+    }
+    $payload = sfc_listing_payload($input, $user, false, $before);
     $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);
     $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
     if ($image !== null) {

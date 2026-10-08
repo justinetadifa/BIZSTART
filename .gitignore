@@ -1,4 +1,6 @@
 app/config.local.php
+app/admin-access.local.php
+app/admin-access.local.php
 vendor/
 !assets/vendor/
 assets/vendor/*

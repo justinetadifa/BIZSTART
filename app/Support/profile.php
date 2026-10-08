@@ -89,6 +89,9 @@ function sfc_update_own_profile(array $user, array $payload, ?array $photo = nul
         if ($needsConsent) {
             $updated = $container['users']->recordPrivacyConsent($userId, sfc_privacy_consent_version(), sfc_privacy_consent_text());
         }
+        if ($profile !== null) {
+            $profile = $container['sellerProfiles']->findByUserId($userId);
+        }
         $pdo->commit();
     } catch (Throwable $exception) {
         if ($pdo->inTransaction()) {

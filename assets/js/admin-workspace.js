@@ -108,7 +108,7 @@
 
   async function refresh() {
     const data = await request('properties.php');
-    properties = data.properties || [];
+    properties = (data.properties || []).filter((property) => root.dataset.cityWorkspace === 'properties' || !property.isDeleted);
     categories = data.categories || {};
     brokers = data.approvedBrokers || [];
     document.querySelectorAll('[data-assessment-method]').forEach((element) => {
@@ -130,7 +130,7 @@
     root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-block tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-mt-3 tw-block tw-text-2xl tw-font-semibold tw-text-[#11224d]">${escape(value)}</strong></div>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${number(property.area * 10000)} m²</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} →</a></div>`).join('')
+      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} →</a></div>`).join('')
       : '<p class="city-empty">All caught up.</p>';
     const ranked = approved.filter((property) => property.mceScore != null).sort((a, b) => b.mceScore - a.mceScore).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
@@ -141,17 +141,61 @@
   function renderProperties() {
     const query = (root.querySelector('[data-property-search]')?.value || '').toLowerCase();
     const state = root.querySelector('[data-property-state]')?.value || 'all';
-    const filtered = properties.filter((property) => (state === 'all' || state === property.approvalState) && `${property.name} ${property.barangay} ${property.category} ${property.subcategory || ''}`.toLowerCase().includes(query));
+    const active = properties.filter((property) => !property.isDeleted);
+    const filtered = properties.filter((property) => {
+      const matchesState = state === 'deleted' ? property.isDeleted : !property.isDeleted && (state === 'all' || state === property.approvalState || state === property.status);
+      return matchesState && `${property.name} ${property.barangay || ''} ${property.category} ${property.subcategory || ''}`.toLowerCase().includes(query);
+    });
     const summary = root.querySelector('[data-property-summary]');
-    if (summary) summary.innerHTML = [['All properties', properties.length, 'tw-text-[#11224d]'], ['Awaiting review', properties.filter((property) => property.approvalState === 'pending_review').length, 'tw-text-amber-700'], ['Published', properties.filter((property) => property.approvalState === 'approved').length, 'tw-text-emerald-700'], ['Needs assessment', properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived').length, 'tw-text-slate-500']].map(([label, value, color]) => `<div class="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4"><span class="tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-text-2xl tw-font-semibold ${color}">${value}</strong></div>`).join('');
+    if (summary) summary.innerHTML = [['All listings', active.length, 'all'], ['Available', active.filter((property) => property.status === 'Available').length, 'Available'], ['Availed', active.filter((property) => property.status === 'Availed').length, 'Availed'], ['Recently deleted', properties.filter((property) => property.isDeleted).length, 'deleted']].map(([label, value, filter]) => `<button type="button" class="city-property-stat" data-property-filter="${filter}" aria-pressed="${state === filter}"><span>${escape(label)}</span><strong>${value}</strong></button>`).join('');
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
       <article class="tw-flex tw-flex-col tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-flex-row sm:tw-items-center sm:tw-p-5">
         <img class="tw-h-36 tw-w-full tw-rounded-lg tw-object-cover sm:tw-h-24 sm:tw-w-28 sm:tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
-        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || 'San Fernando')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">₱${number(property.price)}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${number(property.area * 10000)} m²</p></div>
+        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(property.isDeleted ? 'Recently deleted' : stateLabel(property.approvalState))}</span>${property.isDeleted ? '' : `<span class="city-pill city-availability-${escape(property.status.toLowerCase())}">${escape(property.status)}</span>`}</div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${property.price ? `₱${number(property.price)}` : 'Price on request'}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}${property.isDeleted ? `<span class="city-deleted-date">Deleted ${escape(new Date(`${property.deletedAt.replace(' ', 'T')}Z`).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' }))}</span>` : ''}</p></div>
         <div class="tw-flex tw-items-center tw-gap-2"><div class="tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-slate-500">MCE</span><strong class="tw-text-sm tw-font-semibold">${score(property.mceScore)}</strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-amber-800">IAI</span><strong class="tw-text-sm tw-font-semibold">${score(property.iaiScore)}</strong></div></div>
-        <div class="tw-flex tw-gap-2 sm:tw-flex-col"><button class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-[#11224d]" type="button" data-edit-property="${property.id}">Edit details</button>${governance && property.approvalState !== 'archived' ? `<button class="tw-rounded-lg tw-border-0 tw-bg-[#11224d] tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-white" type="button" data-review-property="${property.id}">Review</button>` : ''}</div>
+        <div class="city-listing-controls">${property.isDeleted ? `<button class="city-button city-button-secondary" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">Restore property</button>` : `<button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit details</button>${governance && property.approvalState !== 'archived' ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}<details class="city-property-menu"><summary aria-label="Manage ${escape(property.name)}">Manage</summary><div>${['Available', 'Unavailable', 'Availed'].filter((availability) => availability !== property.status).map((availability) => `<button type="button" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">Mark ${availability.toLowerCase()}</button>`).join('')}<button class="city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">Delete property</button></div></details>`}</div>
       </article>`).join('') : '<p class="city-empty">No properties found.</p>';
   }
+
+  root.addEventListener('click', (event) => {
+    const filter = event.target.closest('[data-property-filter]');
+    if (filter) {
+      root.querySelector('[data-property-state]').value = filter.dataset.propertyFilter;
+      renderProperties();
+    }
+    const action = event.target.closest('[data-property-lifecycle]');
+    if (!action) return;
+    const property = properties.find((item) => item.id === Number(action.dataset.propertyId));
+    const dialog = document.querySelector('#cityLifecycleDialog');
+    if (!property || !dialog) return;
+    const form = dialog.querySelector('form');
+    form.elements.id.value = property.id;
+    form.elements.action.value = action.dataset.propertyLifecycle;
+    form.elements.status.value = action.dataset.availability || '';
+    dialog.querySelector('[data-lifecycle-property]').textContent = property.name;
+    const deleteAction = action.dataset.propertyLifecycle === 'delete';
+    const restoreAction = action.dataset.propertyLifecycle === 'restore';
+    dialog.querySelector('[data-lifecycle-title]').textContent = deleteAction ? 'Move to Recently deleted?' : restoreAction ? 'Restore this property?' : `Mark as ${action.dataset.availability.toLowerCase()}?`;
+    dialog.querySelector('[data-lifecycle-description]').textContent = deleteAction ? 'The listing will leave the public catalogue. Its evidence, inquiries and history are retained, and you can restore it later.' : restoreAction ? 'The listing returns to the property desk for review. Its availability, evidence and history are retained.' : action.dataset.availability === 'Available' ? 'The listing will be visible to investors when its review status is approved.' : 'The listing will leave the public catalogue. You can update its availability again at any time.';
+    form.querySelector('[type="submit"]').textContent = deleteAction ? 'Move to Recently deleted' : restoreAction ? 'Restore for review' : 'Update availability';
+    message(form.querySelector('[data-lifecycle-message]'), '');
+    dialog.showModal();
+  });
+
+  document.querySelector('[data-lifecycle-form]')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    try {
+      const action = form.elements.action.value;
+      await request(`property.php?id=${encodeURIComponent(form.elements.id.value)}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', body: JSON.stringify({ action, status: form.elements.status.value }) });
+      await refresh();
+      form.closest('dialog').close();
+      message(status, action === 'delete' ? 'Property moved to Recently deleted.' : action === 'restore' ? 'Property restored for review.' : 'Property availability updated.');
+    } catch (error) { message(form.querySelector('[data-lifecycle-message]'), error.message, true); }
+    finally { submit.disabled = false; }
+  });
 
   async function loadBrokerReviews() {
     const panel = root.querySelector('[data-broker-reviews]');
@@ -208,7 +252,9 @@
     form.querySelector('[data-editor-next]').hidden = step === editorLastStep;
     form.querySelector('[type="submit"]').hidden = step !== editorLastStep;
     form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
-    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to boundary →', 'Save boundary & continue →', 'Save & continue →', 'Continue to review →'][step] || 'Continue →';
+    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to location →', 'Continue to site evidence →', 'Continue to surroundings →', 'Continue to review →'][step] || 'Continue →';
+    const skip = form.querySelector('[data-skip-enrichment]');
+    if (skip) skip.hidden = ![1,2,3].includes(step);
     editor.scrollTop = 0;
     if (propertyWizard) propertyWizard.onStep(step);
     else {
@@ -222,6 +268,7 @@
     if (!invalid) return true;
     const panel = invalid.closest('[data-editor-panel]');
     if (panel) setEditorStep(Number(panel.dataset.editorPanel));
+    if (['lat','lng'].includes(invalid.name)) form.querySelector('[data-location-method="pin"]')?.click();
     const disclosure = invalid.closest('details');
     if (disclosure) disclosure.open = true;
     const evidencePanel = invalid.closest('[data-evidence-panel]');
@@ -244,6 +291,10 @@
     setEditorStep(Math.min(editorLastStep, editorStep + 1));
   });
   form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+  form?.querySelector('[data-skip-enrichment]')?.addEventListener('click', () => {
+    if (!validateEditor() || !validateBoundary()) return;
+    setEditorStep(editorLastStep);
+  });
   form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
     const target = Number(button.dataset.editorStep);
     for (let step = 0; step < target; step++) {
@@ -293,9 +344,9 @@
     const rawVal = parseFloat(areaInput.value);
     const unit = areaUnit.value;
     areaInput.min = unit === 'sqm' ? '1' : '0.0001';
-    areaInput.step = unit === 'sqm' ? '1' : '0.0001';
+    areaInput.step = propertyWizard ? 'any' : (unit === 'sqm' ? '1' : '0.0001');
     if (isNaN(rawVal) || rawVal <= 0) {
-      areaCalc.textContent = 'Calculated: —';
+      areaCalc.textContent = 'Enter an area size, or leave it blank and provide an exact location.';
       return;
     }
     if (unit === 'sqm') {
@@ -473,7 +524,7 @@
       if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
       if (areaInput && areaUnit) {
         areaUnit.value = 'sqm';
-        areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : Math.round((property.area || 0) * 10000 * 100) / 100;
+        areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : (property.area > 0 ? Math.round(property.area * 10000 * 100) / 100 : '');
         updateAreaCalculation();
       }
       updateSubcategories(property.subcategory || '');
@@ -497,9 +548,11 @@
     if (restored?.nearby) nearby?.set(restored.nearby);
     if (restored?.values?.subcategory) updateSubcategories(restored.values.subcategory);
     updateAreaCalculation();
-    setEditorStep(0);
+    const restoredStep = Number(restored?.step);
+    setEditorStep(Number.isInteger(restoredStep) ? Math.max(0, Math.min(editorLastStep, restoredStep)) : 0);
     editor.showModal();
-    form.elements.property_name.focus();
+    const focusField = Array.from(form.querySelectorAll('[data-editor-panel]:not([hidden]) input:not([type="hidden"]), [data-editor-panel]:not([hidden]) select, [data-editor-panel]:not([hidden]) textarea')).find((element) => !element.disabled && element.getClientRects().length);
+    (focusField || form.elements.property_name).focus();
   }
 
   function openReview(propertyId) {
@@ -510,7 +563,7 @@
     reviewForm.elements.documents_reviewed.checked = Boolean(property.documentsReviewedAt);
     reviewForm.elements.site_verified.checked = Boolean(property.siteVerifiedAt);
     const checklist = Object.entries(property.documentStatuses || {}).map(([key, value]) => `<dt>${escape(key.replaceAll('_', ' '))}</dt><dd>${escape(value)}</dd>`).join('');
-    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} · ${escape(property.barangay)} · ${number(property.area * 10000)} m²</p><p>MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map ↗</a></div>`;
+    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} · ${escape(property.barangay || 'Barangay not specified')} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map ↗</a></div>`;
     message(reviewForm.querySelector('[data-review-message]'), '');
     reviewDialog.showModal();
     reviewForm.elements.reviewNote.focus();
@@ -542,17 +595,20 @@
     const data = new FormData(form);
     nearby?.append(data);
     propertyWizard?.append(data);
-    data.delete('id');
-    const unitVal = areaUnit?.value || 'sqm';
-    data.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
-    data.set('land_area_unit', unitVal);
-    const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
-    data.set('property_type', type);
-    data.set('subcategory', Array.from(selectedSubcategories).join(', '));
-    data.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
-    data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
-    data.set('recalculate_assessment', 'true');
-    data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+    if (propertyWizard) propertyWizard.buildSubmission(data, selectedSubcategories);
+    else {
+      data.delete('id');
+      const unitVal = areaUnit?.value || 'sqm';
+      data.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
+      data.set('land_area_unit', unitVal);
+      const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
+      data.set('property_type', type);
+      data.set('subcategory', Array.from(selectedSubcategories).join(', '));
+      data.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
+      data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
+      data.set('recalculate_assessment', 'true');
+      data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+    }
     if (id) data.set('_method', 'PATCH');
     try {
       await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });

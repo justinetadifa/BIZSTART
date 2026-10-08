@@ -32,10 +32,10 @@ final class ShowcaseRepository
 
         if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
             $clauses[] = 's.is_published = 1';
-            $clauses[] = '(s.related_property_id IS NULL OR p.approval_state = \'approved\')';
+            $clauses[] = '(s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
         }
         if ($user === null) {
-            $clauses[] = '(s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
+            $clauses[] = '(s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
 
         $sql = $this->baseSelect();
@@ -56,10 +56,10 @@ final class ShowcaseRepository
         $sql = $this->baseSelect() . ' WHERE s.id = :id';
         if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
             $sql .= ' AND s.is_published = 1';
-            $sql .= ' AND (s.related_property_id IS NULL OR p.approval_state = \'approved\')';
+            $sql .= ' AND (s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
         }
         if ($user === null) {
-            $sql .= ' AND (s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE approval_state = \'approved\' ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
+            $sql .= ' AND (s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
         $sql .= ' LIMIT 1';
 

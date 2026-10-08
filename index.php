@@ -30,21 +30,15 @@ $cataloguePath = $context['user'] === null
   </div>
 
   <!-- SAN FERNANDO AT A GLANCE -->
-  <section class="city-container tw-pt-8 sm:tw-pt-12 tw-pb-2" id="at-a-glance" aria-labelledby="glanceTitle">
-    <div class="tw-bg-[#f8fafc] sm:tw-bg-gradient-to-b sm:tw-from-[#f8fafc] sm:tw-to-[#f1f5f9]/70 tw-border tw-border-slate-200/80 tw-rounded-2xl sm:tw-rounded-3xl tw-p-5 sm:tw-p-7 lg:tw-p-8 tw-shadow-sm">
-      <div class="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center tw-justify-between tw-gap-3 tw-mb-6 sm:tw-mb-7">
-        <div class="tw-flex tw-items-center tw-gap-4 tw-flex-1">
-          <h2 id="glanceTitle" class="tw-m-0 tw-text-xl sm:tw-text-2xl tw-font-black tw-italic tw-uppercase tw-tracking-wide tw-text-[#9E1B22] tw-whitespace-nowrap" style="font-family: 'Poppins', 'Montserrat', sans-serif;">SAN FERNANDO AT A GLANCE</h2>
-          <div class="tw-hidden md:tw-block tw-h-[1.5px] tw-flex-1 tw-bg-gradient-to-r tw-from-[#9E1B22]/50 tw-via-slate-200 tw-to-slate-200 tw-mx-3 tw-rounded-full" aria-hidden="true"></div>
-        </div>
-        <p class="tw-m-0 tw-text-xs sm:tw-text-[13px] tw-text-slate-500 tw-font-medium md:tw-text-right tw-shrink-0">Key figures that make San Fernando a promising place to live, work, and invest.</p>
-      </div>
+  <section class="city-container home-glance" id="at-a-glance" aria-labelledby="glanceTitle">
+    <div class="home-glance-panel">
+      <h2 id="glanceTitle" class="home-glance-title">SAN FERNANDO AT A GLANCE</h2>
 
-      <div class="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-3.5 sm:tw-gap-4">
+      <div class="home-glance-grid">
         <!-- 1. LAND AREA -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fee2e2_0%,#fff1f2_70%,#ffffff_100%)] tw-border tw-border-rose-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 31L16 27L28 32L38 28V12L28 16L16 11L6 15V31Z" fill="#FEE2E2" stroke="#FDA4AF" stroke-width="1.6" stroke-linejoin="round"/>
               <path d="M16 11V27" stroke="#FB7185" stroke-width="1.4" stroke-dasharray="2 1.5"/>
               <path d="M28 16V32" stroke="#FB7185" stroke-width="1.4" stroke-dasharray="2 1.5"/>
@@ -54,16 +48,16 @@ $cataloguePath = $context['user'] === null
               <circle cx="22" cy="13.5" r="2.4" fill="#FFFFFF"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">LAND AREA</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">105.26 km²</div>
+          <div class="glance-copy">
+            <span class="glance-label">LAND AREA</span>
+            <div class="glance-value">105.26 km<sup>2</sup></div>
           </div>
         </article>
 
         <!-- 2. SCHOOLS -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fef3c7_0%,#fffbeb_70%,#ffffff_100%)] tw-border tw-border-amber-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 22.5V28C12 32 16.5 35 22 35C27.5 35 32 32 32 28V22.5" fill="#D97706" fill-opacity="0.2" stroke="#B45309" stroke-width="1.8" stroke-linecap="round"/>
               <path d="M22 10.5L39 18.5L22 26.5L5 18.5L22 10.5Z" fill="#D97706" stroke="#92400E" stroke-width="1.8" stroke-linejoin="round"/>
               <path d="M22 12L37 18.5L22 25L7 18.5L22 12Z" fill="#F59E0B" fill-opacity="0.45"/>
@@ -71,16 +65,16 @@ $cataloguePath = $context['user'] === null
               <path d="M34 19V30.5C34 31.5 35.5 32 35.5 33C35.5 34 34.5 34.5 34 34.5C33.5 34.5 32.5 34 32.5 33C32.5 32 34 31.5 34 30.5" stroke="#92400E" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">SCHOOLS</span>
-            <div class="tw-text-base sm:tw-text-[17px] lg:tw-text-base xl:tw-text-[17px] tw-font-black tw-text-[#11224D] tw-leading-tight tw-tracking-tight">11 universities<br>&amp; colleges</div>
+          <div class="glance-copy">
+            <span class="glance-label">SCHOOLS</span>
+            <div class="glance-value">11 universities<br>&amp; colleges</div>
           </div>
         </article>
 
         <!-- 3. POPULATION -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fee2e2_0%,#fff1f2_70%,#ffffff_100%)] tw-border tw-border-red-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="13" cy="16.5" r="4" fill="#9E1B22" fill-opacity="0.8"/>
               <path d="M5 32C5 27 8.8 23.8 13 23.8C15.4 23.8 17.4 24.9 18.8 26.6C16.8 28.3 15.6 30.6 15.3 33H5V32Z" fill="#9E1B22" fill-opacity="0.8"/>
               <circle cx="31" cy="16.5" r="4" fill="#9E1B22" fill-opacity="0.8"/>
@@ -89,16 +83,16 @@ $cataloguePath = $context['user'] === null
               <path d="M12.5 33C12.5 26.5 16.7 23 22 23C27.3 23 31.5 26.5 31.5 33H12.5Z" fill="#9E1B22"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">POPULATION</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">128,024 (2023)</div>
+          <div class="glance-copy">
+            <span class="glance-label">POPULATION</span>
+            <div class="glance-value">128,024 (2023)</div>
           </div>
         </article>
 
         <!-- 4. FINANCE -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fef3c7_0%,#fffbeb_70%,#ffffff_100%)] tw-border tw-border-amber-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 29.5C9 32.5 14 34.5 19.5 34.5C25 34.5 30 32.5 30 29.5V25C30 28 25 30 19.5 30C14 30 9 28 9 25V29.5Z" fill="#D97706"/>
               <path d="M9 24C9 27 14 29 19.5 29C25 29 30 27 30 24V19.5C30 22.5 25 24.5 19.5 24.5C14 24.5 9 22.5 9 19.5V24Z" fill="#F59E0B"/>
               <ellipse cx="19.5" cy="18.5" rx="10.5" ry="5.2" fill="#FBBF24" stroke="#D97706" stroke-width="1.4"/>
@@ -108,16 +102,16 @@ $cataloguePath = $context['user'] === null
               <ellipse cx="32.5" cy="16.5" rx="6.2" ry="2.8" fill="#FDE68A" fill-opacity="0.7"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">FINANCE</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">170 institutions</div>
+          <div class="glance-copy">
+            <span class="glance-label">FINANCE</span>
+            <div class="glance-value">170<br>institutions</div>
           </div>
         </article>
 
         <!-- 5. ROAD NETWORK -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#dbeafe_0%,#eff6ff_70%,#ffffff_100%)] tw-border tw-border-blue-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M16 8H28L35 36H9L16 8Z" fill="#11224D"/>
               <path d="M16 8L9 36" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
               <path d="M28 8L35 36" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
@@ -126,52 +120,52 @@ $cataloguePath = $context['user'] === null
               <path d="M22 29V35" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">ROAD NETWORK</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">279.52 km</div>
+          <div class="glance-copy">
+            <span class="glance-label">ROAD NETWORK</span>
+            <div class="glance-value">279.52 km</div>
           </div>
         </article>
 
         <!-- 6. HOUSEHOLDS -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fee2e2_0%,#fff1f2_70%,#ffffff_100%)] tw-border tw-border-red-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M29 12V16.5L32 19.5V12H29Z" fill="#9E1B22"/>
               <path d="M22 8L7 21.5H11.5V35C11.5 35.5 12 36 12.5 36H19V26C19 25.4 19.4 25 20 25H24C24.6 25 25 25.4 25 26V36H31.5C32 36 32.5 35.5 32.5 35V21.5H37L22 8Z" fill="#9E1B22"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">HOUSEHOLDS</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">32,202 (2023)</div>
+          <div class="glance-copy">
+            <span class="glance-label">HOUSEHOLDS</span>
+            <div class="glance-value">32,202 (2023)</div>
           </div>
         </article>
 
         <!-- 7. HEALTH -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fef3c7_0%,#fffbeb_70%,#ffffff_100%)] tw-border tw-border-amber-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M17.5 9C17.5 8.2 18.2 7.5 19 7.5H25C25.8 7.5 26.5 8.2 26.5 9V17.5H35C35.8 17.5 36.5 18.2 36.5 19V25C36.5 25.8 35.8 26.5 35 26.5H26.5V35C26.5 35.8 25.8 36.5 25 36.5H19C18.2 36.5 17.5 35.8 17.5 35V26.5H9C8.2 26.5 7.5 25.8 7.5 25V19C7.5 18.2 8.2 17.5 9 17.5H17.5V9Z" fill="#B45309" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
               <path d="M19.5 11H24.5V19.5H33V24.5H24.5V33H19.5V24.5H11V19.5H19.5V11Z" fill="#FBBF24" fill-opacity="0.35"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">HEALTH</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">292 facilities</div>
+          <div class="glance-copy">
+            <span class="glance-label">HEALTH</span>
+            <div class="glance-value">292 facilities</div>
           </div>
         </article>
 
         <!-- 8. BUSINESS -->
-        <article class="glance-card tw-bg-white tw-rounded-2xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100/90 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
-          <div class="tw-w-14 tw-h-14 sm:tw-w-16 sm:tw-h-16 tw-rounded-full tw-shrink-0 tw-flex tw-items-center tw-justify-center tw-bg-[radial-gradient(circle_at_center,#fee2e2_0%,#fff1f2_70%,#ffffff_100%)] tw-border tw-border-red-100/60" aria-hidden="true">
-            <svg class="tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <article class="glance-card">
+          <div class="glance-icon" aria-hidden="true">
+            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="9.5" y="25" width="6.5" height="12" rx="2.5" fill="#9E1B22" fill-opacity="0.6"/>
               <rect x="18.5" y="17.5" width="6.5" height="19.5" rx="2.5" fill="#9E1B22" fill-opacity="0.85"/>
               <rect x="27.5" y="10" width="6.5" height="27" rx="2.5" fill="#9E1B22"/>
             </svg>
           </div>
-          <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-500 tw-mb-0.5">BUSINESS</span>
-            <div class="tw-text-lg sm:tw-text-xl tw-font-black tw-text-[#11224D] tw-leading-snug tw-tracking-tight">9,129 registered</div>
+          <div class="glance-copy">
+            <span class="glance-label">BUSINESS</span>
+            <div class="glance-value">9,129<br>registered</div>
           </div>
         </article>
       </div>
