@@ -6,6 +6,7 @@ vendor/
 assets/vendor/*
 !assets/vendor/geoman/
 !assets/vendor/turf/
+!assets/vendor/leaflet/
 node_modules/
 *.log
 Thumbs.db
