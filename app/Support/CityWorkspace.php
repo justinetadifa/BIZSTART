@@ -5,7 +5,8 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 {
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     $isLoopNetView = $mode === 'investor' && ($_GET['view'] ?? '') !== 'saved';
-    $firstName = explode(' ', trim((string) ($context['user']['name'] ?? 'Investor')))[0];
+    $firstName = trim((string) ($context['user']['firstName'] ?? '')) ?: explode(' ', trim((string) ($context['user']['name'] ?? 'Investor')))[0];
+    $greeting = ($_SESSION['sfc_account_greeting'] ?? '') === 'new' ? 'Welcome' : 'Welcome back';
     ?>
 <?php if ($isLoopNetView): ?>
 <div class="city-hero-frame">
@@ -32,7 +33,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 </section>
 </div>
 <div class="city-container tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4 tw-border-b tw-border-line tw-py-6">
-  <div><h2 class="tw-mb-1 tw-text-lg">Welcome, <?= $e($firstName) ?>.</h2><p class="tw-m-0 tw-text-sm">Your next opportunity starts with the right site.</p></div>
+  <div><h2 class="tw-mb-1 tw-text-lg"><?= $greeting ?>, <?= $e($firstName) ?>.</h2><p class="tw-m-0 tw-text-sm">Your next opportunity starts with the right site.</p></div>
   <div class="tw-flex tw-flex-wrap tw-gap-2"><a class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-border tw-border-line tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold" href="<?= $e(sfc_path('/property-ranking.php')) ?>"><span class="tw-w-4 tw-h-4"><?= sfc_icon('ranking') ?></span> Priority board</a><a class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-border tw-border-line tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-semibold" href="<?= $e(sfc_path('/property-explorer.php')) ?>"><span class="tw-w-4 tw-h-4"><?= sfc_icon('map') ?></span> Map</a><a class="tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-amber" href="<?= $e(sfc_path('/index.php#why-invest')) ?>">Why San Fernando? ↗</a></div>
 </div>
 <?php endif; ?>
@@ -57,17 +58,19 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     </div>
 
     <!-- Floating Stats Widget -->
-    <div class="tw-bg-white tw-rounded-2xl tw-shadow-xl tw-p-3.5 sm:tw-p-4 tw-flex tw-items-center tw-gap-3 sm:tw-gap-5 tw-border tw-border-slate-100 tw-text-slate-800 tw-shrink-0">
-      <div class="tw-text-[#9E1B22] tw-shrink-0 tw-p-1">
-        <svg class="tw-w-7 tw-h-7" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M4 19h4V9H4v10zm6 0h4V5h-4v14zm6 0h4v-7h-4v7z"/>
-        </svg>
+    <div class="priority-stats-widget tw-bg-white tw-rounded-2xl tw-shadow-xl tw-p-3.5 sm:tw-p-4 tw-border tw-border-slate-100 tw-text-slate-800 tw-shrink-0">
+      <div class="priority-stat-primary tw-flex tw-items-center tw-gap-3">
+        <div class="tw-text-[#9E1B22] tw-shrink-0 tw-p-1">
+          <svg class="tw-w-6 sm:tw-w-7 tw-h-6 sm:tw-h-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 19h4V9H4v10zm6 0h4V5h-4v14zm6 0h4v-7h-4v7z"/>
+          </svg>
+        </div>
+        <div class="tw-text-left">
+          <strong class="tw-block tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatTotal">13</strong>
+          <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Total properties</span>
+        </div>
       </div>
-      <div class="tw-text-left">
-        <strong class="tw-block tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatTotal">13</strong>
-        <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Total properties</span>
-      </div>
-      <div class="tw-w-px tw-h-9 tw-bg-slate-200"></div>
+      <div class="priority-stat-divider tw-w-px tw-h-9 tw-bg-slate-200"></div>
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-500"></span>
@@ -75,7 +78,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         </div>
         <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Awaiting review</span>
       </div>
-      <div class="tw-w-px tw-h-9 tw-bg-slate-200"></div>
+      <div class="priority-stat-divider tw-w-px tw-h-9 tw-bg-slate-200"></div>
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500"></span>
@@ -83,7 +86,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         </div>
         <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Published</span>
       </div>
-      <div class="tw-w-px tw-h-9 tw-bg-slate-200"></div>
+      <div class="priority-stat-divider tw-w-px tw-h-9 tw-bg-slate-200"></div>
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-[#11224D]"></span>

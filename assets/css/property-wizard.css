@@ -635,6 +635,21 @@
   .property-wizard .pw-footer-actions > .pw-button-light { min-width: 62px; padding: 9px 12px; }
   .property-wizard .pw-footer-actions > .pw-button-primary { min-width: 155px; padding: 9px 11px; }
 }
+@media (max-width: 540px) {
+  .property-wizard .pw-step-label { display: none !important; }
+  .property-wizard .pw-steps { margin-top: 14px; margin-inline: 4px; }
+  .property-wizard .pw-step { gap: 0; }
+  .property-wizard .pw-step-number { width: 28px; height: 28px; font-size: 11px; }
+  .property-wizard .pw-step:not(:last-child)::after { top: 14px; left: calc(50% + 15px); right: calc(-50% + 15px); }
+  .property-wizard .pw-fields { grid-template-columns: 1fr; }
+  .property-wizard .pw-preview-card { grid-template-columns: 1fr; }
+  .property-wizard .pw-preview-photo { grid-row: auto; height: 130px; }
+  .property-wizard .pw-preview-name { grid-column: auto; }
+  .property-wizard .pw-badges { grid-column: auto; }
+  .property-wizard .pw-footer-actions { width: 100%; }
+  .property-wizard .pw-footer-actions > .pw-button-light,
+  .property-wizard .pw-footer-actions > .pw-button-primary { flex: 1; }
+}
 @media (max-width: 420px) {
   .property-wizard .pw-header-actions .pw-button { padding: 7px 8px; font-size: 9px; gap: 4px; }
   .property-wizard .pw-header-actions .pw-button .pw-icon { width: 13px; height: 13px; }

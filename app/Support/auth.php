@@ -5,6 +5,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\SellerProfileRepository;
 
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/auth-validation.php';
 
 function sfc_start_session(): void
 {
@@ -116,8 +117,44 @@ function sfc_demo_credentials(): array
 function sfc_login(string $role, string $email, string $password): bool
 {
     sfc_start_session();
-    $user = sfc_user_repository()->authenticate($email, $password, $role);
-    if ($user === null || !sfc_account_can_authenticate($user)) {
+    $email = strtolower(trim($email));
+    $_SESSION['sfc_login_errors'] = [];
+    if ($email === '') {
+        $_SESSION['sfc_login_errors']['email'] = 'This field is required.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
+        $_SESSION['sfc_login_errors']['email'] = 'Enter a valid email address.';
+    }
+    if (trim($password) === '') {
+        $_SESSION['sfc_login_errors']['password'] = 'This field is required.';
+    }
+    if ($_SESSION['sfc_login_errors'] !== []) {
+        return false;
+    }
+    require_once __DIR__ . '/RequestRateLimiter.php';
+    $rateLimitDirectory = (string) (sfc_security_config()['security']['rate_limit_path'] ?? '');
+    $limiter = new App\Support\RequestRateLimiter($rateLimitDirectory);
+    if (!$limiter->consume('account-login:' . (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli'), 30, 900)) {
+        $_SESSION['sfc_login_errors']['email'] = 'Too many sign-in attempts. Try again in 15 minutes.';
+        return false;
+    }
+    $user = sfc_user_repository()->findByEmail($email);
+    // Perform password work for unknown emails too; never expose hashes or credential state.
+    $hash = (string) ($user['passwordHash'] ?? '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
+    $passwordMatches = password_verify($password, $hash);
+    if ($user === null) {
+        $_SESSION['sfc_login_errors']['email'] = 'No account was found with this email.';
+        return false;
+    }
+    if (!$passwordMatches) {
+        $_SESSION['sfc_login_errors']['password'] = 'Incorrect password.';
+        return false;
+    }
+    if ($user['role'] !== $role) {
+        $_SESSION['sfc_login_errors']['email'] = 'Sign in through the correct account portal.';
+        return false;
+    }
+    if (!sfc_account_can_authenticate($user)) {
+        $_SESSION['sfc_login_errors']['account_status'] = sfc_account_access_message($user);
         return false;
     }
 
@@ -127,9 +164,16 @@ function sfc_login(string $role, string $email, string $password): bool
     $_SESSION['sfc_authenticated_at'] = time();
     $_SESSION['sfc_last_activity_at'] = time();
     $_SESSION['sfc_last_db_touch_at'] = time();
+    $_SESSION['sfc_welcome_mode'] = 'returning';
     sfc_user_repository()->touchActivity((int) $user['id'], true);
     sfc_csrf_token();
     return true;
+}
+
+function sfc_login_errors(): array
+{
+    sfc_start_session();
+    return is_array($_SESSION['sfc_login_errors'] ?? null) ? $_SESSION['sfc_login_errors'] : [];
 }
 
 function sfc_uses_default_demo_password(array $user): bool
@@ -152,8 +196,28 @@ function sfc_uses_default_demo_password(array $user): bool
 
 function sfc_account_can_authenticate(array $user): bool
 {
-    return strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified')) !== 'suspended'
+    $status = strtolower((string) ($user['accountStatus'] ?? 'active'));
+    $identity = strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified'));
+    return $status === 'active'
+        && !in_array($identity, ['suspended', 'disabled'], true)
+        && (($user['role'] ?? '') !== 'admin' || $identity === 'verified')
         && !sfc_uses_default_demo_password($user);
+}
+
+function sfc_account_access_message(array $user): string
+{
+    $status = strtolower((string) ($user['accountStatus'] ?? 'active'));
+    $identity = strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified'));
+    if ($status === 'suspended' || $identity === 'suspended') {
+        return 'This account is suspended. Contact CICTO for assistance.';
+    }
+    if (in_array($status, ['disabled', 'inactive'], true) || $identity === 'disabled') {
+        return 'This account is disabled. Contact CICTO for assistance.';
+    }
+    if (($user['role'] ?? '') === 'admin' && $identity !== 'verified') {
+        return 'This City Staff account has not been activated. Contact CICTO for assistance.';
+    }
+    return 'This account cannot sign in. Contact CICTO for assistance.';
 }
 
 function sfc_privacy_consent_text(): string
@@ -168,8 +232,8 @@ function sfc_privacy_consent_version(): string
 
 function sfc_account_privacy_payload(mixed $consent): array
 {
-    if (!filter_var($consent, FILTER_VALIDATE_BOOLEAN)) {
-        throw new InvalidArgumentException('Please read and accept the data privacy consent to continue.');
+    if (!sfc_auth_consent($consent)) {
+        throw new SfcAuthValidationException(['privacy_consent' => 'Please agree to the Privacy Notice.']);
     }
     return [
         'privacyConsentAt' => gmdate('Y-m-d H:i:s'),
@@ -178,36 +242,52 @@ function sfc_account_privacy_payload(mixed $consent): array
     ];
 }
 
+function sfc_registration_payload(array $payload): array
+{
+    // Retain full-name compatibility for existing service callers; the new forms
+    // provide separate first and last names and are validated separately.
+    if (!array_key_exists('first_name', $payload) && !array_key_exists('last_name', $payload)) {
+        $parts = preg_split('/\s+/', sfc_auth_string($payload['name'] ?? ''), 2);
+        $payload['first_name'] = $parts[0] ?? '';
+        $payload['last_name'] = $parts[1] ?? '';
+    }
+    $payload['confirm_password'] ??= $payload['confirmPassword'] ?? '';
+    $payload['privacy_consent'] ??= $payload['privacyConsent'] ?? false;
+    $payload['adult_confirmation'] ??= $payload['adultConfirmation'] ?? false;
+    $payload['address_line'] ??= $payload['address'] ?? '';
+    foreach (['first_name', 'last_name', 'email', 'phone', 'address_line', 'city', 'profession', 'company_name', 'prc_registration_no', 'prc_valid_until'] as $field) {
+        $payload[$field] = sfc_auth_string($payload[$field] ?? '');
+    }
+    $payload['email'] = strtolower($payload['email']);
+    $payload['password'] = is_string($payload['password'] ?? null) ? $payload['password'] : '';
+    $payload['confirm_password'] = is_string($payload['confirm_password'] ?? null) ? $payload['confirm_password'] : '';
+    return $payload;
+}
+
+function sfc_registration_check_email(array $payload, array &$errors): void
+{
+    if (!isset($errors['email']) && sfc_user_repository()->findByEmail($payload['email']) !== null) {
+        $errors['email'] = 'An account with this email already exists. Sign in instead.';
+    }
+}
+
 function sfc_register_investor(string $name, string $email, string $password, string $confirmPassword, array $details = []): array
 {
     sfc_start_session();
-
-    $name = trim($name);
-    $email = strtolower(trim($email));
-
-    if ($name === '') {
-        throw new InvalidArgumentException('Your full name is required.');
+    $details = sfc_registration_payload(array_replace($details, ['name' => $name, 'email' => $email, 'password' => $password, 'confirm_password' => $confirmPassword]));
+    $errors = sfc_registration_field_errors($details, 'investor');
+    sfc_registration_check_email($details, $errors);
+    if ($errors !== []) {
+        throw new SfcAuthValidationException($errors);
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('A valid email address is required.');
-    }
-    if (strlen($password) < 8) {
-        throw new InvalidArgumentException('Password must be at least 8 characters.');
-    }
-    if ($password !== $confirmPassword) {
-        throw new InvalidArgumentException('Password confirmation does not match.');
-    }
-
-    $privacy = sfc_account_privacy_payload($details['privacy_consent'] ?? $details['privacyConsent'] ?? false);
-    $phone = trim((string) ($details['phone'] ?? ''));
-    $address = trim((string) ($details['address'] ?? $details['address_line'] ?? ''));
-    if ($phone !== '' && !preg_match('/^[+()0-9 .-]{7,30}$/', $phone)) {
-        throw new InvalidArgumentException('Enter a valid contact number.');
-    }
-    if (mb_strlen($address) > 255) {
-        throw new InvalidArgumentException('Address must be at most 255 characters.');
-    }
-    $user = sfc_user_repository()->create('investor', $name, $email, $password, null, $privacy + ['phone' => $phone ?: null, 'address' => $address ?: null]);
+    $privacy = sfc_account_privacy_payload($details['privacy_consent']);
+    $name = $details['first_name'] . ' ' . $details['last_name'];
+    $user = sfc_user_repository()->create('investor', $name, $details['email'], $password, null, $privacy + [
+        'firstName' => $details['first_name'], 'lastName' => $details['last_name'],
+        'phone' => $details['phone'] ?: null, 'address' => $details['address_line'] ?: null,
+        'profession' => $details['profession'] ?: null, 'city' => $details['city'] ?: null,
+        'adultConfirmedAt' => gmdate('Y-m-d H:i:s'),
+    ]);
     sfc_user_repository()->touchActivity((int) $user['id'], true);
     session_regenerate_id(true);
     unset($_SESSION['sfc_csrf_token']);
@@ -215,6 +295,7 @@ function sfc_register_investor(string $name, string $email, string $password, st
     $_SESSION['sfc_authenticated_at'] = time();
     $_SESSION['sfc_last_activity_at'] = time();
     $_SESSION['sfc_last_db_touch_at'] = time();
+    $_SESSION['sfc_welcome_mode'] = 'new';
     sfc_csrf_token();
 
     return $user;
@@ -261,37 +342,28 @@ function sfc_register_admin(string $name, string $email, string $password, strin
 function sfc_register_seller(array $payload): array
 {
     sfc_start_session();
-
-    $name = trim((string) ($payload['name'] ?? ''));
-    $email = strtolower(trim((string) ($payload['email'] ?? '')));
-    $password = (string) ($payload['password'] ?? '');
-    $confirmPassword = (string) ($payload['confirm_password'] ?? $payload['confirmPassword'] ?? '');
-
-    if ($name === '') {
-        throw new InvalidArgumentException('Your full name is required.');
+    $payload = sfc_registration_payload($payload);
+    $errors = sfc_registration_field_errors($payload, 'seller');
+    sfc_registration_check_email($payload, $errors);
+    $repository = sfc_seller_profile_repository();
+    $errors += $repository->registrationDuplicateErrors($payload);
+    if ($errors !== []) {
+        throw new SfcAuthValidationException($errors);
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        throw new InvalidArgumentException('A valid email address is required.');
-    }
-    if (strlen($password) < 8) {
-        throw new InvalidArgumentException('Password must be at least 8 characters.');
-    }
-    if ($password !== $confirmPassword) {
-        throw new InvalidArgumentException('Password confirmation does not match.');
-    }
-
-    $privacy = sfc_account_privacy_payload($payload['privacy_consent'] ?? $payload['privacyConsent'] ?? false);
+    $name = $payload['first_name'] . ' ' . $payload['last_name'];
+    $email = $payload['email'];
+    $password = $payload['password'];
+    $privacy = sfc_account_privacy_payload($payload['privacy_consent']);
     $payload['seller_type'] = 'broker';
     $payload['legal_name'] = $name;
     $payload['authorization_basis'] = trim((string) ($payload['authorization_basis'] ?? 'Licensed real estate broker'));
-    $repository = sfc_seller_profile_repository();
     $repository->validateRegistrationPayload($payload, ['name' => $name, 'identityVerificationStatus' => 'pending']);
     $pdo = sfc_app_container()['pdo'];
     $pdo->beginTransaction();
     try {
         $user = sfc_user_repository()->create('seller', $name, $email, $password, null, $privacy + [
-            'phone' => trim((string) ($payload['phone'] ?? '')),
-            'address' => trim((string) ($payload['address_line'] ?? '')),
+            'phone' => $payload['phone'], 'address' => $payload['address_line'],
+            'firstName' => $payload['first_name'], 'lastName' => $payload['last_name'], 'city' => $payload['city'],
         ]);
         $profile = $repository->createOrUpdateForUser((int) $user['id'], $payload, true);
         $user = sfc_user_repository()->updateIdentityVerificationStatus((int) $user['id'], 'pending');
@@ -307,6 +379,8 @@ function sfc_register_seller(array $payload): array
     $_SESSION['sfc_user'] = sfc_user_session_payload($user);
     $_SESSION['sfc_authenticated_at'] = time();
     $_SESSION['sfc_last_activity_at'] = time();
+    $_SESSION['sfc_last_db_touch_at'] = time();
+    $_SESSION['sfc_welcome_mode'] = 'new';
     sfc_csrf_token();
 
     $container = sfc_app_container();
@@ -498,7 +572,8 @@ function sfc_can_manage_properties(?array $user = null): bool
 function sfc_broker_can_submit(?array $user = null): bool
 {
     $user ??= sfc_current_user();
-    if (($user['role'] ?? '') !== 'seller' || ($user['identityVerificationStatus'] ?? '') !== 'verified') {
+    $status = strtolower((string) ($user['identityVerificationStatus'] ?? $user['identity_verification_status'] ?? ''));
+    if (($user['role'] ?? '') !== 'seller' || $status !== 'verified' || !sfc_account_can_authenticate($user)) {
         return false;
     }
     $profile = sfc_seller_profile_repository()->findByUserId((int) ($user['id'] ?? 0));
@@ -533,10 +608,16 @@ function sfc_user_session_payload(array $user): array
         'id' => (int) ($user['id'] ?? 0),
         'role' => (string) ($user['role'] ?? 'guest'),
         'name' => (string) ($user['name'] ?? ''),
+        'firstName' => (string) ($user['firstName'] ?? preg_split('/\s+/', trim((string) ($user['name'] ?? '')), 2)[0] ?? ''),
+        'lastName' => (string) ($user['lastName'] ?? ''),
         'department' => (string) ($user['department'] ?? ''),
         'email' => (string) ($user['email'] ?? ''),
         'phone' => $user['phone'] ?? null,
         'address' => $user['address'] ?? null,
+        'city' => $user['city'] ?? null,
+        'profession' => $user['profession'] ?? null,
+        'adultConfirmedAt' => $user['adultConfirmedAt'] ?? null,
+        'accountStatus' => (string) ($user['accountStatus'] ?? 'active'),
         'profileImageUrl' => $user['profileImageUrl'] ?? null,
         'privacyConsentAt' => $user['privacyConsentAt'] ?? null,
         'privacyConsentVersion' => $user['privacyConsentVersion'] ?? null,

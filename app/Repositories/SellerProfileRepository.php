@@ -5,6 +5,9 @@ namespace App\Repositories;
 
 use InvalidArgumentException;
 use PDO;
+use PDOException;
+
+require_once dirname(__DIR__) . '/Support/auth-validation.php';
 
 final class SellerProfileRepository
 {
@@ -219,7 +222,7 @@ final class SellerProfileRepository
                     :reviewed_at, :reviewed_by_user_id
                  )'
             );
-            $statement->execute(array_merge(['user_id' => $userId], $normalized));
+            $this->executeProfileStatement($statement, array_merge(['user_id' => $userId], $normalized));
         } else {
             $statement = $this->pdo->prepare(
                 'UPDATE seller_profiles
@@ -243,7 +246,7 @@ final class SellerProfileRepository
                      reviewed_by_user_id = :reviewed_by_user_id
                  WHERE user_id = :user_id'
             );
-            $statement->execute(array_merge(['user_id' => $userId], $normalized));
+            $this->executeProfileStatement($statement, array_merge(['user_id' => $userId], $normalized));
         }
 
         $profile = $this->findByUserId($userId);
@@ -252,6 +255,49 @@ final class SellerProfileRepository
         }
 
         return $profile;
+    }
+
+    private function executeProfileStatement(\PDOStatement $statement, array $params): void
+    {
+        try {
+            $statement->execute($params);
+        } catch (PDOException $exception) {
+            if ((int) ($exception->errorInfo[1] ?? 0) === 1062) {
+                foreach ([
+                    'uniq_seller_profiles_prc' => ['prc_registration_no', 'This PRC registration number is already associated with another account.'],
+                    'uniq_seller_profiles_phone' => ['phone', 'This contact number is already associated with another broker account.'],
+                    'uniq_seller_profiles_business_reg' => ['business_registration_no', 'This business registration number is already associated with another account.'],
+                    'uniq_seller_profiles_government_id' => ['government_id_no', 'This government ID number is already associated with another account.'],
+                ] as $constraint => [$field, $message]) {
+                    if (str_contains($exception->getMessage(), $constraint)) {
+                        throw new \SfcAuthValidationException([$field => $message]);
+                    }
+                }
+            }
+            throw $exception;
+        }
+    }
+
+    public function registrationDuplicateErrors(array $payload): array
+    {
+        $errors = [];
+        $prc = \sfc_normalize_prc_number(\sfc_auth_string($payload['prc_registration_no'] ?? ''));
+        if (preg_match('/^[0-9]{1,20}$/', $prc) === 1) {
+            $statement = $this->pdo->prepare('SELECT user_id FROM seller_profiles WHERE prc_canonical_no = :value LIMIT 1');
+            $statement->execute(['value' => $prc]);
+            if ($statement->fetch()) {
+                $errors['prc_registration_no'] = 'This PRC registration number is already associated with another account.';
+            }
+        }
+        $phone = \sfc_auth_string($payload['phone'] ?? '');
+        if ($phone !== '') {
+            $statement = $this->pdo->prepare('SELECT user_id FROM seller_profiles WHERE phone = :value LIMIT 1');
+            $statement->execute(['value' => $phone]);
+            if ($statement->fetch()) {
+                $errors['phone'] = 'This contact number is already associated with another broker account.';
+            }
+        }
+        return $errors;
     }
 
     public function review(int $userId, string $status, ?int $reviewedByUserId = null, ?string $reviewNotes = null): array
@@ -413,7 +459,7 @@ final class SellerProfileRepository
         // CICTO. A broker cannot keep approval while substituting another license.
         if ($applicationStatus === 'verified' && (
             $legalName !== ($existing['legalName'] ?? null)
-            || $prcRegistrationNo !== ($existing['prcRegistrationNo'] ?? null)
+            || \sfc_normalize_prc_number((string) $prcRegistrationNo) !== \sfc_normalize_prc_number((string) ($existing['prcRegistrationNo'] ?? ''))
             || $prcValidUntil !== ($existing['prcValidUntil'] ?? null)
             || $sellerType !== ($existing['sellerType'] ?? null)
         )) {
@@ -512,7 +558,7 @@ final class SellerProfileRepository
         $this->assertUniqueValue('phone', $payload['phone'], $userId, 'That phone number is already attached to another seller account.');
         $this->assertUniqueValue('government_id_no', $payload['government_id_no'], $userId, 'That government ID or license number is already attached to another seller account.');
         $this->assertUniqueValue('business_registration_no', $payload['business_registration_no'], $userId, 'That business registration number is already attached to another seller account.');
-        $this->assertUniqueValue('prc_registration_no', $payload['prc_registration_no'], $userId, 'That PRC registration is already attached to another broker account.');
+        $this->assertUniqueValue('prc_registration_no', $payload['prc_registration_no'], $userId, 'This PRC registration number is already associated with another account.');
     }
 
     private function assertUniqueValue(string $column, ?string $value, int $userId, string $message): void
@@ -528,16 +574,16 @@ final class SellerProfileRepository
                  WHERE %s = :value
                    AND user_id <> :user_id
                  LIMIT 1',
-                $column
+                $column === 'prc_registration_no' ? 'prc_canonical_no' : $column
             )
         );
         $statement->execute([
-            'value' => $value,
+            'value' => $column === 'prc_registration_no' ? \sfc_normalize_prc_number($value) : $value,
             'user_id' => $userId,
         ]);
 
         if ($statement->fetch()) {
-            throw new InvalidArgumentException($message);
+            throw new \SfcAuthValidationException([$column => $message]);
         }
     }
 

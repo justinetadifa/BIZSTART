@@ -443,7 +443,7 @@ function priorityListCard(property, idx) {
           </div>
         </div>
 
-        <div class="tw-flex tw-items-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-self-end sm:tw-self-center">
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between sm:tw-justify-start tw-gap-2.5 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-w-full xl:tw-w-auto">
           <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-text-center tw-shrink-0">
             <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
             ${property.mceScore != null ? `
@@ -530,7 +530,7 @@ function priorityListCard(property, idx) {
       </div>
     </div>
 
-    <div class="tw-flex tw-items-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-self-end sm:tw-self-center">
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between sm:tw-justify-start tw-gap-2.5 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-w-full xl:tw-w-auto">
       <div class="tw-w-20 sm:tw-w-22 tw-py-2.5 tw-px-2 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-text-center tw-shrink-0">
         <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
         ${property.mceScore != null ? `
@@ -1053,9 +1053,208 @@ function fitMap() {
   }
 }
 
+function getCategoryIconSvg(icon) {
+  switch (icon) {
+    case 'utensils':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/><path d="M15 2v14"/><path d="M6 2v7a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V2"/><path d="M8 11v11"/></svg>`;
+    case 'coffee':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>`;
+    case 'landmark':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>`;
+    case 'cross':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
+    case 'shopping-bag':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+    case 'building':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="9" y1="22" x2="9" y2="22.01"/><line x1="15" y1="22" x2="15" y2="22.01"/><line x1="9" y1="18" x2="9" y2="18.01"/><line x1="15" y1="18" x2="15" y2="18.01"/><line x1="9" y1="14" x2="9" y2="14.01"/><line x1="15" y1="14" x2="15" y2="14.01"/><line x1="9" y1="10" x2="9" y2="10.01"/><line x1="15" y1="10" x2="15" y2="10.01"/><line x1="9" y1="6" x2="9" y2="6.01"/><line x1="15" y1="6" x2="15" y2="6.01"/></svg>`;
+    case 'wrench':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+    case 'graduation-cap':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`;
+    case 'briefcase':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`;
+    case 'sparkles':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>`;
+    case 'shield':
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+    default:
+      return `<svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/></svg>`;
+  }
+}
+
+function getCategoryColorClass(color) {
+  switch (color) {
+    case 'amber':
+      return 'tw-bg-amber-100 tw-text-amber-800';
+    case 'blue':
+      return 'tw-bg-blue-100 tw-text-blue-800';
+    case 'emerald':
+      return 'tw-bg-emerald-100 tw-text-emerald-800';
+    case 'purple':
+      return 'tw-bg-purple-100 tw-text-purple-800';
+    case 'cyan':
+      return 'tw-bg-cyan-100 tw-text-cyan-800';
+    case 'rose':
+      return 'tw-bg-rose-100 tw-text-rose-800';
+    case 'indigo':
+      return 'tw-bg-indigo-100 tw-text-indigo-800';
+    default:
+      return 'tw-bg-slate-200 tw-text-slate-800';
+  }
+}
+
+function printHeaderMarkup(property) {
+  const printDate = new Date().toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+  return `
+    <header class="city-print-dossier-header print:tw-block tw-hidden">
+      <div class="city-print-header-inner">
+        <div class="city-print-logo-col">
+          <div class="city-print-lgu-kicker">Republic of the Philippines &middot; Province of La Union</div>
+          <div class="city-print-lgu-title">City Government of San Fernando</div>
+          <div class="city-print-office-title">Local Economic and Business Development Office (LEBDO) &middot; CPDO</div>
+        </div>
+        <div class="city-print-meta-col">
+          <span class="city-print-tag">Official Investment Dossier</span>
+          <div class="city-print-meta-item">Ref ID: <strong>LOCUS-SF-PRP-${property.id}</strong></div>
+          <div class="city-print-meta-item">Date Printed: <strong>${esc(printDate)}</strong></div>
+          <div class="city-print-meta-item">CLUP Status: <strong>${esc(property.clupProfile?.zoningClassification || 'Zoning Verified')}</strong></div>
+        </div>
+      </div>
+      <div class="city-print-divider"></div>
+    </header>
+  `;
+}
+
+function printFooterMarkup(property) {
+  return `
+    <footer class="city-print-dossier-footer print:tw-block tw-hidden">
+      <p class="tw-m-0">
+        <strong>LOCUS-SF &middot; City of San Fernando Investment Intelligence System</strong><br>
+        Official spatial decision brief verified under City Land Use Plan (CLUP 2025&ndash;2035). Distances use geodesic WGS84 coordinates. Advisory decision support; does not supersede official permits issued by City Hall.
+      </p>
+    </footer>
+  `;
+}
+
+function printButtonMarkup(id = '') {
+  return `
+    <button class="city-button city-button-secondary city-print-trigger-btn print:tw-hidden" type="button" ${id ? `id="${id}"` : ''} title="Print official property information sheet">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+        <rect x="6" y="14" width="12" height="8"></rect>
+      </svg>
+      <span>Print Information</span>
+    </button>
+  `;
+}
+
+function nearbyBusinessesMarkup(property) {
+  const businesses = Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [];
+  if (!businesses.length && !property.nearbyProperties?.length) {
+    return `
+      <section class="city-detail-panel nearby-businesses-section" style="margin-top:20px" id="propertyNearbyBusinessesSection">
+        <div class="city-panel-head tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-mb-3">
+          <div>
+            <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
+            <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
+          </div>
+          <span class="tw-text-xs tw-text-slate-400 print:tw-hidden">Proximity Radius: 2.0 km</span>
+        </div>
+        <p class="tw-text-sm tw-text-slate-500 tw-m-0">No registered commercial anchors mapped within the immediate straight-line radius of this parcel.</p>
+      </section>
+    `;
+  }
+
+  const closest = businesses[0];
+  const count = businesses.length;
+
+  return `
+    <section class="city-detail-panel nearby-businesses-section" style="margin-top:20px" id="propertyNearbyBusinessesSection">
+      <div class="city-panel-head tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3 tw-mb-4">
+        <div>
+          <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
+          <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
+          <p class="tw-m-0 tw-mt-1 tw-text-xs tw-text-slate-500">
+            Operating commercial brands, financial facilities, retail, and dining anchors detected within walking and driving proximity.
+          </p>
+        </div>
+        ${count ? `
+          <div class="tw-flex tw-items-center tw-gap-2 print:tw-hidden">
+            <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-3 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-slate-700">
+              <span class="tw-h-2 tw-w-2 tw-rounded-full tw-bg-emerald-500"></span>
+              ${count} Mapped Anchors
+            </span>
+            ${closest ? `
+              <span class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-3 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-800">
+                Nearest: ${esc(closest.distanceFormatted)}
+              </span>
+            ` : ''}
+          </div>
+        ` : ''}
+      </div>
+
+      ${count ? `
+        <div class="nearby-biz-grid tw-grid tw-gap-3 sm:tw-grid-cols-2">
+          ${businesses.map((biz, idx) => {
+            const iconSvg = getCategoryIconSvg(biz.icon || 'store');
+            return `
+              <article class="nearby-biz-card tw-flex tw-items-start tw-gap-3.5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200/80 tw-bg-slate-50/70 tw-p-3.5 tw-transition-all hover:tw-border-slate-300 hover:tw-bg-white hover:tw-shadow-sm" data-biz-lat="${biz.lat}" data-biz-lng="${biz.lng}">
+                <div class="nearby-biz-icon-box tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg ${getCategoryColorClass(biz.categoryColor)}">
+                  ${iconSvg}
+                </div>
+                <div class="tw-min-w-0 tw-flex-1">
+                  <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
+                    <h4 class="tw-m-0 tw-truncate tw-text-xs tw-font-bold tw-text-slate-900" title="${esc(biz.name)}">${esc(biz.name)}</h4>
+                    <span class="nearby-biz-dist-pill tw-shrink-0 tw-rounded-md tw-bg-white tw-border tw-border-solid tw-border-slate-200 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-800">${esc(biz.distanceFormatted)}</span>
+                  </div>
+                  <div class="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                    <span class="tw-text-[11px] tw-font-medium tw-text-slate-600">${esc(biz.category)}</span>
+                    <span class="tw-text-[10px] tw-text-slate-400">&middot;</span>
+                    <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(biz.walkingFormatted || '')}</span>
+                  </div>
+                  <div class="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2">
+                    <span class="nearby-biz-status-badge tw-inline-flex tw-items-center tw-gap-1 tw-text-[9.5px] tw-font-semibold tw-text-emerald-700">
+                      <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500"></span>
+                      ${biz.status === 'operating' ? 'Operating &amp; Verified' : 'Under Development'}
+                    </span>
+                    <button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
+                      Locate on map &rarr;
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      ${property.nearbyProperties?.length ? `
+        <div class="lister-nearby-places tw-mt-5 tw-border-t tw-border-solid tw-border-slate-200/80 tw-pt-4">
+          <h4 class="tw-mb-3 tw-text-xs tw-font-bold tw-text-slate-700 tw-uppercase tw-tracking-wider">Lister Recorded Surroundings &amp; Landmarks</h4>
+          <div class="tw-grid tw-gap-3 sm:tw-grid-cols-2">
+            ${property.nearbyProperties.map(item => `
+              <article class="tw-flex tw-items-center tw-gap-3 tw-rounded-lg tw-bg-white tw-border tw-border-solid tw-border-slate-200 tw-p-2.5">
+                ${item.imageUrl ? `<img class="tw-h-12 tw-w-12 tw-shrink-0 tw-rounded-md tw-object-cover" src="${esc(imageUrl(item))}" alt="${esc(item.name)}" loading="lazy">` : ''}
+                <div class="tw-min-w-0">
+                  <strong class="tw-text-xs tw-text-slate-900">${esc(item.name)}</strong>
+                  <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] tw-text-slate-500">${esc(item.type || 'Surrounding place')}${item.distanceKm == null ? '' : ` &middot; ${number(item.distanceKm)} km`}</p>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </section>
+  `;
+}
+
 function nearbyMarkup(property) {
-  if (!property.nearbyProperties?.length) return '';
-  return `<section class="tw-mb-5 tw-rounded-xl tw-border tw-border-solid tw-border-line tw-bg-white tw-p-5"><h2 class="tw-mb-4 tw-text-xl">Around this property</h2><div class="tw-grid tw-gap-3 sm:tw-grid-cols-2">${property.nearbyProperties.map(item => `<article class="tw-flex tw-items-center tw-gap-3 tw-rounded-lg tw-bg-paper tw-p-3">${item.imageUrl ? `<img class="tw-h-16 tw-w-16 tw-shrink-0 tw-rounded-lg tw-object-cover" src="${esc(imageUrl(item))}" alt="${esc(item.name)}" loading="lazy">` : ''}<div class="tw-min-w-0"><strong class="tw-text-xs">${esc(item.name)}</strong><p class="tw-mb-0 tw-mt-1 tw-text-[11px]">${esc(item.type || 'Nearby property')}${item.distanceKm == null ? '' : ` · ${number(item.distanceKm)} km`}</p></div></article>`).join('')}</div></section>`;
+  return nearbyBusinessesMarkup(property);
 }
 
 async function renderDetails() {
@@ -1071,11 +1270,120 @@ async function renderDetails() {
   const broker = role !== 'guest' ? property.brokerContact : null;
   const existingConversation = investor ? await api.getMessages(id).catch(() => null) : null;
   const canInquire = investor && (existingConversation?.thread || (property.contactMode === 'broker' ? broker : property.sellerUserId));
-  root.innerHTML = `<div class="city-page-heading tw-flex-wrap tw-items-start"><div><div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div><h1>${esc(property.name)}</h1><p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p></div></div>
-  <div class="city-detail-grid"><div><img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><section class="city-detail-panel" style="margin-top:20px"><h2>Property overview</h2><p>${esc(property.description)}</p><dl class="city-detail-list">${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}</section>${nearbyMarkup(property)}${evaluationMarkup(property, config.policy || {})}
-  <section class="city-detail-panel"><h2>City assessment</h2>${assessmentEvidenceMarkup(property)}<div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px"><span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span><span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span></div><div class="city-detail-criteria">${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}</div><details class="city-assessment-note"><summary>Assessment method</summary><p>${esc(property.assessmentMethod)}</p></details></section></div>
-  <aside><section class="city-detail-panel"><div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div><div class="city-actions">${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button></div><hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0"><h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}</section><section class="city-detail-panel"><h3>Location</h3><div class="city-map-canvas tw-h-64" id="cityPropertyMap"></div></section>${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}${investor ? investorTools(property, Boolean(canInquire)) : ''}</aside></div>`;
-  filtered = [property]; setupMap(); setupInvestmentEvaluation(property, config.policy || {});
+  root.innerHTML = `
+  ${printHeaderMarkup(property)}
+  <div class="city-page-heading tw-flex-wrap tw-items-start tw-justify-between tw-gap-4">
+    <div>
+      <div class="city-eyebrow">${esc(property.category)}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''}</div>
+      <h1>${esc(property.name)}</h1>
+      <p>${esc(property.barangay || '')}${property.barangay ? ', ' : ''}${esc(property.city)}</p>
+    </div>
+    <div class="city-heading-actions tw-flex tw-items-center tw-gap-2.5 print:tw-hidden">
+      ${printButtonMarkup('cityPrintPropertyTopBtn')}
+    </div>
+  </div>
+  <div class="city-detail-grid">
+    <div>
+      <img class="city-detail-image" src="${esc(imageUrl(property))}" alt="${esc(property.name)}">
+      <section class="city-detail-panel" style="margin-top:20px">
+        <h2>Property overview</h2>
+        <p>${esc(property.description)}</p>
+        <dl class="city-detail-list">
+          ${[['Area',`${number(property.area)} ha`],['Price / m²', money(property.pricePerSqm)],['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],['Status',property.status]].map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}
+        </dl>
+        ${property.assessmentTags?.length ? `<div class="city-sector-list">${property.assessmentTags.map(tag=>`<span class="city-tag">${esc(tag)}</span>`).join('')}</div><p class="city-assessment-note">${esc(property.readinessNotes || 'Context selected by the reviewing department.')}</p>` : ''}
+      </section>
+      ${nearbyBusinessesMarkup(property)}
+      ${evaluationMarkup(property, config.policy || {})}
+      <section class="city-detail-panel">
+        <h2>City assessment</h2>
+        ${assessmentEvidenceMarkup(property)}
+        <div class="city-card-scores" style="margin:0 0 22px;border:0;padding:0;font-size:14px">
+          <span>MCE <strong>${score(property.mceScore)}</strong>${property.mceRank ? ` · #${property.mceRank}` : ''}</span>
+          <span>IAI <strong>${score(property.iaiScore)}</strong>${property.iaiRank ? ` · #${property.iaiRank}` : ''}</span>
+        </div>
+        <div class="city-detail-criteria">
+          ${Object.entries(criteria).map(([key,label])=>`<div><span>${esc(label)}</span><strong>${score(property.assessmentCriteria?.[key])}</strong>${property.assessmentCriteria?.[key] == null ? '' : `<progress value="${property.assessmentCriteria[key]}" max="100" aria-label="${esc(label)}"></progress>`}</div>`).join('')}
+        </div>
+        <details class="city-assessment-note">
+          <summary>Assessment method</summary>
+          <p>${esc(property.assessmentMethod)}</p>
+        </details>
+      </section>
+    </div>
+    <aside>
+      <section class="city-detail-panel">
+        <div class="city-card-price" style="font-size:30px;margin-bottom:20px">${money(property.price)}</div>
+        <div class="city-actions">
+          ${investor ? `<button class="city-button" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id)?'Saved':'Save property'}</button>` : ''}
+          <button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id)?'Added to compare':'Compare'}</button>
+          ${printButtonMarkup('cityPrintPropertyAsideBtn')}
+        </div>
+        <hr style="border:0;border-top:1px solid var(--city-border);margin:25px 0">
+        <h3>${property.contactMode === 'broker' ? 'Contact broker' : 'Open listing'}</h3>
+        ${role === 'guest' ? `<p>Log in to view contacts and inquire.</p><a class="city-button" href="${path('investor-login.php')}">Log in</a>` : broker ? `<p>${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g,''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<p><a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a></p>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`}
+      </section>
+      <section class="city-detail-panel">
+        <h3>Location</h3>
+        <div class="city-map-canvas tw-h-64" id="cityPropertyMap"></div>
+      </section>
+      ${canInquire ? `<details class="city-detail-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation" style="margin:15px 0"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>` : ''}
+      ${investor ? investorTools(property, Boolean(canInquire)) : ''}
+    </aside>
+  </div>
+  ${printFooterMarkup(property)}
+  `;
+
+  filtered = [property];
+  setupMap();
+  setupInvestmentEvaluation(property, config.policy || {});
+
+  // Add nearby business markers to map if map is initialized
+  if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {
+    const bizGroup = L.layerGroup();
+    property.nearbyBusinesses.forEach(biz => {
+      if (!Number.isFinite(Number(biz.lat)) || !Number.isFinite(Number(biz.lng))) return;
+      const marker = L.circleMarker([biz.lat, biz.lng], {
+        radius: 6,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: biz.categoryColor === 'amber' ? '#f59e0b' : (biz.categoryColor === 'blue' ? '#2563eb' : (biz.categoryColor === 'emerald' ? '#10b981' : (biz.categoryColor === 'purple' ? '#9333ea' : '#475569'))),
+        fillOpacity: 0.95
+      });
+      marker.bindPopup(`
+        <div class="city-popup" style="font-family:sans-serif;min-width:180px;">
+          <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(biz.name)}</strong>
+          <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(biz.category)}</span>
+          <span style="font-size:10px;font-weight:700;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#334155;">${esc(biz.distanceFormatted)} &middot; ${esc(biz.walkingFormatted || '')}</span>
+        </div>
+      `);
+      biz._marker = marker;
+      bizGroup.addLayer(marker);
+    });
+    bizGroup.addTo(map);
+  }
+
+  // Wire Print buttons
+  root.querySelectorAll('.city-print-trigger-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.print();
+    });
+  });
+
+  // Wire Map Locate buttons
+  root.querySelectorAll('[data-locate-biz]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.locateBiz);
+      const biz = property.nearbyBusinesses?.[idx];
+      if (biz && map && Number.isFinite(Number(biz.lat)) && Number.isFinite(Number(biz.lng))) {
+        map.setView([biz.lat, biz.lng], 16, { animate: true });
+        if (biz._marker) {
+          biz._marker.openPopup();
+        }
+        document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  });
   const form = document.getElementById('cityInquiryForm');
   if (form) {
     if (existingConversation?.thread) loadConversation(id, existingConversation);

@@ -29,8 +29,8 @@ try {
     $pdo = (new Database($databaseConfig))->pdo();
     $requirements = [
         'site_metrics' => ['metric', 'value', 'updated_at'],
-        'users' => ['department', 'phone', 'address_line', 'profile_image_url', 'privacy_consent_at', 'privacy_consent_version', 'privacy_consent_text'],
-        'seller_profiles' => ['prc_registration_no', 'prc_valid_until', 'application_status', 'review_notes', 'reviewed_by_user_id'],
+        'users' => ['department', 'first_name', 'last_name', 'account_status', 'phone', 'address_line', 'city', 'profession', 'adult_confirmed_at', 'profile_image_url', 'privacy_consent_at', 'privacy_consent_version', 'privacy_consent_text'],
+        'seller_profiles' => ['prc_registration_no', 'prc_canonical_no', 'prc_valid_until', 'application_status', 'review_notes', 'reviewed_by_user_id'],
         'properties' => ['category', 'subcategory', 'assessment_json', 'automatic_assessment_json', 'legacy_assessment_json', 'assessment_tags_json', 'nearby_properties_json', 'contact_mode', 'contact_broker_user_id', 'review_note', 'created_by_user_id'],
     ];
     $pending = [];
@@ -43,8 +43,11 @@ try {
     $index = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'seller_profiles' AND index_name = 'uniq_seller_profiles_prc' AND non_unique = 0");
     $index->execute();
     if ((int) $index->fetchColumn() === 0) { $pending[] = 'Add unique broker PRC index'; }
+    $index = $pdo->prepare("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'seller_profiles' AND index_name = 'uniq_seller_profiles_prc_canonical' AND non_unique = 0");
+    $index->execute();
+    if ((int) $index->fetchColumn() === 0) { $pending[] = 'Add unique canonical broker PRC index'; }
     if (SchemaManager::columnExists($pdo, 'seller_profiles', 'prc_registration_no')) {
-        $duplicates = (int) $pdo->query('SELECT COUNT(*) FROM (SELECT prc_registration_no FROM seller_profiles WHERE prc_registration_no IS NOT NULL GROUP BY prc_registration_no HAVING COUNT(*) > 1) AS duplicates')->fetchColumn();
+        $duplicates = (int) $pdo->query("SELECT COUNT(*) FROM (SELECT CASE WHEN prc_registration_no REGEXP '^[0-9]{1,20}$' THEN COALESCE(NULLIF(TRIM(LEADING '0' FROM prc_registration_no), ''), '0') ELSE prc_registration_no END AS canonical FROM seller_profiles WHERE prc_registration_no IS NOT NULL GROUP BY canonical HAVING COUNT(*) > 1) AS duplicates")->fetchColumn();
         if ($duplicates > 0) { throw new RuntimeException('Duplicate PRC registrations require review before migration. No records were changed.'); }
     }
     if (SchemaManager::tableExists($pdo, 'users')) {

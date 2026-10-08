@@ -5,9 +5,31 @@ const byId = (id) => document.getElementById(id);
 const user = window.SFC_APP_CONFIG?.user || {};
 const basePath = String(window.SFC_APP_CONFIG?.basePath || '').replace(/\/$/, '');
 const categories = JSON.parse(byId('brokerCategoryData')?.textContent || '{}');
-const dialog = byId('brokerListingDialog');
-const form = byId('brokerListingForm');
-const nearby = window.SFCNearby(form.querySelector('[data-nearby-editor]'));
+const editor = document.getElementById('cityPropertyEditor');
+const form = editor?.querySelector('[data-property-form]');
+const apiBase = String(window.SFC_APP_CONFIG?.apiBase || `${basePath}/api`).replace(/\/$/, '');
+let nearby = window.SFCNearby?.(form?.querySelector('[data-nearby-editor]'));
+let automaticAssessment = window.SFCAutomaticAssessment?.(form, { apiBase, dialog: editor });
+let propertyWizard = window.SFCPropertyWizard?.(form, { apiBase, dialog: editor, assessment: automaticAssessment });
+propertyWizard?.setNearby(nearby);
+let locationEditor = propertyWizard || window.SFCAdminLocation?.(form, { apiBase, dialog: editor });
+let editorLastStep = propertyWizard ? 4 : 2;
+let editorStep = 0;
+
+function ensureWizard() {
+  if (!nearby && window.SFCNearby) {
+    nearby = window.SFCNearby(form?.querySelector('[data-nearby-editor]'));
+  }
+  if (!automaticAssessment && window.SFCAutomaticAssessment) {
+    automaticAssessment = window.SFCAutomaticAssessment(form, { apiBase, dialog: editor });
+  }
+  if (!propertyWizard && window.SFCPropertyWizard) {
+    propertyWizard = window.SFCPropertyWizard(form, { apiBase, dialog: editor, assessment: automaticAssessment });
+    propertyWizard?.setNearby(nearby);
+    locationEditor = propertyWizard;
+    editorLastStep = 4;
+  }
+}
 const state = { properties: [], profile: null, threads: [], requests: [], activeThread: null, threadData: null, query: '', filter: 'all' };
 const labels = { approved: 'Accepted', pending_review: 'Pending review', rejected: 'Declined', verified: 'Verified broker', suspended: 'Suspended', draft: 'Complete verification', archived: 'Archived' };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -42,10 +64,30 @@ async function run(button, action) {
 function renderVerification() {
   const profile = state.profile;
   const addButton = byId('brokerAddListing');
+  const heroName = byId('brokerHeroName');
+  if (heroName && (profile?.displayName || profile?.legalName)) {
+    const firstName = window.SFC_APP_CONFIG?.user?.firstName || (profile.legalName || profile.displayName).trim().split(/\s+/)[0];
+    if (firstName) heroName.textContent = firstName;
+  }
   addButton.disabled = !canSubmit();
   addButton.title = canSubmit() ? 'Submit a property for city review' : 'CICTO must verify your broker account first';
   if (!profile) {
-    byId('brokerVerification').innerHTML = '<strong>Verification unavailable</strong><p>Reload to check your account. Listing submission is paused.</p>';
+    byId('brokerVerification').innerHTML = `
+      <div class="broker-verify-badge-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="12" y1="18" x2="12" y2="12"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      <div class="broker-verify-info">
+        <div class="broker-verify-title-row">
+          <span class="broker-verify-pill is-pending">Verification unavailable</span>
+          <strong class="broker-verify-name">${escape(user.name || 'Broker')}</strong>
+        </div>
+        <p class="broker-verify-msg">Reload to check your account. Listing submission is paused.</p>
+      </div>`;
     return;
   }
   const status = profile.applicationStatus === 'verified' && !canSubmit() ? 'draft' : (profile.applicationStatus || 'draft');
@@ -56,74 +98,568 @@ function renderVerification() {
     suspended: 'Contact CICTO about your account status.',
     draft: 'Complete your PRC credentials in your profile for CICTO review.',
   };
-  byId('brokerVerification').innerHTML = `${badge(status)}<strong>${escape(profile.displayName || profile.legalName || user.name)}</strong><a href="${basePath}/profile.php">${['draft', 'rejected'].includes(status) ? 'Complete profile' : 'My profile'} ↗</a><p>${escape(copy[status] || copy.draft)}</p>${profile.reviewNotes ? `<p class="broker-admin-note"><strong>CICTO message</strong> · ${escape(profile.reviewNotes)}</p>` : ''}`;
+  const statusLabels = {
+    verified: 'Verified broker',
+    pending_review: 'Pending review',
+    rejected: 'Declined',
+    suspended: 'Suspended',
+    draft: 'Pending verification'
+  };
+  const displayName = escape(profile.displayName || profile.legalName || user.name || 'Broker');
+  const linkText = ['draft', 'rejected'].includes(status) ? 'Complete profile' : 'My profile';
+
+  byId('brokerVerification').innerHTML = `
+    <div class="broker-verify-badge-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <circle cx="12" cy="15" r="3"></circle>
+        <polyline points="12 14 12 15 13 15"></polyline>
+      </svg>
+    </div>
+    <div class="broker-verify-info">
+      <div class="broker-verify-title-row">
+        <span class="broker-verify-pill is-${escape(status)}">${escape(statusLabels[status] || status)}</span>
+        <strong class="broker-verify-name">${displayName}</strong>
+      </div>
+      <p class="broker-verify-msg">${escape(copy[status] || copy.draft)}</p>
+      ${profile.reviewNotes ? `<p class="broker-admin-note"><strong>CICTO message</strong> · ${escape(profile.reviewNotes)}</p>` : ''}
+    </div>
+    <a class="broker-verify-link" href="${basePath}/profile.php">${linkText} &rarr;</a>
+  `;
+}
+
+function sparklineSvg(color) {
+  const hexMap = {
+    emerald: '#10b981',
+    rose: '#ef4444',
+    amber: '#f59e0b',
+    blue: '#3b82f6',
+  };
+  const hex = hexMap[color] || '#3b82f6';
+  const gradId = `kpiWave_${color}`;
+  return `
+    <svg class="broker-kpi-wave" viewBox="0 0 120 40" fill="none" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${hex}" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="${hex}" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <path d="M0,32 C28,32 38,20 62,23 C86,26 96,8 120,6 L120,40 L0,40 Z" fill="url(#${gradId})"/>
+      <path d="M0,32 C28,32 38,20 62,23 C86,26 96,8 120,6" stroke="${hex}" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
 }
 
 function renderStats() {
   const properties = ownProperties();
-  const counts = [
-    ['Accepted', properties.filter((property) => property.approvalState === 'approved').length],
-    ['Declined', properties.filter((property) => property.approvalState === 'rejected').length],
-    ['Pending', properties.filter((property) => property.approvalState === 'pending_review').length],
-    ['Investor saves', properties.reduce((sum, property) => sum + Number(property.saveCount || 0), 0)],
+  const stats = [
+    {
+      key: 'approved',
+      label: 'Accepted',
+      value: properties.filter((p) => p.approvalState === 'approved').length,
+      desc: 'Listings approved and live',
+      color: 'emerald',
+      icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+    },
+    {
+      key: 'rejected',
+      label: 'Declined',
+      value: properties.filter((p) => p.approvalState === 'rejected').length,
+      desc: 'Listings not approved',
+      color: 'rose',
+      icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+    },
+    {
+      key: 'pending_review',
+      label: 'Pending',
+      value: properties.filter((p) => p.approvalState === 'pending_review').length,
+      desc: 'Under city review',
+      color: 'amber',
+      icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+    },
+    {
+      key: 'saves',
+      label: 'Investor saves',
+      value: properties.reduce((sum, p) => sum + Number(p.saveCount || 0), 0),
+      desc: 'Saved by potential investors',
+      color: 'blue',
+      icon: `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>`
+    }
   ];
-  byId('brokerStats').innerHTML = counts.map(([label, value], index) => `<article class="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-5"><span class="tw-text-xs tw-text-slate-500">${label}</span><strong class="tw-text-2xl tw-font-semibold ${index === 0 ? 'tw-text-emerald-700' : index === 2 ? 'tw-text-amber-700' : 'tw-text-[#11224d]'}">${number(value)}</strong></article>`).join('');
+
+  byId('brokerStats').innerHTML = stats.map((stat) => `
+    <article class="broker-kpi-card is-${stat.color}">
+      <div class="broker-kpi-head">
+        <div class="broker-kpi-icon is-${stat.color}">${stat.icon}</div>
+        <span class="broker-kpi-label">${stat.label}</span>
+      </div>
+      <strong class="broker-kpi-value">${number(stat.value)}</strong>
+      <span class="broker-kpi-desc">${stat.desc}</span>
+      <div class="broker-kpi-wave-wrap">
+        ${sparklineSvg(stat.color)}
+      </div>
+    </article>
+  `).join('');
+
   byId('brokerListingCount').textContent = String(properties.length);
 }
 
 function score(property, key) {
   const value = property[`${key}Score`];
   const rank = property[`${key}Rank`];
-  return `<span class="broker-score" title="${key === 'mce' ? 'Multi-Criteria Evaluation' : 'Investment Attractiveness Index'}">${key.toUpperCase()} <strong>${value === null || value === undefined ? 'Pending' : `${number(value)}/100`}</strong>${rank ? ` · #${number(rank)}` : ''}</span>`;
+  return `<span class="broker-score-pill" title="${key === 'mce' ? 'Multi-Criteria Evaluation' : 'Investment Attractiveness Index'}">${key.toUpperCase()} <strong>${value === null || value === undefined ? 'Pending' : `${number(value)}/100`}</strong>${rank ? ` · #${number(rank)}` : ''}</span>`;
 }
 
 function renderListings() {
   const own = ownProperties();
   const properties = own.filter((property) => (state.filter === 'all' || property.approvalState === state.filter) && [property.name, property.barangay, property.category, property.subcategory].join(' ').toLowerCase().includes(state.query));
   byId('brokerListings').innerHTML = properties.length ? properties.map((property) => `
-    <article class="broker-listing !tw-rounded-xl !tw-border tw-border-slate-200 !tw-bg-white !tw-p-4 tw-mt-3" data-broker-property="${Number(property.id)}">
+    <article class="broker-listing" data-broker-property="${Number(property.id)}">
       <img class="broker-listing-photo" src="${escape(property.imageUrl || `${basePath}/assets/images/Property10.png`)}" alt="" loading="lazy">
       <div>
-        <div class="broker-listing-title"><a href="${basePath}/property-details.php?id=${Number(property.id)}">${escape(property.name)}</a>${badge(property.approvalState || 'pending_review')}</div>
+        <div class="broker-listing-title">
+          <a href="${basePath}/property-details.php?id=${Number(property.id)}">${escape(property.name)}</a>
+          ${badge(property.approvalState || 'pending_review')}
+        </div>
         <p class="broker-listing-location">${escape([property.barangay, property.subcategory || property.category].filter(Boolean).join(' · '))}</p>
-        <div class="broker-listing-meta"><span>${money(property.price)}</span><span>${number(property.area)} ha</span><span>${number(property.saveCount)} saved</span>${score(property, 'mce')}${score(property, 'iai')}</div>
+        <div class="broker-listing-meta">
+          <span><strong>${money(property.price)}</strong></span>
+          <span>${number(property.area)} ha</span>
+          <span>${number(property.saveCount)} saved</span>
+          ${score(property, 'mce')}
+          ${score(property, 'iai')}
+        </div>
         ${property.reviewNote ? `<p class="broker-review-note"><strong>CICTO message</strong> · ${escape(property.reviewNote)}</p>` : ''}
       </div>
-      <div class="broker-listing-action"><a class="broker-button" href="${basePath}/property-details.php?id=${Number(property.id)}">View</a><button class="broker-button" data-broker-edit="${Number(property.id)}" ${canSubmit() ? '' : 'disabled'}>Edit</button></div>
-    </article>`).join('') : own.length ? '<p class="broker-empty">No matching listings. Try a different search or status.</p>' : `<div class="tw-my-6 tw-rounded-xl tw-border tw-border-dashed tw-border-slate-200 tw-bg-slate-50 tw-px-5 tw-py-10 tw-text-center"><div class="tw-mx-auto tw-mb-4 tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-xl tw-border tw-border-amber-200 tw-bg-amber-50 tw-text-xl tw-text-amber-800" aria-hidden="true">+</div><h3 class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">Your next opportunity starts here</h3><p class="tw-mb-0 tw-mt-2 tw-text-sm tw-text-slate-500">${canSubmit() ? 'Add a property with its location, price, and a clear photo.' : 'Complete broker verification to start submitting properties.'}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-slate-400">Submit a listing → City review → Reach investors</p></div>`;
+      <div class="broker-listing-action">
+        <a class="broker-button" href="${basePath}/property-details.php?id=${Number(property.id)}">View</a>
+        <button class="broker-button" data-broker-edit="${Number(property.id)}" ${canSubmit() ? '' : 'disabled'}>Edit</button>
+      </div>
+    </article>`).join('') : own.length ? '<p class="broker-empty">No matching listings. Try a different search or status.</p>' : `
+    <div class="broker-empty-opportunity">
+      <svg class="broker-empty-illus" width="160" height="88" viewBox="0 0 160 88" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M28 32 C28 26 33 22 39 22 C43 22 47 24 49 27 C51 26 53 25 56 25 C61 25 65 29 65 34 C65 34 66 34 67 34 C70 34 72 36 72 39 C72 42 70 44 67 44 L28 44 C24 44 21 41 21 37 C21 34 24 32 28 32 Z" fill="#EEF2F6" opacity="0.8"/>
+        <path d="M106 28 C106 24 110 20 114 20 C117 20 120 22 121 24 C123 23 125 22 127 22 C131 22 134 25 134 29 C134 29 135 29 136 29 C138 29 140 31 140 33 C140 36 138 38 136 38 L106 38 C103 38 100 35 100 32 C100 30 102 28 106 28 Z" fill="#EEF2F6" opacity="0.8"/>
+        <ellipse cx="44" cy="54" rx="9" ry="15" fill="#CBD5E1"/>
+        <rect x="42.5" y="62" width="3" height="12" fill="#94A3B8"/>
+        <ellipse cx="120" cy="56" rx="8" ry="13" fill="#CBD5E1"/>
+        <rect x="119" y="63" width="2" height="11" fill="#94A3B8"/>
+        <line x1="16" y1="74" x2="144" y2="74" stroke="#E2E8F0" stroke-width="2" stroke-linecap="round"/>
+        <path d="M62 74 L62 48 L80 34 L98 48 L98 74 Z" fill="#FFFFFF" stroke="#94A3B8" stroke-width="2.5" stroke-linejoin="round"/>
+        <rect x="74" y="58" width="12" height="16" rx="2" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.8"/>
+        <rect x="76" y="44" width="8" height="8" rx="1.5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.8"/>
+        <circle cx="98" cy="34" r="11" fill="#FEF3C7" stroke="#FDE68A" stroke-width="2"/>
+        <path d="M98 29 L98 39 M93 34 L103 34" stroke="#D97706" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h3 class="broker-empty-title">Your next opportunity starts here</h3>
+      <p class="broker-empty-subtitle">
+        ${canSubmit() ? 'Add property details to start connecting with investors.' : 'Complete broker verification to start submitting properties and connect with investors.'}
+      </p>
+      <div class="broker-stepper">
+        <div class="broker-step">
+          <div class="broker-step-num">1</div>
+          <div class="broker-step-label">Submit listing</div>
+          <div class="broker-step-sub">Add property details</div>
+        </div>
+        <div class="broker-step-line"></div>
+        <div class="broker-step">
+          <div class="broker-step-num">2</div>
+          <div class="broker-step-label">City review</div>
+          <div class="broker-step-sub">CICTO assesses your listing</div>
+        </div>
+        <div class="broker-step-line"></div>
+        <div class="broker-step">
+          <div class="broker-step-num">3</div>
+          <div class="broker-step-label">Reach investors</div>
+          <div class="broker-step-sub">Get discovered by interested buyers</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setEditorStep(step) {
+  ensureWizard();
+  editorStep = step;
+  form?.querySelectorAll('[data-editor-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.editorPanel) !== step; });
+  form?.querySelectorAll('[data-editor-step]').forEach((button) => {
+    const active = Number(button.dataset.editorStep) === step;
+    button.setAttribute('aria-current', active ? 'step' : 'false');
+    button.classList.toggle('is-active', active);
+    button.classList.toggle('is-complete', Number(button.dataset.editorStep) < step);
+  });
+  const backBtn = form?.querySelector('[data-editor-back]');
+  if (backBtn) {
+    backBtn.disabled = step === 0;
+    backBtn.classList.toggle('tw-opacity-40', step === 0);
+  }
+  const nextBtn = form?.querySelector('[data-editor-next]');
+  if (nextBtn) nextBtn.hidden = step === editorLastStep;
+  const submitBtn = form?.querySelector('[type="submit"]');
+  if (submitBtn) submitBtn.hidden = step !== editorLastStep;
+  const progressText = form?.querySelector('[data-editor-progress]');
+  if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
+  if (propertyWizard && nextBtn) {
+    nextBtn.textContent = ['Continue to boundary →', 'Save boundary & continue →', 'Save & continue →', 'Continue to review →'][step] || 'Continue →';
+  }
+  if (editor) editor.scrollTop = 0;
+  if (propertyWizard) propertyWizard.onStep(step);
+  else {
+    if (step === 2) automaticAssessment?.refresh();
+    if (step === 1) locationEditor?.sync();
+  }
+}
+
+function validateEditor(container = form) {
+  if (!container) return true;
+  const invalid = Array.from(container.querySelectorAll('input,select,textarea')).find((field) => !field.disabled && !field.checkValidity());
+  if (!invalid) return true;
+  const panel = invalid.closest('[data-editor-panel]');
+  if (panel) setEditorStep(Number(panel.dataset.editorPanel));
+  const disclosure = invalid.closest('details');
+  if (disclosure) disclosure.open = true;
+  const evidencePanel = invalid.closest('[data-evidence-panel]');
+  if (evidencePanel) form.querySelector(`[data-evidence-tab="${evidencePanel.dataset.evidencePanel}"]`)?.click();
+  invalid.focus();
+  invalid.reportValidity();
+  return false;
+}
+
+function validateBoundary() {
+  if (!propertyWizard || propertyWizard.validateBoundary()) return true;
+  setEditorStep(1);
+  return false;
+}
+
+form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
+  if (!validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) return;
+  if (editorStep === 1 && !validateBoundary()) return;
+  if (editorStep === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
+  setEditorStep(Math.min(editorLastStep, editorStep + 1));
+});
+form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
+  const target = Number(button.dataset.editorStep);
+  for (let step = 0; step < target; step++) {
+    if (!validateEditor(form.querySelector(`[data-editor-panel="${step}"]`))) return;
+    if (step === 1 && !validateBoundary()) return;
+    if (step === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
+  }
+  setEditorStep(target);
+}));
+
+const priceInput = form?.querySelector('[data-price-input]');
+function formatPriceField(input) {
+  if (!input) return;
+  const original = input.value;
+  const cursorPos = input.selectionStart || 0;
+  const digitsBeforeCursor = original.slice(0, cursorPos).replace(/\D/g, '').length;
+  const raw = original.replace(/\D/g, '');
+  if (!raw) {
+    input.value = '';
+    return;
+  }
+  const formatted = Number(raw).toLocaleString('en-US');
+  input.value = formatted;
+  let newCursorPos = 0;
+  let digitsFound = 0;
+  for (let i = 0; i < formatted.length; i++) {
+    if (/\d/.test(formatted[i])) digitsFound++;
+    if (digitsFound === digitsBeforeCursor) {
+      newCursorPos = i + 1;
+      break;
+    }
+  }
+  if (digitsBeforeCursor === 0) newCursorPos = 0;
+  if (digitsFound < digitsBeforeCursor) newCursorPos = formatted.length;
+  try { input.setSelectionRange(newCursorPos, newCursorPos); } catch {}
+}
+priceInput?.addEventListener('input', () => formatPriceField(priceInput));
+
+const areaInput = form?.querySelector('[data-area-input]');
+const areaUnit = form?.querySelector('[data-area-unit]');
+const areaCalc = form?.querySelector('[data-area-calc]');
+
+function updateAreaCalculation() {
+  if (!areaInput || !areaUnit || !areaCalc) return;
+  const rawVal = parseFloat(areaInput.value);
+  const unit = areaUnit.value;
+  areaInput.min = unit === 'sqm' ? '1' : '0.0001';
+  areaInput.step = unit === 'sqm' ? '1' : '0.0001';
+  if (isNaN(rawVal) || rawVal <= 0) {
+    areaCalc.textContent = 'Calculated: —';
+    return;
+  }
+  if (unit === 'sqm') {
+    const hectares = rawVal / 10000;
+    const formattedHa = Number(hectares.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const label = hectares === 1 ? 'hectare' : 'hectares';
+    areaCalc.textContent = `Calculated: ${formattedHa} ${label}`;
+  } else {
+    const sqm = rawVal * 10000;
+    const formattedSqm = Number(sqm.toFixed(2)).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    areaCalc.textContent = `Calculated: ${formattedSqm} sqm`;
+  }
+}
+areaInput?.addEventListener('input', updateAreaCalculation);
+areaUnit?.addEventListener('change', updateAreaCalculation);
+
+const subcatWrapper = form?.querySelector('[data-subcategory-wrapper]');
+const subcatTrigger = subcatWrapper?.querySelector('[data-subcategory-trigger]');
+const subcatPopover = subcatWrapper?.querySelector('[data-subcategory-popover]');
+const subcatGrid = subcatWrapper?.querySelector('[data-subcategory-grid]');
+const subcatTriggerText = subcatWrapper?.querySelector('[data-subcategory-trigger-text]');
+const subcatCount = subcatWrapper?.querySelector('[data-subcategory-count]');
+const subcatTags = subcatWrapper?.querySelector('[data-subcategory-tags]');
+const subcatInput = subcatWrapper?.querySelector('[data-subcategory-input]');
+const subcatCaret = subcatWrapper?.querySelector('[data-subcategory-caret]');
+let selectedSubcategories = new Set();
+
+function toggleSubcatPopover(open = null) {
+  if (!subcatPopover || !subcatTrigger) return;
+  const isOpen = open !== null ? open : subcatPopover.classList.contains('tw-hidden');
+  subcatPopover.classList.toggle('tw-hidden', !isOpen);
+  subcatTrigger.setAttribute('aria-expanded', String(isOpen));
+  if (subcatCaret) subcatCaret.classList.toggle('tw-rotate-180', isOpen);
+}
+
+subcatTrigger?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleSubcatPopover();
+});
+
+document.addEventListener('click', (e) => {
+  if (subcatWrapper && !subcatWrapper.contains(e.target)) {
+    toggleSubcatPopover(false);
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && subcatPopover && !subcatPopover.classList.contains('tw-hidden')) {
+    toggleSubcatPopover(false);
+    subcatTrigger?.focus();
+  }
+});
+
+function renderSubcategoryTags() {
+  if (!subcatTags || !subcatInput || !subcatTriggerText || !subcatCount) return;
+  const list = Array.from(selectedSubcategories);
+  subcatInput.value = list.join(', ');
+  subcatInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+  if (list.length === 0) {
+    subcatTriggerText.textContent = 'Select subcategories...';
+    subcatTriggerText.className = 'tw-truncate tw-text-sm tw-text-slate-500';
+    subcatCount.textContent = 'Optional · multi-select';
+    subcatTags.innerHTML = '';
+    return;
+  }
+
+  subcatTriggerText.textContent = list.length === 1 ? list[0] : `${list[0]}, ${list[1] || ''}${list.length > 2 ? ` (+${list.length - 2} more)` : ''}`.replace(',  ', ' ');
+  subcatTriggerText.className = 'tw-truncate tw-text-sm tw-font-medium tw-text-[#11224d]';
+  subcatCount.textContent = `${list.length} selected`;
+
+  subcatTags.innerHTML = list.map((tag) => `
+    <span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-px-2.5 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-900 tw-border tw-border-amber-200/80">
+      ${escape(tag)}
+      <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">×</button>
+    </span>
+  `).join('');
+
+  subcatTags.querySelectorAll('[data-remove-subcat]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = btn.dataset.removeSubcat;
+      selectedSubcategories.delete(tag);
+      const checkbox = subcatGrid?.querySelector(`input[value="${CSS.escape(tag)}"]`);
+      if (checkbox) checkbox.checked = false;
+      renderSubcategoryTags();
+    });
+  });
 }
 
 function updateSubcategories(selected = '') {
-  const options = categories[byId('brokerCategory').value] || [];
-  const select = byId('brokerSubcategory');
-  select.innerHTML = `<option value="">${options.length ? 'Select subcategory' : 'No subcategory'}</option>${options.map((option) => `<option value="${escape(option)}">${escape(option)}</option>`).join('')}`;
-  select.value = selected;
-  select.disabled = !options.length;
+  if (!subcatGrid) return;
+  const categoryVal = form?.elements?.category?.value || 'Land';
+  const options = categories[categoryVal] || [];
+
+  if (Array.isArray(selected)) {
+    selectedSubcategories = new Set(selected.filter(Boolean));
+  } else if (typeof selected === 'string' && selected.trim()) {
+    selectedSubcategories = new Set(selected.split(',').map((s) => s.trim()).filter(Boolean));
+  } else {
+    selectedSubcategories = new Set();
+  }
+
+  if (options.length > 0) {
+    selectedSubcategories = new Set(Array.from(selectedSubcategories).filter((tag) => options.includes(tag)));
+  } else {
+    selectedSubcategories.clear();
+  }
+
+  if (options.length === 0) {
+    subcatGrid.innerHTML = '<p class="tw-col-span-full tw-py-3 tw-text-center tw-text-xs tw-text-slate-400">No subcategories for this category.</p>';
+    if (subcatTrigger) {
+      subcatTrigger.disabled = true;
+      subcatTrigger.classList.add('tw-opacity-60', 'tw-cursor-not-allowed');
+    }
+  } else {
+    if (subcatTrigger) {
+      subcatTrigger.disabled = false;
+      subcatTrigger.classList.remove('tw-opacity-60', 'tw-cursor-not-allowed');
+    }
+    subcatGrid.innerHTML = options.map((item) => {
+      const isChecked = selectedSubcategories.has(item);
+      return `
+        <label class="tw-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-rounded-lg tw-border tw-border-slate-100 tw-bg-slate-50/60 tw-px-2.5 tw-py-2 tw-text-xs tw-font-medium tw-text-[#11224d] hover:tw-border-amber-200 hover:tw-bg-amber-50/40 tw-transition-colors">
+          <input type="checkbox" value="${escape(item)}" class="tw-h-3.5 tw-w-3.5 tw-rounded tw-border-slate-300 tw-accent-[#11224d]" ${isChecked ? 'checked' : ''}>
+          <span class="tw-truncate">${escape(item)}</span>
+        </label>
+      `;
+    }).join('');
+
+    subcatGrid.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) {
+          selectedSubcategories.add(checkbox.value);
+        } else {
+          selectedSubcategories.delete(checkbox.value);
+        }
+        renderSubcategoryTags();
+      });
+    });
+  }
+
+  renderSubcategoryTags();
 }
+
+subcatWrapper?.querySelector('[data-subcategory-select-all]')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const options = categories[form?.elements?.category?.value] || [];
+  options.forEach((opt) => selectedSubcategories.add(opt));
+  subcatGrid?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
+  renderSubcategoryTags();
+});
+
+subcatWrapper?.querySelector('[data-subcategory-clear-all]')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  selectedSubcategories.clear();
+  subcatGrid?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
+  renderSubcategoryTags();
+});
+
+form?.elements?.category?.addEventListener('change', () => updateSubcategories());
 
 function openListing(property = null) {
   if (!canSubmit()) return;
+  if (!form || !editor) return;
+  ensureWizard();
   form.reset();
-  const contact = property?.ownerContact || {};
-  const values = {
-    propertyId: property?.id || '', property_name: property?.name || '', category: property?.category || 'Retail',
-    barangay: property?.barangay || '', city: property?.city || 'San Fernando, La Union', price: property?.price ?? '',
-    land_area: property ? Math.round(property.area * 10000) : '', description: property?.description || '', latitude: property?.lat ?? '', longitude: property?.lng ?? '',
-    corridor: property?.corridor || 'highway', status: property?.status || 'Available', owner_name: contact.name || state.profile?.legalName || user.name || '',
-    owner_email: contact.email || user.email || '', owner_phone: contact.phone || state.profile?.phone || '', contactMode: property?.contactMode || 'broker',
-  };
-  Object.entries(values).forEach(([key, value]) => { if (form.elements.namedItem(key)) form.elements.namedItem(key).value = value; });
-  updateSubcategories(property?.subcategory || '');
-  byId('brokerModalTitle').textContent = property ? 'Edit listing' : 'Submit listing';
-  byId('brokerFormError').hidden = true;
-  nearby.set(property?.nearbyProperties || []);
-  form.querySelectorAll('details').forEach((details) => { details.open = false; });
-  dialog.showModal();
+  toggleSubcatPopover(false);
+
+  form.elements.id.value = property?.id || '';
+  const titleEl = editor.querySelector('#cityEditorTitle');
+  if (titleEl) titleEl.textContent = property ? 'Edit listing' : 'Submit listing';
+  const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
+  if (breadcrumb) breadcrumb.textContent = property ? 'Edit listing' : 'Submit listing';
+
+  const brokerName = state.profile?.displayName || state.profile?.legalName || user.name || 'Broker';
+  const brokerPhone = state.profile?.phone || user.phone || '';
+  const brokerId = user.id ? String(user.id) : '';
+
+  if (form.elements.contactBrokerUserId) {
+    form.elements.contactBrokerUserId.innerHTML = `
+      <option value="${escape(brokerId)}">Contact me (${escape(brokerName)})${brokerPhone ? ` · ${escape(brokerPhone)}` : ''}</option>
+      <option value="">Open listing · City contact</option>
+    `;
+  }
+
+  if (property) {
+    const values = {
+      property_name: property.name,
+      category: property.category,
+      barangay: property.barangay,
+      status: property.status || 'Available',
+      lat: property.lat,
+      lng: property.lng,
+      description: property.description,
+      owner_name: property.ownerContact?.name || brokerName,
+      owner_phone: property.ownerContact?.phone || brokerPhone,
+      owner_email: property.ownerContact?.email || user.email || '',
+      contactBrokerUserId: property.contactBrokerUserId !== undefined && property.contactBrokerUserId !== null ? String(property.contactBrokerUserId) : brokerId,
+      readiness_notes: property.readinessNotes,
+      existing_land_use: property.existingLandUse,
+      zoning_classification: property.zoningClassification,
+      clup_source_reference: property.clupSourceReference,
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      if (form.elements[name]) form.elements[name].value = value ?? '';
+    });
+    if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
+    if (areaInput && areaUnit) {
+      areaUnit.value = 'sqm';
+      areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : Math.round((property.area || 0) * 10000 * 100) / 100;
+      updateAreaCalculation();
+    }
+    updateSubcategories(property.subcategory || '');
+    form.querySelectorAll('[name="assessmentTags[]"]').forEach((field) => {
+      field.checked = (property.assessmentTags || []).includes(field.value);
+    });
+  } else {
+    form.elements.category.value = 'Land';
+    if (priceInput) priceInput.value = '';
+    if (areaInput && areaUnit) {
+      areaUnit.value = 'sqm';
+      areaInput.value = '';
+      updateAreaCalculation();
+    }
+    updateSubcategories();
+    form.elements.lat.value = '';
+    form.elements.lng.value = '';
+    form.elements.owner_name.value = brokerName;
+    form.elements.owner_phone.value = brokerPhone;
+    form.elements.owner_email.value = user.email || '';
+    if (form.elements.contactBrokerUserId) form.elements.contactBrokerUserId.value = brokerId;
+  }
+
+  const msgNode = form.querySelector('[data-editor-message]');
+  if (msgNode) {
+    msgNode.textContent = '';
+    msgNode.className = 'pw-form-message';
+  }
+
+  nearby?.set(property?.nearbyProperties || []);
+  automaticAssessment?.setProperty(property);
+  const restored = propertyWizard?.setProperty(property);
+  if (restored?.nearby) nearby?.set(restored.nearby);
+  if (restored?.values?.subcategory) updateSubcategories(restored.values.subcategory);
+  updateAreaCalculation();
+  setEditorStep(0);
+  editor.showModal();
+  form.elements.property_name.focus();
 }
 
 function renderThreads() {
   byId('brokerMessageCount').textContent = String(state.threads.length);
-  byId('brokerThreadList').innerHTML = state.threads.length ? state.threads.map((thread) => `<button type="button" class="broker-thread-button ${Number(thread.id) === Number(state.activeThread) ? 'is-active' : ''}" data-broker-thread="${Number(thread.id)}"><strong>${escape(thread.propertyName)}</strong><span>${escape(thread.investorName || 'Investor')}</span></button>`).join('') : '<p class="broker-empty">No messages yet.</p>';
+  byId('brokerThreadList').innerHTML = state.threads.length ? state.threads.map((thread) => `
+    <button type="button" class="broker-thread-button ${Number(thread.id) === Number(state.activeThread) ? 'is-active' : ''}" data-broker-thread="${Number(thread.id)}">
+      <strong>${escape(thread.propertyName)}</strong>
+      <span>${escape(thread.investorName || 'Investor')}</span>
+    </button>`).join('') : `
+    <div class="broker-sidebar-empty">
+      <svg class="broker-sidebar-empty-illus" width="70" height="56" viewBox="0 0 70 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="22" y="8" width="40" height="26" rx="8" fill="#EEF2F6" stroke="#CBD5E1" stroke-width="1.5"/>
+        <path d="M28 34 L25 40 L34 34 Z" fill="#EEF2F6" stroke="#CBD5E1" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="34" cy="21" r="2" fill="#94A3B8"/>
+        <circle cx="42" cy="21" r="2" fill="#94A3B8"/>
+        <circle cx="50" cy="21" r="2" fill="#94A3B8"/>
+        <circle cx="20" cy="36" r="12" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+        <circle cx="20" cy="32" r="4.5" fill="#94A3B8"/>
+        <path d="M12 44 C12 40 16 38 20 38 C24 38 28 40 28 44" fill="#94A3B8"/>
+      </svg>
+      <strong class="broker-sidebar-empty-title">No new messages yet</strong>
+      <p class="broker-sidebar-empty-sub">Investor inquiries and site visit requests will appear here.</p>
+    </div>`;
 }
 
 function visitWindow(window) {
@@ -146,9 +682,40 @@ function renderThread() {
   const thread = data?.thread || state.threads.find((item) => Number(item.id) === Number(state.activeThread));
   if (!thread) return;
   const messages = data?.messages || [];
-  byId('brokerThreadView').innerHTML = `<div class="broker-conversation-heading"><strong>${escape(thread.propertyName)}</strong> · ${escape(thread.investorName || 'Investor')}</div>${renderVisit(data?.visit)}<div class="broker-bubbles">${messages.length ? messages.map((message) => `<div class="broker-bubble ${Number(message.senderUserId) === Number(user.id) ? 'is-own' : ''}"><small>${escape(message.senderName)}${message.role === 'admin' ? ' · City administrator' : ''} · ${escape(date(message.createdAt))}</small>${escape(message.text)}</div>`).join('') : '<p class="broker-empty">No messages yet.</p>'}</div><form class="broker-reply" id="brokerReplyForm"><label class="broker-sr-only" for="brokerReplyText">Message</label><textarea id="brokerReplyText" name="text" rows="2" placeholder="Write a reply" required maxlength="5000"></textarea><button class="broker-button is-primary" type="submit">Send</button></form>`;
-  const bubbles = byId('brokerThreadView').querySelector('.broker-bubbles');
-  bubbles.scrollTop = bubbles.scrollHeight;
+  const view = byId('brokerThreadView');
+  view.hidden = false;
+  view.innerHTML = `
+    <div class="broker-conversation-heading">
+      <div>
+        <button type="button" class="broker-button" id="brokerBackToThreads" style="min-height:28px;padding:3px 8px;font-size:11px;margin-right:6px;">&larr; Back</button>
+        <strong>${escape(thread.propertyName)}</strong> &middot; <span class="tw-text-slate-500">${escape(thread.investorName || 'Investor')}</span>
+      </div>
+    </div>
+    ${renderVisit(data?.visit)}
+    <div class="broker-bubbles">
+      ${messages.length ? messages.map((message) => `
+        <div class="broker-bubble ${Number(message.senderUserId) === Number(user.id) ? 'is-own' : ''}">
+          <small>${escape(message.senderName)}${message.role === 'admin' ? ' · City administrator' : ''} · ${escape(date(message.createdAt))}</small>
+          ${escape(message.text)}
+        </div>
+      `).join('') : '<p class="broker-empty">No messages yet.</p>'}
+    </div>
+    <form class="broker-reply" id="brokerReplyForm">
+      <label class="broker-sr-only" for="brokerReplyText">Message</label>
+      <textarea id="brokerReplyText" name="text" rows="2" placeholder="Write a reply" required maxlength="5000"></textarea>
+      <button class="broker-button is-primary" type="submit">Send</button>
+    </form>
+  `;
+  const backBtn = byId('brokerBackToThreads');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      view.hidden = true;
+      state.activeThread = null;
+      renderThreads();
+    });
+  }
+  const bubbles = view.querySelector('.broker-bubbles');
+  if (bubbles) bubbles.scrollTop = bubbles.scrollHeight;
 }
 
 async function openThread(threadId) {
@@ -160,8 +727,34 @@ async function openThread(threadId) {
 }
 
 function renderDocuments() {
-  byId('brokerDocumentCount').textContent = String(state.requests.filter((request) => ['requested', 'in_review'].includes(request.status)).length);
-  byId('brokerDocumentList').innerHTML = state.requests.length ? state.requests.map((request) => `<article class="broker-document"><strong>${escape(request.documentName)}</strong><p>${escape(request.propertyName)} · ${escape(request.requesterName)}</p>${request.note ? `<p>${escape(request.note)}</p>` : ''}<form class="broker-document-form" data-broker-document="${Number(request.id)}"><label><span class="broker-sr-only">Request status</span><select name="status">${Object.entries({ requested: 'Requested', in_review: 'In review', fulfilled: 'Fulfilled', declined: 'Declined' }).map(([value, label]) => `<option value="${value}" ${value === request.status ? 'selected' : ''}>${label}</option>`).join('')}</select></label><label><span class="broker-sr-only">Response note</span><input name="responseNote" value="${escape(request.responseNote || '')}" placeholder="Response note" maxlength="2000"></label><button type="submit" class="broker-button">Update</button></form></article>`).join('') : '<p class="broker-empty">No document requests.</p>';
+  const activeCount = state.requests.filter((request) => ['requested', 'in_review'].includes(request.status)).length;
+  byId('brokerDocumentCount').textContent = String(activeCount);
+  byId('brokerDocumentList').innerHTML = state.requests.length ? state.requests.map((request) => `
+    <article class="broker-document">
+      <strong>${escape(request.documentName)}</strong>
+      <p>${escape(request.propertyName)} · ${escape(request.requesterName)}</p>
+      ${request.note ? `<p>${escape(request.note)}</p>` : ''}
+      <form class="broker-document-form" data-broker-document="${Number(request.id)}">
+        <label><span class="broker-sr-only">Request status</span>
+          <select name="status">${Object.entries({ requested: 'Requested', in_review: 'In review', fulfilled: 'Fulfilled', declined: 'Declined' }).map(([value, label]) => `<option value="${value}" ${value === request.status ? 'selected' : ''}>${label}</option>`).join('')}</select>
+        </label>
+        <label><span class="broker-sr-only">Response note</span>
+          <input name="responseNote" value="${escape(request.responseNote || '')}" placeholder="Response note" maxlength="2000">
+        </label>
+        <button type="submit" class="broker-button">Update</button>
+      </form>
+    </article>`).join('') : `
+    <div class="broker-sidebar-empty">
+      <svg class="broker-sidebar-empty-illus" width="70" height="56" viewBox="0 0 70 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="18" y="10" width="28" height="36" rx="4" transform="rotate(-6 18 10)" fill="#EEF2F6" stroke="#CBD5E1" stroke-width="1.5"/>
+        <rect x="25" y="8" width="28" height="36" rx="4" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+        <line x1="30" y1="17" x2="48" y2="17" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
+        <line x1="30" y1="23" x2="48" y2="23" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
+        <line x1="30" y1="29" x2="42" y2="29" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <strong class="broker-sidebar-empty-title">No document requests</strong>
+      <p class="broker-sidebar-empty-sub">We'll notify you if CICTO needs additional documents during your review.</p>
+    </div>`;
 }
 
 async function reload() {
@@ -216,52 +809,71 @@ async function revealLinkedTarget() {
 }
 
 byId('brokerAddListing').addEventListener('click', () => openListing());
-byId('brokerCloseDialog').addEventListener('click', () => dialog.close());
-byId('brokerCancelDialog').addEventListener('click', () => dialog.close());
-byId('brokerCategory').addEventListener('change', () => updateSubcategories());
 byId('brokerSearch').addEventListener('input', (event) => { state.query = event.target.value.trim().toLowerCase(); renderListings(); });
 byId('brokerStatusFilter').addEventListener('change', (event) => { state.filter = event.target.value; renderListings(); });
 byId('brokerListings').addEventListener('click', (event) => {
   const button = event.target.closest('[data-broker-edit]');
   if (button) openListing(ownProperties().find((property) => Number(property.id) === Number(button.dataset.brokerEdit)));
 });
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('button');
+  if (!target) return;
+  if (target.hasAttribute('data-close-dialog')) target.closest('dialog')?.close();
+});
 
-form.addEventListener('submit', async (event) => {
+form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!canSubmit()) return;
-  const invalid = Array.from(form.querySelectorAll('input,select,textarea')).find((field) => !field.disabled && !field.checkValidity());
-  if (invalid) {
-    const details = invalid.closest('details');
-    if (details) details.open = true;
-    invalid.focus();
-    invalid.reportValidity();
+  ensureWizard();
+  if (editorStep !== editorLastStep) {
+    form.querySelector('[data-editor-next]').click();
     return;
   }
-  const button = byId('brokerSubmitListing');
-  const errorNode = byId('brokerFormError');
-  button.disabled = true;
-  errorNode.hidden = true;
+  if (!validateEditor() || !validateBoundary()) return;
+  if (propertyWizard && !propertyWizard.validateSurroundings()) {
+    setEditorStep(3);
+    return;
+  }
+  const submit = form.querySelector('[type="submit"]');
+  submit.disabled = true;
+  const id = form.elements.id.value;
+  const payload = new FormData(form);
+  nearby?.append(payload);
+  propertyWizard?.append(payload);
+  payload.delete('id');
+
+  const unitVal = areaUnit?.value || 'sqm';
+  payload.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
+  payload.set('land_area_unit', unitVal);
+  const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
+  payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
+  payload.set('subcategory', Array.from(selectedSubcategories).join(', '));
+  payload.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
+  payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
+  payload.set('recalculate_assessment', 'true');
+  payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+
+  const photo = payload.get('image_file');
+  if (!photo?.size) payload.delete('image_file');
+
+  if (id) payload.set('_method', 'PATCH');
+
   try {
-    const payload = new FormData(form);
-    nearby.append(payload);
-    payload.set('land_area_unit', 'sqm');
-    const id = Number(payload.get('propertyId') || 0);
-    payload.delete('propertyId');
-    const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
-    payload.set('property_type', legacyTypes[payload.get('category')] || 'commercial');
-    if (!payload.get('subcategory')) payload.set('subcategory', '');
-    for (const [source, target] of [['latitude', 'lat'], ['longitude', 'lng']]) {
-      if (String(payload.get(source) || '').trim()) payload.set(target, payload.get(source));
-      payload.delete(source);
-    }
-    const photo = payload.get('image_file');
-    if (!photo?.size) payload.delete('image_file');
-    if (id) await api.updateProperty(id, payload); else await api.createProperty(payload);
-    dialog.close();
+    if (id) await api.updateProperty(id, payload);
+    else await api.createProperty(payload);
+    propertyWizard?.saved();
+    editor?.close();
     feedback('Listing submitted for CICTO review.');
     await reload();
-  } catch (error) { errorNode.textContent = error.message || 'Unable to submit the listing.'; errorNode.hidden = false; }
-  finally { button.disabled = false; }
+  } catch (error) {
+    const errorNode = form.querySelector('[data-editor-message]');
+    if (errorNode) {
+      errorNode.textContent = error.message || 'Unable to submit the listing.';
+      errorNode.className = 'pw-form-message is-error';
+    }
+  } finally {
+    submit.disabled = false;
+  }
 });
 
 byId('brokerThreadList').addEventListener('click', (event) => {

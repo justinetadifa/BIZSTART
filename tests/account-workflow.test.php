@@ -65,6 +65,8 @@ $method->setAccessible(true);
 $existing = ['sellerType' => 'broker', 'legalName' => 'Sample Broker', 'phone' => '09171234567', 'addressLine' => 'San Fernando, La Union', 'city' => 'San Fernando', 'authorizationBasis' => 'Licensed real estate broker', 'applicationStatus' => 'verified', 'prcRegistrationNo' => '123456', 'prcValidUntil' => $validUntil, 'reviewNotes' => 'Checked by CICTO'];
 $edited = $method->invoke($repository, ['prc_registration_no' => '654321'], $user, $existing, false);
 account_check($edited['application_status'] === 'pending_review' && $edited['reviewed_by_user_id'] === null, 'A broker kept verification after swapping PRC credentials.');
+$formatted = $method->invoke($repository, ['prc_registration_no' => '00123456'], $user, $existing, false);
+account_check($formatted['prc_registration_no'] === '00123456' && $formatted['application_status'] === 'verified', 'A license formatting edit changed its identity or lost the displayed zero padding.');
 $unchanged = $method->invoke($repository, ['applicationStatus' => 'verified'], $user, array_replace($existing, ['applicationStatus' => 'pending_review']), false);
 account_check($unchanged['application_status'] === 'pending_review', 'A broker can set their own verification or an unrelated profile edit removed them from the queue.');
 account_rejects(fn () => $method->invoke($repository, $payload, $user, array_replace($existing, ['applicationStatus' => 'suspended']), true), 'A suspended broker could edit credentials.');

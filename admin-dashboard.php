@@ -91,8 +91,16 @@ sfc_render_header($context, 'admin');
     </section>
   </div>
   <?php if ($governance): ?>
-  <section class="tw-mt-5 tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5">
-    <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">Broker verification</h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Check registration before granting listing access.</p></div><a class="tw-text-xs tw-font-semibold tw-text-[#9e1b22]" href="https://verification.prc.gov.ph/Verification" target="_blank" rel="noopener noreferrer">Check PRC registration ↗</a></div>
+  <section class="tw-mt-8 tw-min-w-0" aria-labelledby="adminBrokerVerificationTitle">
+    <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
+      <div>
+        <h2 id="adminBrokerVerificationTitle" class="tw-m-0 tw-text-2xl tw-font-bold tw-text-slate-900">Broker verification</h2>
+        <p class="tw-mb-0 tw-mt-1.5 tw-text-sm tw-text-slate-500">Check registration before granting listing access.</p>
+      </div>
+      <a class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-border tw-border-rose-200 tw-bg-white tw-px-3.5 tw-py-2 tw-text-xs tw-font-semibold tw-text-[#9e1b22] tw-no-underline hover:tw-bg-rose-50/70 tw-transition-colors" href="https://verification.prc.gov.ph/Verification" target="_blank" rel="noopener noreferrer">
+        Check PRC registration &nearr;
+      </a>
+    </div>
     <div data-broker-reviews><p class="city-empty">Loading applications…</p></div>
   </section>
   <?php else: ?>

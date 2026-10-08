@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/app/Support/web.php';
+require_once __DIR__ . '/app/Support/web.php';
+require_once __DIR__ . '/app/Support/PropertyCatalog.php';
+require_once __DIR__ . '/app/Support/PropertyAssessment.php';
 
 sfc_require_role('seller', sfc_path('/seller-login.php'));
 $context = sfc_web_context();
@@ -10,66 +12,159 @@ sfc_render_head('Broker dashboard | LOCUS-SF', $context, ['page' => 'broker-work
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/broker-workspace.css<?= htmlspecialchars(sfc_asset_version('css/broker-workspace.css'), ENT_QUOTES, 'UTF-8') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-wizard.css<?= sfc_asset_version('css/property-wizard.css') ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
 <?php sfc_render_header($context, 'seller'); ?>
+<?php
+$user = $context['user'] ?? [];
+$userName = (string) ($user['name'] ?? 'Maria');
+$nameParts = preg_split('/\s+/', trim($userName));
+$brokerFirstName = !empty($nameParts[0]) ? $nameParts[0] : 'Maria';
+$brokerFirstName = trim((string) ($user['firstName'] ?? '')) ?: $brokerFirstName;
+$brokerGreeting = ($_SESSION['sfc_account_greeting'] ?? '') === 'new' ? 'Welcome' : 'Welcome back';
+?>
 <main class="broker-workspace site-shell">
-  <section class="tw-flex tw-flex-col tw-justify-between tw-gap-5 tw-rounded-2xl tw-border tw-border-amber-200 tw-bg-[#fff8eb] tw-p-6 sm:tw-flex-row sm:tw-items-center sm:tw-p-8">
-    <div><span class="tw-mb-3 tw-inline-flex tw-rounded-full tw-border tw-border-amber-300 tw-bg-white/70 tw-px-3 tw-py-1 tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-widest tw-text-amber-800">Broker workspace</span><h1 class="!tw-text-3xl tw-font-semibold">Your listings, in one place.</h1><p class="tw-mb-0 tw-mt-3 tw-text-sm tw-text-slate-500">Submit properties, follow city reviews, and connect with investors.</p></div>
-    <div class="tw-flex tw-flex-wrap tw-gap-2">
-      <a class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-lg tw-border tw-border-amber-200 tw-bg-white tw-px-4 tw-py-3 tw-text-xs tw-font-semibold tw-text-[#11224d] tw-no-underline" href="<?= htmlspecialchars(sfc_path('/profile.php'), ENT_QUOTES, 'UTF-8') ?>">Edit profile</a>
-      <button class="tw-rounded-lg tw-border-0 tw-bg-[#11224d] tw-px-4 tw-py-3 tw-text-xs tw-font-semibold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-40" id="brokerAddListing" type="button" disabled>+ Submit listing</button>
+  <!-- Hero Section with BidayLocation.png panorama -->
+  <section class="broker-hero" style="background-image: linear-gradient(90deg, rgba(10, 20, 42, 0.95) 0%, rgba(10, 20, 42, 0.88) 36%, rgba(10, 20, 42, 0.5) 65%, rgba(10, 20, 42, 0.15) 100%), url('<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/BidayLocation.png');">
+    <div class="broker-hero-content">
+      <span class="broker-hero-pill">Broker workspace</span>
+      <h1 class="broker-hero-title"><?= $brokerGreeting ?>, <span id="brokerHeroName"><?= htmlspecialchars($brokerFirstName, ENT_QUOTES, 'UTF-8') ?></span>!</h1>
+      <p class="broker-hero-subtitle">Manage your listings, track reviews, and stay ready for investor interest.</p>
+      <div class="broker-hero-actions">
+        <a class="broker-btn-profile" href="<?= htmlspecialchars(sfc_path('/profile.php'), ENT_QUOTES, 'UTF-8') ?>">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Edit profile</span>
+        </a>
+        <button class="broker-btn-submit" id="brokerAddListing" type="button" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>Submit listing</span>
+        </button>
+      </div>
+    </div>
+    <div class="broker-hero-location">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+      </svg>
+      <span>San Fernando, La Union</span>
     </div>
   </section>
+
   <div id="brokerFeedback" class="broker-feedback" role="status" hidden></div>
-  <section id="brokerVerification" class="broker-verification" aria-label="Broker verification"><span>Loading verification…</span></section>
-  <section id="brokerStats" class="tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-4" aria-label="Listing statistics" aria-live="polite"></section>
-  <section class="broker-panel" aria-labelledby="brokerListingsTitle">
-    <div class="broker-section-head">
-      <h2 id="brokerListingsTitle">My listings <span id="brokerListingCount" class="broker-count">0</span></h2>
-      <a href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>">MCE &amp; IAI rankings ↗</a>
-    </div>
-    <div class="broker-list-toolbar">
-      <label class="broker-search"><span class="broker-sr-only">Search your listings</span><input id="brokerSearch" type="search" placeholder="Search listings"></label>
-      <label><span class="broker-sr-only">Listing review status</span><select id="brokerStatusFilter"><option value="all">All statuses</option><option value="approved">Accepted</option><option value="pending_review">Pending</option><option value="rejected">Declined</option><option value="archived">Archived</option></select></label>
-    </div>
-    <div id="brokerListings" aria-live="polite"><p class="broker-empty">Loading your listings…</p></div>
-    <p class="broker-panel-note">CICTO reviews every submission. MCE and IAI scores appear after city assessment.</p>
+
+  <!-- PRC Verification Alert Card -->
+  <section id="brokerVerification" class="broker-verification-card" aria-label="Broker verification">
+    <span>Loading verification…</span>
   </section>
-  <details class="broker-panel broker-disclosure" id="brokerMessagesDetails">
-    <summary><span>Messages &amp; visits</span><span id="brokerMessageCount" class="broker-count">0</span></summary>
-    <div class="broker-message-grid"><div id="brokerThreadList" class="broker-thread-list"></div><div id="brokerThreadView" class="broker-thread-view"><p class="broker-empty">Choose a conversation.</p></div></div>
-  </details>
-  <details class="broker-panel broker-disclosure" id="brokerDocumentsDetails">
-    <summary><span>Document requests</span><span id="brokerDocumentCount" class="broker-count">0</span></summary>
-    <div id="brokerDocumentList" class="broker-document-list"></div>
-  </details>
+
+  <!-- KPI Stats 4-Card Grid -->
+  <section id="brokerStats" class="broker-kpi-grid" aria-label="Listing statistics" aria-live="polite">
+    <!-- Populated dynamically by renderStats() -->
+  </section>
+
+  <!-- Main 2-Column Section: Listings + Sidebar -->
+  <div class="broker-main-grid">
+    <!-- Left Column: My Listings -->
+    <section class="broker-panel broker-listings-panel" aria-labelledby="brokerListingsTitle">
+      <div class="broker-section-head">
+        <h2 id="brokerListingsTitle" class="broker-title-with-count">
+          My listings <span id="brokerListingCount" class="broker-count">0</span>
+        </h2>
+        <a class="broker-rankings-link" href="<?= htmlspecialchars(sfc_path('/property-ranking.php'), ENT_QUOTES, 'UTF-8') ?>">MCE &amp; IAI rankings &rarr;</a>
+      </div>
+      <div class="broker-list-toolbar">
+        <div class="broker-search-box">
+          <svg class="broker-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input id="brokerSearch" type="search" placeholder="Search listings by title, location, or reference no." aria-label="Search your listings">
+        </div>
+        <div class="broker-select-wrap">
+          <select id="brokerStatusFilter" aria-label="Listing review status">
+            <option value="all">All statuses</option>
+            <option value="approved">Accepted</option>
+            <option value="pending_review">Pending</option>
+            <option value="rejected">Declined</option>
+            <option value="archived">Archived</option>
+          </select>
+          <svg class="broker-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div id="brokerListings" aria-live="polite">
+        <p class="broker-empty">Loading your listings…</p>
+      </div>
+      <p class="broker-panel-note">CICTO reviews every submission. MCE and IAI scores appear after city assessment.</p>
+    </section>
+
+    <!-- Right Column: Sidebar (Messages & Documents) -->
+    <aside class="broker-sidebar-column">
+      <!-- Messages & visits -->
+      <details class="broker-sidebar-card" id="brokerMessagesDetails" open>
+        <summary class="broker-sidebar-summary">
+          <div class="broker-sidebar-title">
+            <div class="broker-sidebar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+            </div>
+            <span>Messages &amp; visits</span>
+            <span id="brokerMessageCount" class="broker-count tw-hidden">0</span>
+          </div>
+          <span class="broker-sidebar-link">View all &rarr;</span>
+        </summary>
+        <div class="broker-sidebar-body">
+          <div class="broker-message-grid">
+            <div id="brokerThreadList" class="broker-thread-list"></div>
+            <div id="brokerThreadView" class="broker-thread-view" hidden>
+              <p class="broker-empty">Choose a conversation.</p>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Document requests -->
+      <details class="broker-sidebar-card" id="brokerDocumentsDetails" open>
+        <summary class="broker-sidebar-summary">
+          <div class="broker-sidebar-title">
+            <div class="broker-sidebar-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <span>Document requests</span>
+            <span id="brokerDocumentCount" class="broker-count tw-hidden">0</span>
+          </div>
+          <span class="broker-sidebar-link">View all &rarr;</span>
+        </summary>
+        <div class="broker-sidebar-body">
+          <div id="brokerDocumentList" class="broker-document-list"></div>
+        </div>
+      </details>
+    </aside>
+  </div>
 </main>
-<dialog class="broker-dialog" id="brokerListingDialog" aria-labelledby="brokerModalTitle">
-  <div class="broker-dialog-heading"><div><span class="broker-eyebrow">City review required</span><h2 id="brokerModalTitle">Submit listing</h2></div><button class="broker-close" type="button" id="brokerCloseDialog" aria-label="Close listing form">×</button></div>
-  <form id="brokerListingForm" class="broker-form" novalidate>
-    <input type="hidden" name="propertyId">
-    <label class="broker-wide">Property name<input name="property_name" required maxlength="180" autocomplete="off"></label>
-    <label>Category<select name="category" id="brokerCategory" required><?php foreach ($categories as $category => $subcategories): ?><option value="<?= htmlspecialchars($category, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($category, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select></label>
-    <label>Subcategory<select name="subcategory" id="brokerSubcategory"><option value="">Select subcategory</option></select></label>
-    <label>Price (PHP)<input name="price" type="number" min="1" step="1" required></label>
-    <label>Land area (m²)<input name="land_area" type="number" min="1" step="1" required></label>
-    <label class="broker-wide">Description<textarea name="description" rows="3" required maxlength="5000"></textarea></label>
-    <label class="broker-wide">Property photo<input name="image_file" type="file" accept="image/jpeg,image/png,image/webp"></label>
-    <details class="broker-wide tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50 tw-p-4"><summary class="tw-cursor-pointer tw-text-sm tw-font-semibold">Location &amp; surroundings</summary><p class="tw-mb-4 tw-mt-2 tw-text-xs tw-text-slate-500">Map coordinates are required. Nearby places and photos are optional.</p><div class="broker-form">
-      <label>Barangay<input name="barangay" required maxlength="100"></label><label>City<input name="city" value="San Fernando, La Union" required maxlength="120"></label>
-      <label>Latitude<input name="latitude" type="number" min="-90" max="90" step="any" required></label><label>Longitude<input name="longitude" type="number" min="-180" max="180" step="any" required></label>
-      <label>Corridor<select name="corridor"><option value="highway">Highway</option><option value="downtown">Downtown</option><option value="coastal">Coastal</option></select></label>
-      <label>Availability<select name="status"><option>Available</option><option>Reserved</option><option>Negotiating</option><option>Under Review</option></select></label>
-    </div><div class="tw-mt-5" data-nearby-editor><div class="tw-mb-3 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3"><div class="tw-min-w-[140px] tw-flex-1"><h3 class="tw-m-0 tw-text-sm tw-font-semibold">What's nearby?</h3><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Add useful properties or businesses around the site.</p></div><button type="button" data-add-nearby class="tw-shrink-0 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-font-semibold disabled:tw-opacity-40">+ Add place</button></div><div class="tw-grid tw-gap-3" data-nearby-list></div></div></details>
-    <details class="broker-wide tw-rounded-xl tw-border tw-border-slate-200 tw-p-4"><summary class="tw-cursor-pointer tw-text-sm tw-font-semibold">Contact details</summary><div class="broker-form tw-mt-4">
-      <label>Contact name<input name="owner_name" maxlength="180" autocomplete="name"></label>
-      <label>Phone<input name="owner_phone" type="tel" maxlength="40" autocomplete="tel"></label>
-      <label class="broker-wide">Email<input name="owner_email" type="email" maxlength="180" autocomplete="email"></label>
-      <label class="broker-wide">Contact option<select name="contactMode"><option value="broker">Contact me</option><option value="open_listing">Open listing · city contact</option></select></label>
-    </div></details>
-    <p id="brokerFormError" class="broker-form-error broker-wide" role="alert" hidden></p>
-    <div class="broker-form-actions broker-wide"><button class="broker-button" type="button" id="brokerCancelDialog">Cancel</button><button class="broker-button is-primary" id="brokerSubmitListing" type="submit">Submit for review</button></div>
-  </form>
-</dialog>
+<?php require __DIR__ . '/app/Support/property-wizard-view.php'; ?>
+<script type="application/json" id="cityAssessmentWeights"><?= json_encode(\App\Support\PropertyAssessment::WEIGHTS) ?></script>
 <script type="application/json" id="brokerCategoryData"><?= json_encode($categories, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/nearby-editor.js<?= sfc_asset_version('js/nearby-editor.js') ?>" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/admin-location.js<?= sfc_asset_version('js/admin-location.js') ?>" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/admin-assessment.js<?= sfc_asset_version('js/admin-assessment.js') ?>" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.js" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/turf/turf.min.js" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/property-wizard.js<?= sfc_asset_version('js/property-wizard.js') ?>" defer></script>
 <script type="module" src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/broker-workspace.js<?= htmlspecialchars(sfc_asset_version('js/broker-workspace.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php sfc_render_footer($context); ?>

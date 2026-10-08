@@ -578,6 +578,19 @@
     finally { submit.disabled = false; }
   });
 
+  root.addEventListener('click', (event) => {
+    const toggleBtn = event.target.closest('[data-toggle-broker-details], [data-reverify-broker]');
+    if (!toggleBtn) return;
+    const userId = toggleBtn.dataset.toggleBrokerDetails || toggleBtn.dataset.reverifyBroker;
+    const drawer = root.querySelector(`[data-broker-drawer="${userId}"]`);
+    if (drawer) {
+      drawer.hidden = !drawer.hidden;
+      if (!drawer.hidden) {
+        drawer.querySelector('textarea, input[type="checkbox"]')?.focus();
+      }
+    }
+  });
+
   root.addEventListener('submit', async (event) => {
     const brokerForm = event.target.closest('[data-broker-review]');
     if (!brokerForm) return;
@@ -585,6 +598,10 @@
     const decision = event.submitter?.value;
     if (decision === 'verified' && !brokerForm.elements.prcChecked.checked) {
       message(brokerForm.querySelector('[data-broker-message]'), 'Check the PRC registration before validating.', true);
+      return;
+    }
+    if ((decision === 'rejected' || decision === 'suspended') && !brokerForm.elements.reviewNotes.value.trim()) {
+      message(brokerForm.querySelector('[data-broker-message]'), 'Add a message explaining your decision to the broker.', true);
       return;
     }
     const buttons = brokerForm.querySelectorAll('button');

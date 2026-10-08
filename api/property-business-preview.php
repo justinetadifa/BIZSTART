@@ -12,8 +12,8 @@ api_handle(function (array $container): array {
         return [405, ['error' => 'Method not allowed.']];
     }
     $user = sfc_current_user();
-    if ($user === null || !sfc_can_manage_properties($user)) {
-        return [403, ['error' => 'A city department account is required to preview business matches.']];
+    if ($user === null || (!sfc_can_manage_properties($user) && !sfc_broker_can_submit($user))) {
+        return [403, ['error' => 'A city department or verified broker account is required to preview business matches.']];
     }
     // Client scores, eligibility decisions, sources and profile rules are never read.
     $input = array_intersect_key($_GET, array_flip(['lat', 'lng', 'category', 'subcategory', 'land_area', 'land_area_unit']));

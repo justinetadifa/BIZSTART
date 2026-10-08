@@ -66,23 +66,240 @@
     });
   }
 
-  function brokerForm(profile) {
+  const brokerIcons = {
+    mail: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
+    phone: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+    pin: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+    doc: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+    calendar: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    rosette: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.5 2.1 2.6-.4.8 2.5 2.5.8-.4 2.6 2.1 1.5-1.5 2.1.4 2.6-2.5.8-.8 2.5-2.6-.4L12 22l-1.5-2.1-2.6.4-.8-2.5-2.5-.8.4-2.6L2.9 12l1.5-2.1-.4-2.6 2.5-.8.8-2.5 2.6.4L12 2z"/></svg>',
+    chat: '<svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+  };
+
+  function brokerInitials(name) {
+    return String(name || 'Broker').trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || '').join('').toUpperCase() || 'BR';
+  }
+
+  function renderPendingBrokerCard(profile) {
     const name = profile.legalName || profile.userName || 'Broker';
-    const initials = name.trim().split(/\s+/).slice(0, 2).map((part) => Array.from(part)[0] || '').join('').toUpperCase();
-    const verified = profile.applicationStatus === 'verified';
-    const stateColor = verified ? 'tw-bg-emerald-50 tw-text-emerald-700' : profile.applicationStatus === 'pending_review' ? 'tw-bg-amber-50 tw-text-amber-800' : 'tw-bg-red-50 tw-text-[#9e1b22]';
-    return `<form class="city-broker-card tw-grid tw-min-w-0 tw-gap-5 tw-border-slate-100 tw-py-5 first:tw-border-0 md:tw-grid-cols-[1fr_1fr]" data-broker-review="${Number(profile.userId)}"><div class="tw-flex tw-min-w-0 tw-items-start tw-gap-3"><span class="tw-flex tw-h-11 tw-w-11 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-sm tw-font-semibold tw-text-ink">${escape(initials)}</span><div class="tw-min-w-0"><div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><h3 class="tw-m-0 tw-break-words tw-text-sm tw-font-semibold tw-text-ink">${escape(name)}</h3><span class="tw-rounded-md tw-px-2 tw-py-1 tw-text-[9px] tw-font-medium ${stateColor}">${escape(labels[profile.applicationStatus] || profile.applicationStatus)}</span></div><dl class="tw-mb-0 tw-mt-3 tw-space-y-2 tw-text-[11px] tw-leading-relaxed tw-text-slate-500"><div><dt class="tw-sr-only">Email</dt><dd class="tw-m-0 tw-break-all">${escape(profile.email || profile.userEmail || 'Email not provided')}</dd></div><div><dt class="tw-sr-only">Contact number</dt><dd class="tw-m-0">${escape(profile.phone || 'Contact number not provided')}</dd></div><div><dt class="tw-sr-only">Address</dt><dd class="tw-m-0 tw-break-words">${escape([profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided')}</dd></div><div><dt class="tw-inline tw-font-medium tw-text-ink">PRC </dt><dd class="tw-m-0 tw-inline tw-break-words">${escape(profile.prcRegistrationNo || 'Not provided')}</dd></div><div><dt class="tw-inline">Valid until </dt><dd class="tw-m-0 tw-inline">${escape(profile.prcValidUntil || 'Not provided')}</dd></div></dl>${profile.reviewNotes ? `<p class="tw-mb-0 tw-mt-3 tw-break-words tw-text-[11px] tw-leading-relaxed tw-text-slate-500">Last review: ${escape(profile.reviewNotes)}</p>` : ''}</div></div><div class="tw-min-w-0 tw-border-t tw-border-slate-100 tw-pt-4 md:tw-border-t-0 md:tw-border-l md:tw-pl-5 md:tw-pt-0"><label class="city-broker-check tw-m-0 tw-text-xs tw-text-ink"><input type="checkbox" name="prcChecked" class="tw-shrink-0">PRC registration checked</label><label class="tw-mt-3 tw-block tw-text-[11px] tw-font-medium tw-text-slate-500">Review message <span class="tw-font-normal">(required)</span><textarea class="tw-mt-2 tw-min-h-[68px] tw-text-xs" name="reviewNotes" placeholder="Message to the broker" rows="2" maxlength="3000" required></textarea></label><div class="tw-mt-3 tw-flex tw-flex-wrap tw-justify-end tw-gap-2"><button type="submit" name="decision" value="${verified ? 'suspended' : 'rejected'}" class="city-button city-button-secondary tw-min-h-[40px] tw-px-4 tw-py-2 tw-text-xs">${verified ? 'Suspend' : 'Decline'}</button><button type="submit" name="decision" value="verified" class="city-button tw-min-h-[40px] tw-px-4 tw-py-2 tw-text-xs">${verified ? 'Confirm' : 'Validate'}</button></div><p class="city-form-message tw-mt-2 tw-min-h-0 empty:tw-hidden" data-broker-message role="status"></p></div></form>`;
+    const initials = brokerInitials(name);
+    const email = profile.email || profile.userEmail || 'Email not provided';
+    const phone = profile.phone || 'Contact not provided';
+    const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
+    const prcNo = profile.prcRegistrationNo || 'Not provided';
+    const validUntil = profile.prcValidUntil || 'Not provided';
+
+    return `
+      <form class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-6 sm:tw-p-8 tw-shadow-sm tw-mb-6" data-broker-review="${Number(profile.userId)}">
+        <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-[1.1fr_1fr] tw-gap-8 lg:tw-gap-12">
+          <!-- Left Column: Pending Details -->
+          <div class="tw-min-w-0">
+            <span class="tw-block tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-400 tw-mb-4">PENDING APPLICATION</span>
+            <div class="tw-flex tw-items-center tw-gap-3.5 tw-mb-5">
+              <span class="tw-flex tw-h-12 tw-w-12 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-sm tw-font-bold tw-text-slate-800">${escape(initials)}</span>
+              <div class="tw-min-w-0">
+                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
+                  <h3 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-900">${escape(name)}</h3>
+                  <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-[#FEF3C7] tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-medium tw-text-[#92400E]">Awaiting review</span>
+                </div>
+                <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Broker application</p>
+              </div>
+            </div>
+
+            <div class="tw-my-5 tw-border-t tw-border-slate-100"></div>
+
+            <div class="tw-space-y-3.5 tw-text-xs">
+              <div class="tw-flex tw-items-baseline tw-gap-3">
+                ${brokerIcons.mail}
+                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Email</span>
+                <span class="tw-min-w-0 tw-break-all tw-text-slate-700">${escape(email)}</span>
+              </div>
+              <div class="tw-flex tw-items-baseline tw-gap-3">
+                ${brokerIcons.phone}
+                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Contact</span>
+                <span class="tw-text-slate-700">${escape(phone)}</span>
+              </div>
+              <div class="tw-flex tw-items-baseline tw-gap-3">
+                ${brokerIcons.pin}
+                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Address</span>
+                <span class="tw-text-slate-700 tw-leading-relaxed">${escape(address)}</span>
+              </div>
+              <div class="tw-flex tw-items-baseline tw-gap-3">
+                ${brokerIcons.doc}
+                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">PRC No.</span>
+                <span class="tw-font-medium tw-text-slate-800">${escape(prcNo)}</span>
+              </div>
+              <div class="tw-flex tw-items-baseline tw-gap-3">
+                ${brokerIcons.calendar}
+                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Valid until</span>
+                <span class="tw-text-slate-700">${escape(validUntil)}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: PRC verification form -->
+          <div class="tw-flex tw-flex-col tw-justify-between tw-border-t tw-border-slate-100 tw-pt-6 lg:tw-border-t-0 lg:tw-border-l lg:tw-border-slate-100 lg:tw-pl-10 lg:tw-pt-0">
+            <div>
+              <h4 class="tw-m-0 tw-text-sm sm:tw-text-base tw-font-bold tw-text-slate-900">PRC verification</h4>
+              <div class="tw-mt-2 tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-medium tw-text-slate-500">
+                ${brokerIcons.rosette}
+                <span>Not yet verified</span>
+              </div>
+
+              <div class="tw-mt-5">
+                <label class="tw-inline-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-text-xs tw-font-medium tw-text-slate-700">
+                  <input type="checkbox" name="prcChecked" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-accent-[#9E1B22]">
+                  <span>PRC registration checked</span>
+                </label>
+              </div>
+
+              <div class="tw-mt-5">
+                <label class="tw-mb-1.5 tw-block tw-text-xs tw-font-medium tw-text-slate-600">Review note</label>
+                <textarea name="reviewNotes" placeholder="Write a message to the broker" rows="3" maxlength="3000" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-3 tw-text-xs tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-border-slate-400 focus:tw-outline-none"></textarea>
+              </div>
+            </div>
+
+            <div class="tw-mt-6">
+              <div class="tw-flex tw-items-center tw-justify-end tw-gap-3">
+                <button type="submit" name="decision" value="rejected" class="tw-rounded-lg tw-border tw-border-slate-300 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors">Decline</button>
+                <button type="submit" name="decision" value="verified" class="tw-rounded-lg tw-bg-[#9E1B22] tw-px-5 tw-py-2 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#83161C] tw-transition-colors">Approve broker</button>
+              </div>
+              <p class="city-form-message tw-mt-2 tw-text-xs empty:tw-hidden" data-broker-message role="status"></p>
+            </div>
+          </div>
+        </div>
+      </form>
+    `;
+  }
+
+  function renderReviewedBrokerCard(profile) {
+    const name = profile.legalName || profile.userName || 'Broker';
+    const initials = brokerInitials(name);
+    const email = profile.email || profile.userEmail || 'Email not provided';
+    const phone = profile.phone || 'Contact not provided';
+    const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
+    const prcNo = profile.prcRegistrationNo || 'Not provided';
+    const validUntil = profile.prcValidUntil || 'Not provided';
+    const isVerified = profile.applicationStatus === 'verified';
+    const pillClass = isVerified
+      ? 'tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200'
+      : profile.applicationStatus === 'rejected'
+        ? 'tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-200'
+        : 'tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200';
+    const statusText = labels[profile.applicationStatus] || profile.applicationStatus;
+
+    return `
+      <div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-sm tw-mb-4" data-broker-item="${Number(profile.userId)}">
+        <!-- Top row: Avatar, Name, Pill, Actions -->
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
+          <div class="tw-flex tw-items-center tw-gap-3.5">
+            <span class="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-xs tw-font-bold tw-text-slate-800">${escape(initials)}</span>
+            <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
+              <strong class="tw-text-sm sm:tw-text-base tw-font-bold tw-text-slate-900">${escape(name)}</strong>
+              <span class="tw-inline-flex tw-items-center tw-rounded-full ${pillClass} tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-medium">${escape(statusText)}</span>
+            </div>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-3">
+            <button type="button" class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors" data-toggle-broker-details="${Number(profile.userId)}">View details</button>
+            <button type="button" class="tw-text-xs tw-font-semibold tw-text-[#9E1B22] hover:tw-underline tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer" data-reverify-broker="${Number(profile.userId)}">Reverify</button>
+          </div>
+        </div>
+
+        <!-- Metadata row -->
+        <div class="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-gap-x-5 tw-gap-y-2.5 tw-text-xs tw-text-slate-600">
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.mail}
+            <span class="tw-text-[11px] tw-text-slate-400">Email</span>
+            <span class="tw-text-slate-700">${escape(email)}</span>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.phone}
+            <span class="tw-text-[11px] tw-text-slate-400">Contact</span>
+            <span class="tw-text-slate-700">${escape(phone)}</span>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.pin}
+            <span class="tw-text-[11px] tw-text-slate-400">Address</span>
+            <span class="tw-text-slate-700">${escape(address)}</span>
+          </div>
+          <span class="tw-hidden xl:tw-block tw-h-4 tw-w-px tw-bg-slate-200" aria-hidden="true"></span>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.doc}
+            <span class="tw-text-[11px] tw-text-slate-400">PRC No.</span>
+            <span class="tw-text-slate-700">${escape(prcNo)}</span>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.calendar}
+            <span class="tw-text-[11px] tw-text-slate-400">Valid until</span>
+            <span class="tw-text-slate-700">${escape(validUntil)}</span>
+          </div>
+          ${profile.reviewNotes ? `
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            ${brokerIcons.chat}
+            <span class="tw-text-[11px] tw-text-slate-400">Last review note</span>
+            <span class="tw-text-slate-700">${escape(profile.reviewNotes)}</span>
+          </div>` : ''}
+        </div>
+
+        <!-- Collapsible review drawer -->
+        <form class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-4" data-broker-review="${Number(profile.userId)}" data-broker-drawer="${Number(profile.userId)}" hidden>
+          <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-[1fr_auto] tw-gap-4 tw-items-end">
+            <div class="tw-space-y-3">
+              <label class="tw-inline-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-text-xs tw-font-medium tw-text-slate-700">
+                <input type="checkbox" name="prcChecked" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-accent-[#9E1B22]" ${isVerified ? 'checked' : ''}>
+                <span>PRC registration checked</span>
+              </label>
+              <div>
+                <label class="tw-mb-1 tw-block tw-text-xs tw-font-medium tw-text-slate-500">Review message</label>
+                <textarea name="reviewNotes" placeholder="Write a message to the broker" rows="2" maxlength="3000" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-2.5 tw-text-xs tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-border-slate-400 focus:tw-outline-none">${escape(profile.reviewNotes || '')}</textarea>
+              </div>
+            </div>
+            <div class="tw-flex tw-items-center tw-justify-end tw-gap-2.5">
+              <button type="submit" name="decision" value="${isVerified ? 'suspended' : 'rejected'}" class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors">${isVerified ? 'Suspend' : 'Decline'}</button>
+              <button type="submit" name="decision" value="verified" class="tw-rounded-lg tw-bg-[#9E1B22] tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#83161C] tw-transition-colors">${isVerified ? 'Update & Confirm' : 'Approve broker'}</button>
+            </div>
+          </div>
+          <p class="city-form-message tw-mt-2 tw-text-xs empty:tw-hidden" data-broker-message role="status"></p>
+        </form>
+      </div>
+    `;
   }
 
   function renderBrokerProfiles(profiles) {
     const items = Array.isArray(profiles) ? profiles : [];
     const pending = items.filter((profile) => profile.applicationStatus === 'pending_review');
     const reviewed = items.filter((profile) => ['verified', 'rejected', 'suspended'].includes(profile.applicationStatus));
-    const queue = pending.length ? pending.map(brokerForm).join('') : '<p class="tw-m-0 tw-py-5 tw-text-xs tw-leading-relaxed tw-text-slate-500">No broker applications are awaiting review.</p>';
-    return queue + (reviewed.length ? `<details class="tw-mt-3 tw-border-t tw-border-slate-100 tw-pt-3"><summary class="tw-cursor-pointer tw-text-xs tw-text-slate-500">Previously reviewed brokers (${reviewed.length})</summary><div class="tw-mt-2">${reviewed.map(brokerForm).join('')}</div></details>` : '');
+
+    const pendingSection = pending.length
+      ? pending.map(renderPendingBrokerCard).join('')
+      : '<div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-8 tw-text-center tw-text-slate-500 tw-mb-6"><p class="tw-m-0 tw-text-xs">No broker applications are awaiting review.</p></div>';
+
+    const reviewedSection = reviewed.length ? `
+      <div class="tw-mt-8 tw-mb-4">
+        <h3 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">Previously reviewed brokers (${reviewed.length})</h3>
+        <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Brokers that have been reviewed and processed.</p>
+      </div>
+      <div>${reviewed.map(renderReviewedBrokerCard).join('')}</div>
+    ` : '';
+
+    return pendingSection + reviewedSection;
   }
 
-  window.SFCAdminOverview = { renderOverview, renderBrokerProfiles };
+  window.SFCAdminOverview = { renderOverview, renderBrokerProfiles, renderPendingBrokerCard, renderReviewedBrokerCard };
+
+  document.addEventListener('click', (event) => {
+    const toggleBtn = event.target.closest('[data-toggle-broker-details], [data-reverify-broker]');
+    if (!toggleBtn) return;
+    const userId = toggleBtn.dataset.toggleBrokerDetails || toggleBtn.dataset.reverifyBroker;
+    const drawer = document.querySelector(`[data-broker-drawer="${userId}"]`);
+    if (drawer) {
+      drawer.hidden = !drawer.hidden;
+      if (!drawer.hidden) {
+        drawer.querySelector('textarea, input[type="checkbox"]')?.focus();
+      }
+    }
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     const staffButton = document.querySelector('[data-open-staff-form]');
     staffButton?.addEventListener('click', () => {

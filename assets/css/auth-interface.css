@@ -1,0 +1,78 @@
+/* Auth-only styling; account.css is also shared by profile pages. */
+.account-auth{position:relative;isolation:isolate;padding:48px 24px 68px;min-height:calc(100svh - 104px);background:#f5f7fa;overflow:hidden}
+.account-auth::before{content:"";position:absolute;z-index:-1;inset:0;background:var(--account-map) center/cover no-repeat;opacity:.065;pointer-events:none}
+.account-auth .account-shell{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);width:min(100%,1020px);margin:auto;overflow:hidden;border:1px solid #e1e6ee;border-radius:22px;background:#fff;box-shadow:0 20px 65px -30px #11224d35;animation:account-arrive .45s cubic-bezier(.2,.7,.3,1) both}
+.account-auth .account-shell.is-registering{width:min(100%,1160px);grid-template-columns:minmax(0,.72fr) minmax(0,1.12fr)}
+.account-auth .account-scene{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;gap:48px;min-width:0;min-height:560px;padding:38px;color:#fff;background:#11224d;overflow:hidden}
+.account-auth .account-scene::before{content:"";position:absolute;z-index:-2;inset:0;background:var(--account-map) 44% center/cover no-repeat;opacity:.18;transform:scale(1.04);animation:account-map-drift 16s ease-in-out infinite alternate;pointer-events:none}
+.account-auth .account-scene::after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(160deg,#11224d0a 10%,#11224d4d 48%,#11224dcd 100%);pointer-events:none}
+.account-scene-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:750;letter-spacing:.1em}
+.account-scene-brand img{object-fit:contain;filter:drop-shadow(0 1px 6px #ffffff50)}
+.account-scene-copy{margin:auto 0;animation:account-copy-arrive .5s .09s both}
+.account-scene-kicker{font-size:10px;letter-spacing:.16em;font-weight:600;color:#d6dce8;margin:0 0 20px}
+.account-scene-copy h2{color:#fff;font-family:Manrope,Inter,Arial,sans-serif;font-size:clamp(31px,3.2vw,43px);font-weight:600;line-height:1.2;letter-spacing:-1.5px;margin:0 0 22px}
+.account-scene-copy>p:last-child{font-size:14px;line-height:1.8;color:#d9dfeb;max-width:310px;margin:0}
+.account-scene-foot{display:flex;align-items:center;gap:9px;font-size:11px;color:#d2d9e5}
+.account-scene-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:#dbe8dc;box-shadow:0 0 0 4px #dbe8dc16}
+.account-auth .account-card{width:100%;min-width:0;margin:0;padding:36px 40px 38px;border:0;border-radius:0;background:#fff;box-shadow:none;align-self:center}
+.account-auth .account-roles{gap:4px;padding-bottom:18px;margin-bottom:28px;flex-wrap:nowrap}
+.account-auth .account-roles a{flex:1;text-align:center;font-size:12px;padding:9px 6px;border-radius:8px;white-space:nowrap;transition:color .18s,background .18s}
+.account-auth .account-roles a:hover{background:#f4f6fa;color:#11224d}
+.account-auth .account-roles a[aria-current]{background:#fbefef;color:#9e1b22}
+.account-auth .account-eyebrow{font-size:10px;letter-spacing:.14em;margin:0 0 10px}
+.account-auth .account-card h1{font-family:Manrope,Inter,Arial,sans-serif;font-weight:650;font-size:29px;letter-spacing:-1px;margin:0 0 10px}
+.account-auth .account-intro{font-size:13px;margin-bottom:27px}
+.account-auth .account-form{gap:17px}
+.account-auth .account-form-grid{column-gap:18px;row-gap:17px}
+.account-auth .account-field{gap:7px;font-size:12px;font-weight:600}
+.account-auth .account-field input,.account-auth .account-field select{padding:11px 12px;border-radius:8px;border-color:#d9dee7;font-size:14px;font-weight:400;background:#fff;min-height:45px;transition:border-color .18s,box-shadow .18s}
+.account-auth .account-field input:hover,.account-auth .account-field select:hover{border-color:#aab6c9}
+.account-auth .account-field input:focus,.account-auth .account-field select:focus{outline:none;border-color:#526484;box-shadow:0 0 0 3px #11224d0c}
+.account-auth [aria-invalid="true"]{border-color:#b54349!important;background:#fffafb!important}
+.account-auth [aria-invalid="true"]:focus{box-shadow:0 0 0 3px #9e1b2210!important}
+.account-field-full,.account-consents{grid-column:1/-1;min-width:0}
+.account-field-error{display:block;color:#9e1b22;font-size:11px;font-weight:450;line-height:1.55;overflow-wrap:anywhere}
+.account-auth [hidden]{display:none!important}
+.account-auth .account-field-hint{font-size:11px;color:#68758b}
+.account-consents{display:grid;gap:10px;margin:3px 0}
+.account-auth .account-consent{padding:0;background:transparent;gap:9px;font-size:11px;line-height:1.65;border-radius:0;font-weight:400}
+.account-auth .account-consent input{margin-top:2px;width:15px;height:15px;accent-color:#9e1b22}
+.account-auth .account-consent-row>.account-field-error{margin:4px 0 0 24px}
+.account-auth .account-consent a{white-space:normal;margin-left:3px}
+.account-auth .account-submit{display:flex;align-items:center;justify-content:center;gap:12px;min-height:47px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:#9e1b22;box-shadow:0 4px 12px #9e1b2210;transition:background .18s,box-shadow .18s,transform .18s}
+.account-auth .account-submit:hover{background:#84161c;box-shadow:0 6px 18px #9e1b2222;transform:translateY(-1px)}
+.account-auth .account-submit:active{transform:translateY(0)}
+.account-submit-arrow{width:18px;height:18px;flex-shrink:0;transition:transform .2s}
+.account-submit:hover .account-submit-arrow{transform:translateX(3px)}
+.account-submit-spinner{display:none;width:15px;height:15px;border:2px solid #ffffff50;border-top-color:white;border-radius:50%;animation:account-spin .8s linear infinite}
+.account-submit.is-loading .account-submit-arrow{display:none}
+.account-submit.is-loading .account-submit-spinner{display:block}
+.account-auth .account-submit:disabled{opacity:.8;cursor:wait;transform:none}
+.account-auth .account-switch{font-size:12px;margin-top:24px}
+.account-auth .account-message{font-size:12px;margin:0 0 20px}
+.account-auth .admin-tab-switcher{gap:22px;margin:0 0 24px}
+.account-auth .admin-tab-btn{font-size:12px}
+.account-auth [role="tabpanel"]:not([hidden]){animation:account-copy-arrive .25s ease both}
+.account-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.account-welcome-page{display:grid;place-items:center;min-height:calc(100svh - 104px);padding-top:60px;padding-bottom:80px}
+.account-welcome-page::before{opacity:.13}
+.account-welcome-card{max-width:590px;width:100%;text-align:center;border:1px solid #e1e6ee;border-radius:22px;padding:48px 42px;background:#fffffff5;box-shadow:0 20px 65px -30px #11224d35;animation:account-arrive .5s both}
+.account-welcome-mark{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 26px;background:#edf5ee;color:#2a603b;border-radius:50%;animation:account-mark-arrive .6s .08s both}
+.account-welcome-mark svg{width:27px;height:27px}
+.account-welcome-card h1{font-family:Manrope,Inter,Arial,sans-serif;font-size:clamp(28px,4vw,42px);line-height:1.25;letter-spacing:-1.1px;font-weight:650;color:#11224d;margin:12px 0 18px;overflow-wrap:anywhere}
+.account-welcome-card h1 span{display:block}
+.account-welcome-copy{color:#586378;font-size:14px;line-height:1.8;margin:0 auto 27px;max-width:440px}
+.account-welcome-status{display:inline-flex;gap:8px;align-items:center;border:1px solid #e8e0ce;background:#fbf8f0;color:#795d27;border-radius:20px;font-size:11px;padding:8px 13px;margin:0 0 27px}
+.account-welcome-status span{width:6px;height:6px;background:#a48648;border-radius:50%}
+.account-welcome-card .account-submit{max-width:330px;margin:auto}
+@keyframes account-arrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes account-copy-arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes account-map-drift{from{transform:scale(1.04) translateX(-.5%)}to{transform:scale(1.09) translateX(.5%)}}
+@keyframes account-mark-arrive{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes account-spin{to{transform:rotate(360deg)}}
+@media(min-width:851px){.account-auth[data-account-role="admin"] .account-shell:has(#adminOnboardSection:not([hidden])){width:min(100%,1160px);grid-template-columns:minmax(0,.72fr) minmax(0,1.12fr)}}
+@media(max-width:1000px){.account-auth .account-card{padding:30px}.account-auth .account-scene{padding:30px}.account-scene-copy h2{font-size:34px}}
+@media(max-width:850px){.account-auth{padding:30px 20px 48px}.account-auth .account-shell,.account-auth .account-shell.is-registering{width:min(100%,660px);grid-template-columns:1fr}.account-auth .account-scene{min-height:0;padding:25px 30px;gap:0;display:block}.account-scene-brand{font-size:14px}.account-scene-brand img{width:36px;height:29px}.account-scene-copy{margin:22px 0 0}.account-scene-kicker{font-size:9px;margin-bottom:9px}.account-scene-copy h2{font-size:25px;letter-spacing:-.7px;margin:0}.account-scene-copy h2 br{display:none}.account-scene-copy h2 br::after{content:" "}.account-scene-copy>p:last-child,.account-scene-foot{display:none}.account-auth .account-scene::before{background-position:center 47%;opacity:.14}.account-auth .account-card{padding:29px 30px 32px}.account-auth .account-roles{margin-bottom:25px}}
+@media(max-width:600px){.account-auth{padding:20px 12px 36px}.account-auth .account-shell{border-radius:16px}.account-auth .account-scene{padding:22px}.account-auth .account-card{padding:25px 22px 28px}.account-auth .account-card h1{font-size:26px}.account-auth .account-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}.account-auth .account-field{font-size:11px}.account-auth .account-field input,.account-auth .account-field select{font-size:16px;padding:10px}.account-auth .account-intro{font-size:12px}.account-welcome-card{padding:38px 25px}.account-welcome-copy{font-size:13px}.account-welcome-page{padding:28px 14px 44px}}
+@media(max-width:420px){.account-auth .account-form-grid{grid-template-columns:1fr}.account-auth .account-scene-copy h2{font-size:23px}.account-auth .account-roles a{font-size:11px;padding:8px 3px}.account-auth .account-card{padding:24px 20px 28px}.account-auth .account-consent{font-size:11px}.account-welcome-card{padding:34px 22px}}
+@media(prefers-reduced-motion:reduce){.account-auth *,.account-auth *::before,.account-auth *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

@@ -22,13 +22,15 @@ All accounts can update their profile and photo through [profile.php](profile.ph
 
 CICTO can create ASSESSOR, LEBDO, or additional CICTO access through **City accounts** on the city overview. Existing account passwords are preserved during upgrades.
 
-Staff can also use **Activate account** with a city passkey issued by CICTO. Set `SFC_CITY_STAFF_PASSKEY` in the server environment to enable this flow in production; activation is disabled there when no key is configured. Configured keys replace development defaults and are never displayed on the access screen.
+Staff can also use **Activate account** with a city passkey issued by CICTO. Production activation requires `SFC_CITY_STAFF_PASSKEY` and an official email allowlist: set `SFC_CITY_STAFF_EMAILS` to comma-separated authorized addresses, or `SFC_CITY_STAFF_EMAIL_DOMAINS` to exact authorized domains. Optional `SFC_CITY_STAFF_PASSKEY_EXPIRES_AT` accepts an ISO 8601 timestamp with timezone (for example, `2026-12-31T23:59:59+08:00`) or a date valid through that day in Manila. Invalid or expired dates reject activation. The equivalent private configuration lives under `security.city_staff` using `passkey`, `authorized_emails`, `authorized_email_domains`, and `passkey_expires_at`; environment settings take precedence. Configured keys and allowlists replace local development defaults. With no allowlist, local demo activation only accepts `@sfcelerate.local` addresses. Passkeys are never displayed on the access screen.
 
 **Updates** opens messages, document requests, and site visit notices in the appropriate workspace. City departments respond to document requests under **Listings → Document requests**. Visits use the broker assigned to the investor's conversation, including city listings with a verified broker contact; reassigning a listing preserves existing private conversations.
 
 Brokers provide their complete name, address, contact number, PRC registration number, and PRC ID validity. CICTO checks the credentials before approving submission access. New and edited broker listings return to the city review queue. Changes to verified broker credentials require another review.
 
 Registration records the submitted privacy consent, version, and time. The consent text identifies the City Government of San Fernando, RA 10173, and LOCUS-SF.
+
+Investor registration also records an explicit age confirmation and optional contact, profession, and city details. All access forms show validation below the affected field and validate again on the server. Email and PRC uniqueness are enforced in the database; PRC numbers retain their submitted zero padding while comparing the same numeric registration. Investors and brokers see a personal welcome after registration and a welcome-back greeting after sign-in.
 
 ## Listings and rankings
 
@@ -114,7 +116,9 @@ C:\xampp\php\php.exe tests/api-security.test.php
 C:\xampp\php\php.exe tests/upload-security.test.php
 C:\xampp\php\php.exe tests/account-workflow.test.php
 C:\xampp\php\php.exe tests/staff-onboarding-policy.test.php
+C:\xampp\php\php.exe tests/staff-activation.test.php
 C:\xampp\php\php.exe tests/security/verify-admin-auth.php
+C:\xampp\php\php.exe tests/security/verify-auth-validation.php --integration
 C:\xampp\php\php.exe tests/security/verify-listing-workflow.php --integration --write
 C:\xampp\php\php.exe tests/message-workflow.test.php --integration
 C:\xampp\php\php.exe tests/visit-workflow.test.php --integration

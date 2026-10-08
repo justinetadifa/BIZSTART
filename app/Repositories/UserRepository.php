@@ -7,9 +7,11 @@ use InvalidArgumentException;
 use PDO;
 use PDOException;
 
+require_once dirname(__DIR__) . '/Support/auth-validation.php';
+
 final class UserRepository
 {
-    private const IDENTITY_VERIFICATION_STATUSES = ['unverified', 'pending', 'verified', 'rejected', 'suspended'];
+    private const IDENTITY_VERIFICATION_STATUSES = ['unverified', 'pending', 'verified', 'rejected', 'suspended', 'disabled'];
 
     private PDO $pdo;
 
@@ -83,15 +85,21 @@ final class UserRepository
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) {
             throw new InvalidArgumentException('A valid email address is required.');
         }
-        if (strlen($password) < 8) {
-            throw new InvalidArgumentException('Password must be at least 8 characters.');
+        if (mb_strlen($password) < 8) {
+            throw new \SfcAuthValidationException(['password' => 'Password must be at least 8 characters.']);
+        }
+        if (strlen($password) > 72 || str_contains($password, "\0")) {
+            throw new \SfcAuthValidationException(['password' => strlen($password) > 72 ? 'Password must be at most 72 bytes.' : 'Enter a valid password.']);
+        }
+        if ($this->findByEmail($email) !== null) {
+            throw new \SfcAuthValidationException(['email' => 'An account with this email already exists. Sign in instead.']);
         }
 
         $statement = $this->pdo->prepare(
-            'INSERT INTO users (role, name, department, email, password_hash, identity_verification_status, identity_verified_at,
-                phone, address_line, privacy_consent_at, privacy_consent_version, privacy_consent_text)
-             VALUES (:role, :name, :department, :email, :password_hash, :identity_verification_status, :identity_verified_at,
-                :phone, :address_line, :privacy_consent_at, :privacy_consent_version, :privacy_consent_text)'
+            'INSERT INTO users (role, name, first_name, last_name, department, email, password_hash, identity_verification_status, identity_verified_at,
+                phone, address_line, city, profession, adult_confirmed_at, privacy_consent_at, privacy_consent_version, privacy_consent_text)
+             VALUES (:role, :name, :first_name, :last_name, :department, :email, :password_hash, :identity_verification_status, :identity_verified_at,
+                :phone, :address_line, :city, :profession, :adult_confirmed_at, :privacy_consent_at, :privacy_consent_version, :privacy_consent_text)'
         );
 
         try {
@@ -103,6 +111,8 @@ final class UserRepository
             $statement->execute([
                 'role' => $role,
                 'name' => $name,
+                'first_name' => $profile['firstName'] ?? null,
+                'last_name' => $profile['lastName'] ?? null,
                 'department' => $department,
                 'email' => $email,
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
@@ -110,13 +120,16 @@ final class UserRepository
                 'identity_verified_at' => $identityStatus === 'verified' ? gmdate('Y-m-d H:i:s') : null,
                 'phone' => $profile['phone'] ?? null,
                 'address_line' => $profile['address'] ?? null,
+                'city' => $profile['city'] ?? null,
+                'profession' => $profile['profession'] ?? null,
+                'adult_confirmed_at' => $profile['adultConfirmedAt'] ?? null,
                 'privacy_consent_at' => $profile['privacyConsentAt'] ?? null,
                 'privacy_consent_version' => $profile['privacyConsentVersion'] ?? null,
                 'privacy_consent_text' => $profile['privacyConsentText'] ?? null,
             ]);
         } catch (PDOException $exception) {
-            if ((int) $exception->getCode() === 23000) {
-                throw new InvalidArgumentException('That email is already registered.');
+            if ((int) ($exception->errorInfo[1] ?? 0) === 1062 && str_contains($exception->getMessage(), 'uniq_users_email')) {
+                throw new \SfcAuthValidationException(['email' => 'An account with this email already exists. Sign in instead.']);
             }
 
             throw $exception;
@@ -458,18 +471,24 @@ final class UserRepository
             'id' => (int) ($row['id'] ?? 0),
             'role' => (string) ($row['role'] ?? 'guest'),
             'name' => (string) ($row['name'] ?? ''),
+            'firstName' => $row['first_name'] ?? preg_split('/\s+/', trim((string) ($row['name'] ?? '')), 2)[0] ?? '',
+            'lastName' => $row['last_name'] ?? '',
             'department' => $department,
             'email' => (string) ($row['email'] ?? ''),
             'phone' => $row['phone'] ?? null,
             'address' => $row['address_line'] ?? null,
+            'city' => $row['city'] ?? null,
+            'profession' => $row['profession'] ?? null,
+            'adultConfirmedAt' => $row['adult_confirmed_at'] ?? null,
+            'accountStatus' => strtolower((string) ($row['account_status'] ?? 'active')),
             'profileImageUrl' => $row['profile_image_url'] ?? null,
             'privacyConsentAt' => $row['privacy_consent_at'] ?? null,
             'privacyConsentVersion' => $row['privacy_consent_version'] ?? null,
             'passwordHash' => (string) ($row['password_hash'] ?? ''),
             'identityVerificationStatus' => $this->normalizeIdentityVerificationStatus((string) ($row['identity_verification_status'] ?? 'unverified')),
             'identityVerifiedAt' => $identityVerifiedAt !== null ? (string) $identityVerifiedAt : null,
-            'lastLoginAt' => $row['last_login_at'] !== null ? (string) $row['last_login_at'] : null,
-            'lastActiveAt' => $row['last_active_at'] !== null ? (string) $row['last_active_at'] : null,
+            'lastLoginAt' => isset($row['last_login_at']) ? (string) $row['last_login_at'] : null,
+            'lastActiveAt' => isset($row['last_active_at']) ? (string) $row['last_active_at'] : null,
             'createdAt' => (string) ($row['created_at'] ?? ''),
             'updatedAt' => (string) ($row['updated_at'] ?? ''),
         ];

@@ -39,7 +39,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/<?= $style ?>.css">
   <?php endif; endforeach; endif; ?>
   <?php if ($page === 'decision-reports'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/reports-polish.css<?= sfc_asset_version('css/reports-polish.css') ?>"><?php endif; ?>
-  <?php if (in_array($page, ['city-explorer', 'city-details', 'admin-workspace', 'admin-dashboard'], true)): ?>
+  <?php if (in_array($page, ['city-explorer', 'city-details', 'admin-workspace', 'admin-dashboard', 'broker-workspace'], true)): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/vendor/leaflet/MarkerCluster.css">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-map-crexi.css<?= sfc_asset_version('css/city-map-crexi.css') ?>">
@@ -72,6 +72,7 @@ function sfc_render_header(array $context, string $active = ''): void
     };
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ?>
+  <div class="city-top-accent-line" aria-hidden="true"></div>
   <header class="city-header">
     <div class="city-container city-nav">
       <a class="city-brand" href="<?= $e(sfc_path($home)) ?>">

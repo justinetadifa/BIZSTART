@@ -5,6 +5,7 @@ require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
+require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -19,7 +20,9 @@ api_handle(function (array $container): array {
             'voteSummary' => $container['votes']->summaryMap([$propertyId])[$propertyId] ?? [],
             'messageSummary' => $container['messages']->propertySummaryMap([$propertyId])[$propertyId] ?? [],
         ]);
-        return ['property' => $container['clup']->decorateProperty($property, string_or_null($_GET['investmentType'] ?? null))];
+        $decorated = $container['clup']->decorateProperty($property, string_or_null($_GET['investmentType'] ?? null));
+        $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
+        return ['property' => $decorated];
     }
     if (!in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {
         return [405, ['error' => 'Method not allowed.']];
@@ -35,8 +38,8 @@ api_handle(function (array $container): array {
             return [403, ['error' => 'You may only manage your own listings.']];
         }
     }
-    if (!sfc_can_manage_properties($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
-        return [403, ['error' => 'A city department account is required to attach assessment evidence.']];
+    if (!sfc_can_manage_properties($user) && !sfc_broker_can_submit($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
+        return [403, ['error' => 'A city department or approved broker account is required to attach assessment evidence.']];
     }
     $before = $container['properties']->find($propertyId, $user);
     if ($method === 'DELETE') {
@@ -50,7 +53,7 @@ api_handle(function (array $container): array {
         $payload['image_path'] = $image;
     }
     $evidence = ['created' => []];
-    if (sfc_can_manage_properties($user)) {
+    if (sfc_can_manage_properties($user) || sfc_broker_can_submit($user)) {
         $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null, $before['parcel']['attachments'] ?? []);
         $payload['evidence_attachments'] = $evidence['attachments'];
     }
@@ -69,5 +72,7 @@ api_handle(function (array $container): array {
         ]);
     }
     $container['line']->onListingUpdated($before, $property, $user);
-    return ['property' => $container['clup']->decorateProperty($container['decisionEngine']->decorateProperty($property))];
+    $decorated = $container['clup']->decorateProperty($container['decisionEngine']->decorateProperty($property));
+    $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
+    return ['property' => $decorated];
 });

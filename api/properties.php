@@ -34,8 +34,8 @@ api_handle(function (array $container): array {
         if (($user['role'] ?? '') === 'seller' && !sfc_broker_can_submit($user)) {
             return [403, ['error' => 'Your broker application is awaiting CICTO approval.']];
         }
-        if (!sfc_can_manage_properties($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
-            return [403, ['error' => 'A city department account is required to attach assessment evidence.']];
+        if (!sfc_can_manage_properties($user) && !sfc_broker_can_submit($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
+            return [403, ['error' => 'A city department or approved broker account is required to attach assessment evidence.']];
         }
         $payload = sfc_listing_payload(read_request_input(), $user, true);
         $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);
@@ -44,7 +44,7 @@ api_handle(function (array $container): array {
             $payload['image_path'] = $image;
         }
         $evidence = ['created' => []];
-        if (sfc_can_manage_properties($user)) {
+        if (sfc_can_manage_properties($user) || sfc_broker_can_submit($user)) {
             $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null);
             $payload['evidence_attachments'] = $evidence['attachments'];
         }

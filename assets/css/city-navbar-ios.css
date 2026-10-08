@@ -19,6 +19,20 @@
   --nav-glass-blur: blur(28px) saturate(180%);
 }
 
+/* Signature Top Red Accent Line (Exact match to reference image media_1791400995761.png) */
+.city-top-accent-line {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 3.5px !important;
+  background: #BC1823 !important;
+  z-index: 99999 !important;
+  pointer-events: none !important;
+  box-shadow: 0 1px 3px rgba(188, 24, 35, 0.28) !important;
+}
+
 /* Floating header island container */
 .city-header {
   position: sticky !important;
@@ -431,7 +445,8 @@
     gap: 8px !important;
   }
   .city-header .city-account-links a:not(.city-button),
-  .city-header .city-account-links .city-button {
+  .city-header .city-account-links .city-button,
+  .city-header .city-account-links .city-updates-button {
     width: 100% !important;
     min-height: 44px !important;
     justify-content: center !important;
@@ -448,6 +463,21 @@
   }
   .city-header .city-brand small {
     display: none !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .city-header .city-nav {
+    width: calc(100% - 14px) !important;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+  .city-header .city-brand strong {
+    font-size: 15px !important;
+  }
+  .city-header .city-brand-badge {
+    width: 34px !important;
+    height: 34px !important;
   }
 }
 
@@ -1157,5 +1187,38 @@
   }
 }
 
+/* Priority Stats Widget (Responsive on mobile viewports) */
+.priority-stats-widget {
+  display: flex !important;
+  align-items: center !important;
+  gap: 20px !important;
+}
 
+@media (max-width: 640px) {
+  .priority-stats-widget {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+  .priority-stats-widget .priority-stat-primary {
+    grid-column: 1 / -1 !important;
+    padding-bottom: 8px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+  .priority-stats-widget .priority-stat-divider {
+    display: none !important;
+  }
+}
 
+/* Global Mobile Aspect Ratio Polish */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  dialog.city-dialog {
+    max-width: calc(100vw - 20px) !important;
+    margin-inline: auto !important;
+  }
+}

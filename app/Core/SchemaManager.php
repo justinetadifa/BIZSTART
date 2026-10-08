@@ -22,13 +22,19 @@ CREATE TABLE IF NOT EXISTS users (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   role VARCHAR(40) NOT NULL,
   name VARCHAR(140) NOT NULL,
+  first_name VARCHAR(70) NULL,
+  last_name VARCHAR(70) NULL,
   department VARCHAR(190) NULL DEFAULT NULL,
   email VARCHAR(190) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',
   identity_verified_at TIMESTAMP NULL DEFAULT NULL,
+  account_status VARCHAR(40) NOT NULL DEFAULT 'active',
   phone VARCHAR(60) NULL,
   address_line VARCHAR(255) NULL,
+  city VARCHAR(120) NULL,
+  profession VARCHAR(120) NULL,
+  adult_confirmed_at TIMESTAMP NULL DEFAULT NULL,
   profile_image_url VARCHAR(255) NULL,
   privacy_consent_at TIMESTAMP NULL DEFAULT NULL,
   privacy_consent_version VARCHAR(40) NULL,
@@ -62,6 +68,7 @@ CREATE TABLE IF NOT EXISTS seller_profiles (
   business_registration_no VARCHAR(120) NULL,
   government_id_no VARCHAR(120) NULL,
   prc_registration_no VARCHAR(40) NULL,
+  prc_canonical_no VARCHAR(40) GENERATED ALWAYS AS (CASE WHEN prc_registration_no REGEXP '^[0-9]{1,20}$' THEN COALESCE(NULLIF(TRIM(LEADING '0' FROM prc_registration_no), ''), '0') ELSE prc_registration_no END) STORED,
   prc_valid_until DATE NULL,
   address_line VARCHAR(255) NULL,
   barangay VARCHAR(120) NULL,
@@ -481,8 +488,14 @@ SQL,
         }
 
         foreach ([
+            'first_name' => 'VARCHAR(70) NULL',
+            'last_name' => 'VARCHAR(70) NULL',
+            'account_status' => "VARCHAR(40) NOT NULL DEFAULT 'active'",
             'phone' => 'VARCHAR(60) NULL',
             'address_line' => 'VARCHAR(255) NULL',
+            'city' => 'VARCHAR(120) NULL',
+            'profession' => 'VARCHAR(120) NULL',
+            'adult_confirmed_at' => 'TIMESTAMP NULL DEFAULT NULL',
             'profile_image_url' => 'VARCHAR(255) NULL',
             'privacy_consent_at' => 'TIMESTAMP NULL DEFAULT NULL',
             'privacy_consent_version' => 'VARCHAR(40) NULL',
@@ -515,6 +528,9 @@ SQL,
             if (!self::columnExists($pdo, 'seller_profiles', $column)) {
                 $pdo->exec('ALTER TABLE seller_profiles ADD COLUMN ' . $column . ' ' . $definition);
             }
+        }
+        if (!self::columnExists($pdo, 'seller_profiles', 'prc_canonical_no')) {
+            $pdo->exec("ALTER TABLE seller_profiles ADD COLUMN prc_canonical_no VARCHAR(40) GENERATED ALWAYS AS (CASE WHEN prc_registration_no REGEXP '^[0-9]{1,20}$' THEN COALESCE(NULLIF(TRIM(LEADING '0' FROM prc_registration_no), ''), '0') ELSE prc_registration_no END) STORED");
         }
 
         if (!self::columnExists($pdo, 'seller_profiles', 'seller_type')) {
@@ -952,7 +968,9 @@ SQL,
 
     private static function ensureIndexes(PDO $pdo): void
     {
+        self::ensureIndex($pdo, 'users', 'uniq_users_email', 'CREATE UNIQUE INDEX uniq_users_email ON users (email)');
         self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_prc', 'CREATE UNIQUE INDEX uniq_seller_profiles_prc ON seller_profiles (prc_registration_no)');
+        self::ensureIndex($pdo, 'seller_profiles', 'uniq_seller_profiles_prc_canonical', 'CREATE UNIQUE INDEX uniq_seller_profiles_prc_canonical ON seller_profiles (prc_canonical_no)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_seller_user', 'CREATE INDEX idx_properties_seller_user ON properties (seller_user_id)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_approval_state', 'CREATE INDEX idx_properties_approval_state ON properties (approval_state)');
         self::ensureIndex($pdo, 'properties', 'idx_properties_last_confirmed_available', 'CREATE INDEX idx_properties_last_confirmed_available ON properties (last_confirmed_available_at)');
