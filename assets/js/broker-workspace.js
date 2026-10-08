@@ -1,4 +1,5 @@
 import { api } from './api.js';
+import { listingPurposeLabel, listingPriceLabel } from './utils.js';
 import './nearby-editor.js';
 
 const byId = (id) => document.getElementById(id);
@@ -31,16 +32,21 @@ function ensureWizard() {
   }
 }
 const state = { properties: [], profile: null, threads: [], requests: [], activeThread: null, threadData: null, query: '', filter: 'all' };
-const labels = { approved: 'Accepted', pending_review: 'Pending review', rejected: 'Declined', verified: 'Verified broker', suspended: 'Suspended', draft: 'Complete verification', archived: 'Archived' };
+const labels = { approved: 'Accepted', pending_review: 'Pending review', corrections_requested: 'Corrections requested', rejected: 'Declined', blocked: 'Blocked after review', verified: 'Verified broker', suspended: 'Suspended', draft: 'Complete verification', archived: 'Archived' };
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
-const money = (value) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(Number(value || 0));
 const number = (value) => new Intl.NumberFormat('en-PH', { maximumFractionDigits: 4 }).format(Number(value || 0));
 const date = (value) => value ? new Date(value).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : 'Not scheduled';
 const badge = (status) => `<span class="broker-badge is-${escape(status)}">${escape(labels[status] || String(status || 'Pending').replaceAll('_', ' '))}</span>`;
+const validPrcDocument = document => document
+  && /^[a-f0-9]{64}$/i.test(String(document.id || ''))
+  && ['image/jpeg', 'image/png', 'image/webp'].includes(document.mime)
+  && Number(document.size) > 0 && Number(document.size) <= 5 * 1024 * 1024;
 const canSubmit = () => {
   const profile = state.profile;
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   return profile?.applicationStatus === 'verified'
+    && Boolean(user.emailVerifiedAt || user.emailVerified)
+    && validPrcDocument(profile.frontDocument) && validPrcDocument(profile.backDocument)
     && profile?.sellerType === 'broker'
     && /^[0-9]{1,20}$/.test(String(profile.prcRegistrationNo || ''))
     && /^\d{4}-\d{2}-\d{2}$/.test(String(profile.prcValidUntil || ''))
@@ -70,7 +76,7 @@ function renderVerification() {
     if (firstName) heroName.textContent = firstName;
   }
   addButton.disabled = !canSubmit();
-  addButton.title = canSubmit() ? 'Submit a property for city review' : 'CICTO must verify your broker account first';
+  addButton.title = canSubmit() ? 'Submit a property for city review' : 'Verify your email and complete broker application approval first';
   if (!profile) {
     byId('brokerVerification').innerHTML = `
       <div class="broker-verify-badge-icon">
@@ -90,23 +96,31 @@ function renderVerification() {
       </div>`;
     return;
   }
-  const status = profile.applicationStatus === 'verified' && !canSubmit() ? 'draft' : (profile.applicationStatus || 'draft');
+  const status = profile.applicationStatus || 'draft';
   const copy = {
-    verified: 'Your account is verified. Listings still require CICTO approval.',
-    pending_review: 'CICTO is reviewing your PRC credentials. You can submit listings after approval.',
+    verified: 'Your broker application is approved. Listings still require CICTO approval.',
+    pending_review: 'Authorized CAO or LEBDO personnel are reviewing your PRC credentials and both ID images.',
+    corrections_requested: 'Your reviewer has requested corrections. Update your credentials or images and resubmit your application.',
     rejected: 'Update your credentials and resubmit your application.',
-    suspended: 'Contact CICTO about your account status.',
-    draft: 'Complete your PRC credentials in your profile for CICTO review.',
+    suspended: 'Contact support about your account status.',
+    blocked: 'Your account has been blocked following a documented credential review. Contact support about the decision.',
+    draft: 'Complete your PRC credentials and both ID images in your profile for authorized CAO or LEBDO review.',
   };
   const statusLabels = {
     verified: 'Verified broker',
     pending_review: 'Pending review',
+    corrections_requested: 'Corrections requested',
     rejected: 'Declined',
     suspended: 'Suspended',
+    blocked: 'Blocked after review',
     draft: 'Pending verification'
   };
   const displayName = escape(profile.displayName || profile.legalName || user.name || 'Broker');
-  const linkText = ['draft', 'rejected'].includes(status) ? 'Complete profile' : 'My profile';
+  const linkText = ['draft', 'rejected', 'corrections_requested'].includes(status) ? 'Complete profile' : 'My profile';
+  const requirements = [];
+  if (!user.emailVerifiedAt && !user.emailVerified) requirements.push('Verify your email to enable listing submission.');
+  if (!validPrcDocument(profile.frontDocument) || !validPrcDocument(profile.backDocument)) requirements.push('Upload both valid PRC ID images in your profile.');
+  if (profile.prcValidUntil && profile.prcValidUntil < new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })) requirements.push('Your PRC ID has expired. Update your credentials for review.');
 
   byId('brokerVerification').innerHTML = `
     <div class="broker-verify-badge-icon">
@@ -123,7 +137,9 @@ function renderVerification() {
         <strong class="broker-verify-name">${displayName}</strong>
       </div>
       <p class="broker-verify-msg">${escape(copy[status] || copy.draft)}</p>
-      ${profile.reviewNotes ? `<p class="broker-admin-note"><strong>CICTO message</strong> · ${escape(profile.reviewNotes)}</p>` : ''}
+      <p class="broker-verify-msg"><strong>Email ownership:</strong> ${user.emailVerifiedAt || user.emailVerified ? 'Verified' : 'Not yet verified'}</p>
+      ${requirements.length ? `<p class="broker-verify-msg">${escape(requirements.join(' '))}</p>` : ''}
+      ${profile.reviewNotes ? `<p class="broker-admin-note"><strong>Application review</strong> · ${escape(profile.reviewNotes)}</p>` : ''}
     </div>
     <a class="broker-verify-link" href="${basePath}/profile.php">${linkText} &rarr;</a>
   `;
@@ -224,7 +240,9 @@ function renderListings() {
         </div>
         <p class="broker-listing-location">${escape([property.barangay, property.subcategory || property.category].filter(Boolean).join(' · '))}</p>
         <div class="broker-listing-meta">
-          <span><strong>${money(property.price)}</strong></span>
+          <span>${escape(listingPurposeLabel(property))}</span>
+          <span><strong>${escape(listingPriceLabel(property))}</strong></span>
+          <span>${escape(property.status || 'Available')}</span>
           <span>${property.area > 0 ? `${number(property.area)} ha` : 'Area not provided'}</span>
           <span>${number(property.saveCount)} saved</span>
           ${score(property, 'mce')}
@@ -361,12 +379,13 @@ function formatPriceField(input) {
   const original = input.value;
   const cursorPos = input.selectionStart || 0;
   const digitsBeforeCursor = original.slice(0, cursorPos).replace(/\D/g, '').length;
-  const raw = original.replace(/\D/g, '');
+  const raw = original.replace(/,/g, '');
+  if (!/^\d*$/.test(raw)) return;
   if (!raw) {
     input.value = '';
     return;
   }
-  const formatted = Number(raw).toLocaleString('en-US');
+  const formatted = raw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   input.value = formatted;
   let newCursorPos = 0;
   let digitsFound = 0;
@@ -381,7 +400,7 @@ function formatPriceField(input) {
   if (digitsFound < digitsBeforeCursor) newCursorPos = formatted.length;
   try { input.setSelectionRange(newCursorPos, newCursorPos); } catch {}
 }
-priceInput?.addEventListener('input', () => formatPriceField(priceInput));
+form?.querySelectorAll('[data-price-input]').forEach(input => input.addEventListener('input', () => formatPriceField(input)));
 
 const areaInput = form?.querySelector('[data-area-input]');
 const areaUnit = form?.querySelector('[data-area-unit]');
@@ -587,6 +606,10 @@ function openListing(property = null) {
       category: property.category,
       barangay: property.barangay,
       status: property.status || 'Available',
+      listing_purpose: property.listingPurpose || 'sale',
+      lease_price: property.leasePrice,
+      lease_period: property.leasePeriod || 'month',
+      lease_price_unit: property.leasePriceUnit || 'total',
       lat: property.lat,
       lng: property.lng,
       description: property.description,
@@ -602,7 +625,8 @@ function openListing(property = null) {
     Object.entries(values).forEach(([name, value]) => {
       if (form.elements[name]) form.elements[name].value = value ?? '';
     });
-    if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
+    if (priceInput) priceInput.value = (property.salePrice ?? property.price) != null ? String(property.salePrice ?? property.price) : '';
+    form.querySelectorAll('[data-price-input]').forEach(formatPriceField);
     if (areaInput && areaUnit) {
       areaUnit.value = 'sqm';
       areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : (property.area > 0 ? Math.round(property.area * 10000 * 100) / 100 : '');
@@ -666,8 +690,8 @@ function renderThreads() {
         <circle cx="20" cy="32" r="4.5" fill="#94A3B8"/>
         <path d="M12 44 C12 40 16 38 20 38 C24 38 28 40 28 44" fill="#94A3B8"/>
       </svg>
-      <strong class="broker-sidebar-empty-title">No new messages yet</strong>
-      <p class="broker-sidebar-empty-sub">Investor inquiries and site visit requests will appear here.</p>
+      <strong class="broker-sidebar-empty-title">${canSubmit() ? 'No new messages yet' : 'Messages available after verification'}</strong>
+      <p class="broker-sidebar-empty-sub">${canSubmit() ? 'Investor inquiries and site visit requests will appear here.' : 'Verify your email and complete broker application approval to access investor messages and visits.'}</p>
     </div>`;
 }
 
@@ -761,23 +785,34 @@ function renderDocuments() {
         <line x1="30" y1="23" x2="48" y2="23" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
         <line x1="30" y1="29" x2="42" y2="29" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <strong class="broker-sidebar-empty-title">No document requests</strong>
-      <p class="broker-sidebar-empty-sub">We'll notify you if CICTO needs additional documents during your review.</p>
+      <strong class="broker-sidebar-empty-title">${canSubmit() ? 'No document requests' : 'Document requests available after verification'}</strong>
+      <p class="broker-sidebar-empty-sub">${canSubmit() ? 'Investor requests for listing documents will appear here.' : 'Complete broker verification to respond to investor requests. Review application feedback in your profile.'}</p>
     </div>`;
 }
 
 async function reload() {
-  const [propertyResult, profileResult, threadResult, documentResult] = await Promise.allSettled([api.properties(), api.sellerProfile(), api.getMessageInbox(), api.getDocumentRequestInbox()]);
+  const [propertyResult, profileResult] = await Promise.allSettled([api.properties(), api.sellerProfile()]);
   if (propertyResult.status === 'fulfilled') state.properties = propertyResult.value.properties || [];
-  if (profileResult.status === 'fulfilled') state.profile = profileResult.value.profile || null;
-  if (threadResult.status === 'fulfilled') state.threads = threadResult.value.threads || [];
-  if (documentResult.status === 'fulfilled') state.requests = documentResult.value.requests || [];
+  state.profile = profileResult.status === 'fulfilled' ? profileResult.value.profile || null : null;
+  const results = [propertyResult, profileResult];
+  if (canSubmit()) {
+    const [threadResult, documentResult] = await Promise.allSettled([api.getMessageInbox(), api.getDocumentRequestInbox()]);
+    if (threadResult.status === 'fulfilled') state.threads = threadResult.value.threads || [];
+    if (documentResult.status === 'fulfilled') state.requests = documentResult.value.requests || [];
+    results.push(threadResult, documentResult);
+  } else {
+    state.threads = [];
+    state.requests = [];
+    state.activeThread = null;
+    state.threadData = null;
+    byId('brokerThreadView').hidden = true;
+  }
   renderVerification();
   renderStats();
   renderListings();
   renderThreads();
   renderDocuments();
-  const failures = [propertyResult, profileResult, threadResult, documentResult].filter((result) => result.status === 'rejected');
+  const failures = results.filter((result) => result.status === 'rejected');
   if (failures.length) feedback(failures.map((result) => result.reason.message).join(' '), true);
   if (state.activeThread && byId('brokerMessagesDetails').open) await openThread(state.activeThread);
 }
@@ -858,7 +893,8 @@ form?.addEventListener('submit', async (event) => {
     const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
     payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
     payload.set('subcategory', Array.from(selectedSubcategories).join(', '));
-    payload.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
+    payload.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
+    payload.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
     payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
     payload.set('recalculate_assessment', 'true');
     payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));

@@ -34,6 +34,40 @@ final class UserRepository
         return is_array($row) ? $this->hydrate($row) : null;
     }
 
+    public function setBrokerReviewAuthorization(int $userId, bool $authorized, array $actor): array
+    {
+        if (!\sfc_can_administer_city($actor)) {
+            throw new InvalidArgumentException('Only ICT administrators can assign broker reviewer permissions.');
+        }
+        $owns = !$this->pdo->inTransaction();
+        if ($owns) { $this->pdo->beginTransaction(); }
+        try {
+            $lock = $this->pdo->prepare('SELECT * FROM users WHERE id = :id FOR UPDATE');
+            $lock->execute(['id' => $userId]);
+            $row = $lock->fetch();
+            if (!$row || !in_array(\sfc_admin_department($row), ['ASSESSOR', 'LEBDO'], true)) {
+                throw new InvalidArgumentException('Broker reviewer permission can only be assigned to CAO/Assessor or LEBDO personnel.');
+            }
+            $before = (bool) ($row['broker_review_authorized'] ?? false);
+            $update = $this->pdo->prepare('UPDATE users SET broker_review_authorized = :authorized WHERE id = :id');
+            $update->execute(['id' => $userId, 'authorized' => $authorized ? 1 : 0]);
+            if ($before !== $authorized) {
+                $audit = $this->pdo->prepare("INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata) VALUES (:actor, 'EDIT', 'USER', :id, :metadata)");
+                $audit->execute(['actor' => (int) $actor['id'], 'id' => $userId, 'metadata' => json_encode([
+                    'eventType' => 'BROKER_REVIEW_PERMISSION', 'actorName' => $actor['name'] ?? '',
+                    'summary' => $authorized ? 'Authorized broker application review.' : 'Revoked broker application review.',
+                    'before' => ['brokerReviewAuthorized' => $before], 'after' => ['brokerReviewAuthorized' => $authorized],
+                ], JSON_THROW_ON_ERROR)]);
+            }
+            $user = $this->findById($userId);
+            if ($owns) { $this->pdo->commit(); }
+            return $user;
+        } catch (\Throwable $error) {
+            if ($owns && $this->pdo->inTransaction()) { $this->pdo->rollBack(); }
+            throw $error;
+        }
+    }
+
     public function findByEmail(string $email): ?array
     {
         $statement = $this->pdo->prepare(
@@ -475,6 +509,10 @@ final class UserRepository
             'lastName' => $row['last_name'] ?? '',
             'department' => $department,
             'email' => (string) ($row['email'] ?? ''),
+            'emailVerifiedAt' => $row['email_verified_at'] ?? null,
+            'emailVerified' => !empty($row['email_verified_at']),
+            'brokerReviewAuthorized' => (bool) ($row['broker_review_authorized'] ?? false),
+            'sessionVersion' => (int) ($row['session_version'] ?? 0),
             'phone' => $row['phone'] ?? null,
             'address' => $row['address_line'] ?? null,
             'city' => $row['city'] ?? null,

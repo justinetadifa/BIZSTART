@@ -5,7 +5,7 @@ require __DIR__ . '/app/Support/web.php';
 
 $context = sfc_web_context();
 sfc_require_role('admin', sfc_path('/admin-login.php'));
-if (!sfc_can_review_brokers()) {
+if (!sfc_can_administer_city()) {
     http_response_code(403);
     exit('CICTO manages city showcase publishing.');
 }

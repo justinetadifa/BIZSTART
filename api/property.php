@@ -32,7 +32,7 @@ api_handle(function (array $container): array {
     }
     if (($user['role'] ?? '') === 'seller') {
         if (!sfc_broker_can_submit($user)) {
-            return [403, ['error' => 'Your broker account is awaiting CICTO approval.']];
+            return [403, ['error' => 'Verify your email and obtain approval of your complete broker application from an authorized CAO or LEBDO reviewer before managing listings.']];
         }
         if (!$container['properties']->isOwnedBySeller($propertyId, (int) $user['id'])) {
             return [403, ['error' => 'You may only manage your own listings.']];
@@ -47,13 +47,19 @@ api_handle(function (array $container): array {
             $container['properties']->delete($propertyId, $user);
             $property = $container['properties']->find($propertyId, $user);
         } else {
-            $property = $container['properties']->update($propertyId, ['approval_state' => 'archived'], $user);
+            $property = $container['properties']->archive($propertyId, $user);
         }
         return ['propertyId' => $propertyId, 'property' => $property];
     }
     $input = read_request_input();
     if (array_key_exists('action', $input)) {
-        if (!sfc_can_manage_properties($user)) { return [403, ['error' => 'A city department account is required to manage property availability and Recently deleted.']]; }
+        if ($input['action'] === 'archive') {
+            return ['property' => $container['properties']->archive($propertyId, $user)];
+        }
+        if ($input['action'] === 'unarchive') {
+            return ['property' => $container['properties']->unarchive($propertyId, $user)];
+        }
+        if (!sfc_can_manage_properties($user)) { return [403, ['error' => 'A city department account is required to manage property availability and deleted listings.']]; }
         if ($input['action'] === 'restore') {
             return ['property' => $container['properties']->restore($propertyId, $user)];
         }
@@ -63,7 +69,7 @@ api_handle(function (array $container): array {
         throw new InvalidArgumentException('Choose a valid property action.');
     }
     if (!empty($before['isDeleted'])) {
-        throw new InvalidArgumentException('Restore this property from Recently deleted before editing it.');
+        throw new InvalidArgumentException('Restore this property from Deleted Listings before editing it.');
     }
     $payload = sfc_listing_payload($input, $user, false, $before);
     $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);

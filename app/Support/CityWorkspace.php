@@ -46,7 +46,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     <div class="tw-max-w-xl">
       <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[11px] tw-font-bold tw-tracking-widest tw-uppercase tw-text-slate-300/80 tw-mb-2.5">
         <span aria-hidden="true">→</span>
-        <span>CIC TO WORKSPACE</span>
+        <span>Property workspace</span>
       </div>
       <div class="tw-flex tw-items-stretch tw-gap-3.5">
         <div class="tw-w-1.5 tw-bg-[#9E1B22] tw-rounded-full tw-shrink-0"></div>
@@ -66,7 +66,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
           </svg>
         </div>
         <div class="tw-text-left">
-          <strong class="tw-block tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatTotal">13</strong>
+          <strong class="tw-block tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatTotal">—</strong>
           <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Total properties</span>
         </div>
       </div>
@@ -74,7 +74,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-500"></span>
-          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatReview">1</strong>
+          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatReview">—</strong>
         </div>
         <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Awaiting review</span>
       </div>
@@ -82,7 +82,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500"></span>
-          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatPublished">8</strong>
+          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatPublished">—</strong>
         </div>
         <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Published</span>
       </div>
@@ -90,7 +90,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       <div class="tw-text-left">
         <div class="tw-flex tw-items-center tw-gap-1.5">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-[#11224D]"></span>
-          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatNeedsAssessment">4</strong>
+          <strong class="tw-text-2xl sm:tw-text-3xl tw-font-extrabold tw-text-slate-900 tw-leading-tight" id="priorityStatNeedsAssessment">—</strong>
         </div>
         <span class="tw-block tw-text-[11px] tw-font-medium tw-text-slate-500 tw-mt-0.5">Needs assessment</span>
       </div>
@@ -100,6 +100,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 <?php endif; ?>
 
 <main class="city-container city-workspace" id="propertyResults">
+  <?php sfc_investor_view_control($context); ?>
   <?php if ($mode === 'explorer'): ?>
   <div class="tw-mb-4">
     <h1 class="tw-text-2xl sm:tw-text-3xl tw-font-black tw-italic tw-tracking-tight tw-text-[#9E1B22] tw-uppercase tw-m-0" style="font-family: 'Poppins', sans-serif;">MAP EXPLORER</h1>
@@ -182,9 +183,9 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       </div>
       <select id="citySort" class="tw-w-full tw-pl-9 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
         <option value="newest">Newest</option>
-        <option value="iai">IAI score</option>
-        <option value="mce">MCE score</option>
-        <option value="price">Price: low to high</option>
+        <option value="iai" data-investor-advanced-sort>IAI score</option>
+        <option value="mce" data-investor-advanced-sort>MCE score</option>
+        <option value="price">Sale price: low to high (unknown last)</option>
         <option value="area">Area: largest</option>
       </select>
       <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
@@ -250,12 +251,12 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1">Sort by</span>
       <div class="tw-relative">
         <select id="citySort" class="tw-w-full tw-pl-3 tw-pr-8 tw-py-2.5 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
-          <option value="iai" selected>IAI score (High to Low)</option>
-          <option value="mce">MCE score (High to Low)</option>
-          <option value="price_asc">Price: Low to High</option>
-          <option value="price_desc">Price: High to Low</option>
+          <option value="iai" data-investor-advanced-sort>IAI score (High to Low)</option>
+          <option value="mce" data-investor-advanced-sort>MCE score (High to Low)</option>
+          <option value="price_asc">Sale price: Low to High (unknown last)</option>
+          <option value="price_desc">Sale price: High to Low (unknown last)</option>
           <option value="area">Area: Largest</option>
-          <option value="newest">Newest</option>
+          <option value="newest" selected>Newest</option>
         </select>
         <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -287,9 +288,10 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     <label class="city-field"><span>Search</span><input id="citySearch" type="search" placeholder="Property or barangay" autocomplete="off"></label>
     <label class="city-field"><span>Category</span><select id="cityCategory"><option value="">All categories</option></select></label>
     <label class="city-field"><span>Subcategory</span><select id="citySubcategory" disabled><option value="">All subcategories</option></select></label>
-    <label class="city-field"><span>Sort by</span><select id="citySort"><option value="newest">Newest</option><option value="iai">IAI score</option><option value="mce">MCE score</option><option value="price">Price: low to high</option><option value="area">Area: largest</option></select></label>
+    <label class="city-field"><span>Sort by</span><select id="citySort"><option value="newest">Newest</option><option value="iai" data-investor-advanced-sort>IAI score</option><option value="mce" data-investor-advanced-sort>MCE score</option><option value="price">Sale price: low to high (unknown last)</option><option value="area">Area: largest</option></select></label>
   </form>
   <?php endif; ?>
+  <p id="cityViewSortNote" class="city-assessment-note" role="status" hidden></p>
   
   <?php if ($mode !== 'ranking'): ?>
   <div class="city-results-line tw-mb-3">
@@ -325,7 +327,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       </div>
       <div class="city-map-canvas tw-h-[clamp(240px,65vh,640px)]" id="cityPropertyMap"></div>
       <div class="city-map-options tw-flex-wrap">
-        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2.5 tw-cursor-pointer">
+        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2.5 tw-cursor-pointer" data-investor-advanced>
           <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
             <input type="checkbox" id="cityNearbyBusinesses" class="tw-sr-only tw-peer">
             <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-[#9E1B22]"></div>
@@ -333,10 +335,10 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
           <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Nearby businesses</span>
           <span class="tw-text-xs tw-text-slate-400" title="Toggle local competitor and partner points">ⓘ</span>
         </label>
-        <div class="city-map-legend" aria-hidden="true">
+        <div class="city-map-legend" data-investor-advanced aria-label="IAI assessment tiers">
           <span><i class="dot-prime"></i> Prime 90+</span>
           <span><i class="dot-strong"></i> Strong 80–89</span>
-          <span><i class="dot-emerging"></i> Moderate +80</span>
+          <span><i class="dot-emerging"></i> Emerging below 80</span>
         </div>
         <span id="cityMapContext" role="status"></span>
       </div>
@@ -344,14 +346,16 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
   </div>
   <?php elseif ($mode === 'ranking'): ?>
   <section id="cityRankingTable" aria-live="polite"><div class="city-loading">Loading assessments…</div></section>
-  <details class="city-assessment-note">
+  <p class="city-assessment-note" data-investor-basic>Basic view shows listing facts. Advanced view adds assessment scores and recorded scientific ranks.</p>
+  <details class="city-assessment-note" data-investor-advanced>
     <summary>Assessment method</summary>
     <p id="cityAssessmentMethod"></p>
     <p>Context tags describe the assessor’s view of the site. Suitability is subject to zoning, records, and site checks.</p>
   </details>
   <?php elseif ($mode === 'compare'): ?>
   <div class="city-compare-matrix" id="cityCompareMatrix" aria-live="polite"><div class="city-loading">Loading comparison…</div></div>
-  <p class="city-assessment-note">Add up to three properties from the property list. MCE and IAI use completed city assessments.</p>
+  <p class="city-assessment-note">Add up to three properties from the property list. Hazard information stays visible in both views.</p>
+  <p class="city-assessment-note" data-investor-advanced>MCE and IAI use completed city assessments. Missing ratings remain pending.</p>
   <?php else: ?>
   <div class="city-property-grid" id="cityPropertyGrid" aria-live="polite"><div class="city-loading">Loading properties…</div></div>
   <?php endif; ?>

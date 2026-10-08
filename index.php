@@ -339,6 +339,7 @@ $cataloguePath = $context['user'] === null
       </div>
       <a class="tw-inline-flex tw-items-center tw-justify-center tw-px-7 tw-py-2.5 tw-rounded-full tw-bg-[#9E1B22] tw-text-white tw-font-semibold tw-text-sm hover:tw-bg-[#80141a] hover:tw-shadow-md hover:tw-scale-[1.02] active:tw-scale-[0.98] tw-transition-all tw-duration-200" href="<?= $e(sfc_path($cataloguePath)) ?>">View all properties</a>
     </div>
+    <?php sfc_investor_view_control($context); ?>
     <div class="city-property-grid" id="cityPropertyGrid" aria-live="polite"><div class="city-loading">Loading properties…</div></div>
     <?php if ($context['user'] === null): ?>
     <div class="city-account-gate">

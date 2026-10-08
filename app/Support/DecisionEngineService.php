@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+require_once __DIR__ . '/ListingPresentation.php';
+
 final class DecisionEngineService
 {
     private const DEFAULT_PERSONA = 'balanced';
@@ -348,9 +350,15 @@ final class DecisionEngineService
         ];
         $score = $this->weightedScore($components, $profile['weights'] ?? []);
         $confidence = $this->scoreConfidence($property, $context);
-        [$statusKey, $statusLabel, $toneLabel] = $this->classify($property, $context, $score, $confidence, $profile);
+        [$statusKey, $statusLabel, $toneLabel] = $score === null
+            ? ['needs_verification', 'Pricing incomplete', 'Awaiting sale price']
+            : $this->classify($property, $context, $score, $confidence, $profile);
         $nextAction = $this->nextAction($property, $context);
         $reasons = $this->reasons($components, $property, $context, $nextAction);
+        if ($score === null) {
+            $nextAction = ['label' => 'Confirm pricing', 'target' => 'messaging', 'summary' => 'Confirm sale pricing before assessing an acquisition. Lease quotes are recurring costs.'];
+            array_unshift($reasons, 'Sale pricing is missing or not offered. Acquisition financial and budget fit scores are unavailable.');
+        }
 
         return [
             'key' => $personaKey,
@@ -362,7 +370,7 @@ final class DecisionEngineService
             'statusKey' => $statusKey,
             'statusLabel' => $statusLabel,
             'toneLabel' => $toneLabel,
-            'summary' => $this->summaryLine($statusKey, $score, $confidence, $nextAction),
+            'summary' => $score === null ? 'Acquisition decision score is unavailable until applicable sale pricing is confirmed. Review lease terms separately.' : $this->summaryLine($statusKey, $score, $confidence, $nextAction),
             'nextAction' => $nextAction,
             'reasons' => $reasons,
             'components' => [
@@ -376,9 +384,10 @@ final class DecisionEngineService
         ];
     }
 
-    private function scoreFinancial(array $property): int
+    private function scoreFinancial(array $property): ?int
     {
-        $pricePerSqm = max(1, (int) ($property['pricePerSqm'] ?? 0));
+        if (ListingPresentation::salePrice($property) === null || !isset($property['pricePerSqm']) || (float) $property['pricePerSqm'] <= 0) { return null; }
+        $pricePerSqm = max(1, (int) $property['pricePerSqm']);
         $marketScore = $this->clamp((int) ($property['marketScore'] ?? $property['score'] ?? 0));
         $assessedValueSqm = int_or_null($property['assessedValueSqm'] ?? null);
 
@@ -541,7 +550,7 @@ final class DecisionEngineService
         ));
     }
 
-    private function scorePersonalFit(array $property, array $context, array $profile): int
+    private function scorePersonalFit(array $property, array $context, array $profile): ?int
     {
         $type = strtolower((string) ($property['type'] ?? ''));
         $corridor = strtolower((string) ($property['corridor'] ?? ''));
@@ -553,7 +562,9 @@ final class DecisionEngineService
         );
 
         $budgetAnchor = max(1, (int) ($profile['budgetAnchor'] ?? 70000000));
-        $price = max(1, (int) ($property['price'] ?? 0));
+        $price = ListingPresentation::salePrice($property);
+        if ($price === null) { return null; }
+        $price = max(1, (int) $price);
         $budgetFit = $price <= $budgetAnchor
             ? 100
             : $this->clamp((int) round(100 - ((($price - $budgetAnchor) / $budgetAnchor) * 75)));
@@ -748,8 +759,11 @@ final class DecisionEngineService
         };
     }
 
-    private function weightedScore(array $components, array $weights): int
+    private function weightedScore(array $components, array $weights): ?int
     {
+        foreach ($components as $key => $value) {
+            if ($value === null && (int) ($weights[$key] ?? 0) > 0) { return null; }
+        }
         $totalWeight = array_sum(array_map('intval', $weights));
         if ($totalWeight <= 0) {
             return 0;

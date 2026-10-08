@@ -12,9 +12,9 @@ if (!sfc_can_manage_properties($context['user'])) {
 $deptProfiles = [
     'CICTO' => [
         'title' => 'City Listings Dashboard',
-        'subtitle' => 'Review properties, verify brokers, and manage your city team.',
+        'subtitle' => 'Review properties and manage technical access for your city team.',
         'responsibilities' => [
-            'Broker verification' => 'Check PRC credentials before approving broker access.',
+            'Technical administration' => 'Manage accounts and authorize CAO or LEBDO broker reviewers.',
             'Listing review' => 'Review property evidence and decide which listings are published.',
             'City team' => 'Create accounts for authorized CICTO, Assessor, and LEBDO personnel.',
         ],
@@ -39,8 +39,13 @@ $deptProfiles = [
     ],
 ];
 $profile = $deptProfiles[$department] ?? $deptProfiles['CICTO'];
-$governance = sfc_can_review_brokers($context['user']);
-$staffList = $governance ? sfc_user_repository()->allByRole('admin') : [];
+$governance = sfc_can_review_listings($context['user']);
+$brokerReviewer = sfc_can_review_brokers($context['user']);
+$technicalAdmin = sfc_can_administer_city($context['user']);
+if ($brokerReviewer) {
+    $profile['responsibilities']['Broker applications'] = 'Review PRC credentials and document application decisions.';
+}
+$staffList = $technicalAdmin ? sfc_user_repository()->allByRole('admin') : [];
 $investorsList = sfc_user_repository()->allInvestorsWithActivity();
 $onlineInvestorsCount = count(array_filter($investorsList, static fn (array $i): bool => !empty($i['isOnline'])));
 $totalInvestorsCount = count($investorsList);
@@ -54,7 +59,8 @@ sfc_render_header($context, 'admin');
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/admin-workspace.css<?= sfc_asset_version('css/admin-workspace.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
-<main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>">
+<link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
+<main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
   <section class="tw-relative tw-isolate tw-overflow-hidden tw-rounded-2xl tw-bg-ink" aria-labelledby="cityOverviewTitle">
     <img src="<?= $escape($context['assetBase']) ?>/images/admin-city.jpg" class="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_58%]" alt="" fetchpriority="high">
     <div class="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(8,22,49,0.88)_0%,rgba(17,34,77,0.52)_55%,rgba(17,34,77,0.15)_100%)]"></div>
@@ -91,12 +97,12 @@ sfc_render_header($context, 'admin');
       <details class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-3 tw-text-xs tw-leading-relaxed tw-text-slate-500"><summary class="tw-cursor-pointer">How scores are calculated</summary><p class="tw-mb-0 tw-mt-2" data-assessment-method></p></details>
     </section>
   </div>
-  <?php if ($governance): ?>
+  <?php if ($brokerReviewer): ?>
   <section class="tw-mt-8 tw-min-w-0" aria-labelledby="adminBrokerVerificationTitle">
     <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
       <div>
         <h2 id="adminBrokerVerificationTitle" class="tw-m-0 tw-text-2xl tw-font-bold tw-text-slate-900">Broker verification</h2>
-        <p class="tw-mb-0 tw-mt-1.5 tw-text-sm tw-text-slate-500">Check registration before granting listing access.</p>
+        <p class="tw-mb-0 tw-mt-1.5 tw-text-sm tw-text-slate-500">Authorized CAO and LEBDO reviewers check both ID images and record their decision. Email ownership is verified separately.</p>
       </div>
       <a class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-border tw-border-rose-200 tw-bg-white tw-px-3.5 tw-py-2 tw-text-xs tw-font-semibold tw-text-[#9e1b22] tw-no-underline hover:tw-bg-rose-50/70 tw-transition-colors" href="https://verification.prc.gov.ph/Verification" target="_blank" rel="noopener noreferrer">
         Check PRC registration &nearr;
@@ -272,7 +278,7 @@ sfc_render_header($context, 'admin');
 
   <!-- Initial embedded data for instant client-side search & filtering -->
   <script type="application/json" id="initialInvestorsData"><?= json_encode($investorsList, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
-  <?php if ($governance): ?>
+  <?php if ($technicalAdmin): ?>
   <?php
   $getInitials = static function (string $name): string {
       $parts = preg_split('/\s+/', trim($name)) ?: [];
@@ -288,14 +294,14 @@ sfc_render_header($context, 'admin');
     <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-4"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">Active department personnel</h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Authorized accounts for your city team.</p></div><div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><div class="city-staff-filter-bar tw-gap-1" role="group" aria-label="Filter staff by department"><button type="button" class="city-staff-filter-btn is-active tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="all">All</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="cicto">CICTO</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="assessor">Assessors</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="lebdo">LEBDO</button></div><button type="button" data-open-staff-form class="tw-cursor-pointer tw-rounded-lg tw-border-0 tw-bg-[#9e1b22] tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#7f151b]">+ Add personnel</button></div></div>
     <div class="city-staff-table-wrap tw-min-w-0 tw-overflow-x-auto tw-rounded-lg tw-shadow-none">
       <table class="city-ranking-table tw-min-w-[620px] [&_th]:tw-px-3 [&_th]:tw-py-3 [&_th]:tw-text-[10px] [&_td]:tw-px-3 [&_td]:tw-py-3">
-        <thead><tr><th>Personnel</th><th>Department</th><th>Email</th><th>Status</th></tr></thead>
+        <thead><tr><th>Personnel</th><th>Department</th><th>Email</th><th>Status</th><th>Broker review access</th></tr></thead>
         <tbody id="cityStaffList">
           <?php foreach ($staffList as $staff):
               $sName = (string) ($staff['name'] ?? 'Staff');
               $sDept = (string) ($staff['department'] ?? 'CICTO');
               $sEmail = (string) ($staff['email'] ?? '');
           ?>
-          <tr><td><div class="city-staff-user-cell tw-gap-3"><span class="city-staff-avatar <?= $escape(strtolower($sDept)) ?> tw-h-9 tw-w-9 tw-rounded-full tw-border-0"><?= $escape($getInitials($sName)) ?></span><div class="city-staff-user-meta"><strong class="tw-text-xs"><?= $escape($sName) ?></strong><small class="tw-text-[10px]"><?= $escape($getRoleDesc($sDept)) ?></small></div></div></td><td><span class="city-pill <?= $escape(strtolower($sDept)) ?> tw-font-sans tw-text-[10px] tw-font-medium"><?= $escape($sDept) ?></span></td><td><span class="city-staff-email tw-font-sans tw-text-xs"><?= $escape($sEmail) ?></span></td><td><span class="city-pill approved tw-border-0 tw-text-[10px]"><span class="status-indicator-dot"></span>Active</span></td></tr>
+          <tr><td><div class="city-staff-user-cell tw-gap-3"><span class="city-staff-avatar <?= $escape(strtolower($sDept)) ?> tw-h-9 tw-w-9 tw-rounded-full tw-border-0"><?= $escape($getInitials($sName)) ?></span><div class="city-staff-user-meta"><strong class="tw-text-xs"><?= $escape($sName) ?></strong><small class="tw-text-[10px]"><?= $escape($getRoleDesc($sDept)) ?></small></div></div></td><td><span class="city-pill <?= $escape(strtolower($sDept)) ?> tw-font-sans tw-text-[10px] tw-font-medium"><?= $escape($sDept) ?></span></td><td><span class="city-staff-email tw-font-sans tw-text-xs"><?= $escape($sEmail) ?></span></td><td><span class="city-pill approved tw-border-0 tw-text-[10px]"><span class="status-indicator-dot"></span>Active</span></td><td><?php if (in_array(strtoupper($sDept), ['ASSESSOR', 'CAO', 'LEBDO'], true)): ?><label class="broker-staff-permission"><input type="checkbox" data-broker-review-permission="<?= (int) $staff['id'] ?>" <?= !empty($staff['brokerReviewAuthorized']) ? 'checked' : '' ?> aria-label="Authorize <?= $escape($sName) ?> to review broker applications"><span>Authorized reviewer</span></label><?php else: ?><span class="tw-text-xs tw-text-slate-500">Technical administration</span><?php endif; ?></td></tr>
           <?php endforeach; ?>
         </tbody>
       </table>
@@ -305,7 +311,7 @@ sfc_render_header($context, 'admin');
       <summary class="city-provision-summary tw-flex-wrap tw-gap-3 tw-bg-slate-50 tw-p-4"><span class="tw-flex tw-min-w-0 tw-items-center tw-gap-3"><span class="tw-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-red-50 tw-text-[#9e1b22]"><svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M19 8v6M16 11h6"/></svg></span><span class="tw-min-w-0"><strong class="tw-block tw-text-xs tw-font-semibold tw-text-ink">Provision new department account</strong><span class="tw-mt-1 tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">Create access for authorized personnel.</span></span></span><span class="tw-text-[9px] tw-font-medium tw-uppercase tw-tracking-wider tw-text-slate-500">Authorized staff only</span></summary>
       <form id="cityStaffForm" class="city-form-grid tw-min-w-0 tw-gap-4 tw-p-4 sm:tw-p-5">
         <fieldset class="city-span-2 tw-m-0 tw-min-w-0 tw-border-0 tw-p-0"><legend class="tw-mb-2 tw-text-xs tw-font-semibold">Assigned department</legend><div class="city-dept-radio-cards tw-m-0 tw-gap-2">
-          <?php foreach (['ASSESSOR' => ['Assessors (CAO)', 'Property records'], 'LEBDO' => ['LEBDO Office', 'Investment support'], 'CICTO' => ['CICTO Admin', 'City governance']] as $code => [$label, $description]): ?>
+          <?php foreach (['ASSESSOR' => ['Assessors (CAO)', 'Property records'], 'LEBDO' => ['LEBDO Office', 'Investment support'], 'CICTO' => ['CICTO Admin', 'Technical administration']] as $code => [$label, $description]): ?>
           <label class="city-dept-radio-card <?= $code === 'ASSESSOR' ? 'is-selected' : '' ?> tw-p-3" data-dept="<?= $code ?>"><span class="dept-radio-inner"><input type="radio" name="department" value="<?= $code ?>" <?= $code === 'ASSESSOR' ? 'checked' : '' ?>><span class="dept-radio-text"><strong class="tw-block tw-text-xs"><?= $label ?></strong><small><?= $description ?></small></span></span></label>
           <?php endforeach; ?>
         </div></fieldset>
@@ -313,6 +319,7 @@ sfc_render_header($context, 'admin');
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputEmail">Official email</label><input id="staffInputEmail" name="email" type="email" required maxlength="190" autocomplete="email" placeholder="name@sfcelerate.local"><span class="city-input-hint">Use an authorized @sfcelerate.local address.</span></div>
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputPass">Password</label><input id="staffInputPass" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></div>
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputConfirm">Confirm password</label><input id="staffInputConfirm" name="confirm_password" type="password" required minlength="8" autocomplete="new-password" placeholder="Re-type password"></div>
+        <label class="broker-staff-permission city-span-2"><input type="checkbox" id="staffBrokerReviewer" name="broker_review_authorized" value="1"><span>Authorize broker application review. Available only to CAO or LEBDO personnel.</span></label>
         <p class="city-form-message city-span-2" id="cityStaffStatus" role="status"></p><div class="city-span-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3"><button class="city-button tw-w-full sm:tw-w-auto" type="submit">Create department account</button><span class="tw-text-[11px] tw-text-slate-500">Access follows the selected department.</span></div>
       </form>
     </details>
@@ -322,5 +329,5 @@ sfc_render_header($context, 'admin');
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-overview.js<?= sfc_asset_version('js/admin-overview.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-workspace.js<?= sfc_asset_version('js/admin-workspace.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-investors.js<?= sfc_asset_version('js/admin-investors.js') ?>" defer></script>
-<?php if ($governance): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/city-staff.js<?= sfc_asset_version('js/city-staff.js') ?>"></script><?php endif; ?>
+<?php if ($technicalAdmin): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/city-staff.js<?= sfc_asset_version('js/city-staff.js') ?>"></script><?php endif; ?>
 <?php sfc_render_footer($context); ?>

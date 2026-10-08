@@ -119,8 +119,8 @@ function sfc_city_staff_passkey_valid(string $submitted): bool
 function sfc_city_staff_department(string $submitted): ?string
 {
     return match (strtoupper(trim($submitted))) {
-        'CICTO' => 'CICTO',
-        'ASSESSOR', 'CITY ASSESSOR' => 'ASSESSOR',
+        'CICTO', 'ICT' => 'CICTO',
+        'CAO', 'ASSESSOR', 'CITY ASSESSOR' => 'ASSESSOR',
         'LEBDO' => 'LEBDO',
         default => null,
     };

@@ -9,11 +9,15 @@ sfc_require_any_role(['investor', 'seller', 'admin'], sfc_path('/investor-login.
 $context = sfc_web_context();
 $user = sfc_current_user();
 $error = '';
+$fieldErrors = [];
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
-        sfc_update_own_profile($user, $_POST, $_FILES['profile_photo'] ?? null);
+        sfc_update_own_profile($user, $_POST, $_FILES['profile_photo'] ?? null, $_FILES);
         header('Location: ' . sfc_path('/profile.php?saved=1'));
         exit;
+    } catch (SfcAuthValidationException $exception) {
+        $fieldErrors = $exception->errors();
+        $error = $exception->getMessage();
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
     }
@@ -35,6 +39,7 @@ $renderField = static function (string $name, string $label, string $type, mixed
 sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role' => $user['role']]);
 ?>
 <?php sfc_render_header($context); ?>
+<?php if ($broker !== null): ?><link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_account_escape(sfc_asset_version('css/broker-verification.css')) ?>"><?php endif; ?>
 <main class="tw-mx-auto tw-w-full tw-max-w-[1000px] tw-px-4 tw-pb-10 tw-pt-8 tw-font-sans tw-text-[#11224D] sm:tw-px-6 sm:tw-pt-12">
   <div class="tw-mb-7 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4">
     <div>
@@ -85,16 +90,32 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
       </div>
 
       <?php if ($broker !== null): ?>
-      <details id="profileRegistration" class="tw-mt-7 tw-border-0 tw-border-t tw-border-solid tw-border-[#e5e8ee] tw-pt-5" <?= $error !== '' || $broker['applicationStatus'] !== 'verified' ? 'open' : '' ?>>
+      <details id="profileRegistration" class="tw-mt-7 tw-border-0 tw-border-t tw-border-solid tw-border-[#e5e8ee] tw-pt-5" <?= $error !== '' || $broker['applicationStatus'] !== 'verified' || empty($broker['frontDocument']) || empty($broker['backDocument']) || empty($user['emailVerifiedAt']) ? 'open' : '' ?>>
         <summary class="tw-cursor-pointer tw-text-sm tw-font-semibold">Broker registration <span class="tw-ml-2 tw-text-xs tw-font-normal tw-text-[#697284]">PRC details</span></summary>
-        <p class="tw-mb-5 tw-mt-3 tw-text-xs tw-leading-relaxed tw-text-[#697284]">CICTO reviews changes to your registration.</p>
-        <?php if (!empty($broker['reviewNotes'])): ?><div class="tw-mb-5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e2e7ee] tw-bg-[#F8F9FA] tw-px-3.5 tw-py-3 tw-text-xs tw-leading-relaxed"><strong class="tw-font-semibold">CICTO review</strong><p class="tw-mb-0 tw-mt-1 tw-text-[#697284]"><?= nl2br(sfc_account_escape($broker['reviewNotes'])) ?></p></div><?php endif; ?>
+        <p class="tw-mb-5 tw-mt-3 tw-text-xs tw-leading-relaxed tw-text-[#697284]">Authorized CAO or LEBDO reviewers check your registration and both PRC ID images. Replacing credentials sends your application for another review.</p>
+        <div class="broker-email-status">
+          <strong>Email ownership: <?= !empty($user['emailVerifiedAt']) || !empty($user['emailVerified']) ? 'Verified' : 'Not yet verified' ?></strong>
+          <p><?= !empty($user['emailVerifiedAt']) || !empty($user['emailVerified']) ? 'Your email is verified. Broker application approval is a separate review.' : 'Open the verification link sent to your email. Listing submission requires verified email and an approved application.' ?></p>
+          <p data-email-delivery-status role="status" aria-live="polite">Checking the latest verification email delivery status…</p>
+          <?php if (empty($user['emailVerifiedAt']) && empty($user['emailVerified'])): ?><button type="button" data-resend-verification>Resend verification email</button><?php endif; ?>
+        </div>
+        <?php if (!empty($broker['reviewNotes'])): ?><div class="tw-mb-5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e2e7ee] tw-bg-[#F8F9FA] tw-px-3.5 tw-py-3 tw-text-xs tw-leading-relaxed"><strong class="tw-font-semibold">Application review</strong><p class="tw-mb-0 tw-mt-1 tw-text-[#697284]"><?= nl2br(sfc_account_escape($broker['reviewNotes'])) ?></p></div><?php endif; ?>
         <div class="tw-grid tw-gap-5 sm:tw-grid-cols-2">
           <?php $renderField('prc_registration_no', 'PRC registration number', 'text', $broker['prcRegistrationNo'] ?? '', false, '', 20); ?>
           <?php $renderField('prc_valid_until', 'PRC ID valid until', 'date', $broker['prcValidUntil'] ?? ''); ?>
           <?php $renderField('city', 'City / municipality', 'text', $broker['city'], true, 'address-level2', 120); ?>
           <?php $renderField('company_name', 'Agency', 'text', $broker['companyName'] ?? '', false, 'organization', 190); ?>
         </div>
+        <div class="broker-id-grid tw-mt-5">
+          <?php $GLOBALS['sfc_account_form_prefix'] = 'profile'; $GLOBALS['sfc_account_field_errors'] = $fieldErrors; sfc_broker_document_field('front', $broker['frontDocument'] ?? null, (int) $user['id'], false); ?>
+          <?php sfc_broker_document_field('back', $broker['backDocument'] ?? null, (int) $user['id'], false); ?>
+        </div>
+        <p class="tw-mt-3 tw-text-xs tw-leading-relaxed tw-text-[#697284]">Both PRC ID images are required to submit your application. They are available only to you and authorized reviewers.</p>
+        <?php if (!empty($broker['reviewHistory'])): ?>
+        <details class="broker-review-history tw-mt-4"><summary>Application review history</summary><ol>
+          <?php foreach ($broker['reviewHistory'] as $review): ?><li><strong><?= sfc_account_escape(ucwords(str_replace('_', ' ', $review['decision'] ?? ''))) ?></strong> · <?= sfc_account_escape($review['createdAt'] ?? '') ?><br><?= sfc_account_escape($review['reviewerName'] ?? 'Authorized reviewer') ?>: <?= sfc_account_escape($review['reason'] ?? '') ?></li><?php endforeach; ?>
+        </ol></details>
+        <?php endif; ?>
       </details>
       <?php endif; ?>
       <?php if ($needsConsent): ?><label class="tw-mt-6 tw-flex tw-items-start tw-gap-3 tw-rounded-lg tw-bg-[#F8F9FA] tw-p-4 tw-text-xs tw-leading-relaxed tw-text-[#697284]"><input class="tw-m-0 tw-mt-1 tw-h-4 tw-w-4 tw-shrink-0" type="checkbox" name="privacy_consent" value="1" required <?= !empty($_POST['privacy_consent']) ? 'checked' : '' ?>><span><?= sfc_account_escape(sfc_privacy_consent_text()) ?> <a class="tw-text-[#9E1B22] tw-underline tw-underline-offset-2" href="https://privacy.gov.ph/data-privacy-act-/" target="_blank" rel="noopener noreferrer">Read RA 10173</a></span></label><?php endif; ?>
@@ -102,7 +123,7 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
         <p class="tw-m-0 tw-text-xs tw-text-[#697284]">Changes apply when you save.</p>
         <button type="submit" class="tw-inline-flex tw-min-h-[44px] tw-items-center tw-justify-center tw-rounded-lg tw-border-0 tw-bg-[#9E1B22] tw-px-6 tw-py-3 tw-text-sm tw-font-semibold tw-text-white hover:tw-bg-[#82171d]">Save profile</button>
       </div>
-      <?php if ($broker !== null && $broker['applicationStatus'] !== 'verified'): ?><button type="submit" name="action" value="submit_prc" class="<?= $buttonClass ?> tw-mt-4 tw-w-full">Submit PRC details for review</button><?php endif; ?>
+      <?php if ($broker !== null && ($broker['applicationStatus'] !== 'verified' || empty($broker['frontDocument']) || empty($broker['backDocument']))): ?><button type="submit" name="action" value="submit_prc" class="<?= $buttonClass ?> tw-mt-4 tw-w-full">Submit PRC details for review</button><?php endif; ?>
     </div>
   </form>
 </main>
@@ -130,4 +151,5 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
   </div>
 </dialog>
 <script defer src="<?= sfc_account_escape($context['assetBase']) ?>/js/profile-photo.js<?= sfc_account_escape(sfc_asset_version('js/profile-photo.js')) ?>"></script>
+<?php if ($broker !== null): ?><script defer src="<?= sfc_account_escape($context['assetBase']) ?>/js/broker-verification.js<?= sfc_account_escape(sfc_asset_version('js/broker-verification.js')) ?>"></script><?php endif; ?>
 <?php sfc_render_footer($context); ?>

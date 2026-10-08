@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
   last_name VARCHAR(70) NULL,
   department VARCHAR(190) NULL DEFAULT NULL,
   email VARCHAR(190) NOT NULL,
+  email_verified_at TIMESTAMP NULL DEFAULT NULL,
+  broker_review_authorized TINYINT(1) NOT NULL DEFAULT 0,
+  session_version INT UNSIGNED NOT NULL DEFAULT 0,
   password_hash VARCHAR(255) NOT NULL,
   identity_verification_status VARCHAR(40) NOT NULL DEFAULT 'unverified',
   identity_verified_at TIMESTAMP NULL DEFAULT NULL,
@@ -61,6 +64,9 @@ CREATE TABLE IF NOT EXISTS seller_profiles (
   prc_registration_no VARCHAR(40) NULL,
   prc_canonical_no VARCHAR(40) GENERATED ALWAYS AS (CASE WHEN prc_registration_no REGEXP '^[0-9]{1,20}$' THEN COALESCE(NULLIF(TRIM(LEADING '0' FROM prc_registration_no), ''), '0') ELSE prc_registration_no END) STORED,
   prc_valid_until DATE NULL,
+  prc_front_json JSON NULL,
+  prc_back_json JSON NULL,
+  application_revision INT UNSIGNED NOT NULL DEFAULT 0,
   address_line VARCHAR(255) NULL,
   barangay VARCHAR(120) NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
@@ -85,6 +91,55 @@ CREATE TABLE IF NOT EXISTS seller_profiles (
     FOREIGN KEY (reviewed_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS broker_application_reviews (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  reviewer_user_id INT NOT NULL,
+  application_revision INT UNSIGNED NOT NULL,
+  decision VARCHAR(32) NOT NULL,
+  reason TEXT NOT NULL,
+  findings TEXT NULL,
+  snapshot_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_broker_reviews_user (user_id, id),
+  CONSTRAINT fk_broker_reviews_user FOREIGN KEY (user_id) REFERENCES users(id),
+  CONSTRAINT fk_broker_reviews_reviewer FOREIGN KEY (reviewer_user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  email VARCHAR(190) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_email_verification_hash (token_hash),
+  KEY idx_email_verification_user (user_id, created_at),
+  CONSTRAINT fk_email_verification_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS broker_mail_outbox (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  kind VARCHAR(40) NOT NULL,
+  dedupe_key VARCHAR(190) NOT NULL,
+  recipient_email VARCHAR(190) NOT NULL,
+  payload_json LONGTEXT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+  last_error VARCHAR(500) NULL,
+  next_attempt_at DATETIME NULL,
+  locked_at DATETIME NULL,
+  sent_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_broker_mail_dedupe (dedupe_key),
+  KEY idx_broker_mail_delivery (status, next_attempt_at),
+  KEY idx_broker_mail_user (user_id, created_at),
+  CONSTRAINT fk_broker_mail_user FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS properties (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -92,12 +147,18 @@ CREATE TABLE IF NOT EXISTS properties (
   lat DECIMAL(10, 6) NULL,
   lng DECIMAL(10, 6) NULL,
   area DECIMAL(12, 4) NULL,
-  price BIGINT NOT NULL,
-  price_per_sqm INT NOT NULL,
+  listing_purpose VARCHAR(24) NOT NULL DEFAULT 'sale',
+  price BIGINT NULL DEFAULT NULL,
+  lease_price BIGINT NULL DEFAULT NULL,
+  lease_period VARCHAR(12) NOT NULL DEFAULT 'month',
+  lease_price_unit VARCHAR(12) NOT NULL DEFAULT 'total',
+  price_per_sqm BIGINT NULL DEFAULT NULL,
   status VARCHAR(80) NOT NULL,
   approval_state VARCHAR(40) NOT NULL DEFAULT 'approved',
   deleted_at TIMESTAMP NULL DEFAULT NULL,
   deleted_by_user_id INT NULL,
+  archived_at TIMESTAMP NULL DEFAULT NULL,
+  archived_by_user_id INT NULL,
   score INT NOT NULL DEFAULT 82,
   type VARCHAR(80) NOT NULL,
   corridor VARCHAR(80) NOT NULL,
@@ -140,6 +201,7 @@ CREATE TABLE IF NOT EXISTS properties (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_properties_seller_user (seller_user_id),
   KEY idx_properties_approval_state (approval_state),
+  KEY idx_properties_archived_at (archived_at),
   KEY idx_properties_deleted_at (deleted_at),
   KEY idx_properties_last_confirmed_available (last_confirmed_available_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

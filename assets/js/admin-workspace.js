@@ -4,7 +4,8 @@
   if (!root) return;
   const config = window.SFC_APP_CONFIG || {};
   const apiBase = config.apiBase || `${config.basePath || ''}/api`;
-  const governance = root.dataset.department === 'CICTO';
+  const governance = root.dataset.listingReviewer === 'true' || (!root.hasAttribute('data-listing-reviewer') && root.dataset.department === 'CICTO');
+  const brokerReviewer = root.dataset.brokerReviewer === 'true' || Boolean(config.user?.brokerReviewAuthorized && ['ASSESSOR', 'CAO', 'LEBDO'].includes(root.dataset.department));
   const status = root.querySelector('[data-workspace-status]');
   let properties = [];
   let categories = {};
@@ -17,8 +18,27 @@
   const targetDocumentPropertyId = Number(documentParams.get('propertyId') || 0);
   const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   const number = (value) => new Intl.NumberFormat('en-PH', { maximumFractionDigits: 1 }).format(Number(value || 0));
-  const score = (value) => value == null ? '—' : Number(value).toFixed(1);
+  const score = (value) => value == null ? 'â€”' : Number(value).toFixed(1);
   const stateLabel = (state) => ({ approved: 'Approved', pending_review: 'Awaiting review', rejected: 'Declined', archived: 'Archived', draft: 'Draft', verified: 'Verified', suspended: 'Suspended' })[state] || state;
+  const isArchived = (property) => Boolean(property.isArchived || property.approvalState === 'archived');
+  const isActive = (property) => !property.isDeleted && !isArchived(property) && property.approvalState === 'approved' && ['available','active','open'].includes(String(property.status || '').toLowerCase());
+  const purposeLabel = (property) => ({sale:'For Sale',lease:'For Lease',sale_or_lease:'For Sale or Lease'})[property.listingPurpose] || 'For Sale';
+  const askingPrice = (property) => {
+    const amount = value => value === null || value === undefined || value === '' ? 'Price on request' : `PHP ${number(value)}`;
+    const sale = amount(property.salePrice !== undefined ? property.salePrice : property.price);
+    const lease = `${amount(property.leasePrice)} / ${property.leasePriceUnit === 'sqm' ? 'mÂ² / ' : ''}${property.leasePeriod || 'month'}`;
+    return property.listingPurpose === 'lease' ? lease : property.listingPurpose === 'sale_or_lease' ? `Sale: ${sale} Â· Lease: ${lease}` : sale;
+  };
+  const listingTime = value => {
+    if (!value) return null;
+    const normalized = String(value).replace(' ', 'T');
+    const timestamp = Date.parse(/(?:Z|[+-]\d{2}:?\d{2})$/.test(normalized) ? normalized : `${normalized}Z`);
+    return Number.isFinite(timestamp) ? timestamp : null;
+  };
+  const listingDate = value => {
+    const timestamp = listingTime(value);
+    return timestamp === null ? 'Date not recorded' : new Date(timestamp).toLocaleDateString('en-PH', { timeZone:'Asia/Manila', year:'numeric', month:'short', day:'numeric' });
+  };
   const path = (route) => `${config.basePath || ''}/${route}`;
   const propertyUrl = (id) => path(`property-details.php?id=${encodeURIComponent(id)}`);
   const imageUrl = (source) => {
@@ -52,7 +72,7 @@
       const targeted = targetDocumentRequestId ? Number(item.id) === targetDocumentRequestId : (targetDocumentPropertyId && Number(item.propertyId) === targetDocumentPropertyId);
       return `<form class="city-broker-card${targeted ? ' city-evidence' : ''}" id="cityDocumentRequest-${Number(item.id)}" data-document-request="${Number(item.id)}" tabindex="-1">
         <h3>${escape(item.documentName)} <span class="city-pill">${escape(labels[item.status] || item.status)}</span></h3>
-        <p><a href="${escape(propertyUrl(item.propertyId))}">${escape(item.propertyName || 'Property')}</a> · ${escape(item.requesterName || 'Investor')}</p>
+        <p><a href="${escape(propertyUrl(item.propertyId))}">${escape(item.propertyName || 'Property')}</a> Â· ${escape(item.requesterName || 'Investor')}</p>
         ${item.note ? `<p>${escape(item.note)}</p>` : ''}
         <div class="city-form-grid">
           <label>Status<select name="status" aria-label="Request status">${Object.entries(labels).map(([value, label]) => `<option value="${value}"${value === item.status ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
@@ -108,7 +128,7 @@
 
   async function refresh() {
     const data = await request('properties.php');
-    properties = (data.properties || []).filter((property) => root.dataset.cityWorkspace === 'properties' || !property.isDeleted);
+    properties = (data.properties || []).filter((property) => root.dataset.cityWorkspace === 'properties' || (!property.isDeleted && !isArchived(property)));
     categories = data.categories || {};
     brokers = data.approvedBrokers || [];
     document.querySelectorAll('[data-assessment-method]').forEach((element) => {
@@ -126,11 +146,11 @@
     const awaitingAssessment = properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     const stats = governance
       ? [['Properties', properties.length], ['Awaiting review', pending.length], ['Approved', approved.length], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length]]
-      : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
+      : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (mÂ²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
     root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-block tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-mt-3 tw-block tw-text-2xl tw-font-semibold tw-text-[#11224d]">${escape(value)}</strong></div>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} →</a></div>`).join('')
+      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} Â· ${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} â†’</a></div>`).join('')
       : '<p class="city-empty">All caught up.</p>';
     const ranked = approved.filter((property) => property.mceScore != null).sort((a, b) => b.mceScore - a.mceScore).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
@@ -140,20 +160,29 @@
 
   function renderProperties() {
     const query = (root.querySelector('[data-property-search]')?.value || '').toLowerCase();
-    const state = root.querySelector('[data-property-state]')?.value || 'all';
-    const active = properties.filter((property) => !property.isDeleted);
+    const state = root.querySelector('[data-property-state]')?.value || 'latest';
+    const retained = properties.filter((property) => !property.isDeleted);
     const filtered = properties.filter((property) => {
-      const matchesState = state === 'deleted' ? property.isDeleted : !property.isDeleted && (state === 'all' || state === property.approvalState || state === property.status);
-      return matchesState && `${property.name} ${property.barangay || ''} ${property.category} ${property.subcategory || ''}`.toLowerCase().includes(query);
-    });
+      const matchesState = state === 'deleted' ? property.isDeleted
+        : !property.isDeleted && (state === 'latest' || state === 'all' || (state === 'archived' ? isArchived(property)
+          : !isArchived(property) && (state === 'active' ? isActive(property) : state === property.approvalState || state === property.status)));
+      return matchesState && `${property.name} ${property.barangay || ''} ${property.category} ${property.subcategory || ''} ${purposeLabel(property)}`.toLowerCase().includes(query);
+    }).sort((a,b) => (listingTime(b.createdAt) ?? -Infinity) - (listingTime(a.createdAt) ?? -Infinity) || Number(b.id) - Number(a.id));
     const summary = root.querySelector('[data-property-summary]');
-    if (summary) summary.innerHTML = [['All listings', active.length, 'all'], ['Available', active.filter((property) => property.status === 'Available').length, 'Available'], ['Availed', active.filter((property) => property.status === 'Availed').length, 'Availed'], ['Recently deleted', properties.filter((property) => property.isDeleted).length, 'deleted']].map(([label, value, filter]) => `<button type="button" class="city-property-stat" data-property-filter="${filter}" aria-pressed="${state === filter}"><span>${escape(label)}</span><strong>${value}</strong></button>`).join('');
+    const views = [['Latest Listings', retained.length, 'latest'], ['Active Listings', properties.filter(isActive).length, 'active'], ['Sold Listings', retained.filter(property => !isArchived(property) && property.status === 'Sold').length, 'Sold'], ['Leased Listings', retained.filter(property => !isArchived(property) && property.status === 'Leased').length, 'Leased'], ['Archived Listings', retained.filter(isArchived).length, 'archived'], ['Deleted Listings', properties.filter(property => property.isDeleted).length, 'deleted']];
+    if (summary) summary.innerHTML = views.map(([label, value, filter]) => `<button type="button" class="city-property-stat" data-property-filter="${filter}" aria-pressed="${state === filter}"><span>${escape(label)}</span><strong>${value}</strong></button>`).join('');
+    const viewTitle = root.querySelector('[data-property-view-title]');
+    if (viewTitle) viewTitle.textContent = views.find(([, , filter]) => filter === state)?.[0] || root.querySelector('[data-property-state] option:checked')?.textContent || 'Listings';
+    const viewDescription = root.querySelector('[data-property-view-description]');
+    if (viewDescription) viewDescription.textContent = ({latest:'Listings ordered by creation date, newest first. Deleted listings have a separate view.',active:'Approved, available properties advertised in public listings, ordered newest first.',Sold:'Sold properties are kept for reference and are excluded from public listings.',Leased:'Leased properties are kept for reference and are excluded from public listings.',archived:'Archived properties are hidden from public listings. Unarchive to restore their prior listing status.',deleted:'Deleted properties are retained with their history. Restore to preserve their prior listing and archive status.'})[state] || 'Listings ordered by creation date, newest first.';
+    const resultCount = root.querySelector('[data-property-result-count]');
+    if (resultCount) resultCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'} shown.`;
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
       <article class="tw-flex tw-flex-col tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-flex-row sm:tw-items-center sm:tw-p-5">
         <img class="tw-h-36 tw-w-full tw-rounded-lg tw-object-cover sm:tw-h-24 sm:tw-w-28 sm:tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
-        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(property.isDeleted ? 'Recently deleted' : stateLabel(property.approvalState))}</span>${property.isDeleted ? '' : `<span class="city-pill city-availability-${escape(property.status.toLowerCase())}">${escape(property.status)}</span>`}</div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${property.price ? `₱${number(property.price)}` : 'Price on request'}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}${property.isDeleted ? `<span class="city-deleted-date">Deleted ${escape(new Date(`${property.deletedAt.replace(' ', 'T')}Z`).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' }))}</span>` : ''}</p></div>
+        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span>${property.isDeleted ? '<span class="city-pill city-deleted">Deleted</span>' : ''}${isArchived(property) ? '<span class="city-pill archived">Archived</span>' : ''}<span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">${escape(property.status)}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` Â· ${escape(property.subcategory)}` : ''}</p><p class="city-listing-purpose">${escape(purposeLabel(property))}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${escape(askingPrice(property))}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p><p class="city-listing-dates">Created ${escape(listingDate(property.createdAt))}${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}</p></div>
         <div class="tw-flex tw-items-center tw-gap-2"><div class="tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-slate-500">MCE</span><strong class="tw-text-sm tw-font-semibold">${score(property.mceScore)}</strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-amber-800">IAI</span><strong class="tw-text-sm tw-font-semibold">${score(property.iaiScore)}</strong></div></div>
-        <div class="city-listing-controls">${property.isDeleted ? `<button class="city-button city-button-secondary" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">Restore property</button>` : `<button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit details</button>${governance && property.approvalState !== 'archived' ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}<details class="city-property-menu"><summary aria-label="Manage ${escape(property.name)}">Manage</summary><div>${['Available', 'Unavailable', 'Availed'].filter((availability) => availability !== property.status).map((availability) => `<button type="button" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">Mark ${availability.toLowerCase()}</button>`).join('')}<button class="city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">Delete property</button></div></details>`}</div>
+        <div class="city-listing-controls">${property.isDeleted ? `<button class="city-button city-button-secondary" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">Restore property</button>` : `<button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit details</button>${governance && !isArchived(property) ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}<details class="city-property-menu"><summary aria-label="Manage ${escape(property.name)}">Manage</summary><div>${isArchived(property) ? `<button type="button" data-property-lifecycle="unarchive" data-property-id="${property.id}">Unarchive property</button>` : `${['Available', 'Unavailable', 'Reserved', 'Sold', 'Leased'].filter((availability) => availability !== property.status).map((availability) => `<button type="button" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">Mark ${availability.toLowerCase()}</button>`).join('')}<button type="button" data-property-lifecycle="archive" data-property-id="${property.id}">Archive property</button>`}<button class="city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">Delete property</button></div></details>`}</div>
       </article>`).join('') : '<p class="city-empty">No properties found.</p>';
   }
 
@@ -173,11 +202,18 @@
     form.elements.action.value = action.dataset.propertyLifecycle;
     form.elements.status.value = action.dataset.availability || '';
     dialog.querySelector('[data-lifecycle-property]').textContent = property.name;
-    const deleteAction = action.dataset.propertyLifecycle === 'delete';
-    const restoreAction = action.dataset.propertyLifecycle === 'restore';
-    dialog.querySelector('[data-lifecycle-title]').textContent = deleteAction ? 'Move to Recently deleted?' : restoreAction ? 'Restore this property?' : `Mark as ${action.dataset.availability.toLowerCase()}?`;
-    dialog.querySelector('[data-lifecycle-description]').textContent = deleteAction ? 'The listing will leave the public catalogue. Its evidence, inquiries and history are retained, and you can restore it later.' : restoreAction ? 'The listing returns to the property desk for review. Its availability, evidence and history are retained.' : action.dataset.availability === 'Available' ? 'The listing will be visible to investors when its review status is approved.' : 'The listing will leave the public catalogue. You can update its availability again at any time.';
-    form.querySelector('[type="submit"]').textContent = deleteAction ? 'Move to Recently deleted' : restoreAction ? 'Restore for review' : 'Update availability';
+    const lifecycleAction = action.dataset.propertyLifecycle;
+    const copy = {
+      delete:['Move to Deleted Listings?', 'The property will leave public listings. Its listing status, archive state, evidence and history are retained, and authorized staff can restore it later.', 'Delete property'],
+      restore:['Restore this property?', `The property will return with its retained ${property.status} status${isArchived(property) ? ' and remain archived' : ''}. It will appear publicly only when available, approved and unarchived.`, 'Restore property'],
+      archive:['Archive this property?', 'The property will leave public listings. Its listing status, review decision, evidence and history are retained for later unarchiving.', 'Archive property'],
+      unarchive:['Unarchive this property?', `The property will return with its prior ${property.status} status. It will appear publicly only when available and approved.`, 'Unarchive property'],
+      availability:[`Mark as ${String(action.dataset.availability || '').toLowerCase()}?`, action.dataset.availability === 'Available' ? 'The listing will be visible to investors when approved and unarchived.' : 'The property will leave public listings. Its evidence and history are retained, and you can change its listing status later.', 'Update listing status'],
+    }[lifecycleAction];
+    if (!copy) return;
+    dialog.querySelector('[data-lifecycle-title]').textContent = copy[0];
+    dialog.querySelector('[data-lifecycle-description]').textContent = copy[1];
+    form.querySelector('[type="submit"]').textContent = copy[2];
     message(form.querySelector('[data-lifecycle-message]'), '');
     dialog.showModal();
   });
@@ -192,7 +228,7 @@
       await request(`property.php?id=${encodeURIComponent(form.elements.id.value)}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', body: JSON.stringify({ action, status: form.elements.status.value }) });
       await refresh();
       form.closest('dialog').close();
-      message(status, action === 'delete' ? 'Property moved to Recently deleted.' : action === 'restore' ? 'Property restored for review.' : 'Property availability updated.');
+      message(status, ({delete:'Property moved to Deleted Listings.',restore:'Property restored with its prior listing status.',archive:'Property archived.',unarchive:'Property unarchived with its prior listing status.',availability:'Property listing status updated.'})[action] || 'Property updated.');
     } catch (error) { message(form.querySelector('[data-lifecycle-message]'), error.message, true); }
     finally { submit.disabled = false; }
   });
@@ -202,19 +238,9 @@
     if (!panel) return;
     try {
       const data = await request('seller-profiles.php?scope=queue');
-      const profiles = (data.profiles || []).filter((profile) => ['pending_review', 'verified', 'rejected', 'suspended'].includes(profile.applicationStatus));
+      const profiles = (data.profiles || []).filter((profile) => ['pending_review', 'verified', 'corrections_requested', 'rejected', 'blocked', 'suspended'].includes(profile.applicationStatus));
       if (window.SFCAdminOverview?.renderBrokerProfiles) { panel.innerHTML = window.SFCAdminOverview.renderBrokerProfiles(profiles, config); return; }
-      panel.innerHTML = profiles.length ? profiles.map((profile) => `
-        <form class="city-broker-card" data-broker-review="${profile.userId}">
-          <h3>${escape(profile.legalName || profile.userName)} <span class="city-pill ${escape(profile.applicationStatus)}">${escape(stateLabel(profile.applicationStatus))}</span></h3>
-          <p>${escape(profile.email || profile.userEmail || '')} · ${escape(profile.phone)}</p>
-          <p>${escape([profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', '))}</p>
-          <p>PRC ${escape(profile.prcRegistrationNo || 'Not provided')} · Valid until ${escape(profile.prcValidUntil || 'Not provided')}</p>
-          ${profile.reviewNotes ? `<p>Last review: ${escape(profile.reviewNotes)}</p>` : ''}
-          <label class="city-broker-check"><input type="checkbox" name="prcChecked">PRC registration checked</label>
-          <div class="city-broker-actions"><textarea name="reviewNotes" aria-label="Review message" placeholder="Message to broker" maxlength="3000" required></textarea><button type="submit" class="city-button" name="decision" value="verified">${profile.applicationStatus === 'verified' ? 'Confirm' : 'Validate'}</button><button type="submit" class="city-button city-button-secondary" name="decision" value="${profile.applicationStatus === 'verified' ? 'suspended' : 'rejected'}">${profile.applicationStatus === 'verified' ? 'Suspend' : 'Decline'}</button></div>
-          <p class="city-form-message" data-broker-message role="status"></p>
-        </form>`).join('') : '<p class="city-empty">No broker applications.</p>';
+      panel.innerHTML = '<p class="city-empty">Broker review tools could not be loaded. Reload before reviewing an application.</p>';
     } catch (error) {
       panel.innerHTML = `<p class="city-empty">${escape(error.message)}</p>`;
     }
@@ -252,7 +278,7 @@
     form.querySelector('[data-editor-next]').hidden = step === editorLastStep;
     form.querySelector('[type="submit"]').hidden = step !== editorLastStep;
     form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
-    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to location →', 'Continue to site evidence →', 'Continue to surroundings →', 'Continue to review →'][step] || 'Continue →';
+    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to location â†’', 'Continue to site evidence â†’', 'Continue to surroundings â†’', 'Continue to review â†’'][step] || 'Continue â†’';
     const skip = form.querySelector('[data-skip-enrichment]');
     if (skip) skip.hidden = ![1,2,3].includes(step);
     editor.scrollTop = 0;
@@ -312,12 +338,13 @@
     const original = input.value;
     const cursorPos = input.selectionStart || 0;
     const digitsBeforeCursor = original.slice(0, cursorPos).replace(/\D/g, '').length;
-    const raw = original.replace(/\D/g, '');
+    const raw = original.replace(/,/g, '');
+    if (!/^\d*$/.test(raw)) return;
     if (!raw) {
       input.value = '';
       return;
     }
-    const formatted = Number(raw).toLocaleString('en-US');
+    const formatted = raw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     input.value = formatted;
     let newCursorPos = 0;
     let digitsFound = 0;
@@ -332,7 +359,7 @@
     if (digitsFound < digitsBeforeCursor) newCursorPos = formatted.length;
     try { input.setSelectionRange(newCursorPos, newCursorPos); } catch {}
   }
-  priceInput?.addEventListener('input', () => formatPriceField(priceInput));
+  form?.querySelectorAll('[data-price-input]').forEach(input => input.addEventListener('input', () => formatPriceField(input)));
 
   // --- 2. Area input group & dynamic auto-conversion helper ---
   const areaInput = form?.querySelector('[data-area-input]');
@@ -410,7 +437,7 @@
     if (list.length === 0) {
       subcatTriggerText.textContent = 'Select subcategories...';
       subcatTriggerText.className = 'tw-truncate tw-text-sm tw-text-slate-500';
-      subcatCount.textContent = 'Optional · multi-select';
+      subcatCount.textContent = 'Optional Â· multi-select';
       subcatTags.innerHTML = '';
       return;
     }
@@ -422,7 +449,7 @@
     subcatTags.innerHTML = list.map((tag) => `
       <span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-px-2.5 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-900 tw-border tw-border-amber-200/80">
         ${escape(tag)}
-        <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">×</button>
+        <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">Ã—</button>
       </span>
     `).join('');
 
@@ -517,11 +544,12 @@
     editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'New property';
     const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
     if (breadcrumb) breadcrumb.textContent = property ? 'Edit property' : 'Add property';
-    form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
+    form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` Â· ${escape(broker.phone)}` : ''}</option>`).join('');
     if (property) {
-      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes, existing_land_use:property.existingLandUse, zoning_classification:property.zoningClassification, clup_source_reference:property.clupSourceReference };
+      const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, listing_purpose: property.listingPurpose || 'sale', lease_price: property.leasePrice, lease_period: property.leasePeriod || 'month', lease_price_unit: property.leasePriceUnit || 'total', lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes, existing_land_use:property.existingLandUse, zoning_classification:property.zoningClassification, clup_source_reference:property.clupSourceReference };
       Object.entries(values).forEach(([name, value]) => { if (form.elements[name]) form.elements[name].value = value ?? ''; });
-      if (priceInput) priceInput.value = property.price != null ? Number(property.price).toLocaleString('en-US') : '';
+      if (priceInput) priceInput.value = (property.salePrice ?? property.price) != null ? String(property.salePrice ?? property.price) : '';
+      form.querySelectorAll('[data-price-input]').forEach(formatPriceField);
       if (areaInput && areaUnit) {
         areaUnit.value = 'sqm';
         areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : (property.area > 0 ? Math.round(property.area * 10000 * 100) / 100 : '');
@@ -563,7 +591,7 @@
     reviewForm.elements.documents_reviewed.checked = Boolean(property.documentsReviewedAt);
     reviewForm.elements.site_verified.checked = Boolean(property.siteVerifiedAt);
     const checklist = Object.entries(property.documentStatuses || {}).map(([key, value]) => `<dt>${escape(key.replaceAll('_', ' '))}</dt><dd>${escape(value)}</dd>`).join('');
-    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} · ${escape(property.barangay || 'Barangay not specified')} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map ↗</a></div>`;
+    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} Â· ${escape(property.barangay || 'Barangay not specified')} Â· ${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} Â· IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map â†—</a></div>`;
     message(reviewForm.querySelector('[data-review-message]'), '');
     reviewDialog.showModal();
     reviewForm.elements.reviewNote.focus();
@@ -604,7 +632,8 @@
       const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
       data.set('property_type', type);
       data.set('subcategory', Array.from(selectedSubcategories).join(', '));
-      data.set('price', String(priceInput?.value || '').replace(/[^\d]/g, ''));
+      data.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
+      data.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
       data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
       data.set('recalculate_assessment', 'true');
       data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
@@ -634,19 +663,6 @@
     finally { submit.disabled = false; }
   });
 
-  root.addEventListener('click', (event) => {
-    const toggleBtn = event.target.closest('[data-toggle-broker-details], [data-reverify-broker]');
-    if (!toggleBtn) return;
-    const userId = toggleBtn.dataset.toggleBrokerDetails || toggleBtn.dataset.reverifyBroker;
-    const drawer = root.querySelector(`[data-broker-drawer="${userId}"]`);
-    if (drawer) {
-      drawer.hidden = !drawer.hidden;
-      if (!drawer.hidden) {
-        drawer.querySelector('textarea, input[type="checkbox"]')?.focus();
-      }
-    }
-  });
-
   root.addEventListener('submit', async (event) => {
     const brokerForm = event.target.closest('[data-broker-review]');
     if (!brokerForm) return;
@@ -656,22 +672,44 @@
       message(brokerForm.querySelector('[data-broker-message]'), 'Check the PRC registration before validating.', true);
       return;
     }
-    if ((decision === 'rejected' || decision === 'suspended') && !brokerForm.elements.reviewNotes.value.trim()) {
+    if (!brokerForm.elements.reviewNotes.value.trim()) {
       message(brokerForm.querySelector('[data-broker-message]'), 'Add a message explaining your decision to the broker.', true);
+      return;
+    }
+    if (decision === 'blocked' && !brokerForm.elements.findings?.value.trim()) {
+      message(brokerForm.querySelector('[data-broker-message]'), 'Document the verification findings before blocking an account.', true);
+      brokerForm.elements.findings?.focus();
       return;
     }
     const buttons = brokerForm.querySelectorAll('button');
     buttons.forEach((button) => { button.disabled = true; });
     try {
-      await request('seller-profiles.php', { method: 'PATCH', body: JSON.stringify({ userId: Number(brokerForm.dataset.brokerReview), status: decision, reviewNotes: brokerForm.elements.reviewNotes.value, prcChecked: brokerForm.elements.prcChecked.checked }) });
+      const result = await request('seller-profiles.php', { method: 'PATCH', body: JSON.stringify({ userId: Number(brokerForm.dataset.brokerReview), applicationRevision: Number(brokerForm.dataset.applicationRevision), status: decision, reviewNotes: brokerForm.elements.reviewNotes.value, findings: brokerForm.elements.findings?.value || '', prcChecked: brokerForm.elements.prcChecked.checked }) });
       await loadBrokerReviews();
-      message(status, 'Broker review saved.');
+      const delivery = result.emailStatus || result.profile?.emailStatus;
+      const deliveryStatus = delivery?.status || delivery?.delivery?.status;
+      const copy = { sent: 'Notification sent.', pending: 'Notification queued; delivery has not yet been confirmed.', queued: 'Notification queued; delivery has not yet been confirmed.', failed: 'Notification delivery failed.', unconfigured: 'Notification delivery unavailable: mail service is not configured.', enqueue_failed: 'Email delivery tracking is temporarily unavailable; the review decision is saved.' };
+      message(status, `Broker review saved. ${copy[deliveryStatus] || 'Check notification delivery status in the application details.'}`);
     } catch (error) { message(brokerForm.querySelector('[data-broker-message]'), error.message, true); }
     finally { buttons.forEach((button) => { button.disabled = false; }); }
   });
 
+  root.addEventListener('click', async event => {
+    const button = event.target.closest('[data-retry-broker-mail]');
+    if (!button || !brokerReviewer) return;
+    button.disabled = true;
+    const deliveryMessage = button.closest('details')?.querySelector('[data-broker-mail-message]');
+    try {
+      const result = await request('seller-profiles.php', { method: 'POST', body: JSON.stringify({ action: 'retry_mail', deliveryId: Number(button.dataset.retryBrokerMail) }) });
+      const deliveryStatus = result.emailStatus?.status || result.emailStatus?.delivery?.status;
+      const copy = { sent: 'Notification sent.', pending: 'Notification queued; delivery has not yet been confirmed.', queued: 'Notification queued; delivery has not yet been confirmed.', failed: 'Notification delivery failed.', unconfigured: 'Mail service is not configured. Configure email delivery before retrying.' };
+      message(deliveryMessage, copy[deliveryStatus] || 'Delivery retry recorded. Check the latest delivery status.', ['failed', 'unconfigured'].includes(deliveryStatus));
+    } catch (error) { message(deliveryMessage, error.message, true); }
+    finally { button.disabled = false; }
+  });
+
   refresh().then(async () => {
-    if (governance) await loadBrokerReviews();
+    if (brokerReviewer) await loadBrokerReviews();
     const params = new URLSearchParams(location.search);
     if (editor && params.has('add')) openEditor();
     if (editor && params.has('edit')) openEditor(params.get('edit'));

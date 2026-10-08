@@ -22,6 +22,10 @@ require_once __DIR__ . '/Repositories/PropertyRepository.php';
 require_once __DIR__ . '/Repositories/MessageRepository.php';
 require_once __DIR__ . '/Repositories/ScenarioRepository.php';
 require_once __DIR__ . '/Repositories/SellerProfileRepository.php';
+require_once __DIR__ . '/Repositories/BrokerMailRepository.php';
+require_once __DIR__ . '/Support/BrokerMailer.php';
+require_once __DIR__ . '/Support/BrokerEmailService.php';
+require_once __DIR__ . '/Support/BrokerApplicationService.php';
 require_once __DIR__ . '/Repositories/UserRepository.php';
 require_once __DIR__ . '/Repositories/ShortlistRepository.php';
 require_once __DIR__ . '/Repositories/VoteOptionRepository.php';
@@ -90,7 +94,11 @@ if (is_file($privateAdminSettingsPath)) {
 $auditLogs = new AuditLogRepository($pdo);
 $clupGovernance = new ClupGovernanceRepository($pdo, $auditLogs);
 $users = new UserRepository($pdo);
-$sellerProfiles = new SellerProfileRepository($pdo);
+$brokerDocuments = new \App\Support\BrokerDocuments();
+$sellerProfiles = new SellerProfileRepository($pdo, $brokerDocuments);
+$brokerMail = new \App\Repositories\BrokerMailRepository($pdo);
+$brokerEmail = new \App\Support\BrokerEmailService($brokerMail, new \App\Support\BrokerMailer($config), $config);
+$brokerApplications = new \App\Support\BrokerApplicationService($pdo, $sellerProfiles, $brokerDocuments, $brokerEmail);
 $properties = new PropertyRepository($pdo, $auditLogs);
 $messages = new MessageRepository($pdo, $auditLogs);
 $documentRequests = new DocumentRequestRepository($pdo);
@@ -127,6 +135,9 @@ return [
     'clupGovernance' => $clupGovernance,
     'users' => $users,
     'sellerProfiles' => $sellerProfiles,
+    'brokerDocuments' => $brokerDocuments,
+    'brokerEmail' => $brokerEmail,
+    'brokerApplications' => $brokerApplications,
     'properties' => $properties,
     'messages' => $messages,
     'documentRequests' => $documentRequests,

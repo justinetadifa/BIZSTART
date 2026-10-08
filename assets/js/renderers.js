@@ -1,5 +1,9 @@
 import {
   buildResultsSubtitle,
+  listingPurposeLabel,
+  listingPriceLabel,
+  listingPriceEntries,
+  salePricePerSqm,
   chartPath,
   chartPointsMarkup,
   escapeHtml,
@@ -47,9 +51,9 @@ function propertyAreaLabel(property) {
 }
 
 function propertyUnitPriceLabel(property) {
-  if (property.area == null || !Number.isFinite(Number(property.area)) || Number(property.area) <= 0) return "Area needed";
-  return property.pricePerSqm != null && Number.isFinite(Number(property.pricePerSqm)) && Number(property.pricePerSqm) > 0
-    ? `PHP ${Number(property.pricePerSqm).toLocaleString()}` : "Price on request";
+  if (property.listingPurpose === "lease") return "Not offered";
+  const value = salePricePerSqm(property);
+  return value === null ? "Price on request" : formatMoneyFull(value);
 }
 
 function corridorLabel(value) {
@@ -102,9 +106,9 @@ function corridorCoverage(properties) {
   return Object.entries(
     properties.reduce((accumulator, property) => {
       const key = String(property.corridor || "unassigned");
-      accumulator[key] ??= { count: 0, totalScore: 0, totalAccess: 0 };
+      accumulator[key] ??= { count: 0, totalScore: 0, scoreCount: 0, totalAccess: 0 };
       accumulator[key].count += 1;
-      accumulator[key].totalScore += Number(property.score || 0);
+      if (property.score != null) { accumulator[key].totalScore += Number(property.score); accumulator[key].scoreCount += 1; }
       accumulator[key].totalAccess += Number(property.roadAccess || 0);
       return accumulator;
     }, {})
@@ -113,7 +117,7 @@ function corridorCoverage(properties) {
       key,
       label: corridorLabel(key),
       count: value.count,
-      avgScore: Math.round(value.totalScore / value.count),
+      avgScore: value.scoreCount ? Math.round(value.totalScore / value.scoreCount) : null,
       avgAccess: Math.round(value.totalAccess / value.count),
     }))
     .sort((left, right) => right.count - left.count);
@@ -138,12 +142,12 @@ function renderPropertyCard(property, viewMode, selectedPropertyId, compareList)
         <div class="property-card-badges">
           <div class="pill">
             <span class="status-pill-dot ${availabilityTone(property.status)}"></span>
-            ${escapeHtml(property.status)}
+            ${escapeHtml(property.status)}<span class="property-meta-pill">${escapeHtml(listingPurposeLabel(property))}</span>
           </div>
 
           <div class="score-badge">
             <span class="score-dot tone-${scoreTone(property.score)}"></span>
-            <span>${property.score}/100</span>
+            <span>${property.score === null ? "Awaiting price" : `${property.score}/100`}</span>
           </div>
         </div>
 
@@ -161,8 +165,8 @@ function renderPropertyCard(property, viewMode, selectedPropertyId, compareList)
           </div>
 
           <div class="property-price-callout">
-            <div class="property-price-label">Guide Price</div>
-            <div class="property-price-value">${escapeHtml(formatMoneyCompact(property.price))}</div>
+            <div class="property-price-label">${escapeHtml(listingPurposeLabel(property))}</div>
+            <div class="property-price-value">${escapeHtml(listingPriceLabel(property, { compact: true }))}</div>
           </div>
         </div>
 
@@ -174,7 +178,7 @@ function renderPropertyCard(property, viewMode, selectedPropertyId, compareList)
             <div class="spec-value">${escapeHtml(propertyAreaLabel(property))}</div>
           </div>
           <div class="spec-item">
-            <div class="spec-label">PRICE PER SQM</div>
+            <div class="spec-label">SALE PRICE PER SQM</div>
             <div class="spec-value">${escapeHtml(propertyUnitPriceLabel(property))}</div>
           </div>
           <div class="spec-item">
@@ -183,7 +187,7 @@ function renderPropertyCard(property, viewMode, selectedPropertyId, compareList)
           </div>
           <div class="spec-item">
             <div class="spec-label">FIT SCORE</div>
-            <div class="spec-value">${property.score}/100</div>
+            <div class="spec-value">${property.score === null ? "Awaiting price" : `${property.score}/100`}</div>
           </div>
           <div class="spec-item">
             <div class="spec-label">MARKET SCORE</div>
@@ -257,7 +261,7 @@ export function renderAnalyticsCards(metrics) {
         <div class="stat-label">WEIGHTED SCORE AVG</div>
         <div class="stat-mark tone-blue"></div>
       </div>
-      <div class="stat-value">${metrics.weightedScoreAvg}</div>
+      <div class="stat-value">${metrics.weightedScoreAvg ?? "Awaiting price"}</div>
       <div class="stat-change">QUALITY INDEX</div>
     </div>
   `;
@@ -338,14 +342,9 @@ export function renderMapCanvas(allProperties, visibleProperties, selectedProper
   const coverageProperties = visibleProperties.length ? visibleProperties : allProperties;
   const coverageRows = corridorCoverage(coverageProperties);
   const leadProperty = selectedProperty || coverageProperties[0] || allProperties[0] || null;
-  const averageVisibleScore = coverageProperties.length
-    ? Math.round(
-        coverageProperties.reduce((sum, property) => sum + Number(property.score || 0), 0) / coverageProperties.length
-      )
-    : 0;
-  const topScore = coverageProperties.length
-    ? Math.max(...coverageProperties.map((property) => Number(property.score || 0)))
-    : 0;
+  const knownScores = coverageProperties.map(property => property.score).filter(value => value != null);
+  const averageVisibleScore = knownScores.length ? Math.round(knownScores.reduce((sum, value) => sum + value, 0) / knownScores.length) : "Awaiting price";
+  const topScore = knownScores.length ? Math.max(...knownScores) : "Awaiting price";
   const activeCorridors = coverageRows.length;
 
   return `
@@ -393,7 +392,7 @@ export function renderMapCanvas(allProperties, visibleProperties, selectedProper
                         <div class="coverage-zone-name">${escapeHtml(row.label)}</div>
                         <div class="coverage-zone-meta">${row.count} site${row.count === 1 ? "" : "s"} in view</div>
                       </div>
-                      <div class="coverage-zone-score">${row.avgScore}/100</div>
+                      <div class="coverage-zone-score">${row.avgScore === null ? "Awaiting price" : `${row.avgScore}/100`}</div>
                     </div>
                     <div class="coverage-zone-bar">
                       <span class="coverage-zone-fill" style="width:${row.avgAccess}%"></span>
@@ -416,7 +415,7 @@ export function renderMapCanvas(allProperties, visibleProperties, selectedProper
                     <div class="property-title">${escapeHtml(leadProperty.name)}</div>
                     <div class="property-location">${escapeHtml(propertyLocation(leadProperty))}</div>
                   </div>
-                  <div class="map-score-chip tone-${scoreTone(leadProperty.score)}">${leadProperty.score}/100</div>
+                  <div class="map-score-chip tone-${scoreTone(leadProperty.score)}">${leadProperty.score === null ? "Awaiting price" : `${leadProperty.score}/100`}</div>
                 </div>
 
                 <div class="map-focus-grid">
@@ -430,7 +429,7 @@ export function renderMapCanvas(allProperties, visibleProperties, selectedProper
                   </div>
                   <div class="spec-item">
                     <div class="spec-label">PRICE</div>
-                    <div class="spec-value">${escapeHtml(formatMoneyCompact(leadProperty.price))}</div>
+                    <div class="spec-value">${escapeHtml(listingPriceLabel(leadProperty, { compact: true }))}</div>
                   </div>
                   <div class="spec-item">
                     <div class="spec-label">ACCESS</div>
@@ -543,12 +542,12 @@ export function renderPropertyDetail(property) {
         <section class="pack-section">
           <h4>Investment Snapshot</h4>
           <div class="property-detail-metrics">
-            <div class="kpi"><div class="k">Guide Price</div><div class="v">${escapeHtml(formatMoneyCompact(property.price).toUpperCase())}</div></div>
+            <div class="kpi"><div class="k">${escapeHtml(listingPurposeLabel(property))}</div><div class="v">${escapeHtml(listingPriceLabel(property, { compact: true }))}</div></div>
             <div class="kpi"><div class="k">Land Area</div><div class="v">${escapeHtml(propertyAreaLabel(property))}</div></div>
-            <div class="kpi"><div class="k">Weighted Fit</div><div class="v">${property.score ?? 0}/100</div></div>
+            <div class="kpi"><div class="k">Weighted Fit</div><div class="v">${property.score == null ? "Awaiting price" : `${property.score}/100`}</div></div>
             <div class="kpi"><div class="k">Market Score</div><div class="v">${property.marketScore ?? 82}/100</div></div>
             <div class="kpi"><div class="k">Road Access</div><div class="v">${property.roadAccess}%</div></div>
-            <div class="kpi"><div class="k">Price / SQM</div><div class="v">${escapeHtml(propertyUnitPriceLabel(property))}</div></div>
+            <div class="kpi"><div class="k">Sale price / SQM</div><div class="v">${escapeHtml(propertyUnitPriceLabel(property))}</div></div>
           </div>
         </section>
 
@@ -670,7 +669,7 @@ export function renderPropertyEditor(mode, form) {
         <div class="form-group">
           <label class="form-label">STATUS</label>
           <select class="form-select" data-property-field="status">
-            ${["Available", "Reserved", "Under Review", "Negotiating"]
+            ${["Available", "Reserved", "Under Review", "Negotiating", "Sold", "Leased"]
               .map(
                 (option) => `
                   <option value="${option}" ${form.status === option ? "selected" : ""}>
@@ -682,9 +681,15 @@ export function renderPropertyEditor(mode, form) {
           </select>
         </div>
 
+        <div class="form-group"><label class="form-label">LISTING PURPOSE</label><select class="form-select" data-property-field="listing_purpose">
+          ${Object.entries({sale: "For Sale", lease: "For Lease", sale_or_lease: "For Sale or Lease"}).map(([value, label]) => `<option value="${value}" ${form.listing_purpose === value ? "selected" : ""}>${label}</option>`).join("")}
+        </select></div>
+        <div class="form-group"><label class="form-label">LEASE PRICE (WHOLE PHP, OPTIONAL)</label><input type="number" min="0" step="1" class="form-input" data-property-field="lease_price" value="${escapeHtml(String(form.lease_price ?? ""))}"></div>
+        <div class="form-group"><label class="form-label">LEASE PERIOD</label><select class="form-select" data-property-field="lease_period">${["month", "year", "day"].map(value => `<option value="${value}" ${form.lease_period === value ? "selected" : ""}>Per ${value}</option>`).join("")}</select></div>
+        <div class="form-group"><label class="form-label">LEASE PRICE UNIT</label><select class="form-select" data-property-field="lease_price_unit"><option value="total" ${form.lease_price_unit !== "sqm" ? "selected" : ""}>Total property</option><option value="sqm" ${form.lease_price_unit === "sqm" ? "selected" : ""}>Per m²</option></select></div>
         <div class="form-group">
-          <label class="form-label">PRICE (PHP)</label>
-          <input type="number" class="form-input" data-property-field="price" value="${escapeHtml(String(form.price || ""))}" placeholder="85000000">
+          <label class="form-label">SALE PRICE (PHP, OPTIONAL)</label>
+          <input type="number" class="form-input" min="0" step="1" data-property-field="price" value="${escapeHtml(String(form.price ?? ""))}" placeholder="85000000">
         </div>
 
         <div class="form-group">
@@ -765,12 +770,12 @@ export function renderPropertyDelete(property) {
       <div class="property-delete-title">${escapeHtml(property.name)}</div>
       <div class="property-location">${escapeHtml(propertyLocation(property))}</div>
       <div class="property-delete-copy">
-        This removes the property from the live MySQL inventory and also clears related due diligence,
-        messaging, votes, and saved scenarios through database cascades.
+        This moves the listing to Deleted Listings and removes it from public results.
+        Authorized staff can restore it with its prior availability and history.
       </div>
 
       <div class="property-delete-data">
-        <div class="detail-copy">PRICE ${escapeHtml(formatMoneyCompact(property.price).toUpperCase())}</div>
+        <div class="detail-copy">PRICE ${escapeHtml(listingPriceLabel(property, { compact: true }))}</div>
         <div class="detail-copy">TYPE ${escapeHtml(propertyTypeLabel(property.type).toUpperCase())}</div>
         <div class="detail-copy">STATUS ${escapeHtml(String(property.status).toUpperCase())}</div>
       </div>
@@ -817,9 +822,12 @@ export function renderComparison(compareProperties) {
           </tr>
         </thead>
         <tbody>
-          ${row("WEIGHTED SCORE", (property) => `${property.score}/100`)}
+          ${row("WEIGHTED SCORE", (property) => `${property.score === null ? "Awaiting price" : `${property.score}/100`}`)}
           ${row("AREA", propertyAreaLabel)}
-          ${row("PRICE", (property) => formatMoneyFull(property.price))}
+          ${row("LISTING PURPOSE", (property) => escapeHtml(listingPurposeLabel(property)))}
+          ${row("AVAILABILITY", (property) => escapeHtml(property.status))}
+          ${row("SALE PRICE", (property) => escapeHtml(listingPriceEntries(property).find(entry => entry.kind === "sale")?.value || "Not offered"))}
+          ${row("LEASE PRICE", (property) => escapeHtml(listingPriceEntries(property).find(entry => entry.kind === "lease")?.value || "Not offered"))}
           ${row("TYPE", (property) => escapeHtml(property.type.toUpperCase()))}
           ${row("CORRIDOR", (property) => escapeHtml(property.corridor.toUpperCase()))}
           ${row("BARANGAY", (property) => escapeHtml((property.barangay || "UNASSIGNED").toUpperCase()))}
@@ -946,7 +954,7 @@ export function renderDecisionPack(property, model, inputs) {
           <div class="pack-h">INVESTMENT MEMO</div>
           <div class="pack-chip">
             <span class="c tone-${scoreTone(model.score)}"></span>
-            WEIGHTED SCORE ${model.score}/100
+            WEIGHTED SCORE ${model.score == null ? "Awaiting price" : `${model.score}/100`}
           </div>
         </div>
 
@@ -986,12 +994,12 @@ export function renderDecisionPack(property, model, inputs) {
         <div class="pack-section">
           <h4>KEY NUMBERS</h4>
           <div class="pack-kpis">
-            <div class="kpi"><div class="k">LAND PRICE</div><div class="v">${escapeHtml(formatMoneyCompact(property.price).toUpperCase())}</div></div>
+            <div class="kpi"><div class="k">${escapeHtml(listingPurposeLabel(property))}</div><div class="v">${escapeHtml(listingPriceLabel(property, { compact: true }))}</div></div>
             <div class="kpi"><div class="k">NET ANNUAL</div><div class="v">${escapeHtml(formatMoneyFull(model.netAnnual).toUpperCase())}</div></div>
             <div class="kpi"><div class="k">PAYBACK</div><div class="v">${escapeHtml(formatYears(model.payback).toUpperCase())}</div></div>
           </div>
           <div class="tiny">
-            AREA ${escapeHtml(propertyAreaLabel(property))}. PRICE PER SQM ${escapeHtml(propertyUnitPriceLabel(property))}. ACCESS ${property.roadAccess}%.
+            AREA ${escapeHtml(propertyAreaLabel(property))}. SALE PRICE PER SQM ${escapeHtml(propertyUnitPriceLabel(property))}. ACCESS ${property.roadAccess}%.
           </div>
         </div>
 
@@ -1110,7 +1118,7 @@ export function renderInvestmentLab(property, model, inputs, scenarios) {
       <div class="pack-panel">
         <div class="pack-head">
           <div class="pack-h">OUTPUTS</div>
-          <div class="pack-chip"><span class="c tone-${scoreTone(model.score)}"></span>WEIGHTED SCORE ${model.score}/100</div>
+          <div class="pack-chip"><span class="c tone-${scoreTone(model.score)}"></span>WEIGHTED SCORE ${model.score == null ? "Awaiting price" : `${model.score}/100`}</div>
         </div>
 
         <div class="pack-kpis">

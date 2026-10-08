@@ -99,7 +99,7 @@ final class PropertyRepository
 
         $statement = $this->pdo->prepare(
             'INSERT INTO properties (
-                name, city, lat, lng, area, price, price_per_sqm, status, approval_state, score, type, corridor,
+                name, city, lat, lng, area, listing_purpose, price, lease_price, lease_period, lease_price_unit, price_per_sqm, status, approval_state, score, type, corridor,
                 tags_json, facilities_json, road_access, image_url, description, barangay, owner_contact_json,
                 documents_json, seller_user_id, documents_reviewed_at, site_verified_at, last_confirmed_available_at,
                 dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
@@ -107,7 +107,7 @@ final class PropertyRepository
                 clup_verified_at, assessed_value_sqm, readiness_notes,
                 category, subcategory, assessment_json, automatic_assessment_json, legacy_assessment_json, assessment_tags_json, nearby_properties_json, parcel_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
-                :name, :city, :lat, :lng, :area, :price, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
+                :name, :city, :lat, :lng, :area, :listing_purpose, :price, :lease_price, :lease_period, :lease_price_unit, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
                 :documents_json, :seller_user_id, :documents_reviewed_at, :site_verified_at, :last_confirmed_available_at,
                 :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
@@ -152,7 +152,11 @@ final class PropertyRepository
                 lat = :lat,
                 lng = :lng,
                 area = :area,
+                listing_purpose = :listing_purpose,
                 price = :price,
+                lease_price = :lease_price,
+                lease_period = :lease_period,
+                lease_price_unit = :lease_price_unit,
                 price_per_sqm = :price_per_sqm,
                 status = :status,
                 approval_state = :approval_state,
@@ -226,13 +230,31 @@ final class PropertyRepository
 
     public function setAvailability(int $propertyId, string $status, ?array $actor = null): array
     {
-        return $this->changeLifecycle($propertyId, 'availability', $this->normalizeAvailability($status), $actor);
+        $normalized = $this->normalizeAvailability($status);
+        if ($normalized === 'Availed') {
+            throw new InvalidArgumentException('Availed is a historical status. Choose Sold or Leased for a new transaction.');
+        }
+        return $this->changeLifecycle($propertyId, 'availability', $normalized, $actor);
+    }
+
+    public function archive(int $propertyId, ?array $actor = null): array
+    {
+        return $this->changeLifecycle($propertyId, 'archive', null, $actor);
+    }
+
+    public function unarchive(int $propertyId, ?array $actor = null): array
+    {
+        return $this->changeLifecycle($propertyId, 'unarchive', null, $actor);
     }
 
     private function changeLifecycle(int $propertyId, string $action, ?string $status, ?array $actor): array
     {
-        if ($actor === null || !sfc_can_manage_properties($actor)) {
-            throw new InvalidArgumentException('A recognized city department account is required to manage property availability and Recently deleted.');
+        $cityManager = $actor !== null && sfc_can_manage_properties($actor);
+        $ownBrokerArchive = in_array($action, ['archive', 'unarchive'], true)
+            && ($actor['role'] ?? '') === 'seller'
+            && strtolower((string) ($actor['identityVerificationStatus'] ?? $actor['identity_verification_status'] ?? '')) === 'verified';
+        if (!$cityManager && !$ownBrokerArchive) {
+            throw new InvalidArgumentException('This account cannot perform this listing management action.');
         }
         $this->pdo->beginTransaction();
         try {
@@ -240,21 +262,38 @@ final class PropertyRepository
             $lock = $this->pdo->prepare('SELECT id FROM properties WHERE id = :id FOR UPDATE');
             $lock->execute(['id' => $propertyId]);
             $existing = $this->rawPropertyRow($propertyId, null, false);
+            if (!$cityManager && (int) ($existing['seller_user_id'] ?? 0) !== (int) ($actor['id'] ?? 0)) {
+                throw new InvalidArgumentException('You can only archive or unarchive your own listings.');
+            }
             if ($action === 'restore') {
                 if (empty($existing['deleted_at'])) { throw new InvalidArgumentException('This property is not in Recently deleted.'); }
-                $statement = $this->pdo->prepare("UPDATE properties SET deleted_at = NULL, deleted_by_user_id = NULL, approval_state = 'pending_review' WHERE id = :id");
+                // Deletion leaves status, moderation and archive state intact.
+                $statement = $this->pdo->prepare('UPDATE properties SET deleted_at = NULL, deleted_by_user_id = NULL WHERE id = :id');
                 $statement->execute(['id' => $propertyId]);
             } elseif ($action === 'delete') {
                 if (!empty($existing['deleted_at'])) { throw new InvalidArgumentException('This property is already in Recently deleted.'); }
                 $statement = $this->pdo->prepare('UPDATE properties SET deleted_at = UTC_TIMESTAMP(), deleted_by_user_id = :actor WHERE id = :id');
                 $statement->execute(['id' => $propertyId, 'actor' => (int) $actor['id']]);
+            } elseif ($action === 'archive' || $action === 'unarchive') {
+                if (!empty($existing['deleted_at'])) { throw new InvalidArgumentException('Restore this property before changing its archive state.'); }
+                $isArchived = !empty($existing['archived_at']) || ($existing['approval_state'] ?? '') === 'archived';
+                if ($action === 'archive') {
+                    if ($isArchived) { throw new InvalidArgumentException('This property is already archived.'); }
+                    $statement = $this->pdo->prepare('UPDATE properties SET archived_at = UTC_TIMESTAMP(), archived_by_user_id = :actor WHERE id = :id');
+                    $statement->execute(['id' => $propertyId, 'actor' => (int) $actor['id']]);
+                } else {
+                    if (!$isArchived) { throw new InvalidArgumentException('This property is not archived.'); }
+                    // Historical archives did not retain their previous review state.
+                    $statement = $this->pdo->prepare("UPDATE properties SET archived_at = NULL, archived_by_user_id = NULL, approval_state = CASE WHEN approval_state = 'archived' THEN 'pending_review' ELSE approval_state END WHERE id = :id");
+                    $statement->execute(['id' => $propertyId]);
+                }
             } else {
                 if (!empty($existing['deleted_at'])) { throw new InvalidArgumentException('Restore this property before changing availability.'); }
                 $statement = $this->pdo->prepare('UPDATE properties SET status = :status, last_confirmed_available_at = CASE WHEN :is_available = 1 THEN UTC_TIMESTAMP() ELSE NULL END WHERE id = :id');
                 $statement->execute(['id' => $propertyId, 'status' => $status, 'is_available' => $status === 'Available' ? 1 : 0]);
             }
             $updated = $this->rawPropertyRow($propertyId, null, false);
-            $this->recordPropertyAudit($action === 'delete' ? 'DELETE' : ($action === 'restore' ? 'RESTORE' : 'EDIT'), $propertyId, $existing, $updated, $actor);
+            $this->recordPropertyAudit($action === 'availability' ? 'EDIT' : strtoupper($action), $propertyId, $existing, $updated, $actor);
             $result = $this->presentEvidence($this->hydrateProperties([$updated])[0], $actor);
             $this->pdo->commit();
             return $result;
@@ -270,8 +309,10 @@ final class PropertyRepository
             'available', 'active', 'open' => 'Available',
             'unavailable' => 'Unavailable',
             'reserved', 'under review', 'pending' => 'Reserved',
-            'availed', 'sold', 'leased', 'taken' => 'Availed',
-            default => throw new InvalidArgumentException('Choose Available, Unavailable or Availed.'),
+            'sold' => 'Sold',
+            'leased' => 'Leased',
+            'availed', 'taken' => 'Availed',
+            default => throw new InvalidArgumentException('Choose Available, Reserved, Unavailable, Sold or Leased.'),
         };
     }
 
@@ -427,7 +468,7 @@ final class PropertyRepository
                 p.*,
                 seller.identity_verification_status AS seller_identity_verification_status,
                 seller.identity_verified_at AS seller_identity_verified_at,
-                CASE WHEN seller.identity_verification_status = \'verified\' AND seller_profile.seller_type = \'broker\' AND seller_profile.application_status = \'verified\' AND seller_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND seller_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)) THEN 1 ELSE 0 END AS seller_broker_verified,
+                CASE WHEN seller.identity_verification_status = \'verified\' AND seller.account_status = \'active\' AND seller.email_verified_at IS NOT NULL AND seller_profile.prc_front_json IS NOT NULL AND seller_profile.prc_back_json IS NOT NULL AND seller_profile.seller_type = \'broker\' AND seller_profile.application_status = \'verified\' AND seller_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND seller_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)) THEN 1 ELSE 0 END AS seller_broker_verified,
                 broker.name AS contact_broker_name,
                 broker.email AS contact_broker_email,
                 broker_profile.phone AS contact_broker_phone,
@@ -436,8 +477,8 @@ final class PropertyRepository
              FROM properties p
              LEFT JOIN users seller ON seller.id = p.seller_user_id
              LEFT JOIN seller_profiles seller_profile ON seller_profile.user_id = seller.id
-             LEFT JOIN users broker ON broker.id = p.contact_broker_user_id AND broker.identity_verification_status = \'verified\'
-             LEFT JOIN seller_profiles broker_profile ON broker_profile.user_id = broker.id AND broker_profile.seller_type = \'broker\' AND broker_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND broker_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))';
+             LEFT JOIN users broker ON broker.id = p.contact_broker_user_id AND broker.identity_verification_status = \'verified\' AND broker.account_status = \'active\' AND broker.email_verified_at IS NOT NULL
+             LEFT JOIN seller_profiles broker_profile ON broker_profile.user_id = broker.id AND broker_profile.seller_type = \'broker\' AND broker_profile.application_status = \'verified\' AND broker_profile.prc_front_json IS NOT NULL AND broker_profile.prc_back_json IS NOT NULL AND broker_profile.prc_registration_no REGEXP \'^[0-9]{1,20}$\' AND broker_profile.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))';
     }
 
     private function visibilityCondition(?array $user, array &$params): string
@@ -455,14 +496,14 @@ final class PropertyRepository
 
         if ($role === 'seller' && $userId > 0) {
             $params['visible_seller_user_id'] = $userId;
-            return 'p.deleted_at IS NULL AND ((p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')) OR p.seller_user_id = :visible_seller_user_id)';
+            return 'p.deleted_at IS NULL AND ((p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')) OR p.seller_user_id = :visible_seller_user_id)';
         }
 
         if ($userId < 1) {
-            return 'p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\') AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
+            return 'p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\') AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
         }
 
-        return 'p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')';
+        return 'p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')';
     }
 
     private function rawPropertyRow(int $propertyId, ?array $user = null, bool $enforceVisibility = true): array
@@ -609,12 +650,19 @@ final class PropertyRepository
                 'area' => float_or_null($row['area'] ?? null),
                 'landArea' => float_or_null($row['area'] ?? null),
                 'areaKnown' => isset($row['area']) && (float) $row['area'] > 0,
-                'price' => (int) $row['price'],
+                'listingPurpose' => (string) ($row['listing_purpose'] ?? 'sale'),
+                'price' => isset($row['price']) ? (int) $row['price'] : null,
+                'salePrice' => isset($row['price']) ? (int) $row['price'] : null,
+                'leasePrice' => isset($row['lease_price']) ? (int) $row['lease_price'] : null,
+                'leasePeriod' => (string) ($row['lease_period'] ?? 'month'),
+                'leasePriceUnit' => (string) ($row['lease_price_unit'] ?? 'total'),
                 'pricePerSqm' => $pricePerSqm,
                 'status' => (string) $row['status'],
                 'approvalState' => $approvalState,
                 'deletedAt' => string_or_null($this->normalizeTimestamp($row['deleted_at'] ?? null)),
                 'isDeleted' => !empty($row['deleted_at']),
+                'archivedAt' => string_or_null($this->normalizeTimestamp($row['archived_at'] ?? null)),
+                'isArchived' => !empty($row['archived_at']) || $approvalState === 'archived',
                 'marketScore' => $marketScore,
                 'type' => (string) $row['type'],
                 'propertyType' => (string) $row['type'],
@@ -698,7 +746,7 @@ final class PropertyRepository
 
     private function assessmentRanks(): array
     {
-        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE deleted_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetchAll();
+        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetchAll();
         $properties = array_map(fn (array $row): array => array_merge(['id' => (int) $row['id']], PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'))), $rows);
         return PropertyAssessment::ranks($properties);
     }
@@ -885,9 +933,12 @@ final class PropertyRepository
     private function priceBenchmarkMap(): array
     {
         $statement = $this->pdo->query(
-            'SELECT type, price, area, price_per_sqm
+            'SELECT type, listing_purpose, price, area, price_per_sqm
              FROM properties
              WHERE deleted_at IS NULL
+               AND archived_at IS NULL
+               AND approval_state = \'approved\'
+               AND listing_purpose IN (\'sale\', \'sale_or_lease\')
                AND LOWER(status) IN (\'available\', \'active\', \'open\')
                AND price > 0
                AND area > 0'
@@ -897,7 +948,7 @@ final class PropertyRepository
         foreach ($statement->fetchAll() as $row) {
             $type = strtolower(trim((string) ($row['type'] ?? '')));
             $pricePerSqm = $this->effectivePricePerSqm($row);
-            if ($pricePerSqm < 1) {
+            if ($pricePerSqm === null || $pricePerSqm < 1) {
                 continue;
             }
 
@@ -936,20 +987,25 @@ final class PropertyRepository
 
         $corridor = string_or_null($payload['corridor'] ?? ($existing['corridor'] ?? null)) ?? 'highway';
         $status = $this->normalizeAvailability(string_or_null($payload['status'] ?? ($existing['status'] ?? null)) ?? 'Available');
+        if ($status === 'Availed' && !in_array(strtolower((string) ($existing['status'] ?? '')), ['availed', 'taken'], true)) {
+            throw new InvalidArgumentException('Availed is a historical status. Choose Sold or Leased for a new transaction.');
+        }
         $approvalState = $this->normalizeApprovalState((string) ($payload['approval_state'] ?? $payload['approvalState'] ?? ($existing['approval_state'] ?? 'approved')));
+        if ($approvalState === 'archived' && ($existing['approval_state'] ?? '') !== 'archived') {
+            throw new InvalidArgumentException('Use the Archive action to archive a listing.');
+        }
+        if (($existing['approval_state'] ?? '') === 'archived' && $approvalState !== 'archived') {
+            throw new InvalidArgumentException('Use the Unarchive action before reviewing this historical archive.');
+        }
         $rawDescription = array_key_exists('description', $payload) ? $payload['description'] : ($existing['description'] ?? '');
         if ($rawDescription !== null && !is_string($rawDescription)) { throw new InvalidArgumentException('Description must be text.'); }
         $description = trim($rawDescription ?? '');
 
-        $rawPrice = array_key_exists('price', $payload) ? $payload['price'] : ($existing['price'] ?? 0);
-        if (is_string($rawPrice)) {
-            $rawPrice = str_replace(',', '', trim($rawPrice));
-        }
-        if ($rawPrice === null || $rawPrice === '') { $rawPrice = 0; }
-        $price = int_or_null($rawPrice);
-        if ($price === null || $price < 0) {
-            throw new InvalidArgumentException('Asking price must be zero or a positive whole amount.');
-        }
+        $listingPurpose = $this->normalizeListingChoice($this->payloadValue($payload, ['listing_purpose', 'listingPurpose'], $existing['listing_purpose'] ?? 'sale'), ['sale', 'lease', 'sale_or_lease'], 'listing purpose');
+        $price = $this->normalizeNullableAmount($this->payloadValue($payload, ['sale_price', 'salePrice', 'price'], $existing['price'] ?? null), 'Sale asking price');
+        $leasePrice = $this->normalizeNullableAmount($this->payloadValue($payload, ['lease_price', 'leasePrice'], $existing['lease_price'] ?? null), 'Lease asking price');
+        $leasePeriod = $this->normalizeListingChoice($this->payloadValue($payload, ['lease_period', 'leasePeriod'], $existing['lease_period'] ?? 'month'), ['month', 'year', 'day'], 'lease period');
+        $leasePriceUnit = $this->normalizeListingChoice($this->payloadValue($payload, ['lease_price_unit', 'leasePriceUnit'], $existing['lease_price_unit'] ?? 'total'), ['total', 'sqm'], 'lease price unit');
 
         $parcel = PropertyParcel::fromPayload($payload, $this->decodeJson($existing['parcel_json'] ?? '{}'));
         $effectiveSqm = $parcel['surveyAreaSqm'] ?? $parcel['estimatedAreaSqm'];
@@ -1097,7 +1153,7 @@ final class PropertyRepository
         if ($contactMode === 'open_listing') {
             $contactBrokerUserId = null;
         } else {
-            $broker = $this->pdo->prepare("SELECT u.id FROM users u INNER JOIN seller_profiles sp ON sp.user_id = u.id WHERE u.id = :id AND u.role = 'seller' AND u.identity_verification_status = 'verified' AND sp.application_status = 'verified' AND sp.seller_type = 'broker' AND sp.prc_registration_no REGEXP '^[0-9]{1,20}$' AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))");
+            $broker = $this->pdo->prepare("SELECT u.id FROM users u INNER JOIN seller_profiles sp ON sp.user_id = u.id WHERE u.id = :id AND u.role = 'seller' AND u.account_status = 'active' AND u.email_verified_at IS NOT NULL AND sp.prc_front_json IS NOT NULL AND sp.prc_back_json IS NOT NULL AND u.identity_verification_status = 'verified' AND sp.application_status = 'verified' AND sp.seller_type = 'broker' AND sp.prc_registration_no REGEXP '^[0-9]{1,20}$' AND sp.prc_valid_until >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR))");
             $broker->execute(['id' => $contactBrokerUserId ?? 0]);
             if (!$broker->fetchColumn()) {
                 throw new InvalidArgumentException('The contact must be an approved broker.');
@@ -1114,8 +1170,12 @@ final class PropertyRepository
             'lat' => $lat,
             'lng' => $lng,
             'area' => $area,
+            'listing_purpose' => $listingPurpose,
             'price' => $price,
-            'price_per_sqm' => $this->pricePerSqm($price, $area),
+            'lease_price' => $leasePrice,
+            'lease_period' => $leasePeriod,
+            'lease_price_unit' => $leasePriceUnit,
+            'price_per_sqm' => $listingPurpose === 'lease' ? null : $this->pricePerSqm($price, $area),
             'status' => $status,
             'approval_state' => $approvalState,
             'score' => $storedScore,
@@ -1157,6 +1217,42 @@ final class PropertyRepository
             'contact_broker_user_id' => $contactBrokerUserId,
             'review_note' => $reviewNote,
         ];
+    }
+
+    private function payloadValue(array $payload, array $keys, mixed $fallback): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $payload)) { return $payload[$key]; }
+        }
+        return $fallback;
+    }
+
+    private function normalizeListingChoice(mixed $value, array $allowed, string $label): string
+    {
+        if (!is_string($value) || !in_array(strtolower(trim($value)), $allowed, true)) {
+            throw new InvalidArgumentException('Choose a valid ' . $label . '.');
+        }
+        return strtolower(trim($value));
+    }
+
+    private function normalizeNullableAmount(mixed $value, string $label): ?int
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) { return null; }
+        if (is_int($value)) {
+            if ($value >= 0) { return $value; }
+        } elseif (is_float($value)) {
+            if (is_finite($value) && $value >= 0 && $value < PHP_INT_MAX && floor($value) === $value) { return (int) $value; }
+        } elseif (is_string($value)) {
+            $text = trim($value);
+            if (preg_match('/^(?:[0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+)$/D', $text)) {
+                $digits = ltrim(str_replace(',', '', $text), '0');
+                $maximum = (string) PHP_INT_MAX;
+                if ($digits === '' || strlen($digits) < strlen($maximum) || (strlen($digits) === strlen($maximum) && strcmp($digits, $maximum) <= 0)) {
+                    return (int) $digits;
+                }
+            }
+        }
+        throw new InvalidArgumentException($label . ' must be blank or a non-negative whole PHP amount.');
     }
 
     private function decodeExistingValue(mixed $value): mixed
@@ -1629,24 +1725,24 @@ final class PropertyRepository
             $this->readinessIndicator(
                 'price_competitiveness',
                 'Price Competitiveness',
-                sprintf('PHP %s / sqm', number_format((int) $context['pricePerSqm'])),
-                $this->priceCompetitivenessScore((int) $context['pricePerSqm'], is_array($context['priceBenchmark'] ?? null) ? $context['priceBenchmark'] : null)
+                $context['pricePerSqm'] !== null ? sprintf('PHP %s / sqm', number_format((int) $context['pricePerSqm'])) : 'Price on request',
+                $context['pricePerSqm'] !== null ? $this->priceCompetitivenessScore((int) $context['pricePerSqm'], is_array($context['priceBenchmark'] ?? null) ? $context['priceBenchmark'] : null) : null
             ),
             $this->readinessIndicator(
                 'assessed_value_sqm',
                 'Assessed Value / SQM',
                 $context['assessedValueSqm'] !== null ? sprintf('PHP %s', number_format((int) $context['assessedValueSqm'])) : 'Missing assessed value',
-                $context['assessedValueSqm'] !== null
+                $context['assessedValueSqm'] !== null && $context['pricePerSqm'] !== null && $context['pricePerSqm'] > 0
                     ? $this->clamp((int) round(((int) $context['assessedValueSqm'] / max((int) $context['pricePerSqm'], 1)) * 100), 35, 100)
                     : null
             ),
             $this->readinessIndicator(
                 'value_spread',
                 'Value Spread',
-                $context['assessedValueSqm'] !== null
+                $context['assessedValueSqm'] !== null && $context['pricePerSqm'] !== null && $context['pricePerSqm'] > 0
                     ? sprintf('%s vs ask', ((int) $context['assessedValueSqm'] >= (int) $context['pricePerSqm']) ? 'At or above assessed' : 'Below assessed')
                     : 'Awaiting assessed benchmark',
-                $context['assessedValueSqm'] !== null
+                $context['assessedValueSqm'] !== null && $context['pricePerSqm'] !== null && $context['pricePerSqm'] > 0
                     ? $this->clamp((int) round(100 - (((int) $context['pricePerSqm'] - (int) $context['assessedValueSqm']) / max((int) $context['pricePerSqm'], 1)) * 100), 30, 100)
                     : null
             ),
@@ -2028,6 +2124,8 @@ final class PropertyRepository
             $eventType = 'LISTING_DELETE';
         } elseif ($baseActionType === 'RESTORE') {
             $eventType = 'LISTING_RESTORE';
+        } elseif ($baseActionType === 'ARCHIVE' || $baseActionType === 'UNARCHIVE') {
+            $eventType = 'LISTING_' . $baseActionType;
         } elseif ($beforeApproval !== $afterApproval && $afterApproval !== '') {
             $actionType = 'APPROVE';
             $eventType = 'LISTING_APPROVAL';
@@ -2069,12 +2167,19 @@ final class PropertyRepository
             'lat' => float_or_null($row['lat'] ?? null),
             'lng' => float_or_null($row['lng'] ?? null),
             'area' => float_or_null($row['area'] ?? null),
-            'price' => isset($row['price']) ? (int) $row['price'] : 0,
+            'listingPurpose' => (string) ($row['listing_purpose'] ?? 'sale'),
+            'price' => isset($row['price']) ? (int) $row['price'] : null,
+            'salePrice' => isset($row['price']) ? (int) $row['price'] : null,
+            'leasePrice' => isset($row['lease_price']) ? (int) $row['lease_price'] : null,
+            'leasePeriod' => (string) ($row['lease_period'] ?? 'month'),
+            'leasePriceUnit' => (string) ($row['lease_price_unit'] ?? 'total'),
             'pricePerSqm' => $pricePerSqm,
             'status' => (string) ($row['status'] ?? ''),
             'approvalState' => (string) ($row['approval_state'] ?? ''),
             'deletedAt' => string_or_null($this->normalizeTimestamp($row['deleted_at'] ?? null)),
             'deletedByUserId' => int_or_null($row['deleted_by_user_id'] ?? null),
+            'archivedAt' => string_or_null($this->normalizeTimestamp($row['archived_at'] ?? null)),
+            'archivedByUserId' => int_or_null($row['archived_by_user_id'] ?? null),
             'marketScore' => isset($row['score']) ? (int) $row['score'] : 0,
             'type' => (string) ($row['type'] ?? ''),
             'corridor' => (string) ($row['corridor'] ?? ''),
@@ -2126,7 +2231,7 @@ final class PropertyRepository
 
     private function isFinancialAudit(array $changedFields): bool
     {
-        $financialFields = ['price', 'pricePerSqm', 'assessedValueSqm'];
+        $financialFields = ['listingPurpose', 'price', 'salePrice', 'leasePrice', 'leasePeriod', 'leasePriceUnit', 'pricePerSqm', 'assessedValueSqm'];
         foreach ($changedFields as $field) {
             if (in_array((string) $field, $financialFields, true)) {
                 return true;
@@ -2146,7 +2251,13 @@ final class PropertyRepository
             return sprintf('Moved listing %s to Recently deleted; its evidence and history are retained.', (string) ($before['name'] ?? 'Untitled Property'));
         }
         if ($actionType === 'RESTORE') {
-            return sprintf('Restored listing %s for review before publishing.', (string) ($after['name'] ?? 'Untitled Property'));
+            return sprintf('Restored listing %s with its previous availability and review state.', (string) ($after['name'] ?? 'Untitled Property'));
+        }
+        if ($actionType === 'ARCHIVE') {
+            return sprintf('Archived listing %s; its availability, review state and history are retained.', (string) ($after['name'] ?? 'Untitled Property'));
+        }
+        if ($actionType === 'UNARCHIVE') {
+            return sprintf('Unarchived listing %s with its retained availability; historical archives require review.', (string) ($after['name'] ?? 'Untitled Property'));
         }
 
         if ($actionType === 'APPROVE') {
@@ -2157,7 +2268,7 @@ final class PropertyRepository
             );
         }
 
-        $priorityFields = ['pricePerSqm', 'price', 'roadAccess', 'zoningScore', 'status', 'utilityStatus'];
+        $priorityFields = ['pricePerSqm', 'price', 'leasePrice', 'listingPurpose', 'roadAccess', 'zoningScore', 'status', 'utilityStatus'];
         foreach ($priorityFields as $field) {
             if (!in_array($field, $changedFields, true)) {
                 continue;
@@ -2199,8 +2310,8 @@ final class PropertyRepository
             return $value ? 'true' : 'false';
         }
 
-        if (in_array($normalizedField, ['price', 'pricepersqm', 'assessedvaluesqm'], true) && is_numeric($value)) {
-            $suffix = $normalizedField === 'price' ? '' : ' / sqm';
+        if (in_array($normalizedField, ['price', 'saleprice', 'leaseprice', 'pricepersqm', 'assessedvaluesqm'], true) && is_numeric($value)) {
+            $suffix = in_array($normalizedField, ['pricepersqm', 'assessedvaluesqm'], true) ? ' / sqm' : '';
             return sprintf('PHP %s%s', number_format((int) $value), $suffix);
         }
 
@@ -2211,34 +2322,24 @@ final class PropertyRepository
         return (string) $value;
     }
 
-    private function effectivePricePerSqm(array $row): int
+    private function effectivePricePerSqm(array $row): ?int
     {
-        $price = isset($row['price']) ? (int) $row['price'] : 0;
-        $area = isset($row['area']) ? (float) $row['area'] : 0.0;
-        if ($price > 0 && $area > 0) {
-            return $this->pricePerSqm($price, $area);
-        }
-
-        return max(0, (int) ($row['price_per_sqm'] ?? 0));
+        if (($row['listing_purpose'] ?? 'sale') === 'lease') { return null; }
+        return $this->pricePerSqm(isset($row['price']) ? (int) $row['price'] : null, float_or_null($row['area'] ?? null));
     }
 
-    private function effectiveAssessedValueSqm(mixed $value, int $pricePerSqm): ?int
+    private function effectiveAssessedValueSqm(mixed $value, ?int $pricePerSqm): ?int
     {
-        $assessedValueSqm = int_or_null($value);
-        if ($assessedValueSqm === null) {
-            return null;
-        }
-
-        if ($pricePerSqm > 0 && $assessedValueSqm > ($pricePerSqm * 3)) {
-            return max(1, (int) round($pricePerSqm * 0.92));
-        }
-
-        return $assessedValueSqm;
+        // Recorded valuation is independent of the listing's asking amounts.
+        return int_or_null($value);
     }
 
-    private function pricePerSqm(int $price, ?float $area): int
+    private function pricePerSqm(?int $price, ?float $area): ?int
     {
-        return $price <= 0 || $area === null || $area <= 0 ? 0 : max(1, (int) round($price / ($area * 10000)));
+        if ($price === null || $area === null || $area <= 0) { return null; }
+        // A one-square-metre parcel retains the exact integer, including large BIGINT values.
+        if ($area === 0.0001) { return $price; }
+        return $price === 0 ? 0 : max(1, (int) round($price / ($area * 10000)));
     }
 
     private function propertyTargetLabel(int $propertyId): string

@@ -1,11 +1,14 @@
+import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { propertyDetailsMarkup, setupPropertyDetailsPrint } from './property-details-view.js';
+import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } from './property-details-view.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
 const role = config.role || 'guest';
 const investor = role === 'investor';
+const usesInvestorView = investor || role === 'guest';
+const advancedView = () => !usesInvestorView || (window.SFCInvestorView?.get() || document.documentElement.dataset.investorView || 'basic') === 'advanced';
 const isLoggedIn = Boolean(config.user && role !== 'guest');
 const params = new URLSearchParams(location.search);
 const path = route => `${config.basePath || ''}/${route}`;
@@ -15,7 +18,7 @@ const money = value => `₱${number(value)}`;
 const score = value => value == null ? '—' : `${number(value)}/100`;
 const hasArea = property => Number.isFinite(Number(property.area)) && Number(property.area) > 0;
 const areaText = property => hasArea(property) ? `${number(property.area)} ha` : 'Area not provided';
-const pricePerSqmText = property => hasArea(property) && Number(property.pricePerSqm) > 0 ? money(property.pricePerSqm) : 'Not available';
+const pricePerSqmText = property => property.listingPurpose === "lease" ? "Not offered" : salePricePerSqm(property) === null ? "Price on request" : money(salePricePerSqm(property));
 const hasCoordinates = item => item && item.lat != null && item.lng != null
   && String(item.lat).trim() !== '' && String(item.lng).trim() !== ''
   && Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng))
@@ -27,6 +30,7 @@ let expandedCards = new Set();
 let currentRankingView = 'list';
 let map, markers, tileLayer;
 let businessLayer;
+let detailsBusinessLayer;
 let toastTimer;
 try { compare = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(id => Number.isInteger(id)); } catch { compare = []; }
 
@@ -43,6 +47,32 @@ function imageUrl(property) {
   const source = String(property.imageUrl || property.imagePath || 'assets/images/landing-city.jpg');
   if (/^https?:\/\//i.test(source) || source.startsWith('/')) return source;
   return path(source);
+}
+
+function hazardNotice(property) {
+  const locationNote = !hasCoordinates(property) ? 'Map location has not been recorded.'
+    : propertyLocationLabel(property) === 'Approximate location' ? 'Approximate map pin · confirm the parcel location.' : '';
+  return `${locationNote ? `<p class="tw-mx-3 tw-mt-3 tw-text-xs tw-text-slate-600">${esc(locationNote)}</p>` : ''}<p class="city-card-hazard tw-mx-3 tw-my-3 tw-rounded-lg tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-2.5 tw-text-xs tw-leading-relaxed tw-text-amber-900"><strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}</p>`;
+}
+
+function synchronizeInvestorSort(announce = false) {
+  const select = document.getElementById('citySort');
+  if (!select) return;
+  const advanced = advancedView();
+  let changed = false;
+  if (!advanced && ['iai', 'mce'].includes(select.value)) {
+    select.value = 'newest';
+    changed = true;
+  }
+  select.querySelectorAll('[data-investor-advanced-sort]').forEach(option => {
+    option.disabled = !advanced;
+    option.hidden = !advanced;
+  });
+  const note = document.getElementById('cityViewSortNote');
+  if (note) {
+    note.hidden = !changed || !announce;
+    note.textContent = changed ? 'Now sorted by newest. Assessment sorting is available in Advanced view.' : '';
+  }
 }
 
 function card(property, index) {
@@ -63,7 +93,7 @@ function card(property, index) {
         <!-- Top-left: ● Available Badge -->
         <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-2.5 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span>
+          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
         </div>
 
         <!-- Top-right: Circle Toggle Button -->
@@ -95,7 +125,7 @@ function card(property, index) {
 
           <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
             <strong class="tw-text-lg sm:tw-text-xl tw-font-extrabold tw-text-slate-900 tw-tracking-tight">
-              ${money(property.price)}
+              ${esc(listingPriceLabel(property))}
             </strong>
             <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
               ${areaText(property)}
@@ -109,7 +139,7 @@ function card(property, index) {
         <div class="locus-card-drawer-inner tw-min-h-0 tw-min-w-0">
           <div class="tw-p-3 tw-pt-2 tw-bg-white">
             <!-- 4-Column Horizontal Metric Strip -->
-            <div class="tw-bg-slate-50/90 tw-rounded-xl tw-py-2 tw-px-1 tw-border tw-border-slate-100 tw-grid tw-grid-cols-4 tw-divide-x tw-divide-slate-200/60 tw-text-center">
+            <div data-investor-advanced class="tw-bg-slate-50/90 tw-rounded-xl tw-py-2 tw-px-1 tw-border tw-border-slate-100 tw-grid tw-grid-cols-4 tw-divide-x tw-divide-slate-200/60 tw-text-center">
               <!-- MCE -->
               <div class="tw-px-1">
                 <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
@@ -151,6 +181,7 @@ function card(property, index) {
         </div>
       </div>
 
+      ${hazardNotice(property)}
       <!-- Secondary Action Row (Compare / On map / Shortlist) -->
       <div class="tw-p-3 ${isExpanded ? 'tw-pt-0' : 'tw-pt-3'} tw-bg-white tw-flex tw-items-center tw-gap-2">
         <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
@@ -208,7 +239,7 @@ function card(property, index) {
       <!-- Top-left: ● Available Badge -->
       <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-3 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
         <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
-        <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span>
+        <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
       </div>
 
       <!-- Floating Frosted Glass Panel -->
@@ -249,7 +280,7 @@ function card(property, index) {
 
         <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2.5 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
           <strong class="tw-text-lg sm:tw-text-xl tw-font-bold tw-text-[#11224D] tw-tracking-tight">
-            ${money(property.price)}
+            ${esc(listingPriceLabel(property))}
           </strong>
           <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
             ${areaText(property)}
@@ -258,13 +289,14 @@ function card(property, index) {
       </div>
     </div>
 
+    ${hazardNotice(property)}
     ${isLoggedIn ? `
     <!-- Drop-down Drawer (Expanded Body) -->
     <div class="locus-card-drawer tw-overflow-hidden ${isExpanded ? 'is-open' : ''}" aria-hidden="${isExpanded ? 'false' : 'true'}" ${isExpanded ? '' : 'inert'}>
       <div class="locus-card-drawer-inner tw-min-h-0 tw-min-w-0">
         <div class="tw-p-4 tw-pt-3 tw-bg-white">
           <!-- 2x2 Assessment Grid -->
-          <div class="tw-grid tw-grid-cols-2 tw-gap-2.5">
+          <div data-investor-advanced class="tw-grid tw-grid-cols-2 tw-gap-2.5">
             <!-- MCE -->
             <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
               <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -371,8 +403,11 @@ function updatePriorityStats() {
 }
 
 function priorityListCard(property, idx) {
-  const isTopRanked = idx === 0;
-  const ppsqm = hasArea(property) ? Number(property.pricePerSqm) > 0 ? property.pricePerSqm : Math.round(property.price / (Number(property.area) * 10000)) : null;
+  const sort = document.getElementById('citySort')?.value || 'iai';
+  const rankKey = ['iai', 'mce'].includes(sort) ? sort : null;
+  const scientificRank = rankKey ? property[`${rankKey}Rank`] : null;
+  const isTopRanked = scientificRank === 1;
+  const ppsqm = salePricePerSqm(property);
   const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
   const titleClean = cleanTitle(property.name);
   const isCompared = compare.includes(property.id);
@@ -407,7 +442,7 @@ function priorityListCard(property, idx) {
           <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
         </svg>
         <span class="tw-text-2xl sm:tw-text-3xl tw-font-black tw-tracking-tight tw-leading-tight">#1</span>
-        <span class="tw-text-[11px] tw-font-semibold tw-text-white/90 tw-mt-0.5">Top ranked</span>
+        <span class="tw-text-[11px] tw-font-semibold tw-text-white/90 tw-mt-0.5">${esc(rankKey.toUpperCase())} rank</span>
       </div>
 
       <div class="tw-flex-1 tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4">
@@ -425,14 +460,15 @@ function priorityListCard(property, idx) {
               <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-slate-900 hover:tw-text-[#9E1B22] tw-transition-colors">${esc(titleClean)}</a>
             </h3>
             <p class="tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-mt-0.5 tw-mb-2">${esc(metaParts)}</p>
+            ${hazardNotice(property)}
 
             <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mt-2 tw-text-xs tw-text-slate-600">
               <div class="tw-flex tw-items-center tw-gap-1.5">
                 <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                 </svg>
-                <strong class="tw-font-bold tw-text-slate-900">${money(property.price)}</strong>
-                ${ppsqm ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
+                <span class="tw-text-xs tw-text-slate-500">${esc(listingPurposeLabel(property))}</span><strong class="tw-font-bold tw-text-slate-900">${esc(listingPriceLabel(property))}</strong>
+                ${ppsqm !== null ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
               </div>
               <div class="tw-flex tw-items-center tw-gap-1.5">
                 <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -495,9 +531,7 @@ function priorityListCard(property, idx) {
 
   return `<article class="priority-card tw-relative tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-md tw-transition-all tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-5" data-property-id="${property.id}">
     <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
-      <div class="tw-w-14 sm:tw-w-16 tw-h-14 sm:tw-h-16 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-flex tw-items-center tw-justify-center tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-700 tw-shrink-0">
-        #${idx + 1}
-      </div>
+      ${rankKey ? `<div class="tw-w-14 sm:tw-w-16 tw-h-14 sm:tw-h-16 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-flex tw-flex-col tw-items-center tw-justify-center tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-700 tw-shrink-0"><span>${scientificRank == null ? '—' : `#${scientificRank}`}</span><small class="tw-text-[10px]">${esc(rankKey.toUpperCase())} rank</small></div>` : ''}
 
       <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-shrink-0 tw-overflow-hidden tw-rounded-xl">
         <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full sm:tw-w-40 md:tw-w-44 tw-h-32 sm:tw-h-28 tw-object-cover tw-rounded-xl hover:tw-scale-105 tw-transition-transform tw-duration-300" loading="lazy">
@@ -512,14 +546,15 @@ function priorityListCard(property, idx) {
           <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-slate-900 hover:tw-text-[#9E1B22] tw-transition-colors">${esc(titleClean)}</a>
         </h3>
         <p class="tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-mt-0.5 tw-mb-2">${esc(metaParts)}</p>
+        ${hazardNotice(property)}
 
         <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mt-2 tw-text-xs tw-text-slate-600">
           <div class="tw-flex tw-items-center tw-gap-1.5">
             <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
             </svg>
-            <strong class="tw-font-bold tw-text-slate-900">${money(property.price)}</strong>
-            ${ppsqm ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
+            <span class="tw-text-xs tw-text-slate-500">${esc(listingPurposeLabel(property))}</span><strong class="tw-font-bold tw-text-slate-900">${esc(listingPriceLabel(property))}</strong>
+            ${ppsqm !== null ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
           </div>
           <div class="tw-flex tw-items-center tw-gap-1.5">
             <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -585,11 +620,12 @@ function getFiltered() {
   const subcategory = document.getElementById('citySubcategory')?.value || '';
   const savedOnly = document.getElementById('citySavedOnly')?.checked;
   const result = properties.filter(property => (!query || `${property.name} ${property.barangay || ''} ${property.city}`.toLowerCase().includes(query)) && (!category || property.category === category) && (!subcategory || property.subcategory === subcategory) && (!savedOnly || saved.has(property.id)));
-  const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' ? 'iai' : 'newest');
+  const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' && advancedView() ? 'iai' : 'newest');
   if (sort === 'iai' || sort === 'mce') result.sort((a, b) => (b[`${sort}Score`] ?? -1) - (a[`${sort}Score`] ?? -1) || a.id - b.id);
-  else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => a.price - b.price);
-  else if (sort === 'price_desc') result.sort((a, b) => b.price - a.price);
+  else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => compareSalePrices(a, b));
+  else if (sort === 'price_desc') result.sort((a, b) => compareSalePrices(a, b, "desc"));
   else if (sort === 'area') result.sort((a, b) => b.area - a.area);
+  else if (sort === 'newest') result.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')) || b.id - a.id);
   return result;
 }
 
@@ -600,14 +636,16 @@ function renderRanking() {
   const assessed = filtered.filter(p => p.assessmentComplete || p.iaiScore != null);
   const awaiting = filtered.length - assessed.length;
 
+  const sort = document.getElementById('citySort')?.value || 'newest';
+  const rankKey = ['iai', 'mce'].includes(sort) ? sort : null;
+  const sortLabel = document.getElementById('citySort')?.selectedOptions[0]?.textContent || 'Newest';
   const headerHtml = `<div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
     <div class="tw-text-sm sm:tw-text-base">
       <strong class="tw-font-bold tw-text-slate-900">${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}</strong>
-      <span class="tw-text-slate-500 tw-font-normal"> · ${assessed.length} assessed · ${awaiting} awaiting assessment</span>
+      <span class="tw-text-slate-500 tw-font-normal" data-investor-advanced> · ${assessed.length} assessed · ${awaiting} awaiting assessment</span>
     </div>
     <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-xs sm:tw-text-sm tw-text-slate-500">
-      <span>IAI / 100 · higher is more favorable</span>
-      <button type="button" class="tw-text-slate-400 hover:tw-text-slate-600 tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer" title="Multi-Criteria Evaluation (MCE) weighs seven city criteria. IAI combines MCE with economic viability and infrastructure readiness." aria-label="Assessment methodology info">ⓘ</button>
+      <span>Sorted by ${esc(sortLabel)}</span>
     </div>
   </div>`;
 
@@ -616,11 +654,13 @@ function renderRanking() {
     return;
   }
 
-  if (currentRankingView === 'grid') {
+  if (currentRankingView === 'grid' || !advancedView()) {
     root.innerHTML = headerHtml + `<div class="city-property-grid tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">${filtered.map((property, idx) => card(property, idx)).join('')}</div>`;
   } else {
     root.innerHTML = headerHtml + `<div class="tw-flex tw-flex-col tw-gap-3.5 sm:tw-gap-4">${filtered.map((property, idx) => priorityListCard(property, idx)).join('')}</div>`;
   }
+  if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks are the recorded scientific ranks across assessed properties; filtering may leave gaps or ties.` : 'This listing order is based on the selected sort, not an assessment rank.'} Missing scores remain pending and sort last for assessment order.</p>`);
+  window.SFCInvestorView?.refresh(root);
 
   const methodNote = document.getElementById('cityAssessmentMethod');
   if (methodNote) methodNote.textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All seven criteria must be assessed before a score or rank is shown.';
@@ -631,9 +671,25 @@ function renderCompare() {
   if (!root) return;
   const selected = compare.map(id => properties.find(property => property.id === id)).filter(Boolean);
   if (!selected.length) { root.innerHTML = `<div class="city-empty"><h3>Choose properties to compare.</h3><p>Add up to three listings from the property list.</p><a class="city-button" href="${path(investor ? 'investor-dashboard.php' : 'property-explorer.php')}">Explore properties</a></div>`; return; }
-  root.innerHTML = selected.map(property => `<article class="city-compare-column"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><div><h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3><dl>${[
-    ['Category', property.subcategory || property.category], ['Location', property.barangay || property.city], ['Price', money(property.price)], ['Area', areaText(property)], ['Price / m²', pricePerSqmText(property)], ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? '—' : `#${property.mceRank}`], ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? '—' : `#${property.iaiRank}`], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'], ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]), ['Context', property.assessmentTags?.join(', ') || '—']
-  ].map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl><div class="city-card-actions"><button type="button" data-compare="${property.id}">Remove</button></div></div></article>`).join('');
+  root.innerHTML = selected.map(property => {
+    const facts = [
+      ['Category', property.subcategory || property.category], ['Location', [property.barangay, property.city].filter(Boolean).join(', ')],
+      ['Map location', hasCoordinates(property) ? propertyLocationLabel(property) : 'Not recorded'],
+      ['Listing purpose', listingPurposeLabel(property)], ['Availability', property.status],
+      ...listingPriceEntries(property).map(entry => [entry.label, entry.value]), ['Area', areaText(property)],
+      ['Sale price / m²', pricePerSqmText(property)], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],
+      ['Hazards & environment', propertyHazardSummary(property)],
+    ];
+    const assessments = [
+      ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? 'Pending' : `#${property.mceRank}`],
+      ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? 'Pending' : `#${property.iaiRank}`],
+      ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]),
+      ['Assessment context', property.assessmentTags?.join(', ') || 'Not recorded'],
+    ];
+    const rows = (entries, advanced = false) => entries.map(([label, value]) => `<div${advanced ? ' data-investor-advanced' : ''}><dt>${esc(label)}</dt><dd>${esc(value ?? 'Not recorded')}</dd></div>`).join('');
+    return `<article class="city-compare-column"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><div><h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3><dl>${rows(facts)}${rows(assessments, true)}</dl><div class="city-card-actions"><a href="${path(`property-details.php?id=${property.id}#propertyLocationSection`)}">View map & contact</a><button type="button" data-compare="${property.id}">Remove</button></div></div></article>`;
+  }).join('');
+  window.SFCInvestorView?.refresh(root);
 }
 
 function render() {
@@ -650,6 +706,7 @@ function render() {
       : `${filtered.length} ${filtered.length === 1 ? 'property' : 'properties'}${role === 'guest' ? ' · public preview' : ''}`;
   }
   renderTray(); renderRanking(); renderCompare();
+  window.SFCInvestorView?.refresh();
   if (map) renderMarkers();
 }
 
@@ -685,7 +742,7 @@ function setupFilters() {
   if (only) { only.checked = params.get('view') === 'saved'; only.addEventListener('change', render); }
   if (page === 'city-ranking') {
     const sortEl = document.getElementById('citySort');
-    if (sortEl) sortEl.value = 'iai';
+    if (sortEl) sortEl.value = advancedView() ? 'iai' : 'newest';
 
     const btnList = document.getElementById('priorityViewList');
     const btnGrid = document.getElementById('priorityViewGrid');
@@ -740,13 +797,6 @@ function setupFilters() {
 const markerMap = new Map();
 let currentMapLayer = 'canvas';
 
-function formatShortPrice(num) {
-  const n = Number(num) || 0;
-  if (n >= 1e6) return `₱${(n / 1e6).toFixed(n % 1e6 === 0 ? 0 : 1)}M`;
-  if (n >= 1e3) return `₱${Math.round(n / 1e3)}K`;
-  return `₱${n}`;
-}
-
 function getIaiTier(scoreNum) {
   if (scoreNum == null) return { key: 'pending', label: 'Awaiting assessment', class: 'tw-bg-slate-300' };
   const s = Number(scoreNum) || 0;
@@ -757,7 +807,7 @@ function getIaiTier(scoreNum) {
 
 function createPillIcon(property, isHovered = false, isActive = false) {
   const tier = getIaiTier(property.iaiScore);
-  const priceLabel = formatShortPrice(property.price);
+  const priceLabel = esc(listingPriceLabel(property, { compact: true }));
   const iaiScore = property.iaiScore != null ? Math.round(property.iaiScore) : null;
   const classes = ['locus-pin', isHovered ? 'is-hover' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
 
@@ -770,9 +820,10 @@ function createPillIcon(property, isHovered = false, isActive = false) {
       <div class="pin-anchor" data-id="${property.id}">
         <div class="pin-drop">
           <div class="pin-body">
-            <span class="pin-dot ${tier.class}" title="${tier.label} Tier (${property.iaiScore || 0}/100)"></span>
+            ${advancedView() ? `<span class="pin-dot ${tier.class}" title="${property.iaiScore == null ? 'Awaiting assessment' : `${tier.label} tier (${property.iaiScore}/100)`}"></span>` : ''}
             <span class="pin-price">${priceLabel}</span>
-            ${iaiScore != null ? `<span class="pin-iai-badge">${iaiScore}</span>` : ''}
+            ${advancedView() && iaiScore != null ? `<span class="pin-iai-badge">${iaiScore}</span>` : ''}
+            ${propertyLocationLabel(property) === 'Approximate location' ? '<span class="pin-location-note" title="Approximate location">≈</span>' : ''}
           </div>
           <span class="pin-caret"></span>
         </div>
@@ -786,7 +837,7 @@ function createClusterIcon(cluster) {
   const count = children.length;
   const scores = children.map(m => m.propertyData?.iaiScore).filter(s => s != null && Number.isFinite(Number(s)));
   const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
-  const isPrime = avg && avg >= 90;
+  const isPrime = advancedView() && avg != null && avg >= 90;
 
   return L.divIcon({
     className: 'locus-cluster',
@@ -798,7 +849,7 @@ function createClusterIcon(cluster) {
         <span class="cluster-pulse"></span>
         <div class="cluster-core">
           <span class="cluster-count">${count}</span>
-          ${avg != null ? `<span class="cluster-sub">avg ${avg}</span>` : ''}
+          ${advancedView() && avg != null ? `<span class="cluster-sub">avg IAI ${avg}</span>` : ''}
         </div>
       </div>
     `
@@ -817,19 +868,21 @@ function createPopupContent(property) {
       <div class="locus-popup-media">
         <img src="${img}" alt="${esc(property.name)}" loading="lazy">
         <div class="locus-popup-tags">
-          <span class="locus-popup-tag">${category}</span>
+          <span class="locus-popup-tag">${category}</span><span class="locus-popup-tag">${esc(listingPurposeLabel(property))}</span>
           <span class="locus-popup-tag tag-muted">${zoning}</span>
         </div>
       </div>
       <div class="locus-popup-body">
         <h4 class="locus-popup-title"><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h4>
         <p class="locus-popup-loc">${esc(property.barangay || property.city)}, San Fernando</p>
+        <p class="tw-text-xs tw-text-slate-500">${esc(propertyLocationLabel(property))}${propertyLocationLabel(property) === 'Approximate location' ? ' · confirm the parcel location' : ' · confirm on site'}</p>
         <div class="locus-popup-pricing">
-          <div class="locus-popup-price">${money(property.price)}</div>
-          <div class="locus-popup-area">${areaText(property)}${hasArea(property) && Number(property.pricePerSqm) > 0 ? ` · ${money(property.pricePerSqm)}/m²` : ''}</div>
+          <div class="locus-popup-price">${esc(listingPriceLabel(property))}</div>
+          <div class="locus-popup-area">${areaText(property)}${salePricePerSqm(property) !== null ? ` · ${money(salePricePerSqm(property))}/m²` : ''}</div>
         </div>
-        ${iaiVal != null ? `
-          <div class="locus-popup-metrics">
+        <p class="tw-text-xs tw-leading-relaxed tw-text-amber-900"><strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}</p>
+        ${advancedView() && iaiVal != null ? `
+          <div class="locus-popup-metrics" data-investor-advanced>
             <div class="locus-metric-row">
               <span class="locus-metric-label"><i class="pin-dot ${tier.class}"></i> IAI Attractiveness</span>
               <strong class="locus-metric-value">${iaiVal}<small>/100</small></strong>
@@ -838,7 +891,7 @@ function createPopupContent(property) {
           </div>
         ` : ''}
         <div class="locus-popup-footer">
-          <a class="locus-popup-btn" href="${path(`property-details.php?id=${property.id}`)}">View property insights →</a>
+          <a class="locus-popup-btn" href="${path(`property-details.php?id=${property.id}`)}">View details & contact →</a>
         </div>
       </div>
     </div>
@@ -931,7 +984,7 @@ function setupMap() {
           onEachFeature: (feature, layer) => layer.bindPopup(`<div class="city-popup"><strong>${esc(feature.properties?.name || 'Local business')}</strong><p>${esc(feature.properties?.note || 'Stored local business location.')}</p>${feature.properties?.checkedOn ? `<small>Checked ${esc(feature.properties.checkedOn)}</small>` : ''}</div>`),
         });
       }
-      if (event.target.checked) {
+      if (event.target.checked && advancedView()) {
         businessLayer.addTo(map);
         status.textContent = 'Stored locations';
       }
@@ -989,7 +1042,7 @@ function renderMarkers() {
   markerMap.clear();
 
   filtered.forEach(property => {
-    if (property.hasExactLocation === false || !hasCoordinates(property)) return;
+    if (!hasCoordinates(property)) return;
 
     const marker = L.marker([property.lat, property.lng], {
       icon: createPillIcon(property)
@@ -1284,6 +1337,7 @@ async function renderDetails() {
     printHeaderMarkup, printFooterMarkup, printButtonMarkup, nearbyBusinessesMarkup,
     evaluationMarkup, investorTools, policy: config.policy || {},
   });
+  window.SFCInvestorView?.refresh(root);
   const printState = setupPropertyDetailsPrint(root);
 
   filtered = [property];
@@ -1316,7 +1370,8 @@ async function renderDetails() {
       biz._marker = marker;
       bizGroup.addLayer(marker);
     });
-    bizGroup.addTo(map);
+    detailsBusinessLayer = bizGroup;
+    if (advancedView()) bizGroup.addTo(map);
   }
 
   // Wire Print buttons
@@ -1610,8 +1665,26 @@ async function initialize() {
     document.getElementById('cityVisitsStat').textContent=number(bootstrap.stats?.siteVisits);
   }
   if(page==='city-details'){await renderDetails();return;}
-  setupFilters();render();setupMap();
+  setupFilters();synchronizeInvestorSort();render();setupMap();
 }
+
+window.addEventListener('sfc:investor-view-change', () => {
+  if (!usesInvestorView) return;
+  synchronizeInvestorSort(true);
+  if (page !== 'city-details') render();
+  else if (map) renderMarkers();
+  if (map) {
+    if (businessLayer) {
+      if (advancedView() && document.getElementById('cityNearbyBusinesses')?.checked) businessLayer.addTo(map);
+      else map.removeLayer(businessLayer);
+    }
+    if (detailsBusinessLayer) {
+      if (advancedView()) detailsBusinessLayer.addTo(map);
+      else map.removeLayer(detailsBusinessLayer);
+    }
+    requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+  }
+});
 
 initialize().catch(error => {
   console.error('INITIALIZE CAUGHT ERROR:', error);

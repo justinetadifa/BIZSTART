@@ -183,7 +183,7 @@ function sfc_uses_default_demo_password(array $user): bool
     }
 
     $email = strtolower(trim((string) ($user['email'] ?? '')));
-    $hash = (string) ($user['passwordHash'] ?? '');
+    $hash = (string) ($user['passwordHash'] ?? $user['password_hash'] ?? '');
     foreach (sfc_demo_credentials() as $credential) {
         if ($email === $credential['email'] && password_verify($credential['password'], $hash)) {
             return true;
@@ -196,8 +196,8 @@ function sfc_uses_default_demo_password(array $user): bool
 
 function sfc_account_can_authenticate(array $user): bool
 {
-    $status = strtolower((string) ($user['accountStatus'] ?? 'active'));
-    $identity = strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified'));
+    $status = strtolower((string) ($user['accountStatus'] ?? $user['account_status'] ?? 'active'));
+    $identity = strtolower((string) ($user['identityVerificationStatus'] ?? $user['identity_verification_status'] ?? 'unverified'));
     return $status === 'active'
         && !in_array($identity, ['suspended', 'disabled'], true)
         && (($user['role'] ?? '') !== 'admin' || $identity === 'verified')
@@ -210,6 +210,9 @@ function sfc_account_access_message(array $user): string
     $identity = strtolower((string) ($user['identityVerificationStatus'] ?? 'unverified'));
     if ($status === 'suspended' || $identity === 'suspended') {
         return 'This account is suspended. Contact CICTO for assistance.';
+    }
+    if ($status === 'blocked') {
+        return 'Your account access has been blocked following review. Contact support if you believe this decision is incorrect.';
     }
     if (in_array($status, ['disabled', 'inactive'], true) || $identity === 'disabled') {
         return 'This account is disabled. Contact CICTO for assistance.';
@@ -307,7 +310,7 @@ function sfc_register_admin(string $name, string $email, string $password, strin
 
     // Administrative privileges can only be granted by an existing administrator.
     // Keep this check in the service so future callers cannot reopen public signup.
-    if (!sfc_can_review_brokers()) {
+    if (!sfc_can_administer_city()) {
         throw new InvalidArgumentException('Administrator accounts must be provisioned by an authorized administrator.');
     }
     sfc_require_csrf_form();
@@ -339,7 +342,7 @@ function sfc_register_admin(string $name, string $email, string $password, strin
     return sfc_user_repository()->create('admin', $name, $email, $password, $department);
 }
 
-function sfc_register_seller(array $payload): array
+function sfc_register_seller(array $payload, array $files = []): array
 {
     sfc_start_session();
     $payload = sfc_registration_payload($payload);
@@ -365,13 +368,15 @@ function sfc_register_seller(array $payload): array
             'phone' => $payload['phone'], 'address' => $payload['address_line'],
             'firstName' => $payload['first_name'], 'lastName' => $payload['last_name'], 'city' => $payload['city'],
         ]);
-        $profile = $repository->createOrUpdateForUser((int) $user['id'], $payload, true);
+        $profile = sfc_app_container()['brokerApplications']->saveForUser((int) $user['id'], $payload, $files, true);
         $user = sfc_user_repository()->updateIdentityVerificationStatus((int) $user['id'], 'pending');
         $pdo->commit();
+        sfc_app_container()['brokerApplications']->finalizeStagedForUser((int) $user['id']);
     } catch (Throwable $exception) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        if (!empty($user['id'])) { sfc_app_container()['brokerApplications']->discardStagedForUser((int) $user['id']); }
         throw $exception;
     }
     session_regenerate_id(true);
@@ -397,7 +402,7 @@ function sfc_register_seller(array $payload): array
             'icon' => 'seller',
             'title' => 'New broker application',
             'body' => sprintf(
-                '%s submitted a PRC registration for CICTO review.',
+                '%s submitted a PRC application for authorized CAO/LEBDO review.',
                 $profile['legalName'] ?: $user['name']
             ),
             'actionLabel' => 'Review seller',
@@ -502,7 +507,7 @@ function sfc_current_user(): ?array
     if ($userId > 0) {
         $user = sfc_user_repository()->findById($userId);
         if ($user !== null) {
-            if (!sfc_account_can_authenticate($user)) {
+            if (!sfc_account_can_authenticate($user) || !sfc_session_matches_user($sessionUser, $user)) {
                 sfc_logout();
                 return null;
             }
@@ -515,7 +520,7 @@ function sfc_current_user(): ?array
     if ($email !== '') {
         $user = sfc_user_repository()->findByEmail($email);
         if ($user !== null) {
-            if (!sfc_account_can_authenticate($user)) {
+            if (!sfc_account_can_authenticate($user) || !sfc_session_matches_user($sessionUser, $user)) {
                 sfc_logout();
                 return null;
             }
@@ -531,6 +536,12 @@ function sfc_current_user(): ?array
 function sfc_current_role(): ?string
 {
     return sfc_current_user()['role'] ?? null;
+}
+
+function sfc_session_matches_user(array $sessionUser, array $user): bool
+{
+    return (int) ($sessionUser['id'] ?? 0) === (int) ($user['id'] ?? 0)
+        && (int) ($sessionUser['sessionVersion'] ?? 0) === (int) ($user['sessionVersion'] ?? $user['session_version'] ?? 0);
 }
 
 function sfc_has_role(string|array $roles): bool
@@ -553,7 +564,7 @@ function sfc_admin_department(?array $user = null): ?string
     $department = strtoupper(trim((string) ($user['department'] ?? '')));
     return match ($department) {
         '', 'CICTO', 'ICT', 'CITY INFORMATION AND COMMUNICATIONS TECHNOLOGY OFFICE', 'CITY PLANNING AND DEVELOPMENT OFFICE (CPDO)' => 'CICTO',
-        'ASSESSOR', 'ASSESSORS', "CITY ASSESSOR'S OFFICE", 'CITY ASSESSORS OFFICE' => 'ASSESSOR',
+        'CAO', 'ASSESSOR', 'ASSESSORS', "CITY ASSESSOR'S OFFICE", 'CITY ASSESSORS OFFICE' => 'ASSESSOR',
         'LEBDO', 'LOCAL ECONOMIC AND BUSINESS DEVELOPMENT OFFICE' => 'LEBDO',
         default => null,
     };
@@ -561,7 +572,20 @@ function sfc_admin_department(?array $user = null): ?string
 
 function sfc_can_review_brokers(?array $user = null): bool
 {
+    $user ??= sfc_current_user();
+    return in_array(sfc_admin_department($user), ['ASSESSOR', 'LEBDO'], true)
+        && filter_var($user['brokerReviewAuthorized'] ?? $user['broker_review_authorized'] ?? false, FILTER_VALIDATE_BOOLEAN)
+        && sfc_account_can_authenticate($user);
+}
+
+function sfc_can_administer_city(?array $user = null): bool
+{
     return sfc_admin_department($user) === 'CICTO';
+}
+
+function sfc_can_review_listings(?array $user = null): bool
+{
+    return sfc_can_administer_city($user);
 }
 
 function sfc_can_manage_properties(?array $user = null): bool
@@ -573,7 +597,7 @@ function sfc_broker_can_submit(?array $user = null): bool
 {
     $user ??= sfc_current_user();
     $status = strtolower((string) ($user['identityVerificationStatus'] ?? $user['identity_verification_status'] ?? ''));
-    if (($user['role'] ?? '') !== 'seller' || $status !== 'verified' || !sfc_account_can_authenticate($user)) {
+    if (($user['role'] ?? '') !== 'seller' || $status !== 'verified' || empty($user['emailVerifiedAt'] ?? $user['email_verified_at'] ?? null) || !sfc_account_can_authenticate($user)) {
         return false;
     }
     $profile = sfc_seller_profile_repository()->findByUserId((int) ($user['id'] ?? 0));
@@ -581,6 +605,7 @@ function sfc_broker_can_submit(?array $user = null): bool
     return $profile !== null
         && ($profile['sellerType'] ?? '') === 'broker'
         && ($profile['applicationStatus'] ?? '') === 'verified'
+        && !empty($profile['frontDocument']) && !empty($profile['backDocument'])
         && preg_match('/^[0-9]{1,20}$/', (string) ($profile['prcRegistrationNo'] ?? '')) === 1
         && !empty($profile['prcValidUntil'])
         && $profile['prcValidUntil'] >= $today;
@@ -612,6 +637,10 @@ function sfc_user_session_payload(array $user): array
         'lastName' => (string) ($user['lastName'] ?? ''),
         'department' => (string) ($user['department'] ?? ''),
         'email' => (string) ($user['email'] ?? ''),
+        'emailVerifiedAt' => $user['emailVerifiedAt'] ?? $user['email_verified_at'] ?? null,
+        'emailVerified' => !empty($user['emailVerifiedAt'] ?? $user['email_verified_at'] ?? null),
+        'brokerReviewAuthorized' => (bool) ($user['brokerReviewAuthorized'] ?? $user['broker_review_authorized'] ?? false),
+        'sessionVersion' => (int) ($user['sessionVersion'] ?? $user['session_version'] ?? 0),
         'phone' => $user['phone'] ?? null,
         'address' => $user['address'] ?? null,
         'city' => $user['city'] ?? null,

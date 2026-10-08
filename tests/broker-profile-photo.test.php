@@ -7,6 +7,10 @@ require_once dirname(__DIR__) . '/app/Support/profile.php';
 require_once dirname(__DIR__) . '/app/Repositories/SellerProfileRepository.php';
 require_once dirname(__DIR__) . '/app/Repositories/UserRepository.php';
 require_once dirname(__DIR__) . '/app/Core/SchemaManager.php';
+require_once dirname(__DIR__) . '/app/Repositories/BrokerMailRepository.php';
+require_once dirname(__DIR__) . '/app/Support/BrokerMailer.php';
+require_once dirname(__DIR__) . '/app/Support/BrokerEmailService.php';
+require_once dirname(__DIR__) . '/app/Support/BrokerApplicationService.php';
 
 use App\Core\SchemaManager;
 use App\Repositories\SellerProfileRepository;
@@ -24,6 +28,18 @@ $server = new PDO($dsn, (string) $db['user'], (string) $db['pass'], $options);
 $testName = 'locus_broker_photo_test_' . bin2hex(random_bytes(8));
 $sessions = sys_get_temp_dir() . '/locus-broker-photo-sessions-' . bin2hex(random_bytes(8));
 mkdir($sessions);
+$documentsDirectory = sys_get_temp_dir() . '/locus-broker-photo-documents-' . bin2hex(random_bytes(8));
+mkdir($documentsDirectory);
+$documentPaths = [];
+$documents = new App\Support\BrokerDocuments($documentsDirectory);
+$documentMetadata = [];
+foreach (['front', 'back'] as $side) {
+    $documentId = bin2hex(random_bytes(32));
+    $documentPath = $documents->pathForId($documentId);
+    file_put_contents($documentPath, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jr4sAAAAASUVORK5CYII=', true));
+    $documentPaths[] = $documentPath;
+    $documentMetadata[$side] = ['id' => $documentId, 'mime' => 'image/png', 'size' => filesize($documentPath), 'sha256' => hash_file('sha256', $documentPath), 'label' => 'PRC ID ' . $side];
+}
 session_save_path($sessions);
 $created = false;
 $checks = 0;
@@ -38,8 +54,11 @@ try {
     SchemaManager::ensure($pdo);
     $pdo->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,ONLY_FULL_GROUP_BY,NO_ENGINE_SUBSTITUTION'");
     $users = new UserRepository($pdo);
-    $profiles = new SellerProfileRepository($pdo);
-    $GLOBALS['container'] = ['pdo' => $pdo, 'users' => $users, 'sellerProfiles' => $profiles];
+    $profiles = new SellerProfileRepository($pdo, $documents);
+    $mailConfig = ['app' => ['environment' => 'local', 'url' => 'http://127.0.0.1'], 'mail' => []];
+    $brokerEmail = new App\Support\BrokerEmailService(new App\Repositories\BrokerMailRepository($pdo), new App\Support\BrokerMailer($mailConfig), $mailConfig);
+    $brokerApplications = new App\Support\BrokerApplicationService($pdo, $profiles, $documents, $brokerEmail);
+    $GLOBALS['container'] = ['pdo' => $pdo, 'users' => $users, 'sellerProfiles' => $profiles, 'brokerApplications' => $brokerApplications, 'brokerEmail' => $brokerEmail];
     $insert = $pdo->prepare('INSERT INTO users (role, name, email, password_hash, profile_image_url) VALUES (\'seller\', :name, :email, \'unusable-fixture-password\', :photo)');
     // No files are created: these paths represent persisted upload metadata.
     $photo = 'assets/uploads/profiles/photo-test-' . bin2hex(random_bytes(8)) . '.png';
@@ -52,7 +71,7 @@ try {
         'seller_type' => 'broker', 'legal_name' => 'Photo Broker', 'phone' => '09171234567',
         'address_line' => 'Test address', 'city' => 'San Fernando, La Union',
         'authorization_basis' => 'Licensed real estate broker', 'prc_registration_no' => '00012345', 'prc_valid_until' => '2099-12-31',
-    ], true);
+    ], true, $documentMetadata);
     $check($broker['profileImageUrl'] === $photo, 'Submitting verification must return the stored photo.');
     $check($profiles->findByUserId($id)['profileImageUrl'] === $photo, 'Individual profile lookup must include the photo.');
     $check($profiles->queue('pending_review')[0]['profileImageUrl'] === $photo, 'The admin pending queue must include the photo under strict SQL grouping.');
@@ -78,6 +97,8 @@ try {
 } finally {
     if (session_status() === PHP_SESSION_ACTIVE) { session_destroy(); }
     rmdir($sessions);
+    foreach ($documentPaths as $documentPath) { if (is_file($documentPath)) { unlink($documentPath); } }
+    rmdir($documentsDirectory);
     if ($created) { $server->exec('DROP DATABASE `' . $testName . '`'); }
 }
 echo "Passed {$checks} broker profile photo integration checks.\n";

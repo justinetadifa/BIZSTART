@@ -214,7 +214,7 @@ final class MessageRepository
 
     public function clearThread(int $threadId, ?array $actor = null): void
     {
-        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+        if (!\sfc_can_administer_city($actor ?? ['role' => 'guest'])) {
             throw new InvalidArgumentException('Only CICTO can clear a conversation.');
         }
         $thread = $this->threadRow($threadId);
@@ -534,6 +534,8 @@ final class MessageRepository
         $statement = $this->pdo->prepare(
             'SELECT p.id, p.name, p.seller_user_id, p.contact_mode,
                     CASE WHEN broker.identity_verification_status = \'verified\'
+                         AND broker.account_status = \'active\' AND broker.email_verified_at IS NOT NULL
+                         AND sp.prc_front_json IS NOT NULL AND sp.prc_back_json IS NOT NULL
                          AND sp.application_status = \'verified\'
                          AND sp.seller_type = \'broker\'
                          AND sp.prc_registration_no REGEXP \'^[0-9]{1,20}$\'

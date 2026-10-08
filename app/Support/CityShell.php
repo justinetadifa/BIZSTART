@@ -32,6 +32,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <base href="<?= $e(($context['basePath'] ?: '') . '/') ?>">
   <link rel="icon" href="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png">
   <script>window.SFC_APP_CONFIG = <?= json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;</script>
+  <script src="<?= $e($context['assetBase']) ?>/js/investor-view.js<?= sfc_asset_version('js/investor-view.js') ?>"></script>
   <?php if ($legacy): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/portal.css">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/blue-button.css<?= sfc_asset_version('css/blue-button.css') ?>">
@@ -53,13 +54,30 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-presentation.css<?= sfc_asset_version('css/locus-presentation.css') ?>">
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-glance.css<?= sfc_asset_version('css/home-glance.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
+  <div class="locus-map-backdrop" aria-hidden="true"></div>
 <?php
+}
+
+function sfc_investor_view_control(array $context): void
+{
+    if (!in_array($context['user']['role'] ?? 'guest', ['investor', 'guest'], true)) { return; }
+    ?>
+    <div class="investor-view-toolbar no-print" data-investor-view-toolbar hidden>
+      <div class="investor-view-intro"><span class="investor-view-label">Investor view</span><p data-investor-view-description>Start with the essentials. Explore the assessment when you are ready.</p></div>
+      <div class="investor-view-control" data-investor-view-control role="group" aria-label="Investor view">
+        <button type="button" data-investor-mode="basic" aria-pressed="true">Basic</button>
+        <button type="button" data-investor-mode="advanced" aria-pressed="false">Advanced</button>
+      </div>
+      <span class="investor-view-announcement" data-investor-view-announcement role="status" aria-live="polite"></span>
+    </div>
+    <?php
 }
 
 function sfc_render_header(array $context, string $active = ''): void

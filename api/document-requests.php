@@ -6,6 +6,9 @@ require __DIR__ . '/_bootstrap.php';
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
+    if (($user['role'] ?? '') === 'seller' && !sfc_broker_can_submit($user)) {
+        return [403, ['error' => 'Verify your email and obtain approval of your complete broker application before accessing broker document requests.']];
+    }
     if ($user === null || (($user['role'] ?? '') === 'admin' && !sfc_can_manage_properties($user))) {
         return [403, ['error' => 'A signed-in account is required to view supporting documents.']];
     }

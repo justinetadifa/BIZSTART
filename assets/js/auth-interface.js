@@ -9,6 +9,12 @@
   };
   const messageFor = (field, form) => {
     const value = field.value;
+    if (field.type === 'file') {
+      const file = field.files[0];
+      if (!file) return field.required ? 'Upload this side of your PRC ID before submitting your application.' : '';
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || !file.size || file.size > 5 * 1024 * 1024) return 'Choose a JPEG, PNG or WebP image up to 5 MB.';
+      return field.dataset.previewError || '';
+    }
     if (field.required && (field.type === 'checkbox' ? !field.checked : !value.trim())) {
       if (field.name === 'privacy_consent') return 'Please agree to the Privacy Notice.';
       if (field.name === 'adult_confirmation') return 'Please confirm that you are 18 years old or above.';

@@ -1,0 +1,27 @@
+.broker-id-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.broker-id-upload{min-width:0;border:1px solid #dfe3e9;border-radius:12px;padding:16px;background:#fbfcfd}
+.broker-id-label{display:block;font-size:13px;font-weight:600;color:#11224d}
+.broker-id-hint,.broker-id-status{font-size:12px;line-height:1.6;color:#697284;margin:8px 0}
+.broker-id-upload input[type=file]{width:100%;max-width:100%;font-size:12px;padding:8px 0;border:0;background:transparent}
+.broker-id-upload input[type=file]::file-selector-button,.broker-id-undo{border:1px solid #d8dee8;border-radius:7px;padding:9px 12px;color:#11224d;background:white;font-size:12px;cursor:pointer}
+.broker-id-upload input[type=file]::file-selector-button{margin-right:10px}
+.broker-id-preview{display:block;width:100%;max-height:230px;object-fit:contain;border:1px solid #e5e8ee;border-radius:8px;background:#edf0f4;margin:12px 0}
+.broker-id-preview[hidden],.broker-id-undo[hidden]{display:none}
+.broker-id-status.is-error{color:#9e1b22}
+.broker-email-status{padding:16px;margin:20px 0;border:1px solid #dfe3e9;border-radius:12px;background:#fbfcfd;font-size:13px;line-height:1.65}
+.broker-email-status p{margin:6px 0}
+.broker-email-status button{min-height:40px;border:1px solid #d8dee8;border-radius:7px;padding:8px 12px;background:white;color:#11224d;font-weight:600;cursor:pointer}
+.broker-email-status button:disabled{opacity:.6;cursor:wait}
+.broker-review-documents{margin:18px 0}
+.broker-review-documents figure{margin:0;min-width:0}
+.broker-review-documents figcaption{font-size:12px;font-weight:600;color:#11224d;margin-bottom:8px}
+.broker-review-documents a{display:block;font-size:12px}
+.broker-review-history{font-size:12px;line-height:1.65;color:#697284}
+.broker-review-history li{margin:10px 0;overflow-wrap:anywhere}
+.broker-review-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.broker-review-controls button{min-height:40px}
+.broker-review-message{min-height:20px;font-size:12px}
+.broker-review-message.is-error{color:#9e1b22}
+.broker-staff-permission{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.5}
+.broker-staff-permission input{flex:none;margin-top:3px}
+@media(max-width:600px){.broker-id-grid{grid-template-columns:1fr}.broker-id-upload{padding:14px}.broker-review-controls button{flex:1 1 140px}}

@@ -43,6 +43,27 @@ function sfc_account_consent(string $name, string $label): void
     <?php
 }
 
+function sfc_broker_document_field(string $side, ?array $document = null, ?int $userId = null, bool $required = true): void
+{
+    $name = 'prc_' . $side;
+    $id = ($GLOBALS['sfc_account_form_prefix'] ?? 'application') . '-' . $name;
+    $label = 'PRC ID — ' . ucfirst($side);
+    $error = (string) ($GLOBALS['sfc_account_field_errors'][$name] ?? '');
+    $existingUrl = $document !== null && $userId !== null
+        ? sfc_path('/api/broker-document.php?userId=' . $userId . '&side=' . $side . '&documentId=' . rawurlencode((string) $document['id'])) : '';
+    ?>
+    <div class="broker-id-upload" data-broker-id-upload>
+      <label class="broker-id-label" for="<?= sfc_account_escape($id) ?>"><?= sfc_account_escape($label) ?></label>
+      <p class="broker-id-hint" id="<?= sfc_account_escape($id) ?>-hint">JPEG, PNG or WebP. Up to 5 MB for each image. Include every edge and keep the text readable.</p>
+      <img class="broker-id-preview" data-broker-id-preview <?= $existingUrl !== '' ? 'src="' . sfc_account_escape($existingUrl) . '"' : 'hidden' ?> alt="<?= sfc_account_escape($label) ?> preview" data-existing-src="<?= sfc_account_escape($existingUrl) ?>">
+      <input id="<?= sfc_account_escape($id) ?>" type="file" name="<?= $name ?>" accept="image/jpeg,image/png,image/webp" <?= $required && $document === null ? 'required' : '' ?> data-existing-document="<?= $document !== null ? 'true' : 'false' ?>" aria-invalid="<?= $error !== '' ? 'true' : 'false' ?>" aria-describedby="<?= sfc_account_escape($id) ?>-hint <?= sfc_account_escape($id) ?>-error <?= sfc_account_escape($id) ?>-status">
+      <p class="broker-id-status" data-broker-id-status id="<?= sfc_account_escape($id) ?>-status" role="status"><?= $document !== null ? 'Current image saved. Choose a file to replace it.' : 'Choose an image to preview it.' ?></p>
+      <button class="broker-id-undo" type="button" data-broker-id-undo hidden>Undo image change</button>
+      <small class="account-field-error" id="<?= sfc_account_escape($id) ?>-error" <?= $error === '' ? 'hidden' : '' ?>><?= sfc_account_escape($error) ?></small>
+    </div>
+    <?php
+}
+
 function sfc_account_submit(string $label, string $loading): void
 {
     ?><button class="account-submit" type="submit" data-loading-label="<?= sfc_account_escape($loading) ?>"><span data-submit-label><?= sfc_account_escape($label) ?></span><svg class="account-submit-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="account-submit-spinner" aria-hidden="true"></span></button><?php
@@ -50,7 +71,7 @@ function sfc_account_submit(string $label, string $loading): void
 
 function sfc_account_assets(array $context): void
 {
-    foreach (['account', 'auth-interface'] as $style) {
+    foreach (['account', 'auth-interface', 'broker-verification'] as $style) {
         ?><link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/<?= $style ?>.css<?= sfc_account_escape(sfc_asset_version('css/' . $style . '.css')) ?>"><?php
     }
 }
@@ -92,7 +113,7 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
           </nav>
           <p class="account-eyebrow"><?= $role === 'admin' ? 'CITY WORKSPACE' : ($signup ? 'GET STARTED' : 'YOUR LOCUS-SF ACCOUNT') ?></p>
           <h1 id="accountTitle"><?= $role === 'admin' ? 'City staff access' : ($signup ? ($role === 'seller' ? 'Broker registration' : 'Create your account') : 'Welcome back') ?></h1>
-          <p class="account-intro"><?= match (true) { $role === 'admin' => 'CICTO · City Assessor · LEBDO', $role === 'seller' && $signup => 'Submit your PRC credentials for CICTO verification.', $role === 'seller' => 'Sign in to your listings and verification status.', $signup => 'A few details to make your next move.', default => 'Sign in to explore your next opportunity.' } ?></p>
+          <p class="account-intro"><?= match (true) { $role === 'admin' => 'CICTO · City Assessor · LEBDO', $role === 'seller' && $signup => 'Submit your PRC credentials for review by authorized CAO or LEBDO personnel. Verify your email separately to activate broker privileges.', $role === 'seller' => 'Sign in to your listings and verification status.', $signup => 'A few details to make your next move.', default => 'Sign in to explore your next opportunity.' } ?></p>
           <?php if (($_GET['reason'] ?? '') === 'timeout'): ?><p class="account-message" role="status">Your session expired. Sign in again.</p><?php endif; ?>
           <?php if ($error !== ''): ?><p class="account-message is-error" role="alert"><?= sfc_account_escape($error) ?></p><?php endif; ?>
           <p class="account-validation-summary account-sr-only" data-validation-summary role="alert"><?= $fieldErrors !== [] ? 'Please check the highlighted fields.' : '' ?></p>
@@ -106,7 +127,7 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
           <p class="account-access-help">Use the email and password for your existing city staff account. Investor and broker accounts use their own sign-in portals.</p>
           <?php endif; ?>
           <?php $GLOBALS['sfc_account_form_prefix'] = $signup ? 'signup' : 'login'; if ($activation) { $GLOBALS['sfc_account_field_errors'] = []; } ?>
-          <form method="post" action="<?= sfc_account_escape(sfc_path($route)) ?>" class="account-form <?= $signup ? 'account-form-grid' : '' ?>" data-account-form novalidate>
+          <form method="post" <?= $signup && $role === 'seller' ? 'enctype="multipart/form-data"' : '' ?> action="<?= sfc_account_escape(sfc_path($route)) ?>" class="account-form <?= $signup ? 'account-form-grid' : '' ?>" data-account-form novalidate>
             <input type="hidden" name="_csrf" value="<?= sfc_account_escape(sfc_csrf_token()) ?>">
             <input type="hidden" name="mode" value="<?= $signup ? 'signup' : 'login' ?>">
             <?php if ($signup): ?>
@@ -121,6 +142,10 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
                 <?php sfc_account_field('prc_registration_no', 'PRC Registration No.', 'text', true, '', '', 20); ?>
                 <?php sfc_account_field('prc_valid_until', 'PRC ID valid until', 'date'); ?>
                 <?php sfc_account_field('company_name', 'Agency / Firm (optional)', 'text', false, 'organization', '', 190); ?>
+                <div class="account-field-full broker-id-grid">
+                  <?php sfc_broker_document_field('front'); ?>
+                  <?php sfc_broker_document_field('back'); ?>
+                </div>
               <?php else: ?>
                 <?php sfc_account_field('profession', 'Profession (optional)', 'text', false, 'organization-title', '', 120); ?>
                 <?php sfc_account_field('city', 'City / Municipality (optional)', 'text', false, 'address-level2', '', 120); ?>
@@ -171,5 +196,6 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
       </div>
     </main>
     <script defer src="<?= sfc_account_escape($context['assetBase']) ?>/js/auth-interface.js<?= sfc_account_escape(sfc_asset_version('js/auth-interface.js')) ?>"></script>
+    <?php if ($signup && $role === 'seller'): ?><script defer src="<?= sfc_account_escape($context['assetBase']) ?>/js/broker-verification.js<?= sfc_account_escape(sfc_asset_version('js/broker-verification.js')) ?>"></script><?php endif; ?>
     <?php sfc_render_footer($context);
 }

@@ -5,6 +5,8 @@ namespace App\Support;
 
 use ZipArchive;
 
+require_once __DIR__ . '/ListingPresentation.php';
+
 final class GoogleEarthService
 {
     public function viewUrl(float $lat, float $lng, string $label = ''): string
@@ -143,7 +145,9 @@ XML;
             ['Corridor', $this->labelize((string) ($property['corridor'] ?? ''))],
             ['Barangay', (string) ($property['barangay'] ?? 'Unassigned')],
             ['Type', $this->labelize((string) ($property['type'] ?? 'Property'))],
-            ['Price', $this->money((int) ($property['price'] ?? 0))],
+            ['Listing purpose', ListingPresentation::purpose($property)],
+            ...array_map(static fn (string $label, string $value): array => [$label, $value], array_keys(ListingPresentation::prices($property)), array_values(ListingPresentation::prices($property))),
+            ['Availability', (string) ($property['status'] ?? 'Not confirmed')],
             ['Lot Area', sprintf('%s ha', number_format((float) ($property['area'] ?? 0), 2))],
             ['Market Score', sprintf('%d / 100', (int) ($property['marketScore'] ?? 0))],
             ['Readiness', sprintf('%d / 100', $readinessScore)],
@@ -182,7 +186,12 @@ XML;
             'corridor' => (string) ($property['corridor'] ?? ''),
             'barangay' => (string) ($property['barangay'] ?? ''),
             'type' => (string) ($property['type'] ?? ''),
-            'price' => (string) ($property['price'] ?? ''),
+            'listing_purpose' => ListingPresentation::purpose($property),
+            'sale_price' => ListingPresentation::prices($property)['Sale price'] ?? 'Not offered',
+            'lease_price' => ListingPresentation::prices($property)['Lease price'] ?? 'Not offered',
+            'lease_period' => (string) ($property['leasePeriod'] ?? ''),
+            'lease_price_unit' => (string) ($property['leasePriceUnit'] ?? ''),
+            'availability' => (string) ($property['status'] ?? ''),
             'area' => (string) ($property['area'] ?? ''),
             'market_score' => (string) ($property['marketScore'] ?? ''),
             'readiness_score' => (string) ($property['investmentReadiness']['totalScore'] ?? ''),

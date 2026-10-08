@@ -14,7 +14,7 @@ api_handle(function (array $container): array {
         ];
     }
 
-    if (!sfc_can_review_brokers($user)) {
+    if (!sfc_can_administer_city($user)) {
         return [403, ['error' => 'Only admin can manage showcase items.']];
     }
 

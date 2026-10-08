@@ -1,0 +1,49 @@
+/* One decorative layer, below content: maps, forms, charts and ID images stay opaque. */
+body { position: relative; isolation: isolate; }
+.locus-map-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('../images/mapgraphicstyle.png') center top / max(1440px, 100vw) auto repeat-y;
+  opacity: .12;
+}
+body .account-auth { background: transparent; }
+body .account-auth::before { content: none; }
+.investor-view-toolbar {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin: 0 0 28px;
+  padding: 17px 20px;
+  background: #fff;
+  border: 1px solid #dfe5ed;
+  border-left: 3px solid #c69837;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px #11224d04;
+  color: #11224d;
+}
+.investor-view-toolbar[hidden] { display: none; }
+.investor-view-intro { min-width: 0; }
+.investor-view-label { display: block; font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
+.investor-view-intro p { color: #59677c; font-size: 12px; line-height: 1.5; margin: 3px 0 0; }
+.investor-view-control { display: inline-flex; flex-shrink: 0; gap: 4px; padding: 4px; border: 1px solid #dfe5ed; border-radius: 10px; background: #f4f6f9; }
+.investor-view-control button { min-height: 40px; padding: 9px 20px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #536078; font: 600 12px/1.4 Inter, Arial, sans-serif; cursor: pointer; transition: color .15s, background .15s; }
+.investor-view-control button:hover { color: #11224d; background: #e8edf4; }
+.investor-view-control button[aria-pressed="true"] { background: #11224d; color: #fff; box-shadow: 0 2px 5px #11224d18; }
+.investor-view-control button:focus-visible { outline: 3px solid #bc8b23; outline-offset: 3px; }
+.investor-view-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media screen {
+  html[data-investor-view-enabled="true"][data-investor-view="basic"] [data-investor-advanced] { display: none !important; }
+  html[data-investor-view-enabled="true"][data-investor-view="advanced"] [data-investor-basic] { display: none !important; }
+}
+@media (max-width: 540px) {
+  .investor-view-toolbar { align-items: stretch; flex-direction: column; gap: 13px; padding: 16px; margin-bottom: 22px; }
+  .investor-view-control { display: flex; align-self: flex-start; width: 100%; }
+  .investor-view-control button { flex: 1; min-height: 42px; }
+  .locus-map-backdrop { background-size: auto 1000px; }
+}
+@media (prefers-reduced-motion: reduce) { .investor-view-control button { transition: none; } }
+@media print { .locus-map-backdrop, .investor-view-toolbar { display: none !important; } }

@@ -11,7 +11,7 @@
   };
   const validScore = (value) => value != null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 100;
   const score = (value) => Number(value).toFixed(1);
-  const labels = { approved: 'Published', pending_review: 'Awaiting review', verified: 'Verified', rejected: 'Declined', suspended: 'Suspended', draft: 'Draft', archived: 'Archived' };
+  const labels = { approved: 'Published', pending_review: 'Awaiting review', verified: 'Approved application', corrections_requested: 'Corrections requested', rejected: 'Declined', blocked: 'Blocked after review', suspended: 'Suspended', draft: 'Draft', archived: 'Archived' };
   const icon = (name) => {
     const shapes = {
       properties: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M10 21v-6h4v6"/>',
@@ -26,7 +26,7 @@
     const root = document.querySelector('[data-city-workspace="overview"]');
     if (!root) return;
     const items = Array.isArray(properties) ? properties : [];
-    const governance = root.dataset.department === 'CICTO';
+    const governance = root.dataset.listingReviewer === 'true' || (!root.hasAttribute('data-listing-reviewer') && root.dataset.department === 'CICTO');
     const pending = items.filter((property) => property.approvalState === 'pending_review');
     const published = items.filter((property) => property.approvalState === 'approved');
     const missingEvidence = items.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived');
@@ -40,7 +40,7 @@
 
     const queue = governance ? pending : items.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 3).map((property) => `<article class="tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-border-t tw-border-slate-100 tw-py-4 first:tw-border-0 sm:tw-grid-cols-[64px_minmax(0,1fr)_auto]"><img class="tw-h-14 tw-w-14 tw-rounded-lg tw-object-cover sm:tw-h-16 sm:tw-w-16" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy"><div class="tw-min-w-0"><h3 class="tw-m-0 tw-break-words tw-text-xs tw-font-semibold tw-leading-relaxed tw-text-ink"><a class="tw-text-ink tw-no-underline" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(property.name)}</a></h3><p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${escape(property.barangay || 'San Fernando')} · ${number(Number(property.area) * 10000)} m²</p><span class="tw-mt-2 tw-inline-flex tw-rounded-md tw-bg-amber-50 tw-px-2 tw-py-1 tw-text-[9px] tw-font-medium tw-text-amber-800">${governance ? 'Awaiting review' : 'Source scores pending'}</span></div><a class="tw-col-start-2 tw-flex tw-min-h-[36px] tw-w-fit tw-items-center tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-[11px] tw-font-semibold tw-text-ink hover:tw-bg-slate-50 sm:tw-col-start-auto" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} →</a></article>`).join('')
+      ? queue.slice(0, 3).map((property) => `<article class="tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-border-t tw-border-slate-100 tw-py-4 first:tw-border-0 sm:tw-grid-cols-[64px_minmax(0,1fr)_auto]"><img class="tw-h-14 tw-w-14 tw-rounded-lg tw-object-cover sm:tw-h-16 sm:tw-w-16" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy"><div class="tw-min-w-0"><h3 class="tw-m-0 tw-break-words tw-text-xs tw-font-semibold tw-leading-relaxed tw-text-ink"><a class="tw-text-ink tw-no-underline" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(property.name)}</a></h3><p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${escape(property.barangay || 'San Fernando')} Â· ${number(Number(property.area) * 10000)} mÂ²</p><span class="tw-mt-2 tw-inline-flex tw-rounded-md tw-bg-amber-50 tw-px-2 tw-py-1 tw-text-[9px] tw-font-medium tw-text-amber-800">${governance ? 'Awaiting review' : 'Source scores pending'}</span></div><a class="tw-col-start-2 tw-flex tw-min-h-[36px] tw-w-fit tw-items-center tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-[11px] tw-font-semibold tw-text-ink hover:tw-bg-slate-50 sm:tw-col-start-auto" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} â†’</a></article>`).join('')
       : '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-4 tw-text-center"><span class="tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700">' + icon('published') + '</span><strong class="tw-text-sm tw-font-semibold tw-text-ink">All caught up.</strong><p class="tw-m-0 tw-text-xs tw-leading-relaxed tw-text-slate-500">' + (governance ? 'New submissions will appear here for review.' : 'No properties are awaiting assessment.') + '</p></div>';
 
     const ranked = published.filter((property) => validScore(property.mceScore) && validScore(property.iaiScore))
@@ -56,7 +56,7 @@
       const height = Number(property[key]) * 1.8;
       return `<rect x="${index * 100 + 25 + position * 26}" y="${180 - height}" width="22" height="${height}" rx="3" fill="${position ? '#e9b5bc' : '#a32635'}" data-overview-score="${key}" data-property-id="${Number(property.id)}" data-score="${score(property[key])}"><title>${escape(property.name)}: ${position ? 'IAI' : 'MCE'} ${score(property[key])}</title></rect>`;
     }).join('')).join('');
-    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI scores for the top ${ranked.length} published properties"><div class="tw-mb-4 tw-flex tw-flex-wrap tw-justify-end tw-gap-4 tw-text-[10px] tw-text-slate-500"><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#a32635]"></span>MCE</span><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#e9b5bc]"></span>IAI</span></div><div class="tw-grid tw-grid-cols-[24px_minmax(0,1fr)] tw-gap-2"><div class="tw-flex tw-h-[180px] tw-flex-col tw-justify-between tw-text-[10px] tw-leading-none tw-text-slate-400" aria-hidden="true"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="tw-min-w-0"><svg class="tw-block tw-h-[180px] tw-w-full tw-overflow-visible" viewBox="0 0 ${width} 180" preserveAspectRatio="none" role="img" aria-label="Score chart; exact values are listed below">${grid}${bars}</svg><div class="tw-mt-3 tw-grid tw-grid-flow-col tw-auto-cols-fr tw-gap-1">${ranked.map((property) => `<span class="tw-min-w-0 tw-truncate tw-text-center tw-text-[9px] tw-text-slate-500" title="${escape(property.name)}">${escape(property.name)}</span>`).join('')}</div></div></div><figcaption class="tw-mt-4 tw-text-[10px] tw-leading-relaxed tw-text-slate-500">Scores out of 100 · ordered by IAI</figcaption></figure><details class="tw-mt-3 tw-text-[11px] tw-text-slate-500"><summary class="tw-cursor-pointer">View exact scores</summary><dl class="tw-mb-0 tw-mt-3 tw-space-y-2">${ranked.map((property) => `<div class="tw-flex tw-flex-wrap tw-justify-between tw-gap-2"><dt class="tw-min-w-0 tw-break-words tw-text-ink">${escape(property.name)}</dt><dd class="tw-m-0 tw-whitespace-nowrap">MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</dd></div>`).join('')}</dl></details>`;
+    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI scores for the top ${ranked.length} published properties"><div class="tw-mb-4 tw-flex tw-flex-wrap tw-justify-end tw-gap-4 tw-text-[10px] tw-text-slate-500"><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#a32635]"></span>MCE</span><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#e9b5bc]"></span>IAI</span></div><div class="tw-grid tw-grid-cols-[24px_minmax(0,1fr)] tw-gap-2"><div class="tw-flex tw-h-[180px] tw-flex-col tw-justify-between tw-text-[10px] tw-leading-none tw-text-slate-400" aria-hidden="true"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="tw-min-w-0"><svg class="tw-block tw-h-[180px] tw-w-full tw-overflow-visible" viewBox="0 0 ${width} 180" preserveAspectRatio="none" role="img" aria-label="Score chart; exact values are listed below">${grid}${bars}</svg><div class="tw-mt-3 tw-grid tw-grid-flow-col tw-auto-cols-fr tw-gap-1">${ranked.map((property) => `<span class="tw-min-w-0 tw-truncate tw-text-center tw-text-[9px] tw-text-slate-500" title="${escape(property.name)}">${escape(property.name)}</span>`).join('')}</div></div></div><figcaption class="tw-mt-4 tw-text-[10px] tw-leading-relaxed tw-text-slate-500">Scores out of 100 Â· ordered by IAI</figcaption></figure><details class="tw-mt-3 tw-text-[11px] tw-text-slate-500"><summary class="tw-cursor-pointer">View exact scores</summary><dl class="tw-mb-0 tw-mt-3 tw-space-y-2">${ranked.map((property) => `<div class="tw-flex tw-flex-wrap tw-justify-between tw-gap-2"><dt class="tw-min-w-0 tw-break-words tw-text-ink">${escape(property.name)}</dt><dd class="tw-m-0 tw-whitespace-nowrap">MCE ${score(property.mceScore)} Â· IAI ${score(property.iaiScore)}</dd></div>`).join('')}</dl></details>`;
     chart.querySelectorAll('dl > div').forEach((row, index) => {
       const mode = ranked[index].assessmentMode;
       const modeLabel = document.createElement('span');
@@ -87,213 +87,95 @@
     return `<span class="broker-avatar${large ? ' broker-avatar--large' : ''}"><span data-broker-avatar-initials>${escape(brokerInitials(name))}</span>${url ? `<img data-broker-avatar-image src="${escape(url)}" alt="" width="${large ? 48 : 40}" height="${large ? 48 : 40}">` : ''}</span>`;
   }
 
-  function renderPendingBrokerCard(profile, config = window.SFC_APP_CONFIG || {}) {
+  function brokerDocuments(profile, config) {
+    return `<div class="broker-id-grid broker-review-documents">${['front', 'back'].map(side => {
+      const document = profile[`${side}Document`];
+      const label = `PRC ID — ${side === 'front' ? 'Front' : 'Back'}`;
+      if (!document) return `<figure><figcaption>${label}</figcaption><p class="tw-text-xs tw-text-[#9e1b22]">Image missing. Request corrections before approval.</p></figure>`;
+      const url = `${String(config.apiBase || path('api', config)).replace(/\/$/, '')}/broker-document.php?userId=${Number(profile.userId)}&side=${side}&documentId=${encodeURIComponent(String(document.id))}`;
+      return `<figure><figcaption>${label}</figcaption><a href="${escape(url)}" target="_blank" rel="noopener"><img class="broker-id-preview" src="${escape(url)}" alt="${label}" loading="lazy" data-private-broker-image>Open full image <span class="account-sr-only">(opens in a new tab)</span></a><p class="broker-id-hint">${escape(document.mime)} · ${number(Number(document.size) / 1024)} KB</p></figure>`;
+    }).join('')}</div>`;
+  }
+
+  function brokerReviewHistory(profile) {
+    const history = Array.isArray(profile.reviewHistory) ? profile.reviewHistory : [];
+    return `<details class="broker-review-history"><summary>Review history (${history.length})</summary>${history.length ? `<ol>${history.map(review => `<li><strong>${escape(labels[review.decision] || review.decision)}</strong> · ${escape(review.createdAt)}<br>${escape(review.reviewerName || `Reviewer #${review.reviewerUserId}`)} · Application revision ${Number(review.applicationRevision) || 1}<br>Reason: ${escape(review.reason)}${review.findings ? `<br>Findings: ${escape(review.findings)}` : ''}</li>`).join('')}</ol>` : '<p>No review decision has been recorded.</p>'}</details>`;
+  }
+
+  function brokerDelivery(profile) {
+    const notifications = Array.isArray(profile.notifications) ? profile.notifications : [];
+    const statuses = { sent: 'Sent', pending: 'Queued; delivery not confirmed', sending: 'Delivery in progress; not confirmed', queued: 'Queued; delivery not confirmed', failed: 'Failed', unconfigured: 'Mail service unconfigured', enqueue_failed: 'Email delivery tracking unavailable; application decision saved', retrying: 'Retry pending' };
+    const latest = profile.emailStatus || profile.mailDelivery?.delivery || profile.latestNotification;
+    const delivery = notifications.length ? notifications.map(item => `<li>${escape(item.subject || item.type || item.eventType || 'Application notification')}: ${escape(statuses[item.status] || item.status || 'Delivery not confirmed')}${item.lastError ? ` · ${escape(item.lastError)}` : ''}</li>`).join('') : latest ? `<li>${escape(latest.kind || 'Application notification')}: ${escape(statuses[latest.status || latest] || latest.status || latest)}${latest.lastError ? ` · ${escape(latest.lastError)}` : ''}</li>` : '<li>No recorded delivery status.</li>';
+    const retry = latest?.id && ['failed', 'unconfigured'].includes(latest.status) ? `<button type="button" class="city-button city-button-secondary" data-retry-broker-mail="${Number(latest.id)}">Retry notification delivery</button>` : '';
+    return `<details class="broker-review-history"><summary>Notification delivery</summary><ul>${delivery}</ul>${retry}<p>Review decisions remain saved when email delivery fails.</p><p data-broker-mail-message role="status" aria-live="polite"></p></details>`;
+  }
+
+  function brokerReviewControls(profile) {
+    const identifier = `broker-review-${Number(profile.userId)}`;
+    const approved = profile.applicationStatus === 'verified';
+    return `<div class="tw-mt-4">
+      <label class="tw-flex tw-items-start tw-gap-2 tw-text-xs tw-leading-relaxed"><input type="checkbox" name="prcChecked" class="tw-mt-1 tw-h-4 tw-w-4 tw-shrink-0 tw-accent-[#9e1b22]"><span>I checked the PRC registration, expiration date, and both ID images against the submitted details.</span></label>
+      <label for="${identifier}-reason" class="tw-mt-4 tw-block tw-text-xs tw-font-semibold">Decision reason / message to applicant</label>
+      <textarea id="${identifier}-reason" name="reviewNotes" rows="3" maxlength="3000" required class="tw-mt-2 tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-3 tw-text-xs" placeholder="Explain the review decision and any corrections needed."></textarea>
+      <label for="${identifier}-findings" class="tw-mt-4 tw-block tw-text-xs tw-font-semibold">Documented findings</label>
+      <textarea id="${identifier}-findings" name="findings" rows="3" maxlength="5000" class="tw-mt-2 tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-3 tw-text-xs" placeholder="Record verification evidence. Required when blocking an account."></textarea>
+      <p class="tw-mt-2 tw-text-xs tw-leading-relaxed tw-text-slate-500">For unclear images, expired documents or inconclusive checks, request corrections. Blocking requires an explicit decision supported by documented findings.</p>
+      <div class="broker-review-controls">
+        <button type="submit" name="decision" value="verified" class="city-button">${approved ? 'Confirm approval' : 'Approve application'}</button>
+        <button type="submit" name="decision" value="corrections_requested" class="city-button city-button-secondary">Request corrections</button>
+        <button type="submit" name="decision" value="rejected" class="city-button city-button-secondary">Reject application</button>
+        <button type="submit" name="decision" value="blocked" class="city-button city-button-secondary">Block after review</button>
+      </div>
+      <p class="broker-review-message" data-broker-message role="status" aria-live="polite"></p>
+    </div>`;
+  }
+
+  function brokerApplicationDetails(profile, config) {
+    const fields = [
+      ['Email', profile.email || profile.userEmail || 'Not provided'],
+      ['Email ownership', profile.emailVerifiedAt || profile.emailVerified ? 'Verified' : 'Not yet verified'],
+      ['Account access', profile.accountStatus || 'Active'],
+      ['Contact', profile.phone || 'Not provided'],
+      ['Address', [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Not provided'],
+      ['Agency / firm', profile.companyName || 'Not provided'],
+      ['PRC license number', profile.prcRegistrationNo || 'Not provided'],
+      ['PRC valid until', profile.prcValidUntil || 'Not provided'],
+      ['Application revision', profile.applicationRevision || 1]
+    ];
+    return `<dl class="tw-mt-4 tw-grid tw-gap-3 tw-text-xs">${fields.map(([label, value]) => `<div class="tw-grid tw-grid-cols-[130px_minmax(0,1fr)] tw-gap-3"><dt class="tw-text-slate-500">${escape(label)}</dt><dd class="tw-m-0 tw-min-w-0 tw-break-words tw-text-ink">${escape(value)}</dd></div>`).join('')}</dl>${brokerDocuments(profile, config)}${profile.reviewNotes ? `<p class="tw-text-xs tw-leading-relaxed"><strong>Last decision reason:</strong> ${escape(profile.reviewNotes)}</p>` : ''}${brokerReviewHistory(profile)}${brokerDelivery(profile)}`;
+  }
+
+  function brokerCardHeader(profile, config) {
     const name = profile.legalName || profile.name || profile.userName || 'Broker';
-    const email = profile.email || profile.userEmail || 'Email not provided';
-    const phone = profile.phone || 'Contact not provided';
-    const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
-    const prcNo = profile.prcRegistrationNo || 'Not provided';
-    const validUntil = profile.prcValidUntil || 'Not provided';
+    return `<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-3">${brokerAvatar(profile, name, config)}<h3 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">${escape(name)}</h3><span class="city-pill ${escape(profile.applicationStatus)}">${escape(labels[profile.applicationStatus] || profile.applicationStatus)}</span>${profile.accountStatus === 'blocked' ? '<span class="city-pill rejected">Account blocked</span>' : ''}</div>`;
+  }
 
-    return `
-      <form class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-6 sm:tw-p-8 tw-shadow-sm tw-mb-6" data-broker-review="${Number(profile.userId)}">
-        <div class="tw-grid tw-grid-cols-1 lg:tw-grid-cols-[1.1fr_1fr] tw-gap-8 lg:tw-gap-12">
-          <!-- Left Column: Pending Details -->
-          <div class="tw-min-w-0">
-            <span class="tw-block tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-400 tw-mb-4">PENDING APPLICATION</span>
-            <div class="tw-flex tw-items-center tw-gap-3.5 tw-mb-5">
-              ${brokerAvatar(profile, name, config, true)}
-              <div class="tw-min-w-0">
-                <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
-                  <h3 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-text-slate-900">${escape(name)}</h3>
-                  <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-[#FEF3C7] tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-medium tw-text-[#92400E]">Awaiting review</span>
-                </div>
-                <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Broker application</p>
-              </div>
-            </div>
-
-            <div class="tw-my-5 tw-border-t tw-border-slate-100"></div>
-
-            <div class="tw-space-y-3.5 tw-text-xs">
-              <div class="tw-flex tw-items-baseline tw-gap-3">
-                ${brokerIcons.mail}
-                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Email</span>
-                <span class="tw-min-w-0 tw-break-all tw-text-slate-700">${escape(email)}</span>
-              </div>
-              <div class="tw-flex tw-items-baseline tw-gap-3">
-                ${brokerIcons.phone}
-                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Contact</span>
-                <span class="tw-text-slate-700">${escape(phone)}</span>
-              </div>
-              <div class="tw-flex tw-items-baseline tw-gap-3">
-                ${brokerIcons.pin}
-                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Address</span>
-                <span class="tw-text-slate-700 tw-leading-relaxed">${escape(address)}</span>
-              </div>
-              <div class="tw-flex tw-items-baseline tw-gap-3">
-                ${brokerIcons.doc}
-                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">PRC No.</span>
-                <span class="tw-font-medium tw-text-slate-800">${escape(prcNo)}</span>
-              </div>
-              <div class="tw-flex tw-items-baseline tw-gap-3">
-                ${brokerIcons.calendar}
-                <span class="tw-w-20 sm:tw-w-24 tw-shrink-0 tw-text-slate-500">Valid until</span>
-                <span class="tw-text-slate-700">${escape(validUntil)}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right Column: PRC verification form -->
-          <div class="tw-flex tw-flex-col tw-justify-between tw-border-t tw-border-slate-100 tw-pt-6 lg:tw-border-t-0 lg:tw-border-l lg:tw-border-slate-100 lg:tw-pl-10 lg:tw-pt-0">
-            <div>
-              <h4 class="tw-m-0 tw-text-sm sm:tw-text-base tw-font-bold tw-text-slate-900">PRC verification</h4>
-              <div class="tw-mt-2 tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-medium tw-text-slate-500">
-                ${brokerIcons.rosette}
-                <span>Not yet verified</span>
-              </div>
-
-              <div class="tw-mt-5">
-                <label class="tw-inline-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-text-xs tw-font-medium tw-text-slate-700">
-                  <input type="checkbox" name="prcChecked" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-accent-[#9E1B22]">
-                  <span>PRC registration checked</span>
-                </label>
-              </div>
-
-              <div class="tw-mt-5">
-                <label class="tw-mb-1.5 tw-block tw-text-xs tw-font-medium tw-text-slate-600">Review note</label>
-                <textarea name="reviewNotes" placeholder="Write a message to the broker" rows="3" maxlength="3000" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-3 tw-text-xs tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-border-slate-400 focus:tw-outline-none"></textarea>
-              </div>
-            </div>
-
-            <div class="tw-mt-6">
-              <div class="tw-flex tw-items-center tw-justify-end tw-gap-3">
-                <button type="submit" name="decision" value="rejected" class="tw-rounded-lg tw-border tw-border-slate-300 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors">Decline</button>
-                <button type="submit" name="decision" value="verified" class="tw-rounded-lg tw-bg-[#9E1B22] tw-px-5 tw-py-2 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#83161C] tw-transition-colors">Approve broker</button>
-              </div>
-              <p class="city-form-message tw-mt-2 tw-text-xs empty:tw-hidden" data-broker-message role="status"></p>
-            </div>
-          </div>
-        </div>
-      </form>
-    `;
+  function renderPendingBrokerCard(profile, config = window.SFC_APP_CONFIG || {}) {
+    return `<form class="tw-mb-5 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-6" data-broker-review="${Number(profile.userId)}" data-application-revision="${Number(profile.applicationRevision) || 1}">${brokerCardHeader(profile, config)}${brokerApplicationDetails(profile, config)}${brokerReviewControls(profile)}</form>`;
   }
 
   function renderReviewedBrokerCard(profile, config = window.SFC_APP_CONFIG || {}) {
-    const name = profile.legalName || profile.name || profile.userName || 'Broker';
-    const email = profile.email || profile.userEmail || 'Email not provided';
-    const phone = profile.phone || 'Contact not provided';
-    const address = [profile.addressLine, profile.barangay, profile.city].filter(Boolean).join(', ') || 'Address not provided';
-    const prcNo = profile.prcRegistrationNo || 'Not provided';
-    const validUntil = profile.prcValidUntil || 'Not provided';
-    const isVerified = profile.applicationStatus === 'verified';
-    const pillClass = isVerified
-      ? 'tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200'
-      : profile.applicationStatus === 'rejected'
-        ? 'tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-200'
-        : 'tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200';
-    const statusText = labels[profile.applicationStatus] || profile.applicationStatus;
-
-    return `
-      <div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-sm tw-mb-4" data-broker-item="${Number(profile.userId)}">
-        <!-- Top row: Avatar, Name, Pill, Actions -->
-        <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-          <div class="tw-flex tw-items-center tw-gap-3.5">
-            ${brokerAvatar(profile, name, config)}
-            <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
-              <strong class="tw-text-sm sm:tw-text-base tw-font-bold tw-text-slate-900">${escape(name)}</strong>
-              <span class="tw-inline-flex tw-items-center tw-rounded-full ${pillClass} tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-medium">${escape(statusText)}</span>
-            </div>
-          </div>
-          <div class="tw-flex tw-items-center tw-gap-3">
-            <button type="button" class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3.5 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors" data-toggle-broker-details="${Number(profile.userId)}">View details</button>
-            <button type="button" class="tw-text-xs tw-font-semibold tw-text-[#9E1B22] hover:tw-underline tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer" data-reverify-broker="${Number(profile.userId)}">Reverify</button>
-          </div>
-        </div>
-
-        <!-- Metadata row -->
-        <div class="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-gap-x-5 tw-gap-y-2.5 tw-text-xs tw-text-slate-600">
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.mail}
-            <span class="tw-text-[11px] tw-text-slate-400">Email</span>
-            <span class="tw-text-slate-700">${escape(email)}</span>
-          </div>
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.phone}
-            <span class="tw-text-[11px] tw-text-slate-400">Contact</span>
-            <span class="tw-text-slate-700">${escape(phone)}</span>
-          </div>
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.pin}
-            <span class="tw-text-[11px] tw-text-slate-400">Address</span>
-            <span class="tw-text-slate-700">${escape(address)}</span>
-          </div>
-          <span class="tw-hidden xl:tw-block tw-h-4 tw-w-px tw-bg-slate-200" aria-hidden="true"></span>
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.doc}
-            <span class="tw-text-[11px] tw-text-slate-400">PRC No.</span>
-            <span class="tw-text-slate-700">${escape(prcNo)}</span>
-          </div>
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.calendar}
-            <span class="tw-text-[11px] tw-text-slate-400">Valid until</span>
-            <span class="tw-text-slate-700">${escape(validUntil)}</span>
-          </div>
-          ${profile.reviewNotes ? `
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            ${brokerIcons.chat}
-            <span class="tw-text-[11px] tw-text-slate-400">Last review note</span>
-            <span class="tw-text-slate-700">${escape(profile.reviewNotes)}</span>
-          </div>` : ''}
-        </div>
-
-        <!-- Collapsible review drawer -->
-        <form class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-4" data-broker-review="${Number(profile.userId)}" data-broker-drawer="${Number(profile.userId)}" hidden>
-          <div class="tw-grid tw-grid-cols-1 md:tw-grid-cols-[1fr_auto] tw-gap-4 tw-items-end">
-            <div class="tw-space-y-3">
-              <label class="tw-inline-flex tw-cursor-pointer tw-items-center tw-gap-2.5 tw-text-xs tw-font-medium tw-text-slate-700">
-                <input type="checkbox" name="prcChecked" class="tw-h-4 tw-w-4 tw-rounded tw-border-slate-300 tw-accent-[#9E1B22]" ${isVerified ? 'checked' : ''}>
-                <span>PRC registration checked</span>
-              </label>
-              <div>
-                <label class="tw-mb-1 tw-block tw-text-xs tw-font-medium tw-text-slate-500">Review message</label>
-                <textarea name="reviewNotes" placeholder="Write a message to the broker" rows="2" maxlength="3000" class="tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-p-2.5 tw-text-xs tw-text-slate-800 placeholder:tw-text-slate-400 focus:tw-border-slate-400 focus:tw-outline-none">${escape(profile.reviewNotes || '')}</textarea>
-              </div>
-            </div>
-            <div class="tw-flex tw-items-center tw-justify-end tw-gap-2.5">
-              <button type="submit" name="decision" value="${isVerified ? 'suspended' : 'rejected'}" class="tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 tw-transition-colors">${isVerified ? 'Suspend' : 'Decline'}</button>
-              <button type="submit" name="decision" value="verified" class="tw-rounded-lg tw-bg-[#9E1B22] tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#83161C] tw-transition-colors">${isVerified ? 'Update & Confirm' : 'Approve broker'}</button>
-            </div>
-          </div>
-          <p class="city-form-message tw-mt-2 tw-text-xs empty:tw-hidden" data-broker-message role="status"></p>
-        </form>
-      </div>
-    `;
+    return `<article class="tw-mb-5 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-6" data-broker-item="${Number(profile.userId)}">${brokerCardHeader(profile, config)}<button type="button" class="city-button city-button-secondary tw-mt-4" data-toggle-broker-details="${Number(profile.userId)}" aria-expanded="false" aria-controls="broker-drawer-${Number(profile.userId)}">View details and review</button><form id="broker-drawer-${Number(profile.userId)}" class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-4" data-broker-review="${Number(profile.userId)}" data-application-revision="${Number(profile.applicationRevision) || 1}" data-broker-drawer="${Number(profile.userId)}" hidden>${brokerApplicationDetails(profile, config)}${brokerReviewControls(profile)}</form></article>`;
   }
 
   function renderBrokerProfiles(profiles, config = window.SFC_APP_CONFIG || {}) {
     const items = Array.isArray(profiles) ? profiles : [];
-    const pending = items.filter((profile) => profile.applicationStatus === 'pending_review');
-    const reviewed = items.filter((profile) => ['verified', 'rejected', 'suspended'].includes(profile.applicationStatus));
-
-    const pendingSection = pending.length
-      ? pending.map((profile) => renderPendingBrokerCard(profile, config)).join('')
-      : '<div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-8 tw-text-center tw-text-slate-500 tw-mb-6"><p class="tw-m-0 tw-text-xs">No broker applications are awaiting review.</p></div>';
-
-    const reviewedSection = reviewed.length ? `
-      <div class="tw-mt-8 tw-mb-4">
-        <h3 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">Previously reviewed brokers (${reviewed.length})</h3>
-        <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Brokers that have been reviewed and processed.</p>
-      </div>
-      <div>${reviewed.map((profile) => renderReviewedBrokerCard(profile, config)).join('')}</div>
-    ` : '';
-
-    return pendingSection + reviewedSection;
+    const pending = items.filter(profile => profile.applicationStatus === 'pending_review');
+    const reviewed = items.filter(profile => ['verified', 'corrections_requested', 'rejected', 'blocked', 'suspended'].includes(profile.applicationStatus));
+    const pendingSection = pending.length ? pending.map(profile => renderPendingBrokerCard(profile, config)).join('') : '<p class="city-empty">No broker applications are awaiting review.</p>';
+    return `${pendingSection}${reviewed.length ? `<h3 class="tw-mb-4 tw-mt-7 tw-text-lg tw-font-semibold">Previously reviewed applications (${reviewed.length})</h3>${reviewed.map(profile => renderReviewedBrokerCard(profile, config)).join('')}` : ''}`;
   }
-
   window.SFCAdminOverview = { renderOverview, renderBrokerProfiles, renderPendingBrokerCard, renderReviewedBrokerCard };
 
   document.addEventListener('error', (event) => {
     if (event.target.matches?.('[data-broker-avatar-image]')) event.target.hidden = true;
+    if (event.target.matches?.('[data-private-broker-image]')) {
+      const message = document.createElement('p');
+      message.className = 'tw-text-xs tw-text-[#9e1b22]';
+      message.textContent = 'This private image could not be loaded. Reload or check your reviewer access.';
+      event.target.replaceWith(message);
+    }
   }, true);
 
   document.addEventListener('click', (event) => {
@@ -303,6 +185,7 @@
     const drawer = document.querySelector(`[data-broker-drawer="${userId}"]`);
     if (drawer) {
       drawer.hidden = !drawer.hidden;
+      toggleBtn.setAttribute('aria-expanded', String(!drawer.hidden));
       if (!drawer.hidden) {
         drawer.querySelector('textarea, input[type="checkbox"]')?.focus();
       }

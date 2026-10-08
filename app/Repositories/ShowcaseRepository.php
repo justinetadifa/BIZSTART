@@ -30,12 +30,12 @@ final class ShowcaseRepository
             $params['feature_type'] = $normalizedFeatureType;
         }
 
-        if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
+        if (!\sfc_can_administer_city($user ?? ['role' => 'guest'])) {
             $clauses[] = 's.is_published = 1';
-            $clauses[] = '(s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
+            $clauses[] = '(s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
         }
         if ($user === null) {
-            $clauses[] = '(s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
+            $clauses[] = '(s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
 
         $sql = $this->baseSelect();
@@ -54,12 +54,12 @@ final class ShowcaseRepository
     {
         $params = ['id' => $showcaseId];
         $sql = $this->baseSelect() . ' WHERE s.id = :id';
-        if (!\sfc_can_review_brokers($user ?? ['role' => 'guest'])) {
+        if (!\sfc_can_administer_city($user ?? ['role' => 'guest'])) {
             $sql .= ' AND s.is_published = 1';
-            $sql .= ' AND (s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
+            $sql .= ' AND (s.related_property_id IS NULL OR (p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')))';
         }
         if ($user === null) {
-            $sql .= ' AND (s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
+            $sql .= ' AND (s.related_property_id IS NULL OR s.related_property_id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured))';
         }
         $sql .= ' LIMIT 1';
 
@@ -76,7 +76,7 @@ final class ShowcaseRepository
 
     public function create(array $payload, ?array $actor = null): array
     {
-        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+        if (!\sfc_can_administer_city($actor ?? ['role' => 'guest'])) {
             throw new InvalidArgumentException('Only CICTO can publish city showcases.');
         }
         $item = $this->normalizePayload($payload, null, $actor);
@@ -100,7 +100,7 @@ final class ShowcaseRepository
 
     public function update(int $showcaseId, array $payload, ?array $actor = null): array
     {
-        if (!\sfc_can_review_brokers($actor ?? ['role' => 'guest'])) {
+        if (!\sfc_can_administer_city($actor ?? ['role' => 'guest'])) {
             throw new InvalidArgumentException('Only CICTO can publish city showcases.');
         }
         $existing = $this->find($showcaseId, ['role' => 'admin']);

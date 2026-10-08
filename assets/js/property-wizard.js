@@ -40,6 +40,26 @@
     const all = selector => [...form.querySelectorAll(selector)];
     const field = name => form.elements[name];
     const value = name => field(name)?.value || '';
+    const purposeLabel = () => ({sale:'For Sale',lease:'For Lease',sale_or_lease:'For Sale or Lease'})[value('listing_purpose')] || 'For Sale';
+    function syncPricing() {
+      const purpose = value('listing_purpose') || 'sale';
+      for (const [selector, shown] of [['[data-sale-price-fields]',purpose !== 'lease'],['[data-lease-price-fields]',purpose !== 'sale']]) {
+        all(selector).forEach(group => {
+          group.hidden = !shown;
+          group.querySelectorAll('input, select').forEach(input => { input.disabled = !shown; });
+        });
+      }
+    }
+    function askingPriceSummary() {
+      const amount = name => {
+        const raw = value(name).replace(/,/g,'').trim();
+        return raw !== '' && Number.isFinite(Number(raw)) ? `PHP ${number(Number(raw))}` : 'Price on request';
+      };
+      const sale = amount('price');
+      const lease = `${amount('lease_price')} / ${value('lease_price_unit') === 'sqm' ? 'm² / ' : ''}${value('lease_period') || 'month'}`;
+      return value('listing_purpose') === 'lease' ? lease : value('listing_purpose') === 'sale_or_lease' ? `Sale: ${sale} · Lease: ${lease}` : sale;
+    }
+    field('listing_purpose')?.addEventListener('change', syncPricing);
     const config = window.SFC_APP_CONFIG || {};
     const emptyPhoto = $('[data-photo-preview]')?.innerHTML || '';
     let boundaryMap, radarMap, parcelLayer, locationMarker, radarMarker, radiusLayer, radarParcel;
@@ -103,7 +123,10 @@
     bindTabs('data-review-tab', selected => tabs('data-review-tab','data-review-panel',selected));
     bindTabs('data-radar-tab', selected => { radarTab = selected; tabs('data-radar-tab','data-radar-unused-panel',selected); renderRadarList(); });
     function preview() {
+      syncPricing();
       setText('[data-preview-name]', value('property_name').trim() || 'Your new property');
+      setText('[data-preview-purpose]', purposeLabel());
+      setText('[data-preview-price]', askingPriceSummary());
       for (const [selector, text] of [['[data-preview-category]', value('category')==='Land'?'Vacant land':value('category') || 'Land'], ['[data-preview-status]', value('status') || 'Available']]) {
         const badge = $(selector); if (badge) (badge.querySelector('span') || badge).textContent = text;
       }
@@ -120,9 +143,9 @@
         else { image.innerHTML = source ? `<img src="${escape(source)}" alt="Property photo">` : emptyPhoto; }
       }
       const propertyReview = $('[data-review-property]');
-      if (propertyReview) propertyReview.innerHTML = `<strong>${escape(value('property_name') || 'New property')}</strong><span>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</span><span>${escape(areaText)}${located ? ` · ${number(located[0])}, ${number(located[1])}` : ''}</span>`;
+      if (propertyReview) propertyReview.innerHTML = `<strong>${escape(value('property_name') || 'New property')}</strong><span>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</span><span>${escape(purposeLabel())} · ${escape(askingPriceSummary())}</span><span>${escape(areaText)}${located ? ` · ${number(located[0])}, ${number(located[1])}` : ''}</span>`;
       const summary = $('[data-review-summary]');
-      if (summary) summary.innerHTML = `<div><span class="pw-eyebrow">READY FOR REVIEW</span><h3>${escape(value('property_name') || 'New property')}</h3><p>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</p></div><div><strong>${escape(areaText)}</strong><p>${located ? `Location: ${located[0].toFixed(6)}, ${located[1].toFixed(6)}` : 'Exact location not yet specified'}</p></div>`;
+      if (summary) summary.innerHTML = `<div><span class="pw-eyebrow">READY FOR REVIEW</span><h3>${escape(value('property_name') || 'New property')}</h3><p>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</p><p>${escape(purposeLabel())} · ${escape(askingPriceSummary())}</p></div><div><strong>${escape(areaText)}</strong><p>${located ? `Location: ${located[0].toFixed(6)}, ${located[1].toFixed(6)}` : 'Exact location not yet specified'}</p></div>`;
     }
     function photo(file) {
       if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
@@ -992,6 +1015,8 @@
       },
       onStep(next){step=next;preview();if(next===1 && locationMethod!=='area'){syncLocation();renderLayers();}if(next===3)syncRadar();if(next===4){assessment?.refresh();matches();}if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}},
       setProperty(property){
+        const historicalStatus = field('status')?.querySelector('[value="Availed"]');
+        if (historicalStatus) { historicalStatus.hidden = property?.status !== 'Availed'; historicalStatus.disabled = property?.status !== 'Availed'; }
         controller?.abort();radarController?.abort();searchController?.abort();matchController?.abort();revision++;radarRevision++;matchRevision++;lastAssessment=null;clearMatchDetails();
         parcelLayer?.remove();parcelLayer=null;locationMarker?.remove();locationMarker=null;
         radarMarker?.remove();radarMarker=null;radarLayers.forEach(layer=>layer.remove());radarLayers=[];radiusLayer?.remove();radarParcel?.remove();
@@ -1049,7 +1074,12 @@
         data.set('land_area_unit',value('land_area_unit') || 'sqm');
         data.set('property_type',({Industrial:'manufacturing',Hospitality:'hotel',Office:'bpo'})[value('category')] || 'commercial');
         data.set('subcategory',Array.from(subcategories).join(', '));
-        data.set('price',value('price').replace(/[^\d]/g,''));
+        const purpose = value('listing_purpose') || 'sale';
+        data.set('listing_purpose',purpose);
+        data.set('price',purpose === 'lease' ? '' : value('price').replace(/,/g,'').trim());
+        data.set('lease_price',purpose === 'sale' ? '' : value('lease_price').replace(/,/g,'').trim());
+        data.set('lease_period',value('lease_period') || 'month');
+        data.set('lease_price_unit',value('lease_price_unit') || 'total');
         data.set('contactMode',value('contactBrokerUserId')?'broker':'open_listing');
         data.set('recalculate_assessment','true');
         data.set('assessmentTags',JSON.stringify(all('[name="assessmentTags[]"]:checked').map(element=>element.value)));

@@ -5,6 +5,12 @@ if (typeof window !== "undefined") window.addCompetitorRadar = addCompetitorRada
 import { initNotificationCenter } from "./notifications.js";
 import {
   DEFAULT_INVESTMENT_LENS,
+  listingPurposeLabel,
+  listingPriceLabel,
+  saleAskingPrice,
+  salePricePerSqm,
+  compareSalePrices,
+  safeNumber,
   DEFAULT_WEIGHTS,
   INVESTMENT_LENSES,
   calculateWeightedScore,
@@ -28,7 +34,7 @@ function hasPropertyCoordinates(property) {
 }
 
 function activePropertyList(properties) {
-  return Array.isArray(properties) ? properties.filter((property) => !property.isDeleted) : [];
+  return Array.isArray(properties) ? properties.filter((property) => !property.isDeleted && !property.isArchived) : [];
 }
 
 const STORAGE_KEYS = {
@@ -158,16 +164,20 @@ function truncate(value, max = 120) {
 }
 
 function money(value) {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric)) return "PHP 0";
+  const numeric = safeNumber(value);
+  if (numeric === null) return "Price on request";
   return `PHP ${Math.round(numeric).toLocaleString()}`;
 }
 
 function moneyShort(value) {
-  const numeric = Number(value || 0);
-  if (!Number.isFinite(numeric)) return "PHP 0";
+  const numeric = safeNumber(value);
+  if (numeric === null) return "Price on request";
   if (numeric >= 1000000) return `PHP ${(numeric / 1000000).toFixed(1)}M`;
   return money(numeric);
+}
+
+function propertyPrice(property) {
+  return listingPriceLabel(property, { compact: true });
 }
 
 function absoluteAssetPath(value) {
@@ -846,7 +856,7 @@ function enrichProperties(properties, allProperties, votesMap, intent = null, le
         clupCompliance,
         voteTotal: totalVotes(votes),
         topNeed,
-        pricePerHectare: property.area ? Number(property.price || 0) / Number(property.area || 1) : 0,
+        pricePerHectare: saleAskingPrice(property) !== null && Number(property.area) > 0 ? saleAskingPrice(property) / Number(property.area) : null,
       };
     })
     .sort((left, right) => {
@@ -1053,7 +1063,7 @@ function decisionStatusTone(statusKey) {
 }
 
 function decisionSignalPill(decision) {
-  return `<span class="score-pill ${scoreTone(decision?.score || 0)}">Decision ${Math.round(Number(decision?.score || 0))}</span>`;
+  return decision?.score == null ? `<span class="score-pill">Pricing incomplete</span>` : `<span class="score-pill ${scoreTone(decision.score)}">Decision ${Math.round(Number(decision.score))}</span>`;
 }
 
 function decisionStatusPill(decision) {
@@ -2312,7 +2322,7 @@ function mapPopup(property) {
         <span>${escapeHtml(corridorLabel(property.corridor))}</span>
         <span>${escapeHtml(property.area || "--")} ha</span>
       </div>
-      <div class="map-popup-price">${escapeHtml(moneyShort(property.price))}</div>
+      <div class="map-popup-price">${escapeHtml(propertyPrice(property))}</div>
     </div>
   `;
 }
@@ -2354,7 +2364,7 @@ function mountLeafletMapFallback({
     const icon = window.L.divIcon({
       className: containerId === "explorerLeafletMap" ? "sfc-map-pin-shell locus-spatial-marker locus-iai-marker" : "sfc-map-pin-shell",
       html: containerId === "explorerLeafletMap"
-        ? `<span class="marker-pill locus-iai-pill ${isSel ? "is-active" : ""}"><span class="marker-dot tier-${tier} is-${escapeHtml(statusKey)}"></span><span class="marker-score-label">Score: <strong class="marker-score-val">${scoreVal}</strong></span>${isSel ? `<span class="marker-price-badge">${escapeHtml(moneyShort(property.price))}</span>` : ''}</span>`
+        ? `<span class="marker-pill locus-iai-pill ${isSel ? "is-active" : ""}"><span class="marker-dot tier-${tier} is-${escapeHtml(statusKey)}"></span><span class="marker-score-label">Score: <strong class="marker-score-val">${scoreVal}</strong></span>${isSel ? `<span class="marker-price-badge">${escapeHtml(propertyPrice(property))}</span>` : ''}</span>`
         : `<span class="sfc-map-pin clup-pin-${escapeHtml(statusKey)} ${isSel ? "is-active" : ""}"></span>`,
       iconSize: containerId === "explorerLeafletMap" ? null : [80, 30],
       iconAnchor: containerId === "explorerLeafletMap" ? [45, 18] : [40, 15]
@@ -2469,13 +2479,13 @@ function mountPropertyMap({
       el.dataset.explorerPin = String(property.id);
       el.tabIndex = 0;
       el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `${property.name}, IAI Score ${scoreVal}, ${moneyShort(property.price)}. Select this site.`);
+      el.setAttribute("aria-label", `${property.name}, IAI Score ${scoreVal}, ${propertyPrice(property)}. Select this site.`);
       el.addEventListener("keydown", event => {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         el.click();
       });
-      el.innerHTML = `<span class="marker-pill locus-iai-pill ${property.id === activeId ? "is-active" : ""}"><span class="marker-dot tier-${tier} is-${escapeHtml(statusKey)}"></span><span class="marker-score-label">Score: <strong class="marker-score-val">${scoreVal}</strong></span>${property.id === activeId ? `<span class="marker-price-badge">${escapeHtml(moneyShort(property.price))}</span>` : ''}</span>`;
+      el.innerHTML = `<span class="marker-pill locus-iai-pill ${property.id === activeId ? "is-active" : ""}"><span class="marker-dot tier-${tier} is-${escapeHtml(statusKey)}"></span><span class="marker-score-label">Score: <strong class="marker-score-val">${scoreVal}</strong></span>${property.id === activeId ? `<span class="marker-price-badge">${escapeHtml(propertyPrice(property))}</span>` : ''}</span>`;
     } else {
       el.className = "sfc-map-pin-shell";
       el.innerHTML = `<span class="sfc-map-pin clup-pin-${escapeHtml(statusKey)} ${property.id === activeId ? "is-active" : ""}"></span>`;
@@ -2710,7 +2720,7 @@ function propertyCard(property, options = {}) {
     },
     {
       label: "Ask Price",
-      value: moneyShort(property.price),
+      value: propertyPrice(property),
       note: "Guide valuation",
     },
     {
@@ -2730,7 +2740,7 @@ function propertyCard(property, options = {}) {
         <div class="property-media-top">
           ${leadScorePill}
           <div class="property-pill-stack">
-            ${statusPill(property.status)}
+            ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
             ${showApproval ? approvalStatePill(property.approvalState) : ""}
           </div>
         </div>
@@ -2741,7 +2751,7 @@ function propertyCard(property, options = {}) {
           </div>
           <div class="property-price-block">
             <span>Guide Price</span>
-            <strong>${escapeHtml(moneyShort(property.price))}</strong>
+            <strong>${escapeHtml(propertyPrice(property))}</strong>
           </div>
         </div>
       </div>
@@ -2826,7 +2836,7 @@ function rankingPropertyCardMarkup(property, options = {}) {
           ${leadScorePill}
           <div class="property-pill-stack">
             ${clupStatusPill(compliance)}
-            ${statusPill(property.status)}
+            ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
           </div>
         </div>
         <div class="property-ranking-media-bottom">
@@ -2840,7 +2850,7 @@ function rankingPropertyCardMarkup(property, options = {}) {
           </div>
           <div class="property-ranking-title-row">
             <h3 class="property-ranking-title">${escapeHtml(property.name)}</h3>
-            <strong class="property-ranking-price">${escapeHtml(moneyShort(property.price))}</strong>
+            <strong class="property-ranking-price">${escapeHtml(propertyPrice(property))}</strong>
           </div>
           <p class="property-ranking-thesis">${escapeHtml(truncate(thesis, 110))}</p>
         </div>
@@ -2943,7 +2953,7 @@ function compactPropertyCardMarkup(property, options = {}) {
             </div>
             <div class="property-card-compact-price">
               <span class="property-card-compact-scoreline">Score ${leadScoreValue}</span>
-              <strong>${escapeHtml(moneyShort(property.price))}</strong>
+              <strong>${escapeHtml(propertyPrice(property))}</strong>
               <span>asking price</span>
             </div>
           </div>
@@ -3067,7 +3077,7 @@ function explorerMapPreviewMarkup(active, activeLens, searchResult = null) {
           <p>${escapeHtml(typeLabel(active.type))} | ${escapeHtml(corridorLabel(active.corridor))}</p>
         </div>
         <div class="explorer-map-preview-price">
-          <strong>${escapeHtml(moneyShort(active.price))}</strong>
+          <strong>${escapeHtml(propertyPrice(active))}</strong>
           <span>CLUP ${escapeHtml(clupScoreLabel(compliance, false))} · ${escapeHtml(active.area || "--")} ha</span>
         </div>
       </div>
@@ -3110,7 +3120,7 @@ function explorerSelectionCardMarkup(property, options = {}) {
         </div>
 
         <div class="explorer-selection-meta">
-          <strong>${escapeHtml(moneyShort(property.price))}</strong>
+          <strong>${escapeHtml(propertyPrice(property))}</strong>
           <span>${escapeHtml(corridorLabel(property.corridor))}</span>
           <span>${escapeHtml(typeLabel(property.type))}</span>
           <span>${escapeHtml(property.area || "--")} ha</span>
@@ -3118,7 +3128,7 @@ function explorerSelectionCardMarkup(property, options = {}) {
 
         <div class="explorer-selection-tags">
           ${primaryLabels.slice(0, 2).map((label) => `<span class="explorer-selection-tag">${escapeHtml(label)}</span>`).join("")}
-          ${statusPill(property.status)}
+          ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
           ${verificationPill(property.listingVerificationStatus)}
         </div>
 
@@ -3193,7 +3203,7 @@ function explorerIntelDrawerMarkup(options = {}) {
 
         <div class="explorer-intel-chip-row">
           ${property.lensResult ? investmentLensScorePill(property.lensResult) : scorePill(property.opportunityScore)}
-          ${statusPill(property.status)}
+          ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
           ${approvalStatePill(property.approvalState)}
           ${verificationPill(property.listingVerificationStatus)}
           ${groundTruthPill(property)}
@@ -3202,7 +3212,7 @@ function explorerIntelDrawerMarkup(options = {}) {
         <div class="explorer-intel-facts">
           <div>
             <span>Guide Price</span>
-            <strong>${escapeHtml(moneyShort(property.price))}</strong>
+            <strong>${escapeHtml(propertyPrice(property))}</strong>
           </div>
           <div>
             <span>Land Area</span>
@@ -3875,10 +3885,10 @@ function landingFeaturedOpportunityMarkup(state) {
   const whyLead = leader?.lensResult?.thesisLead || thesis;
   const trustSignal = landingOpportunityTrustSignal(leader);
   const areaVal = leader.area ? `${leader.area} Ha` : "Prime Lot";
-  const priceVal = moneyShort(leader.price);
+  const priceVal = propertyPrice(leader);
   const complianceStatus = clupStatus(leader.clupCompliance?.status);
   const complianceLabel = complianceStatus === "UNVERIFIED" ? "Pending" : titleCase(complianceStatus);
-  const pricePerSqm = leader.pricePerSqm ? `₱${Number(leader.pricePerSqm).toLocaleString()} / m²` : "Verified Guide";
+  const pricePerSqm = salePricePerSqm(leader) === null ? "Price on request" : `${money(salePricePerSqm(leader))} / m²`;
   const imgSrc = landingPreviewImage(leader.imageUrl || leader.image);
 
   return `
@@ -4020,7 +4030,7 @@ function landingRankingLeadMarkup(property, lensKey) {
         <div class="landing-ranking-lead-top">
           <span class="landing-ranking-lead-badge-rank">#1 Front-Runner</span>
           ${leadScoreMarkup}
-          ${statusPill(property.status)}
+          ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
         </div>
         <div class="landing-ranking-lead-bottom">
           <span class="lead-bottom-sub">Highest scoring asset</span>
@@ -4036,7 +4046,7 @@ function landingRankingLeadMarkup(property, lensKey) {
         <div class="landing-ranking-facts">
           <div class="ranking-fact-card">
             <span>Guide Price</span>
-            <strong>${escapeHtml(moneyShort(property.price))}</strong>
+            <strong>${escapeHtml(propertyPrice(property))}</strong>
           </div>
           <div class="ranking-fact-card">
             <span>Top Need</span>
@@ -4102,7 +4112,7 @@ function landingRankingMiniMarkup(property, lensKey, rank = 2) {
             <svg class="mini-pin-icon" viewBox="0 0 20 20" fill="currentColor" width="12" height="12" aria-hidden="true"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
             ${escapeHtml(location)}
           </span>
-          <strong class="landing-ranking-mini-price">${escapeHtml(moneyShort(property.price))}</strong>
+          <strong class="landing-ranking-mini-price">${escapeHtml(propertyPrice(property))}</strong>
         </div>
         <a href="${propertyHref(property.id)}" class="landing-ranking-mini-action" aria-label="Open brief for ${escapeHtml(property.name)}">
           <span>Open Brief</span>
@@ -5239,7 +5249,7 @@ function prospectusMarkup({
               `).join("")}
             </div>
             <div class="prospectus-fact-grid">
-              <div><span>Guide Price</span><strong>${escapeHtml(formatProspectusCurrency(property.price))}</strong></div>
+              <div><span>Guide Price</span><strong>${escapeHtml(listingPriceLabel(property))}</strong></div>
               <div><span>Land Area</span><strong>${escapeHtml(Number(property.area || 0).toFixed(1))} ha</strong></div>
               <div><span>Market Score</span><strong>${Math.round(Number(property.marketScore || 0))}</strong></div>
               <div><span>Readiness Score</span><strong>${Math.round(Number(readiness.totalScore || 0))}</strong></div>
@@ -7089,7 +7099,7 @@ async function initInvestorDashboard() {
         <div class="investor-card-location">${icon("map")}${escapeHtml(corridorLabel(property.corridor))}</div>
         <h3><a href="${propertyHref(property.id)}">${escapeHtml(property.name)}</a></h3>
         <p class="investor-card-description">${escapeHtml(truncate(property.description || propertyStory(property), 100))}</p>
-        <div class="investor-card-facts"><div><span>Guide price</span><strong>${escapeHtml(moneyShort(property.price))}</strong></div><div><span>Land area</span><strong>${escapeHtml(areaLabel(property))}</strong></div></div>
+        <div class="investor-card-facts"><div><span>Guide price</span><strong>${escapeHtml(propertyPrice(property))}</strong></div><div><span>Land area</span><strong>${escapeHtml(areaLabel(property))}</strong></div></div>
         <div class="investor-card-zoning">${clupStatusPill(property.clupCompliance)}<span>${Number(property.voteTotal) || 0} local votes</span></div>
         <div class="investor-card-actions">
           <a href="${propertyHref(property.id)}" class="btn-shell investor-detail-button">View property${icon("arrow")}</a>
@@ -7104,7 +7114,7 @@ async function initInvestorDashboard() {
   if (heroBrief) heroBrief.innerHTML = featured ? `
     <div class="investor-brief-head"><div class="investor-brief-kicker">Opportunity in focus</div><span class="investor-brief-index">Top ranked</span></div>
     <div class="investor-brief-property"><img src="${escapeHtml(featured.imageUrl)}" alt="${escapeHtml(featured.name)}"><div><span>${escapeHtml(corridorLabel(featured.corridor))}</span><h2>${escapeHtml(featured.name)}</h2><p>${escapeHtml(featured.city || "San Fernando, La Union")}</p></div></div>
-    <div class="investor-brief-price"><span>Guide price</span><strong>${escapeHtml(moneyShort(featured.price))}</strong></div>
+    <div class="investor-brief-price"><span>Guide price</span><strong>${escapeHtml(propertyPrice(featured))}</strong></div>
     <div class="investor-brief-facts"><div><span>Land area</span><strong>${escapeHtml(areaLabel(featured))}</strong></div><div><span>Opportunity score</span><strong>${featured.opportunityScore}<small> / 100</small></strong></div></div>
     <div class="investor-brief-zoning">${clupStatusPill(featured.clupCompliance)}</div>
     <a href="${propertyHref(featured.id)}" class="btn-shell investor-glass-button">Discover this property${icon("arrow")}</a>` : `
@@ -7135,7 +7145,7 @@ async function initInvestorDashboard() {
           <div class="investor-queue-grid">
             ${Array.from({ length: 3 }, (_, index) => {
               const property = compared[index];
-              return property ? `<div class="investor-queue-card"><img src="${escapeHtml(property.imageUrl)}" alt="" loading="lazy"><button type="button" class="investor-queue-remove" data-compare-toggle="${property.id}" aria-label="Remove ${escapeHtml(property.name)} from comparison">${icon("close")}</button><span class="investor-queue-index">0${index + 1}</span><a href="${propertyHref(property.id)}">${escapeHtml(property.name)}</a><strong>${escapeHtml(moneyShort(property.price))}</strong><span>${escapeHtml(corridorLabel(property.corridor))}</span></div>` : `<a href="${basePath}/property-ranking.php" class="investor-queue-card investor-queue-placeholder"><span class="investor-queue-index">0${index + 1}</span><span class="investor-queue-plus" aria-hidden="true">+</span><strong>Add an opportunity</strong><span>Find your next possibility</span></a>`;
+              return property ? `<div class="investor-queue-card"><img src="${escapeHtml(property.imageUrl)}" alt="" loading="lazy"><button type="button" class="investor-queue-remove" data-compare-toggle="${property.id}" aria-label="Remove ${escapeHtml(property.name)} from comparison">${icon("close")}</button><span class="investor-queue-index">0${index + 1}</span><a href="${propertyHref(property.id)}">${escapeHtml(property.name)}</a><strong>${escapeHtml(propertyPrice(property))}</strong><span>${escapeHtml(corridorLabel(property.corridor))}</span></div>` : `<a href="${basePath}/property-ranking.php" class="investor-queue-card investor-queue-placeholder"><span class="investor-queue-index">0${index + 1}</span><span class="investor-queue-plus" aria-hidden="true">+</span><strong>Add an opportunity</strong><span>Find your next possibility</span></a>`;
             }).join("")}
           </div>
           <div class="investor-compare-footer"><span>${compared.length >= 2 ? "Your comparison is ready to explore." : "Choose at least two sites to see the full picture."}</span><a href="${compareHref()}" class="btn-shell locus-blue-button">${blueButtonArt}<span>Open comparison</span>${icon("arrow")}</a></div>
@@ -7157,7 +7167,7 @@ async function initInvestorDashboard() {
       <div class="investor-saved-grid">
         <article class="investor-panel" id="investorSavedProperties">
           ${sectionHead("Keep your options close", "Your personal shortlist", `<span class="investor-count-pill">${favorites.length} saved</span>`)}
-          ${favorites.length ? `<div class="investor-saved-list">${favorites.map((property) => `<div class="investor-saved-row"><img src="${escapeHtml(property.imageUrl)}" alt="" loading="lazy"><div><a href="${propertyHref(property.id)}">${escapeHtml(property.name)}</a><span>${escapeHtml(corridorLabel(property.corridor))} &middot; ${escapeHtml(moneyShort(property.price))}</span></div><button type="button" class="investor-icon-button is-selected" data-favorite-toggle="${property.id}" aria-pressed="true" aria-label="Remove ${escapeHtml(property.name)} from shortlist">${icon("save")}</button></div>`).join("")}</div>${googleEarthActionsMarkup({ properties: favorites, scope: "shortlist", note: "Inspect your saved sites in Google Earth." })}` : `<div class="investor-empty-state"><span class="investor-empty-icon">${icon("save")}</span><div><h3>A home for your best possibilities.</h3><p>Save a property that catches your eye. You can return to it here whenever you’re ready.</p>${arrowLink(`${basePath}/property-explorer.php`, "Find an opportunity")}</div></div>`}
+          ${favorites.length ? `<div class="investor-saved-list">${favorites.map((property) => `<div class="investor-saved-row"><img src="${escapeHtml(property.imageUrl)}" alt="" loading="lazy"><div><a href="${propertyHref(property.id)}">${escapeHtml(property.name)}</a><span>${escapeHtml(corridorLabel(property.corridor))} &middot; ${escapeHtml(propertyPrice(property))}</span></div><button type="button" class="investor-icon-button is-selected" data-favorite-toggle="${property.id}" aria-pressed="true" aria-label="Remove ${escapeHtml(property.name)} from shortlist">${icon("save")}</button></div>`).join("")}</div>${googleEarthActionsMarkup({ properties: favorites, scope: "shortlist", note: "Inspect your saved sites in Google Earth." })}` : `<div class="investor-empty-state"><span class="investor-empty-icon">${icon("save")}</span><div><h3>A home for your best possibilities.</h3><p>Save a property that catches your eye. You can return to it here whenever you’re ready.</p>${arrowLink(`${basePath}/property-explorer.php`, "Find an opportunity")}</div></div>`}
         </article>
         <article class="investor-panel" id="investorConversations">
           ${sectionHead("Make a connection", "Seller conversations")}
@@ -7234,7 +7244,7 @@ async function initRankingPage() {
     if (sortBy === "score") {
       visible.sort((a, b) => (Number(b.lensScore || 0)) - (Number(a.lensScore || 0)));
     } else if (sortBy === "price_asc") {
-      visible.sort((a, b) => (Number(a.price || 0)) - (Number(b.price || 0)));
+      visible.sort((a, b) => compareSalePrices(a, b));
     } else if (sortBy === "area_desc") {
       visible.sort((a, b) => (Number(b.area || 0)) - (Number(a.area || 0)));
     }
@@ -7257,7 +7267,7 @@ async function initRankingPage() {
     });
 
     const isFiltered = type !== "all" || corridor !== "all" || clupStatusFilter !== "all" || searchQuery.trim() !== "" || sortBy !== "rank";
-    const sortLabel = sortBy === "price_asc" ? "Price: low to high" : sortBy === "area_desc" ? "Land area: largest first" : sortBy === "score" ? "IAI fit: highest first" : `Recommended for ${activeLens.label}`;
+    const sortLabel = sortBy === "price_asc" ? "Sale price: low to high (unknown last)" : sortBy === "area_desc" ? "Land area: largest first" : sortBy === "score" ? "IAI fit: highest first" : `Recommended for ${activeLens.label}`;
 
     root.innerHTML = `
       <div class="ranking-studio-v2">
@@ -7344,7 +7354,7 @@ async function initRankingPage() {
             <select class="ranking-select" id="rankingSort" aria-label="Sort board order">
               <option value="rank" ${sortBy === "rank" ? "selected" : ""}>Sort: Recommended Rank</option>
               <option value="score" ${sortBy === "score" ? "selected" : ""}>Sort: Highest Score</option>
-              <option value="price_asc" ${sortBy === "price_asc" ? "selected" : ""}>Sort: Price Low to High</option>
+              <option value="price_asc" ${sortBy === "price_asc" ? "selected" : ""}>Sort: Sale Price Low to High (unknown last)</option>
               <option value="area_desc" ${sortBy === "area_desc" ? "selected" : ""}>Sort: Largest Land Area</option>
             </select>
 
@@ -7401,7 +7411,7 @@ async function initRankingPage() {
                       <span>${escapeHtml(corridorLabel(property.corridor))}</span>
                     </div>
                     <div class="rk-numbers">
-                      <span class="rk-price">${escapeHtml(moneyShort(property.price))}</span>
+                      <span class="rk-price">${escapeHtml(propertyPrice(property))}</span>
                       <span class="rk-dot">·</span>
                       <span>${escapeHtml(property.area || "--")} ha</span>
                     </div>
@@ -7467,7 +7477,7 @@ async function initRankingPage() {
                 <div class="inspector-metric-strip">
                   <div class="inspector-metric-cell">
                     <span class="inspector-metric-icon" aria-hidden="true">${locusIcon("birZonalValue", { size: "xs" })}</span>
-                    <div class="inspector-metric-copy"><span>Guide valuation</span><strong>${escapeHtml(moneyShort(selected.price || 0))}</strong></div>
+                    <div class="inspector-metric-copy"><span>Guide valuation</span><strong>${escapeHtml(propertyPrice(selected))}</strong></div>
                   </div>
                   <div class="inspector-metric-cell">
                     <span class="inspector-metric-icon" aria-hidden="true">${locusIcon("propertyInformation", { size: "xs" })}</span>
@@ -7804,7 +7814,7 @@ async function initSellerDashboard() {
     document.getElementById("sellerPropertyType").value = property?.type || "commercial";
     document.getElementById("sellerCorridor").value = property?.corridor || "highway";
     document.getElementById("sellerStatus").value = property?.status || "Available";
-    document.getElementById("sellerPrice").value = property?.price || "";
+    document.getElementById("sellerPrice").value = property?.price ?? "";
     document.getElementById("sellerLandArea").value = property?.area || "";
     document.getElementById("sellerAccess").value = property?.roadAccess || 85;
     document.getElementById("sellerDescription").value = property?.description || "";
@@ -8034,7 +8044,7 @@ async function initSellerDashboard() {
                 <div class="property-subline">${escapeHtml(property.city || "San Fernando, La Union")} | ${escapeHtml(property.barangay || "Unassigned")}</div>
                 <p>${escapeHtml(truncate(property.description || propertyStory(property), 140))}</p>
                 <div class="property-stat-row">
-                  <span>${icon("money")}${escapeHtml(moneyShort(property.price))}</span>
+                  <span>${icon("money")}${escapeHtml(propertyPrice(property))}</span>
                   <span>${icon("area")}${escapeHtml(property.area)} ha</span>
                   <span>${icon("inbox")}${Number(inquiryMap[property.id] || 0)} inquiries</span>
                   <span>${icon("file")}${Math.round(Number(property.documentCompletenessPct || 0))}% docs</span>
@@ -8048,7 +8058,7 @@ async function initSellerDashboard() {
                 <div class="trust-badge-row">${trustBadgeRow(property.trustBadges || [], { compact: true })}</div>
               </div>
               <div class="listing-actions">
-                ${statusPill(property.status)}
+                ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
                 <a href="${propertyHref(property.id)}" class="btn-shell btn-shell-secondary">${icon("arrow")}View</a>
                 <button type="button" class="btn-shell btn-shell-secondary" data-confirm-availability="${property.id}">${icon("clock")}Confirm Available</button>
                 <button type="button" class="btn-shell btn-shell-primary" data-seller-edit="${property.id}">${icon("compare")}Edit</button>
@@ -8425,7 +8435,7 @@ async function initVotingDashboard() {
             <div class="voting-stage-metrics voting-stage-metrics-rich">
               <article><span>Votes here</span><strong>${selectedVoteTotal}</strong></article>
               <article><span>Land area</span><strong>${escapeHtml(selected.area || "--")} ha</strong></article>
-              <article><span>Guide price</span><strong>${escapeHtml(moneyShort(selected.price || 0))}</strong></article>
+              <article><span>Guide price</span><strong>${escapeHtml(propertyPrice(selected))}</strong></article>
               <article><span>Corridor</span><strong>${escapeHtml(corridorLabel(selected.corridor))}</strong></article>
             </div>
 
@@ -10668,15 +10678,14 @@ function openMapAddCandidateSiteModal({
         <!-- Asking Price & Lot Area (Dual Column) -->
         <div class="map-field-dual">
           <div class="map-form-group">
-            <label for="newSitePrice">Asking Price (PHP) <span style="color:#ef4444;">*</span></label>
+            <label for="newSitePrice">Sale price (PHP, optional)</label>
             <input
               type="number"
               id="newSitePrice"
               class="explorer-search-input"
-              value="75000000"
-              min="100000"
-              step="500000"
-              required
+              value=""
+              min="0"
+              step="0.01"
               style="width: 100%; height: 42px; border-radius: 10px;"
             >
             <div class="map-quick-chips-row">
@@ -10838,7 +10847,7 @@ function openMapAddCandidateSiteModal({
     const name = modal.querySelector("#newSiteName")?.value.trim() || defaultName;
     const corridor = modal.querySelector("#newSiteCorridor")?.value || inferred.corridor;
     const barangay = modal.querySelector("#newSiteBarangay")?.value.trim() || inferred.barangay;
-    const price = Number(modal.querySelector("#newSitePrice")?.value) || 75000000;
+    const price = safeNumber(modal.querySelector("#newSitePrice")?.value);
     const area = Number(modal.querySelector("#newSiteArea")?.value) || 5.5;
     const description = modal.querySelector("#newSiteDescription")?.value.trim() || defaultDesc;
     const imageUrl = imageMap[selectedType] || "assets/images/Property10.png";
@@ -10982,7 +10991,7 @@ async function initExplorer() {
         payload.append("barangay", data.barangay);
         payload.append("property_type", data.type);
         payload.append("corridor", data.corridor);
-        payload.append("price", String(data.price));
+        payload.append("price", data.price === null ? "" : String(data.price));
         payload.append("land_area", String(data.area));
         payload.append("land_area_unit", "ha");
         payload.append("lat", String(coords.lat));
@@ -11015,7 +11024,7 @@ async function initExplorer() {
             lng: coords.lng,
             area: data.area,
             price: data.price,
-            price_per_sqm: Math.round(data.price / (data.area * 10000)),
+            price_per_sqm: data.price === null ? null : Math.round(data.price / (data.area * 10000)),
             type: data.type,
             corridor: data.corridor,
             status: "Available",
@@ -11103,9 +11112,9 @@ async function initExplorer() {
     if (sortBy === "fit") {
       visible.sort((a, b) => Number(b.lensScore || b.opportunityScore || 0) - Number(a.lensScore || a.opportunityScore || 0));
     } else if (sortBy === "price_asc") {
-      visible.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      visible.sort((a, b) => compareSalePrices(a, b));
     } else if (sortBy === "price_desc") {
-      visible.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      visible.sort((a, b) => compareSalePrices(a, b, "desc"));
     } else if (sortBy === "area_desc") {
       visible.sort((a, b) => Number(b.area || 0) - Number(a.area || 0));
     }
@@ -11237,8 +11246,8 @@ async function initExplorer() {
 
             <select class="explorer-select" id="explorerSortBy" aria-label="Sort properties">
               <option value="fit" ${sortBy === "fit" ? "selected" : ""}>Sort: Highest Lens Fit</option>
-              <option value="price_asc" ${sortBy === "price_asc" ? "selected" : ""}>Price: Low to High</option>
-              <option value="price_desc" ${sortBy === "price_desc" ? "selected" : ""}>Price: High to Low</option>
+              <option value="price_asc" ${sortBy === "price_asc" ? "selected" : ""}>Sale price: Low to High (unknown last)</option>
+              <option value="price_desc" ${sortBy === "price_desc" ? "selected" : ""}>Sale price: High to Low (unknown last)</option>
               <option value="area_desc" ${sortBy === "area_desc" ? "selected" : ""}>Area: Largest First</option>
             </select>
           </div>
@@ -11304,7 +11313,7 @@ async function initExplorer() {
                       </div>
 
                       <div class="explorer-card-metrics">
-                        <div class="explorer-domain-metric">${locusIcon("birZonalValue", { size: "sm" })}<div class="explorer-domain-metric-copy"><span class="explorer-metric-label">Asking price</span><span class="explorer-card-price">${escapeHtml(moneyShort(property.price))}</span></div></div>
+                        <div class="explorer-domain-metric">${locusIcon("birZonalValue", { size: "sm" })}<div class="explorer-domain-metric-copy"><span class="explorer-metric-label">Asking price</span><span class="explorer-card-price">${escapeHtml(propertyPrice(property))}</span></div></div>
                         <div class="explorer-domain-metric">${locusIcon("propertyInformation", { size: "sm" })}<div class="explorer-domain-metric-copy"><span class="explorer-metric-label">Lot area</span><span class="explorer-card-area">${escapeHtml(property.area || "--")} <small>ha</small></span></div></div>
                       </div>
 
@@ -11396,7 +11405,7 @@ async function initExplorer() {
                     <h4 class="dossier-title">${escapeHtml(active.name)}</h4>
                     <span class="dossier-meta">${escapeHtml(active.barangay || "San Fernando")} &bull; ${escapeHtml(corridorLabel(active.corridor))}</span>
                   </div>
-                  <div class="dossier-metrics"><div><span>${locusIcon("birZonalValue", { size: "xs" })} Asking price</span><strong class="dossier-price">${escapeHtml(moneyShort(active.price))}</strong></div><div><span>${locusIcon("propertyInformation", { size: "xs" })} Lot area</span><strong>${escapeHtml(active.area || "--")} <small>ha</small></strong></div><div><span>${locusIcon("birZonalValue", { size: "xs" })} Price / ha</span><strong>${Number(active.area) > 0 && Number(active.price) > 0 ? escapeHtml(moneyShort(Number(active.price) / Number(active.area))) : "Not available"}</strong></div></div>
+                  <div class="dossier-metrics"><div><span>${locusIcon("birZonalValue", { size: "xs" })} Asking price</span><strong class="dossier-price">${escapeHtml(propertyPrice(active))}</strong></div><div><span>${locusIcon("propertyInformation", { size: "xs" })} Lot area</span><strong>${escapeHtml(active.area || "--")} <small>ha</small></strong></div><div><span>${locusIcon("birZonalValue", { size: "xs" })} Sale price / ha</span><strong>${Number(active.area) > 0 && saleAskingPrice(active) !== null ? escapeHtml(moneyShort(saleAskingPrice(active) / Number(active.area))) : "Price on request"}</strong></div></div>
                   ${activeDrivers.length ? `<div class="dossier-drivers"><span>Fit drivers</span>${activeDrivers.map(metric => `<span class="dossier-driver">${icon("spark")}${escapeHtml(metric.label)}</span>`).join("")}</div>` : ""}
                   ${active ? `
                     <div class="dossier-business-match-chip">
@@ -11632,7 +11641,7 @@ async function initExplorer() {
             priceBadge.className = "marker-price-badge";
             pin?.appendChild(priceBadge);
           }
-          priceBadge.textContent = moneyShort(property.price);
+          priceBadge.textContent = propertyPrice(property);
         } else if (priceBadge) {
           priceBadge.remove();
         }
@@ -11817,7 +11826,7 @@ async function initCompare() {
 
     const activeLens = getInvestmentLensConfig(investmentLensKey);
     const enriched = enrichProperties(comparedBase, properties, votesMap, intent || null, investmentLensKey)
-      .filter((property) => !Number(budget || 0) || Number(property.price) <= Number(budget || 0));
+      .filter((property) => !Number(budget || 0) || (saleAskingPrice(property) !== null && saleAskingPrice(property) <= Number(budget)));
     const activeComparedBase = enriched.length ? enriched : enrichProperties(comparedBase, properties, votesMap, intent || null, investmentLensKey);
     const activeCompared = activeComparedBase
       .map((property) => {
@@ -11913,7 +11922,7 @@ async function initCompare() {
                   <div class="compare-lead-media-overlay">
                     <div class="compare-lead-badges-top">
                       <span class="compare-lead-tag compare-lead-tag-corridor">${escapeHtml(corridorLabel(winner.corridor))}</span>
-                      <span class="compare-lead-tag compare-lead-tag-price">${escapeHtml(moneyShort(winner.price))}</span>
+                      <span class="compare-lead-tag compare-lead-tag-price">${escapeHtml(propertyPrice(winner))}</span>
                     </div>
                     <div class="compare-lead-media-footer">
                       <span>${escapeHtml(winner.lotAreaHectares ? `${winner.lotAreaHectares} ha footprint` : "Prime footprint")}</span>
@@ -11939,7 +11948,7 @@ async function initCompare() {
                     ${decisionSignalPill(winner.activeDecision)}
                     ${decisionStatusPill(winner.activeDecision)}
                     ${decisionConfidencePill(winner.activeDecision)}
-                    <span class="tag" style="font-weight:700;">${escapeHtml(moneyShort(winner.price))}</span>
+                    <span class="tag" style="font-weight:700;">${escapeHtml(propertyPrice(winner))}</span>
                   </div>
                   <div class="compare-lead-kpi-grid">
                     <div class="kpi-cell">
@@ -11947,7 +11956,7 @@ async function initCompare() {
                       <strong>${escapeHtml(winner.activeDecision?.nextAction?.label || "Book site visit")}</strong>
                     </div>
                     <div class="kpi-cell">
-                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Price / Hectare</span>
+                      <span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Sale price / Hectare</span>
                       <strong>${escapeHtml(moneyShort(winner.pricePerHectare))}</strong>
                     </div>
                     <div class="kpi-cell">
@@ -12007,7 +12016,7 @@ async function initCompare() {
                             <span class="matrix-rank-badge rank-${idx + 1}">${idx === 0 ? "01 / Leading fit" : `0${idx + 1} / Shortlisted`}</span>
                           </div>
                           <div class="matrix-property-title">${escapeHtml(p.name)}</div>
-                          <div class="matrix-property-price">${escapeHtml(moneyShort(p.price))}</div>
+                          <div class="matrix-property-price">${escapeHtml(propertyPrice(p))}</div>
                         </div>
                       </th>
                     `).join("")}
@@ -12028,13 +12037,13 @@ async function initCompare() {
                     `).join("")}
                   </tr>
                   <tr>
-                    <th scope="row" class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Acquisition Price</span></div></th>
+                    <th scope="row" class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Sale and lease prices</span></div></th>
                     ${activeCompared.map((p, idx) => `
-                      <td class="${idx === 0 ? "is-lead-cell" : ""}"><strong>${escapeHtml(moneyShort(p.price))}</strong></td>
+                      <td class="${idx === 0 ? "is-lead-cell" : ""}"><strong>${escapeHtml(propertyPrice(p))}</strong></td>
                     `).join("")}
                   </tr>
                   <tr>
-                    <th scope="row" class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Price / Hectare</span></div></th>
+                    <th scope="row" class="metric-label-cell"><div style="display:flex;align-items:center;gap:6px;">${locusIcon("birZonalValue", { size: "xs" })}<span>Sale price / Hectare</span></div></th>
                     ${activeCompared.map((p, idx) => `
                       <td class="${idx === 0 ? "is-lead-cell" : ""}"><strong>${escapeHtml(moneyShort(p.pricePerHectare))}</strong></td>
                     `).join("")}
@@ -12124,7 +12133,7 @@ async function initCompare() {
                     </div>
                     <div class="mini-list">
                       <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("iai", { size: "xs" })} ${escapeHtml(activeLens.shortLabel)} Fit</span><strong>${property.lensScore} / 100</strong></div>
-                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Total Price</span><strong>${escapeHtml(moneyShort(property.price))}</strong></div>
+                      <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("birZonalValue", { size: "xs" })} Total Price</span><strong>${escapeHtml(propertyPrice(property))}</strong></div>
                       <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("economicActivity", { size: "xs" })} Community Demand</span><strong>${escapeHtml(demandDisplay)}</strong></div>
                       <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("siteReadiness", { size: "xs" })} Immediate Move</span><strong>${escapeHtml(property.activeDecision?.nextAction?.label || "Review")}</strong></div>
                       <div class="mini-row"><span style="display:flex;align-items:center;gap:4px;">${locusIcon("clupZoning", { size: "xs" })} CLUP Clearance</span><strong>${escapeHtml(clupDisplay)}</strong></div>
@@ -12384,7 +12393,7 @@ function commandRibbonMarkup({ property, enriched, scoreModel, activeLens, lastC
         <div class="command-ribbon-facts">
           <div><span>${locusIcon("accessibility", { size: "xs" })} Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
           <div><span>${locusIcon("propertyInformation", { size: "xs" })} Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
-          <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
+          <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(propertyPrice(enriched))}</strong></div>
           <div><span>${icon("clock")} Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
         </div>
         <div class="trust-badge-row">${trustBadgeRow(enriched?.trustBadges || [])}</div>
@@ -12934,7 +12943,7 @@ function commandOverviewStageMarkup({
           <div class="command-overview-facts">
             <div><span>${locusIcon("accessibility", { size: "xs" })} Corridor</span><strong>${escapeHtml(corridorLabel(enriched?.corridor))}</strong></div>
             <div><span>${locusIcon("propertyInformation", { size: "xs" })} Land Area</span><strong>${escapeHtml(enriched?.area)} ha</strong></div>
-            <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(moneyShort(enriched?.price))}</strong></div>
+            <div><span>${locusIcon("birZonalValue", { size: "xs" })} Guide Price</span><strong>${escapeHtml(propertyPrice(enriched))}</strong></div>
             <div><span>${icon("clock")} Freshness</span><strong>${escapeHtml(formatFreshness(lastConfirmed, "Awaiting confirmation"))}</strong></div>
           </div>
           <div class="trust-badge-row">${trustBadgeRow(enriched?.trustBadges || [], { compact: true })}</div>
@@ -14324,7 +14333,7 @@ async function initAdminProperties() {
     document.getElementById("crudStatus").value = property?.status || "Available";
     document.getElementById("crudApprovalState").value = property?.approvalState || "approved";
     document.getElementById("crudSellerIdentityStatus").value = property?.sellerIdentityStatus || "unverified";
-    document.getElementById("crudPrice").value = property?.price || "";
+    document.getElementById("crudPrice").value = property?.price ?? "";
     const areaHectares = parseAreaValue(property?.area);
     const preferredAreaUnit = areaHectares !== null && areaHectares > 0 && areaHectares < 1 ? "sqm" : "ha";
     document.getElementById("crudLandArea").value = areaHectares === null
@@ -14467,7 +14476,7 @@ async function initAdminProperties() {
 
                   <!-- Top-right Status & Approval Badges -->
                   <div class="admin-cover-status-badges">
-                    ${statusPill(property.status)}
+                    ${statusPill(property.status)}<span class="tag">${escapeHtml(listingPurposeLabel(property))}</span>
                     ${approvalStatePill(property.approvalState)}
                   </div>
 
@@ -14499,8 +14508,8 @@ async function initAdminProperties() {
                   <div class="admin-metric-grid">
                     <div class="admin-metric-card">
                       <span class="admin-metric-label">Asking Price</span>
-                      <strong class="admin-metric-value text-price">${escapeHtml(moneyShort(property.price))}</strong>
-                      <span class="admin-metric-sub">${property.pricePerSqm ? `₱${Number(property.pricePerSqm).toLocaleString()}/sqm` : "Guide valuation"}</span>
+                      <strong class="admin-metric-value text-price">${escapeHtml(propertyPrice(property))}</strong>
+                      <span class="admin-metric-sub">${salePricePerSqm(property) !== null ? `${money(salePricePerSqm(property))}/sqm` : "Price on request"}</span>
                     </div>
                     <div class="admin-metric-card">
                       <span class="admin-metric-label">Land Area</span>
@@ -14653,9 +14662,10 @@ async function initAdminProperties() {
     const heroVerified = document.getElementById("heroVerifiedCount");
     if (heroVerified) heroVerified.textContent = `${verifiedCount} Verified Sites`;
 
-    const totalCap = properties.reduce((sum, p) => sum + (Number(p.price) || 0), 0);
+    const knownSaleAsks = properties.map(saleAskingPrice).filter(value => value !== null);
+    const totalCap = knownSaleAsks.reduce((sum, value) => sum + value, 0);
     const deckCap = document.getElementById("deckMetricCapital");
-    if (deckCap) deckCap.textContent = totalCap > 0 ? moneyShort(totalCap) : "₱850M+";
+    if (deckCap) deckCap.textContent = knownSaleAsks.length ? `${moneyShort(totalCap)} (${knownSaleAsks.length} priced sale listings)` : "Price on request";
 
     const totalArea = properties.reduce((sum, p) => sum + (Number(p.area) || 0), 0);
     const deckArea = document.getElementById("deckMetricArea");
@@ -15334,7 +15344,7 @@ async function initDecisionReports() {
           <section class="report-detail-site">
             ${property.imageUrl ? `<img class="report-detail-image" src="${escapeHtml(property.imageUrl)}" alt="" loading="lazy" width="400" height="180">` : ""}
             <span class="report-detail-kicker">Site brief</span><h3>${escapeHtml(property.name)}</h3><p class="report-detail-meta">${escapeHtml(property.barangay || "San Fernando")} &middot; ${escapeHtml(corridorLabel(property.corridor))}</p>
-            <dl class="report-detail-facts"><div><dt>Asking price</dt><dd>${escapeHtml(moneyShort(property.price))}</dd></div><div><dt>Lot area</dt><dd>${property.area ? `${escapeHtml(property.area)} ha` : "Not provided"}</dd></div></dl>
+            <dl class="report-detail-facts"><div><dt>Asking price</dt><dd>${escapeHtml(propertyPrice(property))}</dd></div><div><dt>Lot area</dt><dd>${property.area ? `${escapeHtml(property.area)} ha` : "Not provided"}</dd></div></dl>
           </section>
           <section class="report-evidence-review">
             <div class="report-review-head"><div><span class="report-detail-kicker">Due diligence</span><h3>Evidence review</h3></div><a class="report-resolution locus-blue-button no-print" href="${role === "admin" ? `admin-properties.php?edit=${encodeURIComponent(property.id)}` : escapeHtml(propertyHref(property.id))}">${blueButtonArt}<span class="report-action-label">${role !== "admin" ? "View site details" : status === "PASS" ? "View record" : status === "UNVERIFIED" ? "Resolve verification" : "Review evidence"}</span> <span aria-hidden="true">&rarr;</span></a></div>

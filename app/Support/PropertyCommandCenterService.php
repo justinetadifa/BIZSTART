@@ -56,7 +56,7 @@ final class PropertyCommandCenterService
             ? $this->notifications->feedForProperty((int) ($user['id'] ?? 0), $propertyId, 14)
             : [];
         // Audit snapshots include actor details and previous owner contact data.
-        $auditLogs = \sfc_can_review_brokers($user ?? ['role' => 'guest'])
+        $auditLogs = \sfc_can_administer_city($user ?? ['role' => 'guest'])
             ? $this->auditLogs->forProperty($propertyId, 18)
             : [];
         $blockers = $this->buildBlockers($property, $documentRequests, $visit, $conversation);

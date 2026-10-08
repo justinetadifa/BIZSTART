@@ -100,12 +100,18 @@ CREATE TABLE IF NOT EXISTS properties (
   lat DECIMAL(10, 6) NULL,
   lng DECIMAL(10, 6) NULL,
   area DECIMAL(12, 4) NULL,
-  price BIGINT NOT NULL,
-  price_per_sqm INT NOT NULL,
+  listing_purpose VARCHAR(24) NOT NULL DEFAULT 'sale',
+  price BIGINT NULL DEFAULT NULL,
+  lease_price BIGINT NULL DEFAULT NULL,
+  lease_period VARCHAR(12) NOT NULL DEFAULT 'month',
+  lease_price_unit VARCHAR(12) NOT NULL DEFAULT 'total',
+  price_per_sqm BIGINT NULL DEFAULT NULL,
   status VARCHAR(80) NOT NULL,
   approval_state VARCHAR(40) NOT NULL DEFAULT 'approved',
   deleted_at TIMESTAMP NULL DEFAULT NULL,
   deleted_by_user_id INT NULL,
+  archived_at TIMESTAMP NULL DEFAULT NULL,
+  archived_by_user_id INT NULL,
   score INT NOT NULL DEFAULT 82,
   type VARCHAR(80) NOT NULL,
   corridor VARCHAR(80) NOT NULL,
@@ -137,6 +143,7 @@ CREATE TABLE IF NOT EXISTS properties (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_properties_seller_user (seller_user_id),
   KEY idx_properties_approval_state (approval_state),
+  KEY idx_properties_archived_at (archived_at),
   KEY idx_properties_last_confirmed_available (last_confirmed_available_at)
 )
 SQL,
@@ -448,6 +455,8 @@ SQL,
         self::ensureShowcaseItemsColumns($pdo);
         self::ensureUserPreferenceRows($pdo);
         self::ensureIndexes($pdo);
+        require_once __DIR__ . '/BrokerSchemaManager.php';
+        BrokerSchemaManager::ensure($pdo);
     }
 
     public static function tableExists(PDO $pdo, string $tableName): bool
@@ -611,11 +620,38 @@ SQL,
         );
     }
 
+    /** Apply only the additive Batch A listing schema, preserving every existing amount and lifecycle value. */
+    public static function ensureListingManagement(PDO $pdo): void
+    {
+        if (!self::tableExists($pdo, 'properties')) { return; }
+        foreach ([
+            'listing_purpose' => "VARCHAR(24) NOT NULL DEFAULT 'sale'",
+            'lease_price' => 'BIGINT NULL DEFAULT NULL',
+            'lease_period' => "VARCHAR(12) NOT NULL DEFAULT 'month'",
+            'lease_price_unit' => "VARCHAR(12) NOT NULL DEFAULT 'total'",
+            'archived_at' => 'TIMESTAMP NULL DEFAULT NULL',
+            'archived_by_user_id' => 'INT NULL',
+        ] as $column => $definition) {
+            if (!self::columnExists($pdo, 'properties', $column)) {
+                $pdo->exec('ALTER TABLE properties ADD COLUMN ' . $column . ' ' . $definition);
+            }
+        }
+        foreach (['price' => 'BIGINT', 'price_per_sqm' => 'BIGINT'] as $column => $type) {
+            $details = self::columnDetails($pdo, 'properties', $column);
+            if ($details !== null && (($details['IS_NULLABLE'] ?? 'NO') !== 'YES' || strtolower((string) ($details['DATA_TYPE'] ?? '')) !== strtolower($type))) {
+                $pdo->exec('ALTER TABLE properties MODIFY ' . $column . ' ' . $type . ' NULL DEFAULT NULL');
+            }
+        }
+        self::ensureIndex($pdo, 'properties', 'idx_properties_archived_at', 'CREATE INDEX idx_properties_archived_at ON properties (archived_at)');
+    }
+
     private static function ensurePropertiesColumns(PDO $pdo): void
     {
         if (!self::tableExists($pdo, 'properties')) {
             return;
         }
+
+        self::ensureListingManagement($pdo);
 
         foreach ([
             'category' => 'VARCHAR(64) NULL',
@@ -761,6 +797,7 @@ SQL,
              SET last_confirmed_available_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
              WHERE last_confirmed_available_at IS NULL
                AND deleted_at IS NULL
+               AND archived_at IS NULL
                AND LOWER(status) IN (\'available\', \'active\', \'open\')
                AND LOWER(COALESCE(approval_state, \'approved\')) = \'approved\''
         );
@@ -789,16 +826,11 @@ SQL,
         $pdo->exec(
             'UPDATE properties
              SET price_per_sqm = GREATEST(1, ROUND(price / GREATEST(area * 10000, 1)))
-             WHERE price > 0
+             WHERE listing_purpose IN (\'sale\', \'sale_or_lease\')
+               AND price > 0
                AND area > 0'
         );
-        $pdo->exec(
-            'UPDATE properties
-             SET assessed_value_sqm = GREATEST(1, ROUND(price_per_sqm * 0.92))
-             WHERE assessed_value_sqm IS NULL
-                OR assessed_value_sqm < 1
-                OR assessed_value_sqm > (price_per_sqm * 3)'
-        );
+        // Recorded BIR/assessed valuations must never be synthesized from asking prices.
         self::normalizeLegacyPropertyAuditLogs($pdo);
 
         $idColumn = self::columnDetails($pdo, 'properties', 'id');

@@ -266,13 +266,14 @@ export function computeComponents(property, allProperties, targetSector) {
   const facilities = clamp((property.facilities.length / maxFacilities) * 100, 0, 100);
   const areaFit = property.area >= 5 && property.area <= 15 ? 100 : 60;
 
-  const allPricePerSqm = allProperties.map((entry) => Number(entry.pricePerSqm || 0));
+  const allPricePerSqm = allProperties.map(salePricePerSqm).filter(value => value !== null);
   const minPrice = Math.min(...allPricePerSqm);
   const maxPrice = Math.max(...allPricePerSqm);
+  const pricePerSqm = salePricePerSqm(property);
   const priceValue =
-    maxPrice === minPrice
+    pricePerSqm === null || !allPricePerSqm.length ? null : maxPrice === minPrice
       ? 100
-      : clamp(((maxPrice - property.pricePerSqm) / (maxPrice - minPrice)) * 100, 0, 100);
+      : clamp(((maxPrice - pricePerSqm) / (maxPrice - minPrice)) * 100, 0, 100);
 
   const sectorMatch = targetSector
     ? property.type === targetSector
@@ -285,6 +286,7 @@ export function computeComponents(property, allProperties, targetSector) {
 
 export function calculateWeightedScore(property, allProperties, weights, targetSector) {
   const components = computeComponents(property, allProperties, targetSector);
+  if (components.priceValue === null && Number(weights.price) > 0) return null;
   const score =
     components.access * weights.access +
     components.facilities * weights.facilities +
@@ -301,7 +303,7 @@ export function rankProperties(properties, allProperties, weights, targetSector)
       ...property,
       score: calculateWeightedScore(property, allProperties, weights, targetSector),
     }))
-    .sort((left, right) => right.score - left.score);
+    .sort((left, right) => left.score === null || right.score === null ? left.score === right.score ? 0 : left.score === null ? 1 : -1 : right.score - left.score);
 }
 
 export function filterProperties(properties, filters) {
@@ -335,21 +337,63 @@ export function averageScore(properties, allProperties, weights, targetSector) {
     return 0;
   }
 
-  const total = properties.reduce(
-    (sum, property) =>
-      sum + calculateWeightedScore(property, allProperties, weights, targetSector),
-    0
-  );
-
-  return Math.round(total / properties.length);
+  const scores = properties.map(property => calculateWeightedScore(property, allProperties, weights, targetSector)).filter(value => value !== null);
+  return scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null;
 }
 
 export function safeNumber(value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0) {
     return null;
   }
   return numeric;
+}
+
+export function listingPurposeLabel(property) {
+  return { sale: "For Sale", lease: "For Lease", sale_or_lease: "For Sale or Lease" }[property?.listingPurpose] || "For Sale";
+}
+
+export function saleAskingPrice(property) {
+  if (property?.listingPurpose === "lease") return null;
+  return safeNumber(Object.prototype.hasOwnProperty.call(property || {}, "salePrice") ? property.salePrice : property?.price);
+}
+
+export function salePricePerSqm(property) {
+  const amount = saleAskingPrice(property);
+  const area = safeNumber(property?.area ?? property?.landArea);
+  const recorded = safeNumber(property?.pricePerSqm);
+  if (amount !== null && recorded !== null) return recorded;
+  return amount !== null && area > 0 ? amount / (area * 10000) : null;
+}
+
+export function listingPriceEntries(property, { compact = false } = {}) {
+  const format = value => {
+    const amount = safeNumber(value);
+    if (amount === null) return "Price on request";
+    return compact && amount >= 1000000 ? `PHP ${(amount / 1000000).toFixed(1)}M` : `PHP ${amount.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+  };
+  const purpose = property?.listingPurpose || "sale";
+  const entries = [];
+  if (purpose !== "lease") entries.push({ kind: "sale", label: "Sale price", value: format(saleAskingPrice(property)) });
+  if (purpose !== "sale") {
+    const period = ["month", "year", "day"].includes(property?.leasePeriod) ? property.leasePeriod : "month";
+    const amount = safeNumber(property?.leasePrice);
+    entries.push({ kind: "lease", label: "Lease price", value: amount === null ? "Price on request" : `${format(amount)}${property?.leasePriceUnit === "sqm" ? " / m²" : ""} / ${period}` });
+  }
+  return entries;
+}
+
+export function listingPriceLabel(property, options = {}) {
+  const entries = listingPriceEntries(property, options);
+  return entries.length === 1 ? entries[0].value : entries.map(entry => `${entry.kind === "sale" ? "Sale" : "Lease"}: ${entry.value}`).join(" \u00b7 ");
+}
+
+// Sale and recurring lease quotes are different bases; unknown sale asks stay last in either direction.
+export function compareSalePrices(left, right, direction = "asc") {
+  const a = saleAskingPrice(left), b = saleAskingPrice(right);
+  if (a === null || b === null) return a === b ? 0 : a === null ? 1 : -1;
+  return direction === "desc" ? b - a : a - b;
 }
 
 export function calcDueDiligencePct(items, state) {
@@ -403,7 +447,7 @@ function readinessStatus(score, missingCount) {
 }
 
 function readinessIndicator(key, label, displayValue, normalizedScore) {
-  const score = Number.isFinite(Number(normalizedScore))
+  const score = normalizedScore !== null && normalizedScore !== undefined && Number.isFinite(Number(normalizedScore))
     ? clamp(Math.round(Number(normalizedScore)), 0, 100)
     : null;
   return {
@@ -508,7 +552,7 @@ function priceBenchmarkMap(allProperties) {
   const groups = {};
   (allProperties || []).forEach((property) => {
     const type = String(property.type || "").toLowerCase() || "*";
-    const pricePerSqm = Number(property.pricePerSqm || 0);
+    const pricePerSqm = salePricePerSqm(property);
     if (!Number.isFinite(pricePerSqm) || pricePerSqm <= 0) return;
     groups[type] ||= [];
     groups[type].push(pricePerSqm);
@@ -529,8 +573,9 @@ function priceBenchmarkMap(allProperties) {
 }
 
 function priceCompetitivenessScore(pricePerSqm, benchmark) {
-  const price = Number(pricePerSqm || 0);
-  if (!benchmark || !Number.isFinite(price) || price <= 0) return 70;
+  const price = safeNumber(pricePerSqm);
+  if (price === null || price <= 0) return null;
+  if (!benchmark) return 70;
   if (benchmark.max <= benchmark.min) return 100;
   return clamp(Math.round(((benchmark.max - price) / (benchmark.max - benchmark.min)) * 100), 0, 100);
 }
@@ -606,12 +651,12 @@ export function calculateInvestmentReadiness(property, allProperties = [], dueDi
   ];
 
   const assessedValueSqm = Number(property.assessedValueSqm || 0);
-  const pricePerSqm = Number(property.pricePerSqm || 0);
+  const pricePerSqm = salePricePerSqm(property);
   const economicIndicators = [
     readinessIndicator("market_score", "Market Score", `${Number(property.marketScore || property.score || 0)} / 100`, Number(property.marketScore || property.score || 0)),
-    readinessIndicator("price_competitiveness", "Price Competitiveness", `PHP ${Math.round(pricePerSqm).toLocaleString()} / sqm`, priceCompetitivenessScore(pricePerSqm, benchmark)),
-    readinessIndicator("assessed_value_sqm", "Assessed Value / SQM", assessedValueSqm > 0 ? `PHP ${Math.round(assessedValueSqm).toLocaleString()}` : "Missing assessed value", assessedValueSqm > 0 ? clamp(Math.round((assessedValueSqm / Math.max(pricePerSqm, 1)) * 100), 35, 100) : null),
-    readinessIndicator("value_spread", "Value Spread", assessedValueSqm > 0 ? (assessedValueSqm >= pricePerSqm ? "At or above assessed" : "Below assessed") : "Awaiting assessed benchmark", assessedValueSqm > 0 ? clamp(Math.round(100 - (((pricePerSqm - assessedValueSqm) / Math.max(pricePerSqm, 1)) * 100)), 30, 100) : null),
+    readinessIndicator("price_competitiveness", "Price Competitiveness", pricePerSqm === null ? "Price on request" : `PHP ${Math.round(pricePerSqm).toLocaleString()} / sqm`, priceCompetitivenessScore(pricePerSqm, benchmark)),
+    readinessIndicator("assessed_value_sqm", "Assessed Value / SQM", assessedValueSqm > 0 ? `PHP ${Math.round(assessedValueSqm).toLocaleString()}` : "Missing assessed value", assessedValueSqm > 0 && pricePerSqm > 0 ? clamp(Math.round((assessedValueSqm / Math.max(pricePerSqm, 1)) * 100), 35, 100) : null),
+    readinessIndicator("value_spread", "Value Spread", assessedValueSqm > 0 && pricePerSqm > 0 ? (assessedValueSqm >= pricePerSqm ? "At or above assessed" : "Below assessed") : "Awaiting sale price and assessed benchmark", assessedValueSqm > 0 && pricePerSqm > 0 ? clamp(Math.round(100 - (((pricePerSqm - assessedValueSqm) / Math.max(pricePerSqm, 1)) * 100)), 30, 100) : null),
   ];
 
   const institutionalIndicators = [
@@ -898,7 +943,7 @@ export function calculateInvestmentLensResult(property, allProperties = [], lens
     benchmarks[String(property?.type || "").toLowerCase()]
     || benchmarks["*"]
     || null;
-  const pricePerSqm = Number(property?.pricePerSqm || 0);
+  const pricePerSqm = salePricePerSqm(property);
   const assessedValueSqm = Number(property?.assessedValueSqm || 0);
   const corridorScore = corridorLensScore(property, lensConfig);
   const marketScore = normalizedMarketScore(property);
@@ -917,10 +962,10 @@ export function calculateInvestmentLensResult(property, allProperties = [], lens
 
   const priceCompetitiveness = priceCompetitivenessScore(pricePerSqm, benchmark);
   const valueSpreadScore =
-    assessedValueSqm > 0
+    assessedValueSqm > 0 && pricePerSqm > 0
       ? clamp(Math.round(100 - (((pricePerSqm - assessedValueSqm) / Math.max(pricePerSqm, 1)) * 100)), 30, 100)
       : null;
-  const economicBlendedScore = assessedValueSqm > 0
+  const economicBlendedScore = priceCompetitiveness === null ? null : assessedValueSqm > 0
     ? clamp(Math.round((priceCompetitiveness * 0.56) + (valueSpreadScore * 0.44)), 0, 100)
     : pricePerSqm > 0
       ? priceCompetitiveness
@@ -1084,7 +1129,7 @@ export function calculateInvestmentLensResult(property, allProperties = [], lens
       economicBlendedScore,
       lensConfig.weights.economic_viability,
       "economic",
-      assessedValueSqm > 0
+      assessedValueSqm > 0 && pricePerSqm > 0
         ? `PHP ${Math.round(pricePerSqm).toLocaleString()} vs assessed PHP ${Math.round(assessedValueSqm).toLocaleString()}`
         : pricePerSqm > 0
           ? `PHP ${Math.round(pricePerSqm).toLocaleString()} / sqm`
@@ -1205,9 +1250,10 @@ export function buildDecisionPackModel(
   const opex = safeNumber(decisionInputs.opex);
   const netAnnual =
     revenue !== null && opex !== null ? revenue - opex : null;
+  const purchasePrice = saleAskingPrice(property);
   const payback =
-    capex !== null && revenue !== null && opex !== null && netAnnual > 0
-      ? (property.price + capex) / netAnnual
+    purchasePrice !== null && capex !== null && revenue !== null && opex !== null && netAnnual > 0
+      ? (purchasePrice + capex) / netAnnual
       : null;
   const dueDiligencePct = calcDueDiligencePct(dueDiligenceItems, dueDiligenceState);
   const score = calculateWeightedScore(property, allProperties, weights, targetSector);
@@ -1233,7 +1279,8 @@ export function buildDecisionPackModel(
 
 export function buildSensitivitySeries(property, capex, revenueBase, opex) {
   const points = [];
-  const totalCost = capex === null ? null : property.price + capex;
+  const purchasePrice = saleAskingPrice(property);
+  const totalCost = capex === null || purchasePrice === null ? null : purchasePrice + capex;
 
   for (let pct = -30; pct <= 30; pct += 10) {
     if (totalCost === null || revenueBase === null || opex === null) {
@@ -1284,7 +1331,8 @@ export function buildInvestmentLabModel(
     Number(marketSnapshot?.benchmarks?.exitCapRate ?? 0);
   const sensitivity = Number(inputs.sensitivity || 0) / 100;
   const revenue = revenueBase === null ? null : revenueBase * (1 + sensitivity);
-  const totalCost = capex === null ? null : property.price + capex;
+  const purchasePrice = saleAskingPrice(property);
+  const totalCost = capex === null || purchasePrice === null ? null : purchasePrice + capex;
   const equity = totalCost === null ? null : totalCost * equityPct;
   const debt = totalCost === null ? null : totalCost - equity;
   const netAnnual = revenue === null || opex === null ? null : revenue - opex;
@@ -1328,7 +1376,7 @@ export function buildInvestmentLabModel(
     debt,
     exitValue,
     readiness,
-    readinessMessage,
+    readinessMessage: purchasePrice === null ? "SALE PRICE REQUIRED FOR ACQUISITION ESTIMATES" : readinessMessage,
     sensitivitySeries: buildSensitivitySeries(property, capex, revenueBase, opex),
     marketSnapshot,
   };

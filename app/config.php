@@ -42,6 +42,19 @@ $defaults = [
         'pass' => getenv('DB_PASS') ?: '',
         'charset' => 'utf8mb4',
     ],
+    'mail' => [
+        'smtp_host' => '',
+        'smtp_port' => 587,
+        'smtp_username' => '',
+        'smtp_password' => '',
+        'smtp_encryption' => 'tls',
+        'smtp_auth' => true,
+        'from_email' => '',
+        'from_name' => 'LOCUS-SF',
+        'support_contact' => '',
+        'verification_ttl_seconds' => 86400,
+        'max_attempts' => 6,
+    ],
     'services' => [
         'cache' => [
             'path' => dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'external',
@@ -135,6 +148,21 @@ foreach ($appFlagDefaults as $flag => $fallback) {
 }
 
 $defaults['db']['auto_create'] = $environment === 'local' && $isLocalRequest && (bool) $defaults['app']['auto_migrate'];
+
+foreach ([
+    'smtp_host' => 'SMTP_HOST', 'smtp_port' => 'SMTP_PORT',
+    'smtp_username' => 'SMTP_USERNAME', 'smtp_password' => 'SMTP_PASSWORD',
+    'smtp_encryption' => 'SMTP_ENCRYPTION', 'smtp_auth' => 'SMTP_AUTH',
+    'from_email' => 'MAIL_FROM_EMAIL', 'from_name' => 'MAIL_FROM_NAME',
+    'support_contact' => 'BROKER_SUPPORT_CONTACT',
+    'verification_ttl_seconds' => 'EMAIL_VERIFICATION_TTL_SECONDS',
+    'max_attempts' => 'BROKER_MAIL_MAX_ATTEMPTS',
+] as $key => $variable) {
+    $value = getenv($variable);
+    if ($value === false) { continue; }
+    $defaults['mail'][$key] = $key === 'smtp_auth' ? $normalizeBoolean($value, true)
+        : (in_array($key, ['smtp_port', 'verification_ttl_seconds', 'max_attempts'], true) ? (int) $value : $value);
+}
 
 foreach (['url' => 'APP_URL'] as $key => $variable) {
     $value = getenv($variable);

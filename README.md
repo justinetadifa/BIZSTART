@@ -14,9 +14,9 @@ Guests see three approved property previews. Signing in unlocks the full propert
 | --- | --- |
 | Investor | Available area and site visits, property search, maps, MCE/IAI rankings, saved properties, comparison, broker contacts, messages, documents, and visits |
 | Broker | PRC application, own listing submissions, accepted/declined/pending totals, investor saves, CICTO review messages, and investor coordination |
-| CICTO | City overview, broker verification, listing approval or decline, fraud review, and city listing entry |
-| ASSESSOR | Property entry, data management, and departmental assessment |
-| LEBDO | Property entry, data management, and departmental assessment |
+| ICT / CICTO | Technical administration, role and reviewer-permission management, listing approval or decline, and city listing entry |
+| CAO / ASSESSOR | Property entry, departmental assessment, and broker review when explicitly authorized |
+| LEBDO | Property entry, departmental assessment, and broker review when explicitly authorized |
 
 All accounts can update their profile and photo through [profile.php](profile.php). Public registration creates investor or broker accounts. CICTO provisions city staff accounts.
 
@@ -26,13 +26,15 @@ Staff can also use **Activate account** with a city passkey issued by CICTO. Pro
 
 **Updates** opens messages, document requests, and site visit notices in the appropriate workspace. City departments respond to document requests under **Listings → Document requests**. Visits use the broker assigned to the investor's conversation, including city listings with a verified broker contact; reassigning a listing preserves existing private conversations.
 
-Brokers provide their complete name, address, contact number, PRC registration number, and PRC ID validity. CICTO checks the credentials before approving submission access. New and edited broker listings return to the city review queue. Changes to verified broker credentials require another review.
+Brokers provide their complete name, address, contact number, PRC registration number, expiration date, and private front/back ID images. Authorized CAO/Assessor and LEBDO personnel review credentials. Broker privileges require separate email ownership verification and application approval. ICT assigns reviewer grants without receiving broker review access itself. New and edited broker listings return to the city listing review queue. Changes to reviewed credentials require another review. See [Batch B migration and workflow setup](docs/batch-b-brokers.md) and [SMTP configuration](docs/broker-mail.md).
 
 Registration records the submitted privacy consent, version, and time. The consent text identifies the City Government of San Fernando, RA 10173, and LOCUS-SF.
 
 Investor registration also records an explicit age confirmation and optional contact, profession, and city details. All access forms show validation below the affected field and validate again on the server. Email and PRC uniqueness are enforced in the database; PRC numbers retain their submitted zero padding while comparing the same numeric registration. Investors and brokers see a personal welcome after registration and a welcome-back greeting after sign-in.
 
 ## Listings and rankings
+
+Listings support separate sale and rental asks, unknown prices, distinct Sold/Leased states, reversible archives and soft deletion. See [Batch A changes, migration and verification](docs/batch-a-listings.md). Existing deployments can inspect and apply the targeted upgrade with `php database/migrate-listing-batch-a.php --dry-run` and `--apply`.
 
 The catalog supports 13 property categories and their subcategories: Retail, Multifamily, Office, Industrial, Hospitality, Mixed Use, Land, Self Storage, Mobile Home Park, Senior Living, Special Purpose, Note/Loan, and Business for Sale.
 
@@ -41,6 +43,8 @@ City assessors record seven criteria: spatial accessibility, infrastructure read
 The city **Add property** editor follows five steps: Basics, Boundary, Site evidence, Surroundings, and Review. It supports editable parcel boundaries, separate calculated and survey areas, private evidence attachments, a 500-meter surroundings radar, and local drafts. Missing authoritative hazard data is **Not assessed**; business matches remain pending until source evidence and scoring profiles are approved. See [property editor documentation](docs/property-wizard.md).
 
 MCE (Multi-Criteria Evaluation) and IAI (Investment Attractiveness Index) scores remain pending until all seven city criteria are recorded. Scores and rankings are decision aids based on the recorded assessment. Sample listings are unassessed; existing legacy scores are not official MCE/IAI assessments.
+
+Investors start in **Basic** view, with price, area, location, contact and hazard information visible. **Advanced** reveals the recorded assessment, calculations, evidence, radar and business context. The preference persists in the browser during navigation. Property details and shared backgrounds use the existing map artwork with opaque content panels. See [Batch C behavior and verification](docs/batch-c-investor-view.md); no additional database migration is required.
 
 The site visit counter uses persisted visits, counted once per browser session in each 30-minute window. It is not a unique-person count. Available area totals use approved, available listings.
 

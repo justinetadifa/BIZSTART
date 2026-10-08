@@ -7,6 +7,8 @@ import {
   DEFAULT_WEIGHTS,
   STORAGE_KEYS,
   averageScore,
+  listingPriceLabel,
+  saleAskingPrice,
   buildDecisionPackModel,
   buildInvestmentLabModel,
   calcDueDiligencePct,
@@ -197,7 +199,11 @@ function propertyToForm(property) {
     barangay: property?.barangay || "",
     property_type: property?.type || "commercial",
     corridor: property?.corridor || "highway",
-    price: property?.price ?? "",
+    price: property?.salePrice ?? property?.price ?? "",
+    listing_purpose: property?.listingPurpose || "sale",
+    lease_price: property?.leasePrice ?? "",
+    lease_period: property?.leasePeriod || "month",
+    lease_price_unit: property?.leasePriceUnit || "total",
     land_area: property?.area ?? "",
     status: property?.status || "Available",
     score: property?.marketScore ?? 82,
@@ -213,7 +219,8 @@ function propertyToForm(property) {
 function buildPropertyFormData() {
   const payload = {
     ...state.propertyForm,
-    price: Number(state.propertyForm.price || 0),
+    price: String(state.propertyForm.price ?? "").trim() === "" ? null : Number(state.propertyForm.price),
+    lease_price: String(state.propertyForm.lease_price ?? "").trim() === "" ? null : Number(state.propertyForm.lease_price),
     land_area: Number(state.propertyForm.land_area || 0),
     score: Number(state.propertyForm.score || 0),
     road_access: Number(state.propertyForm.road_access || 0),
@@ -417,7 +424,7 @@ function renderModals() {
       ? `EDIT ${property.name.toUpperCase()}`
       : "CREATE OR UPDATE MYSQL LISTINGS";
   dom.propertyEditorContent.innerHTML = renderPropertyEditor(state.propertyEditorMode, state.propertyForm);
-  dom.propertyDeleteModalSub.textContent = property ? propertyLocation(property) : "THIS ACTION REMOVES THE RECORD FROM MYSQL";
+  dom.propertyDeleteModalSub.textContent = property ? propertyLocation(property) : "MOVE LISTING TO DELETED LISTINGS";
   dom.propertyDeleteContent.innerHTML = renderPropertyDelete(property);
 
   ["comparison", "dueDiligence", "decisionPack", "investmentLab", "voting", "messaging", "propertyDetail", "propertyEditor", "propertyDelete"].forEach((name) => {
@@ -544,8 +551,8 @@ async function submitPropertyForm() {
     addToast("MISSING", "ADD A PROPERTY DESCRIPTION", "warn");
     return;
   }
-  if (payload.price <= 0 || payload.land_area <= 0) {
-    addToast("INVALID", "PRICE AND LAND AREA MUST BE POSITIVE", "warn");
+  if ([payload.price, payload.lease_price].some(value => value !== null && (!Number.isInteger(value) || value < 0)) || payload.land_area <= 0) {
+    addToast("INVALID", "ENTER A NONNEGATIVE WHOLE-PESO PRICE OR LEAVE IT BLANK; LAND AREA MUST BE POSITIVE", "warn");
     return;
   }
 
@@ -738,7 +745,7 @@ function runScenario() {
   const minimumSize = Number(state.scenario.size);
 
   if (state.scenario.budget) {
-    matches = matches.filter((property) => property.price <= budget);
+    matches = matches.filter((property) => saleAskingPrice(property) !== null && saleAskingPrice(property) <= budget);
   }
   if (state.scenario.sector) {
     matches = matches.filter((property) => property.type === state.scenario.sector);
@@ -920,9 +927,9 @@ function printDecisionPack() {
           <div class="box">
             <h1>DECISION PACK</h1>
             <div class="sub">${property.name.toUpperCase()} | SAN FERNANDO, LA UNION</div>
-            <div class="section"><strong>WEIGHTED SCORE:</strong> ${model.score}/100</div>
+            <div class="section"><strong>WEIGHTED SCORE:</strong> ${model.score == null ? "Awaiting price" : `${model.score}/100`}</div>
             <div class="section"><strong>SUMMARY:</strong> THIS SITE SUPPORTS A ${model.intentLabel} STRATEGY OVER ${model.horizonLabel}. RISK PROFILE IS ${model.riskLabel}.</div>
-            <div class="section"><strong>LAND PRICE:</strong> ${formatMoneyFull(property.price)}<br><strong>NET ANNUAL:</strong> ${formatMoneyFull(model.netAnnual)}<br><strong>PAYBACK:</strong> ${formatYears(model.payback)}</div>
+            <div class="section"><strong>LAND PRICE:</strong> ${listingPriceLabel(property)}<br><strong>NET ANNUAL:</strong> ${formatMoneyFull(model.netAnnual)}<br><strong>PAYBACK:</strong> ${formatYears(model.payback)}</div>
             <div class="section"><strong>DUE DILIGENCE:</strong> ${model.dueDiligencePct}% COMPLETE</div>
           </div>
         </div>

@@ -12,7 +12,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     try {
         sfc_require_csrf_form();
         if ($mode === 'signup') {
-            sfc_register_seller($_POST);
+            sfc_register_seller($_POST, $_FILES);
         } elseif (!sfc_login('seller', sfc_auth_string($_POST['email'] ?? ''), is_string($_POST['password'] ?? null) ? $_POST['password'] : '')) {
             throw new SfcAuthValidationException(sfc_login_errors());
         }

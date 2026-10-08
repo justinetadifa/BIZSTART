@@ -5,7 +5,7 @@ require __DIR__ . '/_bootstrap.php';
 
 api_handle(function (array $container): array {
     $user = sfc_current_user();
-    if (!sfc_can_review_brokers($user)) {
+    if (!sfc_can_administer_city($user)) {
         return [403, ['error' => 'CICTO access is required for the audit ledger.']];
     }
 

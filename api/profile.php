@@ -20,5 +20,5 @@ api_handle(function (array $container): array {
     if (request_method() !== 'POST') {
         return [405, ['error' => 'Method not allowed.']];
     }
-    return sfc_update_own_profile($user, read_request_input(), $_FILES['profile_photo'] ?? null);
+    return sfc_update_own_profile($user, read_request_input(), $_FILES['profile_photo'] ?? null, $_FILES);
 });

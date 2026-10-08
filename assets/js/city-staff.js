@@ -1,108 +1,84 @@
-// City Staff Directory, Filtering & Provisioning Controller
+// City staff directory and explicit broker review authorization.
 document.addEventListener('DOMContentLoaded', () => {
-  // Department filter buttons
-  const filterButtons = document.querySelectorAll('.city-staff-filter-btn');
-  const tableRows = document.querySelectorAll('#cityStaffList tr');
-
-  filterButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      filterButtons.forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      const deptFilter = (btn.dataset.filter || 'all').toLowerCase();
-
-      document.querySelectorAll('#cityStaffList tr').forEach(row => {
-        if (deptFilter === 'all') {
-          row.style.display = '';
-        } else {
-          const pill = row.querySelector('.city-pill');
-          if (pill && pill.classList.contains(deptFilter)) {
-            row.style.display = '';
-          } else {
-            row.style.display = 'none';
-          }
-        }
-      });
-    });
-  });
-
-  // Department selector card toggle in provisioning form
-  const deptRadioCards = document.querySelectorAll('.city-dept-radio-card');
-  deptRadioCards.forEach(card => {
-    card.addEventListener('click', () => {
-      deptRadioCards.forEach(c => c.classList.remove('is-selected'));
-      card.classList.add('is-selected');
-      const radio = card.querySelector('input[type="radio"]');
-      if (radio) radio.checked = true;
-    });
-  });
-
-  // Provisioning form submit
+  const config = window.SFC_APP_CONFIG || {};
+  const status = document.getElementById('cityStaffStatus');
   const form = document.getElementById('cityStaffForm');
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const mayReview = department => ['ASSESSOR', 'CAO', 'LEBDO'].includes(String(department).toUpperCase());
+  const displayStatus = (message, error = false) => {
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('is-error', error);
+    status.classList.toggle('is-success', !error);
+  };
+  const request = async (method, body) => {
+    const multipart = body instanceof FormData;
+    const response = await fetch(`${String(config.apiBase || 'api').replace(/\/$/, '')}/staff.php`, {
+      method, credentials: 'same-origin',
+      headers: { 'X-CSRF-Token': config.csrfToken || '', ...(multipart ? {} : { 'Content-Type': 'application/json' }) },
+      body: multipart ? body : JSON.stringify(body)
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Unable to update the city account.');
+    return payload;
+  };
+  const filterButtons = document.querySelectorAll('.city-staff-filter-btn[data-filter]');
+  filterButtons.forEach(button => button.addEventListener('click', () => {
+    filterButtons.forEach(item => item.classList.toggle('is-active', item === button));
+    const filter = (button.dataset.filter || 'all').toLowerCase();
+    document.querySelectorAll('#cityStaffList tr').forEach(row => {
+      row.hidden = filter !== 'all' && !row.querySelector(`.city-pill.${filter}`);
+    });
+  }));
+  const cards = [...document.querySelectorAll('.city-dept-radio-card')];
+  const reviewer = document.getElementById('staffBrokerReviewer');
+  const syncDepartment = () => {
+    const department = form?.querySelector('[name="department"]:checked')?.value;
+    cards.forEach(card => card.classList.toggle('is-selected', card.querySelector('input')?.checked));
+    if (reviewer) {
+      reviewer.disabled = !mayReview(department);
+      if (reviewer.disabled) reviewer.checked = false;
+    }
+  };
+  form?.addEventListener('change', event => { if (event.target.name === 'department') syncDepartment(); });
+  syncDepartment();
+  document.getElementById('cityStaffList')?.addEventListener('change', async event => {
+    const checkbox = event.target.closest('[data-broker-review-permission]');
+    if (!checkbox) return;
+    const requested = checkbox.checked;
+    checkbox.disabled = true;
+    displayStatus('Saving broker review authorization…');
+    try {
+      const payload = await request('PATCH', { userId: Number(checkbox.dataset.brokerReviewPermission), brokerReviewAuthorized: requested });
+      const saved = payload.user?.brokerReviewAuthorized;
+      if (typeof saved === 'boolean') checkbox.checked = saved;
+      displayStatus(`Broker review authorization ${checkbox.checked ? 'granted' : 'revoked'}.`);
+    } catch (error) { checkbox.checked = !requested; displayStatus(error.message, true); }
+    finally { checkbox.disabled = false; }
+  });
   form?.addEventListener('submit', async event => {
     event.preventDefault();
     if (!form.reportValidity()) return;
-    const config = window.SFC_APP_CONFIG;
-    const status = document.getElementById('cityStaffStatus');
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
-    status.textContent = 'Provisioning department account…';
-    status.classList.remove('is-error', 'is-success');
-
+    displayStatus('Creating department account…');
     try {
-      const response = await fetch(`${config.apiBase}/staff.php`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'X-CSRF-Token': config.csrfToken },
-        body: new FormData(form),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || 'Unable to create account.');
-
+      const payload = await request('POST', new FormData(form));
+      const staff = payload.user;
+      const department = String(staff.department || 'CICTO').toUpperCase();
       form.reset();
-      // Reset radio card selection to default
-      deptRadioCards.forEach((c, idx) => {
-        if (idx === 0) {
-          c.classList.add('is-selected');
-          const r = c.querySelector('input[type="radio"]');
-          if (r) r.checked = true;
-        } else {
-          c.classList.remove('is-selected');
-        }
-      });
-
-      status.textContent = `✓ ${payload.user.department} account successfully provisioned for ${payload.user.name}.`;
-      status.classList.add('is-success');
-
-      // Update stat count
-      const deptLower = String(payload.user.department || '').toLowerCase();
-      const statCard = document.querySelector(`.city-staff-stat-card.${deptLower}`);
-      if (statCard) {
-        const numEl = statCard.querySelector('.stat-number');
-        if (numEl) {
-          numEl.textContent = String(parseInt(numEl.textContent || '0', 10) + 1);
-        }
-        const countEl = statCard.querySelector('.stat-count');
-        if (countEl) {
-          countEl.textContent = `${parseInt(countEl.textContent || '0', 10) + 1} Active Personnel`;
-        }
-      }
-
-      // Prepend to table
+      syncDepartment();
+      displayStatus(`${department} account created for ${staff.name}.`);
       const list = document.getElementById('cityStaffList');
-      if (list && payload.user) {
-        const tr = document.createElement('tr');
-        const safeName = String(payload.user.name || '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        const dept = String(payload.user.department || 'CICTO');
-        const initials = safeName.split(/\s+/).filter(Boolean).map(p => p[0]).slice(0, 2).join('').toUpperCase() || 'ST';
-        const roleDesc = dept === 'ASSESSOR' ? 'CAO · Cadastral & MCE Assessment' : (dept === 'LEBDO' ? 'LEBDO · Local Economic Development' : 'CICTO · Governance & Administration');
-        tr.innerHTML = `<td><div class="city-staff-user-cell"><span class="city-staff-avatar ${dept.toLowerCase()}">${initials}</span><div class="city-staff-user-meta"><strong>${safeName}</strong><small>${roleDesc}</small></div></div></td><td><span class="city-pill ${dept.toLowerCase()}">${dept}</span></td><td><span class="city-staff-email">${String(payload.user.email || '')}</span></td><td><span class="city-pill approved"><span class="status-indicator-dot"></span> Active</span></td>`;
-        list.prepend(tr);
+      if (list) {
+        const row = document.createElement('tr');
+        const initials = String(staff.name || '').trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0] || '').join('').toUpperCase() || 'ST';
+        const role = department === 'ASSESSOR' || department === 'CAO' ? 'City Assessor’s Office' : department === 'LEBDO' ? 'Local Economic Development' : 'Technical administration';
+        row.innerHTML = `<td><div class="city-staff-user-cell"><span class="city-staff-avatar ${escape(department.toLowerCase())}">${escape(initials)}</span><div class="city-staff-user-meta"><strong>${escape(staff.name)}</strong><small>${escape(role)}</small></div></div></td><td><span class="city-pill ${escape(department.toLowerCase())}">${escape(department)}</span></td><td><span class="city-staff-email">${escape(staff.email)}</span></td><td><span class="city-pill approved">Active</span></td><td>${mayReview(department) ? `<label class="broker-staff-permission"><input type="checkbox" data-broker-review-permission="${Number(staff.id)}" ${staff.brokerReviewAuthorized ? 'checked' : ''} aria-label="Authorize ${escape(staff.name)} to review broker applications"><span>Authorized reviewer</span></label>` : '<span>Technical administration</span>'}</td>`;
+        list.prepend(row);
+        document.querySelector('.city-staff-filter-btn[data-filter].is-active')?.click();
       }
-    } catch (error) {
-      status.textContent = error.message;
-      status.classList.add('is-error');
-    } finally {
-      button.disabled = false;
-    }
+    } catch (error) { displayStatus(error.message, true); }
+    finally { button.disabled = false; }
   });
 });

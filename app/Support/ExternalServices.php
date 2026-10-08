@@ -7,6 +7,8 @@ use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
+require_once __DIR__ . '/ListingPresentation.php';
+
 final class ExternalServices
 {
     private array $services;
@@ -475,10 +477,10 @@ final class ExternalServices
             'live' => false,
             'headline' => sprintf('%s shows strong %s fit', (string) ($property['name'] ?? 'This property'), (string) ($property['corridor'] ?? 'corridor')),
             'summary' => sprintf(
-                '%s combines %s ha, PHP %s pricing, and %d%% road access in %s.',
+                '%s combines %s ha, %s, and %d%% road access in %s.',
                 (string) ($property['name'] ?? 'This property'),
                 number_format((float) ($property['area'] ?? 0), 1),
-                number_format((float) ($property['price'] ?? 0)),
+                ListingPresentation::purpose($property) . ': ' . implode('; ', array_map(static fn (string $label, string $value): string => $label . ': ' . $value, array_keys(ListingPresentation::prices($property)), array_values(ListingPresentation::prices($property)))),
                 (int) ($property['roadAccess'] ?? 0),
                 (string) ($property['barangay'] ?? 'San Fernando')
             ),
@@ -569,7 +571,8 @@ PROPERTY JSON:
     'type' => $property['type'] ?? null,
     'corridor' => $property['corridor'] ?? null,
     'area' => $property['area'] ?? null,
-    'price' => $property['price'] ?? null,
+    'listingPurpose' => ListingPresentation::purpose($property),
+    'prices' => ListingPresentation::prices($property),
     'roadAccess' => $property['roadAccess'] ?? null,
     'description' => $property['description'] ?? null,
     'tags' => $property['tags'] ?? null,

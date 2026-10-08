@@ -54,20 +54,21 @@ foreach ([false, '0', null, 'false', ''] as $consent) {
 $consent = sfc_account_privacy_payload('1');
 account_check($consent['privacyConsentText'] === sfc_privacy_consent_text() && $consent['privacyConsentVersion'] === sfc_privacy_consent_version() && $consent['privacyConsentAt'] !== '', 'Consent evidence is incomplete.');
 foreach (['CICTO', 'ASSESSOR', 'LEBDO'] as $department) {
-    $admin = ['role' => 'admin', 'department' => $department];
+    $admin = ['role' => 'admin', 'department' => $department, 'accountStatus' => 'active', 'identityVerificationStatus' => 'verified', 'brokerReviewAuthorized' => true];
     account_check(sfc_can_manage_properties($admin), 'A city department cannot manage listings.');
-    account_check(sfc_can_review_brokers($admin) === ($department === 'CICTO'), 'A department has incorrect broker review privileges.');
+    account_check(sfc_can_review_brokers($admin) === ($department !== 'CICTO'), 'A department has incorrect broker review privileges.');
+    account_check(!sfc_can_review_brokers(array_replace($admin, ['brokerReviewAuthorized' => false])), 'Reviewer privileges were inferred without an explicit grant.');
 }
 account_check(!sfc_can_review_brokers(['role' => 'seller', 'department' => 'CICTO']), 'A broker can review applications.');
 account_check(!sfc_can_manage_properties(['role' => 'admin', 'department' => 'Unknown']), 'An unknown department can manage properties.');
 $method = new ReflectionMethod($repository, 'normalizePayload');
 $method->setAccessible(true);
 $existing = ['sellerType' => 'broker', 'legalName' => 'Sample Broker', 'phone' => '09171234567', 'addressLine' => 'San Fernando, La Union', 'city' => 'San Fernando', 'authorizationBasis' => 'Licensed real estate broker', 'applicationStatus' => 'verified', 'prcRegistrationNo' => '123456', 'prcValidUntil' => $validUntil, 'reviewNotes' => 'Checked by CICTO'];
-$edited = $method->invoke($repository, ['prc_registration_no' => '654321'], $user, $existing, false);
+$edited = $method->invoke($repository, ['prc_registration_no' => '654321'], $user, $existing, false, [], false);
 account_check($edited['application_status'] === 'pending_review' && $edited['reviewed_by_user_id'] === null, 'A broker kept verification after swapping PRC credentials.');
-$formatted = $method->invoke($repository, ['prc_registration_no' => '00123456'], $user, $existing, false);
+$formatted = $method->invoke($repository, ['prc_registration_no' => '00123456'], $user, $existing, false, [], false);
 account_check($formatted['prc_registration_no'] === '00123456' && $formatted['application_status'] === 'verified', 'A license formatting edit changed its identity or lost the displayed zero padding.');
-$unchanged = $method->invoke($repository, ['applicationStatus' => 'verified'], $user, array_replace($existing, ['applicationStatus' => 'pending_review']), false);
+$unchanged = $method->invoke($repository, ['applicationStatus' => 'verified'], $user, array_replace($existing, ['applicationStatus' => 'pending_review']), false, [], false);
 account_check($unchanged['application_status'] === 'pending_review', 'A broker can set their own verification or an unrelated profile edit removed them from the queue.');
 account_rejects(fn () => $method->invoke($repository, $payload, $user, array_replace($existing, ['applicationStatus' => 'suspended']), true), 'A suspended broker could edit credentials.');
 account_check(sfc_store_profile_photo(null) === null, 'Optional photo uploads are required.');

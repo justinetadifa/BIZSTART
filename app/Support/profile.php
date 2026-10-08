@@ -22,7 +22,7 @@ function sfc_store_profile_photo(?array $file): ?string
     return store_uploaded_public_image($file, 'profiles');
 }
 
-function sfc_update_own_profile(array $user, array $payload, ?array $photo = null): array
+function sfc_update_own_profile(array $user, array $payload, ?array $photo = null, array $files = []): array
 {
     sfc_require_csrf_form();
     $userId = (int) ($user['id'] ?? 0);
@@ -66,7 +66,8 @@ function sfc_update_own_profile(array $user, array $payload, ?array $photo = nul
     $pdo->beginTransaction();
     try {
         if ($current['role'] === 'seller') {
-            $existing = $container['sellerProfiles']->findOrInitializeByUser($current);
+            $existing = $container['sellerProfiles']->findByUserId($userId, true)
+                ?? $container['sellerProfiles']->findOrInitializeByUser($current);
             $brokerPayload = $payload + [
                 'seller_type' => $existing['sellerType'],
                 'city' => $existing['city'],
@@ -79,9 +80,9 @@ function sfc_update_own_profile(array $user, array $payload, ?array $photo = nul
             if ($submit) {
                 $brokerPayload['seller_type'] = 'broker';
             }
-            $profile = $container['sellerProfiles']->createOrUpdateForUser($userId, $brokerPayload, $submit);
+            $profile = $container['brokerApplications']->saveForUser($userId, $brokerPayload, $files, $submit);
             $status = match ($profile['applicationStatus']) {
-                'verified' => 'verified', 'rejected' => 'rejected', 'suspended' => 'suspended', 'pending_review' => 'pending', default => 'unverified',
+                'verified' => 'verified', 'rejected' => 'rejected', 'suspended' => 'suspended', 'pending_review', 'corrections_requested' => 'pending', default => 'unverified',
             };
             $container['users']->updateIdentityVerificationStatus($userId, $status);
         }
@@ -93,10 +94,12 @@ function sfc_update_own_profile(array $user, array $payload, ?array $photo = nul
             $profile = $container['sellerProfiles']->findByUserId($userId);
         }
         $pdo->commit();
+        if ($current['role'] === 'seller') { $container['brokerApplications']->finalizeStagedForUser($userId); }
     } catch (Throwable $exception) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        if ($current['role'] === 'seller') { $container['brokerApplications']->discardStagedForUser($userId); }
         // Only the server-generated file from this request can be removed.
         if ($newImage !== null && preg_match('#^assets/uploads/profiles/[a-zA-Z0-9.-]+\.(jpg|png|webp)$#', $newImage)) {
             $createdPhoto = dirname(__DIR__, 2) . '/' . $newImage;
@@ -116,5 +119,6 @@ function sfc_update_own_profile(array $user, array $payload, ?array $photo = nul
         }
     }
     $_SESSION['sfc_user'] = sfc_user_session_payload($updated);
+    if ($profile !== null) { $profile['emailStatus'] = $container['brokerEmail']->status($userId); }
     return ['user' => $_SESSION['sfc_user'], 'brokerProfile' => $profile];
 }
