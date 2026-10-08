@@ -18,5 +18,6 @@ data/property-evidence/
 data/cache/
 *.bak
 *_backup.*
+*.zip
 assets/uploads/profiles/*
 !assets/uploads/profiles/.htaccess
