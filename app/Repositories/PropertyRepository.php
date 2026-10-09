@@ -658,7 +658,12 @@ final class PropertyRepository
                 } catch (\Throwable) {
                 }
             }
-            [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
+            try {
+                [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
+            } catch (\Throwable) {
+                [$category] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), null, (string) ($row['type'] ?? 'Land'));
+                $subcategory = null;
+            }
 
             return array_merge([
                 'id' => $propertyId,

@@ -91,6 +91,64 @@ final class PropertyCatalog
         if (!array_key_exists($category, $categories)) {
             throw new InvalidArgumentException('Choose a valid property category.');
         }
+
+        $legacySubcategoryMap = [
+            'Vacant Land' => [
+                'Commercial' => 'Commercial Lot',
+                'Industrial' => 'Industrial Lot',
+                'Residential' => 'Residential Lot',
+                'Agricultural' => 'Agricultural',
+                'Farm' => 'Farm / Agribusiness',
+                'Ranch' => 'Farm / Agribusiness',
+                'Islands' => 'Raw Land',
+                'Timber' => 'Raw Land',
+                'Hunting/Recreational' => 'Raw Land',
+                'Logistics' => 'Industrial Lot',
+            ],
+            'Commercial' => [
+                'Storefront' => 'Retail / Storefront',
+                'Retail' => 'Retail / Storefront',
+                'Restaurant' => 'Restaurant / Dining',
+                'Bar' => 'Restaurant / Dining',
+                'Bank' => 'Bank / Financial',
+                'Auto Shop' => 'Auto / Service Center',
+                'Convenience Store' => 'Retail / Storefront',
+                'Gas Station' => 'Auto / Service Center',
+                'Grocery Store' => 'Shopping Center',
+                'Pharmacy/Drug' => 'Retail / Storefront',
+                'Commercial Lot' => 'Commercial Building',
+            ],
+            'Industrial / Warehouse' => [
+                'Warehouse' => 'Warehouse / Storage',
+                'Distribution' => 'Logistics / Distribution',
+                'Logistics' => 'Logistics / Distribution',
+                'Flex' => 'Light Industrial',
+                'Manufacturing' => 'Factory / Manufacturing',
+                'Factory' => 'Factory / Manufacturing',
+                'R&D' => 'Light Industrial',
+                'Industrial Lot' => 'Light Industrial',
+            ],
+            'Office' => [
+                'Traditional Office' => 'Corporate Office',
+                'Executive Office' => 'Corporate Office',
+                'Creative Office' => 'Corporate Office',
+                'Medical Office' => 'Medical Office',
+                'BPO' => 'BPO / IT-BPM',
+            ],
+            'Residential' => [
+                'Student Housing' => 'Apartment Building',
+                'Single Family Rental Portfolio' => 'Housing Development',
+                'RV Park' => 'Residential Compound',
+                'Apartment Building' => 'Apartment Building',
+                'Residential Lot' => 'Housing Development',
+            ],
+            'Hospitality / Tourism' => [
+                'Hotel' => 'Hotel',
+                'Motel' => 'Lodging / Inn',
+                'Casino' => 'Resort',
+            ],
+        ];
+
         $subcategory = $subcategory === null || trim($subcategory) === '' ? null : trim($subcategory);
         if ($subcategory !== null) {
             $parts = array_values(array_unique(array_filter(
@@ -100,12 +158,15 @@ final class PropertyCatalog
             if (empty($parts)) {
                 $subcategory = null;
             } else {
+                $normalizedParts = [];
                 foreach ($parts as $part) {
-                    if (!in_array($part, $categories[$category], true)) {
+                    $resolved = $legacySubcategoryMap[$category][$part] ?? $part;
+                    if (!in_array($resolved, $categories[$category], true)) {
                         throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
                     }
+                    $normalizedParts[] = $resolved;
                 }
-                $subcategory = implode(', ', $parts);
+                $subcategory = implode(', ', array_unique($normalizedParts));
             }
         }
         return [$category, $subcategory];
