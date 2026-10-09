@@ -18,6 +18,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
             'loginUrl' => sfc_path(match ($user['role'] ?? '') { 'admin' => '/admin-login.php', 'seller' => '/seller-login.php', default => '/investor-login.php' }),
         ],
         'policy' => (require dirname(__DIR__) . '/config.php')['policy'],
+        'barangays' => \App\Support\PropertyCatalog::barangays(),
     ];
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     $legacy = (!str_starts_with($page, 'city-') || $page === 'city-pipeline') && !in_array($page, ['broker-workspace', 'admin-workspace', 'admin-listings', 'profile', 'investor-login', 'seller-login', 'admin-login'], true);

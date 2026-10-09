@@ -57,7 +57,32 @@
     }
     search.addEventListener('click', find);
     input.addEventListener('keydown', event => { if (event.key === 'Enter') {event.preventDefault();find();} });
-    results.addEventListener('click', event => { const button=event.target.closest('[data-location-result]');if (!button) return;const option=options[Number(button.dataset.locationResult)];place({lat:Number(option.lat),lng:Number(option.lng)});results.innerHTML=''; });
+    results.addEventListener('click', event => { const button=event.target.closest('[data-location-result]');if (!button) return;const option=options[Number(button.dataset.locationResult)];if (option.barangay && form.elements.barangay) form.elements.barangay.value = option.barangay;place({lat:Number(option.lat),lng:Number(option.lng)});results.innerHTML=''; });
+    const BARANGAY_COORDINATES = window.SFC_APP_CONFIG?.barangays || {};
+    function proceedToBarangay(name) {
+      if (!name) return false;
+      const bMap = window.SFC_APP_CONFIG?.barangays || BARANGAY_COORDINATES;
+      const clean = String(name).trim().toLowerCase().replace(/^barangay\s+/i, '');
+      for (const [bName, bData] of Object.entries(bMap)) {
+        const bNorm = bName.toLowerCase().replace(/^barangay\s+/i, '');
+        if (bNorm === clean || bName.toLowerCase() === clean || (clean.length >= 3 && (bNorm.includes(clean) || clean.includes(bNorm)))) {
+          place({lat: Number(bData.lat), lng: Number(bData.lng)});
+          if (map) map.flyTo([Number(bData.lat), Number(bData.lng)], 16);
+          status.textContent = `Proceeded to Barangay ${bName}. Coordinates set to ${Number(bData.lat).toFixed(6)}, ${Number(bData.lng).toFixed(6)}.`;
+          return true;
+        }
+      }
+      return false;
+    }
+    if (form.elements.barangay) {
+      form.elements.barangay.addEventListener('input', () => {
+        const val = form.elements.barangay.value.trim();
+        if (val.length >= 3) proceedToBarangay(val);
+      });
+      form.elements.barangay.addEventListener('change', () => {
+        proceedToBarangay(form.elements.barangay.value);
+      });
+    }
     form.querySelector('[data-use-map-center]').addEventListener('click', () => {sync();place(map.getCenter());});
     [form.elements.lat,form.elements.lng].forEach(field => field.addEventListener('change',sync));
     dialog.addEventListener('close', () => {controller?.abort();results.innerHTML='';input.value='';status.textContent='The pin is a location estimate. Verify it against the parcel records.';});

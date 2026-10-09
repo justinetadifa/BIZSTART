@@ -77,4 +77,16 @@ final class PropertyCatalog
         }
         return [$category, $subcategory];
     }
+
+    public static function barangays(): array
+    {
+        $path = dirname(__DIR__, 2) . '/data/barangays.json';
+        if (is_file($path)) {
+            $data = json_decode((string) file_get_contents($path), true);
+            if (is_array($data['barangays'] ?? null)) {
+                return $data['barangays'];
+            }
+        }
+        return [];
+    }
 }

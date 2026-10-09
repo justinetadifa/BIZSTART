@@ -429,7 +429,23 @@ final class ExternalServices
     private function fallbackSearch(string $query, array $properties): array
     {
         $needle = mb_strtolower($query);
+        $cleanNeedle = trim(str_ireplace('barangay', '', $needle));
         $results = [];
+
+        $allBarangays = PropertyCatalog::barangays();
+        foreach ($allBarangays as $bName => $bData) {
+            $bLower = mb_strtolower($bName);
+            if ($cleanNeedle !== '' && (str_contains($bLower, $cleanNeedle) || str_contains($cleanNeedle, $bLower))) {
+                $results[] = [
+                    'kind' => 'barangay',
+                    'label' => 'Barangay ' . $bName,
+                    'subtitle' => 'San Fernando City, La Union · ' . ($bData['district'] ?? 'Official Barangay Center'),
+                    'lat' => (float) $bData['lat'],
+                    'lng' => (float) $bData['lng'],
+                    'barangay' => $bName,
+                ];
+            }
+        }
         foreach ($properties as $property) {
             if (!is_array($property)) {
                 continue;

@@ -305,6 +305,126 @@
         boundaryMap.pm.disableDraw();history.push(boundary ? JSON.stringify(boundary) : null);parcelLayer?.remove();parcelLayer=null;updateBoundary();locationStatus('Boundary cleared. Draw the property outline again.');
       }
     }));
+    const BARANGAY_COORDINATES = {
+      "Barangay I": { "lat": 16.6162, "lng": 120.3172, "district": "Poblacion" },
+      "Barangay II": { "lat": 16.6151, "lng": 120.3181, "district": "Poblacion" },
+      "Barangay III": { "lat": 16.6170, "lng": 120.3160, "district": "Poblacion" },
+      "Barangay IV": { "lat": 16.6143, "lng": 120.3165, "district": "Poblacion" },
+      "Ilocanos Sur": { "lat": 16.6135, "lng": 120.3190, "district": "Downtown Core" },
+      "Ilocanos Norte": { "lat": 16.6185, "lng": 120.3150, "district": "Downtown Core" },
+      "Pagdaraoan": { "lat": 16.6232, "lng": 120.3198, "district": "North Urban" },
+      "Catbangen": { "lat": 16.6155, "lng": 120.3135, "district": "Downtown West" },
+      "Parian": { "lat": 16.6128, "lng": 120.3176, "district": "South Downtown" },
+      "Madaydegdeg": { "lat": 16.5935, "lng": 120.3145, "district": "South Coastal" },
+      "Canaoay": { "lat": 16.5936, "lng": 120.3023, "district": "South Coastal" },
+      "Poro": { "lat": 16.6067, "lng": 120.3048, "district": "Poro Point Special Economic Zone" },
+      "San Agustin": { "lat": 16.5980, "lng": 120.3270, "district": "South Urban" },
+      "San Francisco": { "lat": 16.601558, "lng": 120.304946, "district": "Port Zone" },
+      "Carlatan": { "lat": 16.6385, "lng": 120.3160, "district": "North Corridor" },
+      "Dalumpinas Este": { "lat": 16.647289, "lng": 120.326179, "district": "North Corridor" },
+      "Dalumpinas Oeste": { "lat": 16.650753, "lng": 120.315648, "district": "North Coastal" },
+      "Lingsat": { "lat": 16.6290, "lng": 120.3168, "district": "North Urban" },
+      "Abut": { "lat": 16.6432, "lng": 120.3541, "district": "Northeast Rural" },
+      "Bangcusay": { "lat": 16.6480, "lng": 120.3195, "district": "North Industrial" },
+      "Bato": { "lat": 16.6535, "lng": 120.3340, "district": "North Rural" },
+      "Biday": { "lat": 16.6340, "lng": 120.3250, "district": "Commercial North" },
+      "Mameltac": { "lat": 16.636780, "lng": 120.339418, "district": "Northeast Urban" },
+      "Namtutan": { "lat": 16.622679, "lng": 120.352228, "district": "East Upland" },
+      "Saoay": { "lat": 16.637580, "lng": 120.351397, "district": "Northeast Upland" },
+      "Pagdalagan": { "lat": 16.578966, "lng": 120.321938, "district": "South Highway" },
+      "Pagudpud": { "lat": 16.6090, "lng": 120.3305, "district": "East Urban" },
+      "San Vicente": { "lat": 16.587286, "lng": 120.310375, "district": "South Coastal" },
+      "Sevilla": { "lat": 16.6010, "lng": 120.3220, "district": "Commercial South / Robinsons Hub" },
+      "Birunget": { "lat": 16.585732, "lng": 120.351443, "district": "Southeast Rural" },
+      "Bungro": { "lat": 16.577902, "lng": 120.332847, "district": "South Highway" },
+      "Narra Este": { "lat": 16.586982, "lng": 120.343877, "district": "Southeast Rural" },
+      "Narra Oeste": { "lat": 16.590241, "lng": 120.338802, "district": "South Rural" },
+      "Sagayad": { "lat": 16.5985, "lng": 120.3305, "district": "East Foothills" },
+      "Sibuan-Otong": { "lat": 16.573832, "lng": 120.346712, "district": "Southeast Rural" },
+      "Tanquigan": { "lat": 16.577578, "lng": 120.342450, "district": "Southeast Rural" },
+      "Cabaroan": { "lat": 16.6255, "lng": 120.3330, "district": "East Residential" },
+      "Dallangayan Oeste": { "lat": 16.623902, "lng": 120.335840, "district": "East Central" },
+      "Santiago Sur": { "lat": 16.609653, "lng": 120.331109, "district": "Central East" },
+      "Tanqui": { "lat": 16.6205, "lng": 120.3215, "district": "Commercial East" },
+      "Cadaclan": { "lat": 16.606388, "lng": 120.353085, "district": "East Upland" },
+      "Camansi": { "lat": 16.613339, "lng": 120.347770, "district": "East Upland" },
+      "Dallangayan Este": { "lat": 16.622252, "lng": 120.343227, "district": "East Central" },
+      "Langcuas": { "lat": 16.611334, "lng": 120.344115, "district": "East Upland" },
+      "Pias": { "lat": 16.615508, "lng": 120.354351, "district": "East Upland" },
+      "Santiago Norte": { "lat": 16.616521, "lng": 120.336977, "district": "Central East" },
+      "Cabarsican": { "lat": 16.582706, "lng": 120.382212, "district": "Southeast Mountains" },
+      "Masicong": { "lat": 16.566880, "lng": 120.378499, "district": "Southeast Mountains" },
+      "Nagyubuyuban": { "lat": 16.637196, "lng": 120.421833, "district": "Eastern Highlands" },
+      "Pacpaco": { "lat": 16.614559, "lng": 120.416951, "district": "Eastern Highlands" },
+      "Pao Norte": { "lat": 16.603691, "lng": 120.392275, "district": "Eastern Highlands" },
+      "Pao Sur": { "lat": 16.591312, "lng": 120.385473, "district": "Eastern Highlands" },
+      "Sacyud": { "lat": 16.584731, "lng": 120.392940, "district": "Eastern Highlands" },
+      "Apaleng": { "lat": 16.596525, "lng": 120.375109, "district": "Eastern Foothills" },
+      "Bacsil": { "lat": 16.617142, "lng": 120.376012, "district": "East Rural" },
+      "Bangbangolan": { "lat": 16.627448, "lng": 120.382975, "district": "East Upland" },
+      "Baraoas": { "lat": 16.628271, "lng": 120.397658, "district": "Eastern Highlands" },
+      "Calabugao": { "lat": 16.6215, "lng": 120.3892, "district": "East Upland" },
+      "Puspus": { "lat": 16.633026, "lng": 120.371244, "district": "East Upland" }
+    };
+
+    function lookupBarangay(rawInput) {
+      if (!rawInput) return null;
+      const clean = String(rawInput).trim().toLowerCase().replace(/^barangay\s+/i, '');
+      const list = config.barangays && Object.keys(config.barangays).length ? config.barangays : BARANGAY_COORDINATES;
+      for (const [name, info] of Object.entries(list)) {
+        const normalized = name.toLowerCase().replace(/^barangay\s+/i, '');
+        if (normalized === clean || name.toLowerCase() === clean) {
+          return { name, lat: Number(info.lat), lng: Number(info.lng), district: info.district || '' };
+        }
+      }
+      if (clean.length >= 3) {
+        for (const [name, info] of Object.entries(list)) {
+          const normalized = name.toLowerCase().replace(/^barangay\s+/i, '');
+          if (normalized.includes(clean) || clean.includes(normalized)) {
+            return { name, lat: Number(info.lat), lng: Number(info.lng), district: info.district || '' };
+          }
+        }
+      }
+      return null;
+    }
+
+    function proceedToBarangay(name, notifyUser = true) {
+      const match = lookupBarangay(name);
+      if (!match) return false;
+      if (field('barangay') && field('barangay').value !== match.name && document.activeElement !== field('barangay')) {
+        field('barangay').value = match.name;
+      }
+      place({ lat: match.lat, lng: match.lng }, true);
+      if (locationMethod === 'area') {
+        selectLocationMethod('pin', false);
+      }
+      if (boundaryMap) {
+        boundaryMap.flyTo([match.lat, match.lng], 16, {
+          animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+          duration: 1.2,
+          easeLinearity: 0.25
+        });
+      }
+      if (notifyUser) {
+        locationStatus(`Proceeded to Barangay ${match.name} (${match.lat.toFixed(4)}, ${match.lng.toFixed(4)}). Pin placed on official center. Adjust to exact lot.`);
+        notify(`Proceeded to Barangay ${match.name}. Exact coordinates set.`);
+      }
+      preview();
+      ready();
+      return true;
+    }
+
+    field('barangay')?.addEventListener('input', () => {
+      const val = value('barangay').trim();
+      const match = lookupBarangay(val);
+      if (match && (val.toLowerCase() === match.name.toLowerCase() || val.toLowerCase() === match.name.toLowerCase().replace(/^barangay\s+/i, ''))) {
+        proceedToBarangay(val, false);
+      }
+    });
+    field('barangay')?.addEventListener('change', () => {
+      proceedToBarangay(value('barangay'), true);
+    });
+
     $('[data-use-map-center]')?.addEventListener('click', () => {syncLocation(false);if(boundaryMap)place(boundaryMap.getCenter(),false);});
     ['lat','lng'].forEach(name => field(name)?.addEventListener('change', () => {syncLocation();ready();}));
     async function search() {
@@ -314,12 +434,33 @@
       const button=$('[data-location-search-button]');button.disabled=true;
       locationStatus('Finding matching places…');
       try {
+        const localBgy = lookupBarangay(query);
         const payload=await get(`location-search.php?q=${encodeURIComponent(query)}`,searchController.signal);
-        const matches=(payload.search?.results || []).filter(item=>item.lat!=null && item.lng!=null && Number.isFinite(+item.lat) && Number.isFinite(+item.lng));
+        let matches=(payload.search?.results || []).filter(item=>item.lat!=null && item.lng!=null && Number.isFinite(+item.lat) && Number.isFinite(+item.lng));
+        if (localBgy && !matches.some(m => m.barangay === localBgy.name || m.label === ('Barangay ' + localBgy.name))) {
+          matches.unshift({
+            kind: 'barangay',
+            label: 'Barangay ' + localBgy.name,
+            subtitle: 'San Fernando City, La Union · ' + (localBgy.district || 'Official Barangay Center'),
+            lat: localBgy.lat,
+            lng: localBgy.lng,
+            barangay: localBgy.name
+          });
+        }
         const list=$('[data-location-results]');list.innerHTML='';
-        matches.slice(0,5).forEach(item=>{
-          const result=document.createElement('button');result.type='button';result.className='pw-search-result';result.textContent=[item.label,item.subtitle].filter(Boolean).join(' · ');
-          result.addEventListener('click',()=>{place({lat:+item.lat,lng:+item.lng});list.innerHTML='';});list.append(result);
+        matches.slice(0,6).forEach(item=>{
+          const result=document.createElement('button');result.type='button';result.className='pw-search-result';
+          result.innerHTML=`<strong class="tw-block">${escape(item.label)}</strong>${item.subtitle ? `<span class="tw-block tw-text-xs tw-text-slate-500">${escape(item.subtitle)}</span>` : ''}`;
+          result.addEventListener('click',()=>{
+            if (item.barangay || item.kind === 'barangay') {
+              if (field('barangay')) field('barangay').value = item.barangay || item.label.replace(/^Barangay\s+/i, '');
+              proceedToBarangay(item.barangay || item.label, true);
+            } else {
+              place({lat:+item.lat,lng:+item.lng});
+            }
+            list.innerHTML='';
+          });
+          list.append(result);
         });
         locationStatus(matches.length?'Choose a place, then adjust the pin to the exact property location.':'No matching places. Use the map or enter the coordinates.');
       } catch(error){if(error.name!=='AbortError')locationStatus(`${error.message} You can use the map or enter coordinates.`);}
@@ -1016,7 +1157,18 @@
       validateSurroundings(){
         return true;
       },
-      onStep(next){step=next;preview();if(next===1 && locationMethod!=='area'){syncLocation();renderLayers();}if(next===3)syncRadar();if(next===4){assessment?.refresh();matches();}if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}},
+      onStep(next){
+        step=next;
+        if(next===1 && value('barangay') && !point()){
+          proceedToBarangay(value('barangay'), false);
+        }
+        preview();
+        if(next===1 && locationMethod!=='area'){syncLocation();renderLayers();}
+        if(next===3)syncRadar();
+        if(next===4){assessment?.refresh();matches();}
+        if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}
+        if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}
+      },
       setProperty(property){
         const historicalStatus = field('status')?.querySelector('[value="Availed"]');
         if (historicalStatus) { historicalStatus.hidden = property?.status !== 'Availed'; historicalStatus.disabled = property?.status !== 'Availed'; }

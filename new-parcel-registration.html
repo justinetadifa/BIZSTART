@@ -392,12 +392,67 @@
           <!-- Location & Zoning -->
           <div class="grid grid-cols-2 gap-3">
             <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
-              <label for="parcelBarangay" class="block text-xs font-bold text-slate-300 mb-1">Barangay</label>
+              <label for="parcelBarangay" class="block text-xs font-bold text-slate-300 mb-1">Barangay (Select to auto-locate)</label>
               <select id="parcelBarangay" class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-amber-400">
-                <option value="Catbangen" selected>Catbangen (Downtown)</option>
-                <option value="Poro Point">Poro Point (Port Zone)</option>
+                <option value="Catbangen" selected>Catbangen (Downtown West)</option>
+                <option value="Barangay I">Barangay I (Poblacion)</option>
+                <option value="Barangay II">Barangay II (Poblacion)</option>
+                <option value="Barangay III">Barangay III (Poblacion)</option>
+                <option value="Barangay IV">Barangay IV (Poblacion)</option>
+                <option value="Ilocanos Sur">Ilocanos Sur (Downtown Core)</option>
+                <option value="Ilocanos Norte">Ilocanos Norte (Downtown Core)</option>
+                <option value="Parian">Parian (South Downtown)</option>
+                <option value="Pagdaraoan">Pagdaraoan (North Urban)</option>
+                <option value="Tanqui">Tanqui (Commercial East)</option>
+                <option value="Biday">Biday (Commercial North)</option>
                 <option value="Carlatan">Carlatan (North Corridor)</option>
-                <option value="Sevilla">Sevilla (Commercial)</option>
+                <option value="Lingsat">Lingsat (North Urban)</option>
+                <option value="Dalumpinas Este">Dalumpinas Este (North Corridor)</option>
+                <option value="Dalumpinas Oeste">Dalumpinas Oeste (North Coastal)</option>
+                <option value="Bangcusay">Bangcusay (North Industrial)</option>
+                <option value="Poro">Poro (Poro Point Freeport Zone)</option>
+                <option value="San Francisco">San Francisco (Port Zone)</option>
+                <option value="Canaoay">Canaoay (South Coastal)</option>
+                <option value="Madaydegdeg">Madaydegdeg (South Coastal)</option>
+                <option value="San Vicente">San Vicente (South Coastal)</option>
+                <option value="Sevilla">Sevilla (Commercial South / Robinsons)</option>
+                <option value="San Agustin">San Agustin (South Urban)</option>
+                <option value="Pagdalagan">Pagdalagan (South Highway)</option>
+                <option value="Pagudpud">Pagudpud (East Urban)</option>
+                <option value="Santiago Sur">Santiago Sur (Central East)</option>
+                <option value="Santiago Norte">Santiago Norte (Central East)</option>
+                <option value="Cabaroan">Cabaroan (East Residential)</option>
+                <option value="Dallangayan Oeste">Dallangayan Oeste (East Central)</option>
+                <option value="Dallangayan Este">Dallangayan Este (East Central)</option>
+                <option value="Langcuas">Langcuas (East Upland)</option>
+                <option value="Camansi">Camansi (East Upland)</option>
+                <option value="Cadaclan">Cadaclan (East Upland)</option>
+                <option value="Pias">Pias (East Upland)</option>
+                <option value="Mameltac">Mameltac (Northeast Urban)</option>
+                <option value="Namtutan">Namtutan (East Upland)</option>
+                <option value="Saoay">Saoay (Northeast Upland)</option>
+                <option value="Abut">Abut (Northeast Rural)</option>
+                <option value="Bato">Bato (North Rural)</option>
+                <option value="Sagayad">Sagayad (East Foothills)</option>
+                <option value="Bungro">Bungro (South Highway)</option>
+                <option value="Birunget">Birunget (Southeast Rural)</option>
+                <option value="Narra Este">Narra Este (Southeast Rural)</option>
+                <option value="Narra Oeste">Narra Oeste (South Rural)</option>
+                <option value="Sibuan-Otong">Sibuan-Otong (Southeast Rural)</option>
+                <option value="Tanquigan">Tanquigan (Southeast Rural)</option>
+                <option value="Apaleng">Apaleng (Eastern Foothills)</option>
+                <option value="Bacsil">Bacsil (East Rural)</option>
+                <option value="Bangbangolan">Bangbangolan (East Upland)</option>
+                <option value="Baraoas">Baraoas (Eastern Highlands)</option>
+                <option value="Calabugao">Calabugao (East Upland)</option>
+                <option value="Puspus">Puspus (East Upland)</option>
+                <option value="Cabarsican">Cabarsican (Southeast Mountains)</option>
+                <option value="Masicong">Masicong (Southeast Mountains)</option>
+                <option value="Nagyubuyuban">Nagyubuyuban (Eastern Highlands)</option>
+                <option value="Pacpaco">Pacpaco (Eastern Highlands)</option>
+                <option value="Pao Norte">Pao Norte (Eastern Highlands)</option>
+                <option value="Pao Sur">Pao Sur (Eastern Highlands)</option>
+                <option value="Sacyud">Sacyud (Eastern Highlands)</option>
               </select>
             </div>
             <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3">
@@ -579,6 +634,100 @@
     map.on('mousemove', function(e) {
       document.getElementById('coordsDisplay').textContent = e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
     });
+
+    // 59 Official Barangays Coordinates Lookup
+    var BARANGAY_COORDS = {
+      "Barangay I": { lat: 16.6162, lng: 120.3172 },
+      "Barangay II": { lat: 16.6151, lng: 120.3181 },
+      "Barangay III": { lat: 16.6170, lng: 120.3160 },
+      "Barangay IV": { lat: 16.6143, lng: 120.3165 },
+      "Ilocanos Sur": { lat: 16.6135, lng: 120.3190 },
+      "Ilocanos Norte": { lat: 16.6185, lng: 120.3150 },
+      "Pagdaraoan": { lat: 16.6232, lng: 120.3198 },
+      "Catbangen": { lat: 16.6155, lng: 120.3135 },
+      "Parian": { lat: 16.6128, lng: 120.3176 },
+      "Madaydegdeg": { lat: 16.5935, lng: 120.3145 },
+      "Canaoay": { lat: 16.5936, lng: 120.3023 },
+      "Poro": { lat: 16.6067, lng: 120.3048 },
+      "San Agustin": { lat: 16.5980, lng: 120.3270 },
+      "San Francisco": { lat: 16.601558, lng: 120.304946 },
+      "Carlatan": { lat: 16.6385, lng: 120.3160 },
+      "Dalumpinas Este": { lat: 16.647289, lng: 120.326179 },
+      "Dalumpinas Oeste": { lat: 16.650753, lng: 120.315648 },
+      "Lingsat": { lat: 16.6290, lng: 120.3168 },
+      "Abut": { lat: 16.6432, lng: 120.3541 },
+      "Bangcusay": { lat: 16.6480, lng: 120.3195 },
+      "Bato": { lat: 16.6535, lng: 120.3340 },
+      "Biday": { lat: 16.6340, lng: 120.3250 },
+      "Mameltac": { lat: 16.636780, lng: 120.339418 },
+      "Namtutan": { lat: 16.622679, lng: 120.352228 },
+      "Saoay": { lat: 16.637580, lng: 120.351397 },
+      "Pagdalagan": { lat: 16.578966, lng: 120.321938 },
+      "Pagudpud": { lat: 16.6090, lng: 120.3305 },
+      "San Vicente": { lat: 16.587286, lng: 120.310375 },
+      "Sevilla": { lat: 16.6010, lng: 120.3220 },
+      "Birunget": { lat: 16.585732, lng: 120.351443 },
+      "Bungro": { lat: 16.577902, lng: 120.332847 },
+      "Narra Este": { lat: 16.586982, lng: 120.343877 },
+      "Narra Oeste": { lat: 16.590241, lng: 120.338802 },
+      "Sagayad": { lat: 16.5985, lng: 120.3305 },
+      "Sibuan-Otong": { lat: 16.573832, lng: 120.346712 },
+      "Tanquigan": { lat: 16.577578, lng: 120.342450 },
+      "Cabaroan": { lat: 16.6255, lng: 120.3330 },
+      "Dallangayan Oeste": { lat: 16.623902, lng: 120.335840 },
+      "Santiago Sur": { lat: 16.609653, lng: 120.331109 },
+      "Tanqui": { lat: 16.6205, lng: 120.3215 },
+      "Cadaclan": { lat: 16.606388, lng: 120.353085 },
+      "Camansi": { lat: 16.613339, lng: 120.347770 },
+      "Dallangayan Este": { lat: 16.622252, lng: 120.343227 },
+      "Langcuas": { lat: 16.611334, lng: 120.344115 },
+      "Pias": { lat: 16.615508, lng: 120.354351 },
+      "Santiago Norte": { lat: 16.616521, lng: 120.336977 },
+      "Cabarsican": { lat: 16.582706, lng: 120.382212 },
+      "Masicong": { lat: 16.566880, lng: 120.378499 },
+      "Nagyubuyuban": { lat: 16.637196, lng: 120.421833 },
+      "Pacpaco": { lat: 16.614559, lng: 120.416951 },
+      "Pao Norte": { lat: 16.603691, lng: 120.392275 },
+      "Pao Sur": { lat: 16.591312, lng: 120.385473 },
+      "Sacyud": { lat: 16.584731, lng: 120.392940 },
+      "Apaleng": { lat: 16.596525, lng: 120.375109 },
+      "Bacsil": { lat: 16.617142, lng: 120.376012 },
+      "Bangbangolan": { lat: 16.627448, lng: 120.382975 },
+      "Baraoas": { lat: 16.628271, lng: 120.397658 },
+      "Calabugao": { lat: 16.6215, lng: 120.3892 },
+      "Puspus": { lat: 16.633026, lng: 120.371244 }
+    };
+
+    var brgyMarker = null;
+    function proceedToBarangay(name) {
+      if (!name) return;
+      var c = BARANGAY_COORDS[name];
+      if (!c) return;
+      map.flyTo([c.lat, c.lng], 16, { animate: true, duration: 1.2 });
+      var coordsEl = document.getElementById('coordsDisplay');
+      if (coordsEl) coordsEl.textContent = c.lat.toFixed(5) + ', ' + c.lng.toFixed(5);
+
+      if (brgyMarker) {
+        brgyMarker.setLatLng([c.lat, c.lng]);
+      } else {
+        brgyMarker = L.circleMarker([c.lat, c.lng], {
+          radius: 9,
+          fillColor: '#f59e0b',
+          color: '#ffffff',
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.95
+        }).addTo(map);
+      }
+      brgyMarker.bindPopup('<div class="p-1 text-slate-900 font-sans"><b class="text-amber-600 font-bold">📍 Brgy. ' + name + '</b><br><span class="text-xs text-slate-600">Coordinates: ' + c.lat.toFixed(5) + ', ' + c.lng.toFixed(5) + '</span><br><span class="text-[10px] text-emerald-600 font-semibold">Official Center / Viewport Centered</span></div>').openPopup();
+    }
+
+    var brgySelect = document.getElementById('parcelBarangay');
+    if (brgySelect) {
+      brgySelect.addEventListener('change', function() {
+        proceedToBarangay(this.value);
+      });
+    }
 
     function switchBasemap(mode) {
       map.removeLayer(esriSatellite);
