@@ -616,7 +616,14 @@
         autoPanPaddingBottomRight: L.point(70, 40),
       });
 
-      marker.on('click', () => setActive(p.id, { scrollCard: true }));
+      marker.on('click', () => {
+        setActive(p.id, { scrollCard: true });
+        map.flyTo([p.lat, p.lng], Math.max(map.getZoom(), 16), {
+          duration: 0.9,
+          easeLinearity: 0.25
+        });
+        marker.openPopup();
+      });
       marker.on('mouseover', () => setHover(p.id));
       marker.on('mouseout', () => setHover(null));
       marker.on('add', () => syncMarkerClasses(p.id));
@@ -686,7 +693,13 @@
 
       const marker = markerById.get(id);
       if (pan && marker) {
-        clusterGroup.zoomToShowLayer(marker, () => marker.openPopup());
+        clusterGroup.zoomToShowLayer(marker, () => {
+          marker.openPopup();
+          map.flyTo(marker.getLatLng(), Math.max(map.getZoom(), 16), {
+            duration: 0.8,
+            easeLinearity: 0.25
+          });
+        });
       }
       if (scrollCard) {
         document.querySelector(`[data-card-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

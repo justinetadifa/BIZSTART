@@ -9,7 +9,7 @@ sfc_render_head('Property Details | LOCUS-SF', $context, ['page' => 'city-detail
 sfc_render_header($context, 'explorer');
 ?>
 <main class="city-container city-workspace">
-    <div class="property-page-toolbar no-print">
+    <div class="property-page-toolbar no-print print:tw-hidden">
         <p class="city-back-nav"><a class="city-link" href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>">← Properties</a></p>
         <?php sfc_investor_view_control($context); ?>
     </div>

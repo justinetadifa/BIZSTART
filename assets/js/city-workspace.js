@@ -891,11 +891,62 @@ function createPopupContent(property) {
           </div>
         ` : ''}
         <div class="locus-popup-footer">
-          <a class="locus-popup-btn" href="${path(`property-details.php?id=${property.id}`)}">View details & contact →</a>
+          <a class="locus-popup-btn" href="${path(`property-details.php?id=${property.id}`)}">View details &amp; contact &rarr;</a>
+          <a class="locus-popup-sub-btn" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${property.lat},${property.lng}`)}" target="_blank" rel="noopener" title="Open this location in Google Maps">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span>Open in Google Maps &nearr;</span>
+          </a>
         </div>
       </div>
     </div>
   `;
+}
+
+let activeMarker = null;
+
+function flyToPropertyMarker(property, marker, shouldOpenPopup = true) {
+  if (!map || !property || !hasCoordinates(property)) return;
+
+  const targetZoom = Math.max(map.getZoom(), 16);
+  const targetLatLng = L.latLng(Number(property.lat), Number(property.lng));
+
+  if (activeMarker && activeMarker !== marker && activeMarker.propertyData) {
+    activeMarker.setIcon(createPillIcon(activeMarker.propertyData, false, false));
+    if (typeof activeMarker.setZIndexOffset === 'function') {
+      activeMarker.setZIndexOffset(0);
+    }
+  }
+
+  activeMarker = marker;
+  if (marker && property) {
+    marker.setIcon(createPillIcon(property, false, true));
+    if (typeof marker.setZIndexOffset === 'function') {
+      marker.setZIndexOffset(1000);
+    }
+  }
+
+  // Smooth Google Maps-style camera flight
+  map.flyTo(targetLatLng, targetZoom, {
+    animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+    duration: 1.1,
+    easeLinearity: 0.25
+  });
+
+  if (shouldOpenPopup && marker) {
+    marker.openPopup();
+  }
+
+  document.querySelectorAll('.city-property-card').forEach(c => {
+    c.classList.remove('is-active-card', 'is-map-hovered');
+  });
+
+  const card = document.querySelector(`.city-property-card[data-property-id="${property.id}"]`);
+  if (card) {
+    card.classList.add('is-active-card', 'is-map-hovered');
+    if (window.innerWidth > 850) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
 }
 
 function setupMap() {
@@ -979,20 +1030,81 @@ function setupMap() {
       if (!businessLayer) {
         const response = await fetch(`${config.apiBase}/competitors.php`, { credentials: 'same-origin' });
         if (!response.ok) throw new Error('Nearby businesses unavailable.');
-        businessLayer = L.geoJSON(await response.json(), {
-          pointToLayer: (feature, latlng) => L.circleMarker(latlng, { radius: 6, color: '#fff', weight: 2, fillColor: '#1d4ed8', fillOpacity: 0.95 }),
-          onEachFeature: (feature, layer) => layer.bindPopup(`<div class="city-popup"><strong>${esc(feature.properties?.name || 'Local business')}</strong><p>${esc(feature.properties?.note || 'Stored local business location.')}</p>${feature.properties?.checkedOn ? `<small>Checked ${esc(feature.properties.checkedOn)}</small>` : ''}</div>`),
+        const geojsonData = await response.json();
+        businessLayer = L.geoJSON(geojsonData, {
+          pointToLayer: (feature, latlng) => {
+            const props = feature.properties || {};
+            const col = props.categoryColor === 'amber' ? '#f59e0b'
+              : (props.categoryColor === 'blue' ? '#2563eb'
+              : (props.categoryColor === 'emerald' ? '#10b981'
+              : (props.categoryColor === 'purple' ? '#9333ea'
+              : (props.categoryColor === 'indigo' ? '#4f46e5' : '#475569'))));
+            return L.circleMarker(latlng, {
+              radius: 7,
+              color: '#ffffff',
+              weight: 2,
+              fillColor: col,
+              fillOpacity: 0.95
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            const name = esc(props.name || 'Local business');
+            const category = esc(props.category || 'Commercial');
+            const address = esc(props.address || props.barangay || 'San Fernando City');
+            const note = esc(props.note || '');
+            const coords = feature.geometry?.coordinates || [0, 0];
+            const lat = Number(coords[1]);
+            const lng = Number(coords[0]);
+            const colClass = props.categoryColor === 'amber' ? 'tw-bg-amber-100 tw-text-amber-800'
+              : (props.categoryColor === 'blue' ? 'tw-bg-blue-100 tw-text-blue-800'
+              : (props.categoryColor === 'emerald' ? 'tw-bg-emerald-100 tw-text-emerald-800'
+              : (props.categoryColor === 'purple' ? 'tw-bg-purple-100 tw-text-purple-800'
+              : 'tw-bg-slate-100 tw-text-slate-800')));
+            layer.bindPopup(`
+              <div class="locus-biz-popup">
+                <div class="locus-biz-popup-header">
+                  <span class="locus-biz-cat-badge ${colClass}">${category}</span>
+                  <span class="locus-biz-status-badge">Operating</span>
+                </div>
+                <strong class="locus-biz-name">${name}</strong>
+                <p class="locus-biz-address">${address}</p>
+                ${note ? `<p class="locus-biz-note">${note}</p>` : ''}
+                <a class="locus-biz-gmaps-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}" target="_blank" rel="noopener">
+                  Open in Google Maps &nearr;
+                </a>
+              </div>
+            `, { className: 'locus-popup', maxWidth: 280, minWidth: 220 });
+
+            layer.on('click', () => {
+              map.flyTo(layer.getLatLng(), Math.max(map.getZoom(), 16), {
+                animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+                duration: 1.0,
+                easeLinearity: 0.25
+              });
+              layer.openPopup();
+            });
+          },
         });
       }
-      if (event.target.checked && advancedView()) {
-        businessLayer.addTo(map);
-        status.textContent = 'Stored locations';
-      }
+      businessLayer.addTo(map);
+      status.textContent = 'Active commercial directory';
     } catch (error) {
       event.target.checked = false;
       status.textContent = error.message;
     }
   });
+
+  // Keep map sharply rendered across all screen resize & orientation events
+  const handleViewportResize = () => {
+    if (map) {
+      map.invalidateSize();
+    }
+  };
+  window.addEventListener('resize', handleViewportResize, { passive: true });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(handleViewportResize, 250);
+  }, { passive: true });
 
   setupCardHoverSync();
 }
@@ -1052,20 +1164,41 @@ function renderMarkers() {
 
     marker.bindPopup(createPopupContent(property), {
       className: 'locus-popup',
-      maxWidth: 300,
+      maxWidth: 320,
       minWidth: 260
     });
 
+    marker.on('click', () => {
+      flyToPropertyMarker(property, marker, true);
+    });
+
+    marker.on('popupclose', () => {
+      if (activeMarker === marker) {
+        marker.setIcon(createPillIcon(property, false, false));
+        if (typeof marker.setZIndexOffset === 'function') {
+          marker.setZIndexOffset(0);
+        }
+        activeMarker = null;
+        document.querySelector(`.city-property-card[data-property-id="${property.id}"]`)?.classList.remove('is-active-card', 'is-map-hovered');
+      }
+    });
+
     marker.on('mouseover', () => {
-      marker.setIcon(createPillIcon(property, true));
+      if (marker !== activeMarker) {
+        marker.setIcon(createPillIcon(property, true, false));
+      }
       const card = document.querySelector(`.city-property-card[data-property-id="${property.id}"]`);
       if (card) card.classList.add('is-map-hovered');
     });
 
     marker.on('mouseout', () => {
-      marker.setIcon(createPillIcon(property, false));
+      if (marker !== activeMarker) {
+        marker.setIcon(createPillIcon(property, false, false));
+      }
       const card = document.querySelector(`.city-property-card[data-property-id="${property.id}"]`);
-      if (card) card.classList.remove('is-map-hovered');
+      if (card && !card.classList.contains('is-active-card')) {
+        card.classList.remove('is-map-hovered');
+      }
     });
 
     markerMap.set(property.id, marker);
@@ -1083,8 +1216,8 @@ function setupCardHoverSync() {
     if (!card) return;
     const id = Number(card.dataset.propertyId);
     const marker = markerMap.get(id);
-    if (marker && marker.propertyData) {
-      marker.setIcon(createPillIcon(marker.propertyData, true));
+    if (marker && marker.propertyData && marker !== activeMarker) {
+      marker.setIcon(createPillIcon(marker.propertyData, true, false));
     }
   });
 
@@ -1093,8 +1226,23 @@ function setupCardHoverSync() {
     if (!card) return;
     const id = Number(card.dataset.propertyId);
     const marker = markerMap.get(id);
+    if (marker && marker.propertyData && marker !== activeMarker) {
+      marker.setIcon(createPillIcon(marker.propertyData, false, false));
+    }
+  });
+
+  // Card click sync: click anywhere on card (outside direct links) to smoothly fly to the property pin on map
+  grid.addEventListener('click', event => {
+    if (event.target.closest('a[href], button')) return;
+    const card = event.target.closest('.city-property-card');
+    if (!card) return;
+    const id = Number(card.dataset.propertyId);
+    const marker = markerMap.get(id);
     if (marker && marker.propertyData) {
-      marker.setIcon(createPillIcon(marker.propertyData, false));
+      flyToPropertyMarker(marker.propertyData, marker, true);
+      if (window.innerWidth <= 850) {
+        document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   });
 }
@@ -1365,8 +1513,19 @@ async function renderDetails() {
           <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(biz.name)}</strong>
           <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(biz.category)}</span>
           <span style="font-size:10px;font-weight:700;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#334155;">${esc(biz.distanceFormatted)} &middot; ${esc(biz.walkingFormatted || '')}</span>
+          <div style="margin-top:6px;">
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${biz.lat},${biz.lng}`)}" target="_blank" rel="noopener" style="font-size:10.5px;color:#2563eb;text-decoration:none;font-weight:600;">Open in Google Maps &nearr;</a>
+          </div>
         </div>
       `);
+      marker.on('click', () => {
+        map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
+          animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+          duration: 1.0,
+          easeLinearity: 0.25
+        });
+        marker.openPopup();
+      });
       biz._marker = marker;
       bizGroup.addLayer(marker);
     });
@@ -1388,7 +1547,11 @@ async function renderDetails() {
       const idx = Number(btn.dataset.locateBiz);
       const biz = property.nearbyBusinesses?.[idx];
       if (map && hasCoordinates(biz)) {
-        map.setView([biz.lat, biz.lng], 16, { animate: true });
+        map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
+          animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+          duration: 1.0,
+          easeLinearity: 0.25
+        });
         if (biz._marker) {
           biz._marker.openPopup();
         }

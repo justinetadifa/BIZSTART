@@ -2375,6 +2375,12 @@ function mountLeafletMapFallback({
       .addTo(map);
 
     marker.on("click", () => {
+      map.flyTo([lat, lng], Math.max(map.getZoom(), 16), {
+        animate: !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+        duration: 1.0,
+        easeLinearity: 0.25
+      });
+      marker.openPopup();
       onSelect?.(property.id);
     });
 
@@ -2505,6 +2511,13 @@ function mountPropertyMap({
 
     el.addEventListener("click", (e) => {
       e.stopPropagation();
+      map.flyTo({
+        center: [lng, lat],
+        zoom: Math.max(map.getZoom(), 16),
+        duration: 1000,
+        essential: true
+      });
+      marker.togglePopup();
       onSelect?.(property.id);
     });
 
@@ -11667,8 +11680,12 @@ async function initExplorer() {
         delete retainedMap.dataset.overviewPending;
       }
       if (mapActiveId !== activeId && entry.markers.has(activeId)) {
-        if (entry.isLeaflet) entry.map.setView(entry.markers.get(activeId).getLatLng(), 15, { animate: !matchMedia("(prefers-reduced-motion: reduce)").matches });
-        else entry.map.easeTo({ center: entry.markers.get(activeId).getLngLat(), zoom: 15, duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 700 });
+        if (entry.isLeaflet) {
+          entry.map.flyTo(entry.markers.get(activeId).getLatLng(), Math.max(entry.map.getZoom(), 16), { animate: !matchMedia("(prefers-reduced-motion: reduce)").matches, duration: 1.0 });
+          entry.markers.get(activeId).openPopup();
+        } else {
+          entry.map.flyTo({ center: entry.markers.get(activeId).getLngLat(), zoom: Math.max(entry.map.getZoom(), 16), duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 1000, essential: true });
+        }
       }
       if (radarMapTarget) competitorRadarInstance?.updateTargetPosition(radarMapTarget, { suppressAlert: true });
     } else {

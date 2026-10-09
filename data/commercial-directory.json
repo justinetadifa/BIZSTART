@@ -1,0 +1,1339 @@
+{
+  "type": "FeatureCollection",
+  "generated": "2026-10-09",
+  "title": "San Fernando City Commercial & Landmark Directory",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "biz-robinsons-la-union",
+      "geometry": { "type": "Point", "coordinates": [120.3189, 16.6008] },
+      "properties": {
+        "id": "biz-robinsons-la-union",
+        "name": "Robinsons Place La Union",
+        "category": "mall",
+        "businessType": "mall",
+        "categoryKey": "mall",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Major regional commercial mall, retail center, dining & cinema complex.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-csi-city-mall",
+      "geometry": { "type": "Point", "coordinates": [120.3283, 16.6295] },
+      "properties": {
+        "id": "biz-csi-city-mall",
+        "name": "CSI City Mall La Union",
+        "category": "mall",
+        "businessType": "mall",
+        "categoryKey": "mall",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "MacArthur Highway / Diversion Road, Pagdaraoan, San Fernando City",
+        "note": "Commercial shopping center, department store, and regional retail hub.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-csi-market-square",
+      "geometry": { "type": "Point", "coordinates": [120.3168, 16.6173] },
+      "properties": {
+        "id": "biz-csi-market-square",
+        "name": "CSI Market Square",
+        "category": "supermarket",
+        "businessType": "supermarket",
+        "categoryKey": "supermarket",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "P. Burgos St, Downtown Central, San Fernando City",
+        "note": "Downtown commercial supermarket & shopping square.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-manna-mall",
+      "geometry": { "type": "Point", "coordinates": [120.3242, 16.6238] },
+      "properties": {
+        "id": "biz-manna-mall",
+        "name": "Manna Mall",
+        "category": "mall",
+        "businessType": "mall",
+        "categoryKey": "mall",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "Diversion Road, Pagdaraoan, San Fernando City",
+        "note": "Commercial shopping mall, retail shops, and dining outlets.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sfc-public-market",
+      "geometry": { "type": "Point", "coordinates": [120.3175, 16.6160] },
+      "properties": {
+        "id": "biz-sfc-public-market",
+        "name": "San Fernando City Public Market",
+        "category": "marketplace",
+        "businessType": "marketplace",
+        "categoryKey": "marketplace",
+        "status": "operating",
+        "barangay": "Barangay I",
+        "address": "Gov. Luna St, Downtown Central, San Fernando City",
+        "note": "Central commercial marketplace and primary municipal food retail district.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-puregold-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3162, 16.6168] },
+      "properties": {
+        "id": "biz-puregold-downtown",
+        "name": "Puregold San Fernando",
+        "category": "supermarket",
+        "businessType": "supermarket",
+        "categoryKey": "supermarket",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown, San Fernando City",
+        "note": "High-volume commercial supermarket and grocery wholesale chain.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-robinsons-supermarket",
+      "geometry": { "type": "Point", "coordinates": [120.3188, 16.6009] },
+      "properties": {
+        "id": "biz-robinsons-supermarket",
+        "name": "Robinsons Supermarket",
+        "category": "supermarket",
+        "businessType": "supermarket",
+        "categoryKey": "supermarket",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "Robinsons Place La Union, MacArthur Highway, Sevilla",
+        "note": "Full-service modern supermarket and fresh food retailer.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-jollibee-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3170, 16.6178] },
+      "properties": {
+        "id": "biz-jollibee-plaza",
+        "name": "Jollibee San Fernando Plaza",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave cor. P. Burgos St, Downtown Central",
+        "note": "Flagship downtown QSR anchor with drive-thru & 24/7 operations.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-jollibee-sevilla-active",
+      "geometry": { "type": "Point", "coordinates": [120.3184, 16.6021] },
+      "properties": {
+        "id": "biz-jollibee-sevilla-active",
+        "name": "Jollibee San Fernando 3 - Sevilla",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "High-traffic arterial drive-thru QSR establishment.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-jollibee-diversion",
+      "geometry": { "type": "Point", "coordinates": [120.3275, 16.6288] },
+      "properties": {
+        "id": "biz-jollibee-diversion",
+        "name": "Jollibee Diversion Pagdaraoan",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "Diversion Road, Pagdaraoan, San Fernando City",
+        "note": "Highway corridor quick-service restaurant and commercial anchor.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mcdonalds-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3165, 16.6164] },
+      "properties": {
+        "id": "biz-mcdonalds-plaza",
+        "name": "McDonald's City Plaza",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, across City Hall Plaza, San Fernando City",
+        "note": "Prime multi-level city center QSR with drive-thru & high pedestrian footfall.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mcdonalds-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3182, 16.6035] },
+      "properties": {
+        "id": "biz-mcdonalds-sevilla",
+        "name": "McDonald's Sevilla",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Arterial drive-thru QSR and McCafe on major provincial highway.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-chowking-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3163, 16.6160] },
+      "properties": {
+        "id": "biz-chowking-plaza",
+        "name": "Chowking San Fernando Plaza",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Chinese-Filipino QSR dining establishment.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mang-inasal-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3172, 16.6176] },
+      "properties": {
+        "id": "biz-mang-inasal-plaza",
+        "name": "Mang Inasal City Plaza",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave cor. P. Burgos St, San Fernando City",
+        "note": "Casual grilled chicken dining and Filipino fast food establishment.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-greenwich-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3171, 16.6180] },
+      "properties": {
+        "id": "biz-greenwich-plaza",
+        "name": "Greenwich Pizza & Pasta",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "National pizza & pasta quick-service franchise.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-kfc-robinsons",
+      "geometry": { "type": "Point", "coordinates": [120.3189, 16.6007] },
+      "properties": {
+        "id": "biz-kfc-robinsons",
+        "name": "KFC Robinsons Place La Union",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "Robinsons Place La Union, Sevilla, San Fernando City",
+        "note": "International quick-service fried chicken dining outlet.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-kfc-manna-mall",
+      "geometry": { "type": "Point", "coordinates": [120.3241, 16.6237] },
+      "properties": {
+        "id": "biz-kfc-manna-mall",
+        "name": "KFC Manna Mall",
+        "category": "fast_food",
+        "businessType": "fast_food",
+        "categoryKey": "fast_food",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "Manna Mall, Diversion Road, Pagdaraoan",
+        "note": "Quick-service restaurant dining outlet.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-shakeys-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3185, 16.6042] },
+      "properties": {
+        "id": "biz-shakeys-sevilla",
+        "name": "Shakey's Pizza Parlor",
+        "category": "restaurant",
+        "businessType": "restaurant",
+        "categoryKey": "restaurant",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Full-service casual family restaurant with pizza & chicken.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-halo-halo-de-iloko",
+      "geometry": { "type": "Point", "coordinates": [120.3198, 16.6171] },
+      "properties": {
+        "id": "biz-halo-halo-de-iloko",
+        "name": "Halo Halo de Iloko Balay",
+        "category": "restaurant",
+        "businessType": "restaurant",
+        "categoryKey": "restaurant",
+        "status": "operating",
+        "barangay": "Tanqui",
+        "address": "Zandueta St, Tanqui, San Fernando City",
+        "note": "Iconic regional culinary tourist attraction and heritage restaurant.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-starbucks-robinsons",
+      "geometry": { "type": "Point", "coordinates": [120.3188, 16.6006] },
+      "properties": {
+        "id": "biz-starbucks-robinsons",
+        "name": "Starbucks Coffee",
+        "category": "cafe",
+        "businessType": "cafe",
+        "categoryKey": "cafe",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "Ground Floor, Robinsons Place La Union, Sevilla",
+        "note": "Specialty coffee shop, meetings and premium beverage lounge.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-red-ribbon-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3165, 16.6157] },
+      "properties": {
+        "id": "biz-red-ribbon-plaza",
+        "name": "Red Ribbon Bakeshop",
+        "category": "bakery",
+        "businessType": "bakery",
+        "categoryKey": "bakery",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Commercial bakeshop, cakes and pastry retail specialty store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-goldilocks-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3167, 16.6151] },
+      "properties": {
+        "id": "biz-goldilocks-plaza",
+        "name": "Goldilocks Bakeshop",
+        "category": "bakery",
+        "businessType": "bakery",
+        "categoryKey": "bakery",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Commercial bakery, pastry and food shop.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-dunkin-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3167, 16.6168] },
+      "properties": {
+        "id": "biz-dunkin-downtown",
+        "name": "Dunkin' Downtown",
+        "category": "cafe",
+        "businessType": "cafe",
+        "categoryKey": "cafe",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave cor. P. Burgos St, San Fernando City",
+        "note": "Coffee and donut quick-service retail store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-dunkin-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3183, 16.6028] },
+      "properties": {
+        "id": "biz-dunkin-sevilla",
+        "name": "Dunkin' Sevilla",
+        "category": "cafe",
+        "businessType": "cafe",
+        "categoryKey": "cafe",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Highway corridor coffee & baked goods store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-plaza",
+      "geometry": { "type": "Point", "coordinates": [120.3167, 16.6152] },
+      "properties": {
+        "id": "biz-7eleven-plaza",
+        "name": "7-Eleven City Plaza",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "24/7 convenience retail and payment kiosk.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3182, 16.6019] },
+      "properties": {
+        "id": "biz-7eleven-sevilla",
+        "name": "7-Eleven Sevilla",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "24/7 arterial convenience store with ATM & e-wallet top-up.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-tanqui",
+      "geometry": { "type": "Point", "coordinates": [120.3213, 16.6158] },
+      "properties": {
+        "id": "biz-7eleven-tanqui",
+        "name": "7-Eleven Tanqui",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Tanqui",
+        "address": "Gov. Luna St, Tanqui, San Fernando City",
+        "note": "Neighborhood 24/7 convenience store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-catbangen",
+      "geometry": { "type": "Point", "coordinates": [120.3202, 16.6190] },
+      "properties": {
+        "id": "biz-7eleven-catbangen",
+        "name": "7-Eleven Catbangen",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Catbangen",
+        "address": "Pennsylvania Ave, Catbangen, San Fernando City",
+        "note": "24/7 convenience store near university corridor.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3160, 16.6385] },
+      "properties": {
+        "id": "biz-7eleven-carlatan",
+        "name": "7-Eleven Carlatan",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "24/7 convenience store serving college & medical corridor.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-7eleven-biday",
+      "geometry": { "type": "Point", "coordinates": [120.3290, 16.6310] },
+      "properties": {
+        "id": "biz-7eleven-biday",
+        "name": "7-Eleven Biday",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Biday",
+        "address": "Diversion Road, Biday, San Fernando City",
+        "note": "Highway corridor convenience store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-citihardware-biday",
+      "geometry": { "type": "Point", "coordinates": [120.3295, 16.6325] },
+      "properties": {
+        "id": "biz-citihardware-biday",
+        "name": "CitiHardware San Fernando",
+        "category": "hardware",
+        "businessType": "hardware",
+        "categoryKey": "hardware",
+        "status": "operating",
+        "barangay": "Biday",
+        "address": "Diversion Road, Biday, San Fernando City",
+        "note": "Big-box retail building materials, DIY hardware, and construction supply depot.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-wilcon-depot",
+      "geometry": { "type": "Point", "coordinates": [120.3310, 16.6340] },
+      "properties": {
+        "id": "biz-wilcon-depot",
+        "name": "Wilcon Depot San Fernando",
+        "category": "hardware",
+        "businessType": "hardware",
+        "categoryKey": "hardware",
+        "status": "operating",
+        "barangay": "Biday",
+        "address": "MacArthur Highway, Biday, San Fernando City",
+        "note": "Large-format home improvement, tiles, sanitary and construction center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-itrmc-hospital",
+      "geometry": { "type": "Point", "coordinates": [120.3195, 16.5925] },
+      "properties": {
+        "id": "biz-itrmc-hospital",
+        "name": "Ilocos Training and Regional Medical Center (ITRMC)",
+        "category": "hospital",
+        "businessType": "hospital",
+        "categoryKey": "hospital",
+        "status": "operating",
+        "barangay": "Parian",
+        "address": "MacArthur Highway, Parian, San Fernando City",
+        "note": "Apex government tertiary hospital, trauma center & regional medical institution.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-lorma-medical-center",
+      "geometry": { "type": "Point", "coordinates": [120.3165, 16.6378] },
+      "properties": {
+        "id": "biz-lorma-medical-center",
+        "name": "Lorma Medical Center",
+        "category": "hospital",
+        "businessType": "hospital",
+        "categoryKey": "hospital",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Premier private tertiary hospital and academic medical center in Region I.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-bethany-hospital",
+      "geometry": { "type": "Point", "coordinates": [120.3175, 16.6141] },
+      "properties": {
+        "id": "biz-bethany-hospital",
+        "name": "Bethany Hospital",
+        "category": "hospital",
+        "businessType": "hospital",
+        "categoryKey": "hospital",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Widdoes St, Downtown Central, San Fernando City",
+        "note": "Private general hospital with diagnostic clinic, emergency & surgical care.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-lumdc-clinic",
+      "geometry": { "type": "Point", "coordinates": [120.3180, 16.6055] },
+      "properties": {
+        "id": "biz-lumdc-clinic",
+        "name": "La Union Medical Diagnostic Center",
+        "category": "clinic",
+        "businessType": "clinic",
+        "categoryKey": "clinic",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Comprehensive outpatient diagnostic laboratory & medical imaging center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mercury-drug-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3173, 16.6177] },
+      "properties": {
+        "id": "biz-mercury-drug-downtown",
+        "name": "Mercury Drug - City Plaza",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "24-hour retail pharmacy, medical supplies & healthcare essentials.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mercury-drug-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3183, 16.6025] },
+      "properties": {
+        "id": "biz-mercury-drug-sevilla",
+        "name": "Mercury Drug - Sevilla",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Arterial retail pharmacy with drive-thru & medical care goods.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mercury-drug-pagdaraoan",
+      "geometry": { "type": "Point", "coordinates": [120.3278, 16.6285] },
+      "properties": {
+        "id": "biz-mercury-drug-pagdaraoan",
+        "name": "Mercury Drug - Pagdaraoan",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "Near CSI Mall, Pagdaraoan, San Fernando City",
+        "note": "Retail pharmacy serving the commercial district.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-watsons-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3173, 16.6180] },
+      "properties": {
+        "id": "biz-watsons-downtown",
+        "name": "Watsons Downtown",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Health, wellness and beauty pharmacy store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-watsons-robinsons",
+      "geometry": { "type": "Point", "coordinates": [120.3189, 16.6008] },
+      "properties": {
+        "id": "biz-watsons-robinsons",
+        "name": "Watsons Robinsons Place",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "Robinsons Place La Union, MacArthur Highway, Sevilla",
+        "note": "Mall-based health, wellness and prescription pharmacy store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-southstar-drug",
+      "geometry": { "type": "Point", "coordinates": [120.3169, 16.6174] },
+      "properties": {
+        "id": "biz-southstar-drug",
+        "name": "Southstar Drugstore",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "P. Burgos St, Downtown Central, San Fernando City",
+        "note": "Retail pharmacy chain store.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-generika-drug",
+      "geometry": { "type": "Point", "coordinates": [120.3168, 16.6171] },
+      "properties": {
+        "id": "biz-generika-drug",
+        "name": "Generika Drugstore",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Affordable quality generic medicines and health consultation.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-bdo-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3163, 16.6155] },
+      "properties": {
+        "id": "biz-bdo-downtown",
+        "name": "BDO Unibank - San Fernando Main",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Full-service commercial bank branch with 24/7 ATM and business banking.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-bdo-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3184, 16.6030] },
+      "properties": {
+        "id": "biz-bdo-sevilla",
+        "name": "BDO Unibank - Sevilla Branch",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Highway commercial banking branch and drive-thru ATM.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-bpi-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3170, 16.6178] },
+      "properties": {
+        "id": "biz-bpi-downtown",
+        "name": "BPI San Fernando City Branch",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Major commercial and investment banking hub with multiple ATMs.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-metrobank-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3168, 16.6165] },
+      "properties": {
+        "id": "biz-metrobank-downtown",
+        "name": "Metrobank San Fernando Main",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Commercial banking, business loans, trade finance, and foreign exchange.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-metrobank-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3185, 16.6038] },
+      "properties": {
+        "id": "biz-metrobank-sevilla",
+        "name": "Metrobank Sevilla Branch",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "Arterial banking center with dedicated customer parking.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-landbank-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3166, 16.6175] },
+      "properties": {
+        "id": "biz-landbank-downtown",
+        "name": "Land Bank of the Philippines",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Primary government financial depository and development financing center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-dbp-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3164, 16.6182] },
+      "properties": {
+        "id": "biz-dbp-downtown",
+        "name": "Development Bank of the Philippines (DBP)",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Key infrastructure and capital development financing institution.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-chinabank-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3169, 16.6170] },
+      "properties": {
+        "id": "biz-chinabank-downtown",
+        "name": "China Banking Corporation",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Corporate and commercial lending bank.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-pnb-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3164, 16.6162] },
+      "properties": {
+        "id": "biz-pnb-downtown",
+        "name": "Philippine National Bank (PNB)",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Major universal bank branch with remittance and treasury services.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-security-bank-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3167, 16.6161] },
+      "properties": {
+        "id": "biz-security-bank-downtown",
+        "name": "Security Bank",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Commercial banking and corporate cash management.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-rcbc-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3174, 16.6178] },
+      "properties": {
+        "id": "biz-rcbc-downtown",
+        "name": "Rizal Commercial Banking Corporation (RCBC)",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Gov. Luna St, Downtown Central, San Fernando City",
+        "note": "Universal commercial bank branch and digital banking center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-eastwest-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3166, 16.6169] },
+      "properties": {
+        "id": "biz-eastwest-downtown",
+        "name": "EastWest Bank",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Retail and commercial banking services.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-unionbank-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3165, 16.6173] },
+      "properties": {
+        "id": "biz-unionbank-downtown",
+        "name": "UnionBank of the Philippines",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Innovative digital and corporate banking branch.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-rang-ay-bank",
+      "geometry": { "type": "Point", "coordinates": [120.3163, 16.6161] },
+      "properties": {
+        "id": "biz-rang-ay-bank",
+        "name": "Rang-ay Bank Head Office",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Gov. Luna St, Downtown Central, San Fernando City",
+        "note": "Largest regional development and rural bank headquarters in North Luzon.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-slc-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3170, 16.6360] },
+      "properties": {
+        "id": "biz-slc-carlatan",
+        "name": "Saint Louis College (SLC)",
+        "category": "college",
+        "businessType": "college",
+        "categoryKey": "college",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Major Catholic higher education institution, engineering, IT & business colleges.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-dmmmsu-mluc",
+      "geometry": { "type": "Point", "coordinates": [120.3210, 16.6120] },
+      "properties": {
+        "id": "biz-dmmmsu-mluc",
+        "name": "DMMMSU - Mid La Union Campus",
+        "category": "college",
+        "businessType": "college",
+        "categoryKey": "college",
+        "status": "operating",
+        "barangay": "Catbangen",
+        "address": "Catbangen, San Fernando City",
+        "note": "State university campus featuring engineering, technology, law, and research centers.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-lorma-colleges",
+      "geometry": { "type": "Point", "coordinates": [120.3160, 16.6380] },
+      "properties": {
+        "id": "biz-lorma-colleges",
+        "name": "Lorma Colleges",
+        "category": "college",
+        "businessType": "college",
+        "categoryKey": "college",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "Carlatan, San Fernando City",
+        "note": "Leading healthcare, nursing, computer science, and business education institution.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-ckc-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3180, 16.6161] },
+      "properties": {
+        "id": "biz-ckc-downtown",
+        "name": "Christ The King College",
+        "category": "school",
+        "businessType": "school",
+        "categoryKey": "school",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "Historic downtown Catholic educational institution.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-ucc-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3176, 16.6147] },
+      "properties": {
+        "id": "biz-ucc-downtown",
+        "name": "Union Christian College (UCC)",
+        "category": "college",
+        "businessType": "college",
+        "categoryKey": "college",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Widdoes St, Downtown Central, San Fernando City",
+        "note": "Private multidisciplinary Christian college.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sfc-city-hall",
+      "geometry": { "type": "Point", "coordinates": [120.3173, 16.6168] },
+      "properties": {
+        "id": "biz-sfc-city-hall",
+        "name": "San Fernando City Hall",
+        "category": "townhall",
+        "businessType": "townhall",
+        "categoryKey": "townhall",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "City Hall Plaza, Downtown Central, San Fernando City",
+        "note": "Seat of the City Government, BPLO one-stop shop, CAO, CICTO, and LEBDO offices.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-la-union-capitol",
+      "geometry": { "type": "Point", "coordinates": [120.3190, 16.6080] },
+      "properties": {
+        "id": "biz-la-union-capitol",
+        "name": "La Union Provincial Capitol",
+        "category": "townhall",
+        "businessType": "townhall",
+        "categoryKey": "townhall",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "Aguila Road, Sevilla Hill, San Fernando City",
+        "note": "Provincial Capitol Complex and government executive center of La Union.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sfc-police",
+      "geometry": { "type": "Point", "coordinates": [120.3235, 16.6175] },
+      "properties": {
+        "id": "biz-sfc-police",
+        "name": "San Fernando City Police Station",
+        "category": "police",
+        "businessType": "police",
+        "categoryKey": "police",
+        "status": "operating",
+        "barangay": "Tanqui",
+        "address": "Tanqui, San Fernando City",
+        "note": "City headquarters of the Philippine National Police.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sfc-fire-station",
+      "geometry": { "type": "Point", "coordinates": [120.3172, 16.6171] },
+      "properties": {
+        "id": "biz-sfc-fire-station",
+        "name": "San Fernando City Central Fire Station",
+        "category": "fire_station",
+        "businessType": "fire_station",
+        "categoryKey": "fire_station",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Gov. Luna St, Downtown Central, San Fernando City",
+        "note": "Bureau of Fire Protection emergency dispatch & fire safety headquarters.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-cathedral-city",
+      "geometry": { "type": "Point", "coordinates": [120.3178, 16.6157] },
+      "properties": {
+        "id": "biz-cathedral-city",
+        "name": "Saint William the Hermit Cathedral",
+        "category": "place_of_worship",
+        "businessType": "place_of_worship",
+        "categoryKey": "place_of_worship",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "City Plaza, San Fernando City",
+        "note": "Historical city cathedral, central civic landmark and parish center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-poro-point-zone",
+      "geometry": { "type": "Point", "coordinates": [120.2980, 16.6100] },
+      "properties": {
+        "id": "biz-poro-point-zone",
+        "name": "Poro Point Special Economic Zone & Seaport",
+        "category": "office",
+        "businessType": "commercial",
+        "categoryKey": "office",
+        "status": "operating",
+        "barangay": "Poro",
+        "address": "Poro Point, San Fernando City",
+        "note": "Major regional international seaport, airport, freeport zone & industrial gateway.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-aureo-resort",
+      "geometry": { "type": "Point", "coordinates": [120.3015, 16.5880] },
+      "properties": {
+        "id": "biz-aureo-resort",
+        "name": "Aureo Resort La Union",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "San Francisco",
+        "address": "San Francisco, San Fernando City",
+        "note": "Premier beachfront resort, conference center and luxury hospitality venue.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-thunderbird-resort",
+      "geometry": { "type": "Point", "coordinates": [120.2830, 16.6150] },
+      "properties": {
+        "id": "biz-thunderbird-resort",
+        "name": "Thunderbird Resorts & Casinos Poro Point",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "Poro",
+        "address": "VOOA Compound, Poro Point, San Fernando City",
+        "note": "5-star luxury integrated resort, Mediterranean villas, golf course and casino.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-plaza-hotel",
+      "geometry": { "type": "Point", "coordinates": [120.3167, 16.6151] },
+      "properties": {
+        "id": "biz-plaza-hotel",
+        "name": "Plaza Hotel San Fernando",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "Barangay II",
+        "address": "Quezon Ave, Downtown Central, San Fernando City",
+        "note": "City center business hotel and executive accommodation.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-shell-sevilla",
+      "geometry": { "type": "Point", "coordinates": [120.3186, 16.6015] },
+      "properties": {
+        "id": "biz-shell-sevilla",
+        "name": "Shell Mobility Station Sevilla",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Sevilla",
+        "address": "MacArthur Highway, Sevilla, San Fernando City",
+        "note": "24/7 arterial fuel station, Shell Select convenience store & vehicle lube bay.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-petron-downtown",
+      "geometry": { "type": "Point", "coordinates": [120.3205, 16.6151] },
+      "properties": {
+        "id": "biz-petron-downtown",
+        "name": "Petron Station Gov. Luna",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Tanqui",
+        "address": "Gov. Luna St, Tanqui, San Fernando City",
+        "note": "Downtown service and fuel station.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-caltex-pagdaraoan",
+      "geometry": { "type": "Point", "coordinates": [120.3265, 16.6265] },
+      "properties": {
+        "id": "biz-caltex-pagdaraoan",
+        "name": "Caltex Pagdaraoan Station",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Pagdaraoan",
+        "address": "MacArthur Highway, Pagdaraoan, San Fernando City",
+        "note": "Highway service station and retail convenience stop.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    }
+  ]
+}

@@ -96,7 +96,110 @@ final class NearbyBusinesses
         $directory = [];
         $baseDir = dirname(__DIR__, 2);
 
-        // 1. Load cached radar datasets
+        // 1. Primary: Load verified 2026 San Fernando City Commercial & Civic Directory
+        $commercialDirFile = $baseDir . '/data/commercial-directory.json';
+        if (is_file($commercialDirFile)) {
+            $raw = @file_get_contents($commercialDirFile);
+            if ($raw !== false) {
+                $dirData = json_decode($raw, true);
+                if (is_array($dirData) && isset($dirData['features']) && is_array($dirData['features'])) {
+                    foreach ($dirData['features'] as $feature) {
+                        $props = $feature['properties'] ?? [];
+                        $name = trim((string) ($props['name'] ?? ''));
+                        $coords = $feature['geometry']['coordinates'] ?? null;
+                        if ($name === '' || !is_array($coords) || count($coords) < 2) {
+                            continue;
+                        }
+                        $lng = (float) $coords[0];
+                        $lat = (float) $coords[1];
+                        if (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
+                            continue;
+                        }
+                        $rawCat = strtolower(trim((string) ($props['categoryKey'] ?? $props['category'] ?? $props['businessType'] ?? 'commercial')));
+                        $meta = self::CATEGORY_MAP[$rawCat] ?? [
+                            'name' => ucwords(str_replace('_', ' ', $rawCat ?: 'Commercial Establishment')),
+                            'group' => 'commercial',
+                            'color' => 'slate',
+                            'icon' => 'store',
+                        ];
+                        $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
+                        $directory[$key] = [
+                            'id' => $props['id'] ?? $feature['id'] ?? ('biz-' . md5($key)),
+                            'name' => $name,
+                            'category' => $meta['name'],
+                            'categoryKey' => $rawCat,
+                            'categoryGroup' => $meta['group'],
+                            'categoryColor' => $meta['color'],
+                            'icon' => $meta['icon'],
+                            'lat' => $lat,
+                            'lng' => $lng,
+                            'status' => 'operating',
+                            'barangay' => $props['barangay'] ?? null,
+                            'address' => $props['address'] ?? null,
+                            'note' => $props['note'] ?? null,
+                            'source' => 'San Fernando City Commercial Registry',
+                        ];
+                    }
+                }
+            }
+        }
+
+        // 2. Load competitor store-locator records
+        $compFile = $baseDir . '/data/competitors.json';
+        if (is_file($compFile)) {
+            $raw = @file_get_contents($compFile);
+            if ($raw !== false) {
+                $compData = json_decode($raw, true);
+                if (is_array($compData) && isset($compData['features']) && is_array($compData['features'])) {
+                    foreach ($compData['features'] as $feature) {
+                        $props = $feature['properties'] ?? [];
+                        $name = trim((string) ($props['name'] ?? ''));
+                        $coords = $feature['geometry']['coordinates'] ?? null;
+                        if ($name === '' || !is_array($coords) || count($coords) < 2) {
+                            continue;
+                        }
+                        $lng = (float) $coords[0];
+                        $lat = (float) $coords[1];
+                        if (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
+                            continue;
+                        }
+                        // Skip if locator note says temporarily closed
+                        $note = strtolower((string) ($props['note'] ?? ''));
+                        $status = ($props['status'] ?? '') === 'existing' ? 'operating' : 'under_development';
+                        if (str_contains($note, 'temporarily closed') || str_contains($note, 'closed')) {
+                            // Don't surface closed locations as operating
+                            continue;
+                        }
+                        $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
+                        if (!isset($directory[$key])) {
+                            $directory[$key] = [
+                                'id' => $feature['id'] ?? ('comp-' . md5($key)),
+                                'name' => $name,
+                                'category' => 'Commercial Anchor (QSR)',
+                                'categoryKey' => 'fast_food',
+                                'categoryGroup' => 'dining',
+                                'categoryColor' => 'amber',
+                                'icon' => 'utensils',
+                                'lat' => $lat,
+                                'lng' => $lng,
+                                'status' => $status,
+                                'note' => $props['note'] ?? null,
+                                'source' => 'Verified Brand Locator',
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+
+        // Excluded non-commercial or invalid POI categories
+        $excludedCategories = [
+            'toilets', 'parking', 'motorcycle_parking', 'bicycle_parking',
+            'waste_basket', 'bench', 'drinking_water', 'fountain', 'grave_yard',
+            'viewpoint', 'atm', 'vending_machine', 'recycling',
+        ];
+
+        // 3. Load supplementary cached radar datasets with strict quality filtering
         $radarFiles = glob($baseDir . '/data/cache/radar/*.json') ?: [];
         foreach ($radarFiles as $file) {
             $raw = @file_get_contents($file);
@@ -120,6 +223,24 @@ final class NearbyBusinesses
                     continue;
                 }
                 $rawCat = strtolower(trim((string) ($props['category'] ?? $props['businessType'] ?? 'commercial')));
+                if (in_array($rawCat, $excludedCategories, true)) {
+                    continue;
+                }
+                // Filter out generic placeholder names
+                if (preg_match('/^Local (Toilets|Parking|Motorcycle parking|Car repair|Furniture|Doctors|Community centre|Convenience|Industrial)/i', $name)) {
+                    continue;
+                }
+                // Check if already covered by verified directory within 45m
+                $alreadyCovered = false;
+                foreach ($directory as $existing) {
+                    if (self::distance($lat, $lng, $existing['lat'], $existing['lng']) <= 45.0) {
+                        $alreadyCovered = true;
+                        break;
+                    }
+                }
+                if ($alreadyCovered) {
+                    continue;
+                }
                 $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
                 if (!isset($directory[$key])) {
                     $meta = self::CATEGORY_MAP[$rawCat] ?? [
@@ -146,50 +267,51 @@ final class NearbyBusinesses
             }
         }
 
-        // 2. Load competitor store-locator records
-        $compFile = $baseDir . '/data/competitors.json';
-        if (is_file($compFile)) {
-            $raw = @file_get_contents($compFile);
-            if ($raw !== false) {
-                $compData = json_decode($raw, true);
-                if (is_array($compData) && isset($compData['features']) && is_array($compData['features'])) {
-                    foreach ($compData['features'] as $feature) {
-                        $props = $feature['properties'] ?? [];
-                        $name = trim((string) ($props['name'] ?? ''));
-                        $coords = $feature['geometry']['coordinates'] ?? null;
-                        if ($name === '' || !is_array($coords) || count($coords) < 2) {
-                            continue;
-                        }
-                        $lng = (float) $coords[0];
-                        $lat = (float) $coords[1];
-                        if (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
-                            continue;
-                        }
-                        $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
-                        if (!isset($directory[$key])) {
-                            $status = ($props['status'] ?? '') === 'existing' ? 'operating' : 'under_development';
-                            $directory[$key] = [
-                                'id' => $feature['id'] ?? ('comp-' . md5($key)),
-                                'name' => $name,
-                                'category' => 'Commercial Anchor (QSR)',
-                                'categoryKey' => 'fast_food',
-                                'categoryGroup' => 'dining',
-                                'categoryColor' => 'amber',
-                                'icon' => 'utensils',
-                                'lat' => $lat,
-                                'lng' => $lng,
-                                'status' => $status,
-                                'note' => $props['note'] ?? null,
-                                'source' => 'Verified Brand Locator',
-                            ];
-                        }
-                    }
-                }
-            }
-        }
-
         self::$cachedDirectory = $directory;
         return $directory;
+    }
+
+    /**
+     * Export the verified directory as a GeoJSON FeatureCollection for frontend maps.
+     *
+     * @return array
+     */
+    public static function asGeoJson(): array
+    {
+        $dir = self::directory();
+        $features = [];
+
+        foreach ($dir as $biz) {
+            $features[] = [
+                'type' => 'Feature',
+                'id' => $biz['id'],
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [(float) $biz['lng'], (float) $biz['lat']],
+                ],
+                'properties' => [
+                    'id' => $biz['id'],
+                    'name' => $biz['name'],
+                    'category' => $biz['category'],
+                    'categoryKey' => $biz['categoryKey'],
+                    'categoryGroup' => $biz['categoryGroup'],
+                    'categoryColor' => $biz['categoryColor'],
+                    'icon' => $biz['icon'],
+                    'status' => $biz['status'],
+                    'barangay' => $biz['barangay'] ?? null,
+                    'address' => $biz['address'] ?? null,
+                    'note' => $biz['note'] ?? null,
+                    'source' => $biz['source'] ?? 'Verified Commercial Directory',
+                ],
+            ];
+        }
+
+        return [
+            'type' => 'FeatureCollection',
+            'features' => $features,
+            'count' => count($features),
+            'generated' => date('Y-m-d'),
+        ];
     }
 
     /**
