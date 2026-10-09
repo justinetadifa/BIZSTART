@@ -19,6 +19,8 @@ require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/Support/PropertyParcel.php';
+require_once dirname(__DIR__) . '/Support/PropertyAuthorityToSellFiles.php';
+require_once dirname(__DIR__) . '/Support/PropertyHazardScreening.php';
 require_once dirname(__DIR__) . '/Support/auth.php';
 
 final class PropertyRepository
@@ -494,16 +496,18 @@ final class PropertyRepository
             return '';
         }
 
+        $publicPublished = "p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = 'approved' AND LOWER(p.status) IN ('available', 'active', 'open') AND (p.seller_user_id IS NULL OR (seller.identity_verification_status = 'verified' AND JSON_UNQUOTE(JSON_EXTRACT(p.documents_json, '$.authority_to_sell.status')) = 'validated'))";
+
         if ($role === 'seller' && $userId > 0) {
             $params['visible_seller_user_id'] = $userId;
-            return 'p.deleted_at IS NULL AND ((p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')) OR p.seller_user_id = :visible_seller_user_id)';
+            return "p.deleted_at IS NULL AND (($publicPublished) OR p.seller_user_id = :visible_seller_user_id)";
         }
 
         if ($userId < 1) {
-            return 'p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\') AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = \'approved\' AND LOWER(status) IN (\'available\', \'active\', \'open\') ORDER BY created_at DESC, id DESC LIMIT 3) featured)';
+            return "$publicPublished AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open') AND (seller_user_id IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(documents_json, '$.authority_to_sell.status')) = 'validated') ORDER BY created_at DESC, id DESC LIMIT 3) featured)";
         }
 
-        return 'p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = \'approved\' AND LOWER(p.status) IN (\'available\', \'active\', \'open\')';
+        return $publicPublished;
     }
 
     private function rawPropertyRow(int $propertyId, ?array $user = null, bool $enforceVisibility = true): array
@@ -546,9 +550,26 @@ final class PropertyRepository
         return array_map(function (array $row) use ($mediaMap, $documentRequestSummaryMap, $dueDiligenceSummaryMap, $groundTruthSummaryMap, $priceBenchmarkMap, $assessmentRanks): array {
             $propertyId = (int) $row['id'];
             $media = $mediaMap[$propertyId] ?? [];
-            $documentStatuses = $this->normalizeDocumentStatuses($this->decodeJson($row['documents_json'] ?? '{}'));
-            $documentCompletenessPct = $this->documentCompletenessPct($documentStatuses);
+            $rawDocs = $this->decodeJson($row['documents_json'] ?? '{}');
+            $documentStatuses = $this->normalizeDocumentStatuses($rawDocs);
+            $authorityToSell = \App\Support\PropertyAuthorityToSellFiles::normalize($rawDocs['authority_to_sell'] ?? null);
+            $authorityStatus = $authorityToSell['status'] ?? 'pending_review';
+            $isAuthorityValidated = $authorityToSell !== null && $authorityStatus === 'validated';
             $approvalState = $this->normalizeApprovalState((string) ($row['approval_state'] ?? 'approved'));
+            $isBrokerListing = isset($row['seller_user_id']) && (int) $row['seller_user_id'] > 0;
+            $propertyReviewStatus = 'Published';
+            if ($approvalState !== 'approved') {
+                if ($isBrokerListing && (!$authorityToSell || $authorityStatus !== 'validated')) {
+                    $propertyReviewStatus = match ($authorityStatus) {
+                        'rejected' => 'Authority to Sell rejected',
+                        'requires_resubmission' => 'Authority to Sell requires resubmission',
+                        default => 'Authority to Sell pending',
+                    };
+                } else {
+                    $propertyReviewStatus = 'Awaiting city review';
+                }
+            }
+            $documentCompletenessPct = $this->documentCompletenessPct($documentStatuses);
             $sellerIdentityStatus = $this->normalizeIdentityVerificationStatus((string) ($row['seller_identity_verification_status'] ?? 'unverified'));
             $documentsReviewedAt = $this->normalizeTimestamp($row['documents_reviewed_at'] ?? null);
             $siteVerifiedAt = $this->normalizeTimestamp($row['site_verified_at'] ?? null);
@@ -715,7 +736,18 @@ final class PropertyRepository
                     'sourceReference' => string_or_null($row['clup_source_reference'] ?? null),
                     'verifiedAt' => string_or_null($clupVerifiedAt),
                     'isVerified' => string_or_null($clupVerifiedAt) !== null,
+                    'statusLabel' => string_or_null($clupVerifiedAt) !== null ? 'City validated' : 'Pending city validation',
                 ],
+                'hazardScreening' => \App\Support\PropertyHazardScreening::evaluate(
+                    float_or_null($row['lat'] ?? null),
+                    float_or_null($row['lng'] ?? null),
+                    $this->decodeJson($row['parcel_json'] ?? '{}')['boundary'] ?? null
+                ),
+                'authorityToSell' => $authorityToSell,
+                'authorityToSellVerified' => $isAuthorityValidated,
+                'propertyReviewStatus' => $propertyReviewStatus,
+                'utilities' => ($this->decodeJson($row['parcel_json'] ?? '{}')['utilities'] ?? null)
+                    ?: \App\Support\PropertyParcel::normalizeUtilities($this->decodeJson($row['parcel_json'] ?? '{}')['observations'] ?? []),
                 'assessedValueSqm' => $assessedValueSqm,
                 'readinessNotes' => string_or_null($row['readiness_notes'] ?? null),
                 'dueDiligencePct' => (int) ($dueSummary['pct'] ?? 0),
@@ -762,9 +794,29 @@ final class PropertyRepository
     private function presentProperties(array $properties, ?array $user): array
     {
         $properties = array_map(fn (array $property): array => $this->presentEvidence($property, $user), $properties);
-        if ((int) ($user['id'] ?? 0) > 0) {
+        $isStaff = $user !== null && sfc_can_manage_properties($user);
+        $userId = (int) ($user['id'] ?? 0);
+        $userRole = (string) ($user['role'] ?? '');
+
+        // Mask private authority to sell documents for investors/guests
+        $properties = array_map(function (array $property) use ($isStaff, $userId, $userRole): array {
+            $isOwner = $userRole === 'seller' && $userId > 0 && (int) ($property['sellerUserId'] ?? 0) === $userId;
+            if (!$isStaff && !$isOwner) {
+                $isVerified = ($property['authorityToSell']['status'] ?? '') === 'validated';
+                $property['authorityToSellVerified'] = $isVerified;
+                $property['authorityToSell'] = $isVerified ? [
+                    'status' => 'validated',
+                    'isVerified' => true,
+                    'label' => 'Authority to Sell verified',
+                ] : null;
+            }
+            return $property;
+        }, $properties);
+
+        if ($userId > 0) {
             return $properties;
         }
+
         return array_map(static function (array $property): array {
             $property['ownerContact'] = null;
             $property['brokerContact'] = null;
@@ -1054,9 +1106,18 @@ final class PropertyRepository
             $existing ? $this->decodeExistingValue($existing['owner_contact_json'] ?? null) : null,
             $name
         );
+        $existingDocs = $existing ? $this->decodeExistingValue($existing['documents_json'] ?? null) : [];
+        $existingDocs = is_array($existingDocs) ? $existingDocs : [];
         $documents = $this->normalizeDocumentStatuses(
-            $payload['document_statuses'] ?? $payload['documentStatuses'] ?? $this->decodeExistingValue($existing['documents_json'] ?? null)
+            $payload['document_statuses'] ?? $payload['documentStatuses'] ?? $existingDocs
         );
+        $authorityInput = $payload['authority_to_sell'] ?? $payload['authorityToSell'] ?? ($existingDocs['authority_to_sell'] ?? null);
+        if ($authorityInput !== null && is_array($authorityInput)) {
+            $normalizedAuth = \App\Support\PropertyAuthorityToSellFiles::normalize($authorityInput);
+            if ($normalizedAuth !== null) {
+                $documents['authority_to_sell'] = $normalizedAuth;
+            }
+        }
         $sellerUserId = int_or_null($payload['seller_user_id'] ?? $payload['sellerUserId'] ?? ($existing['seller_user_id'] ?? null));
         $documentsReviewedAt = $this->normalizeFlagTimestamp(
             $payload['documents_reviewed'] ?? $payload['documentsReviewed'] ?? null,
@@ -1331,6 +1392,12 @@ final class PropertyRepository
         }
         foreach ($items as $key => $status) {
             $normalizedKey = trim((string) $key);
+            if ($normalizedKey === 'authority_to_sell') {
+                if (is_array($status)) {
+                    $defaults['authority_to_sell'] = $status;
+                }
+                continue;
+            }
             if ($normalizedKey === '' || !array_key_exists($normalizedKey, $defaults)) {
                 continue;
             }
@@ -1351,11 +1418,14 @@ final class PropertyRepository
         }
 
         $total = 0;
-        foreach ($documents as $status) {
+        $count = 0;
+        foreach (self::DOCUMENT_REQUIREMENTS as $req) {
+            $status = $documents[$req['key']] ?? 'missing';
             $total += self::DOCUMENT_PROGRESS[$status] ?? 0;
+            $count++;
         }
 
-        return (int) round($total / count($documents));
+        return $count > 0 ? (int) round($total / $count) : 0;
     }
 
     private function normalizeOwnerContact(array $payload, mixed $existing, string $propertyName): array

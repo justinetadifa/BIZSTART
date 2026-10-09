@@ -73,6 +73,37 @@ api_handle(function (array $container): array {
     }
     $payload = sfc_listing_payload($input, $user, false, $before);
     $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);
+    if (sfc_can_manage_properties($user)) {
+        if (isset($input['authority_to_sell_status']) && is_string($input['authority_to_sell_status'])) {
+            $targetStatus = strtolower(trim($input['authority_to_sell_status']));
+            if (!in_array($targetStatus, ['pending_review', 'validated', 'rejected', 'requires_resubmission'], true)) {
+                throw new InvalidArgumentException('Choose a valid Authority to Sell status.');
+            }
+            $note = trim((string) ($input['authority_to_sell_note'] ?? ''));
+            if ($targetStatus === 'rejected' && $note === '') {
+                throw new InvalidArgumentException('A reason is required when rejecting the Authority to Sell.');
+            }
+            $currentAuth = $before['authorityToSell'] ?? [];
+            if (!is_array($currentAuth) || empty($currentAuth['fileId'])) {
+                throw new InvalidArgumentException('No Authority to Sell document has been uploaded for this property.');
+            }
+            $currentAuth['status'] = $targetStatus;
+            $currentAuth['reviewedByUserId'] = (int) $user['id'];
+            $currentAuth['reviewedByUserName'] = (string) ($user['name'] ?? 'City Reviewer');
+            $currentAuth['reviewedAt'] = gmdate('Y-m-d H:i:s');
+            $currentAuth['reviewNote'] = $note;
+            $payload['authority_to_sell'] = $currentAuth;
+        }
+        if (array_key_exists('clup_verified', $input)) {
+            $payload['clup_verified'] = filter_var($input['clup_verified'], FILTER_VALIDATE_BOOLEAN);
+        }
+    }
+    if (isset($_FILES['authority_to_sell_file']) && is_array($_FILES['authority_to_sell_file']) && !empty($_FILES['authority_to_sell_file']['name'])) {
+        $authRecord = \App\Support\PropertyAuthorityToSellFiles::stage($_FILES['authority_to_sell_file'], (int) $user['id']);
+        if ($authRecord !== null) {
+            $payload['authority_to_sell'] = $authRecord;
+        }
+    }
     $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
     if ($image !== null) {
         $payload['image_path'] = $image;
@@ -94,6 +125,23 @@ api_handle(function (array $container): array {
             'icon' => 'propertyinfo', 'title' => 'Listing ' . str_replace('_', ' ', $property['approvalState']),
             'body' => $property['reviewNote'] ?: $property['name'], 'actionLabel' => 'View listings', 'actionUrl' => 'seller-dashboard.php',
             'actorUserId' => (int) $user['id'], 'propertyId' => $propertyId,
+        ]);
+    }
+    $oldAuthStatus = $before['authorityToSell']['status'] ?? '';
+    $newAuthStatus = $property['authorityToSell']['status'] ?? '';
+    if ($oldAuthStatus !== $newAuthStatus && !empty($property['sellerUserId']) && sfc_can_manage_properties($user)) {
+        $container['notifications']->createForUsers([(int) $property['sellerUserId']], [
+            'category' => 'operational',
+            'kind' => 'authority_to_sell_review',
+            'priority' => $newAuthStatus === 'rejected' ? 'high' : 'normal',
+            'tone' => $newAuthStatus === 'validated' ? 'success' : ($newAuthStatus === 'rejected' ? 'danger' : 'info'),
+            'icon' => 'propertyinfo',
+            'title' => 'Authority to Sell ' . str_replace('_', ' ', $newAuthStatus),
+            'body' => $property['authorityToSell']['reviewNote'] ?: $property['name'],
+            'actionLabel' => 'View listing',
+            'actionUrl' => 'seller-dashboard.php',
+            'actorUserId' => (int) $user['id'],
+            'propertyId' => $propertyId,
         ]);
     }
     $container['line']->onListingUpdated($before, $property, $user);

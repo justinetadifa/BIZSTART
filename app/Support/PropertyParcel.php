@@ -79,10 +79,68 @@ final class PropertyParcel
             }
             $observations['bir_date'] = $date;
         }
-        return ['boundary' => $boundary, 'estimatedAreaSqm' => $estimated,
+        $utilities = isset($payload['utilities']) && is_array($payload['utilities'])
+            ? self::normalizeUtilities($payload['utilities'], $existing['utilities'] ?? null)
+            : (isset($payload['electricity']) || isset($payload['water']) || isset($payload['internet']) || isset($payload['electricity_sources']) || isset($payload['water_sources']) || isset($payload['internet_providers'])
+                ? self::normalizeUtilities($payload, $existing['utilities'] ?? null)
+                : ($existing['utilities'] ?? null));
+
+        if ($utilities !== null) {
+            $observations['electricity'] = $utilities['electricity']['status'];
+            $observations['water'] = $utilities['water']['status'];
+            $observations['internet'] = $utilities['internet']['status'];
+        }
+
+        $result = ['boundary' => $boundary, 'estimatedAreaSqm' => $estimated,
             'surveyAreaSqm' => $survey === null ? null : round((float) $survey, 2), 'areaMethod' => $areaMethod,
             'referencePoint' => $reference, 'observations' => $observations,
             'attachments' => PropertyEvidenceFiles::normalizeAttachments($payload['evidence_attachments'] ?? $existing['attachments'] ?? [])];
+        if ($utilities !== null) {
+            $result['utilities'] = $utilities;
+        }
+        return $result;
+    }
+
+    public static function normalizeUtilities(array $payload, mixed $existing = null): array
+    {
+        $existing = is_array($existing) ? $existing : [];
+        $elecStatus = $payload['electricity'] ?? $existing['electricity']['status'] ?? 'not_verified';
+        $waterStatus = $payload['water'] ?? $existing['water']['status'] ?? 'not_verified';
+        $internetStatus = $payload['internet'] ?? $existing['internet']['status'] ?? 'not_verified';
+
+        $cleanList = static function (mixed $items): array {
+            if (!is_array($items)) {
+                return [];
+            }
+            return array_values(array_unique(array_filter(array_map('trim', array_map('strval', $items)), static fn ($s) => $s !== '')));
+        };
+
+        $elecSources = $payload['electricity_sources'] ?? $existing['electricity']['sources'] ?? [];
+        $waterSources = $payload['water_sources'] ?? $existing['water']['sources'] ?? [];
+        $internetProviders = $payload['internet_providers'] ?? $existing['internet']['providers'] ?? [];
+        $internetTypes = $payload['internet_types'] ?? $existing['internet']['connection_types'] ?? [];
+        $internetQuality = (string) ($payload['internet_quality'] ?? $existing['internet']['quality'] ?? 'Not verified');
+        $speed = isset($payload['download_speed_mbps']) && is_numeric($payload['download_speed_mbps'])
+            ? (float) $payload['download_speed_mbps']
+            : ($existing['internet']['download_speed_mbps'] ?? null);
+
+        return [
+            'electricity' => [
+                'status' => in_array($elecStatus, ['available', 'unavailable', 'not_verified'], true) ? $elecStatus : 'not_verified',
+                'sources' => $elecStatus === 'available' ? $cleanList($elecSources) : [],
+            ],
+            'water' => [
+                'status' => in_array($waterStatus, ['available', 'unavailable', 'not_verified'], true) ? $waterStatus : 'not_verified',
+                'sources' => $waterStatus === 'available' ? $cleanList($waterSources) : [],
+            ],
+            'internet' => [
+                'status' => in_array($internetStatus, ['available', 'unavailable', 'not_verified'], true) ? $internetStatus : 'not_verified',
+                'providers' => $internetStatus === 'available' ? $cleanList($internetProviders) : [],
+                'connection_types' => $internetStatus === 'available' ? $cleanList($internetTypes) : [],
+                'quality' => in_array($internetQuality, ['Strong', 'Moderate', 'Weak', 'Not verified'], true) ? $internetQuality : 'Not verified',
+                'download_speed_mbps' => $speed !== null && $speed >= 0 ? round($speed, 1) : null,
+            ],
+        ];
     }
 
     /** A single simple closed outer ring; no client properties or calculated area are trusted. */

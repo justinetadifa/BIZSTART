@@ -17,6 +17,7 @@ scratch/
 cookies.txt
 data/property-evidence/
 data/broker-documents/
+data/property-authority-to-sell/
 data/cache/
 *.bak
 *_backup.*

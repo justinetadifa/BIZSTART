@@ -209,13 +209,18 @@ SQL,
     {
         $items = [
             ['commercial', 'Commercial / Retail', 'commercial', 'Retail, service, and commercial-center development.'],
+            ['residential', 'Residential', 'residential', 'Housing, subdivisions, condominiums, and apartment developments.'],
+            ['bpo', 'Office / IT-BPM', 'office', 'Offices, BPO/IT-BPM spaces, business centers, and knowledge-sector use.'],
+            ['industrial', 'Industrial', 'industrial', 'Manufacturing, logistics, warehousing, and industrial operations.'],
             ['logistics', 'Logistics / Warehousing', 'industrial', 'Warehousing, distribution, and logistics operations.'],
-            ['hotel', 'Tourism / Hospitality', 'tourism', 'Hotels, resorts, and visitor-serving accommodation.'],
-            ['bpo', 'Office / BPO', 'office', 'Office, business-process outsourcing, and knowledge-sector use.'],
             ['manufacturing', 'Light Manufacturing', 'industrial', 'Light industrial and manufacturing operations.'],
-            ['mixed_use', 'Mixed-use Development', 'mixed_use', 'Integrated compatible residential, commercial, institutional, or office uses.'],
+            ['agricultural', 'Agricultural', 'agricultural', 'Farming, agro-industrial, cultivation, and agricultural production.'],
+            ['institutional', 'Institutional', 'institutional', 'Government, public facilities, civic, and community institutions.'],
             ['hospital', 'Hospital / Healthcare Facility', 'institutional', 'Hospital, healthcare campus, and related medical-service use.'],
             ['university', 'University / Educational Institution', 'institutional', 'University, college, training-campus, and related educational use.'],
+            ['hotel', 'Tourism / Hospitality', 'tourism', 'Hotels, resorts, lodging, and visitor-serving accommodations.'],
+            ['mixed_use', 'Mixed-Use Development', 'mixed_use', 'Integrated compatible commercial, residential, office, or other uses.'],
+            ['special_use', 'Special Use / Other', 'special_use', 'Institutional, utility, or specialized properties not fitting standard zones.'],
         ];
         $statement = $pdo->prepare(
             'INSERT INTO clup_use_types (code, label, category, description)

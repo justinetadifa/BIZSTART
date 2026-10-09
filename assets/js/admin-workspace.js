@@ -594,12 +594,77 @@
     reviewForm.elements.id.value = property.id;
     reviewForm.elements.documents_reviewed.checked = Boolean(property.documentsReviewedAt);
     reviewForm.elements.site_verified.checked = Boolean(property.siteVerifiedAt);
+    if (reviewForm.elements.clup_verified) {
+      reviewForm.elements.clup_verified.checked = Boolean(property.clupVerifiedAt);
+    }
+
+    const authCard = reviewForm.querySelector('[data-authority-review-card]');
+    const authDetails = reviewForm.querySelector('[data-authority-review-details]');
+    const authBadge = reviewForm.querySelector('[data-authority-review-status-badge]');
+    const authLink = reviewForm.querySelector('[data-authority-preview-link]');
+    const auth = property.authorityToSell;
+
+    if (authCard) {
+      if (auth && auth.fileId) {
+        authCard.hidden = false;
+        if (authDetails) {
+          authDetails.innerHTML = `
+            <div><strong>Document:</strong> ${escape(auth.originalName || 'authority-to-sell')}</div>
+            <div><strong>Submitted by:</strong> ${escape(property.sellerName || property.ownerName || 'Submitting Broker')}</div>
+            <div><strong>Submitted:</strong> ${auth.uploadedAt ? new Date(auth.uploadedAt).toLocaleDateString('en-PH', {year:'numeric',month:'short',day:'numeric'}) : 'Recent'}</div>
+            ${auth.reviewedByUserName ? `<div><strong>Last reviewed by:</strong> ${escape(auth.reviewedByUserName)} on ${new Date(auth.reviewedAt).toLocaleDateString('en-PH')}</div>` : ''}
+          `;
+        }
+        if (authLink) {
+          authLink.href = `api/property-authority-to-sell.php?id=${encodeURIComponent(property.id)}`;
+          authLink.hidden = false;
+        }
+        if (authBadge) {
+          const st = auth.status || 'pending_review';
+          authBadge.textContent = st.replaceAll('_', ' ');
+          authBadge.className = `city-badge ${st === 'validated' ? 'tw-bg-emerald-100 tw-text-emerald-800' : st === 'rejected' ? 'tw-bg-rose-100 tw-text-rose-800' : 'tw-bg-amber-100 tw-text-amber-800'}`;
+        }
+        if (reviewForm.elements.authority_to_sell_status) {
+          reviewForm.elements.authority_to_sell_status.value = auth.status || 'pending_review';
+        }
+        if (reviewForm.elements.authority_to_sell_note) {
+          reviewForm.elements.authority_to_sell_note.value = auth.reviewNote || '';
+        }
+      } else {
+        if (!property.sellerUserId) {
+          authCard.hidden = true;
+        } else {
+          authCard.hidden = false;
+          if (authDetails) {
+            authDetails.innerHTML = '<p class="city-help">No Authority to Sell document uploaded by broker yet.</p>';
+          }
+          if (authLink) authLink.hidden = true;
+          if (authBadge) {
+            authBadge.textContent = 'Missing document';
+            authBadge.className = 'city-badge tw-bg-rose-100 tw-text-rose-800';
+          }
+        }
+      }
+    }
+
     const checklist = Object.entries(property.documentStatuses || {}).map(([key, value]) => `<dt>${escape(key.replaceAll('_', ' '))}</dt><dd>${escape(value)}</dd>`).join('');
-    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} Â· ${escape(property.barangay || 'Barangay not specified')} Â· ${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} Â· IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map â†—</a></div>`;
+    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} · ${escape(property.barangay || 'Barangay not specified')} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map ↗</a></div>`;
     message(reviewForm.querySelector('[data-review-message]'), '');
     reviewDialog.showModal();
     reviewForm.elements.reviewNote.focus();
   }
+
+  reviewForm?.querySelector('[data-quick-reject-auth]')?.addEventListener('click', () => {
+    if (reviewForm.elements.authority_to_sell_status) {
+      reviewForm.elements.authority_to_sell_status.value = 'rejected';
+      reviewForm.elements.authority_to_sell_note?.focus();
+    }
+  });
+  reviewForm?.querySelector('[data-quick-validate-auth]')?.addEventListener('click', () => {
+    if (reviewForm.elements.authority_to_sell_status) {
+      reviewForm.elements.authority_to_sell_status.value = 'validated';
+    }
+  });
 
   document.addEventListener('click', (event) => {
     const target = event.target.closest('button');
@@ -656,13 +721,29 @@
   reviewForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!reviewForm.reportValidity()) return;
+    if (reviewForm.elements.authority_to_sell_status?.value === 'rejected' && !reviewForm.elements.authority_to_sell_note?.value.trim()) {
+      message(reviewForm.querySelector('[data-review-message]'), 'A note/reason is required when rejecting Authority to Sell.', true);
+      reviewForm.elements.authority_to_sell_note?.focus();
+      return;
+    }
     const submit = reviewForm.querySelector('[type="submit"]');
     submit.disabled = true;
     try {
-      await request(`property.php?id=${encodeURIComponent(reviewForm.elements.id.value)}`, { method: 'PATCH', body: JSON.stringify({ approval_state: reviewForm.elements.approval_state.value, reviewNote: reviewForm.elements.reviewNote.value, documents_reviewed: reviewForm.elements.documents_reviewed.checked, site_verified: reviewForm.elements.site_verified.checked }) });
+      const payload = {
+        approval_state: reviewForm.elements.approval_state.value,
+        reviewNote: reviewForm.elements.reviewNote.value,
+        documents_reviewed: reviewForm.elements.documents_reviewed.checked,
+        site_verified: reviewForm.elements.site_verified.checked,
+        clup_verified: reviewForm.elements.clup_verified ? reviewForm.elements.clup_verified.checked : false,
+      };
+      if (reviewForm.elements.authority_to_sell_status) {
+        payload.authority_to_sell_status = reviewForm.elements.authority_to_sell_status.value;
+        payload.authority_to_sell_note = reviewForm.elements.authority_to_sell_note.value;
+      }
+      await request(`property.php?id=${encodeURIComponent(reviewForm.elements.id.value)}`, { method: 'PATCH', body: JSON.stringify(payload) });
       await refresh();
       reviewDialog.close();
-      message(status, 'Listing decision saved.');
+      message(status, 'Listing decision and Authority to Sell validation saved.');
     } catch (error) { message(reviewForm.querySelector('[data-review-message]'), error.message, true); }
     finally { submit.disabled = false; }
   });

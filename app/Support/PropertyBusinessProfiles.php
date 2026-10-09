@@ -167,9 +167,10 @@ final class PropertyBusinessProfiles
         if (!preg_match('/^[a-z0-9][a-z0-9_-]{0,79}$/', $profile['id'])) {
             return false;
         }
+        $validCategories = array_merge(array_keys(PropertyCatalog::categories()), ['Land', 'Retail', 'Industrial', 'Hospitality', 'Mixed Use', 'Special Purpose']);
         $eligibility = $profile['eligibility'] ?? null;
         if (!is_array($eligibility) || !self::stringList($eligibility['categories'] ?? null)
-            || array_diff($eligibility['categories'], array_keys(PropertyCatalog::categories()))
+            || array_diff($eligibility['categories'], $validCategories)
             || !self::stringList($eligibility['zoning_classifications'] ?? null)
             || !self::stringList($eligibility['zoning_statuses'] ?? null)
             || array_diff($eligibility['zoning_statuses'], ['permitted', 'conditional'])) {

@@ -39,6 +39,8 @@ api_handle(function (array $container): array {
         'properties' => $properties,
         'stats' => SiteMetrics::summary($container['pdo']),
         'categories' => PropertyCatalog::categories(),
+        'categoryTooltips' => PropertyCatalog::categoryTooltips(),
+        'clupUseTypes' => PropertyCatalog::clupUseTypes($container['pdo']),
         'criteria' => PropertyCatalog::criteria(),
         'policy' => $container['config']['policy'],
         'publicPreview' => $user === null,

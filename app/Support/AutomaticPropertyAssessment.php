@@ -225,7 +225,7 @@ final class AutomaticPropertyAssessment
             $properties = $matches[0]['properties'];
             if ($key === 'valuation') {
                 $value = self::number($properties['bir_value_sqm'] ?? null);
-                if (($manifest['authority'] ?? '') !== 'BIR' || $value === null || $value <= 0 || trim((string) ($manifest['effective_date'] ?? '')) === '' || !in_array($input['category'], $properties['applicable_categories'] ?? [], true)) {
+                if (($manifest['authority'] ?? '') !== 'BIR' || $value === null || $value <= 0 || trim((string) ($manifest['effective_date'] ?? '')) === '' || !self::categoryMatches($input['category'], $properties['applicable_categories'] ?? [])) {
                     $result['missingData'][] = 'A dated BIR zonal valuation polygon applicable to the selected category, with a positive PHP/m² value, is required. Asking price is not a valuation source.';
                     return $result;
                 }
@@ -236,7 +236,7 @@ final class AutomaticPropertyAssessment
             } elseif ($key === 'zoning') {
                 $status = null;
                 foreach (['allowed_categories' => 'permitted', 'conditional_categories' => 'conditional', 'restricted_categories' => 'prohibited'] as $field => $classification) {
-                    if (in_array($input['category'], $properties[$field] ?? [], true)) {
+                    if (self::categoryMatches($input['category'], $properties[$field] ?? [])) {
                         if ($status !== null) {
                             $result['missingData'][] = 'The zoning source assigns conflicting category permissions.';
                             return $result;
@@ -375,6 +375,35 @@ final class AutomaticPropertyAssessment
             $selected ??= $otherwise;
         }
         return $selected === null ? [null, null, 'The measurement is outside the explicitly approved score bands.'] : [round($selected, 1), 'Approved bands (first matching inclusive limit): ' . implode('; ', $formula) . '.', null];
+    }
+
+    private static function categoryMatches(string $selectedCategory, array $allowedList): bool
+    {
+        if (in_array($selectedCategory, $allowedList, true)) {
+            return true;
+        }
+        $legacyAliases = [
+            'Vacant Land' => ['Land', 'Agricultural', 'Residential Lot', 'Commercial Lot', 'Industrial Lot', 'Raw Land'],
+            'Commercial' => ['Retail', 'Commercial Building', 'Storefront'],
+            'Office' => ['BPO', 'IT-BPM', 'Corporate Office'],
+            'Industrial / Warehouse' => ['Industrial', 'Warehouse', 'Logistics'],
+            'Hospitality / Tourism' => ['Hospitality', 'Hotel', 'Resort'],
+            'Mixed-Use' => ['Mixed Use', 'Commercial-Residential'],
+            'Residential' => ['Multifamily', 'Housing'],
+            'Special Purpose' => ['Institutional', 'Note/Loan', 'Note / Loan'],
+        ];
+        $aliases = $legacyAliases[$selectedCategory] ?? [];
+        foreach ($aliases as $alias) {
+            if (in_array($alias, $allowedList, true)) {
+                return true;
+            }
+        }
+        foreach ($allowedList as $item) {
+            if (isset($legacyAliases[$item]) && in_array($selectedCategory, (array) $legacyAliases[$item], true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function number(mixed $value): ?float

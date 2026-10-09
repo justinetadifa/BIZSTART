@@ -125,20 +125,20 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 
   <?php if ($mode !== 'compare'): ?>
   <?php if ($mode === 'explorer'): ?>
-  <form class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200/90 tw-shadow-sm tw-p-2.5 sm:tw-p-3 tw-flex tw-flex-wrap lg:tw-flex-nowrap tw-items-center tw-gap-2.5 sm:tw-gap-3 tw-mb-4" id="cityFilters" role="search" aria-label="Refine listings">
+  <form class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200/90 tw-shadow-sm tw-p-2.5 sm:tw-p-3.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5 sm:tw-gap-3 tw-mb-4" id="cityFilters" role="search" aria-label="Refine listings">
     <!-- Search -->
-    <div class="tw-relative tw-flex-1 tw-min-w-[200px]">
+    <div class="tw-relative tw-flex-1 tw-min-w-[180px]">
       <div class="tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
         <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <circle cx="11" cy="11" r="7"/>
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3"/>
         </svg>
       </div>
-      <input id="citySearch" type="search" placeholder="Property or barangay" autocomplete="off" class="tw-w-full tw-pl-10 tw-pr-3.5 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-text-slate-800 tw-bg-transparent placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-1 focus:tw-ring-[#9E1B22] tw-transition-all">
+      <input id="citySearch" type="search" placeholder="Search property or barangay" autocomplete="off" class="tw-w-full tw-pl-10 tw-pr-3.5 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-text-slate-800 tw-bg-transparent placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-1 focus:tw-ring-[#9E1B22] tw-transition-all">
     </div>
 
-    <!-- Category -->
-    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[160px]">
+    <!-- Category (Property Type) -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[150px]">
       <div class="tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-500">
         <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
           <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -148,7 +148,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         </svg>
       </div>
       <select id="cityCategory" class="tw-w-full tw-pl-9 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
-        <option value="">All categories</option>
+        <option value="">All property types</option>
       </select>
       <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
         <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -157,14 +157,72 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       </div>
     </div>
 
-    <!-- Subcategory -->
-    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[170px]">
-      <div class="tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-500">
-        <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    <!-- Listing Purpose -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[130px]">
+      <select id="cityListingPurpose" class="tw-w-full tw-px-3 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <option value="">All purposes</option>
+        <option value="sale">For Sale</option>
+        <option value="lease">For Lease</option>
+      </select>
+      <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
         </svg>
       </div>
-      <select id="citySubcategory" disabled class="tw-w-full tw-pl-9 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-all">
+    </div>
+
+    <!-- Suitable for CLUP (City Validated) -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[160px]">
+      <select id="cityAllowedUse" class="tw-w-full tw-px-3 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <option value="">Suitable for (CLUP): All</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Residential">Residential</option>
+        <option value="Office / IT-BPM">Office / IT-BPM</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Institutional">Institutional</option>
+        <option value="Tourism">Tourism</option>
+        <option value="Agricultural">Agricultural</option>
+        <option value="Mixed-Use">Mixed-Use</option>
+      </select>
+      <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Utilities -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[130px]">
+      <select id="cityUtilities" class="tw-w-full tw-px-3 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <option value="">Utilities: All</option>
+        <option value="electricity">Electricity available</option>
+        <option value="water">Water available</option>
+        <option value="fiber">Fiber internet</option>
+      </select>
+      <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Flood hazard screening -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[140px]">
+      <select id="cityHazard" class="tw-w-full tw-px-3 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <option value="">Flood risk: All</option>
+        <option value="low_flood">Low flood only</option>
+        <option value="moderate_flood">Low or Moderate flood</option>
+      </select>
+      <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Subcategory (hidden if not populated) -->
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[140px]" id="citySubcategoryWrapper" style="display: none;">
+      <select id="citySubcategory" disabled class="tw-w-full tw-px-3 tw-pr-8 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-all">
         <option value="">All subcategories</option>
       </select>
       <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
@@ -175,7 +233,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     </div>
 
     <!-- Sort -->
-    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[130px]">
+    <div class="tw-relative tw-w-full sm:tw-w-auto sm:tw-min-w-[120px]">
       <div class="tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-500">
         <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/>
@@ -185,7 +243,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
         <option value="newest">Newest</option>
         <option value="iai" data-investor-advanced-sort>IAI score</option>
         <option value="mce" data-investor-advanced-sort>MCE score</option>
-        <option value="price">Sale price: low to high (unknown last)</option>
+        <option value="price">Sale price: low to high</option>
         <option value="area">Area: largest</option>
       </select>
       <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
@@ -200,7 +258,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
       <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
       </svg>
-      <span>Reset filters</span>
+      <span>Reset</span>
     </button>
   </form>
   <?php elseif ($mode === 'ranking'): ?>
@@ -334,6 +392,20 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
           </div>
           <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Nearby businesses</span>
           <span class="tw-text-xs tw-text-slate-400" title="Toggle local competitor and partner points">ⓘ</span>
+        </label>
+        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer">
+          <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
+            <input type="checkbox" id="cityMapFloodOverlay" class="tw-sr-only tw-peer">
+            <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-blue-600"></div>
+          </div>
+          <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Flood susceptibility</span>
+        </label>
+        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer">
+          <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
+            <input type="checkbox" id="cityMapFaultOverlay" class="tw-sr-only tw-peer">
+            <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-rose-600"></div>
+          </div>
+          <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Fault lines</span>
         </label>
         <div class="city-map-legend" data-investor-advanced aria-label="IAI assessment tiers">
           <span><i class="dot-prime"></i> Prime 90+</span>

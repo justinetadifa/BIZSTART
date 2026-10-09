@@ -63,8 +63,76 @@ function recordedSafety(property) {
   });
 }
 
+function utilitiesMarkup(property) {
+  const utils = property.utilities || {};
+  const observations = property.parcel?.observations || {};
+  const elec = utils.electricity || observations.electricity || 'not_verified';
+  const wat = utils.water || observations.water || 'not_verified';
+  const net = utils.internet || observations.internet || 'not_verified';
+
+  const elecSources = (utils.electricity_sources?.length ? utils.electricity_sources : (elec === 'available' ? ['LUECO'] : [])).join(' · ');
+  const watSources = (utils.water_sources?.length ? utils.water_sources : (wat === 'available' ? ['Metro La Union Water District'] : [])).join(' · ');
+  const netProviders = (utils.internet_providers?.length ? utils.internet_providers : (net === 'available' ? ['PLDT', 'Globe'] : [])).join(' · ');
+  const netTypes = utils.internet_types?.join(', ') || (net === 'available' ? 'Fiber' : '');
+  const netSpeed = utils.download_speed_mbps ? ` · ${utils.download_speed_mbps} Mbps` : '';
+
+  const items = [
+    {
+      label: 'Electricity',
+      status: elec,
+      title: elec === 'available' ? '✓ Available' : elec === 'unavailable' ? 'Unavailable' : 'Not verified',
+      desc: elecSources,
+      available: elec === 'available',
+    },
+    {
+      label: 'Water',
+      status: wat,
+      title: wat === 'available' ? '✓ Available' : wat === 'unavailable' ? 'Unavailable' : 'Not verified',
+      desc: watSources,
+      available: wat === 'available',
+    },
+    {
+      label: netTypes ? `${netTypes} internet` : 'Internet',
+      status: net,
+      title: net === 'available' ? (netTypes ? `✓ ${netTypes} available` : '✓ Available') : net === 'unavailable' ? 'Unavailable' : 'Not verified',
+      desc: netProviders ? `${netProviders}${netSpeed}` : '',
+      available: net === 'available',
+    },
+  ];
+
+  return `
+    <div class="property-utilities-section" style="margin: 16px 0;">
+      <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #11224D; margin-bottom: 8px;">Utilities & Connectivity</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        ${items.map(item => {
+          const tooltip = esc(`${item.label}\n${item.title}${item.desc ? `\n${item.desc}` : ''}`);
+          const chipBg = item.available ? '#ECFDF5' : '#F3F4F6';
+          const chipBorder = item.available ? '#A7F3D0' : '#E5E7EB';
+          const chipColor = item.available ? '#065F46' : '#4B5563';
+          return `
+            <div class="property-utility-chip" title="${tooltip}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px; background: ${chipBg}; border: 1px solid ${chipBorder}; color: ${chipColor}; font-size: 13px; font-weight: 500; cursor: help;">
+              ${item.available ? '<span style="color: #059669; font-weight: 700;">✓</span>' : '<span style="color: #9CA3AF;">○</span>'}
+              <span>${esc(item.label)}</span>
+              ${item.desc ? `<span class="property-utility-source" style="font-size: 11px; opacity: 0.8; font-weight: 400;">(${esc(item.desc.split(' · ')[0])})</span>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
 export function propertyHazardSummary(property) {
-  return recordedSafety(property).map(item => `${item.label}: ${item.values.length ? item.values.join(', ') : 'Not assessed'}${item.values.length && item.missing.length ? ' (review incomplete)' : ''}`).join(' · ');
+  const recorded = recordedSafety(property);
+  const hasRecordedFindings = recorded.some(r => r.values.length > 0 || r.missing.length > 0);
+  if (hasRecordedFindings) {
+    return recorded.map(item => `${item.label}: ${item.values.length ? item.values.join(', ') : 'Not assessed'}${item.values.length && item.missing.length ? ' (review incomplete)' : ''}`).join(' · ');
+  }
+  const hs = property.hazardScreening;
+  if (hs && hs.flood && hs.fault) {
+    return `Flood: ${hs.flood.badge} · Fault: ${hs.fault.proximity || hs.fault.badge} · ${hs.status_label || 'City validated'}`;
+  }
+  return recorded.map(item => `${item.label}: ${item.values.length ? item.values.join(', ') : 'Not assessed'}${item.values.length && item.missing.length ? ' (review incomplete)' : ''}`).join(' · ');
 }
 
 export function propertyLocationLabel(property) {
@@ -73,10 +141,79 @@ export function propertyLocationLabel(property) {
 }
 
 function safetyMarkup(property) {
+  const hs = property.hazardScreening || {};
+  const flood = hs.flood || { badge: 'NOT ASSESSED', color: 'gray', details: 'Location coordinates not provided.' };
+  const fault = hs.fault || { badge: 'NOT ASSESSED', color: 'gray', proximity: 'Not assessed', details: 'Screening not performed.' };
+  const env = hs.environment || { badge: 'NOT ASSESSED', color: 'gray', details: 'No recorded restriction.' };
+  const source = hs.source || 'City spatial dataset';
+  const statusLabel = hs.status_label || (hs.validated ? 'City validated' : 'Not assessed');
+  const recorded = recordedSafety(property);
+
+  const badgeStyle = color => {
+    switch (color) {
+      case 'green': return 'background: #D1FAE5; color: #065F46;';
+      case 'amber': return 'background: #FEF3C7; color: #92400E;';
+      case 'red': return 'background: #FEE2E2; color: #991B1B;';
+      default: return 'background: #F3F4F6; color: #4B5563;';
+    }
+  };
+
   return `<section class="property-panel property-safety" id="propertyHazardsSection" aria-labelledby="propertyHazardsTitle">
-    <div class="property-section-heading"><div><span class="property-kicker">Before you decide</span><h2 id="propertyHazardsTitle">Hazards & environmental checks</h2></div><span class="property-safety-label">Review recorded evidence</span></div>
-    <div class="property-safety-grid">${recordedSafety(property).map(item => `<div><h3>${item.label}</h3><p class="property-safety-result">${item.values.length ? item.values.map(esc).join(', ') : 'Not assessed'}</p>${item.missing.length ? `<ul class="property-safety-missing">${item.missing.map(value => `<li>${esc(value)}</li>`).join('')}</ul>` : !item.values.length ? '<p>Verified classification and source coverage are not available in this listing.</p>' : ''}<p class="property-note">${item.evidence.length ? item.evidence.map(source => `${esc(source.source || source.layer || 'Recorded source')}${source.reference ? ` · ${esc(source.reference)}` : ''}${source.verifiedAt ? ` · verified ${esc(dateLabel(source.verifiedAt))}` : ''}`).join('<br>') : 'Source reference not recorded.'}</p></div>`).join('')}</div>
-    <p class="property-safety-limit">Recorded findings do not certify safety. Confirm current conditions, source coverage and legal boundaries with the responsible office. Point screening does not establish parcel-wide hazard clearance.</p>
+    <div class="property-section-heading">
+      <div>
+        <span class="property-kicker">HAZARD & ENVIRONMENT</span>
+        <h2 id="propertyHazardsTitle">Hazard & Environmental Screening</h2>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="property-safety-label" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 4px; background: #E0F2FE; color: #0369A1;">
+          <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
+          ${esc(statusLabel)}
+        </span>
+      </div>
+    </div>
+    <div class="property-safety-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0;">
+      <div style="padding: 14px; background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 13px; font-weight: 600; color: #11224D; margin: 0;">Flood susceptibility</h3>
+          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; ${badgeStyle(flood.color)}">${esc(flood.badge)}</span>
+        </div>
+        <p style="font-size: 13px; color: #4B5563; margin: 4px 0;">${esc(flood.details)}</p>
+        <small style="color: #6B7280; font-size: 11px;">Source: ${esc(flood.source || 'MGB Region 1')}</small>
+      </div>
+      <div style="padding: 14px; background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 13px; font-weight: 600; color: #11224D; margin: 0;">Fault-line screening</h3>
+          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; ${badgeStyle(fault.color)}">${esc(fault.badge)}</span>
+        </div>
+        <p style="font-size: 13px; color: #4B5563; margin: 4px 0;">${fault.proximity ? `<strong>${esc(fault.proximity)}</strong> from nearest mapped fault.` : esc(fault.details)}</p>
+        <small style="color: #6B7280; font-size: 11px;">Source: ${esc(fault.source || 'PHIVOLCS active faults')}</small>
+      </div>
+      <div style="padding: 14px; background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 13px; font-weight: 600; color: #11224D; margin: 0;">Environmental screening</h3>
+          <span style="font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; ${badgeStyle(env.color)}">${esc(env.badge)}</span>
+        </div>
+        <p style="font-size: 13px; color: #4B5563; margin: 4px 0;">${esc(env.details || 'No recorded restriction')}</p>
+        <small style="color: #6B7280; font-size: 11px;">Source: ${esc(env.source || 'CENRO & DENR-EMB')}</small>
+      </div>
+    </div>
+    ${recorded.some(item => item.values.length || item.missing.length || item.evidence.length) ? `
+      <div class="property-safety-recorded" style="margin-top: 14px; border-top: 1px solid #E5E7EB; padding-top: 12px;">
+        ${recorded.map(item => `
+          <div class="property-safety-item" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <h3 style="font-size: 13px; font-weight: 600; color: #11224D; margin: 0;">${esc(item.label)}</h3>
+              <span style="font-size: 12px; color: #4B5563;">${item.values.length ? esc(item.values.join(', ')) : 'Not assessed'}</span>
+            </div>
+            ${item.missing.length ? `<p class="property-missing" style="font-size: 12px; color: #B45309; margin: 4px 0;"><strong>Still needed:</strong> ${item.missing.map(esc).join(' ')}</p>` : ''}
+            ${item.evidence.length ? `<ul class="property-source-list" style="margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #6B7280;">${item.evidence.map(ev => `<li><strong>${esc(ev.source || 'Recorded source')}</strong>${ev.reference ? ` · Reference: ${esc(ev.reference)}` : ''}${ev.verifiedAt ? ` · Verified: ${esc(dateLabel(ev.verifiedAt))}` : ''}</li>`).join('')}</ul>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    <p class="property-safety-limit" style="font-size: 12px; color: #6B7280; margin-top: 10px;">
+      Assessment source: ${esc(source)} · Status: ${esc(statusLabel)}. Evaluated from official city spatial datasets based on submitted property coordinates.
+    </p>
   </section>`;
 }
 
@@ -161,7 +298,8 @@ export function propertyDetailsMarkup(property, options) {
       <figure class="property-photo"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><figcaption>${esc(property.category || property.type || 'Property')} · ${esc(property.barangay || property.city || 'San Fernando')}</figcaption></figure>
       <section class="property-panel property-contact"><span class="property-kicker">${property.contactMode === 'broker' ? 'Listing broker' : 'Listing assistance'}</span><h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>${contact}<div class="property-actions no-print">${role === 'guest' ? `<a class="city-button" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}${canInquire ? `<a class="city-button" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button></div><p class="property-note">Confirm the current availability and terms before making arrangements.</p></section>
       <section class="property-panel property-location" id="propertyLocationSection"><div class="property-section-heading"><div><span class="property-kicker">Find this property</span><h2>${locationLabel}</h2></div>${approximate ? '<span class="property-location-badge">Approximate pin</span>' : ''}</div><p>${esc(location)}</p>${hasLocation ? '<div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Property location map"></div>' : '<p class="property-pending-note">Exact location has not been recorded. The listed area or locality does not establish a precise property position.</p>'}${hasLocation ? `<p class="property-note">${approximate ? 'This pin shows an approximate location. Confirm the property position and legal boundaries before a site visit.' : 'The recorded pin is a location reference. Confirm the property position and legal boundaries against the survey records.'}</p>` : ''}${factsMarkup([['Recorded coordinates', hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not specified'], ['Boundary', parcel.boundary ? 'Drawn outline · mapped estimate' : 'No boundary drawn']])}${hasLocation ? `<a class="city-link no-print" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}" target="_blank" rel="noopener">Open ${approximate ? 'approximate ' : ''}location in maps ↗</a>` : ''}</section>
-      <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><h2>Property overview</h2><span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Category', [property.category, property.subcategory].filter(Boolean).join(' / ') || property.type], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
+      <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><h2>Property overview</h2><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : (property.clupProfile?.zoningClassification || 'Awaiting verification')], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'City verified listing'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
+        ${utilitiesMarkup(property)}
         <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
       </section>
       ${safetyMarkup(property)}

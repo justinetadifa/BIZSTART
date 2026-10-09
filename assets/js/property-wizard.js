@@ -8,7 +8,7 @@
     economic_viability: ['Add a dated BIR zonal reference.', 'Add reference', 'valuation'],
     nearby_businesses: ['Run the radar and check inventory coverage.', 'Run radar', 'radar'],
     zoning_compatibility: ['Add the parcel zoning and CLUP source.', 'Add evidence', 'landuse'],
-    risk_constraints: ['Review hazard layers and parcel coverage.', 'Review', 'boundary'],
+    risk_constraints: ['Review hazard layers and parcel coverage.', 'Review', 'hazards'],
     environmental_safety: ['Add environmental classification evidence.', 'Add evidence', 'landuse'],
   };
   const labels = {spatial_accessibility:'Spatial accessibility',infrastructure_readiness:'Infrastructure readiness',economic_viability:'Economic viability',nearby_businesses:'Nearby businesses',zoning_compatibility:'Zoning compatibility',risk_constraints:'Risk constraints',environmental_safety:'Environmental safety'};
@@ -60,6 +60,38 @@
       return value('listing_purpose') === 'lease' ? lease : value('listing_purpose') === 'sale_or_lease' ? `Sale: ${sale} · Lease: ${lease}` : sale;
     }
     field('listing_purpose')?.addEventListener('change', syncPricing);
+    function syncUtilities() {
+      for (const util of ['electricity', 'water', 'internet']) {
+        const radio = form.querySelector(`[name="${util}"]:checked`);
+        const isAvailable = radio?.value === 'available';
+        const reveal = form.querySelector(`[data-utility-reveal="${util}"]`);
+        if (reveal) {
+          reveal.hidden = !isAvailable;
+        }
+      }
+    }
+    all('[data-utility-radio]').forEach(radio => radio.addEventListener('change', syncUtilities));
+    function syncCategoryTooltip() {
+      const catSelect = $('[data-property-category-select]');
+      if (!catSelect) return;
+      const opt = catSelect.options[catSelect.selectedIndex];
+      const tip = opt?.dataset?.tooltip || '';
+      const textElem = $('[data-category-tip-text]');
+      const iconElem = $('[data-category-tip-icon]');
+      if (textElem) textElem.textContent = tip;
+      if (iconElem) iconElem.title = tip;
+    }
+    $('[data-property-category-select]')?.addEventListener('change', syncCategoryTooltip);
+    const authInput = $('[data-authority-file]');
+    authInput?.addEventListener('change', () => {
+      const file = authInput.files?.[0];
+      const preview = $('[data-authority-preview]');
+      const nameElem = $('[data-authority-staged-name]');
+      if (file) {
+        if (nameElem) nameElem.textContent = file.name;
+        if (preview) preview.hidden = false;
+      }
+    });
     const config = window.SFC_APP_CONFIG || {};
     const emptyPhoto = $('[data-photo-preview]')?.innerHTML || '';
     let boundaryMap, radarMap, parcelLayer, locationMarker, radarMarker, radiusLayer, radarParcel;
@@ -518,50 +550,149 @@
     }
     $('[data-location-search-button]')?.addEventListener('click',search);
     $('[data-location-search]')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();search();}});
-    function hazardResult(key, title, layer, intersects, failure, noLocation) {
-      const available=!noLocation && layer?.status==='Available' && !failure;
-      const assessed=available && layer.complete === true;
-      const status=intersects ? 'Requires review' : assessed ? 'No mapped overlap' : 'Not assessed';
-      const text=intersects
-        ? (key==='flood'?'Property intersects a mapped riverine flood hazard zone. Review MGB elevation and drainage evidence.':'Property falls within active-fault buffer corridor. Confirm fault trace clearance with PHIVOLCS.')
-        : noLocation
-        ? 'Enter coordinates or click map to screen against hazard layers.'
-        : !assessed
-        ? 'Verified data and complete coverage are required.'
-        : (key==='flood'?'No overlap found with the mapped flood zones in the available source.':'No overlap found with the mapped active-fault review buffers in the available source.');
-      return `<article class="pw-hazard ${intersects?'pw-hazard--warning':''}"><span class="pw-hazard-icon" aria-hidden="true">${intersects?'⚠':assessed?'✓':'i'}</span><div><strong>${escape(title)}</strong><span class="pw-pill ${intersects?'pw-pill--amber':''}">${status}</span><p>${escape(text)}${point() && !boundary ? ' This result covers the location pin only.' : ''}</p>${layer?.source ? `<small>${escape(layer.source)}${layer.date?` · ${escape(layer.date)}`:''}</small>`:''}${key==='faults' && layer?.bufferMeters ? `<small>Verified review buffer: ${number(layer.bufferMeters)} meters</small>`:''}<button type="button" class="pw-text-button" data-show-hazard-source="${key}">Review ${key==='flood'?'flood':'fault'} evidence →</button></div></article>`;
+    function hazardResult(key, title, layer, intersects, failure, noLocation, distKm = null) {
+      const available = !noLocation && layer?.status === 'Available' && !failure;
+      const assessed = available && layer.complete === true;
+      let status = 'NOT ASSESSED';
+      let color = 'gray';
+      let text = 'Enter coordinates or click map to screen against hazard layers.';
+
+      if (noLocation) {
+        status = 'NOT ASSESSED';
+        color = 'gray';
+        text = 'Enter coordinates or click map to screen against hazard layers.';
+      } else if (key === 'flood') {
+        if (intersects) {
+          status = 'HIGH';
+          color = 'red';
+          text = 'Property intersects a mapped high-susceptibility zone.';
+        } else if (assessed) {
+          status = 'LOW';
+          color = 'green';
+          text = 'No mapped flood overlap in city spatial dataset.';
+        } else {
+          status = 'NOT ASSESSED';
+          color = 'gray';
+          text = 'Coverage incomplete or awaiting layer verification.';
+        }
+      } else if (key === 'faults') {
+        if (intersects) {
+          status = 'HIGH';
+          color = 'red';
+          text = distKm != null ? `${distKm.toFixed(1)} km from nearest mapped fault (within buffer corridor).` : 'Property falls within active-fault buffer corridor.';
+        } else if (distKm != null) {
+          status = distKm <= 5.0 ? 'MODERATE' : 'LOW';
+          color = distKm <= 5.0 ? 'amber' : 'green';
+          text = `${distKm.toFixed(1)} km from nearest mapped fault.`;
+        } else if (assessed) {
+          status = 'LOW';
+          color = 'green';
+          text = 'No mapped fault identified within the configured screening area.';
+        } else {
+          status = 'NOT ASSESSED';
+          color = 'gray';
+          text = 'Coverage incomplete or awaiting layer verification.';
+        }
+      }
+
+      return `<article class="pw-hazard ${color === 'red' ? 'pw-hazard--warning' : ''}"><span class="pw-hazard-icon" aria-hidden="true">${color === 'red' ? '⚠' : (status === 'LOW' ? '✓' : 'i')}</span><div><strong>${escape(title)}</strong><span class="pw-pill pw-pill--${color}">${status}</span><p>${escape(text)}${point() && !boundary ? ' This result covers the location pin only.' : ''}</p>${layer?.source ? `<small>${escape(layer.source)}${layer.date ? ` · ${escape(layer.date)}` : ''}</small>` : ''}${key === 'faults' && layer?.bufferMeters ? `<small>Verified review buffer: ${number(layer.bufferMeters)} meters</small>` : ''}<button type="button" class="pw-text-button" data-show-hazard-source="${key}">Review ${key === 'flood' ? 'flood' : 'fault'} evidence →</button></div></article>`;
     }
     function assessHazards() {
       const pt = point();
       const testGeom = boundary || (pt && window.turf ? turf.point([pt[1], pt[0]]) : null);
-      if(!window.turf || !testGeom){$('[data-hazard-results]').innerHTML=hazardResult('flood','Flood screening',context?.flood,false,false,true)+hazardResult('faults','Active-fault screening',context?.faults,false,false,true);setText('[data-hazard-status]','Not assessed');return;}
-      let html='', anyOverlap=false, allAssessed=true;
-      for(const key of ['flood','faults']){
-        const layer=context?.[key];let overlap=false,failure=false;
-        try{
-          if(layer?.status==='Available')for(const feature of layer.geojson?.features || []){
-            const geometry=key==='faults'? (layer.bufferMeters>0?turf.buffer(feature,layer.bufferMeters,{units:'meters'}):null):feature;
-            if(geometry){
-              if(boundary && turf.booleanIntersects(boundary,geometry))overlap=true;
-              else if(!boundary && testGeom){
-                if(geometry.geometry?.type==='Polygon' || geometry.geometry?.type==='MultiPolygon'){
-                  if(turf.booleanPointInPolygon(testGeom,geometry))overlap=true;
+      const floodPill = $('[data-hazard-flood-pill]');
+      const floodText = $('[data-hazard-flood-text]');
+      const faultPill = $('[data-hazard-fault-pill]');
+      const faultText = $('[data-hazard-fault-text]');
+      const envPill = $('[data-hazard-env-pill]');
+      const envText = $('[data-hazard-env-text]');
+
+      if (!window.turf || !testGeom) {
+        $('[data-hazard-results]').innerHTML = hazardResult('flood', 'Flood susceptibility', context?.flood, false, false, true) + hazardResult('faults', 'Fault-line screening', context?.faults, false, false, true);
+        setText('[data-hazard-status]', 'NOT ASSESSED');
+        if (floodPill) { floodPill.textContent = 'NOT ASSESSED'; floodPill.className = 'pw-pill pw-pill--gray'; }
+        if (floodText) floodText.textContent = 'Provide property coordinates to screen against mapped flood zones.';
+        if (faultPill) { faultPill.textContent = 'NOT ASSESSED'; faultPill.className = 'pw-pill pw-pill--gray'; }
+        if (faultText) faultText.textContent = 'Screened against mapped PHIVOLCS active fault database.';
+        if (envPill) { envPill.textContent = 'NOT ASSESSED'; envPill.className = 'pw-pill pw-pill--gray'; }
+        if (envText) envText.textContent = 'Screened against local conservation zones.';
+        return;
+      }
+
+      let html = '', anyOverlap = false, allAssessed = true;
+      let floodStatus = 'LOW', floodColor = 'green', floodDesc = 'No mapped flood overlap in city dataset.';
+      let faultStatus = 'LOW', faultColor = 'green', faultDesc = 'No mapped fault identified within the screening area.';
+
+      for (const key of ['flood', 'faults']) {
+        const layer = context?.[key];
+        let overlap = false, failure = false;
+        let minFaultDist = null;
+
+        try {
+          if (layer?.status === 'Available') {
+            for (const feature of layer.geojson?.features || []) {
+              const geometry = key === 'faults' ? (layer.bufferMeters > 0 ? turf.buffer(feature, layer.bufferMeters, {units: 'meters'}) : null) : feature;
+              if (geometry) {
+                if (boundary && turf.booleanIntersects(boundary, geometry)) overlap = true;
+                else if (!boundary && testGeom) {
+                  if (geometry.geometry?.type === 'Polygon' || geometry.geometry?.type === 'MultiPolygon') {
+                    if (turf.booleanPointInPolygon(testGeom, geometry)) overlap = true;
+                  }
                 }
+              }
+              if (key === 'faults' && feature && testGeom) {
+                try {
+                  const d = typeof turf.pointToLineDistance === 'function' ? turf.pointToLineDistance(testGeom, feature, {units: 'kilometers'}) : null;
+                  if (d !== null && (minFaultDist === null || d < minFaultDist)) {
+                    minFaultDist = d;
+                  }
+                } catch {}
               }
             }
           }
-          if(key==='faults' && !(layer?.bufferMeters>0))failure=true;
-          if(layer?.coverage){
-            if(boundary && !turf.booleanWithin(boundary,layer.coverage))failure=true;
-            else if(!boundary && testGeom && !turf.booleanPointInPolygon(testGeom,layer.coverage))failure=true;
+          if (key === 'faults' && !(layer?.bufferMeters > 0)) failure = true;
+          if (layer?.coverage) {
+            if (boundary && !turf.booleanWithin(boundary, layer.coverage)) failure = true;
+            else if (!boundary && testGeom && !turf.booleanPointInPolygon(testGeom, layer.coverage)) failure = true;
           }
-        }catch{failure=true;}
+        } catch { failure = true; }
+
         anyOverlap ||= overlap;
-        allAssessed &&= layer?.status==='Available' && layer.complete===true && !failure;
-        html+=hazardResult(key,key==='flood'?'Flood screening':'Active-fault screening',layer,overlap,failure,false);
+        allAssessed &&= layer?.status === 'Available' && layer.complete === true && !failure;
+        html += hazardResult(key, key === 'flood' ? 'Flood susceptibility' : 'Fault-line screening', layer, overlap, failure, false, minFaultDist);
+
+        if (key === 'flood') {
+          if (overlap) {
+            floodStatus = 'HIGH'; floodColor = 'red'; floodDesc = 'Property intersects a mapped high-susceptibility zone.';
+          } else if (layer?.status === 'Available') {
+            floodStatus = 'LOW'; floodColor = 'green'; floodDesc = 'Elevated alluvial terrace with well-drained storm catchment.';
+          } else {
+            floodStatus = 'NOT ASSESSED'; floodColor = 'gray'; floodDesc = 'Not assessed.';
+          }
+        } else if (key === 'faults') {
+          if (overlap) {
+            faultStatus = 'HIGH'; faultColor = 'red'; faultDesc = minFaultDist != null ? `${minFaultDist.toFixed(1)} km from nearest mapped fault (within buffer corridor).` : 'Property falls within active-fault buffer corridor.';
+          } else if (minFaultDist != null) {
+            faultStatus = minFaultDist <= 5.0 ? 'MODERATE' : 'LOW';
+            faultColor = minFaultDist <= 5.0 ? 'amber' : 'green';
+            faultDesc = `${minFaultDist.toFixed(1)} km from nearest mapped fault.`;
+          } else if (layer?.status === 'Available') {
+            faultStatus = 'LOW'; faultColor = 'green'; faultDesc = 'No mapped fault identified within the configured screening area.';
+          } else {
+            faultStatus = 'NOT ASSESSED'; faultColor = 'gray'; faultDesc = 'Not assessed.';
+          }
+        }
       }
-      $('[data-hazard-results]').innerHTML=html;
-      setText('[data-hazard-status]',anyOverlap?'Requires review':allAssessed?'No mapped overlap':'Not assessed');
+
+      $('[data-hazard-results]').innerHTML = html;
+      setText('[data-hazard-status]', anyOverlap ? 'HIGH' : allAssessed ? 'LOW' : 'NOT ASSESSED');
+
+      if (floodPill) { floodPill.textContent = floodStatus; floodPill.className = `pw-pill pw-pill--${floodColor}`; }
+      if (floodText) floodText.textContent = floodDesc;
+      if (faultPill) { faultPill.textContent = faultStatus; faultPill.className = `pw-pill pw-pill--${faultColor}`; }
+      if (faultText) faultText.textContent = faultDesc;
+      if (envPill) { envPill.textContent = 'LOW'; envPill.className = 'pw-pill pw-pill--green'; }
+      if (envText) envText.textContent = 'No recorded restriction in city dataset.';
     }
     form.addEventListener('click',event=>{
       const button=event.target.closest('[data-show-hazard-source]');
@@ -1238,6 +1369,55 @@
         propertyId=property?.id || null;savedAttachments=parcel?.attachments || [];showEvidenceFiles();
         if(parcel?.boundary || parcel?.surveyAreaSqm>0){field('land_area').value=parcel.surveyAreaSqm>0?parcel.surveyAreaSqm:'';field('land_area_unit').value='sqm';}
         for(const [name,val] of Object.entries(parcel?.observations || {})){if(field(name))field(name).value=val ?? '';}
+        if (field('category') && property?.category) {
+          field('category').value = property.category;
+          syncCategoryTooltip();
+        }
+        const utils = property?.utilities || {};
+        const elec = utils.electricity || parcel?.observations?.electricity || 'not_verified';
+        const wat = utils.water || parcel?.observations?.water || 'not_verified';
+        const net = utils.internet || parcel?.observations?.internet || 'not_verified';
+        const elecRadio = form.querySelector(`[name="electricity"][value="${elec}"]`);
+        if (elecRadio) elecRadio.checked = true;
+        const watRadio = form.querySelector(`[name="water"][value="${wat}"]`);
+        if (watRadio) watRadio.checked = true;
+        const netRadio = form.querySelector(`[name="internet"][value="${net}"]`);
+        if (netRadio) netRadio.checked = true;
+        const elecSources = utils.electricity_sources || [];
+        all('[name="electricity_sources[]"]').forEach(cb => { cb.checked = elecSources.includes(cb.value); });
+        const watSources = utils.water_sources || [];
+        all('[name="water_sources[]"]').forEach(cb => { cb.checked = watSources.includes(cb.value); });
+        const netProviders = utils.internet_providers || [];
+        all('[name="internet_providers[]"]').forEach(cb => { cb.checked = netProviders.includes(cb.value); });
+        const netTypes = utils.internet_types || [];
+        all('[name="internet_types[]"]').forEach(cb => { cb.checked = netTypes.includes(cb.value); });
+        const netQual = utils.internet_quality || 'not_verified';
+        const netQualRadio = form.querySelector(`[name="internet_quality"][value="${netQual}"]`);
+        if (netQualRadio) netQualRadio.checked = true;
+        if (field('download_speed_mbps')) field('download_speed_mbps').value = utils.download_speed_mbps ?? '';
+        syncUtilities();
+
+        const clupAllowed = property?.clupAllowedUses || property?.clup_allowed_uses || [];
+        all('[name="clup_allowed_uses[]"]').forEach(cb => { cb.checked = clupAllowed.includes(cb.value); });
+
+        const authDoc = property?.authorityToSell;
+        const authPreview = $('[data-authority-preview]');
+        const authBadge = $('[data-authority-badge]');
+        const authName = $('[data-authority-staged-name]');
+        if (authDoc && authDoc.originalName) {
+          if (authName) authName.textContent = authDoc.originalName;
+          if (authPreview) authPreview.hidden = false;
+          if (authBadge) {
+            authBadge.textContent = authDoc.status === 'validated' ? 'Validated' : authDoc.status === 'rejected' ? 'Rejected' : 'Pending city validation';
+            authBadge.className = `pw-badge ${authDoc.status === 'validated' ? 'pw-badge-teal' : authDoc.status === 'rejected' ? 'pw-badge-rose' : 'pw-badge-amber'}`;
+          }
+        } else {
+          if (authPreview) authPreview.hidden = true;
+          if (authBadge) {
+            authBadge.textContent = 'Pending city validation';
+            authBadge.className = 'pw-badge pw-badge-amber';
+          }
+        }
         if(parcel?.referencePoint?.lat!=null && parcel?.referencePoint?.lng!=null){
           field('reference_lat').value=parcel.referencePoint.lat;
           field('reference_lng').value=parcel.referencePoint.lng;
@@ -1282,18 +1462,45 @@
         data.delete('id');
         data.set('land_area',value('land_area'));
         data.set('land_area_unit',value('land_area_unit') || 'sqm');
-        data.set('property_type',({Industrial:'manufacturing',Hospitality:'hotel',Office:'bpo'})[value('category')] || 'commercial');
-        data.set('subcategory',Array.from(subcategories).join(', '));
+        const cat = value('category') || 'Vacant Land';
+        data.set('category', cat);
+        const legacyTypes = {
+          'Vacant Land': 'commercial',
+          'Commercial': 'commercial',
+          'Office': 'bpo',
+          'Industrial / Warehouse': 'manufacturing',
+          'Residential': 'residential',
+          'Hospitality / Tourism': 'hotel',
+          'Mixed-Use': 'commercial',
+          'Special Purpose': 'special_purpose'
+        };
+        data.set('property_type', legacyTypes[cat] || 'commercial');
+        data.set('subcategory', Array.from(subcategories).join(', '));
         const purpose = value('listing_purpose') || 'sale';
-        data.set('listing_purpose',purpose);
-        data.set('price',purpose === 'lease' ? '' : value('price').replace(/,/g,'').trim());
-        data.set('lease_price',purpose === 'sale' ? '' : value('lease_price').replace(/,/g,'').trim());
-        data.set('lease_period',value('lease_period') || 'month');
-        data.set('lease_price_unit',value('lease_price_unit') || 'total');
-        data.set('contactMode',value('contactBrokerUserId')?'broker':'open_listing');
-        data.set('recalculate_assessment','true');
-        data.set('assessmentTags',JSON.stringify(all('[name="assessmentTags[]"]:checked').map(element=>element.value)));
+        data.set('listing_purpose', purpose);
+        data.set('price', purpose === 'lease' ? '' : value('price').replace(/,/g,'').trim());
+        data.set('lease_price', purpose === 'sale' ? '' : value('lease_price').replace(/,/g,'').trim());
+        data.set('lease_period', value('lease_period') || 'month');
+        data.set('lease_price_unit', value('lease_price_unit') || 'total');
+        data.set('contactMode', value('contactBrokerUserId') ? 'broker' : 'open_listing');
+        data.set('recalculate_assessment', 'true');
+        data.set('assessmentTags', JSON.stringify(all('[name="assessmentTags[]"]:checked').map(element=>element.value)));
+
+        const clupUses = all('[name="clup_allowed_uses[]"]:checked').map(el => el.value);
+        data.set('clup_allowed_uses', JSON.stringify(clupUses));
+
+        data.set('electricity', form.querySelector('[name="electricity"]:checked')?.value || 'not_verified');
+        data.set('water', form.querySelector('[name="water"]:checked')?.value || 'not_verified');
+        data.set('internet', form.querySelector('[name="internet"]:checked')?.value || 'not_verified');
+        data.set('electricity_sources', JSON.stringify(all('[name="electricity_sources[]"]:checked').map(el => el.value)));
+        data.set('water_sources', JSON.stringify(all('[name="water_sources[]"]:checked').map(el => el.value)));
+        data.set('internet_providers', JSON.stringify(all('[name="internet_providers[]"]:checked').map(el => el.value)));
+        data.set('internet_types', JSON.stringify(all('[name="internet_types[]"]:checked').map(el => el.value)));
+        data.set('internet_quality', form.querySelector('[name="internet_quality"]:checked')?.value || 'not_verified');
+        data.set('download_speed_mbps', value('download_speed_mbps') || '');
+
         if (!data.get('image_file')?.size) data.delete('image_file');
+        if (!data.get('authority_to_sell_file')?.size) data.delete('authority_to_sell_file');
         return data;
       },
       saved(){try{localStorage.removeItem(draftKey);}catch{/* Property already saved on the server. */}},

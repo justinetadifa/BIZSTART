@@ -31,6 +31,7 @@ let currentRankingView = 'list';
 let map, markers, tileLayer;
 let businessLayer;
 let detailsBusinessLayer;
+let floodLayer, faultLayer;
 let toastTimer;
 try { compare = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(id => Number.isInteger(id)); } catch { compare = []; }
 
@@ -49,10 +50,93 @@ function imageUrl(property) {
   return path(source);
 }
 
+function cardUtilitiesBadges(property) {
+  const utils = property.utilities || {};
+  const observations = property.parcel?.observations || {};
+  const elec = utils.electricity || observations.electricity || 'not_verified';
+  const wat = utils.water || observations.water || 'not_verified';
+  const net = utils.internet || observations.internet || 'not_verified';
+
+  const elecSources = (utils.electricity_sources?.length ? utils.electricity_sources : (elec === 'available' ? ['LUECO'] : [])).join(' · ');
+  const watSources = (utils.water_sources?.length ? utils.water_sources : (wat === 'available' ? ['Metro La Union Water District'] : [])).join(' · ');
+  const netProviders = (utils.internet_providers?.length ? utils.internet_providers : (net === 'available' ? ['Globe', 'PLDT'] : [])).join(' · ');
+  const netTypes = utils.internet_types?.join(', ') || (net === 'available' ? 'Fiber' : '');
+  const netSpeed = utils.download_speed_mbps ? ` · ${utils.download_speed_mbps} Mbps` : '';
+
+  const items = [
+    {
+      name: 'Electricity',
+      avail: elec === 'available',
+      tooltip: `Electricity\n${elec === 'available' ? '✓ Available' : elec === 'unavailable' ? 'Unavailable' : 'Not verified'}${elecSources ? `\n${elecSources}` : ''}`
+    },
+    {
+      name: 'Water',
+      avail: wat === 'available',
+      tooltip: `Water\n${wat === 'available' ? '✓ Available' : wat === 'unavailable' ? 'Unavailable' : 'Not verified'}${watSources ? `\n${watSources}` : ''}`
+    },
+    {
+      name: 'Internet',
+      avail: net === 'available',
+      tooltip: `Internet\n${net === 'available' ? (netTypes ? `✓ ${netTypes} available` : '✓ Available') : net === 'unavailable' ? 'Unavailable' : 'Not verified'}${netProviders ? `\n${netProviders}${netSpeed}` : ''}`
+    }
+  ];
+
+  return `
+    <div class="tw-mt-2.5 tw-pt-2 tw-border-t tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-gap-1.5 tw-flex-wrap">
+      <span class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">Utilities:</span>
+      <div class="tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap">
+        ${items.map(it => `
+          <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium ${it.avail ? 'tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200/60' : 'tw-bg-slate-100 tw-text-slate-500'}" title="${esc(it.tooltip)}" style="cursor: help;">
+            ${it.avail ? '<span class="tw-text-emerald-600 tw-font-bold">✓</span>' : '<span class="tw-text-slate-400">○</span>'}
+            <span>${esc(it.name)}</span>
+          </span>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function hazardNotice(property) {
+  const hs = property.hazardScreening || {};
+  const flood = hs.flood || { badge: 'NOT ASSESSED', color: 'gray' };
+  const fault = hs.fault || { badge: 'NOT ASSESSED', color: 'gray' };
+
+  const badgeClasses = (color) => {
+    switch (color) {
+      case 'green': return 'tw-bg-emerald-50 tw-text-emerald-800 tw-border-emerald-200';
+      case 'amber': return 'tw-bg-amber-50 tw-text-amber-800 tw-border-amber-200';
+      case 'red': return 'tw-bg-rose-50 tw-text-rose-800 tw-border-rose-200';
+      default: return 'tw-bg-slate-100 tw-text-slate-600 tw-border-slate-200';
+    }
+  };
+
   const locationNote = !hasCoordinates(property) ? 'Map location has not been recorded.'
     : propertyLocationLabel(property) === 'Approximate location' ? 'Approximate map pin · confirm the parcel location.' : '';
-  return `${locationNote ? `<p class="tw-mx-3 tw-mt-3 tw-text-xs tw-text-slate-600">${esc(locationNote)}</p>` : ''}<p class="city-card-hazard tw-mx-3 tw-my-3 tw-rounded-lg tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-2.5 tw-text-xs tw-leading-relaxed tw-text-amber-900"><strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}</p>`;
+
+  const intersectNotice = flood.badge === 'HIGH' ? `<div class="tw-text-[10.5px] tw-text-rose-700 tw-mt-1.5 tw-pt-1 tw-border-t tw-border-rose-100">Property intersects a mapped high flood-susceptibility zone.</div>` : '';
+
+  return `
+    ${locationNote ? `<p class="tw-mx-3 tw-mt-2.5 tw-mb-0 tw-text-xs tw-text-slate-500">${esc(locationNote)}</p>` : ''}
+    <div class="tw-mx-3 tw-my-2.5 tw-p-2.5 tw-rounded-xl tw-bg-slate-50/90 tw-border tw-border-slate-200/70">
+      <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
+        <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[11px] tw-font-semibold tw-text-slate-600">
+          <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>Hazards & environment</span>
+        </div>
+        <div class="tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap tw-justify-end">
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-[10px] tw-font-bold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
+            Flood: ${esc(flood.badge)}
+          </span>
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-[10px] tw-font-bold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
+            Fault: ${esc(fault.proximity || fault.badge)}
+          </span>
+        </div>
+      </div>
+      ${intersectNotice}
+    </div>
+  `;
 }
 
 function synchronizeInvestorSort(announce = false) {
@@ -79,8 +163,8 @@ function card(property, index) {
   const isExpanded = expandedCards.has(property.id);
 
   if (page === 'city-explorer') {
-    const mceVal = property.mceScore != null ? score(property.mceScore) : '—';
-    const iaiVal = property.iaiScore != null ? score(property.iaiScore) : '—';
+    const mceVal = (property.mceScore != null && property.assessmentComplete) ? score(property.mceScore) : 'Assessment incomplete';
+    const iaiVal = (property.iaiScore != null && property.assessmentComplete) ? score(property.iaiScore) : 'Assessment incomplete';
     const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
     const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
     const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
@@ -90,10 +174,16 @@ function card(property, index) {
       <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
         <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
 
-        <!-- Top-left: ● Available Badge -->
-        <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-2.5 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
-          <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
+        <!-- Top-left: ● Available Badge & Authority to Sell -->
+        <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-flex-col tw-gap-1.5">
+          <div class="tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-2.5 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
+            <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
+            <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
+          </div>
+          ${property.authorityToSellVerified ? `
+          <div class="tw-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50/95 tw-backdrop-blur-md tw-px-2.5 tw-py-0.5 tw-shadow-sm tw-border tw-border-emerald-200">
+            <span class="tw-text-[10.5px] tw-font-bold tw-text-emerald-800">Authority to Sell ✓ Verified</span>
+          </div>` : ''}
         </div>
 
         <!-- Top-right: Circle Toggle Button -->
@@ -169,6 +259,16 @@ function card(property, index) {
               ${esc(descText)}
             </p>
 
+            <!-- Suitable for CLUP uses -->
+            ${property.clupAllowedUses?.length ? `
+            <div class="tw-mt-2.5 tw-pt-2 tw-border-t tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-text-xs">
+              <span class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">Suitable for:</span>
+              <span class="tw-font-semibold tw-text-slate-700">${esc(property.clupAllowedUses.join(' · '))} ${property.clupVerifiedAt ? '<span class="tw-text-emerald-600 tw-font-bold">✓ Validated</span>' : '<span class="tw-text-slate-400 font-normal">(Pending validation)</span>'}</span>
+            </div>` : ''}
+
+            <!-- Utilities badges with hover tooltips -->
+            ${cardUtilitiesBadges(property)}
+
             <!-- Full-width Red View details Pill Button -->
             <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-w-full tw-mt-3 tw-py-2.5 tw-px-4 tw-rounded-full tw-bg-[#9E1B22] hover:tw-bg-[#80141a] tw-text-white tw-font-semibold tw-text-xs tw-flex tw-items-center tw-justify-center tw-gap-2 tw-shadow-sm hover:tw-shadow-md tw-transition-all tw-no-underline">
               <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -225,8 +325,8 @@ function card(property, index) {
     Industrial: 'tw-bg-stone-100 tw-text-stone-700 tw-border-stone-200'
   })[property.category] || 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]';
 
-  const mceVal = property.mceScore != null ? `${number(property.mceScore)}/100` : 'Not Available';
-  const iaiVal = property.iaiScore != null ? `${number(property.iaiScore)}/100` : 'Not Available';
+  const mceVal = (property.mceScore != null && property.assessmentComplete) ? `${number(property.mceScore)}/100` : 'Assessment incomplete';
+  const iaiVal = (property.iaiScore != null && property.assessmentComplete) ? `${number(property.iaiScore)}/100` : 'Assessment incomplete';
   const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
   const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
   const descText = property.description || property.thesis || `A ${hasArea(property) ? `${number(property.area)}-hectare ` : ''}${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
@@ -236,10 +336,16 @@ function card(property, index) {
     <div class="tw-relative tw-h-[260px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
       <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
       
-      <!-- Top-left: ● Available Badge -->
-      <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-3 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
-        <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
-        <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
+      <!-- Top-left: ● Available Badge & Authority to Sell -->
+      <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-flex-col tw-gap-1.5">
+        <div class="tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-3 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
+          <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
+          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
+        </div>
+        ${property.authorityToSellVerified ? `
+        <div class="tw-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50/95 tw-backdrop-blur-md tw-px-2.5 tw-py-0.5 tw-shadow-sm tw-border tw-border-emerald-200">
+          <span class="tw-text-[10.5px] tw-font-bold tw-text-emerald-800">Authority to Sell ✓ Verified</span>
+        </div>` : ''}
       </div>
 
       <!-- Floating Frosted Glass Panel -->
@@ -343,9 +449,19 @@ function card(property, index) {
           </div>
 
           <!-- Description -->
-          <p class="tw-text-xs tw-text-slate-500 tw-leading-relaxed tw-mt-3.5 tw-mb-4 tw-line-clamp-2">
+          <p class="tw-text-xs tw-text-slate-500 tw-leading-relaxed tw-mt-3.5 tw-mb-2.5 tw-line-clamp-2">
             ${esc(descText)}
           </p>
+
+          <!-- Suitable for CLUP uses -->
+          ${property.clupAllowedUses?.length ? `
+          <div class="tw-mt-2.5 tw-pt-2 tw-border-t tw-border-slate-100 tw-flex tw-items-center tw-justify-between tw-text-xs">
+            <span class="tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">Suitable for:</span>
+            <span class="tw-font-semibold tw-text-slate-700">${esc(property.clupAllowedUses.join(' · '))} ${property.clupVerifiedAt ? '<span class="tw-text-emerald-600 tw-font-bold">✓ Validated</span>' : '<span class="tw-text-slate-400 font-normal">(Pending validation)</span>'}</span>
+          </div>` : ''}
+
+          <!-- Utilities badges with hover tooltips -->
+          ${cardUtilitiesBadges(property)}
 
           <!-- 3 Red Pill Action Buttons -->
           <div class="tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-3.5">
@@ -618,8 +734,76 @@ function getFiltered() {
   const query = (document.getElementById('citySearch')?.value || '').toLowerCase().trim();
   const category = document.getElementById('cityCategory')?.value || '';
   const subcategory = document.getElementById('citySubcategory')?.value || '';
+  const listingPurpose = document.getElementById('cityListingPurpose')?.value || '';
+  const allowedUse = document.getElementById('cityAllowedUse')?.value || '';
+  const utilityFilter = document.getElementById('cityUtilities')?.value || '';
+  const hazardFilter = document.getElementById('cityHazard')?.value || '';
   const savedOnly = document.getElementById('citySavedOnly')?.checked;
-  const result = properties.filter(property => (!query || `${property.name} ${property.barangay || ''} ${property.city}`.toLowerCase().includes(query)) && (!category || property.category === category) && (!subcategory || property.subcategory === subcategory) && (!savedOnly || saved.has(property.id)));
+
+  const result = properties.filter(property => {
+    // 1. Search query: name, barangay, city, category, or CITY-VALIDATED allowed uses
+    if (query) {
+      const basicMatches = `${property.name} ${property.barangay || ''} ${property.city} ${property.category || ''}`.toLowerCase().includes(query);
+      let clupMatches = false;
+      if (property.clupVerifiedAt && Array.isArray(property.clupAllowedUses)) {
+        clupMatches = property.clupAllowedUses.some(u => String(u).toLowerCase().includes(query));
+      }
+      if (!basicMatches && !clupMatches) return false;
+    }
+
+    // 2. Category (8 Property Types)
+    if (category && property.category !== category) return false;
+
+    // 3. Subcategory
+    if (subcategory && property.subcategory !== subcategory) return false;
+
+    // 4. Listing Purpose
+    if (listingPurpose) {
+      if (listingPurpose === 'sale' && !['sale', 'sale_or_lease'].includes(property.listingPurpose)) return false;
+      if (listingPurpose === 'lease' && !['lease', 'sale_or_lease'].includes(property.listingPurpose)) return false;
+    }
+
+    // 5. CLUP / Allowed Land Use (Must be city-validated)
+    if (allowedUse) {
+      if (!property.clupVerifiedAt) return false;
+      const uses = Array.isArray(property.clupAllowedUses) ? property.clupAllowedUses : [];
+      const zoning = property.clupProfile?.zoningClassification || '';
+      const matched = uses.some(u => String(u).toLowerCase().includes(allowedUse.toLowerCase())) ||
+        zoning.toLowerCase().includes(allowedUse.toLowerCase());
+      if (!matched) return false;
+    }
+
+    // 6. Utilities
+    if (utilityFilter) {
+      const utils = property.utilities || {};
+      const obs = property.parcel?.observations || {};
+      if (utilityFilter === 'electricity') {
+        const elec = utils.electricity || obs.electricity;
+        if (elec !== 'available') return false;
+      } else if (utilityFilter === 'water') {
+        const wat = utils.water || obs.water;
+        if (wat !== 'available') return false;
+      } else if (utilityFilter === 'fiber') {
+        const net = utils.internet || obs.internet;
+        const types = utils.internet_types || [];
+        if (net !== 'available' || !types.includes('Fiber')) return false;
+      }
+    }
+
+    // 7. Hazard screening
+    if (hazardFilter) {
+      const hs = property.hazardScreening || {};
+      const floodBadge = hs.flood?.badge || 'NOT ASSESSED';
+      if (hazardFilter === 'low_flood' && floodBadge !== 'LOW') return false;
+      if (hazardFilter === 'moderate_flood' && !['LOW', 'MODERATE'].includes(floodBadge)) return false;
+    }
+
+    // 8. Saved only
+    if (savedOnly && !saved.has(property.id)) return false;
+
+    return true;
+  });
+
   const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' && advancedView() ? 'iai' : 'newest');
   if (sort === 'iai' || sort === 'mce') result.sort((a, b) => (b[`${sort}Score`] ?? -1) - (a[`${sort}Score`] ?? -1) || a.id - b.id);
   else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => compareSalePrices(a, b));
@@ -713,27 +897,53 @@ function render() {
 function setupFilters() {
   const category = document.getElementById('cityCategory');
   const subcategory = document.getElementById('citySubcategory');
-  if (!category) return;
-  Object.keys(categories).forEach(label => category.add(new Option(label, label)));
-  function updateSubcategories() {
-    subcategory.innerHTML = '<option value="">All subcategories</option>';
-    (categories[category.value] || []).forEach(label => subcategory.add(new Option(label, label)));
-    subcategory.disabled = !(categories[category.value]?.length);
+  const subcategoryWrapper = document.getElementById('citySubcategoryWrapper');
+  const allowedUse = document.getElementById('cityAllowedUse');
+  const listingPurpose = document.getElementById('cityListingPurpose');
+  const utilities = document.getElementById('cityUtilities');
+  const hazard = document.getElementById('cityHazard');
+
+  if (category) {
+    Object.keys(categories).forEach(label => category.add(new Option(label, label)));
+    function updateSubcategories() {
+      if (!subcategory) return;
+      subcategory.innerHTML = '<option value="">All subcategories</option>';
+      const subs = categories[category.value] || [];
+      subs.forEach(label => subcategory.add(new Option(label, label)));
+      subcategory.disabled = !(subs.length);
+      if (subcategoryWrapper) {
+        subcategoryWrapper.style.display = subs.length ? '' : 'none';
+      }
+    }
+    if (Object.hasOwn(categories, params.get('category') || '')) category.value = params.get('category');
+    updateSubcategories();
+    category.addEventListener('change', () => { updateSubcategories(); render(); });
+    subcategory?.addEventListener('change', render);
   }
-  if (Object.hasOwn(categories, params.get('category') || '')) category.value = params.get('category');
-  updateSubcategories();
-  category.addEventListener('change', () => { updateSubcategories(); render(); });
-  subcategory.addEventListener('change', render);
-  document.getElementById('citySort').addEventListener('change', render);
-  document.getElementById('citySearch').addEventListener('input', render);
-  document.getElementById('cityFilters').addEventListener('submit', event => event.preventDefault());
+
+  allowedUse?.addEventListener('change', render);
+  listingPurpose?.addEventListener('change', render);
+  utilities?.addEventListener('change', render);
+  hazard?.addEventListener('change', render);
+
+  document.getElementById('citySort')?.addEventListener('change', render);
+  document.getElementById('citySearch')?.addEventListener('input', render);
+  document.getElementById('cityFilters')?.addEventListener('submit', event => event.preventDefault());
 
   document.getElementById('cityResetFilters')?.addEventListener('click', () => {
     const search = document.getElementById('citySearch');
     const sort = document.getElementById('citySort');
     if (search) search.value = '';
-    category.value = '';
-    updateSubcategories();
+    if (category) category.value = '';
+    if (subcategory) {
+      subcategory.value = '';
+      subcategory.disabled = true;
+      if (subcategoryWrapper) subcategoryWrapper.style.display = 'none';
+    }
+    if (allowedUse) allowedUse.value = '';
+    if (listingPurpose) listingPurpose.value = '';
+    if (utilities) utilities.value = '';
+    if (hazard) hazard.value = '';
     if (sort) sort.value = 'newest';
     render();
   });
@@ -870,6 +1080,7 @@ function createPopupContent(property) {
         <div class="locus-popup-tags">
           <span class="locus-popup-tag">${category}</span><span class="locus-popup-tag">${esc(listingPurposeLabel(property))}</span>
           <span class="locus-popup-tag tag-muted">${zoning}</span>
+          ${property.authorityToSellVerified ? '<span class="locus-popup-tag tw-bg-emerald-100 tw-text-emerald-800">Authority to Sell ✓ Verified</span>' : ''}
         </div>
       </div>
       <div class="locus-popup-body">
@@ -880,7 +1091,9 @@ function createPopupContent(property) {
           <div class="locus-popup-price">${esc(listingPriceLabel(property))}</div>
           <div class="locus-popup-area">${areaText(property)}${salePricePerSqm(property) !== null ? ` · ${money(salePricePerSqm(property))}/m²` : ''}</div>
         </div>
-        <p class="tw-text-xs tw-leading-relaxed tw-text-amber-900"><strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}</p>
+        <div class="tw-my-1.5 tw-p-1.5 tw-rounded-lg tw-bg-slate-50 tw-border tw-border-slate-100 tw-text-[11px] tw-text-slate-600">
+          <strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}
+        </div>
         ${advancedView() && iaiVal != null ? `
           <div class="locus-popup-metrics" data-investor-advanced>
             <div class="locus-metric-row">
@@ -1092,6 +1305,82 @@ function setupMap() {
     } catch (error) {
       event.target.checked = false;
       status.textContent = error.message;
+    }
+  });
+
+  document.getElementById('cityMapFloodOverlay')?.addEventListener('change', async event => {
+    const status = document.getElementById('cityMapContext');
+    if (!event.target.checked) {
+      if (floodLayer) map.removeLayer(floodLayer);
+      if (status) status.textContent = '';
+      return;
+    }
+    try {
+      if (status) status.textContent = 'Loading flood layer…';
+      if (!floodLayer) {
+        const response = await fetch(`${config.apiBase}/hazards.php?layer=flood`, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Flood data unavailable.');
+        const geojsonData = await response.json();
+        floodLayer = L.geoJSON(geojsonData, {
+          style: feature => {
+            const level = String(feature.properties?.hazard_status || '').toLowerCase();
+            const col = level === 'high' ? '#dc2626' : (level === 'moderate' ? '#d97706' : '#059669');
+            const fill = level === 'high' ? '#f87171' : (level === 'moderate' ? '#fbbf24' : '#6ee7b7');
+            return { color: col, weight: 1.5, fillColor: fill, fillOpacity: 0.25 };
+          },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            layer.bindPopup(`
+              <div class="tw-p-2 tw-text-xs">
+                <span class="tw-inline-block tw-font-bold tw-text-slate-800">${esc(props.name || 'Flood Zone')}</span><br>
+                <span class="tw-inline-block tw-text-[11px] tw-font-semibold tw-text-slate-600 tw-mt-0.5">Susceptibility: <strong>${esc((props.hazard_status || 'moderate').toUpperCase())}</strong></span><br>
+                <small class="tw-text-slate-500">${esc(props.description || 'Mapped flood susceptible area.')}</small>
+              </div>
+            `, { className: 'locus-popup', maxWidth: 280 });
+          }
+        });
+      }
+      floodLayer.addTo(map);
+      if (status) status.textContent = 'Flood susceptibility layer active';
+      setTimeout(() => { if (status && status.textContent.includes('Flood')) status.textContent = ''; }, 3000);
+    } catch (err) {
+      event.target.checked = false;
+      if (status) status.textContent = 'Unable to load flood data';
+    }
+  });
+
+  document.getElementById('cityMapFaultOverlay')?.addEventListener('change', async event => {
+    const status = document.getElementById('cityMapContext');
+    if (!event.target.checked) {
+      if (faultLayer) map.removeLayer(faultLayer);
+      if (status) status.textContent = '';
+      return;
+    }
+    try {
+      if (status) status.textContent = 'Loading fault lines…';
+      if (!faultLayer) {
+        const response = await fetch(`${config.apiBase}/hazards.php?layer=fault`, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Fault data unavailable.');
+        const geojsonData = await response.json();
+        faultLayer = L.geoJSON(geojsonData, {
+          style: { color: '#e11d48', weight: 3, dashArray: '6, 6' },
+          onEachFeature: (feature, layer) => {
+            const props = feature.properties || {};
+            layer.bindPopup(`
+              <div class="tw-p-2 tw-text-xs">
+                <span class="tw-inline-block tw-font-bold tw-text-slate-800">${esc(props.name || 'Active Fault Line')}</span><br>
+                <small class="tw-text-slate-500">Source: ${esc(props.source || 'PHIVOLCS active faults')}</small>
+              </div>
+            `, { className: 'locus-popup', maxWidth: 280 });
+          }
+        });
+      }
+      faultLayer.addTo(map);
+      if (status) status.textContent = 'Fault line layer active';
+      setTimeout(() => { if (status && status.textContent.includes('Fault')) status.textContent = ''; }, 3000);
+    } catch (err) {
+      event.target.checked = false;
+      if (status) status.textContent = 'Unable to load fault data';
     }
   });
 
@@ -1830,7 +2119,20 @@ async function initialize() {
     document.getElementById('cityPropertiesStat').textContent=number(bootstrap.stats?.availableProperties);
     document.getElementById('cityVisitsStat').textContent=number(bootstrap.stats?.siteVisits);
   }
-  if(page==='city-details'){await renderDetails();return;}
+  if (bootstrap.clupUseTypes?.length) {
+    const allowedUseSelect = document.getElementById('cityAllowedUse');
+    if (allowedUseSelect) {
+      const existing = new Set(Array.from(allowedUseSelect.options).map(o => o.value));
+      bootstrap.clupUseTypes.forEach(ut => {
+        const val = ut.label || ut.category;
+        if (val && !existing.has(val)) {
+          existing.add(val);
+          allowedUseSelect.add(new Option(val, val));
+        }
+      });
+    }
+  }
+  if (page === 'city-details') { await renderDetails(); return; }
   setupFilters();synchronizeInvestorSort();render();setupMap();
 }
 

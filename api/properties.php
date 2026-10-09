@@ -48,10 +48,23 @@ api_handle(function (array $container): array {
             $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null);
             $payload['evidence_attachments'] = $evidence['attachments'];
         }
+        require_once dirname(__DIR__) . '/app/Support/PropertyAuthorityToSellFiles.php';
+        $authorityFile = \App\Support\PropertyAuthorityToSellFiles::stage($_FILES['authority_to_sell_file'] ?? null);
+        if ($authorityFile !== null) {
+            $payload['authority_to_sell'] = $authorityFile;
+        } elseif (($user['role'] ?? '') === 'seller' && empty($payload['authority_to_sell'])) {
+            return [422, ['error' => 'Upload proof of Authority to Sell (PDF, JPG, JPEG, or PNG) before submitting this property.']];
+        }
         try {
             $property = $container['properties']->create($payload, $user);
         } catch (Throwable $error) {
             \App\Support\PropertyEvidenceFiles::discard($evidence['created']);
+            if ($authorityFile !== null) {
+                try {
+                    $authPath = \App\Support\PropertyAuthorityToSellFiles::locate($authorityFile);
+                    if (is_file($authPath)) unlink($authPath);
+                } catch (\Throwable) {}
+            }
             throw $error;
         }
         $container['line']->onListingCreated($property, $user);
