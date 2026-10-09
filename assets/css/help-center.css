@@ -1,0 +1,770 @@
+/* LOCUS-SF Help Center & Scoring Interface Styles
+   Tokens: white #FFFFFF; canvas #F8FAFC; text #0F172A; secondary text #475569;
+   borders #E2E8F0; interactive red #B91C1C; pale-red background #FEF2F2
+*/
+
+:root {
+  --locus-help-white: #ffffff;
+  --locus-help-canvas: #f8fafc;
+  --locus-help-text: #0f172a;
+  --locus-help-secondary: #475569;
+  --locus-help-border: #e2e8f0;
+  --locus-help-red: #b91c1c;
+  --locus-help-red-hover: #991b1b;
+  --locus-help-red-active: #7f1d1d;
+  --locus-help-pale-red: #fef2f2;
+  --locus-help-border-red: #fecaca;
+  --locus-help-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.22);
+}
+
+/* ==========================================================================
+   1. Floating ? Help & FAQs Button
+   ========================================================================== */
+
+.locus-floating-help-btn {
+  position: fixed;
+  right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 1050;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background-color: var(--locus-help-red);
+  color: #ffffff;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  box-shadow: 0 4px 16px rgba(185, 28, 28, 0.38), 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.18s ease,
+              box-shadow 0.18s ease;
+  user-select: none;
+  text-decoration: none;
+}
+
+.locus-floating-help-btn:hover {
+  background-color: var(--locus-help-red-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(185, 28, 28, 0.44), 0 3px 8px rgba(0, 0, 0, 0.12);
+  color: #ffffff;
+}
+
+.locus-floating-help-btn:active {
+  background-color: var(--locus-help-red-active);
+  transform: translateY(0);
+}
+
+.locus-floating-help-btn:focus-visible {
+  outline: 3px solid rgba(185, 28, 28, 0.45);
+  outline-offset: 3px;
+}
+
+.locus-floating-help-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   2. Contextual Help Buttons (beside criteria & headers)
+   ========================================================================== */
+
+.locus-criterion-help-btn,
+.locus-inline-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.locus-criterion-help-btn:hover,
+.locus-inline-help-btn:hover {
+  background-color: var(--locus-help-pale-red);
+  border-color: var(--locus-help-border-red);
+  color: var(--locus-help-red);
+  transform: scale(1.08);
+}
+
+.locus-criterion-help-btn:focus-visible,
+.locus-inline-help-btn:focus-visible {
+  outline: 2px solid var(--locus-help-red);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   3. Help Center Modal Dialog
+   ========================================================================== */
+
+.locus-help-dialog {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  margin: auto;
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(88vh, 760px);
+  padding: 0;
+  background-color: var(--locus-help-white);
+  color: var(--locus-help-text);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  border: 1px solid var(--locus-help-border);
+  border-radius: 20px;
+  box-shadow: var(--locus-help-shadow);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.locus-help-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  animation: locusDialogFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.locus-help-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+@keyframes locusDialogFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Dialog Container Layout */
+.locus-help-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: inherit;
+  overflow: hidden;
+}
+
+/* Header bar */
+.locus-help-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 10px;
+  border-bottom: 1px solid transparent;
+  flex-shrink: 0;
+}
+
+.locus-help-breadcrumb {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
+}
+
+.locus-help-breadcrumb strong {
+  color: var(--locus-help-text);
+  font-weight: 700;
+}
+
+.locus-help-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.locus-help-close-btn:hover {
+  background-color: #f1f5f9;
+  color: var(--locus-help-text);
+  border-color: #cbd5e1;
+}
+
+.locus-help-close-btn:focus-visible {
+  outline: 2px solid var(--locus-help-red);
+  outline-offset: 2px;
+}
+
+/* Scrollable Dialog Content */
+.locus-help-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 28px 28px;
+}
+
+/* View Headings */
+.locus-help-header-wrap {
+  text-align: center;
+  margin: 6px 0 20px;
+}
+
+.locus-help-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--locus-help-red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.locus-help-back-link:hover {
+  text-decoration: underline;
+  background-color: var(--locus-help-pale-red);
+}
+
+.locus-help-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--locus-help-text);
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.locus-help-subtitle {
+  font-size: 13.5px;
+  color: var(--locus-help-secondary);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* Notice banner */
+.locus-help-notice-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  margin: 12px auto 16px;
+  max-width: 580px;
+}
+
+.locus-help-notice-banner svg {
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   4. Help Tabs Navigation
+   ========================================================================== */
+
+.locus-help-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--locus-help-border);
+  padding-bottom: 0;
+  flex-shrink: 0;
+}
+
+.locus-help-tab-btn {
+  position: relative;
+  padding: 10px 4px 12px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--locus-help-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.locus-help-tab-btn:hover {
+  color: var(--locus-help-text);
+}
+
+.locus-help-tab-btn[aria-selected="true"] {
+  color: var(--locus-help-text);
+  font-weight: 700;
+}
+
+.locus-help-tab-btn[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2.5px;
+  background-color: var(--locus-help-red);
+  border-radius: 2px 2px 0 0;
+}
+
+.locus-help-tab-btn:focus-visible {
+  outline: 2px solid var(--locus-help-red);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   5. Accordions (Common Questions & Criteria)
+   ========================================================================== */
+
+.locus-accordion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.locus-accordion-item {
+  border: 1px solid var(--locus-help-border);
+  border-radius: 12px;
+  background-color: #ffffff;
+  overflow: hidden;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.locus-accordion-item.is-expanded {
+  border-color: var(--locus-help-red);
+  background-color: #ffffff;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.06);
+}
+
+.locus-accordion-item.is-active-criterion {
+  border-color: var(--locus-help-red);
+}
+
+.locus-accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 52px;
+}
+
+.locus-accordion-header:focus-visible {
+  outline: 2px solid var(--locus-help-red);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+.locus-accordion-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+}
+
+.locus-accordion-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  min-width: 24px;
+  letter-spacing: -0.01em;
+}
+
+.locus-accordion-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--locus-help-text);
+  line-height: 1.35;
+}
+
+.locus-accordion-toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  background-color: var(--locus-help-red);
+  color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s ease, background-color 0.18s ease;
+}
+
+.locus-accordion-item.is-expanded .locus-accordion-toggle-icon {
+  background-color: #fee2e2;
+  color: var(--locus-help-red);
+}
+
+.locus-accordion-body {
+  padding: 4px 18px 18px 56px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--locus-help-secondary);
+}
+
+.locus-accordion-body p {
+  margin: 0 0 10px;
+}
+
+.locus-accordion-body p:last-child {
+  margin-bottom: 0;
+}
+
+.locus-accordion-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--locus-help-red);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.locus-accordion-link:hover {
+  text-decoration: underline;
+  color: var(--locus-help-red-hover);
+}
+
+/* ==========================================================================
+   6. Two-Column Criteria View Layout (Screenshot 3)
+   ========================================================================== */
+
+.locus-criteria-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.95fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.locus-reading-criterion-card {
+  background-color: #ffffff;
+  border: 1px solid var(--locus-help-border);
+  border-radius: 14px;
+  padding: 20px;
+  position: sticky;
+  top: 0;
+}
+
+.locus-reading-criterion-card h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--locus-help-text);
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.locus-reading-item {
+  margin-bottom: 14px;
+}
+
+.locus-reading-item:last-of-type {
+  margin-bottom: 16px;
+}
+
+.locus-reading-item strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--locus-help-text);
+  margin-bottom: 2px;
+}
+
+.locus-reading-item p {
+  font-size: 12.5px;
+  color: var(--locus-help-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.locus-reading-note {
+  font-size: 11.5px;
+  color: #64748b;
+  border-top: 1px solid var(--locus-help-border);
+  padding-top: 12px;
+  margin-top: 12px;
+  line-height: 1.45;
+}
+
+/* Bottom Action Row */
+.locus-help-footer-action {
+  text-align: center;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.locus-help-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background-color: #ffffff;
+  color: var(--locus-help-red);
+  border: 1.5px solid var(--locus-help-red);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.locus-help-action-btn:hover {
+  background-color: var(--locus-help-pale-red);
+  color: var(--locus-help-red-hover);
+  border-color: var(--locus-help-red-hover);
+}
+
+.locus-help-footer-text {
+  font-size: 12.5px;
+  color: var(--locus-help-secondary);
+  margin-right: 8px;
+}
+
+/* ==========================================================================
+   7. Contact Team View (Screenshot 2)
+   ========================================================================== */
+
+.locus-team-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.locus-team-section-card {
+  background-color: #ffffff;
+  border: 1px solid var(--locus-help-border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.locus-team-section-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.locus-team-member-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+
+.locus-team-member-row + .locus-team-member-row {
+  border-top: 1px solid #f1f5f9;
+}
+
+.locus-team-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.locus-team-avatar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.locus-team-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.locus-team-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--locus-help-text);
+  line-height: 1.3;
+}
+
+.locus-team-role {
+  font-size: 12px;
+  color: var(--locus-help-secondary);
+}
+
+.locus-team-routing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.locus-team-routing-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.locus-team-routing-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.locus-team-routing-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.locus-team-routing-text strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--locus-help-text);
+}
+
+.locus-team-routing-text span {
+  font-size: 11.5px;
+  color: var(--locus-help-secondary);
+}
+
+.locus-team-contact-notice {
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  text-align: left;
+  margin: 12px 0 0;
+}
+
+.locus-team-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.locus-team-bottom-brand {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   8. Responsive rules for Help Center
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .locus-criteria-grid {
+    grid-template-columns: 1fr;
+  }
+  .locus-reading-criterion-card {
+    position: static;
+  }
+  .locus-team-routing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .locus-help-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 16px 16px 0 0;
+    margin: 0;
+    inset: 40px 0 0 0;
+  }
+
+  .locus-help-content {
+    padding: 0 16px 24px;
+  }
+
+  .locus-help-tabs {
+    gap: 14px;
+  }
+
+  .locus-help-tab-btn {
+    font-size: 12.5px;
+    padding: 8px 2px 10px;
+  }
+
+  .locus-accordion-body {
+    padding-left: 18px;
+  }
+
+  .locus-floating-help-btn {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 14px;
+    font-size: 12.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-help-dialog[open] {
+    animation: none;
+  }
+  .locus-floating-help-btn,
+  .locus-accordion-item,
+  .locus-accordion-toggle-icon {
+    transition: none;
+  }
+}

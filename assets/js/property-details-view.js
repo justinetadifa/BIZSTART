@@ -305,10 +305,102 @@ export function propertyDetailsMarkup(property, options) {
       ${safetyMarkup(property)}
       ${role === 'guest' || investor ? '<p class="property-basic-helper no-print" data-investor-basic>Looking for more detail? Switch to <strong>Advanced</strong> to explore the recorded city assessment, source evidence and investment tools.</p>' : ''}
       <div class="property-advanced" data-investor-advanced>
-        <section class="property-panel property-assessment" id="propertyAssessmentSection"><div class="property-section-heading"><div><span class="property-kicker">Advanced · City assessment</span><h2>Understand this site's assessment</h2></div><span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? 'All seven criteria rated' : 'Evidence pending'}</span></div><div class="property-score-summary"><div><span>MCE <small>Multi-Criteria Evaluation</small></span><strong>${calc.mce === null ? 'Pending' : fixed(calc.mce)}${calc.mce === null ? '' : '<small> / 100</small>'}</strong></div><div><span>IAI <small>Investment Alignment Index</small></span><strong>${calc.iai === null ? 'Pending' : fixed(calc.iai)}${calc.iai === null ? '' : '<small> / 100</small>'}</strong></div></div><p class="property-note">${calc.complete ? 'MCE combines seven weighted site ratings. IAI combines the rounded MCE with economic viability and infrastructure readiness. These are decision-support scores, not predictions of business success.' : `${calc.completedCount} of 7 criteria have ratings. Complete source evidence is required before a total can be published. Missing ratings are not treated as zero.`}</p>
-          <details class="property-disclosure" data-print-expand><summary><span>01 · Computations & approved weights</span><small>MCE and IAI, step by step</small></summary><div class="property-disclosure-body">${calculationMarkup(property)}</div></details>
-          <details class="property-disclosure" data-print-expand><summary><span>02 · Recorded criterion profile</span><small>Radar and individual ratings</small></summary><div class="property-disclosure-body">${radarMarkup(calc)}</div></details>
-          <details class="property-disclosure" data-print-expand><summary><span>03 · Evidence & data sources</span><small>References, dates and missing information</small></summary><div class="property-disclosure-body">${evidenceMarkup(property, calc)}</div></details>
+        <section class="property-panel property-assessment" id="propertyAssessmentSection" aria-labelledby="propertyAssessmentTitle">
+          <div class="property-assessment-header-bar">
+            <div>
+              <p class="property-assessment-breadcrumbs">Properties <span aria-hidden="true">/</span> Assessment</p>
+              <h2 id="propertyAssessmentTitle" class="property-assessment-title">Understand this property’s scores</h2>
+              <p class="property-assessment-subtitle">A clear overview of the ratings behind the assessment.</p>
+            </div>
+            <div class="property-assessment-badge-wrap no-print">
+              <span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? 'All seven criteria rated' : 'Evidence pending'}</span>
+            </div>
+          </div>
+
+          <div class="property-assessment-subnav no-print" role="tablist" aria-label="Assessment views">
+            <button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" role="tab" aria-selected="true">Overview</button>
+            <button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" role="tab" aria-selected="false">Calculation</button>
+            <button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" role="tab" aria-selected="false">Evidence</button>
+          </div>
+
+          <div class="property-score-summary">
+            <div class="property-score-card property-score-card-iai">
+              <div class="property-score-card-kicker">
+                <span>IAI</span>
+                <button type="button" class="locus-criterion-help-btn" data-locus-help-trigger data-locus-help-tab="scores" data-locus-help-target="iai" aria-label="Help: What is IAI?" title="What is IAI?">?</button>
+              </div>
+              <h3 class="property-score-card-heading">Investment Alignment Index</h3>
+              <div class="property-score-card-number">
+                <strong>${calc.iai === null ? 'Pending' : fixed(calc.iai)}</strong>
+                ${calc.iai !== null ? '<small> / 100</small>' : ''}
+              </div>
+              <p class="property-score-card-desc">Uses MCE with added economic and infrastructure emphasis.</p>
+              <button type="button" class="property-score-card-action locus-trigger-calculation" data-open-calculation>How is this calculated? &rarr;</button>
+            </div>
+
+            <div class="property-score-card property-score-card-mce">
+              <div class="property-score-card-kicker">
+                <span>MCE</span>
+                <button type="button" class="locus-criterion-help-btn" data-locus-help-trigger data-locus-help-tab="scores" data-locus-help-target="mce" aria-label="Help: What is MCE?" title="What is MCE?">?</button>
+              </div>
+              <h3 class="property-score-card-heading">Multi-Criteria Evaluation</h3>
+              <div class="property-score-card-number">
+                <strong>${calc.mce === null ? 'Pending' : fixed(calc.mce)}</strong>
+                ${calc.mce !== null ? '<small> / 100</small>' : ''}
+              </div>
+              <p class="property-score-card-desc">Weighted assessment across seven criteria.</p>
+              <button type="button" class="property-score-card-action locus-trigger-criteria" data-locus-help-trigger data-locus-help-tab="criteria">Explore the criteria &rarr;</button>
+            </div>
+          </div>
+
+          <div class="property-criterion-ratings-card">
+            <div class="property-criterion-ratings-header">
+              <h3>Criterion ratings</h3>
+              <p>Unweighted ratings · Higher is more favorable</p>
+            </div>
+            <ul class="property-criterion-ratings-list" role="list">
+              ${calc.rows.map(row => `
+                <li class="property-criterion-rating-item">
+                  <div class="property-criterion-label-wrap">
+                    <span class="property-criterion-name">${esc(row.label)}</span>
+                    <button type="button" class="locus-criterion-help-btn" data-help-criterion="${esc(row.key)}" aria-label="Help: ${esc(row.label)}" title="Learn more about ${esc(row.label)}">?</button>
+                  </div>
+                  <div class="property-criterion-score-wrap">
+                    <strong>${row.score === null ? 'Pending' : rating(row.score)}</strong>
+                    <span>/ 100</span>
+                  </div>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+
+          <div class="property-assessment-disclosures">
+            <details class="property-disclosure" data-print-expand data-disclosure-calc>
+              <summary>
+                <span>01 &nbsp; View calculation</span>
+                <small>MCE and IAI, step by step</small>
+              </summary>
+              <div class="property-disclosure-body">${calculationMarkup(property)}</div>
+            </details>
+
+            <details class="property-disclosure" data-print-expand data-disclosure-evidence>
+              <summary>
+                <span>02 &nbsp; Evidence &amp; data sources</span>
+                <small>References, dates and missing information</small>
+              </summary>
+              <div class="property-disclosure-body">${evidenceMarkup(property, calc)}</div>
+            </details>
+
+            <details class="property-disclosure" data-print-expand data-disclosure-radar>
+              <summary>
+                <span>03 &nbsp; Criterion ratings &mdash; before weighting (radar)</span>
+                <small>Radar profile of recorded ratings</small>
+              </summary>
+              <div class="property-disclosure-body">${radarMarkup(calc)}</div>
+            </details>
+          </div>
+
+          <p class="property-assessment-footnote">Decision support only. Scores do not guarantee returns or replace required clearances.</p>
         </section>
         <details class="property-panel property-surroundings" id="propertySurroundingsSection" data-print-expand><summary>Surroundings & nearby businesses <span>${property.nearbyBusinesses?.length || 0} mapped places</span></summary><div class="property-disclosure-body">${nearbyBusinessesMarkup(property)}</div></details>
         <details class="property-panel property-investment no-print"><summary>Evaluate your proposed investment <span>Business type, available matches & incentives</span></summary><div class="property-disclosure-body">${evaluationMarkup(property, policy)}</div></details>

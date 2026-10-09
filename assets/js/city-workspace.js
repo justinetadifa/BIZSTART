@@ -1862,6 +1862,39 @@ async function renderDetails() {
     });
   }
   if (investor) setupInvestorTools(property);
+
+  const assessmentSec = root.querySelector('#propertyAssessmentSection');
+  if (assessmentSec) {
+    const subtabs = assessmentSec.querySelectorAll('[data-assessment-tab]');
+    const calcDisclosure = assessmentSec.querySelector('[data-disclosure-calc]');
+    const evidenceDisclosure = assessmentSec.querySelector('[data-disclosure-evidence]');
+
+    const setAssessmentTab = tab => {
+      subtabs.forEach(btn => {
+        const active = btn.dataset.assessmentTab === tab;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      if (tab === 'calculation' && calcDisclosure) {
+        calcDisclosure.open = true;
+        calcDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (tab === 'evidence' && evidenceDisclosure) {
+        evidenceDisclosure.open = true;
+        evidenceDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (tab === 'overview') {
+        assessmentSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    subtabs.forEach(btn => {
+      btn.addEventListener('click', () => setAssessmentTab(btn.dataset.assessmentTab));
+    });
+
+    assessmentSec.querySelectorAll('[data-open-calculation]').forEach(btn => {
+      btn.addEventListener('click', () => setAssessmentTab('calculation'));
+    });
+  }
+
   function revealLinkedPanel() {
     const legacyPanels = {
       propertyMessagingSection: 'cityInquiryPanel',

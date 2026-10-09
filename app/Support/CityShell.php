@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/PropertyCatalog.php';
+require_once __DIR__ . '/HelpCenter.php';
 
 function sfc_render_head(string $title, array $context, array $bodyData = []): void
 {
@@ -64,7 +65,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-glance.css<?= sfc_asset_version('css/home-glance.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/help-center.css<?= sfc_asset_version('css/help-center.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/help-center.js<?= sfc_asset_version('js/help-center.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
@@ -171,6 +174,7 @@ function sfc_render_footer(array $context): void
   <?php endif; ?>
   <?php if (!empty($context['user'])): ?><script src="<?= $e($context['assetBase']) ?>/js/session-guard.js<?= sfc_asset_version('js/session-guard.js') ?>"></script><?php endif; ?>
   <?php if (!empty($GLOBALS['sfc_legacy_page'])): ?><script type="module" src="<?= $e($context['assetBase']) ?>/js/portal.js<?= sfc_asset_version('js/portal.js') ?>"></script><?php endif; ?>
+  <?php \App\Support\HelpCenter::render(); ?>
 </body>
 </html>
 <?php
