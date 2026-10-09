@@ -103,4 +103,239 @@
   }
   const visibleInvalid = document.querySelector('[aria-invalid="true"]:not([type="hidden"])');
   if (visibleInvalid && visibleInvalid.getClientRects().length) visibleInvalid.focus({ preventScroll: true });
+
+  // Promising interactive tap effects on submit buttons
+  document.querySelectorAll('.account-submit').forEach(button => {
+    button.addEventListener('pointerdown', event => {
+      const rect = button.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'submit-ripple';
+      const size = Math.max(rect.width, rect.height);
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+      ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+      button.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+  });
+
+  // Kinetic interactive floating for curved text & emblem
+  const scene = document.querySelector('.account-scene');
+  if (scene) {
+    const emblem = scene.querySelector('.hero-emblem-img');
+    const glow = scene.querySelector('.hero-glow-img');
+    const svgGroups = scene.querySelectorAll('.curved-group-1, .curved-group-2, .curved-group-3');
+    scene.addEventListener('pointermove', event => {
+      const rect = scene.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      if (emblem) {
+        emblem.style.transform = `translate(${x * 12}px, ${y * 12}px) rotate(${x * 1.5}deg)`;
+      }
+      if (glow) {
+        glow.style.transform = `translate(${x * 8}px, ${y * 8}px) scale(${1 + Math.abs(x) * 0.05})`;
+      }
+      svgGroups.forEach((group, idx) => {
+        const factor = (idx + 1) * 5;
+        group.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+      });
+    });
+    scene.addEventListener('pointerleave', () => {
+      if (emblem) emblem.style.transform = '';
+      if (glow) glow.style.transform = '';
+      svgGroups.forEach(group => { group.style.transform = ''; });
+    });
+  }
+
+  // 3-Pill Smooth Swap Stage with Visible Motion & Arc Swoop Effects
+  const rolesTrack = document.querySelector('[data-roles-track]');
+  if (rolesTrack) {
+    const roleSlotConfigs = {
+      investor: { seller: 0, investor: 1, admin: 2 },
+      seller: { admin: 0, seller: 1, investor: 2 },
+      admin: { investor: 0, admin: 1, seller: 2 }
+    };
+
+    const roleData = {
+      investor: {
+        kicker: 'YOUR NEXT MOVE',
+        title: '<span>STARTS</span><span>HERE.</span>',
+        taglineScript: 'Discover spaces, explore opportunities',
+        taglineAction: 'AND INVEST IN THE CITY!',
+        eyebrow: 'YOUR LOCUS-SF ACCOUNT',
+        intro: 'SIGN IN TO EXPLORE YOUR NEXT OPPORTUNITY.'
+      },
+      seller: {
+        kicker: 'LOCAL EXPERTISE',
+        title: '<span>NEW</span><span>HORIZONS.</span>',
+        taglineScript: 'Connect spaces, empower clients',
+        taglineAction: 'AND SHAPE THE CITY!',
+        eyebrow: 'YOUR LOCUS-SF ACCOUNT',
+        intro: 'Sign in to your listings and verification status.'
+      },
+      admin: {
+        kicker: 'ONE CITY',
+        title: '<span>SHARED</span><span>VISION.</span>',
+        taglineScript: 'Informed decisions, seamless data',
+        taglineAction: 'FOR THE CITY WE SERVE!',
+        eyebrow: 'CITY WORKSPACE',
+        intro: 'CICTO · City Assessor · LEBDO'
+      }
+    };
+
+    let currentRole = document.querySelector('.account-auth')?.dataset.accountRole || 'investor';
+    let isAnimating = false;
+
+    rolesTrack.addEventListener('click', (event) => {
+      const pill = event.target.closest('.account-role-pill');
+      if (!pill) return;
+
+      const newRole = pill.dataset.roleKey;
+      if (!newRole || newRole === currentRole) return;
+      if (isAnimating) return;
+      if (event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+      event.preventDefault();
+
+      if (document.querySelector('.account-shell.is-registering')) {
+        window.location.href = pill.href;
+        return;
+      }
+
+      isAnimating = true;
+
+      const pills = [...rolesTrack.querySelectorAll('.account-role-pill')];
+      const targetSlots = roleSlotConfigs[newRole];
+      if (!targetSlots) {
+        isAnimating = false;
+        return;
+      }
+
+      const clickedSlot = parseInt(pill.dataset.roleSlot, 10);
+
+      // FLIP Animation Engine: Record starting positions before layout shift
+      const firstLefts = new Map(pills.map(p => [p, p.getBoundingClientRect().left]));
+
+      // Update slot assignments for all pills simultaneously
+      pills.forEach(p => {
+        const nextSlot = targetSlots[p.dataset.roleKey];
+        p.dataset.roleSlot = String(nextSlot);
+        if (nextSlot === 1) {
+          p.classList.add('is-active');
+          p.setAttribute('aria-current', 'page');
+        } else {
+          p.classList.remove('is-active');
+          p.removeAttribute('aria-current');
+        }
+      });
+
+      // Compute Delta & Play Fluid Anti-Gravity Spring via Web Animations API
+      pills.forEach(p => {
+        const first = firstLefts.get(p);
+        const last = p.getBoundingClientRect().left;
+        const deltaX = first - last;
+        if (deltaX !== 0 && typeof p.animate === 'function') {
+          p.animate([
+            { transform: `translateX(${deltaX}px)` },
+            { transform: 'translateX(0px)' }
+          ], {
+            duration: 400,
+            easing: 'cubic-bezier(0.25, 1.25, 0.35, 1)',
+            fill: 'none'
+          });
+        }
+      });
+
+      // Concurrently update hero and form content smoothly
+      const config = roleData[newRole];
+      if (config) {
+        const main = document.querySelector('.account-auth');
+        if (main) main.dataset.accountRole = newRole;
+
+        const kicker = document.querySelector('.hero-poster-kicker');
+        if (kicker) kicker.textContent = config.kicker;
+
+        const title = document.querySelector('.hero-poster-title');
+        if (title) title.innerHTML = config.title;
+
+        const scriptEl = document.querySelector('[data-hero-script]');
+        const actionEl = document.querySelector('[data-hero-action]');
+        if (scriptEl && actionEl) {
+          scriptEl.style.opacity = '0';
+          actionEl.style.opacity = '0';
+          scriptEl.style.transform = 'translateY(3px)';
+          actionEl.style.transform = 'translateY(3px)';
+          setTimeout(() => {
+            scriptEl.textContent = config.taglineScript;
+            actionEl.textContent = config.taglineAction;
+            scriptEl.style.opacity = '1';
+            actionEl.style.opacity = '1';
+            scriptEl.style.transform = 'translateY(0)';
+            actionEl.style.transform = 'translateY(0)';
+          }, 180);
+        }
+
+        const eyebrow = document.querySelector('.account-card .account-eyebrow');
+        if (eyebrow) eyebrow.textContent = config.eyebrow;
+
+        const heading = document.querySelector('[data-welcome-heading]');
+        if (heading) {
+          if (newRole === 'admin') {
+            heading.textContent = 'City staff access';
+          } else {
+            const isReturning = localStorage.getItem('sfc_user_returning') === '1' || document.cookie.includes('sfc_returning_user=1');
+            heading.textContent = isReturning ? 'WELCOME BACK!' : 'WELCOME!';
+          }
+        }
+
+        const intro = document.querySelector('.account-card .account-intro');
+        if (intro) intro.textContent = config.intro;
+
+        const adminSwitcher = document.querySelector('.admin-tab-switcher');
+        const adminSection = document.getElementById('adminSignInSection');
+        if (adminSwitcher) adminSwitcher.hidden = newRole !== 'admin';
+        if (adminSection) adminSection.hidden = newRole !== 'admin';
+
+        const form = document.querySelector('form[data-account-form]');
+        if (form) form.action = pill.href.split('?')[0];
+
+        const switchP = document.querySelector('.account-switch');
+        if (switchP) {
+          if (newRole === 'admin') {
+            switchP.innerHTML = 'Need a city staff account? CICTO can create one through City accounts.';
+          } else {
+            const signupUrl = pill.href.includes('?') ? pill.href + '&mode=signup' : pill.href + '?mode=signup';
+            switchP.innerHTML = `New to LOCUS-SF? <a href="${signupUrl}">Create account</a>`;
+          }
+        }
+
+        history.pushState(null, '', pill.href);
+      }
+
+      currentRole = newRole;
+
+      setTimeout(() => {
+        isAnimating = false;
+      }, 480);
+    });
+  }
+
+  // Handle new user vs returning user heading text
+  const welcomeHeading = document.querySelector('[data-welcome-heading]');
+  if (welcomeHeading) {
+    const isReturning = localStorage.getItem('sfc_user_returning') === '1' || document.cookie.includes('sfc_returning_user=1');
+    const role = document.querySelector('.account-auth')?.dataset.accountRole || 'investor';
+    if (role !== 'admin') {
+      welcomeHeading.textContent = isReturning ? 'WELCOME BACK!' : 'WELCOME!';
+    }
+  }
+
+  // Mark user as returning once they submit
+  document.querySelectorAll('form[data-account-form]').forEach(form => {
+    form.addEventListener('submit', () => {
+      localStorage.setItem('sfc_user_returning', '1');
+      document.cookie = 'sfc_returning_user=1; path=/; max-age=31536000; SameSite=Lax';
+    });
+  });
 })();
+

@@ -58,6 +58,10 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-presentation.css<?= sfc_asset_version('css/locus-presentation.css') ?>">
+  <?php if (in_array($page, ['city-account-welcome', 'investor-login', 'seller-login', 'admin-login'], true)): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/account.css<?= sfc_asset_version('css/account.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/auth-interface.css<?= sfc_asset_version('css/auth-interface.css') ?>">
+  <?php endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-glance.css<?= sfc_asset_version('css/home-glance.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>

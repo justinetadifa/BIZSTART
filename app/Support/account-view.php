@@ -66,7 +66,8 @@ function sfc_broker_document_field(string $side, ?array $document = null, ?int $
 
 function sfc_account_submit(string $label, string $loading): void
 {
-    ?><button class="account-submit" type="submit" data-loading-label="<?= sfc_account_escape($loading) ?>"><span data-submit-label><?= sfc_account_escape($label) ?></span><svg class="account-submit-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="account-submit-spinner" aria-hidden="true"></span></button><?php
+    $btnLabel = strtolower(trim($label)) === 'sign in' ? 'Sign in' : $label;
+    ?><div class="account-submit-wrap"><button class="account-submit" type="submit" data-loading-label="<?= sfc_account_escape($loading) ?>"><span data-submit-label><?= sfc_account_escape($btnLabel) ?></span><svg class="account-submit-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="account-submit-spinner" aria-hidden="true"></span></button></div><?php
 }
 
 function sfc_account_assets(array $context): void
@@ -82,6 +83,27 @@ function sfc_account_art(array $context): string
     return $context['assetBase'] . '/images/' . $file;
 }
 
+function sfc_account_role_switcher_order(string $currentRole): array
+{
+    return match ($currentRole) {
+        'seller' => [
+            ['key' => 'admin', 'title' => 'City staff', 'slot' => 0],
+            ['key' => 'seller', 'title' => 'Broker', 'slot' => 1],
+            ['key' => 'investor', 'title' => 'Investor', 'slot' => 2],
+        ],
+        'admin' => [
+            ['key' => 'investor', 'title' => 'Investor', 'slot' => 0],
+            ['key' => 'admin', 'title' => 'City staff', 'slot' => 1],
+            ['key' => 'seller', 'title' => 'Broker', 'slot' => 2],
+        ],
+        default => [
+            ['key' => 'seller', 'title' => 'Broker', 'slot' => 0],
+            ['key' => 'investor', 'title' => 'Investor', 'slot' => 1],
+            ['key' => 'admin', 'title' => 'City staff', 'slot' => 2],
+        ],
+    };
+}
+
 function sfc_render_account_page(array $context, string $role, string $mode, string $error = '', array $fieldErrors = []): void
 {
     $signup = $mode === 'signup' && $role !== 'admin';
@@ -90,6 +112,8 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
     $label = match ($role) { 'seller' => 'Broker', 'admin' => 'City staff', default => 'Investor' };
     $route = '/' . ($role === 'seller' ? 'seller' : ($role === 'admin' ? 'admin' : 'investor')) . '-login.php';
     $GLOBALS['sfc_account_field_errors'] = $fieldErrors;
+    $isReturning = !empty($_COOKIE['sfc_returning_user']) || !empty($_SESSION['sfc_account_greeting']);
+    $loginWelcomeText = $isReturning ? 'WELCOME BACK!' : 'WELCOME!';
     sfc_render_head($label . ($signup ? ' registration' : ' sign in') . ' | LOCUS-SF', $context, ['page' => $role . '-login', 'role' => $role]);
     sfc_account_assets($context);
     sfc_render_header($context);
@@ -97,23 +121,44 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
     <main class="account-page account-auth" data-account-role="<?= sfc_account_escape($role) ?>" style="--account-map: url('<?= sfc_account_escape(sfc_account_art($context)) ?>')">
       <div class="account-shell <?= $signup || $activation ? 'is-registering' : '' ?>">
         <aside class="account-scene" aria-label="LOCUS-SF, San Fernando City">
-          <div class="account-scene-brand"><img src="<?= sfc_account_escape($context['assetBase']) ?>/images/logoLocusRedBlue.png" width="45" height="36" alt=""><span>LOCUS-SF</span></div>
-          <div class="account-scene-copy">
-            <p class="account-scene-kicker">SAN FERNANDO CITY, LA UNION</p>
-            <h2><?= match ($role) { 'seller' => 'Local expertise.<br> New possibilities.', 'admin' => 'One city.<br> A shared vision.', default => 'Your next move<br> starts here.' } ?></h2>
-            <p><?= match ($role) { 'seller' => 'Connect the right spaces with the people who see their potential.', 'admin' => 'Supporting informed decisions for the city we serve.', default => 'Discover spaces, explore opportunities, and invest in the city.' } ?></p>
+          <div class="hero-stage">
+            <div class="hero-glow-wrap" aria-hidden="true">
+              <img src="<?= sfc_account_escape($context['assetBase']) ?>/images/blueGlow.png" alt="" class="hero-glow-img">
+            </div>
+            <div class="hero-emblem-wrap" aria-hidden="true">
+              <img src="<?= sfc_account_escape($context['assetBase']) ?>/images/locuslogobluesmallopacity.png" alt="" class="hero-emblem-img">
+            </div>
+            <div class="hero-poster-copy">
+              <p class="hero-poster-kicker"><?= match ($role) { 'seller' => 'LOCAL EXPERTISE', 'admin' => 'ONE CITY', default => 'YOUR NEXT MOVE' } ?></p>
+              <h2 class="hero-poster-title"><?= match ($role) { 'seller' => '<span>NEW</span><span>HORIZONS.</span>', 'admin' => '<span>SHARED</span><span>VISION.</span>', default => '<span>STARTS</span><span>HERE.</span>' } ?></h2>
+            </div>
+            <div class="hero-tagline-container" aria-hidden="true">
+              <p class="hero-tagline-script" data-hero-script><?= match ($role) { 'seller' => 'Connect spaces, empower clients', 'admin' => 'Informed decisions, seamless data', default => 'Discover spaces, explore opportunities' } ?></p>
+              <p class="hero-tagline-action" data-hero-action><?= match ($role) { 'seller' => 'AND SHAPE THE CITY!', 'admin' => 'FOR THE CITY WE SERVE!', default => 'AND INVEST IN THE CITY!' } ?></p>
+            </div>
           </div>
-          <div class="account-scene-foot"><span class="account-scene-dot" aria-hidden="true"></span> A clearer view of opportunity.</div>
         </aside>
         <section class="account-card <?= $signup ? 'account-card-wide' : '' ?> <?= $role === 'admin' ? 'account-card-staff' : '' ?>" aria-labelledby="accountTitle">
-          <nav class="account-roles" aria-label="Account type">
-            <?php foreach (['investor' => 'Investor', 'seller' => 'Broker', 'admin' => 'City staff'] as $key => $title): ?>
-            <a href="<?= sfc_account_escape(sfc_path('/' . $key . '-login.php' . ($signup && $key !== 'admin' ? '?mode=signup' : ''))) ?>" <?= $role === $key ? 'aria-current="page"' : '' ?>><?= $title ?></a>
-            <?php endforeach; ?>
+          <div class="account-card-watermark" aria-hidden="true" style="background-image: url('<?= sfc_account_escape($context['assetBase']) ?>/images/mapArtLineArt.png')"></div>
+          <nav class="account-roles" aria-label="Account type" data-account-roles-nav>
+            <div class="account-roles-track" data-roles-track>
+              <?php foreach (sfc_account_role_switcher_order($role) as $item): 
+                $isCurrent = $item['slot'] === 1;
+              ?>
+              <a href="<?= sfc_account_escape(sfc_path('/' . ($item['key'] === 'seller' ? 'seller' : ($item['key'] === 'admin' ? 'admin' : 'investor')) . '-login.php' . ($signup && $item['key'] !== 'admin' ? '?mode=signup' : ''))) ?>" 
+                 data-role-key="<?= $item['key'] ?>" 
+                 data-role-slot="<?= $item['slot'] ?>" 
+                 <?= $isCurrent ? 'aria-current="page"' : '' ?> 
+                 class="account-role-pill <?= $isCurrent ? 'is-active' : '' ?>">
+                 <span><?= sfc_account_escape($item['title']) ?></span>
+              </a>
+              <?php endforeach; ?>
+            </div>
           </nav>
+          <div class="account-roles-divider" aria-hidden="true"></div>
           <p class="account-eyebrow"><?= $role === 'admin' ? 'CITY WORKSPACE' : ($signup ? 'GET STARTED' : 'YOUR LOCUS-SF ACCOUNT') ?></p>
-          <h1 id="accountTitle"><?= $role === 'admin' ? 'City staff access' : ($signup ? ($role === 'seller' ? 'Broker registration' : 'Create your account') : 'Welcome back') ?></h1>
-          <p class="account-intro"><?= match (true) { $role === 'admin' => 'CICTO · City Assessor · LEBDO', $role === 'seller' && $signup => 'Submit your PRC credentials for review by authorized CAO or LEBDO personnel. Verify your email separately to activate broker privileges.', $role === 'seller' => 'Sign in to your listings and verification status.', $signup => 'A few details to make your next move.', default => 'Sign in to explore your next opportunity.' } ?></p>
+          <h1 id="accountTitle" class="account-title" data-welcome-heading><?= $role === 'admin' ? 'City staff access' : ($signup ? ($role === 'seller' ? 'Broker registration' : 'Create your account') : $loginWelcomeText) ?></h1>
+          <p class="account-intro"><?= match (true) { $role === 'admin' => 'CICTO · City Assessor · LEBDO', $role === 'seller' && $signup => 'Submit your PRC credentials for review by authorized CAO or LEBDO personnel.', $role === 'seller' => 'Sign in to your listings and verification status.', $signup => 'A few details to make your next move.', default => 'SIGN IN TO EXPLORE YOUR NEXT OPPORTUNITY.' } ?></p>
           <?php if (($_GET['reason'] ?? '') === 'timeout'): ?><p class="account-message" role="status">Your session expired. Sign in again.</p><?php endif; ?>
           <?php if ($error !== ''): ?><p class="account-message is-error" role="alert"><?= sfc_account_escape($error) ?></p><?php endif; ?>
           <p class="account-validation-summary account-sr-only" data-validation-summary role="alert"><?= $fieldErrors !== [] ? 'Please check the highlighted fields.' : '' ?></p>

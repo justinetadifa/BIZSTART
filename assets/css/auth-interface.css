@@ -1,83 +1,274 @@
-/* Auth-only styling; account.css is also shared by profile pages. */
+/* Modernized Locus Auth Interface - Tailored Aesthetics & Centered Geometry */
 .account-access-help{margin:0 0 18px;color:#586378;font-size:12px;line-height:1.65}
-.account-access-notice{padding:18px;border:1px solid #e1e6ee;border-radius:8px;background:#f8fafc;font-size:13px;line-height:1.65}
+.account-access-notice{padding:18px;border:1px solid #e1e6ee;border-radius:12px;background:#f8fafc;font-size:13px;line-height:1.65}
 .account-access-notice strong{display:block;color:#11224d}
 .account-access-notice p{margin:8px 0 14px;color:#586378}
 .account-access-notice a{color:#9e1b22;font-weight:600;text-decoration:underline;text-underline-offset:3px}
-.account-auth{position:relative;isolation:isolate;padding:48px 24px 68px;min-height:calc(100svh - 104px);background:#f5f7fa;overflow:hidden}
-.account-auth::before{content:"";position:absolute;z-index:-1;inset:0;background:var(--account-map) center/cover no-repeat;opacity:.065;pointer-events:none}
-.account-auth .account-shell{display:grid;grid-template-columns:minmax(0,.86fr) minmax(0,1fr);width:min(100%,1020px);margin:auto;overflow:hidden;border:1px solid #e1e6ee;border-radius:22px;background:#fff;box-shadow:0 20px 65px -30px #11224d35;animation:account-arrive .45s cubic-bezier(.2,.7,.3,1) both}
-.account-auth .account-shell.is-registering{width:min(100%,1160px);grid-template-columns:minmax(0,.72fr) minmax(0,1.12fr)}
-.account-auth .account-scene{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;gap:48px;min-width:0;min-height:560px;padding:38px;color:#fff;background:#11224d;overflow:hidden}
-.account-auth .account-scene::before{content:"";position:absolute;z-index:-2;inset:0;background:var(--account-map) 44% center/cover no-repeat;opacity:.18;transform:scale(1.04);animation:account-map-drift 16s ease-in-out infinite alternate;pointer-events:none}
-.account-auth .account-scene::after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(160deg,#11224d0a 10%,#11224d4d 48%,#11224dcd 100%);pointer-events:none}
-.account-scene-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:750;letter-spacing:.1em}
-.account-scene-brand img{object-fit:contain;filter:drop-shadow(0 1px 6px #ffffff50)}
-.account-scene-copy{margin:auto 0;animation:account-copy-arrive .5s .09s both}
-.account-scene-kicker{font-size:10px;letter-spacing:.16em;font-weight:600;color:#d6dce8;margin:0 0 20px}
-.account-scene-copy h2{color:#fff;font-family:Manrope,Inter,Arial,sans-serif;font-size:clamp(31px,3.2vw,43px);font-weight:600;line-height:1.2;letter-spacing:-1.5px;margin:0 0 22px}
-.account-scene-copy>p:last-child{font-size:14px;line-height:1.8;color:#d9dfeb;max-width:310px;margin:0}
-.account-scene-foot{display:flex;align-items:center;gap:9px;font-size:11px;color:#d2d9e5}
-.account-scene-dot{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:#dbe8dc;box-shadow:0 0 0 4px #dbe8dc16}
-.account-auth .account-card{width:100%;min-width:0;margin:0;padding:36px 40px 38px;border:0;border-radius:0;background:#fff;box-shadow:none;align-self:center}
-.account-auth .account-roles{gap:4px;padding-bottom:18px;margin-bottom:28px;flex-wrap:nowrap}
-.account-auth .account-roles a{flex:1;text-align:center;font-size:12px;padding:9px 6px;border-radius:8px;white-space:nowrap;transition:color .18s,background .18s}
-.account-auth .account-roles a:hover{background:#f4f6fa;color:#11224d}
-.account-auth .account-roles a[aria-current]{background:#fbefef;color:#9e1b22}
-.account-auth .account-eyebrow{font-size:10px;letter-spacing:.14em;margin:0 0 10px}
-.account-auth .account-card h1{font-family:Manrope,Inter,Arial,sans-serif;font-weight:650;font-size:29px;letter-spacing:-1px;margin:0 0 10px}
-.account-auth .account-intro{font-size:13px;margin-bottom:27px}
-.account-auth .account-form{gap:17px}
-.account-auth .account-form-grid{column-gap:18px;row-gap:17px}
-.account-auth .account-field{gap:7px;font-size:12px;font-weight:600}
-.account-auth .account-field input,.account-auth .account-field select{padding:11px 12px;border-radius:8px;border-color:#d9dee7;font-size:14px;font-weight:400;background:#fff;min-height:45px;transition:border-color .18s,box-shadow .18s}
-.account-auth .account-field input:hover,.account-auth .account-field select:hover{border-color:#aab6c9}
-.account-auth .account-field input:focus,.account-auth .account-field select:focus{outline:none;border-color:#526484;box-shadow:0 0 0 3px #11224d0c}
-.account-auth [aria-invalid="true"]{border-color:#b54349!important;background:#fffafb!important}
-.account-auth [aria-invalid="true"]:focus{box-shadow:0 0 0 3px #9e1b2210!important}
+
+/* Page wrapper & background - Centered */
+.account-auth{position:relative;isolation:isolate;padding:40px 16px;min-height:calc(100svh - 130px);background:#f6f8fb;overflow:hidden;display:flex!important;align-items:center!important;justify-content:center!important}
+.account-auth::before{content:"";position:absolute;z-index:-1;inset:0;background:var(--account-map) center/cover no-repeat;opacity:.05;pointer-events:none}
+
+/* The Main Shell Card - Perfectly Centered & Balanced Split */
+.account-auth .account-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);width:min(100%,960px);margin:0 auto;overflow:hidden;border:1px solid rgba(226,232,240,.9);border-radius:32px;background:#fff;box-shadow:0 25px 70px -15px rgba(2,60,180,.16),0 10px 25px -10px rgba(15,23,42,.07);animation:account-arrive .5s cubic-bezier(.16,1,.3,1) both;isolation:isolate}
+.account-auth .account-shell.is-registering{width:min(100%,1120px);grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)}
+
+/* Left Side: Vibrant Royal Blue Hero Banner - Centered Alignment */
+.account-auth .account-scene{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:560px;padding:44px 28px;color:#fff;background:linear-gradient(142deg,#0256f0 0%,#0048e0 45%,#0036b5 100%);overflow:hidden}
+.account-auth .account-scene::before{content:"";position:absolute;z-index:-2;inset:0;background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.24) 0%,transparent 55%),radial-gradient(circle at 75% 75%,rgba(0,25,110,.45) 0%,transparent 65%);pointer-events:none}
+.account-auth .account-scene::after{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.06) 0%,rgba(0,0,0,.18) 100%);pointer-events:none}
+
+/* Hero Center Stage - Unified Vertical & Horizontal Anchor */
+.hero-stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:440px;margin:auto;text-align:center}
+
+/* Luminous Ambient Glow Layer - blueGlow.png */
+.hero-glow-wrap{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:min(96%,410px);pointer-events:none;z-index:1;display:flex;align-items:center;justify-content:center}
+.hero-glow-img{width:100%;height:auto;object-fit:contain;opacity:.94;mix-blend-mode:screen;filter:blur(3px);animation:heroGlowPulse 6s ease-in-out infinite alternate}
+
+@keyframes heroGlowPulse{
+  0%{transform:scale(.95);opacity:.85}
+  50%{transform:scale(1.05);opacity:1}
+  100%{transform:scale(.98);opacity:.88}
+}
+
+/* Central 3D Emblem Silhouette Badge */
+.hero-emblem-wrap{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);width:min(94%,360px);pointer-events:none;z-index:2;display:flex;align-items:center;justify-content:center}
+.hero-emblem-img{width:100%;height:auto;object-fit:contain;opacity:.92;filter:drop-shadow(0 20px 30px rgba(0,16,65,.55)) drop-shadow(0 6px 12px rgba(0,10,45,.35));animation:heroBadgeFloat 7s ease-in-out infinite alternate}
+
+@keyframes heroBadgeFloat{
+  0%{transform:translateY(0) scale(1) rotate(0deg)}
+  50%{transform:translateY(-7px) scale(1.015) rotate(.6deg)}
+  100%{transform:translateY(4px) scale(.99) rotate(-.4deg)}
+}
+
+/* Centered Typography */
+.hero-poster-copy{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;width:100%;animation:account-copy-arrive .55s .1s both}
+
+/* "YOUR NEXT MOVE" */
+.hero-poster-kicker{font-family:Montserrat,Inter,system-ui,sans-serif;font-size:clamp(19px,2.2vw,25px);font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:-.01em;color:#fff;margin:0 0 2px;text-align:center;filter:drop-shadow(0 2px 4px rgba(0,20,80,.3))}
+
+/* Appropriate Tailwind-style layered elevation drop-shadow: soft, natural, crisp, zero ugly black blocks */
+.hero-poster-title{font-family:Montserrat,Inter,system-ui,sans-serif;font-size:clamp(46px,5.2vw,66px);font-weight:900;line-height:.92;font-style:italic;letter-spacing:-.03em;text-transform:uppercase;color:#fff;margin:0;text-align:center;filter:drop-shadow(0 10px 8px rgba(0,20,70,.22)) drop-shadow(0 4px 3px rgba(0,15,60,.32));animation:startsHereFloat 6s ease-in-out infinite alternate}
+.hero-poster-title span{display:block}
+
+@keyframes startsHereFloat{
+  0%{transform:translateY(0) rotate(0deg)}
+  50%{transform:translateY(-4px) rotate(.3deg)}
+  100%{transform:translateY(2px) rotate(-.2deg)}
+}
+
+/* Hero Tagline - Formatted Clean, Straight, Stacked (Exact Reference Match) */
+.hero-tagline-container{position:relative;z-index:4;width:100%;max-width:440px;margin-top:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none;animation:account-copy-arrive .6s .15s both}
+.hero-tagline-script{margin:0 0 3px;font-family:Montserrat,Inter,system-ui,-apple-system,sans-serif;font-style:italic;font-weight:600;font-size:clamp(14px,1.6vw,17px);line-height:1.35;color:#fff;letter-spacing:-.01em;text-shadow:0 2px 5px rgba(0,18,70,.45);transition:opacity .25s ease,transform .25s ease}
+.hero-tagline-action{margin:0;font-family:Montserrat,Inter,system-ui,-apple-system,sans-serif;font-style:italic;font-weight:900;font-size:clamp(19px,2.3vw,25px);line-height:1.15;text-transform:uppercase;color:#fff;letter-spacing:-.02em;text-shadow:0 3px 8px rgba(0,18,70,.55);transition:opacity .25s ease,transform .25s ease}
+
+/* Right Side: Clean White Form with mapArtLineArt watermark */
+.account-auth .account-card{position:relative;isolation:isolate;overflow:hidden;width:100%;min-width:0;margin:0;padding:40px 44px;border:0;border-radius:0;background:#fff;box-shadow:none;display:flex;flex-direction:column;justify-content:center}
+.account-card-watermark{position:absolute;inset:0;z-index:-1;pointer-events:none;background-repeat:no-repeat;background-position:center;background-size:cover;opacity:.08;filter:contrast(1.1)}
+
+/* Role Switcher - 3-Pill Smooth Swap Stage with Zero Boxy Clipping */
+.account-auth .account-roles{display:flex;align-items:center;justify-content:center;width:100%;margin-bottom:8px;padding:8px 0;user-select:none;overflow:visible}
+.account-roles-track{position:relative;width:354px;height:44px;margin:0 auto;display:block;overflow:visible}
+.account-auth .account-roles a,
+.account-role-pill{position:absolute;top:3px;left:0;width:110px;height:38px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;font-family:Montserrat,Inter,system-ui,sans-serif;font-size:13.5px;font-weight:600;text-decoration:none;color:#586378;background:transparent;white-space:nowrap;user-select:none;cursor:pointer;box-sizing:border-box;outline:none;transition:background-color .32s ease,box-shadow .32s ease,color .25s ease;will-change:transform,opacity}
+
+.account-role-pill[data-role-slot="0"]{transform:translateX(0);z-index:2}
+.account-role-pill[data-role-slot="1"]{transform:translateX(122px);z-index:3}
+.account-role-pill[data-role-slot="2"]{transform:translateX(244px);z-index:2}
+
+.account-role-pill:hover:not(.is-active){color:#0f172a;background:rgba(241,245,249,.85)}
+
+/* Active Crimson Pill - Soft rounded shadow, no flat box edges */
+.account-auth .account-roles a[aria-current="page"],
+.account-role-pill[aria-current="page"],
+.account-role-pill.is-active{background:#88050B!important;color:#fff!important;font-weight:700!important;box-shadow:0 4px 14px rgba(136,5,11,.35)!important;z-index:4!important;cursor:default}
+
+/* Swoop Arc Keyframes for the 3rd pill jumping across */
+.pill-swoop-left{animation:swoopRightToLeft .46s cubic-bezier(.25,1,.5,1) forwards!important;z-index:1!important}
+.pill-swoop-right{animation:swoopLeftToRight .46s cubic-bezier(.25,1,.5,1) forwards!important;z-index:1!important}
+
+@keyframes swoopRightToLeft{
+  0%{transform:translateX(244px) translateY(0) scale(1);opacity:1}
+  45%{transform:translateX(122px) translateY(-14px) scale(.88);opacity:.7}
+  100%{transform:translateX(0) translateY(0) scale(1);opacity:1}
+}
+
+@keyframes swoopLeftToRight{
+  0%{transform:translateX(0) translateY(0) scale(1);opacity:1}
+  45%{transform:translateX(122px) translateY(-14px) scale(.88);opacity:.7}
+  100%{transform:translateX(244px) translateY(0) scale(1);opacity:1}
+}
+
+.account-roles-divider{height:1px;width:100%;border-bottom:1px solid rgba(226,232,240,.95);background:transparent;margin:6px 0 24px}
+
+/* Headings on right side - Clean & Centered */
+.account-auth .account-eyebrow{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#3b82f6;margin:0 0 6px;text-align:center}
+.account-auth .account-card h1,
+.account-title{font-family:Montserrat,Inter,system-ui,sans-serif;font-size:clamp(28px,3.2vw,38px);font-weight:900;line-height:1.05;letter-spacing:-.02em;text-transform:uppercase;color:#8e151b;margin:0 0 5px;text-align:center}
+.account-auth .account-intro{font-family:Montserrat,Inter,system-ui,sans-serif;font-style:italic;font-size:11.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#9c1f24;margin:0 0 24px;text-align:center}
+
+/* Form Structure & Soft Periwinkle Capsule Inputs with MapArtLineArt background */
+.account-auth .account-form{display:grid;gap:18px}
+.account-auth .account-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px;row-gap:18px}
+.account-auth .account-field{display:grid;gap:7px;font-size:13px;font-weight:600;color:#1e293b}
+.account-auth .account-field input,
+.account-auth .account-field select{width:100%;padding:12px 24px;border-radius:9999px;background-color:#dce7fe;background-image:linear-gradient(rgba(220,232,255,.82),rgba(220,232,255,.82)),url('../images/mapArtLineArt.png');background-position:center;background-size:cover;background-repeat:no-repeat;border:1.5px solid rgba(158,186,248,.82);font-family:inherit;font-size:15px;font-weight:500;color:#0f172a;min-height:48px;box-sizing:border-box;transition:all .22s ease;box-shadow:inset 0 1px 2px rgba(0,0,0,.02)}
+.account-auth .account-field input:hover,
+.account-auth .account-field select:hover{background-image:linear-gradient(rgba(214,228,255,.78),rgba(214,228,255,.78)),url('../images/mapArtLineArt.png');border-color:#82a8f8}
+.account-auth .account-field input:focus,
+.account-auth .account-field select:focus{outline:none;background-image:linear-gradient(rgba(228,238,255,.90),rgba(228,238,255,.90)),url('../images/mapArtLineArt.png');border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.22),inset 0 1px 2px rgba(0,0,0,.02)}
+
+/* Validation errors */
+.account-auth [aria-invalid="true"]{border-color:#b54349!important;background:rgba(255,230,233,.75)!important}
+.account-auth [aria-invalid="true"]:focus{box-shadow:0 0 0 4px rgba(158,27,34,.2)!important}
 .account-field-full,.account-consents{grid-column:1/-1;min-width:0}
-.account-field-error{display:block;color:#9e1b22;font-size:11px;font-weight:450;line-height:1.55;overflow-wrap:anywhere}
+.account-field-error{display:block;color:#9e1b22;font-size:11.5px;font-weight:500;line-height:1.5;overflow-wrap:anywhere;margin-top:2px}
 .account-auth [hidden]{display:none!important}
 .account-auth .account-field-hint{font-size:11px;color:#68758b}
-.account-consents{display:grid;gap:10px;margin:3px 0}
-.account-auth .account-consent{padding:0;background:transparent;gap:9px;font-size:11px;line-height:1.65;border-radius:0;font-weight:400}
-.account-auth .account-consent input{margin-top:2px;width:15px;height:15px;accent-color:#9e1b22}
-.account-auth .account-consent-row>.account-field-error{margin:4px 0 0 24px}
-.account-auth .account-consent a{white-space:normal;margin-left:3px}
-.account-auth .account-submit{display:flex;align-items:center;justify-content:center;gap:12px;min-height:47px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;background:#9e1b22;box-shadow:0 4px 12px #9e1b2210;transition:background .18s,box-shadow .18s,transform .18s}
-.account-auth .account-submit:hover{background:#84161c;box-shadow:0 6px 18px #9e1b2222;transform:translateY(-1px)}
-.account-auth .account-submit:active{transform:translateY(0)}
-.account-submit-arrow{width:18px;height:18px;flex-shrink:0;transition:transform .2s}
+
+/* Consents */
+.account-consents{display:grid;gap:10px;margin:4px 0}
+.account-auth .account-consent{display:flex;align-items:flex-start;gap:10px;padding:0;background:transparent;font-size:12px;line-height:1.65;border-radius:0;font-weight:400;color:#475569}
+.account-auth .account-consent input{margin-top:3px;width:16px;height:16px;accent-color:#9e1b22}
+.account-auth .account-consent-row>.account-field-error{margin:4px 0 0 26px}
+.account-auth .account-consent a{color:#9e1b22;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* Password Toggle Integrated Inside Capsule */
+.sfc-password-field{position:relative;display:block;width:100%}
+.sfc-password-field>input{padding-right:56px!important}
+.sfc-password-field>.sfc-password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;border:0;border-radius:9999px;background:transparent;color:#475569;cursor:pointer;transition:all .18s ease}
+.sfc-password-field>.sfc-password-toggle:hover{background:rgba(59,130,246,.15);color:#0f172a}
+.sfc-password-field>.sfc-password-toggle:focus-visible{outline:2px solid #3b82f6;outline-offset:-2px}
+.sfc-password-toggle>svg{width:20px;height:20px;pointer-events:none}
+
+/* Centered Crimson Pill Submit Button */
+.account-submit-wrap{display:flex!important;justify-content:center!important;align-items:center!important;width:100%!important;margin-top:4px!important}
+.account-auth .account-submit{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border-radius:9999px!important;min-width:150px!important;padding:11px 32px!important;background:#73060d!important;color:#fff!important;font-family:Montserrat,Inter,system-ui,sans-serif!important;font-size:14px!important;font-weight:700!important;border:0!important;box-shadow:0 4px 14px rgba(115,6,13,.35)!important;cursor:pointer!important;position:relative!important;overflow:hidden!important;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease,background .2s ease!important}
+.account-auth .account-submit:hover{background:#850810!important;box-shadow:0 6px 18px rgba(115,6,13,.45)!important;transform:translateY(-1px)!important}
+.account-auth .account-submit:active{transform:scale(.96) translateY(0)!important}
+
+/* Arrow micro-animation */
+.account-submit-arrow{width:15px;height:15px;flex-shrink:0;transition:transform .22s ease}
 .account-submit:hover .account-submit-arrow{transform:translateX(3px)}
-.account-submit-spinner{display:none;width:15px;height:15px;border:2px solid #ffffff50;border-top-color:white;border-radius:50%;animation:account-spin .8s linear infinite}
+
+/* Click ripple */
+.submit-ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.5);transform:scale(0);animation:submitRippleAnim .6s linear;pointer-events:none}
+@keyframes submitRippleAnim{to{transform:scale(4);opacity:0}}
+
+/* Submitting promise pulse aura & spinner */
+.account-submit-spinner{display:none;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:account-spin .7s linear infinite}
 .account-submit.is-loading .account-submit-arrow{display:none}
 .account-submit.is-loading .account-submit-spinner{display:block}
-.account-auth .account-submit:disabled{opacity:.8;cursor:wait;transform:none}
-.account-auth .account-switch{font-size:12px;margin-top:24px}
-.account-auth .account-message{font-size:12px;margin:0 0 20px}
-.account-auth .admin-tab-switcher{gap:22px;margin:0 0 24px}
-.account-auth .admin-tab-btn{font-size:12px}
-.account-auth [role="tabpanel"]:not([hidden]){animation:account-copy-arrive .25s ease both}
+.account-submit.is-loading{background:#5a040a!important;animation:submitPromisePulse 1.4s ease-in-out infinite}
+.account-auth .account-submit:disabled{opacity:.85;cursor:wait;transform:none}
+
+@keyframes submitPromisePulse{
+  0%,100%{box-shadow:0 0 0 4px rgba(158,27,34,.2),0 6px 18px rgba(115,6,13,.35)}
+  50%{box-shadow:0 0 0 10px rgba(158,27,34,.38),0 12px 30px rgba(115,6,13,.55)}
+}
+
+/* Footer Link */
+.account-auth .account-switch{font-size:13px;color:#475569;margin-top:20px;text-align:center}
+.account-auth .account-switch a{color:#8e151b;font-weight:700;text-decoration:underline;text-underline-offset:3px;transition:color .18s}
+.account-auth .account-switch a:hover{color:#73060d}
+.account-auth .account-message{font-size:13px;padding:12px 18px;border-radius:12px;margin:0 0 20px}
+.account-auth .account-message.is-error{background:#fdf2f2;border:1px solid #f8b4b4;color:#9e1b22}
+
+/* Admin switcher */
+.account-auth .admin-tab-switcher{display:flex;gap:20px;border-bottom:1px solid rgba(226,232,240,.8);margin:0 0 24px}
+.account-auth .admin-tab-btn{border:0;border-bottom:2px solid transparent;background:transparent;padding:0 0 10px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;transition:all .18s}
+.account-auth .admin-tab-btn.is-active{border-bottom-color:#9e1b22;color:#7d0d14}
+.account-auth .admin-tab-btn:hover{color:#9e1b22}
+
 .account-sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.account-welcome-page{display:grid;place-items:center;min-height:calc(100svh - 104px);padding-top:60px;padding-bottom:80px}
-.account-welcome-page::before{opacity:.13}
-.account-welcome-card{max-width:590px;width:100%;text-align:center;border:1px solid #e1e6ee;border-radius:22px;padding:48px 42px;background:#fffffff5;box-shadow:0 20px 65px -30px #11224d35;animation:account-arrive .5s both}
-.account-welcome-mark{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 26px;background:#edf5ee;color:#2a603b;border-radius:50%;animation:account-mark-arrive .6s .08s both}
-.account-welcome-mark svg{width:27px;height:27px}
-.account-welcome-card h1{font-family:Manrope,Inter,Arial,sans-serif;font-size:clamp(28px,4vw,42px);line-height:1.25;letter-spacing:-1.1px;font-weight:650;color:#11224d;margin:12px 0 18px;overflow-wrap:anywhere}
-.account-welcome-card h1 span{display:block}
-.account-welcome-copy{color:#586378;font-size:14px;line-height:1.8;margin:0 auto 27px;max-width:440px}
-.account-welcome-status{display:inline-flex;gap:8px;align-items:center;border:1px solid #e8e0ce;background:#fbf8f0;color:#795d27;border-radius:20px;font-size:11px;padding:8px 13px;margin:0 0 27px}
-.account-welcome-status span{width:6px;height:6px;background:#a48648;border-radius:50%}
-.account-welcome-card .account-submit{max-width:330px;margin:auto}
-@keyframes account-arrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes account-copy-arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-@keyframes account-map-drift{from{transform:scale(1.04) translateX(-.5%)}to{transform:scale(1.09) translateX(.5%)}}
-@keyframes account-mark-arrive{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+
+/* ==========================================================================
+   WELCOME PAGE STYLING - Premium, Centered, Elegant White Card
+   ========================================================================== */
+.account-welcome-page{display:flex!important;align-items:center!important;justify-content:center!important;min-height:calc(100svh - 130px)!important;padding:40px 16px!important;position:relative}
+.account-welcome-card{position:relative!important;overflow:hidden!important;isolation:isolate!important;max-width:480px!important;width:100%!important;margin:auto!important;text-align:center!important;border:1px solid rgba(226,232,240,.95)!important;border-radius:28px!important;padding:44px 36px 40px!important;background:#fff!important;box-shadow:0 25px 70px -15px rgba(2,60,180,.14),0 10px 25px -10px rgba(15,23,42,.08)!important;animation:account-arrive .5s cubic-bezier(.16,1,.3,1) both}
+.account-welcome-card::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:url('../images/mapArtLineArt.png') center/cover no-repeat;opacity:.07}
+
+.account-welcome-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:64px!important;height:64px!important;max-width:64px!important;max-height:64px!important;margin:0 auto 20px!important;background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%)!important;border:2px solid #86efac!important;border-radius:9999px!important;box-shadow:0 10px 22px -4px rgba(16,185,129,.28)!important;animation:welcomeMarkPop .5s cubic-bezier(.175,.885,.32,1.275) both}
+.account-welcome-mark svg{width:30px!important;height:30px!important;max-width:30px!important;max-height:30px!important;color:#059669!important;stroke:#059669!important;display:block!important}
+
+.account-welcome-card .account-eyebrow{display:inline-block!important;font-size:11px!important;font-weight:700!important;letter-spacing:.12em!important;text-transform:uppercase!important;color:#2563eb!important;background:#eff6ff!important;padding:5px 15px!important;border-radius:9999px!important;margin-bottom:12px!important;text-align:center!important}
+.account-welcome-card h1{font-family:Montserrat,Inter,system-ui,sans-serif!important;font-size:clamp(25px,3.6vw,32px)!important;font-weight:800!important;color:#0f172a!important;line-height:1.25!important;letter-spacing:-.02em!important;margin:0 0 10px!important;text-align:center!important}
+.account-welcome-card h1 span{display:inline!important}
+.account-welcome-copy{font-size:14.5px!important;color:#64748b!important;line-height:1.65!important;max-width:380px!important;margin:0 auto 26px!important;text-align:center!important}
+.account-welcome-status{display:inline-flex;align-items:center;gap:8px;border:1px solid #fed7aa;background:#fff7ed;color:#c2410c;border-radius:9999px;font-size:12px;font-weight:600;padding:6px 16px;margin:0 auto 24px}
+.account-welcome-status span{width:7px;height:7px;background:#ea580c;border-radius:50%}
+
+.account-welcome-card .account-submit{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;margin:0 auto!important;min-width:190px!important;padding:12px 28px!important;border-radius:9999px!important;background:#73060d!important;color:#fff!important;font-family:Montserrat,Inter,system-ui,sans-serif!important;font-weight:700!important;font-size:14px!important;text-decoration:none!important;box-shadow:0 4px 14px rgba(115,6,13,.35)!important;transition:all .2s cubic-bezier(.2,.8,.2,1)!important}
+.account-welcome-card .account-submit:hover{background:#850810!important;box-shadow:0 6px 20px rgba(115,6,13,.45)!important;transform:translateY(-1px)!important}
+.account-welcome-card .account-submit:active{transform:scale(.97)!important}
+
+@keyframes welcomeMarkPop{
+  0%{transform:scale(.6);opacity:0}
+  100%{transform:scale(1);opacity:1}
+}
+
+/* Keyframes */
+@keyframes account-arrive{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes account-copy-arrive{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes account-spin{to{transform:rotate(360deg)}}
-@media(min-width:851px){.account-auth[data-account-role="admin"] .account-shell:has(#adminOnboardSection:not([hidden])){width:min(100%,1160px);grid-template-columns:minmax(0,.72fr) minmax(0,1.12fr)}}
-@media(max-width:1000px){.account-auth .account-card{padding:30px}.account-auth .account-scene{padding:30px}.account-scene-copy h2{font-size:34px}}
-@media(max-width:850px){.account-auth{padding:30px 20px 48px}.account-auth .account-shell,.account-auth .account-shell.is-registering{width:min(100%,660px);grid-template-columns:1fr}.account-auth .account-scene{min-height:0;padding:25px 30px;gap:0;display:block}.account-scene-brand{font-size:14px}.account-scene-brand img{width:36px;height:29px}.account-scene-copy{margin:22px 0 0}.account-scene-kicker{font-size:9px;margin-bottom:9px}.account-scene-copy h2{font-size:25px;letter-spacing:-.7px;margin:0}.account-scene-copy h2 br{display:none}.account-scene-copy h2 br::after{content:" "}.account-scene-copy>p:last-child,.account-scene-foot{display:none}.account-auth .account-scene::before{background-position:center 47%;opacity:.14}.account-auth .account-card{padding:29px 30px 32px}.account-auth .account-roles{margin-bottom:25px}}
-@media(max-width:600px){.account-auth{padding:20px 12px 36px}.account-auth .account-shell{border-radius:16px}.account-auth .account-scene{padding:22px}.account-auth .account-card{padding:25px 22px 28px}.account-auth .account-card h1{font-size:26px}.account-auth .account-form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}.account-auth .account-field{font-size:11px}.account-auth .account-field input,.account-auth .account-field select{font-size:16px;padding:10px}.account-auth .account-intro{font-size:12px}.account-welcome-card{padding:38px 25px}.account-welcome-copy{font-size:13px}.account-welcome-page{padding:28px 14px 44px}}
-@media(max-width:420px){.account-auth .account-form-grid{grid-template-columns:1fr}.account-auth .account-scene-copy h2{font-size:23px}.account-auth .account-roles a{font-size:11px;padding:8px 3px}.account-auth .account-card{padding:24px 20px 28px}.account-auth .account-consent{font-size:11px}.account-welcome-card{padding:34px 22px}}
-@media(prefers-reduced-motion:reduce){.account-auth *,.account-auth *::before,.account-auth *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Responsive & Mobile Aspect Ratio Optimizations */
+@media(max-width:1020px){
+  .account-auth .account-scene{padding:34px 22px}
+  .account-auth .account-card{padding:34px 28px}
+  .hero-poster-title{font-size:48px}
+}
+
+@media(max-width:850px){
+  .account-auth{padding:20px 14px 36px}
+  .account-auth .account-shell,
+  .account-auth .account-shell.is-registering{width:min(100%,480px);grid-template-columns:1fr;border-radius:26px}
+  .account-auth .account-scene{min-height:240px;padding:26px 18px 20px;text-align:center;align-items:center;gap:0;justify-content:center}
+  .hero-stage{max-width:360px}
+  .hero-emblem-wrap{width:200px;max-width:62%;top:42%;left:50%}
+  .hero-poster-copy{text-align:center;margin:0 auto}
+  .hero-poster-kicker{font-size:17px}
+  .hero-poster-title{font-size:36px}
+  .hero-tagline-container{margin-top:10px;max-width:340px}
+  .account-auth .account-card{padding:28px 22px 30px}
+  .account-auth .account-card h1,
+  .account-title{text-align:center;font-size:28px}
+  .account-auth .account-intro{text-align:center;margin-bottom:22px}
+  .account-submit-wrap{width:100%}
+  .account-auth .account-submit{width:auto;min-width:160px}
+}
+
+@media(max-width:540px){
+  .account-auth{padding:14px 10px 28px}
+  .account-auth .account-shell{border-radius:22px}
+  .account-auth .account-card{padding:24px 16px 26px}
+  .account-auth .account-form-grid{grid-template-columns:1fr}
+  .account-auth .account-field input,
+  .account-auth .account-field select{font-size:16px;padding:12px 20px}
+  .hero-tagline-script{font-size:13px}
+  .hero-tagline-action{font-size:17.5px}
+  .account-roles-track{width:302px;height:40px}
+  .account-auth .account-roles a,
+  .account-role-pill{width:94px;height:34px;font-size:12px}
+  .account-role-pill[data-role-slot="0"]{transform:translateX(0)}
+  .account-role-pill[data-role-slot="1"]{transform:translateX(104px)}
+  .account-role-pill[data-role-slot="2"]{transform:translateX(208px)}
+
+  @keyframes swoopRightToLeft{
+    0%{transform:translateX(208px) translateY(0) scale(1);opacity:1}
+    45%{transform:translateX(104px) translateY(-11px) scale(.88);opacity:.7}
+    100%{transform:translateX(0) translateY(0) scale(1);opacity:1}
+  }
+
+  @keyframes swoopLeftToRight{
+    0%{transform:translateX(0) translateY(0) scale(1);opacity:1}
+    45%{transform:translateX(104px) translateY(-11px) scale(.88);opacity:.7}
+    100%{transform:translateX(208px) translateY(0) scale(1);opacity:1}
+  }
+  .account-welcome-card{padding:36px 22px 32px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .account-auth *:not(.account-role-pill):not([data-roles-track] *):not(.account-role-pill *),.account-auth *::before,.account-auth *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}

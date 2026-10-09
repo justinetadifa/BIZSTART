@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Segmented Control (Tailwind + Framer Motion) | LOCUS-SF</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-montserrat {
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+  <!-- Load React & Framer Motion via ESM -->
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.2.0",
+      "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+      "framer-motion": "https://esm.sh/framer-motion@11.11.9?deps=react@18.2.0,react-dom@18.2.0"
+    }
+  }
+  </script>
+</head>
+<body class="bg-[#F8F9FA] text-[#11224D] min-h-screen flex flex-col justify-between antialiased">
+  <div id="root" class="min-h-screen flex flex-col justify-between"></div>
+
+  <script type="module">
+    import React, { useState } from 'react';
+    import ReactDOM from 'react-dom/client';
+    import { motion } from 'framer-motion';
+
+    const ROLE_LAYOUT_MAP = {
+      'Investor': ['Broker', 'Investor', 'City staff'],
+      'Broker': ['City staff', 'Broker', 'Investor'],
+      'City staff': ['Investor', 'City staff', 'Broker'],
+    };
+
+    const ROLE_META = {
+      'Investor': {
+        kicker: 'YOUR NEXT MOVE',
+        title: 'STARTS HERE.',
+        tagline: 'Discover spaces, explore opportunities AND INVEST IN THE CITY!',
+      },
+      'Broker': {
+        kicker: 'LOCAL EXPERTISE',
+        title: 'NEW HORIZONS.',
+        tagline: 'Connect spaces, empower clients AND SHAPE THE CITY!',
+      },
+      'City staff': {
+        kicker: 'ONE CITY',
+        title: 'SHARED VISION.',
+        tagline: 'Informed decisions, seamless data FOR THE CITY WE SERVE!',
+      },
+    };
+
+    const SPRING_TRANSITION = {
+      type: 'spring',
+      stiffness: 350,
+      damping: 30,
+      mass: 0.8,
+    };
+
+    function RoleSegmentedControl({ activeRole, onChange }) {
+      const currentSlots = ROLE_LAYOUT_MAP[activeRole] || ROLE_LAYOUT_MAP['Investor'];
+
+      return React.createElement(
+        'nav',
+        {
+          'aria-label': 'Account type selector',
+          role: 'tablist',
+          className: 'relative flex items-center justify-between p-1 rounded-full bg-slate-100/95 border border-slate-200/90 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] w-full max-w-[360px] h-[46px] select-none',
+        },
+        // Center Pinned Dark Red Pill
+        React.createElement('div', {
+          'aria-hidden': 'true',
+          className: 'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(33.333%-6px)] h-[calc(100%-8px)] rounded-full bg-[#88050B] shadow-[0_4px_14px_rgba(136,5,11,0.35)] pointer-events-none transition-colors duration-200',
+        }),
+        // 3 Reordering Text Wrappers with Framer Motion <motion.div layout>
+        currentSlots.map((role) => {
+          const isActive = role === activeRole;
+          return React.createElement(
+            motion.div,
+            {
+              key: role,
+              layout: true,
+              transition: SPRING_TRANSITION,
+              className: 'relative z-10 flex-1 h-full flex items-center justify-center',
+            },
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                role: 'tab',
+                'aria-selected': isActive,
+                onClick: () => onChange(role),
+                className: `w-full h-full flex items-center justify-center font-montserrat text-[13px] font-semibold rounded-full select-none cursor-pointer outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-[#88050B] focus-visible:ring-offset-2 ${
+                  isActive
+                    ? 'text-white font-bold cursor-default'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`,
+              },
+              React.createElement(
+                motion.span,
+                { layout: 'position' },
+                role
+              )
+            )
+          );
+        })
+      );
+    }
+
+    function App() {
+      const [role, setRole] = useState('Investor');
+      const meta = ROLE_META[role];
+
+      return React.createElement(
+        'div',
+        { className: 'min-h-screen flex flex-col justify-between' },
+        // Top Header
+        React.createElement(
+          'header',
+          { className: 'w-full bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50 py-4 px-6 sm:px-12 flex items-center justify-between' },
+          React.createElement(
+            'div',
+            { className: 'flex items-center gap-3' },
+            React.createElement('strong', { className: 'font-montserrat text-lg font-black tracking-tight text-slate-900' }, 'LOCUS-SF'),
+            React.createElement('span', { className: 'text-xs text-slate-400 font-medium' }, 'San Fernando, La Union')
+          ),
+          React.createElement(
+            'span',
+            { className: 'text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60' },
+            'React + Framer Motion (Live)'
+          )
+        ),
+        // Interactive Center Card
+        React.createElement(
+          'main',
+          { className: 'flex-1 flex flex-col items-center justify-center p-6 sm:p-10' },
+          React.createElement(
+            'div',
+            { className: 'w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,18,70,0.08)] border border-slate-100 p-8 sm:p-10 flex flex-col items-center text-center' },
+            // Segmented Control
+            React.createElement(
+              'div',
+              { className: 'w-full flex justify-center mb-8' },
+              React.createElement(RoleSegmentedControl, {
+                activeRole: role,
+                onChange: (newRole) => setRole(newRole),
+              })
+            ),
+            // Dynamic Role Stage
+            React.createElement('p', { className: 'text-[11px] font-bold tracking-widest text-blue-600 uppercase mb-1' }, meta.kicker),
+            React.createElement('h1', { className: 'font-montserrat text-3xl sm:text-4xl font-black text-[#88050B] tracking-tight uppercase mb-3' }, meta.title),
+            React.createElement('p', { className: 'text-sm font-semibold italic text-slate-600 mb-8 max-w-xs' }, meta.tagline),
+            // Action Pill Button
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className: 'w-full max-w-xs py-3 px-8 rounded-full bg-[#88050B] hover:bg-[#73060d] text-white font-montserrat font-bold text-sm shadow-[0_4px_14px_rgba(136,5,11,0.35)] transition-transform active:scale-95 cursor-pointer',
+              },
+              `Continue as ${role} →`
+            )
+          )
+        ),
+        // Restored Dark Red Footer
+        React.createElement(
+          'footer',
+          { className: 'w-full bg-[#88050B] text-white py-4 px-6 sm:px-12 mt-12' },
+          React.createElement(
+            'div',
+            { className: 'max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs' },
+            React.createElement(
+              'div',
+              { className: 'flex items-center gap-2' },
+              React.createElement('strong', { className: 'font-montserrat font-extrabold text-sm text-white' }, 'LOCUS-SF'),
+              React.createElement('span', { className: 'text-white/80' }, 'San Fernando, La Union')
+            ),
+            React.createElement(
+              'nav',
+              { className: 'flex items-center gap-5 text-white/90 font-medium' },
+              React.createElement('a', { href: '#privacy', className: 'hover:text-white hover:underline' }, 'Privacy'),
+              React.createElement('a', { href: 'seller-login.php', className: 'hover:text-white hover:underline' }, 'Broker access'),
+              React.createElement('a', { href: 'admin-login.php', className: 'hover:text-white hover:underline' }, 'City access')
+            )
+          )
+        )
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>

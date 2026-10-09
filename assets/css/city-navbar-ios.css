@@ -1098,14 +1098,16 @@
   text-decoration: underline !important;
 }
 
-/* General Footer */
+/* General Footer - Dark Red #88050B, compact on mobile */
 .city-footer {
   border-top: 0 !important;
-  border: 0 !important;
+  border-bottom: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
   background-color: #88050B !important;
   background: #88050B !important;
   color: #ffffff !important;
-  margin-top: 60px !important;
+  margin-top: 48px !important;
   padding: 0 !important;
   font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
   -webkit-font-smoothing: antialiased;
@@ -1116,9 +1118,9 @@
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  min-height: 76px !important;
-  padding: 22px 0 !important;
-  gap: 24px !important;
+  min-height: 60px !important;
+  padding: 16px 0 !important;
+  gap: 20px !important;
   width: min(1240px, calc(100% - 64px)) !important;
   margin-inline: auto !important;
 }
@@ -1132,7 +1134,7 @@
 
 .city-footer-logo {
   font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 15.5px !important;
+  font-size: 14px !important;
   font-weight: 800 !important;
   letter-spacing: -0.01em !important;
   color: #ffffff !important;
@@ -1140,31 +1142,31 @@
 
 .city-footer-location {
   font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 14.5px !important;
+  font-size: 12.5px !important;
   font-weight: 400 !important;
-  color: #ffffff !important;
-  opacity: 0.95 !important;
+  color: rgba(255, 255, 255, 0.88) !important;
 }
 
 .city-footer-links {
   display: flex !important;
   align-items: center !important;
-  gap: 36px !important;
+  gap: 24px !important;
 }
 
 .city-footer-links a {
   font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 14px !important;
+  font-size: 12.5px !important;
   font-weight: 500 !important;
-  color: #ffffff !important;
+  color: rgba(255, 255, 255, 0.88) !important;
   text-decoration: none !important;
-  transition: opacity 0.15s ease, text-decoration-color 0.15s ease !important;
+  transition: color 0.15s ease, opacity 0.15s ease !important;
 }
 
 .city-footer-links a:hover {
-  opacity: 0.82 !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
   text-decoration: underline !important;
-  text-underline-offset: 4px !important;
+  text-underline-offset: 3px !important;
 }
 
 @media (max-width: 850px) {
@@ -1175,15 +1177,33 @@
 }
 
 @media (max-width: 640px) {
+  .city-footer {
+    margin-top: 14px !important;
+    background-color: #88050B !important;
+    background: #88050B !important;
+  }
   .city-footer-inner {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 16px !important;
-    padding: 22px 0 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding: 8px 16px !important;
+    min-height: 38px !important;
+    width: 100% !important;
+  }
+  .city-footer-location {
+    display: none !important;
+  }
+  .city-footer-logo {
+    font-size: 11.5px !important;
+    color: #ffffff !important;
   }
   .city-footer-links {
-    gap: 24px !important;
-    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+  .city-footer-links a {
+    font-size: 11px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
   }
 }
 

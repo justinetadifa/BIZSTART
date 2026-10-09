@@ -49,7 +49,7 @@ sfc_render_header($context);
 ?>
 <main class="account-page account-auth account-welcome-page" style="--account-map: url('<?= sfc_account_escape(sfc_account_art($context)) ?>')">
   <section class="account-welcome-card" aria-labelledby="welcomeTitle">
-    <div class="account-welcome-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="account-welcome-mark" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" style="width:30px;height:30px;max-width:30px;max-height:30px;stroke:#059669;display:block;"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <p class="account-eyebrow"><?= $newAccount ? ($broker ? 'APPLICATION RECEIVED' : 'YOU’RE ALL SET') : 'GOOD TO SEE YOU AGAIN' ?></p>
     <h1 id="welcomeTitle"><span><?= $newAccount ? 'Welcome,' : 'Welcome back,' ?></span> <?= sfc_account_escape($firstName) ?>.</h1>
     <p class="account-welcome-copy"><?= $pending ? sfc_account_escape($brokerMessage) : ($broker ? 'Your workspace is ready. Continue to your listings and city review messages.' : 'Discover your next opportunity in San Fernando City.') ?></p>
@@ -63,7 +63,9 @@ sfc_render_header($context);
       <p><a href="<?= sfc_account_escape(sfc_path('/profile.php')) ?>">View application and email verification</a></p>
     </div>
     <?php endif; ?>
-    <a class="account-submit" href="<?= sfc_account_escape(sfc_path($destination)) ?>"><?= $broker ? 'Go to broker workspace' : 'Explore properties' ?><svg class="account-submit-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <div class="account-submit-wrap">
+      <a class="account-submit" href="<?= sfc_account_escape(sfc_path($destination)) ?>"><?= $broker ? 'Go to broker workspace' : 'Explore properties' ?><svg class="account-submit-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    </div>
   </section>
 </main>
 <?php if ($broker): ?><script defer src="<?= sfc_account_escape($context['assetBase']) ?>/js/broker-verification.js<?= sfc_account_escape(sfc_asset_version('js/broker-verification.js')) ?>"></script><?php endif; ?>

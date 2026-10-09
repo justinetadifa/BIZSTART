@@ -318,11 +318,13 @@ function setEditorStep(step) {
   const progressText = form?.querySelector('[data-editor-progress]');
   if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
   if (propertyWizard && nextBtn) {
-    nextBtn.textContent = ['Continue to location →', 'Continue to site evidence →', 'Continue to surroundings →', 'Continue to review →'][step] || 'Continue →';
+    const nextLabel = nextBtn.querySelector('[data-editor-next-label]') || nextBtn;
+    nextLabel.textContent = 'Continue';
   }
   const skip = form?.querySelector('[data-skip-enrichment]');
   if (skip) skip.hidden = ![1,2,3].includes(step);
-  if (editor) editor.scrollTop = 0;
+  const scrollContainer = form?.querySelector('.pw-content') || editor;
+  if (scrollContainer) scrollContainer.scrollTop = 0;
   if (propertyWizard) propertyWizard.onStep(step);
   else {
     if (step === 2) automaticAssessment?.refresh();

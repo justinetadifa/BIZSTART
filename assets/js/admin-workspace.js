@@ -278,10 +278,14 @@
     form.querySelector('[data-editor-next]').hidden = step === editorLastStep;
     form.querySelector('[type="submit"]').hidden = step !== editorLastStep;
     form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
-    if (propertyWizard) form.querySelector('[data-editor-next]').textContent = ['Continue to location â†’', 'Continue to site evidence â†’', 'Continue to surroundings â†’', 'Continue to review â†’'][step] || 'Continue â†’';
+    if (propertyWizard) {
+      const nextButton = form.querySelector('[data-editor-next]');
+      const nextLabel = nextButton.querySelector('[data-editor-next-label]') || nextButton;
+      nextLabel.textContent = 'Continue';
+    }
     const skip = form.querySelector('[data-skip-enrichment]');
     if (skip) skip.hidden = ![1,2,3].includes(step);
-    editor.scrollTop = 0;
+    (form.querySelector('.pw-content') || editor).scrollTop = 0;
     if (propertyWizard) propertyWizard.onStep(step);
     else {
       if (step === 2) automaticAssessment?.refresh();
@@ -437,7 +441,7 @@
     if (list.length === 0) {
       subcatTriggerText.textContent = 'Select subcategories...';
       subcatTriggerText.className = 'tw-truncate tw-text-sm tw-text-slate-500';
-      subcatCount.textContent = 'Optional Â· multi-select';
+      subcatCount.textContent = 'Optional · multi-select';
       subcatTags.innerHTML = '';
       return;
     }
@@ -449,7 +453,7 @@
     subcatTags.innerHTML = list.map((tag) => `
       <span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-px-2.5 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-900 tw-border tw-border-amber-200/80">
         ${escape(tag)}
-        <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">Ã—</button>
+        <button type="button" class="tw-ml-0.5 tw-inline-flex tw-h-3.5 tw-w-3.5 tw-items-center tw-justify-center tw-rounded-full tw-text-amber-700 hover:tw-bg-amber-200/60 hover:tw-text-amber-950 focus:tw-outline-none" data-remove-subcat="${escape(tag)}" aria-label="Remove ${escape(tag)}">×</button>
       </span>
     `).join('');
 
@@ -544,7 +548,7 @@
     editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'New property';
     const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
     if (breadcrumb) breadcrumb.textContent = property ? 'Edit property' : 'Add property';
-    form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` Â· ${escape(broker.phone)}` : ''}</option>`).join('');
+    form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
     if (property) {
       const values = { property_name: property.name, category: property.category, barangay: property.barangay, status: property.status, listing_purpose: property.listingPurpose || 'sale', lease_price: property.leasePrice, lease_period: property.leasePeriod || 'month', lease_price_unit: property.leasePriceUnit || 'total', lat: property.lat, lng: property.lng, description: property.description, owner_name: property.ownerContact?.name, owner_phone: property.ownerContact?.phone, owner_email: property.ownerContact?.email, contactBrokerUserId: property.contactBrokerUserId, readiness_notes: property.readinessNotes, existing_land_use:property.existingLandUse, zoning_classification:property.zoningClassification, clup_source_reference:property.clupSourceReference };
       Object.entries(values).forEach(([name, value]) => { if (form.elements[name]) form.elements[name].value = value ?? ''; });

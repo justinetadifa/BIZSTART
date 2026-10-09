@@ -191,34 +191,84 @@
       const transfer=new DataTransfer();for(const file of event.dataTransfer.files)transfer.items.add(file);evidenceFiles.files=transfer.files;checkEvidenceFiles();
     });
     function tileMap(canvas) {
-      const map = L.map(canvas, {scrollWheelZoom:false,zoomControl:false}).setView(point() || [16.615,120.316],15);
-      const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 18,
-        maxZoom: 19,
-        attribution: 'Esri Satellite &copy; Maxar, Earthstar Geographics',
-        pmIgnore: true
+      const map = L.map(canvas, {scrollWheelZoom:false,zoomControl:false,maxZoom:19}).setView(point() || [16.615,120.316],15);
+      const kind = canvas.matches('[data-radar-map]') ? 'radar' : 'location';
+      const feedback = $(`[data-map-feedback="${kind}"]`);
+      let styleSelect = $(`[data-map-style="${kind}"]`);
+      const options = {maxZoom:19,detectRetina:false,pmIgnore:true};
+      const streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        ...options,maxNativeZoom:19,
+        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       });
-      const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 17,
-        maxZoom: 19,
-        opacity: 0.85,
-        pmIgnore: true
+      // San Fernando imagery is available through level 18. Advertised cache levels
+      // are not a coverage guarantee; higher map zooms scale the existing imagery.
+      // blankTile=false turns Esri's HTTP 200 "not yet available" image into a
+      // detectable 404 so missing coverage can fall back to a usable street map.
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?blankTile=false', {
+        ...options,maxNativeZoom:18,
+        attribution:'<a href="https://www.esri.com/">Esri</a>, Vantor, Earthstar Geographics, GIS User Community'
       });
-      const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxNativeZoom: 19,
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-        pmIgnore: true
+      const alternateStreets = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}?blankTile=false', {
+        ...options,maxNativeZoom:18,
+        attribution:'<a href="https://www.esri.com/">Esri</a>, HERE, Garmin, USGS, Intermap, increment P, NRCan, Esri Japan, METI, Esri China, OpenStreetMap contributors, GIS User Community'
       });
-      esriSatellite.addTo(map);
-      esriLabels.addTo(map);
-      try {
-        const baseLayers = {
-          '🛰️ Satellite HD': L.layerGroup([esriSatellite, esriLabels]),
-          '🗺️ Street Map': osmStreets
+      let activeLayer, activeStyle = 'streets', failedTiles = 0, fallbackMessage = '', failureTimer;
+      const showFeedback = (text = '', state = 'ready') => {
+        canvas.dataset.mapStatus = state;
+        if (feedback) {feedback.textContent=text;feedback.hidden=!text;}
+      };
+      const updateFeedback = () => showFeedback(fallbackMessage || (activeStyle === 'satellite' && map.getZoom() > 18 ? 'Satellite imagery is enlarged from the closest available detail.' : ''));
+      function useLayer(layer, style, message = '') {
+        clearTimeout(failureTimer);
+        activeLayer=layer;activeStyle=style;failedTiles=0;fallbackMessage=message;
+        for (const candidate of [streets,satellite,alternateStreets]) if (candidate !== layer && map.hasLayer(candidate)) map.removeLayer(candidate);
+        canvas.dataset.mapStyle=style;
+        canvas.dataset.mapProvider=layer===streets ? 'openstreetmap' : layer===satellite ? 'esri-imagery' : 'esri-streets';
+        if (styleSelect) styleSelect.value=style;
+        updateFeedback();
+        if (!map.hasLayer(layer)) layer.addTo(map);
+      }
+      function recover(layer) {
+        if (layer !== activeLayer || !failedTiles) return;
+        if (layer === satellite) useLayer(streets,'streets','Satellite imagery is unavailable here. Showing the street map instead.');
+        else if (layer === streets) useLayer(alternateStreets,'streets','Showing an alternate street map while the usual map is unavailable.');
+        else showFeedback('The map background is unavailable. You can still enter coordinates or an area size. Choose a map view to retry.','unavailable');
+      }
+      function queueRecovery(layer, delay = 0) {
+        clearTimeout(failureTimer);
+        // Defer layer removal until Leaflet has finished its tile event callback.
+        failureTimer=setTimeout(() => recover(layer),delay);
+      }
+      for (const layer of [streets,satellite,alternateStreets]) {
+        layer.on('loading',() => {if (layer===activeLayer) failedTiles=0;});
+        layer.on('tileerror',() => {
+          if (layer!==activeLayer) return;
+          failedTiles++;
+          queueRecovery(layer,failedTiles>=3 ? 0 : 1200);
+        });
+        layer.on('load',() => {
+          if (layer!==activeLayer) return;
+          if (failedTiles) queueRecovery(layer);
+          else updateFeedback();
+        });
+      }
+      if (!styleSelect) {
+        const control=L.control({position:'topright'});
+        control.onAdd=() => {
+          const root=L.DomUtil.create('label','leaflet-bar pw-map-style-native');
+          root.textContent='Map view ';
+          styleSelect=L.DomUtil.create('select','',root);
+          styleSelect.setAttribute('aria-label','Map view');
+          styleSelect.innerHTML='<option value="streets">Streets</option><option value="satellite">Satellite</option>';
+          L.DomEvent.disableClickPropagation(root);L.DomEvent.disableScrollPropagation(root);
+          return root;
         };
-        L.control.layers(baseLayers, null, {position: 'topright', collapsed: true}).addTo(map);
-      } catch {}
+        control.addTo(map);
+      }
+      styleSelect.addEventListener('change',() => useLayer(styleSelect.value==='satellite' ? satellite : streets,styleSelect.value==='satellite' ? 'satellite' : 'streets'));
+      map.on('zoomend',() => {if (canvas.dataset.mapStatus!=='unavailable') updateFeedback();});
+      map.on('unload',() => clearTimeout(failureTimer));
+      useLayer(streets,'streets');
       L.control.zoom({position:'topright'}).addTo(map);
       return map;
     }
@@ -1145,7 +1195,11 @@
       validateBoundary(){
         if ((value('lat') !== '' || value('lng') !== '') && !point()) {
           selectLocationMethod('pin');notify('Provide both valid latitude and longitude, or clear both fields and enter an area size.');
-          field(value('lat') === '' ? 'lat' : 'lng')?.focus();
+          const target=field(value('lat') === '' || !Number.isFinite(+value('lat')) || Math.abs(+value('lat'))>90 ? 'lat' : 'lng');
+          const coordinates=target?.closest('details');if (coordinates) coordinates.open=true;
+          // The controller restores Step 2 after validation. Focus after that
+          // change so its scroll reset cannot leave the coordinate error hidden.
+          requestAnimationFrame(() => {if (dialog.open) {target?.focus({preventScroll:true});target?.scrollIntoView({block:'center'});}});
           return false;
         }
         if (!(estimatedArea > 0) && !enteredAreaSqm() && !point()) {
@@ -1170,6 +1224,7 @@
         if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}
       },
       setProperty(property){
+        all('.pw-coordinate-details,.pw-readiness-disclosure,.pw-hazard-disclosure,.pw-details,[data-map-layers]').forEach(details => {details.open=false;});
         const historicalStatus = field('status')?.querySelector('[value="Availed"]');
         if (historicalStatus) { historicalStatus.hidden = property?.status !== 'Availed'; historicalStatus.disabled = property?.status !== 'Availed'; }
         controller?.abort();radarController?.abort();searchController?.abort();matchController?.abort();revision++;radarRevision++;matchRevision++;lastAssessment=null;clearMatchDetails();
