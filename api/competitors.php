@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/_bootstrap.php';
 require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
+require_once dirname(__DIR__) . '/app/Support/SurroundingsRadar.php';
 
 use App\Support\SurroundingsRadar;
 use App\Support\NearbyBusinesses;

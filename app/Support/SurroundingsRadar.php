@@ -108,9 +108,29 @@ final class SurroundingsRadar
         // 4. Load local verified records
         $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters);
 
-        // If Overpass failed and we have no cache and no local records, throw to show retry
+        // If Overpass failed and we have no cache and no local records, return clean empty result
         if ($osmData === null && empty($localFeatures)) {
-            throw new RuntimeException($fetchError ?: 'Unable to load nearby data. The geographic intelligence service timed out.');
+            return [
+                'type' => 'FeatureCollection',
+                'features' => [],
+                'roads' => [
+                    'status' => 'Unavailable',
+                    'geojson' => [
+                        'type' => 'FeatureCollection',
+                        'features' => [],
+                    ],
+                    'source' => 'San Fernando City Commercial Registry',
+                    'date' => gmdate('Y-m-d'),
+                ],
+                'center' => [$lat, $lng],
+                'radius' => $radiusMeters,
+                'source' => 'San Fernando City Commercial Registry',
+                'retrievalDate' => gmdate('Y-m-d'),
+                'cached' => false,
+                'stale' => false,
+                'coverage' => 'local_only',
+                'warning' => 'No recorded commercial establishments within ' . $radiusMeters . 'm.',
+            ];
         }
 
         // 5. Parse OSM elements into GeoJSON
@@ -123,21 +143,21 @@ final class SurroundingsRadar
             'type' => 'FeatureCollection',
             'features' => $allEstablishments,
             'roads' => [
-                'status' => !empty($parsed['roads']) ? 'Available' : 'Available',
+                'status' => !empty($parsed['roads']) ? 'Available' : ($osmData !== null ? 'None nearby' : 'Unavailable'),
                 'geojson' => [
                     'type' => 'FeatureCollection',
                     'features' => $parsed['roads'],
                 ],
-                'source' => 'OpenStreetMap contributors (via Overpass API)',
+                'source' => $osmData !== null ? 'OpenStreetMap contributors (via Overpass API)' : 'San Fernando City Commercial Registry',
                 'date' => gmdate('Y-m-d'),
             ],
             'center' => [$lat, $lng],
             'radius' => $radiusMeters,
-            'source' => 'OpenStreetMap & Local Verified Store Locators',
+            'source' => $osmData !== null ? 'OpenStreetMap & Local Verified Store Locators' : 'San Fernando City Commercial Registry',
             'retrievalDate' => gmdate('Y-m-d'),
             'cached' => false,
             'stale' => false,
-            'coverage' => $osmData !== null ? 'complete' : 'partial',
+            'coverage' => $osmData !== null ? 'complete' : 'local_only',
         ];
 
         // Save to cache
@@ -161,11 +181,12 @@ final class SurroundingsRadar
         );
 
         $lastError = 'Overpass mirrors unreachable';
-        foreach (self::OVERPASS_MIRRORS as $mirror) {
+        $mirrors = array_slice(self::OVERPASS_MIRRORS, 0, 2);
+        foreach ($mirrors as $mirror) {
             $ch = curl_init($mirror);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 8);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
             curl_setopt($ch, CURLOPT_USERAGENT, 'LOCUS-SF-Radar/1.0 (San Fernando La Union Urban Intelligence; contact@sfcelerate.local)');
             curl_setopt($ch, CURLOPT_POSTFIELDS, 'data=' . urlencode($query));
 
@@ -189,36 +210,75 @@ final class SurroundingsRadar
 
     private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters): array
     {
-        $file = dirname(__DIR__, 2) . '/data/competitors.json';
-        if (!is_file($file)) {
-            return [];
-        }
-
-        $raw = (string) file_get_contents($file);
-        $data = json_decode($raw, true);
-        if (!is_array($data) || !isset($data['features']) || !is_array($data['features'])) {
-            return [];
-        }
-
+        $baseDir = dirname(__DIR__, 2);
         $results = [];
-        foreach ($data['features'] as $f) {
-            if (($f['geometry']['type'] ?? '') !== 'Point') {
-                continue;
+        $seen = [];
+
+        // 1. Check data/competitors.json
+        $compFile = $baseDir . '/data/competitors.json';
+        if (is_file($compFile)) {
+            $raw = (string) @file_get_contents($compFile);
+            $data = json_decode($raw, true);
+            if (is_array($data) && isset($data['features']) && is_array($data['features'])) {
+                foreach ($data['features'] as $f) {
+                    if (($f['geometry']['type'] ?? '') !== 'Point') {
+                        continue;
+                    }
+                    $coords = $f['geometry']['coordinates'] ?? null;
+                    if (!is_array($coords) || count($coords) < 2) {
+                        continue;
+                    }
+                    $fLng = (float) $coords[0];
+                    $fLat = (float) $coords[1];
+                    $dist = self::distance($lat, $lng, $fLat, $fLng);
+                    if ($dist <= ($radiusMeters + 1.0)) {
+                        $props = $f['properties'] ?? [];
+                        $props['source'] = 'Local Verified Store Locator';
+                        $props['distanceMeters'] = round($dist, 1);
+                        $props['verified'] = true;
+                        $f['properties'] = $props;
+                        $id = $f['id'] ?? ($props['name'] ?? null);
+                        if ($id) {
+                            $seen[$id] = true;
+                        }
+                        $results[] = $f;
+                    }
+                }
             }
-            $coords = $f['geometry']['coordinates'] ?? null;
-            if (!is_array($coords) || count($coords) < 2) {
-                continue;
-            }
-            $fLng = (float) $coords[0];
-            $fLat = (float) $coords[1];
-            $dist = self::distance($lat, $lng, $fLat, $fLng);
-            if ($dist <= ($radiusMeters + 1.0)) {
-                $props = $f['properties'] ?? [];
-                $props['source'] = 'Local Verified Store Locator';
-                $props['distanceMeters'] = round($dist, 1);
-                $props['verified'] = true;
-                $f['properties'] = $props;
-                $results[] = $f;
+        }
+
+        // 2. Check data/commercial-directory.json
+        $commFile = $baseDir . '/data/commercial-directory.json';
+        if (is_file($commFile)) {
+            $raw = (string) @file_get_contents($commFile);
+            $data = json_decode($raw, true);
+            if (is_array($data) && isset($data['features']) && is_array($data['features'])) {
+                foreach ($data['features'] as $f) {
+                    if (($f['geometry']['type'] ?? '') !== 'Point') {
+                        continue;
+                    }
+                    $coords = $f['geometry']['coordinates'] ?? null;
+                    if (!is_array($coords) || count($coords) < 2) {
+                        continue;
+                    }
+                    $fLng = (float) $coords[0];
+                    $fLat = (float) $coords[1];
+                    $dist = self::distance($lat, $lng, $fLat, $fLng);
+                    if ($dist <= ($radiusMeters + 1.0)) {
+                        $props = $f['properties'] ?? [];
+                        $name = $props['name'] ?? '';
+                        $id = $f['id'] ?? $name;
+                        if (isset($seen[$id])) {
+                            continue;
+                        }
+                        $seen[$id] = true;
+                        $props['source'] = 'San Fernando City Commercial Registry';
+                        $props['distanceMeters'] = round($dist, 1);
+                        $props['verified'] = true;
+                        $f['properties'] = $props;
+                        $results[] = $f;
+                    }
+                }
             }
         }
 
