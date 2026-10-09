@@ -10,6 +10,7 @@ require_once __DIR__ . '/Core/Database.php';
 require_once __DIR__ . '/Core/SchemaManager.php';
 require_once __DIR__ . '/Core/ClupSchemaManager.php';
 require_once __DIR__ . '/Support/JsonData.php';
+require_once __DIR__ . '/Support/PropertyCatalog.php';
 require_once __DIR__ . '/Support/AutoSeeder.php';
 require_once __DIR__ . '/Support/AdminAccountSetup.php';
 require_once __DIR__ . '/Support/GoogleEarthService.php';

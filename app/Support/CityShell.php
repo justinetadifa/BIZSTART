@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/PropertyCatalog.php';
+
 function sfc_render_head(string $title, array $context, array $bodyData = []): void
 {
     $page = (string) ($bodyData['page'] ?? '');
