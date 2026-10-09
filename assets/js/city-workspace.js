@@ -1116,16 +1116,19 @@ function setMapLayer(layer) {
   if (layer === 'satellite') {
     tileLayer = L.layerGroup([
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxNativeZoom: 18,
         maxZoom: 19,
         attribution: 'Tiles © Esri, Maxar'
       }),
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
+        maxNativeZoom: 16,
         maxZoom: 19,
         opacity: 0.85
       })
     ]);
   } else if (layer === 'streets') {
     tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxNativeZoom: 19,
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     });

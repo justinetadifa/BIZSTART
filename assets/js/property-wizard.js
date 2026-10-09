@@ -193,16 +193,19 @@
     function tileMap(canvas) {
       const map = L.map(canvas, {scrollWheelZoom:false,zoomControl:false}).setView(point() || [16.615,120.316],15);
       const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxNativeZoom: 18,
         maxZoom: 19,
         attribution: 'Esri Satellite &copy; Maxar, Earthstar Geographics',
         pmIgnore: true
       });
       const esriLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxNativeZoom: 17,
         maxZoom: 19,
         opacity: 0.85,
         pmIgnore: true
       });
       const osmStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxNativeZoom: 19,
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors',
         pmIgnore: true
