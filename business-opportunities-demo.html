@@ -7,7 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="assets/css/business-opportunities.css">
+  <script src="assets/vendor/leaflet/leaflet.js"></script>
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -197,7 +199,7 @@
 
     const mount = document.getElementById('opportunitiesMount');
     mount.innerHTML = businessOpportunitiesMarkup(sampleProperty);
-    initBusinessOpportunities(mount);
+    initBusinessOpportunities(mount, sampleProperty);
 
     // Toggle interaction for demo
     const btnBasic = document.getElementById('btnBasic');

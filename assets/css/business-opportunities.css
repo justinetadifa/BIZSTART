@@ -190,9 +190,154 @@
   font-weight: 600;
   color: #334155;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 5;
 }
 
-/* 3 Amenity Pill Chips below map */
+/* Real Interactive Leaflet Canvas Overlay */
+.opportunities-leaflet-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 14px;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.opportunities-leaflet-canvas .leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  margin-bottom: 38px !important;
+  margin-right: 12px !important;
+}
+
+.opportunities-leaflet-canvas .leaflet-control-zoom a {
+  background: #FFFFFF !important;
+  color: #1E293B !important;
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.opportunities-leaflet-canvas .leaflet-control-zoom a:hover {
+  background: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+/* Custom Marker Pins */
+.locus-opp-center-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.opp-center-teardrop {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.opp-center-teardrop:hover {
+  transform: scale(1.1);
+}
+
+.locus-opp-radius-tag {
+  background: transparent !important;
+  border: none !important;
+}
+
+.opp-radius-tag-badge {
+  background: #FFFFFF;
+  border: 1px solid #991B1B;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1E293B;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+  text-align: center;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.locus-opp-poi-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.opp-poi-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(4px);
+  padding: 3px 9px 3px 5px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0F172A;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.opp-poi-pin:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+.opp-poi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--badge-color, #DC2626);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.opp-poi-name-pill {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.opp-leaflet-popup {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #1E293B;
+  line-height: 1.4;
+  padding: 2px;
+}
+
+.opp-leaflet-popup strong {
+  display: block;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 2px;
+}
+
+.opp-leaflet-popup span {
+  color: #64748B;
+  font-size: 11px;
+}
+
+/* Amenity Pill Chips below map */
 .opportunities-amenities-row {
   display: flex;
   align-items: center;
@@ -211,6 +356,21 @@
   align-items: center;
   gap: 7px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.opportunities-amenity-chip:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.opportunities-amenity-chip:active {
+  transform: translateY(0);
 }
 
 .amenity-icon.text-red {
@@ -284,6 +444,15 @@
   align-items: center;
   gap: 16px;
   justify-content: space-between;
+  cursor: pointer;
+  border-radius: 18px;
+  padding: 4px;
+  transition: background-color 0.12s ease;
+}
+
+.opportunity-blue-main-row:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
 }
 
 /* White square icon box with burgundy outline SVG */
@@ -393,6 +562,19 @@
   outline-offset: 2px;
 }
 
+.opportunity-circle-action-btn svg {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.opportunity-blue-card.is-drawer-open {
+  background: #CBE0ED;
+  box-shadow: 0 6px 18px -2px rgba(18, 52, 86, 0.14);
+}
+
+.opportunity-blue-card.is-drawer-open .opportunity-circle-action-btn svg {
+  transform: rotate(90deg);
+}
+
 /* Collapsible Evidence Drawer */
 .opportunity-evidence-drawer {
   background: #FFFFFF;
@@ -408,12 +590,60 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.opportunity-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F1F5F9;
+  flex-wrap: wrap;
+}
+
+.opportunity-drawer-heading-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.opportunity-rank-tag {
+  background: #0F172A;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2.5px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.opportunity-sector-badge {
+  background: #E2E8F0;
+  color: #334155;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+}
+
 .opportunity-drawer-heading {
   font-family: 'Poppins', sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: #0F172A;
-  margin: 0 0 12px;
+  margin: 0;
+}
+
+.opportunity-drawer-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: #059669;
+  background: #ECFDF5;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+  border: 1px solid #A7F3D0;
 }
 
 .opportunity-evidence-group {
@@ -421,12 +651,22 @@
 }
 
 .opportunity-evidence-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   font-size: 11.5px;
   font-weight: 600;
-  color: #64748B;
+  color: #475569;
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.opportunity-evidence-label small {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #94A3B8;
+  text-transform: none;
 }
 
 .opportunity-places-list {
@@ -443,10 +683,22 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 6px 10px;
+  padding: 7px 12px;
   background: #F8FAFC;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 12px;
+  border: 1px solid #F1F5F9;
+}
+
+.opportunity-place-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opportunity-place-icon {
+  color: #3B82F6;
+  font-size: 8px;
 }
 
 .opportunity-place-name {
@@ -454,7 +706,23 @@
   color: #1E293B;
 }
 
+.opportunity-place-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .opportunity-place-badge {
+  color: #0F172A;
+  font-weight: 600;
+  font-size: 11px;
+  background: #FFFFFF;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+}
+
+.opportunity-place-cat {
   color: #64748B;
   font-size: 11px;
 }
@@ -472,6 +740,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  border: 1px solid #F1F5F9;
 }
 
 .opportunity-spec-label {
@@ -488,6 +757,41 @@
 .opportunity-spec-state {
   font-size: 10.5px;
   color: #059669;
+}
+
+.opportunity-comp-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.opportunity-comp-box {
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  border: 1px solid #F1F5F9;
+}
+
+.opportunity-comp-box strong {
+  display: block;
+  font-size: 11px;
+  color: #475569;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.opportunity-comp-box p {
+  margin: 0 0 3px;
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.opportunity-comp-box small {
+  display: block;
+  color: #64748B;
+  font-size: 10.5px;
 }
 
 .opportunity-provenance-footer {

@@ -1740,7 +1740,7 @@ async function renderDetails() {
     if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
   }
   setupInvestmentEvaluation(property, config.policy || {});
-  initBusinessOpportunities(root);
+  initBusinessOpportunities(root, property);
 
   // Add nearby business markers to map if map is initialized
   if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {
