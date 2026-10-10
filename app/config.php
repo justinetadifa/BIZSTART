@@ -60,7 +60,7 @@ $defaults = [
             'path' => dirname(__DIR__) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'external',
         ],
         'maps' => [
-            'tile_url' => 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+            'tile_url' => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             'tile_attribution' => '&copy; CARTO &copy; OpenStreetMap contributors',
             'locationiq_key' => getenv('LOCATIONIQ_KEY') ?: '',
         ],

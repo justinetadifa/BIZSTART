@@ -93,6 +93,100 @@ async function runTests() {
   assert(markup.includes('data-cat-filter="all"'), 'Other business types pill present');
   assert(markup.includes('straight-line screening radius'), 'Screening radius descriptor verified');
 
+  // 6. Test Leaflet Interactive Initialization with Mock L
+  const createdLayers = [];
+  const createdMarkers = [];
+  const mockMap = {
+    _leaflet_id: null,
+    removeLayer: (layer) => {},
+    flyTo: (center, zoom) => {},
+    fitBounds: (bounds) => {},
+    invalidateSize: () => {}
+  };
+
+  const mockL = {
+    map: (el, opts) => {
+      mockMap._leaflet_id = 1;
+      return mockMap;
+    },
+    control: {
+      zoom: () => ({ addTo: () => {} })
+    },
+    tileLayer: (url, opts) => {
+      const layer = {
+        url,
+        opts,
+        _listeners: {},
+        addTo: () => layer,
+        on: (ev, fn) => { layer._listeners[ev] = fn; },
+        setUrl: (newUrl) => { layer.url = newUrl; }
+      };
+      createdLayers.push(layer);
+      return layer;
+    },
+    circle: (latlng, opts) => {
+      return {
+        latlng,
+        opts,
+        addTo: () => {},
+        setRadius: () => {},
+        getBounds: () => [[0, 0], [1, 1]]
+      };
+    },
+    divIcon: (opts) => opts,
+    marker: (latlng, opts) => {
+      const m = {
+        latlng,
+        opts,
+        _tooltip: null,
+        _popup: null,
+        addTo: () => m,
+        bindTooltip: (content, tipOpts) => { m._tooltip = { content, tipOpts }; return m; },
+        bindPopup: (content, popOpts) => { m._popup = { content, popOpts }; return m; },
+        openPopup: () => {}
+      };
+      createdMarkers.push(m);
+      return m;
+    }
+  };
+
+  // Create mock DOM for initBusinessOpportunities
+  const { JSDOM } = await import('jsdom').catch(() => ({ JSDOM: null }));
+  if (JSDOM) {
+    const dom = new JSDOM(`
+      <div id="testRoot">
+        ${markup}
+      </div>
+    `);
+    global.window = dom.window;
+    global.document = dom.window.document;
+    global.window.L = mockL;
+
+    const { initBusinessOpportunities } = bizOppModule;
+    initBusinessOpportunities(dom.window.document.getElementById('testRoot'), sampleProperty);
+
+    // Verify Google Maps tile layer was added
+    const streetTileLayer = createdLayers.find(l => l.url.includes('google.com/vt/lyrs=m'));
+    assert(streetTileLayer, 'Street basemap should use Google Maps street tile URL');
+    assert.deepEqual(streetTileLayer.opts.subdomains, ['mt0', 'mt1', 'mt2', 'mt3'], 'Google subdomains mt0-mt3 configured');
+
+    // Verify Google Red center pin was created
+    const centerMarker = createdMarkers.find(m => m.opts?.icon?.className?.includes('opp-gmap-center-divicon'));
+    assert(centerMarker, 'Center pin should use opp-gmap-center-divicon');
+    assert(centerMarker.opts.icon.html.includes('#EA4335'), 'Center pin must include Google Maps iconic red (#EA4335)');
+    assert(centerMarker._popup, 'Center marker has popup attached');
+
+    // Verify anchor POI markers are compact circular pins with zero overlapping pills
+    const poiMarkers = createdMarkers.filter(m => m.opts?.icon?.className?.includes('opp-gmap-poi-divicon'));
+    assert(poiMarkers.length >= 3, 'Should create at least 3 POI markers for nearby establishments');
+    poiMarkers.forEach(pm => {
+      assert.deepEqual(pm.opts.icon.iconSize, [28, 34], 'POI markers must be compact [28, 34] pins (no wide text pills)');
+      assert(pm.opts.icon.html.includes('opp-gmap-poi-circle'), 'POI pin has circular badge');
+      assert(pm._tooltip, 'POI marker must have hover tooltip bound');
+      assert(pm._popup, 'POI marker must have click popup card bound');
+    });
+  }
+
   console.log('✅ ALL BUSINESS OPPORTUNITIES JS TESTS PASSED SUCCESSFULLY (100% compliance).');
 }
 

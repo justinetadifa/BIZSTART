@@ -193,29 +193,28 @@
   z-index: 5;
 }
 
-/* Map Interactive Controls (Radius Selector, Recenter, Layer Switcher) */
+/* Map Interactive Controls (Radius Selector, Recenter, Layer Switcher - Google Maps Aesthetic) */
 .opportunities-map-radius-selector {
   position: absolute;
   top: 10px;
   right: 10px;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
+  background: #FFFFFF;
   border-radius: 9999px;
-  padding: 2.5px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(226, 232, 240, 0.95);
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   z-index: 5;
 }
 
 .opp-radius-btn {
   background: transparent;
   border: none;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #475569;
+  color: #4B5563;
   padding: 3px 9px;
   border-radius: 9999px;
   cursor: pointer;
@@ -223,13 +222,14 @@
 }
 
 .opp-radius-btn:hover {
-  color: #0F172A;
+  color: #111827;
+  background: #F3F4F6;
 }
 
 .opp-radius-btn.is-active {
-  background: #0F172A;
+  background: #1A73E8;
   color: #FFFFFF;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(26, 115, 232, 0.35);
 }
 
 .opportunities-map-recenter-btn {
@@ -238,23 +238,22 @@
   left: 10px;
   width: 32px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1E293B;
+  color: #1A73E8;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   z-index: 5;
   transition: all 0.15s ease;
 }
 
 .opportunities-map-recenter-btn:hover {
-  background: #FFFFFF;
-  color: #000000;
+  background: #F8FAFC;
+  color: #1557B0;
   transform: scale(1.08);
 }
 
@@ -262,33 +261,34 @@
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
-  padding: 4px 10px;
+  padding: 4px 11px;
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #1E293B;
+  color: #374151;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   z-index: 5;
   transition: all 0.15s ease;
 }
 
 .opportunities-map-layer-btn:hover {
-  background: #FFFFFF;
+  background: #F9FAFB;
+  color: #111827;
   transform: translateY(-1px);
 }
 
 .opportunities-map-layer-btn.is-active {
-  background: #0F172A;
+  background: #1A73E8;
   color: #FFFFFF;
-  border-color: #0F172A;
+  border-color: #1A73E8;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
 }
 
 /* Real Interactive Leaflet Canvas Overlay */
@@ -301,138 +301,286 @@
   border-radius: 14px;
   z-index: 2;
   overflow: hidden;
+  background: #F1EFE8;
 }
 
 .opportunities-leaflet-canvas .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
   border-radius: 8px !important;
   overflow: hidden;
-  margin-bottom: 38px !important;
+  margin-bottom: 42px !important;
   margin-right: 12px !important;
 }
 
 .opportunities-leaflet-canvas .leaflet-control-zoom a {
   background: #FFFFFF !important;
-  color: #1E293B !important;
+  color: #3C4043 !important;
   width: 28px !important;
   height: 28px !important;
   line-height: 28px !important;
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 700 !important;
-  border-bottom: 1px solid #F1F5F9 !important;
+  border-bottom: 1px solid #E5E7EB !important;
+  transition: background 0.15s ease;
 }
 
 .opportunities-leaflet-canvas .leaflet-control-zoom a:hover {
-  background: #F8FAFC !important;
-  color: #0F172A !important;
+  background: #F3F4F6 !important;
+  color: #111827 !important;
 }
 
-/* Custom Marker Pins */
+/* ==========================================================================
+   Google Maps Center Pin (Iconic Red Teardrop with Pulsing Beacon Ring)
+   ========================================================================== */
+.opp-gmap-center-divicon,
 .locus-opp-center-marker {
   background: transparent !important;
   border: none !important;
 }
 
-.opp-center-teardrop {
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+.opp-gmap-center-marker {
+  position: relative;
+  width: 28px;
+  height: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   cursor: pointer;
-  transition: transform 0.15s ease;
 }
 
-.opp-center-teardrop:hover {
-  transform: scale(1.1);
-}
-
-.locus-opp-radius-tag {
-  background: transparent !important;
-  border: none !important;
-}
-
-.opp-radius-tag-badge {
-  background: #FFFFFF;
-  border: 1px solid #991B1B;
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #1E293B;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-  white-space: nowrap;
-  text-align: center;
-  line-height: 18px;
+.opp-gmap-center-pulse {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  width: 32px;
+  height: 16px;
+  margin-left: -16px;
+  background: rgba(234, 67, 53, 0.38);
+  border-radius: 50%;
+  transform-origin: center;
+  animation: gmapCenterPulse 2.4s ease-out infinite;
   pointer-events: none;
 }
 
+@keyframes gmapCenterPulse {
+  0% { transform: scale(0.6); opacity: 0.95; }
+  65% { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+.opp-gmap-center-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.opp-gmap-center-svg {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.38));
+  display: block;
+}
+
+.opp-gmap-center-marker:hover .opp-gmap-center-pin {
+  transform: translateY(-4px) scale(1.08);
+}
+
+.opp-gmap-center-ground-shadow {
+  width: 14px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  margin: -4px auto 0;
+  filter: blur(1.5px);
+}
+
+/* ==========================================================================
+   Google Maps POI Pins (Compact 28px Circular Badges with Zero Overlap)
+   ========================================================================== */
+.opp-gmap-poi-divicon,
 .locus-opp-poi-marker {
   background: transparent !important;
   border: none !important;
 }
 
-.opp-poi-pin {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(4px);
-  padding: 3px 9px 3px 5px;
-  border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  color: #0F172A;
+.opp-gmap-poi-pin {
+  position: relative;
+  width: 28px;
+  height: 34px;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  white-space: nowrap;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.opp-poi-pin:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+.opp-gmap-poi-pin:hover {
+  transform: translateY(-4px) scale(1.15);
+  z-index: 9999 !important;
 }
 
-.opp-poi-icon {
-  display: inline-flex;
+.opp-gmap-poi-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--poi-color, #EA4335);
+  color: #FFFFFF;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--badge-color, #DC2626);
-  color: #FFFFFF;
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
+  border: 2px solid #FFFFFF;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s ease;
 }
 
-.opp-poi-name-pill {
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.opp-gmap-poi-pin:hover .opp-gmap-poi-circle {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.opp-gmap-poi-tip {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--poi-color, #EA4335);
+}
+
+/* ==========================================================================
+   Google Maps Geofence Radius Pill
+   ========================================================================== */
+.opp-gmap-radius-tag-divicon,
+.locus-opp-radius-tag {
+  background: transparent !important;
+  border: none !important;
+}
+
+.opp-gmap-radius-pill,
+.opp-radius-tag-badge {
+  background: #FFFFFF;
+  border: 1.5px solid #1A73E8;
+  border-radius: 9999px;
+  padding: 2.5px 10px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1A73E8;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.22);
   white-space: nowrap;
+  text-align: center;
+  pointer-events: none;
+  line-height: 18px;
 }
 
-.opp-leaflet-popup {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: #1E293B;
-  line-height: 1.4;
-  padding: 2px;
+/* ==========================================================================
+   Google Maps Tooltip Box (Dark Floating Pill on Hover)
+   ========================================================================== */
+.opp-gmap-tooltip-box.leaflet-tooltip {
+  background: #1F2937 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 7px !important;
+  padding: 6px 11px !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32) !important;
 }
 
-.opp-leaflet-popup strong {
+.opp-gmap-tooltip-box.leaflet-tooltip-top:before {
+  border-top-color: #1F2937 !important;
+}
+
+.opp-gmap-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opp-gmap-tooltip-content strong {
   display: block;
   font-weight: 700;
-  color: #0F172A;
+  font-size: 12px;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+.opp-gmap-tooltip-content span {
+  color: #9CA3AF;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Google Maps Place Card Popup (Elevated Floating Card on Click)
+   ========================================================================== */
+.opp-gmap-popup-wrapper.leaflet-popup .leaflet-popup-content-wrapper {
+  border-radius: 14px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  font-family: 'Inter', -apple-system, sans-serif !important;
+}
+
+.opp-gmap-popup-wrapper.leaflet-popup .leaflet-popup-content {
+  margin: 0 !important;
+  padding: 12px 15px !important;
+  line-height: 1.4 !important;
+}
+
+.opp-gmap-popup-wrapper.leaflet-popup .leaflet-popup-tip {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.opp-gmap-popup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opp-gmap-popup-eyebrow {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #EA4335;
+}
+
+.opp-gmap-popup-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2.5px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   margin-bottom: 2px;
 }
 
-.opp-leaflet-popup span {
-  color: #64748B;
+.opp-gmap-popup-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.opp-gmap-popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 11px;
+  font-weight: 600;
+  color: #4B5563;
+  margin-top: 2px;
+}
+
+.opp-gmap-popup-sub {
+  font-size: 10.5px;
+  color: #6B7280;
+  margin-top: 2px;
 }
 
 /* Amenity Pill Chips below map */

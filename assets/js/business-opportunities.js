@@ -1481,36 +1481,41 @@ export function businessOpportunitiesMarkup(property, options = {}) {
             <!-- Fallback Vector Map Canvas (Displayed for SSR & headless test runners) -->
             <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback">
               <svg class="opportunities-map-svg" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                <rect width="100%" height="100%" fill="#E3EBEF"/>
-                <path d="M 0,210 C 50,195 80,245 130,285 L 130,300 L 0,300 Z" fill="#C5E2F7"/>
-                <path d="M 0,210 C 50,195 80,245 130,285" stroke="#90CAF9" stroke-width="8" fill="none" opacity="0.6"/>
+                <!-- Google Maps Land Base -->
+                <rect width="100%" height="100%" fill="#F1EFE8"/>
+                <!-- Water Bay -->
+                <path d="M 0,210 C 50,195 80,245 130,285 L 130,300 L 0,300 Z" fill="#C4E0E5"/>
+                <path d="M 0,210 C 50,195 80,245 130,285" stroke="#A7D5DE" stroke-width="6" fill="none" opacity="0.7"/>
                 
-                <rect x="25" y="30" width="65" height="48" rx="4" fill="#D7E3EA"/>
-                <rect x="105" y="25" width="80" height="58" rx="4" fill="#D7E3EA"/>
-                <rect x="220" y="35" width="60" height="38" rx="4" fill="#D7E3EA"/>
-                <rect x="310" y="28" width="75" height="48" rx="4" fill="#D7E3EA"/>
-                <rect x="400" y="42" width="50" height="52" rx="4" fill="#D7E3EA"/>
+                <!-- Google Maps Urban Parcels & Vegetation -->
+                <rect x="25" y="30" width="65" height="48" rx="4" fill="#E8E6DF"/>
+                <rect x="105" y="25" width="80" height="58" rx="4" fill="#E8E6DF"/>
+                <rect x="220" y="35" width="60" height="38" rx="4" fill="#D2E3C6"/>
+                <rect x="310" y="28" width="75" height="48" rx="4" fill="#E8E6DF"/>
+                <rect x="400" y="42" width="50" height="52" rx="4" fill="#E8E6DF"/>
                 
-                <rect x="30" y="98" width="58" height="45" rx="4" fill="#D7E3EA"/>
-                <rect x="110" y="102" width="55" height="52" rx="4" fill="#D7E3EA"/>
-                <rect x="290" y="95" width="70" height="55" rx="4" fill="#D7E3EA"/>
-                <rect x="380" y="108" width="70" height="60" rx="4" fill="#D7E3EA"/>
+                <rect x="30" y="98" width="58" height="45" rx="4" fill="#E8E6DF"/>
+                <rect x="110" y="102" width="55" height="52" rx="4" fill="#E8E6DF"/>
+                <rect x="290" y="95" width="70" height="55" rx="4" fill="#D2E3C6"/>
+                <rect x="380" y="108" width="70" height="60" rx="4" fill="#E8E6DF"/>
                 
-                <rect x="35" y="165" width="50" height="40" rx="4" fill="#D7E3EA"/>
-                <rect x="300" y="170" width="55" height="45" rx="4" fill="#D7E3EA"/>
-                <rect x="375" y="188" width="70" height="52" rx="4" fill="#D7E3EA"/>
-                <rect x="200" y="240" width="90" height="45" rx="4" fill="#D7E3EA"/>
-                <rect x="310" y="248" width="65" height="40" rx="4" fill="#D7E3EA"/>
+                <rect x="35" y="165" width="50" height="40" rx="4" fill="#E8E6DF"/>
+                <rect x="300" y="170" width="55" height="45" rx="4" fill="#E8E6DF"/>
+                <rect x="375" y="188" width="70" height="52" rx="4" fill="#D2E3C6"/>
+                <rect x="200" y="240" width="90" height="45" rx="4" fill="#E8E6DF"/>
+                <rect x="310" y="248" width="65" height="40" rx="4" fill="#E8E6DF"/>
 
-                <path d="M 370,175 Q 425,155 450,205 L 450,275 Q 395,265 370,215 Z" fill="#D4E7D6"/>
+                <path d="M 370,175 Q 425,155 450,205 L 450,275 Q 395,265 370,215 Z" fill="#D2E3C6"/>
 
+                <!-- Google Maps Arterials & Streets -->
                 <path d="M 0,88 L 460,88 M 0,158 L 460,158 M 0,228 L 460,228" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
                 <path d="M 95,0 L 95,300 M 180,0 L 180,300 M 275,0 L 275,300 M 365,0 L 365,300" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
                 <path d="M 20,0 L 250,230" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
                 <path d="M 180,40 L 440,300" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
 
-                <circle cx="215" cy="145" r="90" fill="none" stroke="#991B1B" stroke-width="2" stroke-dasharray="5 4" opacity="0.85"/>
-                <line x1="285" y1="100" x2="310" y2="92" stroke="#991B1B" stroke-width="1.5"/>
+                <!-- Google Maps Geofence Radius Circle -->
+                <circle cx="215" cy="145" r="90" fill="#1A73E8" fill-opacity="0.08" stroke="#1A73E8" stroke-width="2" stroke-dasharray="6 4"/>
+                <line x1="285" y1="100" x2="310" y2="92" stroke="#1A73E8" stroke-width="1.5"/>
               </svg>
 
               <!-- Callout bubble: 500 m -->
@@ -1518,11 +1523,11 @@ export function businessOpportunitiesMarkup(property, options = {}) {
                 <span>500 m</span>
               </div>
 
-              <!-- Subject property center pin (Maroon) -->
+              <!-- Subject property center pin (Google Maps Red Pin) -->
               <div class="opportunities-map-center-pin" title="Subject Property Location">
-                <svg viewBox="0 0 24 32" width="22" height="30" fill="none" aria-hidden="true">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 20 12 20s12-11 12-20c0-6.63-5.37-12-12-12z" fill="#7F1D1D"/>
-                  <circle cx="12" cy="12" r="4.5" fill="#FFFFFF"/>
+                <svg viewBox="0 0 27 41" width="24" height="36" fill="none" aria-hidden="true">
+                  <path fill="#EA4335" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 10.12 13.5 27.5 13.5 27.5S27 23.62 27 13.5C27 6.04 20.96 0 13.5 0z"/>
+                  <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5"/>
                 </svg>
               </div>
 
@@ -1806,46 +1811,66 @@ export function initBusinessOpportunities(root = document, property = null) {
         // Subtle zoom control at bottom-right
         L.control.zoom({ position: 'bottomright' }).addTo(oppMap);
 
-        // Apple Maps-style light street tiles
-        const tileUrl = window.SFC_APP_CONFIG?.mapTileUrl || 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        streetLayer = L.tileLayer(tileUrl, { maxZoom: 19, subdomains: 'abcd' }).addTo(oppMap);
+        // Google Maps Street Basemap with OSM fallback
+        const googleStreetUrl = 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+        const osmFallbackUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
-        // High-resolution Satellite Imagery layer (Esri World Imagery)
-        satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          maxZoom: 19,
-          attribution: 'Esri, Maxar, Earthstar Geographics'
-        });
-
-        // Screening radius circle
-        radiusCircle = L.circle([lat, lng], {
-          radius: currentRadius,
-          color: '#991B1B',
-          weight: 2.2,
-          dashArray: '5, 5',
-          fillColor: '#991B1B',
-          fillOpacity: 0.05
+        streetLayer = L.tileLayer(googleStreetUrl, {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: '&copy; Google Maps'
         }).addTo(oppMap);
 
-        // Subject Property Pin (Deep Maroon teardrop)
-        const centerIcon = L.divIcon({
-          className: 'locus-opp-center-marker',
-          html: `<div class="opp-pin-bubble" title="${esc(propName)}">
-            <svg viewBox="0 0 24 32" width="24" height="32" fill="none">
-              <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 20 12 20s12-11 12-20c0-6.63-5.37-12-12-12z" fill="#7F1D1D"/>
-              <circle cx="12" cy="12" r="4.5" fill="#FFFFFF"/>
-            </svg>
-          </div>`,
-          iconSize: [24, 32],
-          iconAnchor: [12, 32]
+        streetLayer.on('tileerror', function() {
+          if (!streetLayer._fallbackActive) {
+            streetLayer._fallbackActive = true;
+            streetLayer.setUrl(osmFallbackUrl);
+          }
         });
 
-        const centerMarker = L.marker([lat, lng], { icon: centerIcon }).addTo(oppMap);
+        // Google Maps Hybrid Satellite Layer (High-Res Satellite + Roads + Place Labels)
+        satLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: '&copy; Google Maps'
+        });
+
+        // Google Maps Proximity Geofence Radius Circle (Google Blue)
+        radiusCircle = L.circle([lat, lng], {
+          radius: currentRadius,
+          color: '#1A73E8',
+          weight: 2,
+          dashArray: '6, 5',
+          fillColor: '#1A73E8',
+          fillOpacity: 0.08
+        }).addTo(oppMap);
+
+        // Subject Property Pin (Google Maps Iconic Red Teardrop with Radar Beacon Ring)
+        const centerIcon = L.divIcon({
+          className: 'opp-gmap-center-divicon locus-opp-center-marker',
+          html: `<div class="opp-gmap-center-marker opp-pin-bubble" title="${esc(propName)}">
+            <div class="opp-gmap-center-pulse"></div>
+            <div class="opp-gmap-center-pin">
+              <svg viewBox="0 0 27 41" width="27" height="41" class="opp-gmap-center-svg" aria-hidden="true">
+                <path fill="#EA4335" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 10.12 13.5 27.5 13.5 27.5S27 23.62 27 13.5C27 6.04 20.96 0 13.5 0z"/>
+                <path fill="#C5221F" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 2.45.65 4.74 1.78 6.72L13.5 41V0z" opacity="0.2"/>
+                <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5"/>
+              </svg>
+              <div class="opp-gmap-center-ground-shadow"></div>
+            </div>
+          </div>`,
+          iconSize: [28, 42],
+          iconAnchor: [14, 41]
+        });
+
+        const centerMarker = L.marker([lat, lng], { icon: centerIcon, zIndexOffset: 1000 }).addTo(oppMap);
         centerMarker.bindPopup(`
-          <div class="opp-leaflet-popup">
-            <strong>${esc(propName)}</strong>
-            <span>Screening Origin &middot; Subject Property</span>
+          <div class="opp-gmap-popup-card opp-leaflet-popup">
+            <div class="opp-gmap-popup-eyebrow">SCREENING ORIGIN</div>
+            <strong class="opp-gmap-popup-title">${esc(propName)}</strong>
+            <span class="opp-gmap-popup-meta">Subject Property &middot; Geofence Origin (0 m)</span>
           </div>
-        `);
+        `, { className: 'opp-gmap-popup-wrapper' });
 
         // Helper to update radius callout badge on circle perimeter
         function updateRadiusTag(r) {
@@ -1854,58 +1879,98 @@ export function initBusinessOpportunities(root = document, property = null) {
           const calloutLng = lng + (r / (111320 * Math.cos(lat * Math.PI / 180))) * 0.72;
           const rText = r >= 1000 ? (r / 1000) + ' km' : Math.round(r) + ' m';
           const calloutIcon = L.divIcon({
-            className: 'locus-opp-radius-tag',
-            html: `<div class="opp-radius-tag-badge">${rText}</div>`,
-            iconSize: [52, 24],
-            iconAnchor: [26, 12]
+            className: 'opp-gmap-radius-tag-divicon locus-opp-radius-tag',
+            html: `<div class="opp-gmap-radius-pill opp-radius-tag-badge">${rText} radius</div>`,
+            iconSize: [88, 24],
+            iconAnchor: [44, 12]
           });
           calloutMarker = L.marker([calloutLat, calloutLng], { icon: calloutIcon, interactive: false }).addTo(oppMap);
         }
         updateRadiusTag(currentRadius);
 
-        // Add real anchor markers for each nearby place
+        // Add Google Maps-style compact circular POI markers for each nearby place
         const anchorMarkers = [];
         anchors.forEach(a => {
           const aLat = parseFloat(a.lat);
           const aLng = parseFloat(a.lng);
           if (!isFinite(aLat) || !isFinite(aLng) || (aLat === 0 && aLng === 0)) return;
 
-          let badgeColor = '#DC2626';
-          let badgeIcon = '+';
+          let badgeColor = '#EA4335';
+          let catKey = 'default';
+          let svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
+
           const cat = (a.categoryKey || a.categoryGroup || a.category || '').toLowerCase();
           if (cat.includes('school') || cat.includes('college') || cat.includes('educ')) {
-            badgeColor = '#2563EB';
-            badgeIcon = '🎓';
+            badgeColor = '#1A73E8'; // Google Blue
+            catKey = 'education';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
           } else if (cat.includes('townhall') || cat.includes('gov') || cat.includes('civic') || cat.includes('hall')) {
-            badgeColor = '#11224D';
-            badgeIcon = '🏛️';
-          } else if (cat.includes('food') || cat.includes('eat') || cat.includes('rest') || cat.includes('cafe')) {
-            badgeColor = '#EA580C';
-            badgeIcon = '🍽️';
-          } else if (cat.includes('store') || cat.includes('retail') || cat.includes('shop')) {
-            badgeColor = '#059669';
-            badgeIcon = '🏪';
+            badgeColor = '#1E3A8A'; // Deep Civic Navy
+            catKey = 'civic';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg>';
+          } else if (cat.includes('food') || cat.includes('eat') || cat.includes('rest') || cat.includes('cafe') || cat.includes('baker')) {
+            badgeColor = '#EA580C'; // Food Orange
+            catKey = 'dining';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11"/></svg>';
+          } else if (cat.includes('store') || cat.includes('retail') || cat.includes('shop') || cat.includes('market') || cat.includes('mart')) {
+            badgeColor = '#059669'; // Emerald Retail Green
+            catKey = 'retail';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12z"/></svg>';
+          } else if (cat.includes('temple') || cat.includes('church') || cat.includes('worship')) {
+            badgeColor = '#7C3AED'; // Spiritual Violet
+            catKey = 'worship';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2v4h4v3h-4v13H9V9H5V6h4V2h3z"/></svg>';
+          } else if (cat.includes('hosp') || cat.includes('clinic') || cat.includes('health') || cat.includes('med')) {
+            badgeColor = '#DC2626'; // Medical Red
+            catKey = 'healthcare';
+            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg>';
           }
 
+          // Compact Google Maps circular badge with downward pointer tip (Zero Overlap)
           const aIcon = L.divIcon({
-            className: 'locus-opp-poi-marker',
-            html: `<div class="opp-poi-pin" style="--badge-color: ${badgeColor};" title="${esc(a.name)}">
-              <span class="opp-poi-icon">${badgeIcon}</span>
-              <span class="opp-poi-name-pill">${esc(a.name)}</span>
+            className: 'opp-gmap-poi-divicon locus-opp-poi-marker',
+            html: `<div class="opp-gmap-poi-pin opp-poi-pin" style="--poi-color: ${badgeColor};" title="${esc(a.name)}" data-cat="${catKey}">
+              <div class="opp-gmap-poi-circle">
+                ${svgIcon}
+              </div>
+              <div class="opp-gmap-poi-tip"></div>
             </div>`,
-            iconSize: [120, 28],
-            iconAnchor: [14, 14]
+            iconSize: [28, 34],
+            iconAnchor: [14, 34]
           });
 
           const m = L.marker([aLat, aLng], { icon: aIcon }).addTo(oppMap);
           const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
           const walkMin = Math.max(1, Math.round((distM || 180) / 80));
-          m.bindPopup(`
-            <div class="opp-leaflet-popup">
+
+          // Google Maps-style Hover Tooltip
+          m.bindTooltip(`
+            <div class="opp-gmap-tooltip-content">
               <strong>${esc(a.name)}</strong>
-              <span>${esc(a.category || 'Activity Center')} &middot; ${esc(a.distanceFormatted || (distM + ' m'))} (~${walkMin} min walk)</span>
+              <span>${esc(a.category || 'Activity Anchor')} &bull; ${esc(a.distanceFormatted || (distM + ' m'))} (~${walkMin} min walk)</span>
             </div>
-          `);
+          `, {
+            direction: 'top',
+            offset: [0, -32],
+            className: 'opp-gmap-tooltip-box',
+            opacity: 1
+          });
+
+          // Google Maps-style Rich Click Popup
+          m.bindPopup(`
+            <div class="opp-gmap-popup-card opp-leaflet-popup">
+              <div class="opp-gmap-popup-badge" style="background: ${badgeColor}18; color: ${badgeColor}; border: 1px solid ${badgeColor}35;">
+                ${esc(a.category || 'Activity Anchor')}
+              </div>
+              <strong class="opp-gmap-popup-title">${esc(a.name)}</strong>
+              <div class="opp-gmap-popup-meta">
+                <span>📍 ${esc(a.distanceFormatted || (distM + ' m'))}</span>
+                <span>🚶 ~${walkMin} min walk</span>
+              </div>
+              <span class="opp-gmap-popup-sub">Verified neighborhood foot-traffic generator</span>
+            </div>
+          `, { className: 'opp-gmap-popup-wrapper' });
+
           anchorMarkers.push({ data: a, marker: m });
         });
 
