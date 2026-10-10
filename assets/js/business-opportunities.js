@@ -1103,6 +1103,123 @@ function getOpportunityIconSvg(id) {
   </svg>`;
 }
 
+/**
+ * Return tailored icon, colors, and sector info for a nearby establishment/anchor.
+ */
+export function getAnchorIconInfo(a) {
+  const name = ((a && a.name) || '').toLowerCase();
+  const cat = ((a && (a.categoryKey || a.categoryGroup || a.category)) || '').toLowerCase();
+  const text = `${name} ${cat}`;
+
+  // 1. Bicycle / Motorcycle / Mobility / Surplus (e.g. Lucky M2, Delan's Bicycle Store)
+  if (text.includes('bicycle') || text.includes('bike') || text.includes('cycle') || text.includes('motor') || text.includes('surplus') || text.includes('m2')) {
+    return {
+      catKey: 'bicycle',
+      badgeColor: '#0D9488', // Teal
+      textClass: 'text-teal',
+      sector: 'everyday_services',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 12l3-5 3.5 5.5M12 7h3.5l2 3"/></svg>'
+    };
+  }
+
+  // 2. Education
+  if (text.includes('school') || text.includes('college') || text.includes('educ') || text.includes('academy') || text.includes('elementary') || text.includes('kinder') || text.includes('high school') || text.includes('university')) {
+    return {
+      catKey: 'education',
+      badgeColor: '#1A73E8', // Google Blue
+      textClass: 'text-blue',
+      sector: 'everyday_services',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>'
+    };
+  }
+
+  // 3. Civic / Government / Barangay Hall
+  if (text.includes('townhall') || text.includes('gov') || text.includes('civic') || text.includes('hall') || text.includes('barangay') || text.includes('courthouse') || text.includes('police') || text.includes('station') || text.includes('capitol')) {
+    return {
+      catKey: 'civic',
+      badgeColor: '#1E3A8A', // Civic Navy
+      textClass: 'text-navy',
+      sector: 'everyday_services',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg>'
+    };
+  }
+
+  // 4. Spiritual / Temple / Church / Worship (e.g. Ma Cho Temple)
+  if (text.includes('temple') || text.includes('church') || text.includes('chapel') || text.includes('cathedral') || text.includes('taoist') || text.includes('shrine') || text.includes('mosque') || text.includes('worship') || text.includes('ma cho') || text.includes('macho')) {
+    return {
+      catKey: 'worship',
+      badgeColor: '#7C3AED', // Spiritual Violet
+      textClass: 'text-violet',
+      sector: 'tourism_recreation',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2v4h4v3h-4v13H9V9H5V6h4V2h3z"/></svg>'
+    };
+  }
+
+  // 5. Dining / Restaurant / Lechon / Bakery / Cafe
+  if (text.includes('food') || text.includes('eat') || text.includes('rest') || text.includes('cafe') || text.includes('coffee') || text.includes('baker') || text.includes('pastry') || text.includes('lechon') || text.includes('diner') || text.includes('bistro') || text.includes('kitchen') || text.includes('canteen')) {
+    return {
+      catKey: 'dining',
+      badgeColor: '#EA580C', // Food Orange
+      textClass: 'text-orange',
+      sector: 'food_retail',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11"/></svg>'
+    };
+  }
+
+  // 6. Retail / Shop / Store / Mart / Market / Surplus / Fridge
+  if (text.includes('store') || text.includes('retail') || text.includes('shop') || text.includes('market') || text.includes('mart') || text.includes('grocery') || text.includes('hardware') || text.includes('mall') || text.includes('fridge')) {
+    return {
+      catKey: 'retail',
+      badgeColor: '#059669', // Emerald Retail Green
+      textClass: 'text-emerald',
+      sector: 'food_retail',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12z"/></svg>'
+    };
+  }
+
+  // 7. Healthcare / Hospital / Clinic / Pharmacy
+  if (text.includes('hosp') || text.includes('clinic') || text.includes('health') || text.includes('med') || text.includes('pharmacy') || text.includes('drug') || text.includes('doctor')) {
+    return {
+      catKey: 'healthcare',
+      badgeColor: '#DC2626', // Medical Red
+      textClass: 'text-red',
+      sector: 'everyday_services',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg>'
+    };
+  }
+
+  // 8. Hotel / Lodging / Resort / Tourism (e.g. Sea and Sky Hotel)
+  if (text.includes('hotel') || text.includes('inn') || text.includes('resort') || text.includes('lodging') || text.includes('hostel') || text.includes('tourism') || text.includes('sea and sky') || text.includes('sky')) {
+    return {
+      catKey: 'hospitality',
+      badgeColor: '#D97706', // Amber Hospitality
+      textClass: 'text-amber',
+      sector: 'tourism_recreation',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>'
+    };
+  }
+
+  // 9. Personal Care / Barber / Salon
+  if (text.includes('barber') || text.includes('salon') || text.includes('beauty') || text.includes('spa') || text.includes('grooming') || text.includes('hair') || text.includes('caza')) {
+    return {
+      catKey: 'beauty',
+      badgeColor: '#DB2777', // Pink Beauty
+      textClass: 'text-pink',
+      sector: 'everyday_services',
+      svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M9.64 7.64c.23-.5.36-1.05.36-1.64 0-2.21-1.79-4-4-4S2 3.79 2 6s1.79 4 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1L9.64 7.64zM6 8c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm0 12c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm16-4.5V15h-3l-4.5 4.5 1.5 1.5L22 15.5zM19 3l-6 6 1.5 1.5L22 4.5V3h-3z"/></svg>'
+    };
+  }
+
+  // Default fallback (Sky Blue Pin)
+  return {
+    catKey: 'default',
+    badgeColor: '#0284C7', // Sky Blue
+    textClass: 'text-blue',
+    sector: 'all',
+    svgIcon: '<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>'
+  };
+}
+
 function formatAlertNotice(notice) {
   if (!notice) return 'Confirm zoning and utility connection clearance.';
   let clean = String(notice).trim();
@@ -1170,9 +1287,10 @@ export function renderOpportunityCard(item, property = null) {
     { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'College & Higher Education' },
     { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic Administration' }
   ];
+  const supportingNames = supportingList.map(sp => sp.name || '').filter(Boolean).join('|||');
 
   return `
-    <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" id="oppCard-${esc(item.id)}">
+    <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" data-supporting-places="${esc(supportingNames)}" id="oppCard-${esc(item.id)}">
       <div class="opportunity-blue-main-row" data-toggle-opportunity-details="${esc(item.id)}" role="button" tabindex="0" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" title="Click to view detailed evidence">
         <!-- White square icon box with burgundy SVG -->
         <div class="opportunity-blue-icon-box" aria-hidden="true">
@@ -1347,26 +1465,17 @@ export function businessOpportunitiesMarkup(property, options = {}) {
     }
   }
 
-  // Build amenity chips list dynamically with estimated walking times
+  // Build amenity chips list dynamically with estimated walking times and tailored category SVGs
   let amenityChips = [];
   if (realAnchors.length > 0) {
     amenityChips = realAnchors.slice(0, 3).map((a, idx) => {
-      let iconHtml = '<span class="amenity-icon text-red" aria-hidden="true">+</span>';
-      const cat = (a.categoryKey || a.categoryGroup || a.category || '').toLowerCase();
-      if (cat.includes('school') || cat.includes('college') || cat.includes('educ')) {
-        iconHtml = '<span class="amenity-icon text-blue" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg></span>';
-      } else if (cat.includes('townhall') || cat.includes('gov') || cat.includes('civic') || cat.includes('hall')) {
-        iconHtml = '<span class="amenity-icon text-navy" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg></span>';
-      } else if (cat.includes('food') || cat.includes('rest') || cat.includes('eat')) {
-        iconHtml = '<span class="amenity-icon text-orange" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11"/></svg></span>';
-      }
-
+      const iconInfo = getAnchorIconInfo(a);
       const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
       const walkMinutes = Math.max(1, Math.round((distM || 180) / 80));
 
       return {
         index: idx,
-        iconHtml,
+        iconHtml: `<span class="amenity-icon ${iconInfo.textClass}" aria-hidden="true">${iconInfo.svgIcon}</span>`,
         label: `${a.name}${a.distanceFormatted ? ` (${a.distanceFormatted})` : ''}`,
         walkMinutes,
         lat: a.lat,
@@ -1376,11 +1485,11 @@ export function businessOpportunitiesMarkup(property, options = {}) {
       };
     });
   } else {
-    // Demo fallback chips matching Picture 2
+    // Demo fallback chips matching Picture 2 with crisp vector icons
     amenityChips = [
       {
         index: 0,
-        iconHtml: '<span class="amenity-icon text-red" aria-hidden="true">+</span>',
+        iconHtml: '<span class="amenity-icon text-red" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg></span>',
         label: 'Hospital nearby',
         walkMinutes: 2,
         lat: lat + 0.002,
@@ -1765,6 +1874,12 @@ export function initBusinessOpportunities(root = document, property = null) {
   bindDrawerEvents(root);
   bindInquiryEvents(root);
 
+  let applySectorFilterToMap = () => {};
+  let updateAmenityChipsForSector = () => {};
+  let bindCardMapHover = () => {};
+  // Map pins stay undimmed until the user explicitly picks a sector pill
+  let mapSectorFilter = 'all';
+
   // 1. Setup real interactive Leaflet map if Leaflet is available
   const mapBox = root.querySelector('#opportunitiesInteractiveMap');
   const leafletCanvas = root.querySelector('#opportunitiesLeafletCanvas');
@@ -1845,7 +1960,7 @@ export function initBusinessOpportunities(root = document, property = null) {
           fillOpacity: 0.08
         }).addTo(oppMap);
 
-        // Subject Property Pin (Google Maps Iconic Red Teardrop with Radar Beacon Ring)
+        // Subject Property Pin (Google Maps Iconic Red Teardrop with Home Glyph & Pulsing Radar Ring)
         const centerIcon = L.divIcon({
           className: 'opp-gmap-center-divicon locus-opp-center-marker',
           html: `<div class="opp-gmap-center-marker opp-pin-bubble" title="${esc(propName)}">
@@ -1853,8 +1968,9 @@ export function initBusinessOpportunities(root = document, property = null) {
             <div class="opp-gmap-center-pin">
               <svg viewBox="0 0 27 41" width="27" height="41" class="opp-gmap-center-svg" aria-hidden="true">
                 <path fill="#EA4335" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 10.12 13.5 27.5 13.5 27.5S27 23.62 27 13.5C27 6.04 20.96 0 13.5 0z"/>
-                <path fill="#C5221F" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 2.45.65 4.74 1.78 6.72L13.5 41V0z" opacity="0.2"/>
-                <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5"/>
+                <path fill="#C5221F" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 2.45.65 4.74 1.78 6.72L13.5 41V0z" opacity="0.25"/>
+                <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5.5"/>
+                <path fill="#EA4335" d="M13.5 9.5l-3.2 2.7v3.8h2.2v-2.2h2v2.2h2.2v-3.8z"/>
               </svg>
               <div class="opp-gmap-center-ground-shadow"></div>
             </div>
@@ -1863,7 +1979,7 @@ export function initBusinessOpportunities(root = document, property = null) {
           iconAnchor: [14, 41]
         });
 
-        const centerMarker = L.marker([lat, lng], { icon: centerIcon, zIndexOffset: 1000 }).addTo(oppMap);
+        const centerMarker = L.marker([lat, lng], { icon: centerIcon, zIndexOffset: 10000 }).addTo(oppMap);
         centerMarker.bindPopup(`
           <div class="opp-gmap-popup-card opp-leaflet-popup">
             <div class="opp-gmap-popup-eyebrow">SCREENING ORIGIN</div>
@@ -1872,11 +1988,11 @@ export function initBusinessOpportunities(root = document, property = null) {
           </div>
         `, { className: 'opp-gmap-popup-wrapper' });
 
-        // Helper to update radius callout badge on circle perimeter
+        // Helper to update radius callout badge on circle perimeter (North-Northwest apex away from top-right controls)
         function updateRadiusTag(r) {
           if (calloutMarker) oppMap.removeLayer(calloutMarker);
-          const calloutLat = lat + (r / 111320) * 0.72;
-          const calloutLng = lng + (r / (111320 * Math.cos(lat * Math.PI / 180))) * 0.72;
+          const calloutLat = lat + (r / 111320) * 0.96;
+          const calloutLng = lng - (r / (111320 * Math.cos(lat * Math.PI / 180))) * 0.16;
           const rText = r >= 1000 ? (r / 1000) + ' km' : Math.round(r) + ' m';
           const calloutIcon = L.divIcon({
             className: 'opp-gmap-radius-tag-divicon locus-opp-radius-tag',
@@ -1888,48 +2004,97 @@ export function initBusinessOpportunities(root = document, property = null) {
         }
         updateRadiusTag(currentRadius);
 
+        // Smart Spatial Dispersal for Nearby Establishments (prevents stacking along same street corridor)
+        const cosLat = Math.cos(lat * Math.PI / 180);
+        const validAnchors = anchors.map((a, idx) => ({
+          data: a,
+          originalIndex: idx,
+          rawLat: parseFloat(a.lat),
+          rawLng: parseFloat(a.lng),
+          dispLat: parseFloat(a.lat),
+          dispLng: parseFloat(a.lng),
+          name: a.name || `Anchor ${idx + 1}`
+        })).filter(a => isFinite(a.rawLat) && isFinite(a.rawLng) && (a.rawLat !== 0 || a.rawLng !== 0));
+
+        // NOTE: Actual de-overlap layout runs in screen-pixel space (layoutPinsInPixelSpace below),
+        // because a fixed degree offset (~30 m) is only ~6 px at zoom 15 — far smaller than a 28 px pin.
+        // This degree-based pre-pass only applies when the map projection is unavailable (e.g. headless tests).
+        const minCenterDistDeg = 0.00030;
+        validAnchors.forEach(a => {
+          const dLat = a.dispLat - lat;
+          const dLng = (a.dispLng - lng) * cosLat;
+          const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+          if (dist < minCenterDistDeg) {
+            const angle = dist > 0.00002 ? Math.atan2(dLat, dLng) : (Math.PI / 3);
+            const pushDist = 0.00038;
+            a.dispLat = lat + Math.sin(angle) * pushDist;
+            a.dispLng = lng + (Math.cos(angle) * pushDist) / cosLat;
+          }
+        });
+
+        // Step 2: Cluster detection & radial dispersal among nearby pins
+        const clusters = [];
+        const visited = new Set();
+        const clusterDistThreshold = 0.00032; // ~35 meters
+
+        for (let i = 0; i < validAnchors.length; i++) {
+          if (visited.has(i)) continue;
+          const cluster = [validAnchors[i]];
+          visited.add(i);
+
+          for (let j = i + 1; j < validAnchors.length; j++) {
+            if (visited.has(j)) continue;
+            const canJoin = cluster.some(item => {
+              const dLat = item.dispLat - validAnchors[j].dispLat;
+              const dLng = (item.dispLng - validAnchors[j].dispLng) * cosLat;
+              return Math.sqrt(dLat * dLat + dLng * dLng) < clusterDistThreshold;
+            });
+
+            if (canJoin) {
+              cluster.push(validAnchors[j]);
+              visited.add(j);
+            }
+          }
+          clusters.push(cluster);
+        }
+
+        // Radially fan out clusters with 2 or more pins around their centroid
+        clusters.forEach(cluster => {
+          if (cluster.length <= 1) return;
+
+          let sumLat = 0;
+          let sumLng = 0;
+          cluster.forEach(pt => {
+            sumLat += pt.dispLat;
+            sumLng += pt.dispLng;
+          });
+          const cLat = sumLat / cluster.length;
+          const cLng = sumLng / cluster.length;
+
+          const count = cluster.length;
+          const disperseR = count > 4 ? 0.00035 : 0.00028;
+          const angleStep = (2 * Math.PI) / count;
+          const startAngle = Math.PI / count;
+
+          cluster.forEach((pt, k) => {
+            const angle = startAngle + k * angleStep;
+            pt.dispLat = cLat + Math.sin(angle) * disperseR;
+            pt.dispLng = cLng + (Math.cos(angle) * disperseR) / cosLat;
+          });
+        });
+
         // Add Google Maps-style compact circular POI markers for each nearby place
         const anchorMarkers = [];
-        anchors.forEach(a => {
-          const aLat = parseFloat(a.lat);
-          const aLng = parseFloat(a.lng);
-          if (!isFinite(aLat) || !isFinite(aLng) || (aLat === 0 && aLng === 0)) return;
+        validAnchors.forEach(a => {
+          const iconInfo = getAnchorIconInfo(a.data);
+          const badgeColor = iconInfo.badgeColor;
+          const catKey = iconInfo.catKey;
+          const svgIcon = iconInfo.svgIcon;
 
-          let badgeColor = '#EA4335';
-          let catKey = 'default';
-          let svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>';
-
-          const cat = (a.categoryKey || a.categoryGroup || a.category || '').toLowerCase();
-          if (cat.includes('school') || cat.includes('college') || cat.includes('educ')) {
-            badgeColor = '#1A73E8'; // Google Blue
-            catKey = 'education';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>';
-          } else if (cat.includes('townhall') || cat.includes('gov') || cat.includes('civic') || cat.includes('hall')) {
-            badgeColor = '#1E3A8A'; // Deep Civic Navy
-            catKey = 'civic';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg>';
-          } else if (cat.includes('food') || cat.includes('eat') || cat.includes('rest') || cat.includes('cafe') || cat.includes('baker')) {
-            badgeColor = '#EA580C'; // Food Orange
-            catKey = 'dining';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11"/></svg>';
-          } else if (cat.includes('store') || cat.includes('retail') || cat.includes('shop') || cat.includes('market') || cat.includes('mart')) {
-            badgeColor = '#059669'; // Emerald Retail Green
-            catKey = 'retail';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm7 17H5V8h14v12z"/></svg>';
-          } else if (cat.includes('temple') || cat.includes('church') || cat.includes('worship')) {
-            badgeColor = '#7C3AED'; // Spiritual Violet
-            catKey = 'worship';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M12 2v4h4v3h-4v13H9V9H5V6h4V2h3z"/></svg>';
-          } else if (cat.includes('hosp') || cat.includes('clinic') || cat.includes('health') || cat.includes('med')) {
-            badgeColor = '#DC2626'; // Medical Red
-            catKey = 'healthcare';
-            svgIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="#FFFFFF"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg>';
-          }
-
-          // Compact Google Maps circular badge with downward pointer tip (Zero Overlap)
+          // Compact Google Maps circular badge with downward pointer tip (Zero Overlap, 28x34)
           const aIcon = L.divIcon({
             className: 'opp-gmap-poi-divicon locus-opp-poi-marker',
-            html: `<div class="opp-gmap-poi-pin opp-poi-pin" style="--poi-color: ${badgeColor};" title="${esc(a.name)}" data-cat="${catKey}">
+            html: `<div class="opp-gmap-poi-pin opp-poi-pin" style="--poi-color: ${badgeColor};" title="${esc(a.data.name)}" data-cat="${catKey}" data-sector="${iconInfo.sector}">
               <div class="opp-gmap-poi-circle">
                 ${svgIcon}
               </div>
@@ -1939,15 +2104,15 @@ export function initBusinessOpportunities(root = document, property = null) {
             iconAnchor: [14, 34]
           });
 
-          const m = L.marker([aLat, aLng], { icon: aIcon }).addTo(oppMap);
-          const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
+          const m = L.marker([a.dispLat, a.dispLng], { icon: aIcon, zIndexOffset: 100 }).addTo(oppMap);
+          const distM = a.data.distanceMeters || (a.data.distanceFormatted ? parseInt(a.data.distanceFormatted, 10) : 180);
           const walkMin = Math.max(1, Math.round((distM || 180) / 80));
 
           // Google Maps-style Hover Tooltip
           m.bindTooltip(`
             <div class="opp-gmap-tooltip-content">
-              <strong>${esc(a.name)}</strong>
-              <span>${esc(a.category || 'Activity Anchor')} &bull; ${esc(a.distanceFormatted || (distM + ' m'))} (~${walkMin} min walk)</span>
+              <strong>${esc(a.data.name)}</strong>
+              <span>${esc(a.data.category || 'Activity Anchor')} &bull; ${esc(a.data.distanceFormatted || (distM + ' m'))} (~${walkMin} min walk)</span>
             </div>
           `, {
             direction: 'top',
@@ -1960,19 +2125,224 @@ export function initBusinessOpportunities(root = document, property = null) {
           m.bindPopup(`
             <div class="opp-gmap-popup-card opp-leaflet-popup">
               <div class="opp-gmap-popup-badge" style="background: ${badgeColor}18; color: ${badgeColor}; border: 1px solid ${badgeColor}35;">
-                ${esc(a.category || 'Activity Anchor')}
+                ${esc(a.data.category || 'Activity Anchor')}
               </div>
-              <strong class="opp-gmap-popup-title">${esc(a.name)}</strong>
+              <strong class="opp-gmap-popup-title">${esc(a.data.name)}</strong>
               <div class="opp-gmap-popup-meta">
-                <span>📍 ${esc(a.distanceFormatted || (distM + ' m'))}</span>
+                <span>📍 ${esc(a.data.distanceFormatted || (distM + ' m'))}</span>
                 <span>🚶 ~${walkMin} min walk</span>
               </div>
               <span class="opp-gmap-popup-sub">Verified neighborhood foot-traffic generator</span>
             </div>
           `, { className: 'opp-gmap-popup-wrapper' });
 
-          anchorMarkers.push({ data: a, marker: m });
+          anchorMarkers.push({
+            data: a.data,
+            dispLat: a.dispLat,
+            dispLng: a.dispLng,
+            index: a.originalIndex,
+            iconInfo,
+            marker: m
+          });
         });
+
+        // Pixel-space de-overlap: iteratively push pins apart so no two 28px badges collide,
+        // and keep a clear zone around the Subject Property pin. Re-runs on every zoom.
+        function layoutPinsInPixelSpace() {
+          if (typeof oppMap.latLngToContainerPoint !== 'function' || typeof oppMap.containerPointToLatLng !== 'function') return;
+          const MIN_GAP = 30;     // px between POI anchor points (pin is 28px wide)
+          const CENTER_GAP = 34;  // px clear zone around the subject pin
+          const center = oppMap.latLngToContainerPoint([lat, lng]);
+          const pts = anchorMarkers.map(am => {
+            const p = oppMap.latLngToContainerPoint([parseFloat(am.data.lat), parseFloat(am.data.lng)]);
+            return { am, x: p.x, y: p.y };
+          });
+
+          for (let iter = 0; iter < 60; iter++) {
+            let moved = false;
+            for (let i = 0; i < pts.length; i++) {
+              // Keep clear of the subject property pin
+              let dx = pts[i].x - center.x;
+              let dy = pts[i].y - center.y;
+              let d = Math.sqrt(dx * dx + dy * dy);
+              if (d < CENTER_GAP) {
+                if (d < 0.5) { dx = Math.cos(i * 2.399); dy = Math.sin(i * 2.399); d = 1; }
+                const push = CENTER_GAP - d;
+                pts[i].x += (dx / d) * push;
+                pts[i].y += (dy / d) * push;
+                moved = true;
+              }
+              for (let j = i + 1; j < pts.length; j++) {
+                dx = pts[j].x - pts[i].x;
+                dy = pts[j].y - pts[i].y;
+                d = Math.sqrt(dx * dx + dy * dy);
+                if (d < MIN_GAP) {
+                  // Golden-angle fallback for exactly coincident points
+                  if (d < 0.5) { dx = Math.cos((i + j) * 2.399); dy = Math.sin((i + j) * 2.399); d = 1; }
+                  const push = (MIN_GAP - d) / 2;
+                  const ux = dx / d;
+                  const uy = dy / d;
+                  pts[i].x -= ux * push; pts[i].y -= uy * push;
+                  pts[j].x += ux * push; pts[j].y += uy * push;
+                  moved = true;
+                }
+              }
+            }
+            if (!moved) break;
+          }
+
+          pts.forEach(p => {
+            const ll = oppMap.containerPointToLatLng([p.x, p.y]);
+            p.am.dispLat = ll.lat;
+            p.am.dispLng = ll.lng;
+            if (typeof p.am.marker.setLatLng === 'function') p.am.marker.setLatLng(ll);
+          });
+        }
+        if (typeof oppMap.on === 'function') oppMap.on('zoomend', layoutPinsInPixelSpace);
+
+        // Helper to highlight specific supporting anchors on card hover
+        function highlightAnchorsOnMap(targetNames) {
+          if (!targetNames || !targetNames.length) return;
+          // Only dim the map if at least one supporting place is actually plotted
+          const anyMatch = anchorMarkers.some(({ data }) => {
+            const n = (data.name || '').toLowerCase().trim();
+            return !!n && targetNames.some(t => n.includes(t) || t.includes(n));
+          });
+          if (!anyMatch) return;
+          anchorMarkers.forEach(({ data, marker }) => {
+            const aName = (data.name || '').toLowerCase().trim();
+            const isTarget = !!aName && targetNames.some(t => aName.includes(t) || t.includes(aName));
+            const pinEl = (typeof marker.getElement === 'function' && marker.getElement()) ? marker.getElement().querySelector('.opp-gmap-poi-pin') : null;
+            if (pinEl) {
+              if (isTarget) {
+                pinEl.classList.add('is-card-target');
+                pinEl.classList.remove('is-dimmed');
+                if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(9000);
+              } else {
+                pinEl.classList.add('is-dimmed');
+                pinEl.classList.remove('is-card-target');
+                if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(10);
+              }
+            }
+          });
+        }
+
+        // Helper to reset card hover highlight and restore sector filter state
+        function resetMapHighlights() {
+          anchorMarkers.forEach(({ marker }) => {
+            const pinEl = (typeof marker.getElement === 'function' && marker.getElement()) ? marker.getElement().querySelector('.opp-gmap-poi-pin') : null;
+            if (pinEl) {
+              pinEl.classList.remove('is-card-target');
+            }
+          });
+          applySectorFilterToMap(mapSectorFilter);
+        }
+
+        // Helper to filter and highlight pins on the map based on selected sector
+        applySectorFilterToMap = function(sectorKey) {
+          anchorMarkers.forEach(({ iconInfo, marker }) => {
+            const pinEl = (typeof marker.getElement === 'function' && marker.getElement()) ? marker.getElement().querySelector('.opp-gmap-poi-pin') : null;
+            if (!pinEl) return;
+
+            if (!sectorKey || sectorKey === 'all') {
+              pinEl.classList.remove('is-dimmed', 'is-matched');
+              if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(100);
+            } else {
+              const isMatch = (iconInfo.sector === sectorKey);
+              if (isMatch) {
+                pinEl.classList.add('is-matched');
+                pinEl.classList.remove('is-dimmed');
+                if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(500);
+              } else {
+                pinEl.classList.add('is-dimmed');
+                pinEl.classList.remove('is-matched');
+                if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(20);
+              }
+            }
+          });
+        };
+
+        // Helper to dynamically update amenity chips below map when sector changes
+        updateAmenityChipsForSector = function(sectorKey) {
+          const row = root.querySelector('.opportunities-amenities-row');
+          if (!row) return;
+
+          let filtered = anchors;
+          if (sectorKey && sectorKey !== 'all') {
+            const matching = anchors.filter(a => {
+              const info = getAnchorIconInfo(a);
+              return info.sector === sectorKey;
+            });
+            if (matching.length >= 2) {
+              filtered = matching;
+            }
+          }
+
+          const chipsToDisplay = filtered.slice(0, 3).map((a, idx) => {
+            const iconInfo = getAnchorIconInfo(a);
+            const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
+            const walkMinutes = Math.max(1, Math.round((distM || 180) / 80));
+            return {
+              index: idx,
+              iconHtml: `<span class="amenity-icon ${iconInfo.textClass}" aria-hidden="true">${iconInfo.svgIcon}</span>`,
+              walkMinutes,
+              lat: a.lat,
+              lng: a.lng,
+              name: a.name,
+              category: a.category || 'Activity Center'
+            };
+          });
+
+          row.innerHTML = chipsToDisplay.map(c => `
+            <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" data-anchor-name="${esc(c.name)}" data-anchor-lat="${c.lat}" data-anchor-lng="${c.lng}" title="Click to focus ${esc(c.name)} on map">
+              ${c.iconHtml}
+              <span>${esc(c.name)}</span>
+              <span class="amenity-walk-badge">~${c.walkMinutes} min walk</span>
+            </button>
+          `).join('');
+
+          bindAmenityChips();
+        };
+
+        // Wire amenity chips below map to fly to that anchor
+        function bindAmenityChips() {
+          root.querySelectorAll('.opportunities-amenities-row [data-anchor-name], .opportunities-amenities-row [data-anchor-index]').forEach(chip => {
+            chip.addEventListener('click', (e) => {
+              e.preventDefault();
+              const chipName = (chip.getAttribute('data-anchor-name') || '').toLowerCase();
+              const idx = parseInt(chip.getAttribute('data-anchor-index'), 10);
+              root.querySelectorAll('.opportunities-amenities-row .opportunities-amenity-chip').forEach(c => c.classList.remove('is-active'));
+              chip.classList.add('is-active');
+
+              const match = anchorMarkers.find(am => chipName && (am.data.name || '').toLowerCase() === chipName)
+                || anchorMarkers.find(am => am.index === idx);
+              if (match) {
+                oppMap.flyTo([match.dispLat || match.data.lat, match.dispLng || match.data.lng], 16, { duration: 0.8 });
+                match.marker.openPopup();
+              } else {
+                oppMap.flyTo([lat, lng], 15, { duration: 0.8 });
+              }
+            });
+          });
+        }
+        bindAmenityChips();
+
+        // Bind hover events on cards to highlight matching anchors
+        bindCardMapHover = function(container) {
+          container.querySelectorAll('.opportunity-blue-card').forEach(card => {
+            const rawSupporting = card.getAttribute('data-supporting-places') || '';
+            const supportingNames = rawSupporting.split('|||').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+            card.addEventListener('mouseenter', () => {
+              highlightAnchorsOnMap(supportingNames);
+            });
+
+            card.addEventListener('mouseleave', () => {
+              resetMapHighlights();
+            });
+          });
+        };
+        bindCardMapHover(root);
 
         // Hide static SVG fallback and display Leaflet
         if (fallbackSvg) fallbackSvg.style.display = 'none';
@@ -1981,6 +2351,7 @@ export function initBusinessOpportunities(root = document, property = null) {
         setTimeout(() => {
           oppMap.invalidateSize();
           oppMap.fitBounds(radiusCircle.getBounds(), { padding: [22, 22] });
+          layoutPinsInPixelSpace();
         }, 100);
 
         window.addEventListener('sfc:investor-view-change', (e) => {
@@ -2051,24 +2422,6 @@ export function initBusinessOpportunities(root = document, property = null) {
             updateCardsStack(currentSector, newRadius);
           });
         });
-
-        // Wire amenity chips below map to fly to that anchor
-        root.querySelectorAll('[data-anchor-index]').forEach(chip => {
-          chip.addEventListener('click', (e) => {
-            e.preventDefault();
-            const idx = parseInt(chip.getAttribute('data-anchor-index'), 10);
-            root.querySelectorAll('[data-anchor-index]').forEach(c => c.classList.remove('is-active'));
-            chip.classList.add('is-active');
-
-            if (anchorMarkers[idx]) {
-              const am = anchorMarkers[idx];
-              oppMap.flyTo([am.data.lat, am.data.lng], 16, { duration: 0.8 });
-              am.marker.openPopup();
-            } else {
-              oppMap.flyTo([lat, lng], 15, { duration: 0.8 });
-            }
-          });
-        });
       }
     } catch (err) {
       console.warn('Leaflet map initialization skipped or unsupported in environment:', err);
@@ -2111,6 +2464,7 @@ export function initBusinessOpportunities(root = document, property = null) {
       stack.style.transform = 'translateY(0)';
       bindDrawerEvents(stack);
       bindInquiryEvents(stack);
+      bindCardMapHover(stack);
     }, 150);
   }
 
@@ -2186,7 +2540,7 @@ export function initBusinessOpportunities(root = document, property = null) {
     });
   });
 
-  // 6. Category filter pills below split screen with dynamic card switching
+  // 6. Category filter pills below split screen with dynamic card switching and map sync
   root.querySelectorAll('[data-cat-filter]').forEach(pill => {
     pill.addEventListener('click', () => {
       const cat = pill.getAttribute('data-cat-filter');
@@ -2197,6 +2551,9 @@ export function initBusinessOpportunities(root = document, property = null) {
       });
 
       updateCardsStack(cat, currentRadius);
+      mapSectorFilter = cat;
+      applySectorFilterToMap(cat);
+      updateAmenityChipsForSector(cat);
     });
   });
 }

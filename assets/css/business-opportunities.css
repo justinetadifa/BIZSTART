@@ -81,7 +81,7 @@
   overflow: hidden;
   background: #E3EBEF;
   border: 1px solid #D1DDE5;
-  height: 315px;
+  height: 350px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -449,6 +449,43 @@
   border-top: 6px solid var(--poi-color, #EA4335);
 }
 
+/* Card hover target pin pulse */
+.opp-gmap-poi-pin.is-card-target {
+  transform: translateY(-6px) scale(1.25) !important;
+  z-index: 9999 !important;
+  filter: drop-shadow(0 6px 12px rgba(26, 115, 232, 0.45));
+}
+
+.opp-gmap-poi-pin.is-card-target .opp-gmap-poi-circle {
+  box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 6px #1A73E8 !important;
+  animation: targetPinPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes targetPinPulse {
+  0% { box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 6px #1A73E8; }
+  50% { box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 10px rgba(26, 115, 232, 0.5); }
+  100% { box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 6px #1A73E8; }
+}
+
+/* Dimmed pin when another pin or sector is highlighted */
+.opp-gmap-poi-pin.is-dimmed {
+  opacity: 0.38;
+  transform: scale(0.9);
+  filter: grayscale(35%);
+  transition: all 0.2s ease;
+}
+
+/* Matched pin in sector filter */
+.opp-gmap-poi-pin.is-matched {
+  opacity: 1;
+  transform: translateY(-2px) scale(1.1);
+  transition: all 0.2s ease;
+}
+
+.opp-gmap-poi-pin.is-matched .opp-gmap-poi-circle {
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4.5px var(--poi-color, #1A73E8);
+}
+
 /* ==========================================================================
    Google Maps Geofence Radius Pill
    ========================================================================== */
@@ -656,6 +693,36 @@
 
 .amenity-icon.text-navy {
   color: #11224D;
+  display: inline-flex;
+}
+
+.amenity-icon.text-teal {
+  color: #0D9488;
+  display: inline-flex;
+}
+
+.amenity-icon.text-violet {
+  color: #7C3AED;
+  display: inline-flex;
+}
+
+.amenity-icon.text-pink {
+  color: #DB2777;
+  display: inline-flex;
+}
+
+.amenity-icon.text-amber {
+  color: #D97706;
+  display: inline-flex;
+}
+
+.amenity-icon.text-emerald {
+  color: #059669;
+  display: inline-flex;
+}
+
+.amenity-icon.text-orange {
+  color: #EA580C;
   display: inline-flex;
 }
 

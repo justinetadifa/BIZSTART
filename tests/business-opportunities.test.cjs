@@ -170,11 +170,18 @@ async function runTests() {
     assert(streetTileLayer, 'Street basemap should use Google Maps street tile URL');
     assert.deepEqual(streetTileLayer.opts.subdomains, ['mt0', 'mt1', 'mt2', 'mt3'], 'Google subdomains mt0-mt3 configured');
 
-    // Verify Google Red center pin was created
+    // Verify Google Red center pin was created with high zIndexOffset
     const centerMarker = createdMarkers.find(m => m.opts?.icon?.className?.includes('opp-gmap-center-divicon'));
     assert(centerMarker, 'Center pin should use opp-gmap-center-divicon');
     assert(centerMarker.opts.icon.html.includes('#EA4335'), 'Center pin must include Google Maps iconic red (#EA4335)');
+    assert.strictEqual(centerMarker.opts.zIndexOffset, 10000, 'Center property pin must have highest zIndexOffset (10000)');
     assert(centerMarker._popup, 'Center marker has popup attached');
+
+    // Verify radius callout marker is positioned at North-Northwest apex (clear of top-right switcher)
+    const radiusMarker = createdMarkers.find(m => m.opts?.icon?.className?.includes('opp-gmap-radius-tag-divicon'));
+    assert(radiusMarker, 'Radius callout badge must be placed on map');
+    assert(radiusMarker.latlng[0] > sampleProperty.lat, 'Radius badge must be north of property center');
+    assert(radiusMarker.latlng[1] <= sampleProperty.lng, 'Radius badge must be NNW (not NE) to avoid top-right controls');
 
     // Verify anchor POI markers are compact circular pins with zero overlapping pills
     const poiMarkers = createdMarkers.filter(m => m.opts?.icon?.className?.includes('opp-gmap-poi-divicon'));
@@ -185,7 +192,29 @@ async function runTests() {
       assert(pm._tooltip, 'POI marker must have hover tooltip bound');
       assert(pm._popup, 'POI marker must have click popup card bound');
     });
+
+    // 7. Verify Anchor Icon Mapping helper for San Fernando categories
+    const { getAnchorIconInfo } = bizOppModule;
+    assert(typeof getAnchorIconInfo === 'function', 'getAnchorIconInfo helper must be exported');
+    const bikeInfo = getAnchorIconInfo({ name: 'Lucky M2', category: 'Bicycle & Surplus Retail' });
+    assert.strictEqual(bikeInfo.catKey, 'bicycle', 'Lucky M2 must map to bicycle category');
+    assert.strictEqual(bikeInfo.textClass, 'text-teal', 'Bicycle must use text-teal class');
+
+    const schoolInfo = getAnchorIconInfo({ name: 'Ilocanos Elementary School', category: 'Public Elementary School' });
+    assert.strictEqual(schoolInfo.catKey, 'education', 'School must map to education category');
+    assert.strictEqual(schoolInfo.textClass, 'text-blue', 'School must use text-blue class');
+
+    const hallInfo = getAnchorIconInfo({ name: 'Ilocanos Norte Barangay Hall', category: 'Barangay Local Government' });
+    assert.strictEqual(hallInfo.catKey, 'civic', 'Barangay hall must map to civic category');
+    assert.strictEqual(hallInfo.textClass, 'text-navy', 'Barangay hall must use text-navy class');
+
+    const templeInfo = getAnchorIconInfo({ name: 'Ma Cho Temple (Taoist)', category: 'Place of Worship & Cultural Landmark' });
+    assert.strictEqual(templeInfo.catKey, 'worship', 'Ma Cho Temple must map to worship category');
+    assert.strictEqual(templeInfo.textClass, 'text-violet', 'Temple must use text-violet class');
   }
+
+  // Verify cardHtml has data-supporting-places attribute
+  assert(cardHtml.includes('data-supporting-places='), 'Opportunity card must have data-supporting-places for cross-map hover');
 
   console.log('✅ ALL BUSINESS OPPORTUNITIES JS TESTS PASSED SUCCESSFULLY (100% compliance).');
 }
