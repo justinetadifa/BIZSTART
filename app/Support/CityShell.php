@@ -84,6 +84,7 @@ function sfc_investor_view_control(array $context): void
     <div class="investor-view-toolbar no-print" data-investor-view-toolbar hidden>
       <div class="investor-view-intro"><span class="investor-view-label">Investor view</span><p data-investor-view-description>Start with the essentials. Explore the assessment when you are ready.</p></div>
       <div class="investor-view-control" data-investor-view-control role="group" aria-label="Investor view">
+        <span class="investor-view-pill" aria-hidden="true"></span>
         <button type="button" data-investor-mode="basic" aria-pressed="true">Basic</button>
         <button type="button" data-investor-mode="advanced" aria-pressed="false">Advanced</button>
       </div>

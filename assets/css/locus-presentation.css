@@ -30,11 +30,72 @@ body .account-auth::before { content: none; }
 .investor-view-intro { min-width: 0; }
 .investor-view-label { display: block; font-size: 13px; font-weight: 700; letter-spacing: -.01em; }
 .investor-view-intro p { color: #59677c; font-size: 12px; line-height: 1.5; margin: 3px 0 0; }
-.investor-view-control { display: inline-flex; flex-shrink: 0; gap: 4px; padding: 4px; border: 1px solid #dfe5ed; border-radius: 10px; background: #f4f6f9; }
-.investor-view-control button { min-height: 40px; padding: 9px 20px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #536078; font: 600 12px/1.4 Inter, Arial, sans-serif; cursor: pointer; transition: color .15s, background .15s; }
-.investor-view-control button:hover { color: #11224d; background: #e8edf4; }
-.investor-view-control button[aria-pressed="true"] { background: #11224d; color: #fff; box-shadow: 0 2px 5px #11224d18; }
-.investor-view-control button:focus-visible { outline: 3px solid #bc8b23; outline-offset: 3px; }
+.investor-view-control {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0;
+  padding: 4px;
+  border: 1px solid #E2E6EE;
+  border-radius: 14px;
+  background: #F1F3F7;
+  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.04);
+}
+.investor-view-control .investor-view-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  background: #11224D;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.22);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+.investor-view-control[data-active="advanced"] .investor-view-pill,
+html[data-investor-view="advanced"] .investor-view-control .investor-view-pill {
+  transform: translateX(100%);
+}
+.investor-view-control[data-active="basic"] .investor-view-pill,
+html[data-investor-view="basic"] .investor-view-control .investor-view-pill {
+  transform: translateX(0);
+}
+.investor-view-control button {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 82px;
+  min-height: 38px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  background: transparent !important;
+  color: #5A6578;
+  font: 600 13px/1.4 Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  letter-spacing: 0.01em;
+  text-align: center;
+  font-style: normal !important;
+  text-shadow: none !important;
+  cursor: pointer;
+  transition: color 0.2s ease-out;
+  outline: none;
+}
+.investor-view-control button:hover:not([aria-pressed="true"]) {
+  color: #11224D;
+}
+.investor-view-control button[aria-pressed="true"] {
+  color: #FFFFFF !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.investor-view-control button:focus-visible {
+  outline: 2px solid rgba(17, 34, 77, 0.3);
+  outline-offset: 2px;
+}
 .investor-view-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media screen {
   html[data-investor-view-enabled="true"][data-investor-view="basic"] [data-investor-advanced] { display: none !important; }
@@ -42,9 +103,9 @@ body .account-auth::before { content: none; }
 }
 @media (max-width: 540px) {
   .investor-view-toolbar { align-items: stretch; flex-direction: column; gap: 13px; padding: 16px; margin-bottom: 22px; }
-  .investor-view-control { display: flex; align-self: flex-start; width: 100%; }
-  .investor-view-control button { flex: 1; min-height: 42px; }
+  .investor-view-control { display: grid; grid-template-columns: 1fr 1fr; align-self: flex-start; width: 100%; }
+  .investor-view-control button { min-height: 42px; }
   .locus-map-backdrop { background-size: auto 1000px; }
 }
-@media (prefers-reduced-motion: reduce) { .investor-view-control button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .investor-view-control .investor-view-pill, .investor-view-control button { transition: none; } }
 @media print { .locus-map-backdrop, .investor-view-toolbar { display: none !important; } }

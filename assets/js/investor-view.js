@@ -19,6 +19,18 @@
 
   function refresh(scope = document) {
     scope.querySelectorAll('[data-investor-view-toolbar]').forEach(toolbar => { toolbar.hidden = !enabled; });
+    scope.querySelectorAll('[data-investor-view-control]').forEach(control => {
+      if (control && control.dataset) {
+        control.dataset.active = mode;
+        let pill = control.querySelector?.('.investor-view-pill');
+        if (!pill && typeof control.insertBefore === 'function' && typeof document?.createElement === 'function') {
+          pill = document.createElement('span');
+          pill.className = 'investor-view-pill';
+          pill.setAttribute('aria-hidden', 'true');
+          control.insertBefore(pill, control.firstChild);
+        }
+      }
+    });
     scope.querySelectorAll('[data-investor-mode]').forEach(button => {
       const active = button.dataset.investorMode === mode;
       button.setAttribute('aria-pressed', String(active));

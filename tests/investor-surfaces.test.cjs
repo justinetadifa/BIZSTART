@@ -7,7 +7,8 @@ const vm = require('node:vm');
 (async () => {
   const utils = await import(pathToFileURL(resolve('assets/js/utils.js')).href);
   const detailsSource = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href);
+    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
+    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
   const details = await import(`data:text/javascript;base64,${Buffer.from(detailsSource).toString('base64')}`);
   const source = readFileSync('assets/js/city-workspace.js', 'utf8')
     .replace(/^import .*;\r?\n/gm, '').split('initialize().catch(error => {')[0];
