@@ -86,7 +86,7 @@ function sfc_investor_view_control(array $context): void
       <div class="investor-view-control" data-investor-view-control role="group" aria-label="Investor view">
         <span class="investor-view-pill" aria-hidden="true"></span>
         <button type="button" data-investor-mode="basic" aria-pressed="true">Basic</button>
-        <button type="button" data-investor-mode="advanced" aria-pressed="false">Advanced</button>
+        <button type="button" data-investor-mode="advanced" aria-pressed="false" aria-label="Advanced view">Advance</button>
       </div>
       <span class="investor-view-announcement" data-investor-view-announcement role="status" aria-live="polite"></span>
     </div>

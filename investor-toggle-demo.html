@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>React Investor View Toggle (Tailwind + Framer Motion) | LOCUS-SF</title>
+  <title>React Investor View Toggle (Dark Navy + Red Active Pill) | LOCUS-SF</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -43,15 +43,17 @@
 
     /**
      * Modern React InvestorViewToggle Component
+     * Dark Navy Capsule Container with Vibrant Red Sliding Active Pill (Image 2)
      */
     function InvestorViewToggle({
       value,
       defaultValue = 'Basic',
       onChange,
-      options = ['Basic', 'Advanced'],
+      options = ['Basic', 'Advance'],
       className = '',
       layoutId = 'demoActiveTogglePill',
       size = 'md',
+      variant = 'dark-red',
     }) {
       const [internalMode, setInternalMode] = useState(defaultValue);
       const activeMode = value !== undefined ? value : internalMode;
@@ -62,14 +64,15 @@
         onChange?.(mode);
       };
 
+      const isDarkRed = variant === 'dark-red';
+
       return (
         <div
           role="radiogroup"
           aria-label="Investor view mode"
           className={`
-            inline-flex items-center gap-1 select-none
-            bg-[#F1F3F7] border border-[#E2E6EE] shadow-[0_1px_2px_rgba(17,34,77,0.04)]
-            p-1 sm:p-1.5 rounded-[14px]
+            inline-flex items-center gap-0 select-none
+            ${isDarkRed ? 'bg-[#11224D] border border-[#0d1b3e] rounded-full p-1 shadow-[0_4px_14px_rgba(17,34,77,0.3)]' : 'bg-[#F1F3F7] border border-[#E2E6EE] rounded-[14px] p-1 shadow-sm'}
             ${className}
           `}
         >
@@ -84,10 +87,18 @@
                 aria-checked={isActive}
                 onClick={() => handleSelect(option)}
                 className={`
-                  relative px-5 py-2 text-xs sm:text-sm font-semibold tracking-wide
-                  transition-colors duration-200 ease-out min-h-[38px] rounded-[10px]
-                  outline-none focus-visible:ring-2 focus-visible:ring-[#11224D]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F1F3F7]
-                  ${isActive ? 'text-white' : 'text-[#5A6578] hover:text-[#11224D]'}
+                  relative px-5 py-2 text-xs sm:text-sm font-bold tracking-tight
+                  transition-all duration-200 ease-out min-h-[38px] rounded-full
+                  outline-none
+                  ${isDarkRed ? (
+                    isActive
+                      ? 'text-white font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]'
+                      : 'text-white/90 hover:text-white font-bold'
+                  ) : (
+                    isActive
+                      ? 'text-white font-bold'
+                      : 'text-[#5A6578] hover:text-[#11224D] font-semibold'
+                  )}
                 `}
               >
                 {/* Solid 'Anti-Gravity' Animated Background Pill */}
@@ -95,12 +106,15 @@
                   <motion.div
                     layoutId={layoutId}
                     transition={SPRING_TRANSITION}
-                    className="absolute inset-0 bg-[#11224D] rounded-[10px] shadow-[0_2px_6px_rgba(17,34,77,0.22)] z-0 pointer-events-none"
+                    className={`
+                      absolute inset-0 z-0 pointer-events-none rounded-full
+                      ${isDarkRed ? 'bg-gradient-to-r from-[#FF1A4B] to-[#D90429] shadow-[0_2px_10px_rgba(217,4,41,0.5)]' : 'bg-[#11224D] shadow-[0_2px_6px_rgba(17,34,77,0.22)]'}
+                    `}
                   />
                 )}
 
                 {/* Text Label Strictly Positioned Over Background */}
-                <span className="relative z-10 block pointer-events-none">
+                <span className="relative z-10 block pointer-events-none font-['Montserrat',sans-serif]">
                   {option}
                 </span>
               </button>
@@ -114,7 +128,7 @@
      * Interactive Showcase App
      */
     function App() {
-      const [mode, setMode] = useState('Advanced');
+      const [mode, setMode] = useState('Advance');
 
       return (
         <div className="min-h-screen flex flex-col justify-between p-4 sm:p-8">
@@ -126,13 +140,13 @@
               </div>
               <div>
                 <div className="text-sm font-bold text-slate-900 tracking-tight">
-                  Investor Interface <span className="text-slate-400 font-normal">/ Toggle Showcase</span>
+                  Investor View Toggle <span className="text-rose-600 font-semibold">(Dark Navy + Red Active Pill)</span>
                 </div>
                 <div className="text-xs text-slate-500">San Fernando, La Union</div>
               </div>
             </div>
 
-            {/* Toggle */}
+            {/* Toggle in Header */}
             <div className="flex items-center gap-3">
               <span className="text-xs font-semibold text-slate-500 hidden sm:inline">
                 Investor view:
@@ -140,47 +154,50 @@
               <InvestorViewToggle
                 value={mode}
                 onChange={setMode}
+                options={['Basic', 'Advance']}
+                variant="dark-red"
               />
             </div>
           </header>
 
           {/* Main Visual Comparison */}
           <main className="max-w-4xl mx-auto w-full my-8 space-y-6">
-            {/* Visual Comparison: Outdated vs Modern Minimalist */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Previous Outdated Pill */}
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
+              {/* Target Design: Dark Navy + Red Active Pill (Image 2) */}
+              <div className="p-6 rounded-2xl bg-white border-2 border-rose-200/80 shadow-md flex flex-col items-center text-center">
                 <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider mb-2">
-                  Previous Outdated Design
+                  Live Style (Image 2 Target)
                 </span>
                 <p className="text-xs text-slate-500 mb-6 max-w-xs">
-                  Heavy dark navy container with bright red pill, italics, and text drop-shadows.
+                  Dark Navy pill container with bright Red sliding active pill, crisp white text, and signature italic active font.
                 </p>
 
-                {/* Static recreation of old style */}
-                <div className="inline-flex items-center p-1 rounded-full bg-[#11224D] border border-[#11224D] shadow-md">
-                  <div className="px-5 py-2 text-xs font-black italic text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
-                    Basic
-                  </div>
-                  <div className="px-5 py-2 text-xs font-black italic text-white bg-[#E11D48] rounded-full shadow" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
-                    Advance
-                  </div>
-                </div>
-              </div>
-
-              {/* Modern Minimalist React Toggle */}
-              <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
-                <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-2">
-                  New Modern React Component
-                </span>
-                <p className="text-xs text-slate-500 mb-6 max-w-xs">
-                  Light grayish-white container, solid dark navy animated pill, muted text, no italics.
-                </p>
-
-                {/* Interactive modern toggle */}
+                {/* Interactive dark-red toggle */}
                 <InvestorViewToggle
                   value={mode}
                   onChange={setMode}
+                  options={['Basic', 'Advance']}
+                  variant="dark-red"
+                  layoutId="targetPillDemo"
+                />
+              </div>
+
+              {/* Minimalist Light Variant (Image 1) */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col items-center text-center">
+                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
+                  Minimalist Light Theme (Image 1)
+                </span>
+                <p className="text-xs text-slate-500 mb-6 max-w-xs">
+                  Light grayish-white container with solid dark navy sliding pill and muted inactive text.
+                </p>
+
+                {/* Interactive minimal-light toggle */}
+                <InvestorViewToggle
+                  value={mode === 'Advance' ? 'Advanced' : 'Basic'}
+                  onChange={(m) => setMode(m === 'Advanced' ? 'Advance' : 'Basic')}
+                  options={['Basic', 'Advanced']}
+                  variant="minimal-light"
+                  layoutId="lightPillDemo"
                 />
               </div>
             </div>
@@ -191,10 +208,10 @@
                 <div>
                   <span className="text-xs font-semibold text-slate-400">Current View State:</span>
                   <h2 className="text-lg font-bold text-slate-900 mt-0.5">
-                    {mode === 'Basic' ? 'Basic View (Essential Listing Data)' : 'Advanced Mode (Analytical Assessment Unlocked)'}
+                    {mode === 'Basic' ? 'Basic View (Essential Listing Data)' : 'Advance Mode (Analytical Assessment Unlocked)'}
                   </h2>
                 </div>
-                <span className="text-xs px-3 py-1 rounded-full bg-slate-100 font-bold text-[#11224D]">
+                <span className="text-xs px-3 py-1 rounded-full bg-[#11224D] font-bold text-white">
                   {mode}
                 </span>
               </div>
@@ -220,9 +237,9 @@
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       transition={{ duration: 0.15 }}
-                      className="p-4 rounded-xl bg-[#11224D]/5 border border-[#11224D]/15 text-xs text-slate-700 leading-relaxed"
+                      className="p-4 rounded-xl bg-rose-50/50 border border-rose-100 text-xs text-slate-700 leading-relaxed"
                     >
-                      <strong className="text-[#11224D] block mb-1">Analytical Investment Mode</strong>
+                      <strong className="text-rose-700 block mb-1">Analytical Investment Mode</strong>
                       Displays 7-criterion MCE weighted evaluation, Investment Alignment Index (IAI), 500m straight-line screening radar, and traceable business opportunities matching.
                     </motion.div>
                   )}
