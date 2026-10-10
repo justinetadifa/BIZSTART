@@ -246,6 +246,8 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
           <input type="checkbox" name="privacy_consent" value="1" required <?= !empty($_POST['privacy_consent']) ? 'checked' : '' ?>>
           <span><?= sfc_account_escape(sfc_privacy_consent_text()) ?> <a class="tw-text-[#9E1B22] tw-underline tw-underline-offset-2" href="https://privacy.gov.ph/data-privacy-act-/" target="_blank" rel="noopener noreferrer">Read RA 10173</a></span>
         </label>
+        <?php endif; ?>
+
         <!-- Sound & Feedback Preferences Card -->
         <div class="tw-mt-7 tw-rounded-2xl tw-border tw-border-solid tw-border-[#dfe3e9] tw-bg-[#F8F9FA] tw-p-5 sm:tw-p-6">
           <div class="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-mb-4">
