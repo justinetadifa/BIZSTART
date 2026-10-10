@@ -633,200 +633,420 @@ function esc(str) {
     .replace(/'/g, '&#039;');
 }
 
+const DEMO_MATCHES = [
+  {
+    id: 'convenience_store',
+    label: 'CONVENIENCE STORE',
+    sector: 'everyday_services',
+    sectorLabel: 'Everyday Services',
+    rank: 1,
+    statusLabel: 'Preliminary',
+    description: 'Everyday essentials for staff, students and visitors.',
+    pillText: 'Multiple nearby activity centers',
+    alertText: 'Check competition and frontage.',
+    icon: 'store',
+    explanation: 'High foot-traffic anchors nearby provide regular customer flow for daily essentials.',
+    mainUnresolvedNotice: 'Confirm commercial electric line capacity and delivery unloading space.',
+    supportingPlaces: [
+      { name: 'Hospital nearby', distanceFormatted: '180 m', category: 'Healthcare' },
+      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+    ],
+    areaGuideline: '30–80 sqm (commercial space); road frontage desirable',
+    areaStatus: 'Suitable for frontage or sub-lease',
+    zoningStatus: 'Compatible with Commercial classification',
+    zoningClassification: 'Commercial / Mixed Use',
+    roadAccessRequirement: 'paved',
+    missingEvidence: [],
+    competitorsNotice: '2 similar operating establishments recorded in radius',
+    competitorSample: ['Local Mart', 'Express Grocer'],
+    complementaryCount: 3,
+    complementarySample: ['Pharmacy', 'Fuel Station', 'Laundry'],
+    ruleSource: RULE_SOURCE,
+    version: RULE_VERSION,
+  },
+  {
+    id: 'eatery',
+    label: 'AFFORDABLE EATERY',
+    sector: 'food_retail',
+    sectorLabel: 'Food & Retail',
+    rank: 2,
+    statusLabel: 'Preliminary',
+    description: 'Meal options for workers, students and companions.',
+    pillText: 'Potential daytime customers',
+    alertText: 'Check water, sanitation and demand.',
+    icon: 'eatery',
+    explanation: 'Dense concentration of daily workers and students nearby generates mealtime customer flow.',
+    mainUnresolvedNotice: 'Confirm grease trap requirement and potable water reliability.',
+    supportingPlaces: [
+      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
+      { name: 'Hospital nearby', distanceFormatted: '180 m', category: 'Healthcare' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+    ],
+    areaGuideline: '30–90 sqm with dining seating',
+    areaStatus: 'Compatible with site layout',
+    zoningStatus: 'Compatible with Commercial classification',
+    zoningClassification: 'Commercial / Institutional',
+    roadAccessRequirement: 'all_weather',
+    missingEvidence: [],
+    competitorsNotice: '1 similar operating establishment recorded in radius',
+    competitorSample: ['Canteen'],
+    complementaryCount: 2,
+    complementarySample: ['Convenience Store', 'Printing Service'],
+    ruleSource: RULE_SOURCE,
+    version: RULE_VERSION,
+  },
+  {
+    id: 'printing',
+    label: 'PRINTING & DOCUMENT SERVICES',
+    sector: 'professional_services',
+    sectorLabel: 'Professional Services',
+    rank: 3,
+    statusLabel: 'Preliminary',
+    description: 'Schoolwork and administrative document needs.',
+    pillText: 'School and government-office context',
+    alertText: 'Check existing providers and internet.',
+    icon: 'printing',
+    explanation: 'Proximity to school and government offices creates daily recurring demand for document services.',
+    mainUnresolvedNotice: 'Verify commercial electrical surge protection and internet connection.',
+    supportingPlaces: [
+      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+    ],
+    areaGuideline: '20–50 sqm for print machines & client counter',
+    areaStatus: 'Suitable for commercial frontage',
+    zoningStatus: 'Compatible with Commercial classification',
+    zoningClassification: 'Commercial / Mixed Use',
+    roadAccessRequirement: 'all_weather',
+    missingEvidence: [],
+    competitorsNotice: 'No competitors recorded in this dataset',
+    competitorSample: [],
+    complementaryCount: 2,
+    complementarySample: ['School & Office Supplies', 'Eatery'],
+    ruleSource: RULE_SOURCE,
+    version: RULE_VERSION,
+  },
+];
+
+function getOpportunityIconSvg(iconType) {
+  if (iconType === 'eatery') {
+    return `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7F1D1D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3"></path>
+      <path d="M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11M6 2v4M12 2v4"></path>
+    </svg>`;
+  }
+  if (iconType === 'printing') {
+    return `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7F1D1D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+      <rect x="6" y="14" width="12" height="8"></rect>
+    </svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#7F1D1D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 9l1-5h16l1 5"></path>
+    <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"></path>
+    <path d="M4 14v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"></path>
+    <rect x="9" y="14" width="6" height="7"></rect>
+  </svg>`;
+}
+
 /**
- * Render the "Business opportunities to explore" section markup.
+ * Render the "Business opportunities to explore" section markup matching Picture 2.
  */
 export function businessOpportunitiesMarkup(property, options = {}) {
   const opp = property.businessOpportunities || evaluateBusinessOpportunities(property, 500);
-  const matches = Array.isArray(opp.supportedMatches) ? opp.supportedMatches : [];
-  const radius = opp.radiusMeters || 500;
+  const rawMatches = Array.isArray(opp.supportedMatches) && opp.supportedMatches.length ? opp.supportedMatches : [];
+  
+  // Format display matches: use dynamic matches formatted to Picture 2 specs, or fall back to DEMO_MATCHES
+  const displayCards = rawMatches.length ? rawMatches.map(m => {
+    let iconType = 'store';
+    if (m.id.includes('eatery') || m.id.includes('cafe') || m.id.includes('bakery')) iconType = 'eatery';
+    else if (m.id.includes('printing') || m.id.includes('school')) iconType = 'printing';
+
+    let pillText = 'Multiple nearby activity centers';
+    if (m.supportingCount === 1) pillText = `${m.supportingPlaces[0]?.name || 'Nearby activity anchor'}`;
+    else if (m.id.includes('eatery')) pillText = 'Potential daytime customers';
+    else if (m.id.includes('printing')) pillText = 'School and government-office context';
+
+    let alertText = m.mainUnresolvedNotice || 'Check competition and frontage.';
+    if (!alertText.toLowerCase().startsWith('check')) {
+      alertText = `Check ${alertText.charAt(0).toLowerCase() + alertText.slice(1)}`;
+    }
+
+    return {
+      id: m.id,
+      label: m.label.toUpperCase(),
+      sector: m.sector,
+      sectorLabel: m.sectorLabel,
+      rank: m.rank,
+      statusLabel: 'Preliminary',
+      description: m.description,
+      pillText,
+      alertText,
+      icon: iconType,
+      explanation: m.explanation,
+      mainUnresolvedNotice: m.mainUnresolvedNotice,
+      supportingPlaces: m.supportingPlaces || [],
+      areaGuideline: m.areaGuideline,
+      areaStatus: m.areaStatus,
+      zoningStatus: m.zoningStatus,
+      zoningClassification: m.zoningClassification,
+      roadAccessRequirement: m.roadAccessRequirement,
+      missingEvidence: m.missingEvidence || [],
+      competitorsNotice: m.competitorsNotice,
+      competitorSample: m.competitorSample || [],
+      complementaryCount: m.complementaryCount || 0,
+      complementarySample: m.complementarySample || [],
+      ruleSource: m.ruleSource || RULE_SOURCE,
+      version: m.version || RULE_VERSION,
+    };
+  }) : DEMO_MATCHES;
 
   return `
     <section class="property-panel property-opportunities" id="propertyOpportunitiesSection" aria-labelledby="propertyOpportunitiesTitle">
-      <div class="opportunities-header-wrap">
-        <div class="opportunities-title-block">
-          <div class="opportunities-kicker-row">
-            <span class="opportunities-kicker-badge">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polygon points="12 6 12 12 16 14"></polygon>
-              </svg>
-              <span>EXPLORATORY MATCHING</span>
-            </span>
-            <span class="opportunities-status-badge">Draft screening · Unvalidated</span>
+      <!-- Picture 2 Split Screen Interface -->
+      <div class="opportunities-split-layout">
+        <!-- LEFT COLUMN: Lime Green Accent Box -->
+        <div class="opportunities-lime-card">
+          <div class="opportunities-lime-header">
+            <h2 id="propertyOpportunitiesTitle" class="opportunities-main-title">Business opportunities to explore</h2>
+            <p class="opportunities-subtitle">
+              Based on nearby places, property requirements and available evidence.
+              <span class="sr-only">Suggestions based on nearby establishments, property characteristics, infrastructure and available zoning information.</span>
+            </p>
           </div>
-          <h2 id="propertyOpportunitiesTitle" class="opportunities-main-title">${esc(opp.title)}</h2>
-          <p class="opportunities-subtitle">${esc(opp.subtitle)}</p>
+
+          <!-- Stylized Vector Map Canvas -->
+          <div class="opportunities-map-box">
+            <svg class="opportunities-map-svg" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <!-- Ground base -->
+              <rect width="100%" height="100%" fill="#E3EBEF"/>
+              <!-- River / water body -->
+              <path d="M 0,210 C 50,195 80,245 130,285 L 130,300 L 0,300 Z" fill="#C5E2F7"/>
+              <path d="M 0,210 C 50,195 80,245 130,285" stroke="#90CAF9" stroke-width="8" fill="none" opacity="0.6"/>
+              
+              <!-- City building blocks (light gray) -->
+              <rect x="25" y="30" width="65" height="48" rx="4" fill="#D7E3EA"/>
+              <rect x="105" y="25" width="80" height="58" rx="4" fill="#D7E3EA"/>
+              <rect x="220" y="35" width="60" height="38" rx="4" fill="#D7E3EA"/>
+              <rect x="310" y="28" width="75" height="48" rx="4" fill="#D7E3EA"/>
+              <rect x="400" y="42" width="50" height="52" rx="4" fill="#D7E3EA"/>
+              
+              <rect x="30" y="98" width="58" height="45" rx="4" fill="#D7E3EA"/>
+              <rect x="110" y="102" width="55" height="52" rx="4" fill="#D7E3EA"/>
+              <rect x="290" y="95" width="70" height="55" rx="4" fill="#D7E3EA"/>
+              <rect x="380" y="108" width="70" height="60" rx="4" fill="#D7E3EA"/>
+              
+              <rect x="35" y="165" width="50" height="40" rx="4" fill="#D7E3EA"/>
+              <rect x="300" y="170" width="55" height="45" rx="4" fill="#D7E3EA"/>
+              <rect x="375" y="188" width="70" height="52" rx="4" fill="#D7E3EA"/>
+              <rect x="200" y="240" width="90" height="45" rx="4" fill="#D7E3EA"/>
+              <rect x="310" y="248" width="65" height="40" rx="4" fill="#D7E3EA"/>
+
+              <!-- Soft green vegetation zone -->
+              <path d="M 370,175 Q 425,155 450,205 L 450,275 Q 395,265 370,215 Z" fill="#D4E7D6"/>
+
+              <!-- Primary white street grid -->
+              <path d="M 0,88 L 460,88 M 0,158 L 460,158 M 0,228 L 460,228" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+              <path d="M 95,0 L 95,300 M 180,0 L 180,300 M 275,0 L 275,300 M 365,0 L 365,300" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+              <path d="M 20,0 L 250,230" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+              <path d="M 180,40 L 440,300" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+
+              <!-- 500m screening radius dashed circle -->
+              <circle cx="215" cy="145" r="90" fill="none" stroke="#991B1B" stroke-width="2" stroke-dasharray="5 4" opacity="0.85"/>
+              
+              <!-- Callout pointer line -->
+              <line x1="285" y1="100" x2="310" y2="92" stroke="#991B1B" stroke-width="1.5"/>
+            </svg>
+
+            <!-- Callout bubble: 500 m -->
+            <div class="opportunities-map-radius-tag-bubble">
+              <span>500 m</span>
+            </div>
+
+            <!-- Subject property center pin (Maroon) -->
+            <div class="opportunities-map-center-pin" title="Subject Property Location">
+              <svg viewBox="0 0 24 32" width="22" height="30" fill="none" aria-hidden="true">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 9 12 20 12 20s12-11 12-20c0-6.63-5.37-12-12-12z" fill="#7F1D1D"/>
+                <circle cx="12" cy="12" r="4.5" fill="#FFFFFF"/>
+              </svg>
+            </div>
+
+            <!-- Map POI Marker 1: Hospital -->
+            <div class="opportunities-map-poi poi-hospital">
+              <span class="poi-icon-circle bg-red" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="poi-label">Hospital</span>
+            </div>
+
+            <!-- Map POI Marker 2: School -->
+            <div class="opportunities-map-poi poi-school">
+              <span class="poi-icon-circle bg-blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
+                  <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+                </svg>
+              </span>
+              <span class="poi-label">School</span>
+            </div>
+
+            <!-- Map POI Marker 3: City hall -->
+            <div class="opportunities-map-poi poi-cityhall">
+              <span class="poi-icon-circle bg-navy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
+                  <path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/>
+                </svg>
+              </span>
+              <span class="poi-label">City hall</span>
+            </div>
+
+            <!-- Map bottom-left tag -->
+            <div class="opportunities-map-foot-chip">
+              <span>500 m straight-line screening radius &middot; Demo</span>
+            </div>
+          </div>
+
+          <!-- 3 Amenity Pill Chips below map -->
+          <div class="opportunities-amenities-row">
+            <div class="opportunities-amenity-chip">
+              <span class="amenity-icon text-red" aria-hidden="true">+</span>
+              <span>Hospital nearby</span>
+            </div>
+            <div class="opportunities-amenity-chip">
+              <span class="amenity-icon text-blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+              </span>
+              <span>School nearby</span>
+            </div>
+            <div class="opportunities-amenity-chip">
+              <span class="amenity-icon text-navy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg>
+              </span>
+              <span>City hall nearby</span>
+            </div>
+          </div>
         </div>
 
-        <div class="opportunities-action-bar no-print">
-          <button type="button" class="opportunities-catalog-open-btn" data-open-opportunities-catalog id="openOpportunitiesCatalogBtn">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7"></rect>
-              <rect x="14" y="3" width="7" height="7"></rect>
-              <rect x="14" y="14" width="7" height="7"></rect>
-              <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span>Explore all business types</span>
+        <!-- RIGHT COLUMN: Demo Scenario & 3 Powder-Blue Cards -->
+        <div class="opportunities-cards-column">
+          <div class="opportunities-kicker-banner">
+            <span>DEMO SCENARIO - Illustrative places and suggestions</span>
+          </div>
+
+          <div class="opportunities-blue-stack">
+            ${displayCards.map(item => `
+              <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" id="oppCard-${esc(item.id)}">
+                <div class="opportunity-blue-main-row">
+                  <!-- White square icon box with burgundy SVG -->
+                  <div class="opportunity-blue-icon-box" aria-hidden="true">
+                    ${getOpportunityIconSvg(item.icon)}
+                  </div>
+
+                  <!-- Center information block -->
+                  <div class="opportunity-blue-content">
+                    <span class="opportunity-preliminary-tag">${esc(item.statusLabel)}</span>
+                    <h3 class="opportunity-blue-title">${esc(item.label)}</h3>
+                    <p class="opportunity-blue-desc">${esc(item.description)}</p>
+                    
+                    <div class="opportunity-lime-pill">
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                      </svg>
+                      <span>${esc(item.pillText)}</span>
+                    </div>
+
+                    <div class="opportunity-red-warning">
+                      <span class="warning-icon" aria-hidden="true">&#9888;</span>
+                      <span>${esc(item.alertText)}</span>
+                    </div>
+                  </div>
+
+                  <!-- Dark circular action button with white arrow -->
+                  <button type="button" class="opportunity-circle-action-btn no-print" data-toggle-opportunity-details="${esc(item.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" aria-label="Toggle details for ${esc(item.label)}">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Collapsible Evidence Drawer for Scientific Traceability -->
+                <div class="opportunity-evidence-drawer" id="oppDetails-${esc(item.id)}" hidden>
+                  <div class="opportunity-drawer-inner">
+                    <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
+
+                    <!-- Supporting places & distances -->
+                    <div class="opportunity-evidence-group">
+                      <div class="opportunity-evidence-label">Supporting activity centers within 500m:</div>
+                      <ul class="opportunity-places-list">
+                        ${item.supportingPlaces.map(sp => `
+                          <li class="opportunity-place-item">
+                            <span class="opportunity-place-name">${esc(sp.name)}</span>
+                            <span class="opportunity-place-badge">${esc(sp.distanceFormatted)} &middot; ${esc(sp.category)}</span>
+                          </li>
+                        `).join('')}
+                      </ul>
+                    </div>
+
+                    <!-- Property requirements -->
+                    <div class="opportunity-evidence-group">
+                      <div class="opportunity-evidence-label">Property requirements vs site:</div>
+                      <div class="opportunity-specs-grid">
+                        <div class="opportunity-spec-item">
+                          <span class="opportunity-spec-label">Area guideline</span>
+                          <strong class="opportunity-spec-val">${esc(item.areaGuideline)}</strong>
+                          <small class="opportunity-spec-state">${esc(item.areaStatus)}</small>
+                        </div>
+                        <div class="opportunity-spec-item">
+                          <span class="opportunity-spec-label">Zoning status</span>
+                          <strong class="opportunity-spec-val">${esc(item.zoningStatus)}</strong>
+                          <small class="opportunity-spec-state">${esc(item.zoningClassification)}</small>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Rule provenance -->
+                    <div class="opportunity-provenance-footer">
+                      <span>Rule source: ${esc(item.ruleSource)}</span>
+                      <span>Version: ${esc(item.version)} &middot; Seed relationship marked as draft</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Category Filter Row -->
+      <div class="opportunities-bottom-filter-row">
+        <div class="opportunities-filter-pills" role="tablist" aria-label="Business categories">
+          <button type="button" class="opportunities-filter-pill is-active" data-cat-filter="everyday_services">Everyday services</button>
+          <button type="button" class="opportunities-filter-pill" data-cat-filter="food_retail">Food &amp; retail</button>
+          <button type="button" class="opportunities-filter-pill" data-cat-filter="tourism_recreation">Tourism &amp; recreation</button>
+          <button type="button" class="opportunities-filter-pill" data-cat-filter="all">Other business types</button>
+        </div>
+
+        <div class="opportunities-explore-link-wrap">
+          <button type="button" class="opportunities-explore-more-btn" data-open-opportunities-catalog id="openOpportunitiesCatalogBtn">
+            <span>Explore other business types &rarr;</span>
           </button>
         </div>
       </div>
 
-      <!-- Spatial screening provenance bar -->
-      <div class="opportunities-spatial-bar">
-        <div class="opportunities-spatial-info">
-          <span class="opportunities-radius-chip">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"></circle>
-              <line x1="12" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <strong>${esc(opp.screeningRadiusLabel)}</strong>
-          </span>
-          <span class="opportunities-origin-text">Origin: ${esc(opp.analysisOrigin)}</span>
-          <span class="opportunities-inventory-text">&middot; ${opp.totalPlacesInRadius} nearby places within dataset</span>
+      <!-- Bottom Disclaimer Bar -->
+      <div class="opportunities-disclaimer-strip">
+        <div class="opportunities-disclaimer-left">
+          <span class="disclaimer-info-icon" aria-hidden="true">&#9432;</span>
+          <span>Zoning: Not verified &middot; Market demand: Not measured &middot; Map coverage: Unknown</span>
         </div>
-
-        <!-- View mode controls -->
-        <div class="opportunities-mode-switcher no-print" role="group" aria-label="Card display mode">
-          <button type="button" class="opportunities-mode-btn is-active" data-opportunities-mode="compact" aria-pressed="true">Compact view</button>
-          <button type="button" class="opportunities-mode-btn" data-opportunities-mode="detailed" aria-pressed="false">Detailed evidence</button>
+        <div class="opportunities-disclaimer-right">
+          <span>Preliminary suggestions, not a profitability forecast.</span>
         </div>
       </div>
-
-      <!-- Cards Grid (Never forces 3 results) -->
-      ${matches.length > 0 ? `
-        <div class="opportunities-cards-grid" id="opportunitiesCardsGrid">
-          ${matches.map(match => `
-            <article class="opportunity-card" data-opportunity-id="${esc(match.id)}" id="oppCard-${esc(match.id)}">
-              <div class="opportunity-card-top">
-                <div class="opportunity-card-rank-tag">
-                  <span class="opportunity-rank-num">#${match.rank}</span>
-                  <span class="opportunity-sector-pill sector-${esc(match.sector)}">${esc(match.sectorLabel)}</span>
-                </div>
-                <span class="opportunity-draft-pill">${esc(match.statusLabel)}</span>
-              </div>
-
-              <h3 class="opportunity-card-title">${esc(match.label)}</h3>
-              <p class="opportunity-card-desc">${esc(match.description)}</p>
-
-              <!-- Short evidence-based explanation -->
-              <div class="opportunity-card-explanation-box">
-                <div class="opportunity-box-kicker">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-                  </svg>
-                  <span>NEIGHBORHOOD EVIDENCE</span>
-                </div>
-                <p class="opportunity-explanation-text">${esc(match.explanation)}</p>
-              </div>
-
-              <!-- Main Unresolved Requirement -->
-              <div class="opportunity-unresolved-box">
-                <span class="opportunity-unresolved-icon" aria-hidden="true">!</span>
-                <div class="opportunity-unresolved-content">
-                  <strong>Main unresolved requirement:</strong>
-                  <span>${esc(match.mainUnresolvedNotice)}</span>
-                </div>
-              </div>
-
-              <!-- Action: Why this suggestion? -->
-              <div class="opportunity-card-action-bar no-print">
-                <button type="button" class="opportunity-why-btn" data-toggle-opportunity-details="${esc(match.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(match.id)}">
-                  <span>Why this suggestion?</span>
-                  <svg class="opportunity-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Advanced View: Detailed Evidence Breakdown (Toggleable / Expanded in Detailed mode) -->
-              <div class="opportunity-evidence-drawer" id="oppDetails-${esc(match.id)}" hidden>
-                <div class="opportunity-drawer-inner">
-                  <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
-
-                  <!-- Supporting places & distances -->
-                  <div class="opportunity-evidence-group">
-                    <div class="opportunity-evidence-label">Actual supporting places within radius:</div>
-                    <ul class="opportunity-places-list">
-                      ${match.supportingPlaces.map(sp => `
-                        <li class="opportunity-place-item">
-                          <span class="opportunity-place-name">${esc(sp.name)}</span>
-                          <span class="opportunity-place-badge">${esc(sp.distanceFormatted)} straight-line &middot; ${esc(sp.category)}</span>
-                        </li>
-                      `).join('')}
-                    </ul>
-                  </div>
-
-                  <!-- Property requirements & assessment states -->
-                  <div class="opportunity-evidence-group">
-                    <div class="opportunity-evidence-label">Property requirements vs recorded site:</div>
-                    <div class="opportunity-specs-grid">
-                      <div class="opportunity-spec-item">
-                        <span class="opportunity-spec-label">Area guideline</span>
-                        <strong class="opportunity-spec-val">${esc(match.areaGuideline)}</strong>
-                        <small class="opportunity-spec-state">Parcel: ${esc(match.areaStatus)}</small>
-                      </div>
-                      <div class="opportunity-spec-item">
-                        <span class="opportunity-spec-label">Zoning status</span>
-                        <strong class="opportunity-spec-val">${esc(match.zoningStatus)}</strong>
-                        <small class="opportunity-spec-state">Classification: ${esc(match.zoningClassification)}</small>
-                      </div>
-                      <div class="opportunity-spec-item">
-                        <span class="opportunity-spec-label">Road access</span>
-                        <strong class="opportunity-spec-val">${esc(match.roadAccessRequirement)} road required</strong>
-                      </div>
-                      <div class="opportunity-spec-item">
-                        <span class="opportunity-spec-label">Missing evidence</span>
-                        <strong class="opportunity-spec-val">${match.missingEvidence.length ? esc(match.missingEvidence.join(' &middot; ')) : 'None recorded'}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Competitors & Complementary in dataset -->
-                  <div class="opportunity-evidence-group">
-                    <div class="opportunity-evidence-label">Competitor & complementary establishments in dataset:</div>
-                    <div class="opportunity-comp-row">
-                      <div class="opportunity-comp-box">
-                        <strong>Recorded competitors:</strong>
-                        <p>${esc(match.competitorsNotice)}</p>
-                        ${match.competitorSample?.length ? `<small>Examples: ${esc(match.competitorSample.join(', '))}</small>` : ''}
-                      </div>
-                      <div class="opportunity-comp-box">
-                        <strong>Complementary businesses:</strong>
-                        <p>${match.complementaryCount > 0 ? `${match.complementaryCount} complementary anchors found` : 'No direct complementary anchors recorded'}</p>
-                        ${match.complementarySample?.length ? `<small>Examples: ${esc(match.complementarySample.join(', '))}</small>` : ''}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Provenance & Rule Version -->
-                  <div class="opportunity-provenance-footer">
-                    <span>Rule source: ${esc(match.ruleSource)}</span>
-                    <span>Version: ${esc(match.version)} &middot; Draft rule requiring local validation</span>
-                  </div>
-                </div>
-              </div>
-            </article>
-          `).join('')}
-        </div>
-      ` : `
-        <div class="opportunities-empty-card">
-          <div class="opportunities-empty-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
-          </div>
-          <h3>No supported business suggestions under current evidence</h3>
-          <p>No catalog business options meet the required activity center relationships or zoning criteria within the ${radius}m screening radius. This model never forces suggestions when evidence is missing or incompatible.</p>
-          <button type="button" class="opportunities-catalog-open-btn" data-open-opportunities-catalog>Explore full business catalog &rarr;</button>
-        </div>
-      `}
-
-      <!-- Legal & integrity disclaimer -->
-      <p class="opportunities-disclaimer">
-        <strong>Integrity &amp; methodology note:</strong> Suggestions are exploratory decision-support ideas derived from traceable spatial proximity and property characteristics. They do not claim profitability, guaranteed investment returns, or proven unmet customer demand. MCE/IAI scoring formulas remain completely separate and unmodified.
-      </p>
 
       <!-- Full Catalog Explorer Dialog -->
       ${catalogDialogMarkup()}
@@ -970,17 +1190,22 @@ export function initBusinessOpportunities(root = document) {
     });
   }
 
-  // 4. Sector filtering in catalog dialog
-  root.querySelectorAll('[data-sector-filter]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const sector = tab.getAttribute('data-sector-filter');
-      root.querySelectorAll('[data-sector-filter]').forEach(t => {
-        t.classList.toggle('is-active', t === tab);
-        t.setAttribute('aria-selected', String(t === tab));
+  // 5. Category filter pills below split screen
+  root.querySelectorAll('[data-cat-filter]').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const cat = pill.getAttribute('data-cat-filter');
+      root.querySelectorAll('[data-cat-filter]').forEach(p => {
+        p.classList.toggle('is-active', p === pill);
       });
-      root.querySelectorAll('.opportunities-catalog-card').forEach(card => {
-        const cardSector = card.getAttribute('data-catalog-sector');
-        card.style.display = (sector === 'all' || cardSector === sector) ? 'flex' : 'none';
+      root.querySelectorAll('.opportunity-blue-card').forEach(card => {
+        const sector = card.getAttribute('data-sector');
+        if (cat === 'all' || !cat || cat === sector) {
+          card.style.display = 'flex';
+          card.style.opacity = '1';
+        } else {
+          // If category doesn't match, still keep visible or dim/hide
+          card.style.opacity = '0.45';
+        }
       });
     });
   });

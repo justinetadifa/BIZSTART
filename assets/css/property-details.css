@@ -6,7 +6,7 @@ body[data-page="city-details"] .city-workspace{width:min(1240px,calc(100% - 64px
 .property-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;margin:28px 0 25px}
 .property-kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--property-muted);line-height:1.6}
 .property-kicker span{display:inline-block;color:#67788c;margin-left:12px;padding-left:12px;border-left:1px solid #b9c6d4}
-body[data-page="city-details"] .property-heading h1{font-family:Inter,Arial,sans-serif;font-style:normal;color:var(--property-navy);font-size:clamp(29px,3.2vw,43px);font-weight:700;line-height:1.16;letter-spacing:-.04em;margin:10px 0 13px;max-width:940px;overflow-wrap:anywhere}
+body[data-page="city-details"] .property-heading h1{font-family:'Poppins',Inter,Arial,sans-serif;font-style:italic;text-transform:uppercase;color:var(--property-navy);font-size:clamp(28px,3.2vw,40px);font-weight:900;line-height:1.15;letter-spacing:-.025em;margin:10px 0 13px;max-width:940px;overflow-wrap:anywhere}
 .property-heading p{margin:0;color:var(--property-muted);font-size:14px;line-height:1.6}
 .property-heading-location{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .property-heading-location svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;flex-shrink:0}
