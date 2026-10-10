@@ -58,7 +58,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     </div>
 
     <!-- Floating Stats Widget -->
-    <div class="priority-stats-widget tw-bg-white tw-rounded-2xl tw-shadow-xl tw-p-3.5 sm:tw-p-4 tw-border tw-border-slate-100 tw-text-slate-800 tw-shrink-0">
+    <div class="priority-stats-widget tw-bg-white tw-rounded-[24px] tw-shadow-xl tw-p-4 sm:tw-p-5 tw-border tw-border-slate-100 tw-text-slate-800 tw-shrink-0">
       <div class="priority-stat-primary tw-flex tw-items-center tw-gap-3">
         <div class="tw-text-[#9E1B22] tw-shrink-0 tw-p-1">
           <svg class="tw-w-6 sm:tw-w-7 tw-h-6 sm:tw-h-7" fill="currentColor" viewBox="0 0 24 24">
@@ -262,26 +262,26 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     </button>
   </form>
   <?php elseif ($mode === 'ranking'): ?>
-  <form class="tw-bg-white tw-rounded-2xl tw-border tw-border-slate-200/90 tw-shadow-sm tw-p-3 sm:tw-p-4 tw-flex tw-flex-wrap lg:tw-flex-nowrap tw-items-end tw-gap-3 sm:tw-gap-4 tw-mb-5" id="cityFilters" role="search" aria-label="Refine listings">
+  <form class="tw-bg-white tw-rounded-[24px] tw-border tw-border-slate-200/80 tw-shadow-[0_4px_24px_-2px_rgba(17,34,77,0.05)] tw-p-4 sm:tw-p-5 tw-flex tw-flex-wrap lg:tw-flex-nowrap tw-items-end tw-gap-3.5 sm:tw-gap-4 tw-mb-6" id="cityFilters" role="search" aria-label="Refine listings">
     <!-- Search -->
-    <div class="tw-relative tw-flex-1 tw-min-w-[220px]">
-      <div class="tw-absolute tw-left-3.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+    <div class="tw-relative tw-flex-1 tw-min-w-[240px]">
+      <div class="tw-absolute tw-left-4 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
         <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <circle cx="11" cy="11" r="7"/>
           <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3"/>
         </svg>
       </div>
-      <input id="citySearch" type="search" placeholder="Search property, barangay, or keyword..." autocomplete="off" class="tw-w-full tw-pl-10 tw-pr-3.5 tw-py-2.5 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-text-slate-800 tw-bg-white placeholder:tw-text-slate-400 focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-1 focus:tw-ring-[#9E1B22] tw-transition-all">
+      <input id="citySearch" type="search" placeholder="Search property, barangay, or keyword..." autocomplete="off" class="tw-w-full tw-pl-11 tw-pr-4 tw-py-2.5 tw-rounded-full tw-border tw-border-slate-200 tw-text-sm tw-text-slate-800 tw-bg-slate-50/70 placeholder:tw-text-slate-400 hover:tw-border-slate-300 focus:tw-bg-white focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-2 focus:tw-ring-[#9E1B22]/15 tw-transition-all">
     </div>
 
     <!-- Category -->
     <div class="tw-w-full sm:tw-w-auto sm:tw-min-w-[160px]">
-      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1">Category</span>
+      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1.5 tw-ml-1">Category</span>
       <div class="tw-relative">
-        <select id="cityCategory" class="tw-w-full tw-pl-3 tw-pr-8 tw-py-2.5 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <select id="cityCategory" class="tw-w-full tw-pl-4 tw-pr-9 tw-py-2.5 tw-rounded-full tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-slate-50/70 hover:tw-bg-white hover:tw-border-slate-300 focus:tw-bg-white focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-2 focus:tw-ring-[#9E1B22]/15 tw-appearance-none tw-cursor-pointer tw-transition-all">
           <option value="">All categories</option>
         </select>
-        <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <div class="tw-absolute tw-right-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
           </svg>
@@ -291,12 +291,12 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 
     <!-- Subcategory -->
     <div class="tw-w-full sm:tw-w-auto sm:tw-min-w-[170px]">
-      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1">Subcategory</span>
+      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1.5 tw-ml-1">Subcategory</span>
       <div class="tw-relative">
-        <select id="citySubcategory" disabled class="tw-w-full tw-pl-3 tw-pr-8 tw-py-2.5 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-all">
+        <select id="citySubcategory" disabled class="tw-w-full tw-pl-4 tw-pr-9 tw-py-2.5 tw-rounded-full tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-slate-50/70 hover:tw-bg-white hover:tw-border-slate-300 focus:tw-bg-white focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-2 focus:tw-ring-[#9E1B22]/15 tw-appearance-none tw-cursor-pointer disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-all">
           <option value="">All subcategories</option>
         </select>
-        <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <div class="tw-absolute tw-right-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
           </svg>
@@ -306,9 +306,9 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 
     <!-- Sort by -->
     <div class="tw-w-full sm:tw-w-auto sm:tw-min-w-[190px]">
-      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1">Sort by</span>
+      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1.5 tw-ml-1">Sort by</span>
       <div class="tw-relative">
-        <select id="citySort" class="tw-w-full tw-pl-3 tw-pr-8 tw-py-2.5 tw-rounded-xl tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-white hover:tw-border-slate-300 focus:tw-outline-none focus:tw-border-[#9E1B22] tw-appearance-none tw-cursor-pointer tw-transition-all">
+        <select id="citySort" class="tw-w-full tw-pl-4 tw-pr-9 tw-py-2.5 tw-rounded-full tw-border tw-border-slate-200 tw-text-sm tw-font-medium tw-text-slate-700 tw-bg-slate-50/70 hover:tw-bg-white hover:tw-border-slate-300 focus:tw-bg-white focus:tw-outline-none focus:tw-border-[#9E1B22] focus:tw-ring-2 focus:tw-ring-[#9E1B22]/15 tw-appearance-none tw-cursor-pointer tw-transition-all">
           <option value="iai" data-investor-advanced-sort>IAI score (High to Low)</option>
           <option value="mce" data-investor-advanced-sort>MCE score (High to Low)</option>
           <option value="price_asc">Sale price: Low to High (unknown last)</option>
@@ -316,7 +316,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
           <option value="area">Area: Largest</option>
           <option value="newest" selected>Newest</option>
         </select>
-        <div class="tw-absolute tw-right-2.5 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
+        <div class="tw-absolute tw-right-3 tw-top-1/2 tw--translate-y-1/2 tw-pointer-events-none tw-text-slate-400">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
           </svg>
@@ -326,14 +326,14 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 
     <!-- View Switcher -->
     <div class="tw-w-full sm:tw-w-auto">
-      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1">View</span>
-      <div class="tw-inline-flex tw-items-center tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50/80 tw-p-1" role="group" aria-label="View layout">
-        <button type="button" id="priorityViewList" class="tw-p-1.5 tw-rounded-lg tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-transition-all" aria-pressed="true" title="List view">
+      <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500 tw-mb-1.5 tw-ml-1">View</span>
+      <div class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-slate-200 tw-bg-slate-100/80 tw-p-1" role="group" aria-label="View layout">
+        <button type="button" id="priorityViewList" class="tw-p-2 tw-rounded-full tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-shadow-xs tw-transition-all" aria-pressed="true" title="List view">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
         </button>
-        <button type="button" id="priorityViewGrid" class="tw-p-1.5 tw-rounded-lg tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all" aria-pressed="false" title="Grid view">
+        <button type="button" id="priorityViewGrid" class="tw-p-2 tw-rounded-full tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all" aria-pressed="false" title="Grid view">
           <svg class="tw-w-4 tw-h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
           </svg>
@@ -361,9 +361,16 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
   <?php endif; ?>
   <?php endif; ?>
 
-  <div class="city-compare-tray" id="cityCompareTray" hidden>
-    <span id="cityCompareCount"></span>
-    <a class="city-button city-button-small" href="<?= $e(sfc_path('/compare-decision.php')) ?>">Compare</a>
+  <div class="city-compare-tray tw-bg-white tw-rounded-[24px] tw-border tw-border-slate-200/90 tw-shadow-[0_8px_24px_-4px_rgba(17,34,77,0.06)] tw-p-3.5 sm:tw-px-6 sm:tw-py-4 tw-flex tw-items-center tw-justify-between tw-gap-4 tw-mb-6" id="cityCompareTray" hidden>
+    <div class="tw-flex tw-items-center tw-gap-2.5">
+      <span class="tw-w-7 tw-h-7 tw-rounded-full tw-bg-blue-50 tw-text-[#11224D] tw-flex tw-items-center tw-justify-center tw-shrink-0">
+        <svg class="tw-w-3.5 tw-h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+      </span>
+      <span id="cityCompareCount" class="tw-text-xs sm:tw-text-sm tw-font-semibold tw-text-slate-800"></span>
+    </div>
+    <a class="city-button city-button-small locus-compare-tray-btn tw-rounded-full tw-bg-[#8B151B] hover:tw-bg-[#731015] tw-text-white tw-font-bold tw-text-xs sm:tw-text-sm tw-px-5 sm:tw-px-6 tw-py-2 tw-shadow-sm hover:tw-shadow tw-transition-all tw-no-underline" href="<?= $e(sfc_path('/compare-decision.php')) ?>">Compare</a>
   </div>
 
   <?php if ($mode === 'explorer'): ?>

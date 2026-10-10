@@ -3,13 +3,13 @@
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const number = value => new Intl.NumberFormat('en-PH', {maximumFractionDigits: 2}).format(value);
   const actions = {
-    spatial_accessibility: ['Confirm road frontage and access evidence.', 'Confirm', 'access'],
-    infrastructure_readiness: ['Confirm electricity, water, and internet.', 'Confirm', 'access'],
-    economic_viability: ['Add a dated BIR zonal reference.', 'Add reference', 'valuation'],
-    nearby_businesses: ['Run the radar and check inventory coverage.', 'Run radar', 'radar'],
-    zoning_compatibility: ['Add the parcel zoning and CLUP source.', 'Add evidence', 'landuse'],
-    risk_constraints: ['Review hazard layers and parcel coverage.', 'Review', 'hazards'],
-    environmental_safety: ['Add environmental classification evidence.', 'Add evidence', 'landuse'],
+    spatial_accessibility: ['Confirm road frontage and access evidence.', 'Confirm', 'spatial_accessibility'],
+    infrastructure_readiness: ['Confirm electricity, water, and internet.', 'Confirm', 'infrastructure_readiness'],
+    economic_viability: ['Add a dated BIR zonal reference.', 'Add reference', 'economic_viability'],
+    nearby_businesses: ['Run the radar and check inventory coverage.', 'Run radar', 'nearby_businesses'],
+    zoning_compatibility: ['Add the parcel zoning and CLUP source.', 'Add evidence', 'zoning_compatibility'],
+    risk_constraints: ['Review hazard layers and parcel coverage.', 'Review', 'risk_constraints'],
+    environmental_safety: ['Add environmental classification evidence.', 'Add evidence', 'environmental_safety'],
   };
   const labels = {spatial_accessibility:'Spatial accessibility',infrastructure_readiness:'Infrastructure readiness',economic_viability:'Economic viability',nearby_businesses:'Nearby businesses',zoning_compatibility:'Zoning compatibility',risk_constraints:'Risk constraints',environmental_safety:'Environmental safety'};
   const businessRoles = {
@@ -40,26 +40,184 @@
     const all = selector => [...form.querySelectorAll(selector)];
     const field = name => form.elements[name];
     const value = name => field(name)?.value || '';
-    const purposeLabel = () => ({sale:'For Sale',lease:'For Lease',sale_or_lease:'For Sale or Lease'})[value('listing_purpose')] || 'For Sale';
-    function syncPricing() {
-      const purpose = value('listing_purpose') || 'sale';
-      for (const [selector, shown] of [['[data-sale-price-fields]',purpose !== 'lease'],['[data-lease-price-fields]',purpose !== 'sale']]) {
-        all(selector).forEach(group => {
-          group.hidden = !shown;
-          group.querySelectorAll('input, select').forEach(input => { input.disabled = !shown; });
-        });
+
+    let isLegacyZeroSale = false;
+    let isLegacyZeroLease = false;
+    let propertyApprovalState = 'draft';
+
+    const getListingPurpose = () => form.querySelector('[name="listing_purpose"]:checked')?.value || value('listing_purpose') || 'sale';
+    const purposeLabel = () => ({sale:'For Sale',lease:'For Lease',sale_or_lease:'For Sale or Lease'})[getListingPurpose()] || 'For Sale';
+
+    function validatePricingFields() {
+      const purpose = getListingPurpose();
+      const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
+      const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+      const pInp = $('#pwAskingPrice');
+      const lpInp = $('#pwLeasePrice');
+
+      if (pInp) {
+        if (purpose !== 'lease' && saleMode === 'amount') {
+          const raw = pInp.value.replace(/,/g, '').trim();
+          if (raw !== '' && (!Number.isFinite(Number(raw)) || Number(raw) <= 0)) {
+            pInp.setCustomValidity('Enter a valid positive asking price, or choose Price on request.');
+          } else {
+            pInp.setCustomValidity('');
+          }
+        } else {
+          pInp.setCustomValidity('');
+        }
+      }
+
+      if (lpInp) {
+        if (purpose !== 'sale' && leaseMode === 'amount') {
+          const raw = lpInp.value.replace(/,/g, '').trim();
+          if (raw !== '' && (!Number.isFinite(Number(raw)) || Number(raw) <= 0)) {
+            lpInp.setCustomValidity('Enter a valid positive rental asking price, or choose Price on request.');
+          } else {
+            lpInp.setCustomValidity('');
+          }
+        } else {
+          lpInp.setCustomValidity('');
+        }
       }
     }
-    function askingPriceSummary() {
-      const amount = name => {
-        const raw = value(name).replace(/,/g,'').trim();
-        return raw !== '' && Number.isFinite(Number(raw)) ? `PHP ${number(Number(raw))}` : 'Price on request';
-      };
-      const sale = amount('price');
-      const lease = `${amount('lease_price')} / ${value('lease_price_unit') === 'sqm' ? 'm² / ' : ''}${value('lease_period') || 'month'}`;
-      return value('listing_purpose') === 'lease' ? lease : value('listing_purpose') === 'sale_or_lease' ? `Sale: ${sale} · Lease: ${lease}` : sale;
+
+    function syncPricing() {
+      const purpose = getListingPurpose();
+      const saleShown = purpose !== 'lease';
+      const leaseShown = purpose !== 'sale';
+
+      all('[data-sale-price-fields]').forEach(group => {
+        group.hidden = !saleShown;
+        group.querySelectorAll('input:not([data-photo-file]), select').forEach(input => { input.disabled = !saleShown; });
+      });
+      all('[data-lease-price-fields]').forEach(group => {
+        group.hidden = !leaseShown;
+        group.querySelectorAll('input:not([data-photo-file]), select').forEach(input => { input.disabled = !leaseShown; });
+      });
+
+      // Highlight purpose cards
+      all('[data-purpose-card]').forEach(card => {
+        const radio = card.querySelector('input[type="radio"]');
+        card.classList.toggle('is-active', radio?.checked || radio?.value === purpose);
+      });
+
+      // Sync sale price mode
+      const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
+      all('[data-sale-mode-card]').forEach(card => {
+        const radio = card.querySelector('input[type="radio"]');
+        card.classList.toggle('is-active', radio?.checked || radio?.value === saleMode);
+      });
+      const saleInputWrap = $('[data-sale-price-input-wrap]');
+      if (saleInputWrap) {
+        saleInputWrap.hidden = saleMode !== 'amount';
+        const pInp = $('#pwAskingPrice');
+        if (pInp) pInp.disabled = !saleShown || saleMode !== 'amount';
+      }
+
+      // Sync lease price mode
+      const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+      all('[data-lease-mode-card]').forEach(card => {
+        const radio = card.querySelector('input[type="radio"]');
+        card.classList.toggle('is-active', radio?.checked || radio?.value === leaseMode);
+      });
+      const leaseInputWrap = $('[data-lease-price-input-wrap]');
+      if (leaseInputWrap) {
+        leaseInputWrap.hidden = leaseMode !== 'amount';
+        const lpInp = $('#pwLeasePrice');
+        if (lpInp) lpInp.disabled = !leaseShown || leaseMode !== 'amount';
+      }
+
+      // Legacy zero notices
+      const saleZeroNotice = $('[data-legacy-zero-sale-notice]');
+      if (saleZeroNotice) saleZeroNotice.hidden = !isLegacyZeroSale || !saleShown || saleMode === 'request';
+      const leaseZeroNotice = $('[data-legacy-zero-lease-notice]');
+      if (leaseZeroNotice) leaseZeroNotice.hidden = !isLegacyZeroLease || !leaseShown || leaseMode === 'request';
+
+      validatePricingFields();
     }
-    field('listing_purpose')?.addEventListener('change', syncPricing);
+
+    function formatPriceInput(input) {
+      if (!input) return;
+      const original = input.value;
+      const cursorPos = input.selectionStart || 0;
+      const raw = original.replace(/,/g, '').trim();
+      if (!/^\d*$/.test(raw)) return;
+      if (!raw) { input.value = ''; return; }
+      const formatted = raw.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      input.value = formatted;
+      let newCursorPos = 0, digitsFound = 0;
+      const digitsBeforeCursor = original.slice(0, cursorPos).replace(/\D/g, '').length;
+      for (let i = 0; i < formatted.length; i++) {
+        if (/\d/.test(formatted[i])) digitsFound++;
+        if (digitsFound === digitsBeforeCursor) { newCursorPos = i + 1; break; }
+      }
+      if (input.setSelectionRange) input.setSelectionRange(newCursorPos, newCursorPos);
+    }
+
+    function askingPriceSummary() {
+      const purpose = getListingPurpose();
+
+      function formatSaleSummary() {
+        const saleRadio = form.querySelector('[name="sale_price_mode"]:checked');
+        if (!saleRadio) return 'Price not provided';
+        if (saleRadio.value === 'request') return 'Price on request';
+        if (isLegacyZeroSale) return 'Ambiguous price (PHP 0)';
+        const raw = value('price').replace(/,/g, '').trim();
+        if (raw !== '' && Number.isFinite(Number(raw)) && Number(raw) > 0) {
+          return `PHP ${number(Number(raw))}`;
+        }
+        return 'Price not provided';
+      }
+
+      function formatLeaseSummary() {
+        const leaseRadio = form.querySelector('[name="lease_price_mode"]:checked');
+        if (!leaseRadio) return 'Price not provided';
+        if (leaseRadio.value === 'request') return 'Price on request';
+        if (isLegacyZeroLease) return 'Ambiguous price (PHP 0)';
+        const raw = value('lease_price').replace(/,/g, '').trim();
+        if (raw !== '' && Number.isFinite(Number(raw)) && Number(raw) > 0) {
+          const period = value('lease_period') || 'month';
+          const unit = value('lease_price_unit') === 'sqm' ? 'm² / ' : '';
+          return `PHP ${number(Number(raw))} / ${unit}${period}`;
+        }
+        return 'Price not provided';
+      }
+
+      if (purpose === 'sale') return formatSaleSummary();
+      if (purpose === 'lease') return formatLeaseSummary();
+      if (purpose === 'sale_or_lease') {
+        const saleText = formatSaleSummary();
+        const leaseText = formatLeaseSummary();
+        if (saleText === 'Price not provided' && leaseText === 'Price not provided') return 'Price not provided';
+        if (saleText === 'Price on request' && leaseText === 'Price on request') return 'Price on request';
+        return `Sale: ${saleText} · Lease: ${leaseText}`;
+      }
+      return formatSaleSummary();
+    }
+
+    all('[name="listing_purpose"]').forEach(r => r.addEventListener('change', () => { syncPricing(); preview(); }));
+    all('[name="sale_price_mode"]').forEach(r => r.addEventListener('change', () => {
+      if (r.value === 'request') isLegacyZeroSale = false;
+      syncPricing(); preview();
+    }));
+    all('[name="lease_price_mode"]').forEach(r => r.addEventListener('change', () => {
+      if (r.value === 'request') isLegacyZeroLease = false;
+      syncPricing(); preview();
+    }));
+
+    $('#pwAskingPrice')?.addEventListener('input', event => {
+      formatPriceInput(event.target);
+      if (isLegacyZeroSale) { isLegacyZeroSale = false; }
+      syncPricing();
+      preview();
+    });
+    $('#pwLeasePrice')?.addEventListener('input', event => {
+      formatPriceInput(event.target);
+      if (isLegacyZeroLease) { isLegacyZeroLease = false; }
+      syncPricing();
+      preview();
+    });
     function syncUtilities() {
       for (const util of ['electricity', 'water', 'internet']) {
         const radio = form.querySelector(`[name="${util}"]:checked`);
@@ -106,7 +264,7 @@
       const lat = value(latName), lng = value(lngName);
       return lat !== '' && lng !== '' && Number.isFinite(+lat) && Number.isFinite(+lng) && Math.abs(+lat) <= 90 && Math.abs(+lng) <= 180 ? [+lat,+lng] : null;
     };
-    const notify = text => { const target = $('[data-editor-message]'); if (target) { target.textContent = text; target.classList.remove('is-error'); } };
+    const notify = (text, isError = false) => { const target = $('[data-editor-message]'); if (target) { target.textContent = text; target.classList.toggle('is-error', Boolean(isError)); } };
     async function get(endpoint, signal) {
       const response = await fetch(`${apiBase}/${endpoint}`, {credentials:'same-origin',headers:{Accept:'application/json'},signal});
       const payload = await response.json();
@@ -151,9 +309,52 @@
         });
       });
     }
-    bindTabs('data-evidence-tab', selected => tabs('data-evidence-tab','data-evidence-panel',selected));
+    function selectEvidenceCriterion(selected) {
+      tabs('data-evidence-tab', 'data-evidence-panel', selected);
+      const mobileSelect = $('[data-criteria-mobile-select]');
+      if (mobileSelect && mobileSelect.value !== selected) {
+        mobileSelect.value = selected;
+      }
+    }
+    bindTabs('data-evidence-tab', selectEvidenceCriterion);
+    bindTabs('data-util-tab', selected => tabs('data-util-tab', 'data-util-pane', selected));
+    $('[data-criteria-mobile-select]')?.addEventListener('change', event => {
+      selectEvidenceCriterion(event.target.value);
+    });
     bindTabs('data-review-tab', selected => tabs('data-review-tab','data-review-panel',selected));
     bindTabs('data-radar-tab', selected => { radarTab = selected; tabs('data-radar-tab','data-radar-unused-panel',selected); renderRadarList(); });
+    function updateReviewStatus(located, entered) {
+      const hasBasics = Boolean(value('property_name').trim() && (entered || located));
+      const submitBadge = $('[data-submit-readiness-badge]');
+      if (submitBadge) {
+        submitBadge.textContent = hasBasics ? 'Ready to submit' : 'Essentials needed';
+        submitBadge.className = `pw-badge ${hasBasics ? 'pw-badge-teal' : 'pw-badge-amber'}`;
+      }
+      let count = 0;
+      if (form.querySelector('[name="road_frontage"]:checked')?.value !== 'not_verified' || (value('road_surface') && value('road_surface') !== 'not_verified') || value('access_route_condition') || value('spatial_evidence_source')) count++;
+      if (form.querySelector('[name="electricity"]:checked')?.value !== 'not_verified' || form.querySelector('[name="water"]:checked')?.value !== 'not_verified' || form.querySelector('[name="internet"]:checked')?.value !== 'not_verified' || value('utility_evidence_source')) count++;
+      if (+value('bir_zonal_value') > 0 || value('assessed_market_value') || value('economic_evidence_source')) count++;
+      if (value('nearby_analysis_origin') || value('commercial_corridor') || all('[name="assessmentTags[]"]:checked').length || value('nearby_evidence_source')) count++;
+      if (all('[name="clup_allowed_uses[]"]:checked').length || value('existing_land_use') || value('zoning_classification') || value('clup_source_reference')) count++;
+      if (value('hazard_evidence_source') || located) count++;
+      if (value('environmental_reference') || value('readiness_notes') || value('environmental_evidence_reference')) count++;
+      setText('[data-completeness-count]', `${count} of 7`);
+      const compBadge = $('[data-completeness-badge]');
+      if (compBadge) {
+        compBadge.textContent = `${count}/7 criteria`;
+        compBadge.className = `pw-badge ${count >= 7 ? 'pw-badge-teal' : count >= 3 ? 'pw-badge-sky' : 'pw-badge-amber'}`;
+      }
+    }
+    form.addEventListener('click', event => {
+      if (event.target.closest('[data-trigger-hazard-evidence]')) {
+        const inp = field('hazard_evidence_source');
+        if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+      if (event.target.closest('[data-trigger-env-evidence]')) {
+        const inp = field('environmental_reference');
+        if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+    });
     function preview() {
       syncPricing();
       setText('[data-preview-name]', value('property_name').trim() || 'Your new property');
@@ -164,13 +365,36 @@
       }
       const entered = enteredAreaSqm(), located = point();
       const areaText = entered ? `${number(entered)} m² ${value('area_method') === 'survey' ? 'recorded area' : 'declared area'}` : estimatedArea ? `${number(estimatedArea)} m² plot estimate` : located ? 'Exact location provided · Area not specified' : 'Add an area size or exact location in the next step.';
-      setText('[data-preview-area]',areaText);
+      setText('[data-preview-area]', areaText);
+      const areaValText = estimatedArea ? `${number(estimatedArea)} m²` : (entered ? `${number(entered)} m²` : '—');
+      setText('[data-preview-area-val]', areaValText);
       setText('[data-location-summary]',entered || estimatedArea || located ? `${entered ? `${number(entered)} m² entered` : estimatedArea ? `${number(estimatedArea)} m² estimated` : 'Area not specified'} · ${located ? 'Exact location provided' : 'Location can be added later'}` : 'Add an area or an exact location to continue.');
       $('[data-location-summary]')?.classList.toggle('is-ready',Boolean(entered || estimatedArea || located));
       if ($('[data-boundary-estimate]')) $('[data-boundary-estimate]').hidden = !estimatedArea;
+
+      // Approval state & mobile summary
+      const approvalBadge = $('[data-preview-approval-state]');
+      const mobileMeta = $('[data-preview-toggle-meta]');
+      const stateLabels = {
+        approved: 'Published',
+        pending_review: 'Pending city review',
+        corrections_requested: 'Corrections requested',
+        archived: 'Archived',
+        draft: 'Draft · Not published'
+      };
+      const stateText = stateLabels[propertyApprovalState] || 'Draft · Not published';
+      const stateClass = propertyApprovalState === 'approved' ? 'pw-badge-teal' : propertyApprovalState === 'pending_review' ? 'pw-badge-sky' : propertyApprovalState === 'corrections_requested' ? 'pw-badge-rose' : 'pw-badge-amber';
+      if (approvalBadge) {
+        approvalBadge.className = `pw-badge ${stateClass}`;
+        const span = approvalBadge.querySelector('span') || approvalBadge;
+        span.textContent = `• ${stateText}`;
+      }
+      if (mobileMeta) mobileMeta.textContent = `${stateText} · ${value('status') || 'Available'}`;
+
       const image = $('[data-photo-preview]');
       if (image) {
-        const source = imageObjectUrl || existingImage;
+        const isRemoved = $('[data-remove-image]')?.value === '1';
+        const source = isRemoved ? '' : (imageObjectUrl || existingImage);
         if (image.tagName === 'IMG') { image.hidden = !source; if (source) image.src = source; else image.removeAttribute('src'); }
         else { image.innerHTML = source ? `<img src="${escape(source)}" alt="Property photo">` : emptyPhoto; }
       }
@@ -178,20 +402,96 @@
       if (propertyReview) propertyReview.innerHTML = `<strong>${escape(value('property_name') || 'New property')}</strong><span>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</span><span>${escape(purposeLabel())} · ${escape(askingPriceSummary())}</span><span>${escape(areaText)}${located ? ` · ${number(located[0])}, ${number(located[1])}` : ''}</span>`;
       const summary = $('[data-review-summary]');
       if (summary) summary.innerHTML = `<div><span class="pw-eyebrow">READY FOR REVIEW</span><h3>${escape(value('property_name') || 'New property')}</h3><p>${escape(value('category'))}${value('barangay') ? ` · ${escape(value('barangay'))}` : ''} · ${escape(value('status'))}</p><p>${escape(purposeLabel())} · ${escape(askingPriceSummary())}</p></div><div><strong>${escape(areaText)}</strong><p>${located ? `Location: ${located[0].toFixed(6)}, ${located[1].toFixed(6)}` : 'Exact location not yet specified'}</p></div>`;
+
+      // Sync reused data into Step 3 evidence banners
+      setText('[data-reused-coords]', located ? `${located[0].toFixed(4)}° N, ${located[1].toFixed(4)}° E` : 'Location not yet specified');
+      setText('[data-reused-barangay]', value('barangay') || 'Not specified');
+      setText('[data-reused-area]', entered ? `${number(entered)} m²` : (estimatedArea ? `${number(estimatedArea)} m² (estimated)` : 'Not specified'));
+      setText('[data-reused-area-econ]', entered ? `${number(entered)} m²` : (estimatedArea ? `${number(estimatedArea)} m²` : 'Not specified'));
+      setText('[data-reused-price]', askingPriceSummary());
+      setText('[data-reused-purpose]', purposeLabel());
+      setText('[data-reused-category]', value('category') || 'Vacant Land');
+
+      updateReviewStatus(located, entered);
     }
+
+    function syncPhotoUI() {
+      const isRemoved = $('[data-remove-image]')?.value === '1';
+      const source = isRemoved ? '' : (imageObjectUrl || existingImage);
+      const activeBox = $('[data-photo-active-box]');
+      const dropBox = $('[data-photo-drop]');
+      const thumb = $('[data-photo-thumb]');
+      const removalBadge = $('[data-photo-removal-badge]');
+      if (source) {
+        if (thumb) {
+          thumb.src = source;
+          thumb.classList.toggle('is-staged-removed', isRemoved);
+        }
+        if (activeBox) activeBox.hidden = false;
+        if (dropBox) dropBox.hidden = true;
+        if (removalBadge) removalBadge.hidden = !isRemoved;
+      } else {
+        if (activeBox) activeBox.hidden = true;
+        if (dropBox) dropBox.hidden = false;
+        if (removalBadge) removalBadge.hidden = true;
+      }
+    }
+
     function photo(file) {
       if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
       imageObjectUrl = null;
+      const removeInput = $('[data-remove-image]');
+      if (removeInput) removeInput.value = '0';
+      const removalBadge = $('[data-photo-removal-badge]');
+      if (removalBadge) removalBadge.hidden = true;
+      const thumb = $('[data-photo-thumb]');
+      if (thumb) thumb.classList.remove('is-staged-removed');
+
       if (file) {
-        if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { field('image_file').value = ''; notify('Choose a JPG, PNG, or WEBP property photo.'); preview(); return; }
-        if (file.size > 8 * 1024 * 1024) { field('image_file').value = ''; notify('Choose a photo smaller than 8 MB.'); preview(); return; }
+        if (!['image/jpeg','image/png','image/webp'].includes(file.type)) {
+          field('image_file').value = '';
+          notify('Choose a JPG, PNG, or WEBP property photo.', true);
+          preview();
+          return;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          field('image_file').value = '';
+          notify('Choose a photo smaller than 8 MB.', true);
+          preview();
+          return;
+        }
         imageObjectUrl = URL.createObjectURL(file);
       }
       setText('[data-photo-file-name]', file?.name || 'JPG, PNG or WEBP. Photos are optional.');
+      syncPhotoUI();
       preview();
     }
+
     field('image_file')?.addEventListener('change', event => photo(event.target.files[0]));
+    $('[data-photo-replace]')?.addEventListener('click', () => {
+      field('image_file')?.click();
+    });
+    $('[data-photo-remove]')?.addEventListener('click', () => {
+      if (imageObjectUrl) { URL.revokeObjectURL(imageObjectUrl); imageObjectUrl = null; }
+      if (field('image_file')) field('image_file').value = '';
+      const removeInput = $('[data-remove-image]');
+      if (removeInput) removeInput.value = '1';
+      syncPhotoUI();
+      preview();
+    });
     const drop = $('[data-photo-drop]');
+    drop?.addEventListener('click', event => {
+      const fileInput = field('image_file');
+      if (fileInput && event.target !== fileInput) {
+        fileInput.click();
+      }
+    });
+    drop?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        field('image_file')?.click();
+      }
+    });
     drop?.addEventListener('dragover', event => {event.preventDefault();drop.classList.add('is-dragover');});
     drop?.addEventListener('dragleave', () => drop.classList.remove('is-dragover'));
     drop?.addEventListener('drop', event => {
@@ -1223,6 +1523,11 @@
       }).join('');
       setText('[data-readiness-title]',assessmentValue?.assessmentComplete?'Assessment ready':'IAI not ready');
       setText('[data-readiness-summary]',assessmentValue?.assessmentComplete?'All seven criteria have source evidence. Review the calculated assessment.':'Record the facts and confirm source evidence with the reviewing office.');
+      const assessBadge = $('[data-assessment-readiness-badge]');
+      if (assessBadge) {
+        assessBadge.textContent = assessmentValue?.assessmentComplete ? 'Assessment ready' : 'IAI pending';
+        assessBadge.className = `pw-badge ${assessmentValue?.assessmentComplete ? 'pw-badge-teal' : 'pw-badge-amber'}`;
+      }
     }
     form.addEventListener('sfc:assessment',event=>ready(event.detail));
     form.addEventListener('click',event=>{
@@ -1255,7 +1560,14 @@
       const button=event.target.closest('[data-readiness-target]');if(!button)return;
       const target=button.dataset.readinessTarget;
       if(target==='radar' || target==='boundary')all('[data-editor-step]').find(node=>node.dataset.editorStep===(target==='radar'?'3':'1'))?.click();
-      else{tabs('data-evidence-tab','data-evidence-panel',target);$(`[data-evidence-tab="${target}"]`)?.focus();}
+      else if(actions[target] || ['spatial_accessibility','infrastructure_readiness','economic_viability','nearby_businesses','zoning_compatibility','risk_constraints','environmental_safety'].includes(target)){
+        all('[data-editor-step]').find(node=>node.dataset.editorStep==='2')?.click();
+        selectEvidenceCriterion(target);
+        $(`[data-evidence-tab="${target}"]`)?.focus();
+      } else {
+        selectEvidenceCriterion(target);
+        $(`[data-evidence-tab="${target}"]`)?.focus();
+      }
     });
     function assessmentInputs() {
       const survey=+value('land_area');
@@ -1312,6 +1624,23 @@
       const nearbyData=new FormData();nearbyEditor?.append(nearbyData);
       return {values,step,locationMethod,savedAt:new Date().toISOString(),hasPhoto:Boolean(field('image_file')?.files.length || evidenceFiles?.files.length) || [...nearbyData.keys()].some(key=>key.startsWith('nearby_photo_')),nearby:JSON.parse(nearbyData.get('nearbyProperties') || '[]'),radarEnabled:$('[data-radar-toggle]')?.checked,referenceConfirmed:dirtyReference};
     }
+    function flashDraftSaved() {
+      const status = $('[data-device-draft-status]');
+      if (!status) return;
+      const text = $('[data-device-draft-text]') || status;
+      text.textContent = 'Saved on this device';
+      status.classList.add('is-saved');
+      setTimeout(() => status.classList.remove('is-saved'), 2500);
+    }
+    $('[data-save-draft]')?.addEventListener('click', () => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draft()));
+        flashDraftSaved();
+        notify('Draft saved on this device.');
+      } catch {
+        notify('The browser could not store this draft. Keep the form open.');
+      }
+    });
     $('[data-save-exit]')?.addEventListener('click',()=>{
       try{localStorage.setItem(draftKey,JSON.stringify(draft()));dialog.close();const workspace=document.querySelector('[data-workspace-status]');if(workspace)workspace.textContent='Draft saved on this device. Open the property form to resume.';}
       catch{notify('The browser could not store this draft. Keep the form open and save the property for review.');}
@@ -1328,8 +1657,6 @@
           selectLocationMethod('pin');notify('Provide both valid latitude and longitude, or clear both fields and enter an area size.');
           const target=field(value('lat') === '' || !Number.isFinite(+value('lat')) || Math.abs(+value('lat'))>90 ? 'lat' : 'lng');
           const coordinates=target?.closest('details');if (coordinates) coordinates.open=true;
-          // The controller restores Step 2 after validation. Focus after that
-          // change so its scroll reset cannot leave the coordinate error hidden.
           requestAnimationFrame(() => {if (dialog.open) {target?.focus({preventScroll:true});target?.scrollIntoView({block:'center'});}});
           return false;
         }
@@ -1344,6 +1671,11 @@
       },
       onStep(next){
         step=next;
+        const nextButton = form.querySelector('[data-editor-next]');
+        const nextLabel = nextButton?.querySelector('[data-editor-next-label]') || nextButton;
+        if (nextLabel) {
+          nextLabel.textContent = next === 0 ? 'Continue to location' : 'Continue';
+        }
         if(next===1 && value('barangay') && !point()){
           proceedToBarangay(value('barangay'), false);
         }
@@ -1352,7 +1684,7 @@
         if(next===3)syncRadar();
         if(next===4){assessment?.refresh();matches();}
         if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}
-        if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));}catch{/* Submission still works when browser storage is unavailable. */}}
+        if(dialog.open && next>0){try{localStorage.setItem(draftKey,JSON.stringify(draft()));flashDraftSaved();}catch{/* Submission still works when browser storage is unavailable. */}}
       },
       setProperty(property){
         all('.pw-coordinate-details,.pw-readiness-disclosure,.pw-hazard-disclosure,.pw-details,[data-map-layers]').forEach(details => {details.open=false;});
@@ -1373,6 +1705,57 @@
           field('category').value = property.category;
           syncCategoryTooltip();
         }
+
+        propertyApprovalState = property?.approvalState || property?.approval_state || 'draft';
+        const removeInput = $('[data-remove-image]');
+        if (removeInput) removeInput.value = '0';
+        const removalBadge = $('[data-photo-removal-badge]');
+        if (removalBadge) removalBadge.hidden = true;
+        const thumb = $('[data-photo-thumb]');
+        if (thumb) thumb.classList.remove('is-staged-removed');
+
+        // Preserved availability and publication status
+        if (field('status') && property?.status) {
+          field('status').value = property.status;
+        }
+
+        // Listing purpose radio
+        const propPurpose = property?.listingPurpose || property?.listing_purpose || 'sale';
+        const purpRadio = form.querySelector(`[name="listing_purpose"][value="${propPurpose}"]`);
+        if (purpRadio) purpRadio.checked = true;
+
+        // Legacy zero prices detection
+        isLegacyZeroSale = (property?.price === 0 || property?.salePrice === 0 || property?.price === '0') && property?.price !== null && property?.price !== '';
+        isLegacyZeroLease = (property?.leasePrice === 0 || property?.lease_price === 0 || property?.leasePrice === '0') && property?.leasePrice !== null && property?.leasePrice !== '';
+
+        // Mode radios
+        const obs = property?.parcel?.observations || {};
+        const saleMode = obs.sale_price_mode || (isLegacyZeroSale ? 'amount' : ((property?.price != null && property?.price !== '') ? 'amount' : ((property?.id && property?.price == null) ? 'request' : 'amount')));
+        const sModeRadio = form.querySelector(`[name="sale_price_mode"][value="${saleMode}"]`);
+        if (sModeRadio) sModeRadio.checked = true;
+
+        const leaseMode = obs.lease_price_mode || (isLegacyZeroLease ? 'amount' : ((property?.leasePrice != null && property?.leasePrice !== '') ? 'amount' : ((property?.id && property?.leasePrice == null) ? 'request' : 'amount')));
+        const lModeRadio = form.querySelector(`[name="lease_price_mode"][value="${leaseMode}"]`);
+        if (lModeRadio) lModeRadio.checked = true;
+
+        if (field('price') && property?.price != null && property?.price !== '') {
+          field('price').value = String(property.price);
+          formatPriceInput(field('price'));
+        }
+        if (field('lease_price') && property?.leasePrice != null && property?.leasePrice !== '') {
+          field('lease_price').value = String(property.leasePrice);
+          formatPriceInput(field('lease_price'));
+        }
+        if (field('lease_period') && property?.leasePeriod) {
+          field('lease_period').value = property.leasePeriod;
+        }
+        if (field('lease_price_unit') && property?.leasePriceUnit) {
+          field('lease_price_unit').value = property.leasePriceUnit;
+        }
+
+        syncPhotoUI();
+        syncPricing();
+
         const utils = property?.utilities || {};
         const elec = utils.electricity || parcel?.observations?.electricity || 'not_verified';
         const wat = utils.water || parcel?.observations?.water || 'not_verified';
@@ -1431,12 +1814,12 @@
         }
         draftKey=`locus:property-draft:${config.user?.id || 'staff'}:${property?.id || 'new'}`;
         let restored=null;
-        try{const saved=localStorage.getItem(draftKey);if(saved){restored=JSON.parse(saved);for(const [name,val] of Object.entries(restored.values || {})){const controls=[...form.elements].filter(element=>element.name===name && element.type!=='file');for(const control of controls){if(control.type==='checkbox')control.checked=Array.isArray(val) && val.includes(control.value);else if(control.type==='radio')control.checked=control.value===val;else control.value=val;}}if($('[data-radar-toggle]'))$('[data-radar-toggle]').checked=restored.radarEnabled!==false;boundary=value('boundary')?JSON.parse(value('boundary')):null;dirtyReference=restored.referenceConfirmed===true;notify(`Draft restored from this device.${restored.hasPhoto?' Choose photos and evidence files again before saving.':''}`);}}
-        catch{notify('The saved draft could not be restored. Enter the property details again.');}
+        try{const saved=localStorage.getItem(draftKey);if(saved){restored=JSON.parse(saved);for(const [name,val] of Object.entries(restored.values || {})){const controls=[...form.elements].filter(element=>element.name===name && element.type!=='file');for(const control of controls){if(control.type==='checkbox')control.checked=Array.isArray(val) && val.includes(control.value);else if(control.type==='radio')control.checked=control.value===val;else control.value=val;}}if($('[data-radar-toggle]'))$('[data-radar-toggle]').checked=restored.radarEnabled!==false;boundary=value('boundary')?JSON.parse(value('boundary')):null;dirtyReference=restored.referenceConfirmed===true;formatPriceInput(field('price'));formatPriceInput(field('lease_price'));notify(`Draft restored from this device.${restored.hasPhoto?' Choose photos and evidence files again before saving.':''}`, false);}}
+        catch{notify('The saved draft could not be restored. Enter the property details again.', true);}
         if(boundary && window.turf)estimatedArea=turf.area(boundary);
         selectLocationMethod(restored?.locationMethod || (boundary?'draw':point()?'pin':'area'),false);
         if(boundaryMap && boundary)loadBoundary(boundary);
-        updateBoundary(true);preview();ready();tabs('data-evidence-tab','data-evidence-panel','access');tabs('data-review-tab','data-review-panel','assessment');radarTab='competitors';tabs('data-radar-tab','data-radar-unused-panel','competitors');
+        updateBoundary(true);preview();ready();selectEvidenceCriterion('spatial_accessibility');tabs('data-util-tab','data-util-pane','electricity');tabs('data-review-tab','data-review-panel','assessment');radarTab='competitors';tabs('data-radar-tab','data-radar-unused-panel','competitors');
         setText('[data-photo-file-name]','JPG, PNG or WEBP. Photos are optional.');
         setText('[data-location-status]','Pin the exact property location, enter coordinates, or draw an optional boundary.');
         const searchResults=$('[data-location-results]');if(searchResults)searchResults.innerHTML='';
@@ -1476,12 +1859,35 @@
         };
         data.set('property_type', legacyTypes[cat] || 'commercial');
         data.set('subcategory', Array.from(subcategories).join(', '));
-        const purpose = value('listing_purpose') || 'sale';
+        const purpose = getListingPurpose();
         data.set('listing_purpose', purpose);
-        data.set('price', purpose === 'lease' ? '' : value('price').replace(/,/g,'').trim());
-        data.set('lease_price', purpose === 'sale' ? '' : value('lease_price').replace(/,/g,'').trim());
+
+        const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
+        const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+        data.set('sale_price_mode', saleMode);
+        data.set('lease_price_mode', leaseMode);
+
+        if (purpose === 'lease' || saleMode === 'request') {
+          data.set('price', '');
+        } else {
+          data.set('price', value('price').replace(/,/g,'').trim());
+        }
+
+        if (purpose === 'sale' || leaseMode === 'request') {
+          data.set('lease_price', '');
+        } else {
+          data.set('lease_price', value('lease_price').replace(/,/g,'').trim());
+        }
+
         data.set('lease_period', value('lease_period') || 'month');
         data.set('lease_price_unit', value('lease_price_unit') || 'total');
+
+        const removeVal = $('[data-remove-image]')?.value;
+        if (removeVal === '1') {
+          data.set('remove_image', '1');
+          data.delete('image_file');
+        }
+
         data.set('contactMode', value('contactBrokerUserId') ? 'broker' : 'open_listing');
         data.set('recalculate_assessment', 'true');
         data.set('assessmentTags', JSON.stringify(all('[name="assessmentTags[]"]:checked').map(element=>element.value)));
@@ -1492,6 +1898,9 @@
         data.set('electricity', form.querySelector('[name="electricity"]:checked')?.value || 'not_verified');
         data.set('water', form.querySelector('[name="water"]:checked')?.value || 'not_verified');
         data.set('internet', form.querySelector('[name="internet"]:checked')?.value || 'not_verified');
+        data.set('electricity_status', form.querySelector('[name="electricity"]:checked')?.value || 'not_verified');
+        data.set('water_status', form.querySelector('[name="water"]:checked')?.value || 'not_verified');
+        data.set('internet_status', form.querySelector('[name="internet"]:checked')?.value || 'not_verified');
         data.set('electricity_sources', JSON.stringify(all('[name="electricity_sources[]"]:checked').map(el => el.value)));
         data.set('water_sources', JSON.stringify(all('[name="water_sources[]"]:checked').map(el => el.value)));
         data.set('internet_providers', JSON.stringify(all('[name="internet_providers[]"]:checked').map(el => el.value)));

@@ -1,0 +1,81 @@
+{
+  "reviewDate": "2026-10-10",
+  "renderer": "PlantUML 1.2025.7 with bundled Graphviz; local Java 17",
+  "inspection": "Focused static code review; native rendered images visually inspected. No application end-to-end test is claimed.",
+  "evidenceRows": 28,
+  "codeReferencesExist": true,
+  "exports": [
+    {
+      "name": "figure-2-use-case-overview",
+      "actors": 5,
+      "usecases": 8,
+      "png": {
+        "width": 2240,
+        "height": 3212,
+        "dpi": 319.989,
+        "bytes": 189676
+      },
+      "sha256": {
+        "source": "358a4d5dd72564f4a56f94971abef6cfdc1be0d93a92fa621d7698614fc36454",
+        "svg": "316fc4811d1020443dccc0378ed2f9298f18a43e391f1b3ffb4b0c74e9611fec",
+        "png": "b1fb0962b04368bc16436167c9d7f0e25fd578b976ff60ed407effd24e0f5552"
+      },
+      "checks": [
+        "native actors and ellipses",
+        "actors and actor labels outside boundary",
+        "use cases inside boundary",
+        "no publication decision oval",
+        "valid PNG chunk checksums",
+        "320 DPI physical-size metadata"
+      ]
+    },
+    {
+      "name": "detail-property-submission-assessment",
+      "actors": 2,
+      "usecases": 7,
+      "png": {
+        "width": 2385,
+        "height": 2928,
+        "dpi": 319.989,
+        "bytes": 201544
+      },
+      "sha256": {
+        "source": "541394b2aaa7d4f0e243fa99db3ce101b906248c14703d30cb807ff766e79aaa",
+        "svg": "e2dba69f4e4e95a90e340880cacf2190cc0a524d94acba0abce4074c6e885813",
+        "png": "719097af96400b66fa1095ecc20ab7cd9c3ba6e83de88bc41135fcfafbe6558a"
+      },
+      "checks": [
+        "native actors and ellipses",
+        "actors and actor labels outside boundary",
+        "use cases inside boundary",
+        "no publication decision oval",
+        "valid PNG chunk checksums",
+        "320 DPI physical-size metadata"
+      ]
+    },
+    {
+      "name": "detail-administration",
+      "actors": 4,
+      "usecases": 8,
+      "png": {
+        "width": 2139,
+        "height": 3360,
+        "dpi": 319.989,
+        "bytes": 200327
+      },
+      "sha256": {
+        "source": "e17e533216ea115b17c628c53f88925e272d87a8103dd667a6e3fc0719905cca",
+        "svg": "9e397aaf9eb1ae0fcc55172189d93bc03808d17e18c76f90fceb92815e57cd6e",
+        "png": "8385fdb579794e7f45e0922750a63c8a37ea7a69d9dee9b00376ca0c96c86d5e"
+      },
+      "checks": [
+        "native actors and ellipses",
+        "actors and actor labels outside boundary",
+        "use cases inside boundary",
+        "no publication decision oval",
+        "valid PNG chunk checksums",
+        "320 DPI physical-size metadata"
+      ]
+    }
+  ]
+}

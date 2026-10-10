@@ -23,12 +23,88 @@ sfc_render_header($context, 'admin-properties');
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-wizard.css<?= sfc_asset_version('css/property-wizard.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
 <main class="city-workspace" data-city-workspace="properties" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>">
-  <div class="tw-mb-7 tw-flex tw-flex-col tw-justify-between tw-gap-5 tw-rounded-2xl tw-bg-[#11224d] tw-p-6 sm:tw-flex-row sm:tw-items-center sm:tw-p-8"><div><span class="tw-mb-3 tw-inline-flex tw-rounded-full tw-border tw-border-white/20 tw-px-3 tw-py-1 tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-widest tw-text-white/80">City workspace · <?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?></span><h1 class="tw-m-0 tw-text-3xl tw-font-semibold tw-tracking-tight tw-text-white">Property desk</h1><p class="tw-mb-0 tw-mt-2 tw-text-sm tw-text-white/70"><?= $governance ? 'Review listings, check evidence, and publish with confidence.' : 'Record site details and complete the city assessment.' ?></p></div><button class="tw-inline-flex tw-min-h-[44px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border-0 tw-bg-white tw-px-5 tw-py-3 tw-text-sm tw-font-semibold tw-text-[#11224d] hover:tw-bg-amber-50" type="button" data-add-listing><span aria-hidden="true">+</span> Add property</button></div>
-  <div class="tw-mb-5 tw-grid tw-grid-cols-2 tw-gap-3 lg:tw-grid-cols-3" data-property-summary aria-label="Listing management views"></div>
+  <div class="city-desk-hero">
+    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-gap-6 sm:tw-flex-row sm:tw-items-center">
+      <div>
+        <div class="tw-mb-3.5 tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-backdrop-blur-md tw-border tw-border-white/20 tw-px-3.5 tw-py-1 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-widest tw-text-white/90">
+          <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-400 tw-animate-pulse" aria-hidden="true"></span>
+          <span>City workspace · <?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?></span>
+        </div>
+        <h1 class="tw-m-0 tw-text-3xl sm:tw-text-4xl tw-font-extrabold tw-tracking-tight tw-text-white">Property desk</h1>
+        <p class="tw-mb-0 tw-mt-2.5 tw-text-sm sm:tw-text-base tw-text-white/80 tw-leading-relaxed tw-max-w-xl"><?= $governance ? 'Review listings, check evidence, and publish with confidence.' : 'Record site details and complete the city assessment.' ?></p>
+      </div>
+      <button class="city-btn-pill-add" type="button" data-add-listing>
+        <span class="tw-flex tw-h-5 tw-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-[#11224d]/10 tw-text-sm tw-font-black" aria-hidden="true">+</span>
+        <span>Add property</span>
+      </button>
+    </div>
+    <div class="city-hero-glow" aria-hidden="true"></div>
+  </div>
+
+  <div class="city-property-summary-grid" data-property-summary aria-label="Listing management views"></div>
   <p class="city-status" data-workspace-status role="status">Loading properties…</p>
-  <div class="city-filters"><label><span class="visually-hidden">Search properties</span><input type="search" data-property-search placeholder="Search properties"></label><label><span class="visually-hidden">Listing view</span><select data-property-state><option value="latest">Latest Listings</option><option value="active">Active Listings</option><option value="Sold">Sold Listings</option><option value="Leased">Leased Listings</option><option value="archived">Archived Listings</option><option value="deleted">Deleted Listings</option><optgroup label="Listing status"><option value="Available">Available</option><option value="Unavailable">Unavailable</option><option value="Reserved">Reserved</option><option value="Availed">Availed (historical)</option></optgroup><optgroup label="Review status"><option value="pending_review">Awaiting review</option><option value="approved">Approved</option><option value="rejected">Declined</option></optgroup></select></label><a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>">Map explorer ↗</a></div>
-  <div class="city-listing-view"><h2 data-property-view-title>Latest Listings</h2><p data-property-view-description>Listings ordered by creation date, newest first. Deleted listings have a separate view.</p><p class="visually-hidden" data-property-result-count aria-live="polite"></p></div>
-  <section class="tw-grid tw-gap-3" data-property-list aria-label="Properties"></section>
+
+  <div class="city-filters">
+    <div class="city-search-box">
+      <label for="propertySearchInput" class="visually-hidden">Search properties</label>
+      <span class="city-search-icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </span>
+      <input id="propertySearchInput" type="search" data-property-search placeholder="Search properties by name, barangay, or type…" class="city-search-input">
+    </div>
+
+    <div class="city-select-box">
+      <label for="propertyStateSelect" class="visually-hidden">Listing view</label>
+      <select id="propertyStateSelect" data-property-state class="city-select-input">
+        <option value="latest">Latest Listings</option>
+        <option value="active">Active Listings</option>
+        <option value="Sold">Sold Listings</option>
+        <option value="Leased">Leased Listings</option>
+        <option value="archived">Archived Listings</option>
+        <option value="deleted">Deleted Listings</option>
+        <optgroup label="Listing status">
+          <option value="Available">Available</option>
+          <option value="Unavailable">Unavailable</option>
+          <option value="Reserved">Reserved</option>
+          <option value="Availed">Availed (historical)</option>
+        </optgroup>
+        <optgroup label="Review status">
+          <option value="pending_review">Awaiting review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Declined</option>
+        </optgroup>
+      </select>
+      <span class="city-select-arrow" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </span>
+    </div>
+
+    <a href="<?= htmlspecialchars(sfc_path('/property-explorer.php'), ENT_QUOTES, 'UTF-8') ?>" class="city-map-explorer-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+        <line x1="8" y1="2" x2="8" y2="18"></line>
+        <line x1="16" y1="6" x2="16" y2="22"></line>
+      </svg>
+      <span>Map explorer</span>
+      <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <div class="city-listing-view">
+    <div class="tw-flex tw-items-center tw-gap-2.5">
+      <h2 data-property-view-title class="tw-m-0 tw-text-xl tw-font-bold tw-tracking-tight tw-text-[#11224d]">Latest Listings</h2>
+      <span class="city-listing-count-pill" data-property-count-pill>0 listings</span>
+    </div>
+    <p data-property-view-description class="tw-mb-0 tw-mt-1.5 tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-leading-relaxed">Listings ordered by creation date, newest first. Deleted listings have a separate view.</p>
+    <p class="visually-hidden" data-property-result-count aria-live="polite"></p>
+  </div>
+
+  <section class="tw-grid tw-gap-4 sm:tw-gap-5" data-property-list aria-label="Properties"></section>
   <details class="city-panel city-broker-panel" id="cityDocumentRequests">
     <summary class="city-panel-heading"><h2>Document requests <span class="city-pill" data-document-request-count>0 open</span></h2></summary>
     <p class="city-form-message" data-document-request-message role="status"></p>

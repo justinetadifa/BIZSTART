@@ -18,9 +18,13 @@ $cataloguePath = $context['user'] === null
     <section class="city-hero" aria-labelledby="heroTitle">
       <img src="<?= $e($context['assetBase']) ?>/images/landing-city.jpg" alt="San Fernando city center and coastline at sunset" fetchpriority="high" width="1800" height="1012">
       <div class="city-container city-hero-content">
-        <h1 id="heroTitle" class="city-hero-title">FIND THE PLACE<br>FOR WHAT COMES NEXT.</h1>
-        <p class="city-hero-subtitle">Explore verified properties and investment opportunities across San Fernando City.</p>
-        <a class="city-button city-hero-btn" href="#properties">Explore properties</a>
+        <div class="city-hero-lead">
+          <h1 id="heroTitle" class="city-hero-title">FIND THE PLACE<br>FOR WHAT COMES NEXT.</h1>
+          <p class="city-hero-subtitle">Explore verified properties and investment opportunities across San Fernando City.</p>
+          <div class="city-hero-action-row">
+            <a class="city-button city-hero-btn" href="#properties">Explore properties</a>
+          </div>
+        </div>
       </div>
     </section>
     <div class="city-accent-stripe city-accent-stripe-bottom" aria-hidden="true">
@@ -172,6 +176,72 @@ $cataloguePath = $context['user'] === null
     </div>
   </section>
 
+  <!-- APPROVED TAX INCENTIVE RECIPIENTS (Catalyst locator showcase below glance) -->
+  <section class="city-container home-recipients-section" id="incentive-recipients" aria-labelledby="recipientsSectionTitle">
+    <div class="home-recipients-panel">
+      <div class="home-recipients-header">
+        <div class="home-recipients-header-lead">
+          <div class="home-recipients-kicker-wrap">
+            <span class="home-recipients-kicker-dot" aria-hidden="true"></span>
+            <span class="home-recipients-kicker">APPROVED TAX HOLIDAYS &bull; ORDINANCE NO. 2024-41</span>
+          </div>
+          <h2 id="recipientsSectionTitle" class="home-recipients-title">Catalyst Investment Locators</h2>
+          <p class="home-recipients-desc">Major enterprises granted municipal tax holidays, anchoring commercial vitality and job creation across San Fernando.</p>
+        </div>
+        <a href="#investment-incentives-code" class="home-recipients-link" id="homeRecipientsTermsLink" title="View Ordinance No. 2024-41 Incentives Code">
+          <span>Ordinance terms</span>
+          <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+
+      <div class="home-recipients-grid">
+        <!-- 1. TaskUs La Union -->
+        <a href="#why-invest" class="home-recipient-item" title="TaskUs La Union: 6 years business tax holiday">
+          <div class="home-recipient-logo">
+            <img src="<?= $e($context['assetBase']) ?>/images/brands/taskus.svg" alt="TaskUs La Union" width="140" height="52" loading="lazy">
+          </div>
+          <div class="home-recipient-info">
+            <h3 class="home-recipient-name">TASKUS LA UNION</h3>
+            <span class="home-recipient-badge">6 yrs tax holiday*</span>
+          </div>
+        </a>
+
+        <!-- 2. Robinsons La Union -->
+        <a href="#why-invest" class="home-recipient-item" title="Robinsons La Union: 6 years business tax holiday (2023–2028)">
+          <div class="home-recipient-logo">
+            <img src="<?= $e($context['assetBase']) ?>/images/brands/robinsons.svg" alt="Robinsons La Union" width="140" height="52" loading="lazy">
+          </div>
+          <div class="home-recipient-info">
+            <h3 class="home-recipient-name">ROBINSONS LA UNION</h3>
+            <span class="home-recipient-badge">6 yrs holiday &bull; 2023–28</span>
+          </div>
+        </a>
+
+        <!-- 3. LUCS -->
+        <a href="#why-invest" class="home-recipient-item" title="La Union Concreting Solutions: 4 years business tax holiday (2023–2026)">
+          <div class="home-recipient-logo home-recipient-logo--lucs">
+            <img src="<?= $e($context['assetBase']) ?>/images/brands/lucs.svg" alt="La Union Concreting Solutions" width="140" height="52" loading="lazy">
+          </div>
+          <div class="home-recipient-info">
+            <h3 class="home-recipient-name">LUCS</h3>
+            <span class="home-recipient-badge">4 yrs holiday &bull; 2023–26</span>
+          </div>
+        </a>
+
+        <!-- 4. SM City La Union -->
+        <a href="#why-invest" class="home-recipient-item" title="SM City La Union: 6 years business tax holiday (2025–2030)">
+          <div class="home-recipient-logo">
+            <img src="<?= $e($context['assetBase']) ?>/images/brands/smcity-logo.svg" alt="SM City La Union" width="140" height="52" loading="lazy">
+          </div>
+          <div class="home-recipient-info">
+            <h3 class="home-recipient-name">SM CITY LA UNION</h3>
+            <span class="home-recipient-badge">6 yrs holiday &bull; 2025–30</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <section class="city-container city-section" id="why-invest" aria-labelledby="whyTitle">
     <div class="tw-mb-8 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4">
       <div>
@@ -230,7 +300,7 @@ $cataloguePath = $context['user'] === null
       </article>
 
       <!-- 3. Priority Investment Sectors -->
-      <article class="city-why-card">
+      <article class="city-why-card" id="priority-investment-sectors">
         <div class="city-why-tag">
           <span class="city-why-tag-icon" aria-hidden="true"><?= sfc_icon('ranking') ?></span>
           <span>PRIORITY INVESTMENT SECTORS</span>
@@ -243,17 +313,120 @@ $cataloguePath = $context['user'] === null
         </button>
         <div class="city-why-details" aria-hidden="true">
           <div class="city-why-details-inner">
-            <span class="city-why-pill">AGRIBUSINESS & HOSPITALITY</span>
-            <p class="city-why-desc">Targeted expansion across Agriculture, Agribusiness & Fishery alongside Tourism, leisure hospitality, and coastal trade facilities.</p>
-            
-            <span class="city-why-pill">TECHNOLOGY & INFRASTRUCTURE</span>
-            <p class="city-why-desc">Dedicated development zones for Information & Communications Technology, Manufacturing, Health & Wellness, and clean infrastructure.</p>
+            <span class="city-why-pill">ORDINANCE NO. 2024-41 PRIORITY SECTORS</span>
+            <p class="city-why-desc">The City Government of San Fernando designates 7 priority investment sectors eligible for local business tax holidays, capital incentives, and dedicated LEBDO investment facilitation.</p>
+
+            <div class="city-priority-sectors-list">
+              <!-- Sector 1 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-1.jpg" alt="Agriculture, Agribusiness, and Fishery emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 01</span>
+                    <h4 class="city-priority-sector-name">Agriculture, Agribusiness, and Fishery</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Commercial crops, organic agriculture, livestock and poultry production, aquaculture, and coastal marine catch.</p>
+                </div>
+              </div>
+
+              <!-- Sector 2 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-2.jpg" alt="Support facilities emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 02</span>
+                    <h4 class="city-priority-sector-name">Support Facilities for Agriculture &amp; Food Production</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Irrigation systems, post-harvest facilities, cold storage, blast freezing, and local production of fertilizers and pesticides.</p>
+                </div>
+              </div>
+
+              <!-- Sector 3 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-3.jpg" alt="Tourism and Transportation emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 03</span>
+                    <h4 class="city-priority-sector-name">Tourism and Transportation</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Eco-tourism attractions, coastal resorts, heritage hospitality, MICE convention facilities, transit terminals, and multi-modal logistics.</p>
+                </div>
+              </div>
+
+              <!-- Sector 4 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-4.jpg" alt="Information and Communication Technology (ICT) emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 04</span>
+                    <h4 class="city-priority-sector-name">Information and Communication Technology (ICT)</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">IT-BPM operations, software development, data center infrastructure, telecommunications, and digital innovation ecosystems.</p>
+                </div>
+              </div>
+
+              <!-- Sector 5 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-5.jpg" alt="Manufacturing / Processing emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 05</span>
+                    <h4 class="city-priority-sector-name">Manufacturing / Processing</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Agro-industrial processing, food packaging, electronics assembly, renewable materials, and value-added export production.</p>
+                </div>
+              </div>
+
+              <!-- Sector 6 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-6.jpg" alt="Infrastructure, Water and Sanitation, and Property Development emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 06</span>
+                    <h4 class="city-priority-sector-name">Infrastructure, Water &amp; Sanitation, Property Development</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Commercial real estate, eco-zone development, water supply systems, modern sanitation facilities, and urban infrastructure.</p>
+                </div>
+              </div>
+
+              <!-- Sector 7 -->
+              <div class="city-priority-sector-item">
+                <div class="city-priority-sector-icon">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-7.jpg" alt="Ecological Solid Waste Management emblem" width="48" height="48" loading="lazy">
+                </div>
+                <div class="city-priority-sector-content">
+                  <div class="city-priority-sector-meta">
+                    <span class="city-priority-sector-badge">Sector 07</span>
+                    <h4 class="city-priority-sector-name">Ecological Solid Waste Management</h4>
+                  </div>
+                  <p class="city-priority-sector-desc">Materials recovery facilities (MRF), waste-to-energy technologies, industrial recycling plants, composting, and circular solutions.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Direct Official Guide Link Button -->
+            <a href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener noreferrer" class="city-why-sectors-portal-btn">
+              <span>View Priority Investment Sectors on Official City Portal</span>
+              <span aria-hidden="true">&nearr;</span>
+            </a>
           </div>
         </div>
       </article>
 
       <!-- 4. Investment & Incentives (Government Shield Icon - No AI Diamond Spark) -->
-      <article class="city-why-card">
+      <article class="city-why-card" id="investment-incentives-code">
         <div class="city-why-tag">
           <span class="city-why-tag-icon" aria-hidden="true"><?= sfc_icon('admin') ?></span>
           <span>INVESTMENT & INCENTIVES</span>
@@ -266,11 +439,40 @@ $cataloguePath = $context['user'] === null
         </button>
         <div class="city-why-details" aria-hidden="true">
           <div class="city-why-details-inner">
+            
+            <!-- Official City Government Ordinance Code Showcase (Matching sanfernandocity.gov.ph) -->
+            <div class="city-ordinance-showcase">
+              <div class="city-ordinance-showcase-copy">
+                <span class="city-ordinance-kicker">CITY STATUTE &bull; LEBDO / CAO</span>
+                <h4 class="city-ordinance-showcase-title">Investments and Incentives Code of the City of San Fernando, La Union</h4>
+                <p class="city-ordinance-showcase-sub">Ordinance No. 2024-41</p>
+                <a href="https://drive.google.com/file/d/1S5q2HOklGy4O692uYMgHrZNNXOpYqZ69/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="city-ordinance-download-btn" title="Download Official Ordinance No. 2024-41 (PDF)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Download</span>
+                </a>
+              </div>
+              <div class="city-ordinance-showcase-media">
+                <img src="<?= $e($context['assetBase']) ?>/images/thunderbird-resorts.jpg" alt="Thunderbird Resorts and Casinos, PPMC aerial view" width="640" height="360" loading="lazy">
+                <span class="city-ordinance-media-caption">Thunderbird Resorts and Casinos, PPMC</span>
+              </div>
+            </div>
+
             <span class="city-why-pill">ORDINANCE NO. 2024-41</span>
             <p class="city-why-desc">Ordinance No. 2024-41 provides the city’s legislative framework for qualified capital investments, local tax exemptions, and priority economic activities.</p>
             
             <span class="city-why-pill">LEBDO INVESTOR FACILITATION</span>
             <p class="city-why-desc">Direct investor concierge support through the Local Economic and Business Development Office for site permits, evaluations, and enterprise onboarding.</p>
+
+            <div class="city-why-concierge-callout">
+              <div class="city-why-concierge-row">
+                <span class="city-why-concierge-tag">Investment Officers:</span>
+                <span><strong>Rizalyn D. Medrano, EnP</strong> (<a href="tel:09175721230" class="city-why-concierge-link">0917 572 1230</a>) &bull; <strong>Irish Dominique D. Halabaso</strong> (<a href="tel:09163861007" class="city-why-concierge-link">0916 386 1007</a>)</span>
+              </div>
+              <div class="city-why-concierge-row">
+                <span class="city-why-concierge-tag">Hotline &bull; Venue:</span>
+                <span><a href="tel:+63726197170" class="city-why-concierge-link">(072) 619 - 7170</a> &bull; Permanent Business One Stop Shop Building, City of San Fernando, La Union</span>
+              </div>
+            </div>
           </div>
         </div>
       </article>
@@ -289,26 +491,54 @@ $cataloguePath = $context['user'] === null
         </button>
         <div class="city-why-details" aria-hidden="true">
           <div class="city-why-details-inner">
-            <label class="tw-block">
-              <span class="tw-sr-only">Business cost category</span>
-              <select id="cityCostCategory" class="city-why-select">
-                <option value="wages">Wage Rates</option>
+            
+            <!-- Category Selector (Matching sanfernandocity.gov.ph menu) -->
+            <label class="tw-block tw-mb-3">
+              <span class="tw-sr-only">Select Cost of Doing Business category</span>
+              <select id="cityCostCategory" class="city-why-select" aria-label="Cost category">
+                <option value="wages" selected>Wage Rates</option>
                 <option value="rent">Rental / Lease Rates</option>
                 <option value="power">Power Rates</option>
                 <option value="water">Water Cost</option>
-                <option value="internet">Telecommunications / Internet Cost</option>
+                <option value="internet">Telco / Internet Cost</option>
               </select>
             </label>
-            <p id="cityCostNote" class="city-why-desc tw-min-h-[44px]" aria-live="polite">Check the current Region I wage order for the applicable activity and establishment size.</p>
-            
-            <span class="city-why-pill">REGIONAL COST ADVANTAGE</span>
-            <p class="city-why-desc">Predictable labor rates under RTWPB Region I wage orders and favorable commercial lease rates across prime city barangays.</p>
+
+            <!-- Dynamic Cost Data Card (Accurate Data from City Government Portal) -->
+            <div id="cityCostCard" class="city-cost-display-card" aria-live="polite">
+              <div class="city-cost-card-header">
+                <span class="city-cost-card-tag">Wage Order No. RB1-23 &bull; RTWPB Region I</span>
+              </div>
+              <div class="city-cost-card-rows">
+                <div class="city-cost-row">
+                  <span class="city-cost-label">Non-Agriculture (&ge;10 workers)</span>
+                  <strong class="city-cost-rate">₱468.00 <small>/ day</small></strong>
+                </div>
+                <div class="city-cost-row">
+                  <span class="city-cost-label">Agriculture &amp; Micro (&lt;10 workers)</span>
+                  <strong class="city-cost-rate">₱435.00 <small>/ day</small></strong>
+                </div>
+              </div>
+              <p class="city-cost-source">Official statutory minimum wage order for City of San Fernando, La Union.</p>
+            </div>
+
+            <!-- Direct Official City Portal Link Button -->
+            <a href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener noreferrer" class="city-why-cost-portal-btn">
+              <span>Proceed to official Cost of Doing Business portal</span>
+              <span aria-hidden="true">&nearr;</span>
+            </a>
+
+            <div class="city-cost-footer-meta">
+              <span class="city-why-pill">REGIONAL COST ADVANTAGE</span>
+              <p class="city-why-desc">Predictable labor rates under RTWPB Region I wage orders and favorable commercial lease rates across prime city barangays.</p>
+            </div>
+
           </div>
         </div>
       </article>
 
       <!-- 6. Setting Up a Business -->
-      <article class="city-why-card" aria-labelledby="setupTitle">
+      <article class="city-why-card city-why-card--setup" aria-labelledby="setupTitle" id="setting-up-business">
         <div class="city-why-tag">
           <span class="city-why-tag-icon" aria-hidden="true"><?= sfc_icon('vote') ?></span>
           <span>SETTING UP A BUSINESS</span>
@@ -321,16 +551,253 @@ $cataloguePath = $context['user'] === null
         </button>
         <div class="city-why-details" aria-hidden="true">
           <div class="city-why-details-inner">
-            <span class="city-why-pill">BPLO UNIFIED PERMITTING</span>
-            <p class="city-why-desc">Online Business Permit Application, Building Permit, and Certificate of Occupancy clearances coordinated via the city's one-stop shop.</p>
-            
-            <span class="city-why-pill">ZONING & COMPLIANCE VERIFICATION</span>
-            <p class="city-why-desc">Verification of Comprehensive Land Use Plan (CLUP) zoning compliance, locational clearance, and fire safety guidelines before site fit-out.</p>
+            <span class="city-why-pill">BPLO UNIFIED PERMITTING &amp; CLEARANCES</span>
+            <p class="city-why-desc">Direct access to official city government service guides and downloadable statutory forms for commercial registration, building construction, and occupancy clearances in the City of San Fernando, La Union.</p>
+
+            <!-- Embedded City Government Business Setup & Downloadable Forms Panel -->
+            <div class="city-bizsetup-wrapper">
+              
+              <!-- Dark Navy Top Banner (Exact match to official user reference) -->
+              <div class="city-bizsetup-banner">
+                <h4 id="bizSetupTitle" class="city-bizsetup-banner-title">SETTING UP A BUSINESS</h4>
+              </div>
+
+              <!-- Main Two-Column Panel -->
+              <div class="city-bizsetup-body">
+                
+                <!-- Left Column: Service & Permitting Process Guides -->
+                <div class="city-bizsetup-processes">
+                  
+                  <!-- 1. Building Permits -->
+                  <a href="https://drive.google.com/file/d/1DloBykQcchM_UEEnc2lz6LyAoir6QOjx/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="city-bizsetup-process-card" title="View Guide: Granting of Building Permits (PDF)">
+                    <div class="city-bizsetup-process-icon" aria-hidden="true">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                        <path d="M9 22v-4h6v4"/>
+                        <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
+                        <path d="M8 10h.01"/><path d="M16 10h.01"/><path d="M12 10h.01"/>
+                        <path d="M8 14h.01"/><path d="M16 14h.01"/><path d="M12 14h.01"/>
+                      </svg>
+                    </div>
+                    <span class="city-bizsetup-process-label">Granting of Building Permits</span>
+                    <span class="city-bizsetup-guide-badge">PDF Guide &nearr;</span>
+                  </a>
+
+                  <!-- 2. Certificate of Occupancy -->
+                  <a href="https://drive.google.com/file/d/1ZE53YIu8rp3oV7-OodebVfu2xn2o8ClY/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="city-bizsetup-process-card" title="View Guide: Granting of Certificate of Occupancy (PDF)">
+                    <div class="city-bizsetup-process-icon" aria-hidden="true">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                    </div>
+                    <span class="city-bizsetup-process-label">Granting of Certificate of Occupancy</span>
+                    <span class="city-bizsetup-guide-badge">PDF Guide &nearr;</span>
+                  </a>
+
+                  <!-- 3. Issuance of Business Permits -->
+                  <a href="https://drive.google.com/file/d/1Qz_wQBGbFNXBS4AOtjrAZhETPMOPFOXQ/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="city-bizsetup-process-card" title="View Guide: Issuance of Business Permits (PDF)">
+                    <div class="city-bizsetup-process-icon" aria-hidden="true">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                        <path d="M9 12l2 2 4-4"/>
+                      </svg>
+                    </div>
+                    <span class="city-bizsetup-process-label">Issuance of Business Permits</span>
+                    <span class="city-bizsetup-guide-badge">PDF Guide &nearr;</span>
+                  </a>
+
+                  <!-- 4. Online Application -->
+                  <a href="https://drive.google.com/file/d/16xVoUMdnBWc9YcmWHV_hl6FooQKf9sSs/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="city-bizsetup-process-card" title="View Guide: Issuance of Business Permits (Online Application)">
+                    <div class="city-bizsetup-process-icon" aria-hidden="true">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                      </svg>
+                    </div>
+                    <span class="city-bizsetup-process-label">Issuance of Business Permits (Online Application)</span>
+                    <span class="city-bizsetup-guide-badge">PDF Guide &nearr;</span>
+                  </a>
+
+                  <!-- 5. Individual Work Permit -->
+                  <a href="https://drive.google.com/file/d/1JANXE1aKykLYTFXV-4-ziP1QoNNFz880/view?usp=drive_link" target="_blank" rel="noopener noreferrer" class="city-bizsetup-process-card" title="View Guide: Issuance of Individual Work Permit (PDF)">
+                    <div class="city-bizsetup-process-icon" aria-hidden="true">
+                      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="9" cy="10" r="2"/>
+                        <path d="M15 8h2"/><path d="M15 12h2"/><path d="M7 16h10"/>
+                      </svg>
+                    </div>
+                    <span class="city-bizsetup-process-label">Issuance of Individual Work Permit</span>
+                    <span class="city-bizsetup-guide-badge">PDF Guide &nearr;</span>
+                  </a>
+
+                </div>
+
+                <!-- Right Column: Downloadable Application Forms -->
+                <div class="city-bizsetup-forms">
+                  <div class="city-bizsetup-forms-header">
+                    <h3 class="city-bizsetup-forms-title">Downloadable Forms</h3>
+                    <span class="city-bizsetup-forms-subtitle">Official city templates &amp; editable documents</span>
+                  </div>
+
+                  <ul class="city-bizsetup-forms-list">
+                    
+                    <!-- Form 1 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://drive.google.com/file/d/1fJzaahmyEG_YKI5Y-p04NrF1m1PvekiC/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Business Permit: Unified Application Form (PDF)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Business Permit: Unified Application Form</span>
+                        <span class="city-bizsetup-file-type">PDF</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 2 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://drive.google.com/file/d/1SjDDUy7WW-PFPHzvYO__T9o7ZoTAAv7V/view?usp=sharing" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Individual Work Permit Form (PDF)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Individual Work Permit Form</span>
+                        <span class="city-bizsetup-file-type">PDF</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 3 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/document/d/1A-7d8BW_Z7qk2c-0IF93ukmNFy1oqis6/edit?usp=sharing&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Building Permit Application Form (DOCX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                            <path d="M9 22v-4h6v4"/>
+                            <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Building Permit Application Form</span>
+                        <span class="city-bizsetup-file-type">DOCX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 4 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/1ysv0MfAet6MStOQg3kXymb2BmGJlayXk/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Architectural Permit Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Architectural Permit Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 5 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/1CCBI5P1X-LDU2U9xqtGrp2poxBUyIS6H/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Civil/Structural Permit Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Civil/Structural Permit Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 6 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/18qKQ_RBFB7tiHW7MAAKmZt20bAIDMwIx/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Electrical Permit Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Electrical Permit Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 7 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/1ye-BdIOL37HlQ_2fgdCmUrc7WaySY8zx/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Sanitary/Plumbing Permit Application Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Sanitary/Plumbing Permit Application Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 8 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/12w_0yhAeWEu7oorV7YhET-_NKhojOStZ/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Mechanical Permit Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Mechanical Permit Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 9 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/document/d/1TK3EXGXx1GT9frQiHdP17jIfC9JCqSUH/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Electronics Permit Form (DOCX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Electronics Permit Form</span>
+                        <span class="city-bizsetup-file-type">DOCX</span>
+                      </a>
+                    </li>
+
+                    <!-- Form 10 -->
+                    <li class="city-bizsetup-form-item">
+                      <a href="https://docs.google.com/spreadsheets/d/1lMrNo0IceVlaGq4y_b8RYltzJlBSS3Kx/edit?usp=drive_link&ouid=106428727393651378136&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer" class="city-bizsetup-form-link" title="Download Demolition Permit Form (XLSX)">
+                        <div class="city-bizsetup-form-icon" aria-hidden="true">
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </div>
+                        <span class="city-bizsetup-form-name">Demolition Permit Form</span>
+                        <span class="city-bizsetup-file-type">XLSX</span>
+                      </a>
+                    </li>
+
+                  </ul>
+
+                  <div class="city-bizsetup-source-note">
+                    <span>Direct Google Drive &bull; Official City Government of San Fernando Portal (<a href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener noreferrer">sanfernandocity.gov.ph ↗</a>)</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
           </div>
         </div>
       </article>
     </div>
   </section>
+
+  <!-- INVESTMENT ASSISTANCE & CONCIERGE -->
   <section class="city-container city-section" id="properties">
     <div class="city-section-heading tw-flex-wrap tw-items-end tw-justify-between tw-mb-6">
       <div>
@@ -355,6 +822,92 @@ $cataloguePath = $context['user'] === null
     </div>
     <?php endif; ?>
   </section>
+
+  <!-- INVESTMENT ASSISTANCE & CONCIERGE (Positioned below featured properties) -->
+  <section class="city-container city-section" id="investment-concierge" aria-labelledby="conciergeTitle">
+    <div class="city-concierge-panel">
+      
+      <div class="city-concierge-header">
+        <div>
+          <span class="city-concierge-kicker">City Government of San Fernando &bull; LEBDO</span>
+          <h2 id="conciergeTitle" class="city-concierge-title">INVESTMENT INQUIRIES &amp; ASSISTANCE</h2>
+          <p class="city-concierge-subtitle">Direct facilitation for capital investors, business locators, and tax incentive applications.</p>
+        </div>
+        <div class="city-concierge-hotline-pill">
+          <div class="city-concierge-hotline-meta">
+            <span class="hotline-meta-label">Direct Trunkline</span>
+            <a href="tel:+63726197170" class="hotline-meta-number" title="Call City Investment Hotline (072) 619 - 7170">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.24 1.02l-2.21 2.2z"/></svg>
+              <span>(072) 619 - 7170</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="city-concierge-grid">
+        
+        <!-- Officer 1: Rizalyn D. Medrano, EnP -->
+        <article class="city-concierge-card">
+          <div class="city-concierge-card-body">
+            <div class="city-concierge-avatar city-concierge-avatar-crimson" aria-hidden="true">RM</div>
+            <div class="city-concierge-details">
+              <span class="city-concierge-badge">Investment Officer</span>
+              <h3 class="city-concierge-name">Rizalyn D. Medrano, EnP</h3>
+              <p class="city-concierge-position">City Government Department Head / Investment Officer</p>
+              <p class="city-concierge-dept">Local Economic &amp; Business Development Office</p>
+            </div>
+          </div>
+          <div class="city-concierge-card-action">
+            <a href="tel:09175721230" class="city-concierge-dial-btn" title="Call Rizalyn D. Medrano">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span>0917 572 1230</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- Officer 2: Irish Dominique D. Halabaso -->
+        <article class="city-concierge-card">
+          <div class="city-concierge-card-body">
+            <div class="city-concierge-avatar city-concierge-avatar-navy" aria-hidden="true">IH</div>
+            <div class="city-concierge-details">
+              <span class="city-concierge-badge">Project Development</span>
+              <h3 class="city-concierge-name">Irish Dominique D. Halabaso</h3>
+              <p class="city-concierge-position">Project Development Officer III</p>
+              <p class="city-concierge-dept">Local Economic &amp; Business Development Office</p>
+            </div>
+          </div>
+          <div class="city-concierge-card-action">
+            <a href="tel:09163861007" class="city-concierge-dial-btn" title="Call Irish Dominique D. Halabaso">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <span>0916 386 1007</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- Physical Facility Card: Permanent Business One Stop Shop Building -->
+        <article class="city-concierge-card city-concierge-card-facility">
+          <div class="city-concierge-card-body">
+            <div class="city-concierge-avatar city-concierge-avatar-gold" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M9 12h1"/><path d="M9 16h1"/><path d="M14 8h1"/><path d="M14 12h1"/><path d="M14 16h1"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/></svg>
+            </div>
+            <div class="city-concierge-details">
+              <span class="city-concierge-badge city-concierge-badge-facility">Walk-In Center</span>
+              <h3 class="city-concierge-name">Permanent Business One Stop Shop Building</h3>
+              <p class="city-concierge-position">City of San Fernando, La Union &bull; Mon–Fri, 8:00 AM – 5:00 PM</p>
+              <p class="city-concierge-dept">Unified Permitting, Locational Clearance &amp; Incentives Concierge</p>
+            </div>
+          </div>
+          <div class="city-concierge-card-action">
+            <a href="https://maps.google.com/?q=Permanent+Business+One+Stop+Shop+Building+City+of+San+Fernando+La+Union" target="_blank" rel="noopener noreferrer" class="city-concierge-venue-btn" title="View Permanent BOSS Building on Map">
+              <span>View On Map &nearr;</span>
+            </a>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
   <section class="city-container city-section" id="about">
     <div class="city-about">
       <div class="city-about-intro">
@@ -404,11 +957,27 @@ $cataloguePath = $context['user'] === null
 </main>
 <?php if ($context['user'] === null): ?>
 <dialog class="city-privacy-dialog" id="cityPrivacyDialog" aria-labelledby="cityPrivacyTitle">
-  <h2 id="cityPrivacyTitle">Your privacy matters.</h2>
-  <p>By proceeding, I consent to the collection and processing of my personal and property data by the City Government of San Fernando in accordance with the Data Privacy Act of 2012 (RA 10173) for the purpose of the LOCUS-SF system.</p>
-  <a class="city-link" href="<?= $e(sfc_path('/privacy.php')) ?>">Read the privacy notice</a>
-  <label><input type="checkbox" id="cityPrivacyConsent">I agree to the collection and processing described above.</label>
-  <div class="city-actions"><button class="city-button" id="cityPrivacyContinue" type="button" disabled>Create account</button><button class="city-button city-button-secondary" id="cityPrivacyGuest" type="button">Browse as guest</button></div>
+  <div class="city-privacy-icon" aria-hidden="true">
+    <svg width="44" height="48" viewBox="0 0 44 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M22 3.5C18 6.5 12 7 7 8.5V23C7 33.5 13.5 41.5 22 45C30.5 41.5 37 33.5 37 23V8.5C32 7 26 6.5 22 3.5Z" stroke="#E50000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 7C18.5 9.8 13.5 10.2 9.5 11.5V23C9.5 31.8 15 38.8 22 42C29 38.8 34.5 31.8 34.5 23V11.5C30.5 10.2 25.5 9.8 22 7Z" stroke="#E50000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M16 23.5L20.5 28L28.5 19.5" stroke="#E50000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="city-privacy-overline">SECURITY &amp; TRUST</div>
+  <h2 id="cityPrivacyTitle" class="city-privacy-headline">Your privacy matters.</h2>
+  <p class="city-privacy-body">To proceed, we need your consent to collect and process your personal and property data for the City Government of San Fernando, in accordance with the Data Privacy Act of 2012 (RA 10173).</p>
+  <div class="city-privacy-link-wrap">
+    <a class="city-privacy-link" href="<?= $e(sfc_path('/privacy.php')) ?>">Read our Privacy Notice &rarr;</a>
+  </div>
+  <label class="city-privacy-checkbox-label" id="cityPrivacyLabel">
+    <input type="checkbox" id="cityPrivacyConsent" class="city-privacy-checkbox">
+    <span>I agree to the collection and processing of my data.</span>
+  </label>
+  <div class="city-privacy-buttons">
+    <button class="city-privacy-btn-create" id="cityPrivacyContinue" type="button" disabled>Create account</button>
+    <button class="city-privacy-btn-guest" id="cityPrivacyGuest" type="button">Browse as guest</button>
+  </div>
 </dialog>
 <?php endif; ?>
 <script type="module" src="<?= $e($context['assetBase']) ?>/js/city-workspace.js<?= sfc_asset_version('js/city-workspace.js') ?>"></script>

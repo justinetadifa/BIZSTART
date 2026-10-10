@@ -1,0 +1,60 @@
+@startuml detail-property-submission-assessment
+skinparam dpi 320
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam defaultFontColor #151515
+skinparam ArrowColor #353535
+skinparam ArrowThickness 1.2
+skinparam ActorBorderColor #151515
+skinparam ActorFontSize 17
+skinparam UsecaseBorderColor #252525
+skinparam UsecaseBackgroundColor white
+skinparam UsecaseFontSize 17
+skinparam RectangleBorderColor #252525
+skinparam RectangleBackgroundColor white
+skinparam RectangleFontSize 20
+skinparam NoteBackgroundColor white
+skinparam NoteBorderColor #999999
+skinparam NoteFontSize 14
+skinparam nodesep 28
+skinparam ranksep 28
+title LOCUS-SF — Property Submission and Assessment\nDetail scope for Figure 2
+
+actor "Broker" as Broker
+actor "City staff\n(CICTO, CAO / ASSESSOR, LEBDO)" as City
+
+rectangle "LOCUS-SF" {
+  usecase "Submit or edit\nproperty listing" as U06
+  usecase "Plot property\nboundaries" as U07
+  usecase "Supply property\nevidence" as U08
+  usecase "Preview property\nassessment" as U09
+  usecase "Inspect property\nevidence" as U11
+  usecase "Record due diligence" as U12
+  usecase "Manage listing\nlifecycle" as U14
+  U07 ..> U06 : <<extend>>\n[boundary drawing selected]
+  U06 -[hidden]down- U08
+  U08 -[hidden]down- U09
+  U09 -[hidden]down- U11
+  U11 -[hidden]down- U12
+  U12 -[hidden]down- U14
+}
+
+Broker -right- U06
+Broker -right- U08
+Broker -right- U09
+U06 -right- City
+U08 -right- City
+U09 -right- City
+U11 -right- City
+U12 -right- City
+U14 -right- City
+
+legend bottom
+  Scope: submission, evidence, due diligence and retained listing lifecycle.
+  Broker submission/edit is restricted to own listings and requires verified email and approved valid credentials.
+  Drawing is optional and displays estimated area. Missing assessment inputs remain pending.
+  City offices share these checked permissions; document decisions and listing publication are excluded.
+endlegend
+@enduml

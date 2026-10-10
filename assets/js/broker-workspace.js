@@ -78,9 +78,10 @@ function renderVerification() {
   addButton.disabled = !canSubmit();
   addButton.title = canSubmit() ? 'Submit a property for city review' : 'Verify your email and complete broker application approval first';
   if (!profile) {
+    byId('brokerVerification').className = 'broker-verification-card is-pending';
     byId('brokerVerification').innerHTML = `
-      <div class="broker-verify-badge-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="broker-verify-badge-icon is-pending">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
           <polyline points="14 2 14 8 20 8"></polyline>
           <line x1="12" y1="18" x2="12" y2="12"></line>
@@ -92,13 +93,13 @@ function renderVerification() {
           <span class="broker-verify-pill is-pending">Verification unavailable</span>
           <strong class="broker-verify-name">${escape(user.name || 'Broker')}</strong>
         </div>
-        <p class="broker-verify-msg">Reload to check your account. Listing submission is paused.</p>
+        <p class="broker-verify-headline">Reload to check your account. Listing submission is paused.</p>
       </div>`;
     return;
   }
   const status = profile.applicationStatus || 'draft';
   const copy = {
-    verified: 'Your broker application is approved. Listings still require CICTO approval.',
+    verified: 'Your broker application is approved. Listings still require LEBDO/CAO approval.',
     pending_review: 'Authorized CAO or LEBDO personnel are reviewing your PRC credentials and both ID images.',
     corrections_requested: 'Your reviewer has requested corrections. Update your credentials or images and resubmit your application.',
     rejected: 'Update your credentials and resubmit your application.',
@@ -118,30 +119,78 @@ function renderVerification() {
   const displayName = escape(profile.displayName || profile.legalName || user.name || 'Broker');
   const linkText = ['draft', 'rejected', 'corrections_requested'].includes(status) ? 'Complete profile' : 'My profile';
   const requirements = [];
-  if (!user.emailVerifiedAt && !user.emailVerified) requirements.push('Verify your email to enable listing submission.');
+  const isEmailVerified = Boolean(user.emailVerifiedAt || user.emailVerified);
+  if (!isEmailVerified) requirements.push('Verify your email to enable listing submission.');
   if (!validPrcDocument(profile.frontDocument) || !validPrcDocument(profile.backDocument)) requirements.push('Upload both valid PRC ID images in your profile.');
   if (profile.prcValidUntil && profile.prcValidUntil < new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })) requirements.push('Your PRC ID has expired. Update your credentials for review.');
 
+  let iconSvg = '';
+  if (status === 'verified') {
+    iconSvg = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        <polyline points="9 12 11 14 15 10"></polyline>
+      </svg>`;
+  } else if (status === 'pending_review' || status === 'draft') {
+    iconSvg = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>`;
+  } else {
+    iconSvg = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>`;
+  }
+
+  byId('brokerVerification').className = `broker-verification-card is-${escape(status)}`;
   byId('brokerVerification').innerHTML = `
-    <div class="broker-verify-badge-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <circle cx="12" cy="15" r="3"></circle>
-        <polyline points="12 14 12 15 13 15"></polyline>
-      </svg>
+    <div class="broker-verify-badge-icon is-${escape(status)}">
+      ${iconSvg}
     </div>
     <div class="broker-verify-info">
       <div class="broker-verify-title-row">
-        <span class="broker-verify-pill is-${escape(status)}">${escape(statusLabels[status] || status)}</span>
+        <span class="broker-verify-pill is-${escape(status)}">
+          <span class="broker-pill-dot"></span>
+          ${escape(statusLabels[status] || status)}
+        </span>
         <strong class="broker-verify-name">${displayName}</strong>
+        ${profile.prcRegistrationNumber ? `<span class="broker-license-tag">PRC #${escape(profile.prcRegistrationNumber)}</span>` : '<span class="broker-license-tag">Licensed Broker</span>'}
       </div>
-      <p class="broker-verify-msg">${escape(copy[status] || copy.draft)}</p>
-      <p class="broker-verify-msg"><strong>Email ownership:</strong> ${user.emailVerifiedAt || user.emailVerified ? 'Verified' : 'Not yet verified'}</p>
-      ${requirements.length ? `<p class="broker-verify-msg">${escape(requirements.join(' '))}</p>` : ''}
-      ${profile.reviewNotes ? `<p class="broker-admin-note"><strong>Application review</strong> · ${escape(profile.reviewNotes)}</p>` : ''}
+      <p class="broker-verify-headline">${escape(copy[status] || copy.draft)}</p>
+      
+      <div class="broker-verify-chips-row">
+        <span class="broker-verify-chip ${isEmailVerified ? 'is-success' : 'is-warning'}">
+          ${isEmailVerified 
+            ? `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Email ownership: Verified`
+            : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Email ownership: Not yet verified &bull; <a href="${basePath}/profile.php" class="broker-chip-action">Verify in profile &rarr;</a>`
+          }
+        </span>
+        ${requirements.length ? `
+          <span class="broker-verify-chip is-info">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            ${escape(requirements.join(' '))}
+          </span>
+        ` : ''}
+      </div>
+
+      ${profile.reviewNotes ? `
+        <div class="broker-review-callout">
+          <div class="broker-review-callout-kicker">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span>City Review Feedback (LEBDO / CAO):</span>
+          </div>
+          <span class="broker-review-callout-text">&ldquo;${escape(profile.reviewNotes)}&rdquo;</span>
+        </div>
+      ` : ''}
     </div>
-    <a class="broker-verify-link" href="${basePath}/profile.php">${linkText} &rarr;</a>
+    <a class="broker-verify-cta-btn" href="${basePath}/profile.php">
+      <span>${linkText}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+    </a>
   `;
 }
 
@@ -284,7 +333,7 @@ function renderListings() {
           ${score(property, 'mce')}
           ${score(property, 'iai')}
         </div>
-        ${property.reviewNote ? `<p class="broker-review-note"><strong>CICTO message</strong> · ${escape(property.reviewNote)}</p>` : ''}
+        ${property.reviewNote ? `<p class="broker-review-note"><strong>City review note (LEBDO / CAO)</strong> · ${escape(property.reviewNote)}</p>` : ''}
       </div>
       <div class="broker-listing-action">
         <a class="broker-button" href="${basePath}/property-details.php?id=${Number(property.id)}">View</a>
@@ -320,7 +369,7 @@ function renderListings() {
         <div class="broker-step">
           <div class="broker-step-num">2</div>
           <div class="broker-step-label">City review</div>
-          <div class="broker-step-sub">CICTO assesses your listing</div>
+          <div class="broker-step-sub">LEBDO &bull; CAO assesses your listing</div>
         </div>
         <div class="broker-step-line"></div>
         <div class="broker-step">
@@ -356,7 +405,7 @@ function setEditorStep(step) {
   if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
   if (propertyWizard && nextBtn) {
     const nextLabel = nextBtn.querySelector('[data-editor-next-label]') || nextBtn;
-    nextLabel.textContent = 'Continue';
+    nextLabel.textContent = step === 0 ? 'Continue to location' : 'Continue';
   }
   const skip = form?.querySelector('[data-skip-enrichment]');
   if (skip) skip.hidden = ![1,2,3].includes(step);

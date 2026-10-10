@@ -142,6 +142,11 @@ function sfc_render_footer(array $context): void
         <strong class="city-footer-logo">LOCUS-SF</strong>
         <span class="city-footer-location">San Fernando, La Union</span>
       </div>
+      <div class="city-footer-concierge-meta">
+        <span class="city-footer-concierge-venue">Permanent Business One Stop Shop Building, City of San Fernando, La Union</span>
+        <span class="city-footer-concierge-sep">&bull;</span>
+        <span class="city-footer-concierge-phone">Queries: <a href="tel:+63726197170">(072) 619 - 7170</a></span>
+      </div>
       <nav class="city-footer-links" aria-label="Footer navigation">
         <a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a>
         <a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a>

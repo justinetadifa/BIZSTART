@@ -1095,8 +1095,13 @@ final class PropertyRepository
         $lat = $lat === null ? null : round($lat, 6);
         $lng = $lng === null ? null : round($lng, 6);
 
-        $imageUrl = string_or_null($payload['image_path'] ?? $payload['imageUrl'] ?? ($existing['image_url'] ?? null))
-            ?? $this->defaultImagePath($type);
+        $removeImage = filter_var($payload['remove_image'] ?? false, FILTER_VALIDATE_BOOLEAN) || ($payload['image_path'] ?? null) === '';
+        if ($removeImage) {
+            $imageUrl = $this->defaultImagePath($type);
+        } else {
+            $imageUrl = string_or_null($payload['image_path'] ?? $payload['imageUrl'] ?? ($existing['image_url'] ?? null))
+                ?? $this->defaultImagePath($type);
+        }
 
         $tags = $this->normalizeStringList(
             $payload['tags'] ?? $payload['tags_csv'] ?? $this->decodeExistingValue($existing['tags_json'] ?? null),

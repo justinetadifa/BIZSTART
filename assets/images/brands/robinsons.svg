@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="120" height="90">
+  <rect width="120" height="90" rx="14" fill="#FFFFFF"/>
+  <!-- Robinsons Iconic Red Rounded Badge -->
+  <g transform="translate(36, 8)">
+    <rect x="0" y="0" width="48" height="46" rx="11" fill="#E11D2A"/>
+    <!-- Script 'r' flourish -->
+    <path d="M 12 36 C 12 36 15 15 26 12 C 34 9 37 16 35 22 C 32 30 23 35 15 36 Z M 22 21 C 25 21 30 18 29 14 C 28 12 25 12 23 14 C 20 17 19 21 22 21 Z" fill="#FFFFFF"/>
+    <path d="M 23 21 C 26 26 31 33 38 35 C 38 35 34 33 31 28 C 29 25 27 22 23 21 Z" fill="#FFFFFF"/>
+  </g>
+  <!-- Robinsons Text in Red -->
+  <text x="60" y="66" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="10.5" fill="#E11D2A" text-anchor="middle" letter-spacing="0.5">ROBINSONS</text>
+  <!-- La Union in Blue -->
+  <text x="60" y="78" font-family="'Arial', -apple-system, sans-serif" font-weight="800" font-size="8.5" fill="#005596" text-anchor="middle" letter-spacing="1">LA UNION</text>
+</svg>

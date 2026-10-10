@@ -1,0 +1,68 @@
+@startuml figure-2-use-case-overview
+skinparam dpi 320
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam defaultFontColor #151515
+skinparam ArrowColor #353535
+skinparam ArrowThickness 1.2
+skinparam ActorBorderColor #151515
+skinparam ActorFontSize 17
+skinparam UsecaseBorderColor #252525
+skinparam UsecaseBackgroundColor white
+skinparam UsecaseFontSize 17
+skinparam RectangleBorderColor #252525
+skinparam RectangleBackgroundColor white
+skinparam RectangleFontSize 20
+skinparam NoteBackgroundColor white
+skinparam NoteBorderColor #999999
+skinparam NoteFontSize 14
+skinparam nodesep 28
+skinparam ranksep 35
+title Figure 2. Use Case Diagram of LOCUS-SF
+
+actor "Guest" as Guest
+actor "Investor" as Investor
+actor "Broker" as Broker
+actor "CAO / ASSESSOR or\nLEBDO staff" as Office
+actor "CICTO\nadministrator" as CICTO
+
+rectangle "LOCUS-SF" {
+  usecase "Find and evaluate\nproperties" as U01
+  usecase "Compare properties" as U02
+  usecase "Save properties" as U03
+  usecase "Apply or reapply\nas broker" as U04
+  usecase "Submit or edit\nown listings" as U06
+  usecase "Assess and manage\nproperties" as U10
+  usecase "Review broker\napplications" as U16
+  usecase "Manage city accounts\nand reviewer permissions" as U17
+
+  U01 -[hidden]down- U02
+  U02 -[hidden]down- U03
+  U03 -[hidden]down- U04
+  U04 -[hidden]down- U06
+  U06 -[hidden]down- U10
+  U10 -[hidden]down- U16
+  U16 -[hidden]down- U17
+}
+
+Guest -right- U01
+Guest -right- U02
+Guest -right- U04
+Investor -right- U01
+Investor -right- U02
+Investor -right- U03
+Broker -right- U04
+Broker -right- U06
+U10 -right- Office
+U16 -right- Office
+U10 -right- CICTO
+U17 -right- CICTO
+
+legend bottom
+  Main goals; authenticated access and role-specific prerequisites apply.
+  Guest access is a limited public preview. Broker review requires explicit authorization.
+  Discovery includes search/filter, maps, details, preliminary assessments and nearby business context.
+endlegend
+@enduml

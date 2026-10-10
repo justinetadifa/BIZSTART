@@ -1,0 +1,65 @@
+@startuml detail-administration
+skinparam dpi 320
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam defaultFontColor #151515
+skinparam ArrowColor #353535
+skinparam ArrowThickness 1.2
+skinparam ActorBorderColor #151515
+skinparam ActorFontSize 17
+skinparam UsecaseBorderColor #252525
+skinparam UsecaseBackgroundColor white
+skinparam UsecaseFontSize 17
+skinparam RectangleBorderColor #252525
+skinparam RectangleBackgroundColor white
+skinparam RectangleFontSize 20
+skinparam NoteBackgroundColor white
+skinparam NoteBorderColor #999999
+skinparam NoteFontSize 14
+skinparam nodesep 30
+skinparam ranksep 35
+title LOCUS-SF — Broker Review and Administration\nDetail scope for Figure 2
+
+actor "Guest" as Guest
+actor "Broker" as Broker
+actor "CAO / ASSESSOR or\nLEBDO staff" as Office
+actor "CICTO\nadministrator" as CICTO
+
+rectangle "LOCUS-SF" {
+  usecase "Apply as broker" as U04
+  usecase "Revise broker\napplication" as U05
+  usecase "Review broker\napplications" as U16
+  usecase "Review investor\nverification" as U18
+  usecase "Provision city\naccounts" as Provision
+  usecase "Authorize broker\nreviewers" as Authorize
+  usecase "Inspect audit history" as U19
+  usecase "Maintain public showcase\nand voting options" as U20
+
+  U04 -[hidden]down- U05
+  U05 -[hidden]down- U16
+  U16 -[hidden]down- U18
+  U18 -[hidden]down- Provision
+  Provision -[hidden]down- Authorize
+  Authorize -[hidden]down- U19
+  U19 -[hidden]down- U20
+}
+
+Guest -right- U04
+Broker -right- U05
+U16 -right- Office
+U18 -right- Office
+U18 -right- CICTO
+Provision -right- CICTO
+Authorize -right- CICTO
+U19 -right- CICTO
+U20 -right- CICTO
+
+legend bottom
+  Scope: broker applications, authorized review, investor verification and city administration.
+  Broker review requires explicit authorization for active CAO/ASSESSOR or LEBDO staff.
+  Review includes required documents and approve, reject, request corrections or block outcomes.
+  CICTO grants reviewer permission to eligible offices; it cannot review broker applications.
+endlegend
+@enduml

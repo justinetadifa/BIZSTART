@@ -102,7 +102,7 @@ $brokerGreeting = ($_SESSION['sfc_account_greeting'] ?? '') === 'new' ? 'Welcome
       <div id="brokerListings" aria-live="polite">
         <p class="broker-empty">Loading your listings…</p>
       </div>
-      <p class="broker-panel-note">CICTO reviews every submission. MCE and IAI scores appear after city assessment.</p>
+      <p class="broker-panel-note">LEBDO and CAO review every submission. MCE and IAI scores appear after city assessment.</p>
     </section>
 
     <!-- Right Column: Sidebar (Messages & Documents) -->

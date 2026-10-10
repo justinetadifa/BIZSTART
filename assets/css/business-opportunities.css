@@ -36,18 +36,19 @@
 }
 
 /* --------------------------------------------------------------------------
-   LEFT COLUMN: Lime-Green Accent Card
+   LEFT COLUMN: Serene White Bubbly Card (Formerly Lime Accent Card)
    -------------------------------------------------------------------------- */
 .opportunities-lime-card {
-  border: 3.5px solid #D4F268;
-  background: #EDF99D;
-  border-radius: 22px;
-  padding: 22px 24px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  border-radius: 24px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+  gap: 16px;
+  box-shadow: 0 4px 20px -2px rgba(17, 34, 77, 0.04);
   box-sizing: border-box;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .opportunities-lime-header {
@@ -55,33 +56,33 @@
 }
 
 .opportunities-main-title {
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Poppins', 'Inter', -apple-system, sans-serif;
   font-size: 19px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #111827;
+  color: #11224D;
   letter-spacing: -0.01em;
-  margin: 0 0 3px;
+  margin: 0 0 4px;
   line-height: 1.25;
 }
 
 .opportunities-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
-  color: #425217;
+  color: #64748B;
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* Stylized Vector Map Canvas Container */
 .opportunities-map-box {
   position: relative;
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
   background: #E3EBEF;
   border: 1px solid #D1DDE5;
-  height: 350px;
+  height: 215px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -94,10 +95,10 @@
 /* Callout bubble: 500 m */
 .opportunities-map-radius-tag-bubble {
   position: absolute;
-  top: 82px;
-  left: 312px;
+  top: 55px;
+  left: 65%;
   background: #FFFFFF;
-  border: 1px solid #991B1B;
+  border: 1px solid #007AFF;
   border-radius: 6px;
   padding: 2px 8px;
   font-size: 11px;
@@ -108,11 +109,11 @@
   transform: translateY(-50%);
 }
 
-/* Subject property center pin (Maroon teardrop) */
+/* Subject property center pin (Blue teardrop) */
 .opportunities-map-center-pin {
   position: absolute;
-  top: 145px;
-  left: 215px;
+  top: 115px;
+  left: 50%;
   transform: translate(-50%, -100%);
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.28));
   pointer-events: none;
@@ -227,9 +228,9 @@
 }
 
 .opp-radius-btn.is-active {
-  background: #1A73E8;
+  background: #007AFF;
   color: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(26, 115, 232, 0.35);
+  box-shadow: 0 1px 4px rgba(0, 122, 255, 0.35);
 }
 
 .opportunities-map-recenter-btn {
@@ -244,7 +245,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1A73E8;
+  color: #007AFF;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
   z-index: 5;
@@ -253,7 +254,7 @@
 
 .opportunities-map-recenter-btn:hover {
   background: #F8FAFC;
-  color: #1557B0;
+  color: #0056B3;
   transform: scale(1.08);
 }
 
@@ -285,10 +286,10 @@
 }
 
 .opportunities-map-layer-btn.is-active {
-  background: #1A73E8;
+  background: #007AFF;
   color: #FFFFFF;
-  border-color: #1A73E8;
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
+  border-color: #007AFF;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.35);
 }
 
 /* Real Interactive Leaflet Canvas Overlay */
@@ -735,23 +736,26 @@
   gap: 12px;
 }
 
-/* Top maroon kicker badge */
+/* Top refined kicker badge */
 .opportunities-kicker-banner {
-  background: #800000;
-  color: #FFFFFF;
-  font-family: 'Poppins', sans-serif;
-  font-style: italic;
-  font-weight: 800;
-  font-size: 13.5px;
+  background: #F8FAFC;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 11.5px;
   padding: 5px 14px;
-  border-radius: 4px;
-  display: inline-block;
-  letter-spacing: 0.2px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.02em;
   width: fit-content;
   margin-bottom: 2px;
 }
 
-/* Stack of 3 powder-blue cards */
+/* Stack of opportunity cards */
 .opportunities-blue-stack {
   display: flex;
   flex-direction: column;
@@ -759,20 +763,21 @@
 }
 
 .opportunity-blue-card {
-  background: #D2E1ED;
-  border: 1px solid #B8CEDB;
-  border-radius: 26px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 14px -2px rgba(18, 52, 86, 0.08);
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 22px;
+  padding: 18px 22px;
+  box-shadow: 0 4px 16px -2px rgba(17, 34, 77, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+  gap: 12px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 .opportunity-blue-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px -3px rgba(18, 52, 86, 0.12);
+  border-color: #CBD5E1;
+  box-shadow: 0 10px 24px -4px rgba(17, 34, 77, 0.08);
 }
 
 .opportunity-blue-main-row {
@@ -791,16 +796,17 @@
   outline-offset: 2px;
 }
 
-/* White square icon box with burgundy outline SVG */
+/* Icon box with burgundy outline SVG */
 .opportunity-blue-icon-box {
-  width: 58px;
-  height: 58px;
-  background: #FFFFFF;
+  width: 54px;
+  height: 54px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.04);
   flex-shrink: 0;
 }
 
@@ -809,44 +815,47 @@
   min-width: 0;
 }
 
-/* Preliminary peach badge */
+/* Preliminary tag */
 .opportunity-preliminary-tag {
-  background: #FEEAD8;
-  color: #A25D23;
-  font-size: 9.5px;
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #DBEAFE;
+  font-size: 10px;
   font-weight: 700;
-  padding: 1.5px 7px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
   display: inline-block;
   margin-bottom: 3px;
-  text-transform: capitalize;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* Bold dark blue uppercase title */
+/* Bold dark navy title */
 .opportunity-blue-title {
-  font-family: 'Poppins', sans-serif;
-  font-size: 17px;
-  font-weight: 800;
-  color: #134685;
-  letter-spacing: 0.2px;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: 16.5px;
+  font-weight: 750;
+  color: #11224D;
+  letter-spacing: -0.01em;
   text-transform: uppercase;
-  margin: 0 0 2px;
-  line-height: 1.2;
+  margin: 0 0 3px;
+  line-height: 1.3;
 }
 
 .opportunity-blue-desc {
   font-size: 12.5px;
-  color: #475569;
-  margin: 0 0 6px;
-  line-height: 1.4;
+  color: #64748B;
+  margin: 0 0 8px;
+  line-height: 1.45;
 }
 
-/* Lime green activity center pill */
+/* Activity center pill */
 .opportunity-lime-pill {
-  background: #D4F268;
-  color: #1A330A;
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   border-radius: 9999px;
   padding: 3px 10px;
   display: inline-flex;
@@ -858,12 +867,16 @@
 
 /* Red warning notice */
 .opportunity-red-warning {
-  color: #C0392B;
+  color: #92400E;
+  background: #FFFBEB;
+  border: 1px solid #FEF3C7;
+  border-radius: 8px;
+  padding: 4px 10px;
   font-size: 11px;
-  font-style: italic;
-  display: flex;
+  font-style: normal;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-weight: 500;
   margin: 0;
 }
@@ -872,42 +885,58 @@
   font-style: normal;
 }
 
-/* Dark circular action button with white arrow */
+/* Action button with arrow */
 .opportunity-circle-action-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #18181B;
-  color: #FFFFFF;
-  border: none;
+  background: rgba(0, 122, 255, 0.08);
+  color: #007AFF;
+  border: 1px solid rgba(0, 122, 255, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.15s ease, background-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .opportunity-circle-action-btn:hover {
-  background: #000000;
+  background: #007AFF;
+  color: #FFFFFF;
+  border-color: #007AFF;
   transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.28);
 }
 
 .opportunity-circle-action-btn:focus-visible {
-  outline: 2px solid #2563EB;
+  outline: 2px solid #007AFF;
   outline-offset: 2px;
 }
 
 .opportunity-circle-action-btn svg {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  stroke: #007AFF;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.15s ease;
+}
+
+.opportunity-circle-action-btn:hover svg {
+  stroke: #FFFFFF;
 }
 
 .opportunity-blue-card.is-drawer-open {
-  background: #CBE0ED;
-  box-shadow: 0 6px 18px -2px rgba(18, 52, 86, 0.14);
+  background: #FAFCFF;
+  border-color: #93C5FD;
+  box-shadow: 0 8px 24px -2px rgba(17, 34, 77, 0.08);
+}
+
+.opportunity-blue-card.is-drawer-open .opportunity-circle-action-btn {
+  background: #11224D;
+  color: #FFFFFF;
+  border-color: #11224D;
 }
 
 .opportunity-blue-card.is-drawer-open .opportunity-circle-action-btn svg {
+  stroke: #FFFFFF;
   transform: rotate(90deg);
 }
 
@@ -1191,8 +1220,12 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 20px;
-  padding-top: 6px;
+  margin-top: 18px;
+  padding: 10px 18px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 18px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
 }
 
 .opportunities-filter-pills {
@@ -1204,33 +1237,36 @@
 
 .opportunities-filter-pill {
   background: #FFFFFF;
-  border: 1px solid #64748B;
+  border: 1px solid #E2E8F0;
   border-radius: 9999px;
-  padding: 7px 18px;
+  padding: 8px 18px;
   font-family: 'Inter', sans-serif;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: #475569;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .opportunities-filter-pill:hover {
-  border-color: #334155;
-  color: #0F172A;
+  border-color: #CBD5E1;
+  color: #11224D;
+  background: #F8FAFC;
+  transform: translateY(-1px);
 }
 
 .opportunities-filter-pill.is-active {
-  background: #800000;
-  border-color: #800000;
+  background: #11224D;
+  border-color: #11224D;
   color: #FFFFFF;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(17, 34, 77, 0.2);
 }
 
 .opportunities-explore-more-btn {
   background: transparent;
   border: none;
-  color: #C0392B;
+  color: #9E1B22;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
   font-weight: 700;
@@ -1239,29 +1275,31 @@
   align-items: center;
   gap: 4px;
   text-decoration: none;
-  padding: 4px 6px;
-  transition: color 0.15s ease;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  transition: all 0.15s ease;
 }
 
 .opportunities-explore-more-btn:hover {
-  color: #991B1B;
-  text-decoration: underline;
+  color: #7A1218;
+  background: #FEF2F2;
+  text-decoration: none;
 }
 
 /* --------------------------------------------------------------------------
    BOTTOM DISCLAIMER BAR
    -------------------------------------------------------------------------- */
 .opportunities-disclaimer-strip {
-  background: #F1F5F9;
-  border-radius: 8px;
+  background: #F8FAFC;
+  border-radius: 16px;
   border: 1px solid #E2E8F0;
-  padding: 10px 18px;
+  padding: 12px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  margin-top: 16px;
+  margin-top: 18px;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -1276,11 +1314,12 @@
 
 .disclaimer-info-icon {
   font-size: 13px;
+  color: #94A3B8;
 }
 
 .opportunities-disclaimer-right {
-  color: #DC2626;
-  font-weight: 700;
+  color: #991B1B;
+  font-weight: 600;
 }
 
 /* --------------------------------------------------------------------------

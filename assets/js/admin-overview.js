@@ -15,11 +15,11 @@
   const icon = (name) => {
     const shapes = {
       properties: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M10 21v-6h4v6"/>',
-      review: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 3h6v4H9zM9 12h6M9 16h4"/>',
+      review: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
       published: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
       evidence: '<path d="M12 3 3 7v6c0 4 5 7 9 9 4-2 9-5 9-9V7l-9-4Z"/><path d="M12 8v5M12 17h.01"/>',
     };
-    return `<svg class="tw-h-5 tw-w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes[name] || shapes.properties}</svg>`;
+    return `<svg class="tw-h-5 tw-w-5 sm:tw-h-6 sm:tw-w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes[name] || shapes.properties}</svg>`;
   };
 
   const cleanTitle = (name) => String(name || '').replace(/\s*[–-]\s*San Fernando.*$/i, '').trim();
@@ -32,89 +32,170 @@
     const pending = items.filter((property) => property.approvalState === 'pending_review');
     const published = items.filter((property) => property.approvalState === 'approved');
     const missingEvidence = items.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived');
+    
+    // Status Cards: Thick, heavily rounded 3D-like panels with vibrant filled circular badges
     const stats = [
-      ['All properties', items.length, 'Across the city catalog', 'properties', 'tw-bg-blue-50 tw-text-blue-700', false],
-      ['Awaiting review', pending.length, pending.length ? 'Ready for a city decision' : 'No pending listing decisions', 'review', pending.length ? 'tw-bg-amber-100 tw-text-amber-800' : 'tw-bg-amber-50 tw-text-amber-700', pending.length > 0],
-      ['Published', published.length, 'Visible to investors', 'published', 'tw-bg-emerald-50 tw-text-emerald-700', false],
-      ['Needs site evidence', missingEvidence.length, missingEvidence.length ? 'Awaiting site verification' : 'Site verification up to date', 'evidence', 'tw-bg-red-50 tw-text-[#9e1b22]', false],
+      ['All properties', items.length, 'Across the city catalog', 'properties', 'tw-border tw-border-blue-300/40 tw-bg-blue-50 tw-text-blue-600', false],
+      ['Awaiting review', pending.length, pending.length ? 'Ready for a city decision' : 'No pending listing decisions', 'review', 'tw-border tw-border-amber-300/60 tw-bg-amber-50 tw-text-amber-600', true],
+      ['Published', published.length, 'Visible to investors', 'published', 'tw-border tw-border-emerald-300/40 tw-bg-emerald-50 tw-text-emerald-600', false],
+      ['Needs site evidence', missingEvidence.length, missingEvidence.length ? 'Awaiting site verification' : 'Site verification up to date', 'evidence', 'tw-border tw-border-rose-300/40 tw-bg-rose-50 tw-text-[#9E1B22]', false],
     ];
-    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, description, symbol, color, isHighlight]) => `
-      <article class="tw-flex tw-min-w-0 tw-items-start tw-gap-3 tw-rounded-xl tw-border ${isHighlight ? 'tw-border-amber-300 tw-bg-amber-50/30 tw-ring-1 tw-ring-amber-200' : 'tw-border-slate-200 tw-bg-white'} tw-p-4 sm:tw-p-5 tw-transition-all hover:tw-shadow-sm">
-        <span class="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl ${color}">${icon(symbol)}</span>
+    
+    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, description, symbol, badgeStyle, isHighlight]) => `
+      <article class="tw-flex tw-min-w-0 tw-items-center tw-gap-4 tw-rounded-[28px] ${isHighlight ? 'tw-bg-[#FFFCF6] tw-border-[2.5px] tw-border-[#E8D196] tw-shadow-[0_10px_26px_rgba(232,209,150,0.22)]' : 'tw-bg-white tw-border tw-border-slate-100 tw-shadow-[0_10px_26px_rgba(17,34,77,0.06)]'} tw-p-5 sm:tw-p-6 tw-transition-all hover:tw-translate-y-[-2px] hover:tw-shadow-xl">
+        <span class="tw-flex tw-h-12 tw-w-12 sm:tw-h-14 sm:tw-w-14 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full ${badgeStyle} tw-shadow-sm">${icon(symbol)}</span>
         <div class="tw-min-w-0">
-          <span class="tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${label}</span>
-          <strong class="tw-mt-1 tw-block tw-text-[28px] tw-font-semibold tw-leading-tight tw-tracking-tight tw-text-ink" data-overview-stat="${symbol}">${number(value)}</strong>
-          <span class="tw-mt-2 tw-block tw-text-[10px] tw-leading-relaxed ${isHighlight ? 'tw-text-amber-700 tw-font-medium' : 'tw-text-slate-500'}">${description}</span>
+          <span class="tw-block tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-slate-600">${label}</span>
+          <strong class="tw-mt-0.5 tw-block tw-text-[32px] sm:tw-text-[36px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-slate-900" data-overview-stat="${symbol}">${number(value)}</strong>
+          <span class="tw-mt-0.5 tw-block tw-text-[11px] ${isHighlight ? 'tw-text-[#B45309] tw-font-semibold' : 'tw-text-slate-400'}">${description}</span>
         </div>
       </article>`).join('');
 
     const queue = governance ? pending : items.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
+    
+    // Listing Reviews: Inset smooth gray capsules, extremely rounded thumbnails, pill buttons
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
       ? queue.slice(0, 3).map((property) => `
-        <article class="tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-border-t tw-border-slate-100 tw-py-4 first:tw-border-0 sm:tw-grid-cols-[64px_minmax(0,1fr)_auto]">
-          <img class="tw-h-14 tw-w-14 tw-rounded-lg tw-object-cover sm:tw-h-16 sm:tw-w-16" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy">
-          <div class="tw-min-w-0">
-            <h3 class="tw-m-0 tw-break-words tw-text-xs tw-font-semibold tw-leading-relaxed tw-text-ink">
-              <a class="tw-text-ink tw-no-underline hover:tw-text-[#9e1b22] tw-transition-colors" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(cleanTitle(property.name))}</a>
-            </h3>
-            <p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${escape(property.barangay || 'San Fernando')} · ${number(Number(property.area) * 10000)} m²</p>
-            <span class="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-amber-50 tw-px-2 tw-py-1 tw-text-[9.5px] tw-font-medium tw-text-amber-800">
-              <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-500"></span>
-              ${governance ? 'Awaiting review' : 'Source scores pending'}
-            </span>
+        <article class="tw-flex tw-items-center tw-justify-between tw-gap-3.5 tw-rounded-[22px] tw-bg-[#EEF1F6] tw-p-3 sm:tw-p-4 tw-mb-3 hover:tw-bg-[#E5EAEF] tw-transition-all">
+          <div class="tw-flex tw-items-center tw-gap-3.5 tw-min-w-0">
+            <img class="tw-h-16 tw-w-16 sm:tw-h-[68px] sm:tw-w-[68px] tw-rounded-[18px] tw-object-cover tw-shadow-sm tw-shrink-0" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy">
+            <div class="tw-min-w-0">
+              <h3 class="tw-m-0 tw-truncate tw-text-xs sm:tw-text-sm tw-font-bold tw-text-slate-900">
+                <a class="tw-text-slate-900 tw-no-underline hover:tw-text-[#9e1b22] tw-transition-colors" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(cleanTitle(property.name))}</a>
+              </h3>
+              <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] sm:tw-text-xs tw-text-slate-500">${escape(property.barangay || 'San Fernando')} - ${number(Number(property.area) * 10000)} m²</p>
+              <span class="tw-mt-1.5 tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-[#FEF3C7] tw-px-3 tw-py-0.5 tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-[#92400E]">
+                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500"></span>
+                ${governance ? 'Awaiting review' : 'Source scores pending'}
+              </span>
+            </div>
           </div>
-          <a class="tw-col-start-2 tw-flex tw-min-h-[36px] tw-w-fit tw-items-center tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3.5 tw-py-2 tw-text-[11px] tw-font-semibold tw-text-ink hover:tw-bg-slate-50 hover:tw-border-slate-300 sm:tw-col-start-auto tw-transition-colors" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} &rarr;</a>
+          <a class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-slate-200/90 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-800 tw-shadow-sm hover:tw-bg-slate-50 hover:tw-shadow active:tw-scale-[0.98] tw-transition-all tw-shrink-0 tw-no-underline" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} &rarr;</a>
         </article>`).join('')
-      : '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-4 tw-text-center"><span class="tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700">' + icon('published') + '</span><strong class="tw-text-sm tw-font-semibold tw-text-ink">All caught up.</strong><p class="tw-m-0 tw-text-xs tw-leading-relaxed tw-text-slate-500">' + (governance ? 'New submissions will appear here for review.' : 'No properties are awaiting assessment.') + '</p></div>';
+      : '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-4 tw-text-center"><span class="tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700">' + icon('published') + '</span><strong class="tw-text-sm tw-font-bold tw-text-ink">All caught up.</strong><p class="tw-m-0 tw-text-xs tw-leading-relaxed tw-text-slate-500">' + (governance ? 'New submissions will appear here for review.' : 'No properties are awaiting assessment.') + '</p></div>';
 
     const ranked = published.filter((property) => validScore(property.mceScore) && validScore(property.iaiScore))
       .sort((left, right) => Number(right.iaiScore) - Number(left.iaiScore) || Number(right.mceScore) - Number(left.mceScore) || Number(left.id) - Number(right.id)).slice(0, 5);
     const chart = root.querySelector('[data-assessment-ranking]');
     if (!ranked.length) {
-      chart.innerHTML = '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-rounded-lg tw-bg-slate-50 tw-p-4 tw-text-center"><strong class="tw-text-sm tw-font-semibold tw-text-ink">Scores will appear here.</strong><p class="tw-m-0 tw-max-w-xs tw-text-xs tw-leading-relaxed tw-text-slate-500">MCE and IAI appear once all seven criteria have source-backed scores.</p></div>';
+      chart.innerHTML = '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-rounded-2xl tw-bg-slate-50 tw-p-4 tw-text-center"><strong class="tw-text-sm tw-font-semibold tw-text-ink">Scores will appear here.</strong><p class="tw-m-0 tw-max-w-xs tw-text-xs tw-leading-relaxed tw-text-slate-500">MCE and IAI appear once all seven criteria have source-backed scores.</p></div>';
       return;
     }
-    const width = ranked.length * 100;
-    const grid = [0, 45, 90, 135, 180].map((y) => `<line x1="0" x2="${width}" y1="${y}" y2="${y}" stroke="#e8edf2" stroke-width="1"/>`).join('');
-    const bars = ranked.map((property, index) => ['mceScore', 'iaiScore'].map((key, position) => {
-      const height = Math.max(4, Number(property[key]) * 1.8);
-      const x = index * 100 + 24 + position * 26;
-      const y = 180 - height;
-      const val = score(property[key]);
-      return `<g class="chart-bar-group" data-property-id="${Number(property.id)}">
-        <rect x="${x}" y="${y}" width="22" height="${height}" rx="3" fill="${position ? '#e9b5bc' : '#a32635'}" data-overview-score="${key}" data-score="${val}">
-          <title>${escape(property.name)}: ${position ? 'IAI' : 'MCE'} ${val}</title>
-        </rect>
-        <text x="${x + 11}" y="${Math.max(10, y - 4)}" text-anchor="middle" font-size="9" font-weight="600" fill="${position ? '#a32635' : '#475569'}">${val}</text>
-      </g>`;
-    }).join('')).join('');
+    
+    // MCE & IAI Connected Benchmark Range Plot (Dumbbell Plot)
+    const allScores = ranked.flatMap((p) => [Number(p.mceScore), Number(p.iaiScore)]).filter((n) => !isNaN(n));
+    const rawMin = allScores.length ? Math.min(...allScores) : 80;
+    const domainMin = Math.max(0, Math.min(80, Math.floor((rawMin - 2) / 10) * 10));
+    const domainMax = 100;
+    const domainRange = domainMax - domainMin;
+    const pct = (val) => Math.max(0, Math.min(100, ((Number(val) - domainMin) / domainRange) * 100));
+    const tickStep = domainRange / 4;
+    const ticks = [0, 1, 2, 3, 4].map((i) => Math.round(domainMin + i * tickStep));
 
-    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI scores for the top ${ranked.length} published properties">
-      <div class="tw-mb-4 tw-flex tw-flex-wrap tw-justify-end tw-gap-4 tw-text-[10px] tw-text-slate-500">
-        <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#a32635]"></span>MCE (Deep Red)</span>
-        <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#e9b5bc]"></span>IAI (Blush)</span>
-      </div>
-      <div class="tw-grid tw-grid-cols-[24px_minmax(0,1fr)] tw-gap-2">
-        <div class="tw-flex tw-h-[180px] tw-flex-col tw-justify-between tw-text-[10px] tw-leading-none tw-text-slate-400" aria-hidden="true">
-          <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
-        </div>
-        <div class="tw-min-w-0">
-          <svg class="tw-block tw-h-[180px] tw-w-full tw-overflow-visible" viewBox="0 0 ${width} 180" preserveAspectRatio="none" role="img" aria-label="Score chart; exact values are listed below">
-            ${grid}${bars}
-          </svg>
-          <div class="tw-mt-3 tw-grid tw-grid-flow-col tw-auto-cols-fr tw-gap-1">
-            ${ranked.map((property, idx) => `
-              <div class="tw-min-w-0 tw-text-center tw-px-1" title="${escape(property.name)}">
-                <span class="tw-block tw-truncate tw-text-[10px] tw-font-semibold tw-text-slate-700">${escape(cleanTitle(property.name))}</span>
-                <span class="tw-block tw-text-[9px] tw-text-slate-400">#${idx + 1}</span>
-              </div>`).join('')}
+    const dumbbellRows = ranked.map((property, index) => {
+      const mce = Number(property.mceScore);
+      const iai = Number(property.iaiScore);
+      const valMce = score(mce);
+      const valIai = score(iai);
+      const posMce = pct(mce);
+      const posIai = pct(iai);
+      const minPos = Math.min(posMce, posIai);
+      const maxPos = Math.max(posMce, posIai);
+      const delta = Math.round((iai - mce) * 10) / 10;
+      const deltaFormatted = delta > 0 ? `+${delta.toFixed(1)}` : delta < 0 ? `${delta.toFixed(1)}` : '0.0';
+      const deltaBadge = delta > 0
+        ? `<span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-emerald-50 tw-border tw-border-emerald-200/70 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-emerald-700" title="Investment priority +${delta.toFixed(1)} above site suitability">+${delta.toFixed(1)}</span>`
+        : delta < 0
+        ? `<span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-rose-50 tw-border tw-border-rose-200/70 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-[#9E1B22]" title="Investment priority ${delta.toFixed(1)} below site suitability">${delta.toFixed(1)}</span>`
+        : `<span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-50 tw-border tw-border-slate-200/70 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-slate-500" title="Equal score">0.0</span>`;
+
+      return `<div class="tw-group tw-flex tw-items-center tw-gap-3 tw-py-3 tw-border-b tw-border-slate-100/70 last:tw-border-0 hover:tw-bg-slate-50/70 tw-rounded-xl tw-px-1.5 -tw-mx-1.5 tw-transition-colors" data-property-id="${Number(property.id)}">
+        <!-- Rank & Property Name (Full, legible) -->
+        <div class="tw-flex tw-items-center tw-gap-2.5 tw-w-32 sm:tw-w-44 lg:tw-w-48 tw-shrink-0 tw-min-w-0">
+          <span class="tw-flex tw-h-5 tw-w-5 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-text-[10px] tw-font-black tw-text-slate-600">#${index + 1}</span>
+          <div class="tw-min-w-0">
+            <a href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}" class="tw-block tw-truncate tw-text-xs tw-font-bold tw-text-slate-900 hover:tw-text-[#9E1B22] tw-no-underline" title="${escape(property.name)}">
+              ${escape(cleanTitle(property.name))}
+            </a>
+            <span class="tw-block tw-truncate tw-text-[10px] tw-text-slate-400">${escape(property.barangay || 'San Fernando')}</span>
           </div>
         </div>
+
+        <!-- Dumbbell Connected Plot Track -->
+        <div class="tw-relative tw-flex-1 tw-h-6 tw-flex tw-items-center tw-mx-2">
+          <!-- Background vertical tick guides -->
+          <div class="tw-pointer-events-none tw-absolute tw-inset-x-0 tw-inset-y-0 tw-flex tw-justify-between">
+            <span class="tw-h-full tw-w-px tw-bg-slate-100"></span>
+            <span class="tw-h-full tw-w-px tw-bg-slate-100"></span>
+            <span class="tw-h-full tw-w-px tw-bg-slate-100"></span>
+            <span class="tw-h-full tw-w-px tw-bg-slate-100"></span>
+            <span class="tw-h-full tw-w-px tw-bg-slate-100"></span>
+          </div>
+
+          <!-- Base horizontal track line -->
+          <div class="tw-absolute tw-inset-x-0 tw-top-1/2 tw-h-1 -tw-translate-y-1/2 tw-rounded-full tw-bg-slate-200/90"></div>
+
+          <!-- Connecting barbell bridge -->
+          <div class="tw-absolute tw-top-1/2 tw-h-1.5 -tw-translate-y-1/2 tw-rounded-full tw-shadow-sm ${delta >= 0 ? 'tw-bg-gradient-to-r tw-from-[#A32635] tw-to-emerald-500' : 'tw-bg-gradient-to-r tw-from-[#F3A6B0] tw-to-[#A32635]'}" style="left: ${minPos}%; width: max(3px, ${maxPos - minPos}%);"></div>
+
+          <!-- MCE Dot (Deep Red) -->
+          <div class="tw-group/dot tw-absolute tw-top-1/2 -tw-translate-x-1/2 -tw-translate-y-1/2 tw-z-10" style="left: ${posMce}%;" data-overview-score="mceScore" data-score="${valMce}">
+            <span class="tw-block tw-h-3.5 tw-w-3.5 tw-rounded-full tw-bg-[#A32635] tw-ring-2 tw-ring-white tw-shadow-sm group-hover/dot:tw-scale-125 tw-transition-transform tw-cursor-pointer" title="${escape(property.name)}: MCE ${valMce}"></span>
+          </div>
+
+          <!-- IAI Dot (Blush) -->
+          <div class="tw-group/dot tw-absolute tw-top-1/2 -tw-translate-x-1/2 -tw-translate-y-1/2 tw-z-10" style="left: ${posIai}%;" data-overview-score="iaiScore" data-score="${valIai}">
+            <span class="tw-block tw-h-3.5 tw-w-3.5 tw-rounded-full tw-bg-[#F3A6B0] tw-ring-2 tw-ring-white tw-shadow-sm group-hover/dot:tw-scale-125 tw-transition-transform tw-cursor-pointer" title="${escape(property.name)}: IAI ${valIai}"></span>
+          </div>
+        </div>
+
+        <!-- Scores and Delta Pill -->
+        <div class="tw-w-28 sm:tw-w-32 tw-shrink-0 tw-flex tw-items-center tw-justify-end tw-gap-2">
+          <div class="tw-text-right">
+            <span class="tw-text-xs tw-font-bold tw-text-[#A32635]">${valMce}</span>
+            <span class="tw-text-[11px] tw-font-medium tw-text-slate-300">/</span>
+            <span class="tw-text-xs tw-font-bold tw-text-[#881337]">${valIai}</span>
+          </div>
+          ${deltaBadge}
+        </div>
+      </div>`;
+    }).join('');
+
+    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI connected range plot for top ${ranked.length} properties">
+      <!-- Legend & Domain Indicator -->
+      <div class="tw-mb-3 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2 tw-text-[11px] tw-font-semibold tw-text-slate-500">
+        <span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-slate-100 tw-px-2.5 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-600">
+          Scale: ${domainMin}–100
+        </span>
+        <div class="tw-flex tw-items-center tw-gap-3.5 sm:tw-gap-4">
+          <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-full tw-bg-[#A32635]"></span>MCE (Site)</span>
+          <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-full tw-bg-[#F3A6B0]"></span>IAI (Investment)</span>
+          <span class="tw-flex tw-items-center tw-gap-1"><span class="tw-inline-block tw-h-1 tw-w-2.5 tw-rounded-full tw-bg-slate-300"></span>Gap (&Delta;)</span>
+        </div>
       </div>
-      <figcaption class="tw-mt-4 tw-text-[10px] tw-leading-relaxed tw-text-slate-500">Scores out of 100 · ordered by IAI score</figcaption>
+
+      <!-- Axis Ticks Header -->
+      <div class="tw-flex tw-items-center tw-gap-3 tw-pb-1.5 tw-border-b tw-border-slate-100 tw-text-[10px] tw-font-bold tw-text-slate-400">
+        <div class="tw-w-32 sm:tw-w-44 lg:tw-w-48 tw-shrink-0 tw-truncate">PROPERTY (#RANK)</div>
+        <div class="tw-flex-1 tw-flex tw-items-center tw-justify-between tw-mx-2">
+          ${ticks.map((t) => `<span>${t}</span>`).join('')}
+        </div>
+        <div class="tw-w-28 sm:tw-w-32 tw-shrink-0 tw-text-right">MCE / IAI &middot; &Delta;</div>
+      </div>
+
+      <!-- Dumbbell Rows -->
+      <div class="tw-divide-y tw-divide-slate-100/60">
+        ${dumbbellRows}
+      </div>
+
+      <!-- Footer Caption & Link -->
+      <div class="tw-mt-4 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2 pt-2 border-t border-slate-100">
+        <figcaption class="tw-text-[11px] tw-text-slate-400">Scores out of 100 · ordered by IAI score</figcaption>
+        <a href="${escape(path('property-ranking.php', config))}" class="tw-text-[11px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline">&#9658; View exact scores</a>
+      </div>
     </figure>
     <details class="tw-mt-3 tw-text-[11px] tw-text-slate-500">
-      <summary class="tw-cursor-pointer tw-font-medium hover:tw-text-[#9e1b22] tw-transition-colors">View exact scores</summary>
+      <summary class="tw-cursor-pointer tw-font-semibold hover:tw-text-[#9e1b22] tw-transition-colors">Detailed Score Table</summary>
       <dl class="tw-mb-0 tw-mt-3 tw-space-y-2.5">
         ${ranked.map((property) => `
           <div class="tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-gap-2 tw-border-b tw-border-slate-100 tw-pb-2">

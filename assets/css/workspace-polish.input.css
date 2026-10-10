@@ -305,3 +305,216 @@
   }
 }
 
+/* ==========================================================================
+   Redesigned Security & Trust Privacy Consent Modal
+   ========================================================================== */
+.city-privacy-dialog {
+  border: 3.5px solid #E50000 !important;
+  border-radius: 38px !important;
+  width: min(460px, calc(100% - 32px)) !important;
+  padding: 28px 30px 32px !important;
+  background: #ffffff !important;
+  color: #11224D !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45) !important;
+  margin: auto !important;
+  overflow: visible !important;
+}
+
+.city-privacy-dialog::backdrop {
+  background: rgba(11, 21, 40, 0.72) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+.city-privacy-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 6px !important;
+}
+
+.city-privacy-overline {
+  text-align: center !important;
+  font-weight: 800 !important;
+  font-size: 19px !important;
+  letter-spacing: normal !important;
+  text-transform: uppercase !important;
+  color: #1F2937 !important;
+  margin: 0 0 2px 0 !important;
+}
+
+.city-privacy-headline {
+  text-align: center !important;
+  font-weight: 900 !important;
+  font-style: italic !important;
+  color: #E50000 !important;
+  font-size: 30px !important;
+  line-height: 1.15 !important;
+  margin: 0 0 10px 0 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.city-privacy-body {
+  text-align: center !important;
+  color: #242424 !important;
+  font-size: 15px !important;
+  line-height: 1.42 !important;
+  margin: 0 0 12px 0 !important;
+}
+
+.city-privacy-link-wrap {
+  text-align: left !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+}
+
+.city-privacy-link {
+  color: #E50000 !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: opacity 0.15s ease !important;
+}
+
+.city-privacy-link:hover {
+  text-decoration: underline !important;
+}
+
+.city-privacy-checkbox-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-align: left !important;
+  font-size: 13px !important;
+  color: #374151 !important;
+  margin: 0 0 20px 0 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.city-privacy-checkbox {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 4px !important;
+  border: 2px solid #CBD5E1 !important;
+  accent-color: #E50000 !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.15s ease !important;
+}
+
+.city-privacy-checkbox:hover {
+  border-color: #E50000 !important;
+}
+
+.city-privacy-buttons {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  width: 100% !important;
+}
+
+.city-privacy-btn-create {
+  flex: 1 !important;
+  border-radius: 9999px !important;
+  padding: 12px 16px !important;
+  min-height: 46px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  background-color: #E50000 !important;
+  color: #ffffff !important;
+  border: none !important;
+  text-align: center !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  user-select: none !important;
+  box-shadow: none !important;
+}
+
+.city-privacy-btn-create:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
+.city-privacy-btn-create:not(:disabled) {
+  opacity: 1 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 14px rgba(229, 0, 0, 0.3) !important;
+}
+
+.city-privacy-btn-create:not(:disabled):hover {
+  background-color: #CC0000 !important;
+  transform: translateY(-1px) !important;
+}
+
+.city-privacy-btn-create:not(:disabled):active {
+  transform: scale(0.98) !important;
+}
+
+.city-privacy-btn-guest {
+  flex: 1 !important;
+  border-radius: 9999px !important;
+  padding: 12px 16px !important;
+  min-height: 46px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  background-color: #9FB2E8 !important;
+  color: #111827 !important;
+  border: none !important;
+  text-align: center !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.city-privacy-btn-guest:hover {
+  background-color: #8EA5DF !important;
+  transform: translateY(-1px) !important;
+}
+
+.city-privacy-btn-guest:active {
+  transform: scale(0.98) !important;
+}
+
+/* ==========================================================================
+   City Listings Dashboard "Bubbly" 3D Aesthetics & Pill Elements
+   ========================================================================== */
+.bubbly-card {
+  border-radius: 28px !important;
+  border: 1px solid #f1f5f9 !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(17, 34, 77, 0.06), 0 2px 6px rgba(17, 34, 77, 0.02) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
+}
+
+.bubbly-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 16px 36px rgba(17, 34, 77, 0.09), 0 4px 10px rgba(17, 34, 77, 0.03) !important;
+}
+
+.bubbly-inset-capsule {
+  border-radius: 22px !important;
+  background-color: #EEF1F6 !important;
+  padding: 14px 18px !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+  transition: background-color 0.18s ease, transform 0.18s ease !important;
+}
+
+.bubbly-inset-capsule:hover {
+  background-color: #E5EAEF !important;
+}
+
+/* Glassmorphic Today widget */
+#adminTodayCapsule {
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  background: rgba(11, 21, 40, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+}
+
+

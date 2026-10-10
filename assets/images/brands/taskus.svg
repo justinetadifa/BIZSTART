@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="120" height="90">
+  <rect width="120" height="90" rx="14" fill="#FFFFFF"/>
+  <!-- TaskUs "Us" Geometric Emblem -->
+  <g transform="translate(18, 14)">
+    <!-- Magenta / Hot Pink "U" -->
+    <path d="M 4 8 C 4 3.5 7.5 0 12 0 L 16 0 C 20.5 0 24 3.5 24 8 L 24 38 C 24 45.5 30.5 52 38 52 C 45.5 52 52 45.5 52 38 L 52 8 C 52 3.5 55.5 0 60 0 L 64 0 C 68.5 0 72 3.5 72 8 L 72 38 C 72 56.5 56.5 71.5 38 71.5 C 19.5 71.5 4 56.5 4 38 Z" fill="#E6007A" transform="scale(0.85)"/>
+    <!-- Top Royal Blue Pill Block -->
+    <rect x="42" y="2" width="40" height="26" rx="12" fill="#0055FF"/>
+    <!-- Bottom Warm Yellow Pill Block -->
+    <rect x="42" y="34" width="40" height="26" rx="12" fill="#FFC800"/>
+  </g>
+</svg>

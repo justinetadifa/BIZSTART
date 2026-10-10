@@ -8,14 +8,14 @@ class HelpCenter
     public static function render(): void
     {
         ?>
-        <!-- Floating ? Help & FAQs trigger -->
-        <button type="button" class="locus-floating-help-btn no-print" data-locus-help-trigger data-locus-help-tab="scores" aria-haspopup="dialog" aria-controls="locusHelpDialog" aria-label="Open LOCUS-SF Help & FAQs">
+        <!-- Floating (?) Help Center trigger -->
+        <button type="button" class="locus-floating-help-btn no-print" data-locus-help-trigger data-locus-help-tab="scores" aria-haspopup="dialog" aria-controls="locusHelpDialog" aria-label="Open LOCUS-SF Help &amp; FAQs" title="Help &amp; FAQs">
             <svg class="locus-floating-help-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
-            <span>? Help &amp; FAQs</span>
+            <span class="locus-help-sr-only">Help &amp; FAQs</span>
         </button>
 
         <!-- LOCUS-SF Help Center Dialog -->

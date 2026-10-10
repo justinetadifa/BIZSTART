@@ -53,7 +53,11 @@ $pwReadiness = [
     <header class="pw-header">
       <div class="pw-heading-row">
         <div><div class="pw-breadcrumb">Properties <span>/</span> <span data-wizard-breadcrumb>Add property</span></div><h2 id="cityEditorTitle">New property</h2><p class="pw-header-note">A few essentials first. Add the details at your own pace.</p></div>
-        <div class="pw-header-actions"><span class="pw-draft-badge"><?= $pwIcon('document') ?> Local draft</span><button class="pw-button pw-button-light pw-button-small" type="button" data-save-exit title="Save this draft on this device"><?= $pwIcon('save') ?> Save &amp; exit</button><button class="pw-close" type="button" data-close-dialog aria-label="Close property editor"><?= $pwIcon('close') ?></button></div>
+        <div class="pw-header-actions">
+          <span class="pw-device-draft-status" data-device-draft-status><svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg> <span data-device-draft-text>Saved on this device</span></span>
+          <button class="pw-button pw-button-light pw-button-small" type="button" data-save-exit title="Save this draft on this device"><?= $pwIcon('save') ?> Save &amp; exit</button>
+          <button class="pw-close" type="button" data-close-dialog aria-label="Close property editor"><?= $pwIcon('close') ?></button>
+        </div>
       </div>
       <nav class="pw-steps" aria-label="Property form steps">
         <?php foreach (['Basics', 'Area & location', 'Site evidence', 'Surroundings', 'Review'] as $pwStep => $pwStepLabel): ?>
@@ -70,31 +74,254 @@ $pwReadiness = [
       <section class="pw-panel" data-editor-panel="0">
         <div class="pw-columns pw-basics-columns">
           <article class="pw-card pw-main-card">
-            <div class="pw-card-heading"><h3>Tell us about the property</h3><p>Start with the essentials. You can add more details later.</p></div>
+            <div class="pw-card-heading">
+              <h3>Start with the essentials</h3>
+              <p>Add the details investors need first.</p>
+            </div>
             <div class="pw-fields">
-              <label class="pw-field pw-full">Property name<input name="property_name" required maxlength="180" placeholder="e.g. Commercial lot in Biday" autocomplete="off"></label>
+              <label class="pw-field pw-full">
+                <span class="pw-field-label">Property name</span>
+                <input name="property_name" required maxlength="180" placeholder="e.g. Sevilla SFC" autocomplete="off">
+              </label>
+
               <label class="pw-field">
                 <span class="pw-label-inline">Property type <span class="pw-info-icon" title="<?= $pwEscape(\App\Support\PropertyCatalog::categoryTooltips()['Vacant Land']) ?>" data-category-tip-icon><?= $pwIcon('info') ?></span></span>
-                <select name="category" required data-property-category-select><?php foreach (\App\Support\PropertyCatalog::categories() as $pwCategory => $pwSubcategories): $pwTip = \App\Support\PropertyCatalog::categoryTooltips()[$pwCategory] ?? ''; ?><option value="<?= $pwEscape($pwCategory) ?>" data-tooltip="<?= $pwEscape($pwTip) ?>"<?= $pwCategory === 'Vacant Land' ? ' selected' : '' ?>><?= $pwEscape($pwCategory) ?></option><?php endforeach; ?></select>
+                <select name="category" required data-property-category-select>
+                  <?php foreach (\App\Support\PropertyCatalog::categories() as $pwCategory => $pwSubcategories): $pwTip = \App\Support\PropertyCatalog::categoryTooltips()[$pwCategory] ?? ''; ?>
+                  <option value="<?= $pwEscape($pwCategory) ?>" data-tooltip="<?= $pwEscape($pwTip) ?>"<?= $pwCategory === 'Vacant Land' ? ' selected' : '' ?>><?= $pwEscape($pwCategory) ?></option>
+                  <?php endforeach; ?>
+                </select>
                 <small class="pw-category-tooltip-note pw-muted" data-category-tip-text><?= $pwEscape(\App\Support\PropertyCatalog::categoryTooltips()['Vacant Land']) ?></small>
               </label>
-              <label class="pw-field">Listing status<select name="status"><option>Available</option><option>Unavailable</option><option>Reserved</option><option>Sold</option><option>Leased</option><option value="Availed" hidden disabled>Availed (historical)</option></select></label>
-              <label class="pw-field pw-full">Listing purpose<select name="listing_purpose" data-listing-purpose><option value="sale">For Sale</option><option value="lease">For Lease</option><option value="sale_or_lease">For Sale or Lease</option></select></label>
-              <div class="pw-field pw-full" data-sale-price-fields><label for="pwAskingPrice">Sale price <span class="pw-muted">(optional)</span></label><div class="pw-input-group"><span>PHP</span><input id="pwAskingPrice" name="price" type="text" inputmode="numeric" pattern="[0-9]+|[0-9]{1,3}(,[0-9]{3})+" maxlength="25" title="Enter a non-negative amount in whole PHP pesos." placeholder="Total sale asking price" autocomplete="off" data-price-input></div><small>Total sale asking price in whole PHP pesos. Leave blank for Price on request.</small></div>
-              <div class="pw-field pw-full" data-lease-price-fields hidden><label for="pwLeasePrice">Lease price <span class="pw-muted">(optional)</span></label><div class="pw-input-group"><span>PHP</span><input id="pwLeasePrice" name="lease_price" type="text" inputmode="numeric" pattern="[0-9]+|[0-9]{1,3}(,[0-9]{3})+" maxlength="25" title="Enter a non-negative amount in whole PHP pesos." placeholder="Rental asking price" autocomplete="off" data-price-input></div><small>Rental asking price in whole PHP pesos for the period and unit selected below. Leave blank for Price on request.</small></div>
-              <label class="pw-field" data-lease-price-fields hidden>Rental period<select name="lease_period"><option value="month">Per month</option><option value="year">Per year</option><option value="day">Per day</option></select></label>
-              <label class="pw-field" data-lease-price-fields hidden>Rental price unit<select name="lease_price_unit"><option value="total">Total property rent</option><option value="sqm">Per square metre (m&sup2;)</option></select></label>
-              <p class="pw-price-note pw-muted pw-full">Asking prices are separate from the city’s BIR valuation.</p>
-              <div class="pw-field pw-full"><span>Property photo <span class="pw-muted">(optional)</span></span><label class="pw-photo-drop" data-photo-drop><input class="pw-file-input" name="image_file" type="file" accept="image/jpeg,image/png,image/webp" data-photo-file><span class="pw-photo-icon"><?= $pwIcon('camera') ?></span><strong>Add a property photo</strong><span>Drag an image here, or click to browse</span><small data-photo-file-name>JPG, PNG or WEBP. You can add more details later.</small></label></div>
+
+              <label class="pw-field">
+                <span class="pw-field-label">Availability status</span>
+                <select name="status">
+                  <option value="Available">Available</option>
+                  <option value="Unavailable">Unavailable</option>
+                  <option value="Reserved">Reserved</option>
+                  <option value="Sold">Sold</option>
+                  <option value="Leased">Leased</option>
+                  <option value="Availed" hidden disabled>Availed (historical)</option>
+                </select>
+              </label>
+
+              <fieldset class="pw-field pw-full pw-purpose-fieldset">
+                <legend class="pw-field-label">Listing purpose</legend>
+                <div class="pw-purpose-radios-row" role="radiogroup" aria-label="Listing purpose">
+                  <label class="pw-radio-card" data-purpose-card="sale">
+                    <input type="radio" name="listing_purpose" value="sale" checked>
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <span class="pw-radio-label">For sale</span>
+                  </label>
+                  <label class="pw-radio-card" data-purpose-card="lease">
+                    <input type="radio" name="listing_purpose" value="lease">
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <span class="pw-radio-label">For lease</span>
+                  </label>
+                  <label class="pw-radio-card" data-purpose-card="sale_or_lease">
+                    <input type="radio" name="listing_purpose" value="sale_or_lease">
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <span class="pw-radio-label">Sale or lease</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <!-- Sale asking price (shown when For sale or Sale or lease) -->
+              <div class="pw-field pw-full pw-pricing-block" data-sale-price-fields>
+                <span class="pw-field-label">Sale asking price</span>
+                <div class="pw-price-mode-row" role="radiogroup" aria-label="Sale asking price mode">
+                  <label class="pw-price-mode-card is-active" data-sale-mode-card="amount">
+                    <input type="radio" name="sale_price_mode" value="amount" checked>
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <div class="pw-price-mode-content">
+                      <strong class="pw-price-mode-title">Enter a price</strong>
+                      <span class="pw-price-mode-sub">Enter the total asking price in PHP.</span>
+                    </div>
+                  </label>
+                  <label class="pw-price-mode-card" data-sale-mode-card="request">
+                    <input type="radio" name="sale_price_mode" value="request">
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <div class="pw-price-mode-content">
+                      <strong class="pw-price-mode-title">Price on request</strong>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="pw-price-input-row" data-sale-price-input-wrap>
+                  <div class="pw-input-group">
+                    <span>PHP</span>
+                    <input id="pwAskingPrice" name="price" type="text" inputmode="numeric" maxlength="25" title="Enter a positive amount in whole PHP pesos." placeholder="e.g. 21,776,000" autocomplete="off" data-price-input>
+                  </div>
+                </div>
+
+                <div class="pw-notice pw-notice-amber" data-legacy-zero-sale-notice hidden>
+                  <?= $pwIcon('warning') ?>
+                  <div>
+                    <strong>Ambiguous legacy asking price: PHP 0</strong>
+                    <p>Confirm whether this listing is Price on request or enter a positive amount.</p>
+                  </div>
+                </div>
+                <small class="pw-price-note pw-muted">Your asking price is separate from valuation references.</small>
+              </div>
+
+              <!-- Lease asking price (shown when For lease or Sale or lease) -->
+              <div class="pw-field pw-full pw-pricing-block" data-lease-price-fields hidden>
+                <span class="pw-field-label">Lease asking price</span>
+                <div class="pw-price-mode-row" role="radiogroup" aria-label="Lease asking price mode">
+                  <label class="pw-price-mode-card is-active" data-lease-mode-card="amount">
+                    <input type="radio" name="lease_price_mode" value="amount" checked>
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <div class="pw-price-mode-content">
+                      <strong class="pw-price-mode-title">Enter a price</strong>
+                      <span class="pw-price-mode-sub">Enter the rental asking price in PHP.</span>
+                    </div>
+                  </label>
+                  <label class="pw-price-mode-card" data-lease-mode-card="request">
+                    <input type="radio" name="lease_price_mode" value="request">
+                    <span class="pw-radio-custom" aria-hidden="true"></span>
+                    <div class="pw-price-mode-content">
+                      <strong class="pw-price-mode-title">Price on request</strong>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="pw-price-input-row" data-lease-price-input-wrap>
+                  <div class="pw-input-group">
+                    <span>PHP</span>
+                    <input id="pwLeasePrice" name="lease_price" type="text" inputmode="numeric" maxlength="25" title="Enter a positive amount in whole PHP pesos." placeholder="e.g. 50,000" autocomplete="off" data-price-input>
+                  </div>
+                </div>
+
+                <div class="pw-lease-options-grid">
+                  <label class="pw-field">
+                    <span>Billing period</span>
+                    <select name="lease_period">
+                      <option value="month">Per month</option>
+                      <option value="year">Per year</option>
+                      <option value="day">Per day</option>
+                    </select>
+                  </label>
+                  <label class="pw-field">
+                    <span>Rental pricing unit</span>
+                    <select name="lease_price_unit">
+                      <option value="total">Total property rent</option>
+                      <option value="sqm">Per square metre (m&sup2;)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="pw-notice pw-notice-amber" data-legacy-zero-lease-notice hidden>
+                  <?= $pwIcon('warning') ?>
+                  <div>
+                    <strong>Ambiguous legacy rental price: PHP 0</strong>
+                    <p>Confirm whether this listing is Price on request or enter a positive amount.</p>
+                  </div>
+                </div>
+                <small class="pw-price-note pw-muted">Your asking price is separate from valuation references.</small>
+              </div>
+
+              <!-- Property photo • optional -->
+              <div class="pw-field pw-full pw-photo-section">
+                <span class="pw-field-label">Property photo <span class="pw-muted">&middot; optional</span></span>
+                <input type="hidden" name="remove_image" value="0" data-remove-image>
+
+                <!-- Active Photo Thumbnail Box (shown when photo exists) -->
+                <div class="pw-photo-active-box" data-photo-active-box hidden>
+                  <div class="pw-photo-thumb-wrap">
+                    <img class="pw-photo-thumb" data-photo-thumb src="" alt="Property photo thumbnail">
+                  </div>
+                  <div class="pw-photo-actions">
+                    <div class="pw-photo-actions-buttons">
+                      <span class="pw-photo-badge-icon" aria-hidden="true"><?= $pwIcon('camera') ?></span>
+                      <button type="button" class="pw-button pw-button-light pw-button-small" data-photo-replace>Replace</button>
+                      <button type="button" class="pw-button pw-button-small pw-button-danger-outline" data-photo-remove><?= $pwIcon('close') ?> Remove</button>
+                    </div>
+                    <p class="pw-photo-active-caption">JPG, PNG or WEBP. Photos are optional.</p>
+                    <div class="pw-badge pw-badge-amber" data-photo-removal-badge hidden>Photo marked for removal &middot; Saved upon submitting</div>
+                  </div>
+                </div>
+
+                <!-- Empty Photo Dropzone State -->
+                <label class="pw-photo-drop" for="property_image_file" data-photo-drop tabindex="0">
+                  <input class="pw-file-input" id="property_image_file" name="image_file" type="file" accept="image/jpeg,image/png,image/webp" data-photo-file>
+                  <span class="pw-photo-icon"><?= $pwIcon('camera') ?></span>
+                  <strong>Add a property photo</strong>
+                  <span>Drag an image here, or click to browse</span>
+                  <small data-photo-file-name>JPG, PNG or WEBP. Photos are optional.</small>
+                </label>
+                <p class="pw-photo-feedback" data-photo-feedback role="status" hidden></p>
+              </div>
             </div>
-            <details class="pw-disclosure pw-details"><summary><?= $pwIcon('text') ?><span>Description &amp; contact details <span class="pw-muted">&middot; Optional</span></span><?= $pwIcon('chevron') ?></summary><div class="pw-fields">
-              <label class="pw-field pw-full">Description<textarea name="description" rows="3" maxlength="3000" placeholder="Describe the property, its current use, and any useful context."></textarea></label>
-              <div class="pw-field pw-full" data-subcategory-wrapper><div class="pw-label-row"><span>Property subcategories</span><span class="pw-muted" data-subcategory-count>Multi-select</span></div><div class="pw-select-wrapper"><button type="button" class="pw-select-trigger" data-subcategory-trigger aria-expanded="false" aria-haspopup="true"><span data-subcategory-trigger-text>Select subcategories...</span><svg class="pw-icon" data-subcategory-caret viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="pw-subcategory-popover tw-hidden" data-subcategory-popover><div class="pw-label-row"><strong>Available tags</strong><div><button type="button" class="pw-text-button" data-subcategory-select-all>Select all</button><button type="button" class="pw-text-button" data-subcategory-clear-all>Clear</button></div></div><div class="pw-subcategory-grid" data-subcategory-grid></div></div></div><div class="pw-subcategory-tags" data-subcategory-tags></div><input type="hidden" name="subcategory" data-subcategory-input></div>
-              <label class="pw-field pw-full">Contact route<select name="contactBrokerUserId"><option value="">Open listing &middot; city contact</option></select></label>
-              <label class="pw-field">Contact name<input name="owner_name" maxlength="150" autocomplete="name"></label><label class="pw-field">Phone<input name="owner_phone" type="tel" maxlength="40" autocomplete="tel"></label><label class="pw-field pw-full">Email<input name="owner_email" type="email" maxlength="190" autocomplete="email"></label>
-            </div></details>
+
+            <!-- Description & contact details — Optional -->
+            <details class="pw-disclosure pw-details" data-description-disclosure>
+              <summary><?= $pwIcon('text') ?><span>Description &amp; contact details &mdash; Optional</span><?= $pwIcon('chevron') ?></summary>
+              <div class="pw-fields">
+                <label class="pw-field pw-full">Description<textarea name="description" rows="3" maxlength="3000" placeholder="Describe the property, its current use, and any useful context."></textarea></label>
+                <div class="pw-field pw-full" data-subcategory-wrapper>
+                  <div class="pw-label-row"><span>Property subcategories</span><span class="pw-muted" data-subcategory-count>Multi-select</span></div>
+                  <div class="pw-select-wrapper">
+                    <button type="button" class="pw-select-trigger" data-subcategory-trigger aria-expanded="false" aria-haspopup="true">
+                      <span data-subcategory-trigger-text>Select subcategories...</span>
+                      <svg class="pw-icon" data-subcategory-caret viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="pw-subcategory-popover tw-hidden" data-subcategory-popover>
+                      <div class="pw-label-row"><strong>Available tags</strong><div><button type="button" class="pw-text-button" data-subcategory-select-all>Select all</button><button type="button" class="pw-text-button" data-subcategory-clear-all>Clear</button></div></div>
+                      <div class="pw-subcategory-grid" data-subcategory-grid></div>
+                    </div>
+                  </div>
+                  <div class="pw-subcategory-tags" data-subcategory-tags></div>
+                  <input type="hidden" name="subcategory" data-subcategory-input>
+                </div>
+                <label class="pw-field pw-full">Contact route<select name="contactBrokerUserId"><option value="">Open listing &middot; city contact</option></select></label>
+                <label class="pw-field">Contact name<input name="owner_name" maxlength="150" autocomplete="name"></label>
+                <label class="pw-field">Phone<input name="owner_phone" type="tel" maxlength="40" autocomplete="tel"></label>
+                <label class="pw-field pw-full">Email<input name="owner_email" type="email" maxlength="190" autocomplete="email"></label>
+              </div>
+            </details>
           </article>
-          <aside class="pw-card pw-preview-card"><div class="pw-label-row"><h3>Listing preview</h3><span class="pw-preview-live">Draft</span></div><div class="pw-preview-photo" data-photo-preview><div><?= $pwIcon('photo') ?><span>Your photo will appear here</span></div></div><h4 class="pw-preview-name" data-preview-name>Your new property</h4><div class="pw-badges"><span class="pw-badge" data-preview-category><?= $pwIcon('tag') ?><span>Vacant land</span></span><span class="pw-badge pw-badge-teal" data-preview-status><?= $pwIcon('check') ?><span>Available</span></span></div><p class="pw-muted" data-preview-purpose>For Sale</p><p data-preview-price>Price on request</p><div class="pw-preview-area"><span class="pw-feature-icon"><?= $pwIcon('area') ?></span><p data-preview-area>Add an area size or exact location in the next step.</p></div><div class="pw-draft-note"><?= $pwIcon('info') ?><p>Only the essentials are required. You can save a draft and return to it on this device.</p></div></aside>
+
+          <!-- Listing Preview Aside (Collapsible on Mobile, Live on Desktop) -->
+          <details class="pw-card pw-preview-card pw-preview-card-collapsible" data-preview-disclosure open>
+            <summary class="pw-preview-summary-toggle">
+              <div class="pw-preview-summary-left">
+                <?= $pwIcon('photo') ?>
+                <span>Preview listing</span>
+              </div>
+              <span class="pw-preview-summary-status" data-preview-toggle-meta>Draft &middot; Not published</span>
+              <?= $pwIcon('chevron') ?>
+            </summary>
+            <div class="pw-preview-inner">
+              <div class="pw-label-row pw-preview-header-row">
+                <h3>Listing preview</h3>
+                <span class="pw-badge pw-badge-amber" data-preview-approval-state>&bull; <span>Draft &middot; Not published</span></span>
+              </div>
+              <div class="pw-preview-photo" data-photo-preview>
+                <div><?= $pwIcon('photo') ?><span>Your photo will appear here</span></div>
+              </div>
+              <h4 class="pw-preview-name" data-preview-name>Your new property</h4>
+              <div class="pw-badges">
+                <span class="pw-badge" data-preview-category><?= $pwIcon('tag') ?><span>Vacant land</span></span>
+                <span class="pw-badge pw-badge-teal" data-preview-status>&bull; <span>Available</span></span>
+              </div>
+              <div class="pw-preview-pricing-block">
+                <span class="pw-preview-purpose-label" data-preview-purpose>For sale</span>
+                <strong class="pw-preview-price-headline" data-preview-price>Price on request</strong>
+              </div>
+              <div class="pw-preview-area-row">
+                <span class="pw-feature-icon"><?= $pwIcon('area') ?></span>
+                <div class="pw-preview-area-text">
+                  <strong data-preview-area-val>&mdash;</strong>
+                  <span class="pw-preview-area-caption">Mapped estimate</span>
+                </div>
+              </div>
+              <div class="pw-preview-footnote">
+                <?= $pwIcon('info') ?>
+                <p>This preview updates as you edit.</p>
+              </div>
+            </div>
+          </details>
         </div>
       </section>
       <section class="pw-panel" data-editor-panel="1" hidden>
@@ -131,217 +358,990 @@ $pwReadiness = [
         </div>
       </section>
       <section class="pw-panel" data-editor-panel="2" hidden>
-        <div class="pw-columns pw-evidence-columns"><article class="pw-card pw-main-card"><div class="pw-card-heading"><span class="pw-eyebrow">SITE EVIDENCE</span><h3>Access, zoning &amp; verification</h3><p>Provide evidence to support city assessment. Leave uncertain facts marked Not verified.</p></div><div class="pw-tabs pw-evidence-tabs" role="tablist" aria-label="Site evidence"><button class="is-active" type="button" role="tab" aria-selected="true" aria-controls="pwEvidenceAccess" data-evidence-tab="access"><?= $pwIcon('road') ?> Access &amp; utilities</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceLanduse" data-evidence-tab="landuse"><?= $pwIcon('document') ?> CLUP / Land use</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceHazards" data-evidence-tab="hazards"><?= $pwIcon('warning') ?> Hazards</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceDocuments" data-evidence-tab="documents"><?= $pwIcon('document') ?> Documents</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceValuation" data-evidence-tab="valuation"><?= $pwIcon('chart') ?> Valuation</button></div>
-            <div id="pwEvidenceAccess" class="pw-evidence-section" role="tabpanel" data-evidence-panel="access">
-              <div class="pw-section-subhead">
-                <h4>Road access</h4>
-                <p class="pw-small pw-muted">Indicate frontage presence and surface condition.</p>
-              </div>
-              <div class="pw-road-fields">
-                <fieldset class="pw-choice-field"><legend>Road frontage</legend><div class="pw-options"><label><input type="radio" name="road_frontage" value="yes"><span><?= $pwIcon('check') ?> Yes</span></label><label><input type="radio" name="road_frontage" value="no"><span>No</span></label><label><input type="radio" name="road_frontage" value="not_verified" checked><span>Not verified</span></label></div></fieldset>
-                <label class="pw-field">Road surface<select name="road_surface"><option value="not_verified">Not verified</option><option value="paved">Paved</option><option value="gravel">Gravel</option><option value="unpaved">Unpaved</option><option value="other">Other</option></select></label>
-              </div>
-              <div class="pw-utilities-container">
-                <div class="pw-section-subhead">
-                  <h4>Utilities</h4>
-                  <p class="pw-small pw-muted">Document on-site service connections and verified providers.</p>
+        <!-- Site Evidence 7-Criterion Workspace -->
+        <div class="pw-evidence-workspace">
+          <!-- Step Heading -->
+          <div class="pw-evidence-header-block">
+            <span class="pw-eyebrow">STEP 3 · SITE EVIDENCE</span>
+            <h3 class="pw-evidence-main-title">Tell us about the site</h3>
+            <p class="pw-evidence-subtitle">Add what you know. Supporting records help reviewers check your information across the seven criteria.</p>
+          </div>
+
+          <!-- Criterion Navigation: Desktop Tabs + Mobile Accessible Select -->
+          <div class="pw-criteria-nav-bar">
+            <!-- Mobile Criterion Selector -->
+            <div class="pw-criteria-mobile-picker">
+              <label for="pwCriteriaMobileSelect" class="pw-sr-only">Choose assessment criterion</label>
+              <select id="pwCriteriaMobileSelect" class="pw-criteria-select-mobile" data-criteria-mobile-select>
+                <option value="spatial_accessibility">1. Spatial accessibility</option>
+                <option value="infrastructure_readiness" selected>2. Infrastructure readiness</option>
+                <option value="economic_viability">3. Economic viability</option>
+                <option value="nearby_businesses">4. Nearby businesses</option>
+                <option value="zoning_compatibility">5. Zoning compatibility (CLUP)</option>
+                <option value="risk_constraints">6. Risk constraints</option>
+                <option value="environmental_safety">7. Environmental safety</option>
+              </select>
+            </div>
+
+            <!-- Desktop Horizontal Criteria Tablist -->
+            <div class="pw-tabs pw-criteria-tabs" role="tablist" aria-label="Assessment criteria">
+              <button class="pw-criterion-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="pwCriterionSpatial" data-evidence-tab="spatial_accessibility">
+                <span class="pw-crit-num">1</span> Spatial accessibility
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionInfrastructure" data-evidence-tab="infrastructure_readiness">
+                <span class="pw-crit-num">2</span> Infrastructure readiness
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionEconomic" data-evidence-tab="economic_viability">
+                <span class="pw-crit-num">3</span> Economic viability
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionNearby" data-evidence-tab="nearby_businesses">
+                <span class="pw-crit-num">4</span> Nearby businesses
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionZoning" data-evidence-tab="zoning_compatibility">
+                <span class="pw-crit-num">5</span> Zoning compatibility
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionRisks" data-evidence-tab="risk_constraints">
+                <span class="pw-crit-num">6</span> Risk constraints
+              </button>
+              <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionEnvironmental" data-evidence-tab="environmental_safety">
+                <span class="pw-crit-num">7</span> Environmental safety
+              </button>
+            </div>
+          </div>
+
+          <!-- 1. SPATIAL ACCESSIBILITY PANE -->
+          <div id="pwCriterionSpatial" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="spatial_accessibility">
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Spatial accessibility</h4>
+                    <p class="pw-small pw-muted">Frontage presence, access road dimensions, and physical connectivity.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
                 </div>
-                <!-- Electricity -->
-                <div class="pw-utility-card" data-utility-card="electricity">
-                  <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge electricity"><?= $pwIcon('utilities') ?></span><span class="pw-utility-name">Electricity</span></legend>
-                    <div class="pw-options">
-                      <label><input type="radio" name="electricity" value="available" data-utility-radio="electricity"><span><?= $pwIcon('check') ?> Available</span></label>
-                      <label><input type="radio" name="electricity" value="unavailable" data-utility-radio="electricity"><span>Unavailable</span></label>
-                      <label><input type="radio" name="electricity" value="not_verified" data-utility-radio="electricity" checked><span>Not verified</span></label>
-                    </div>
-                  </fieldset>
-                  <div class="pw-utility-reveal" data-utility-reveal="electricity" hidden>
-                    <p class="pw-small pw-disclosure-heading">Provider / Source <span class="pw-muted">(check all that apply)</span>:</p>
-                    <div class="pw-chip-grid">
-                      <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="LUECO"><span>LUECO</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Solar / on-site renewable energy"><span>Solar / on-site renewable energy</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Backup generator"><span>Backup generator</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Other"><span>Other</span></label>
-                    </div>
+
+                <!-- Reused Location Context -->
+                <div class="pw-reused-banner" data-spatial-reused-banner>
+                  <span class="pw-reused-icon"><?= $pwIcon('pin') ?></span>
+                  <div>
+                    <span class="pw-reused-label">Reused location data from Step 2</span>
+                    <p class="pw-reused-details">Coordinates: <strong data-reused-coords>16.6150° N, 120.3160° E</strong> &middot; Barangay: <strong data-reused-barangay>San Fernando</strong> &middot; Recorded area: <strong data-reused-area>2,500 m²</strong></p>
                   </div>
                 </div>
 
-                <!-- Water -->
-                <div class="pw-utility-card" data-utility-card="water">
-                  <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge water"><?= $pwIcon('water') ?></span><span class="pw-utility-name">Water</span></legend>
-                    <div class="pw-options">
-                      <label><input type="radio" name="water" value="available" data-utility-radio="water"><span><?= $pwIcon('check') ?> Available</span></label>
-                      <label><input type="radio" name="water" value="unavailable" data-utility-radio="water"><span>Unavailable</span></label>
-                      <label><input type="radio" name="water" value="not_verified" data-utility-radio="water" checked><span>Not verified</span></label>
-                    </div>
-                  </fieldset>
-                  <div class="pw-utility-reveal" data-utility-reveal="water" hidden>
-                    <p class="pw-small pw-disclosure-heading">Provider / Source <span class="pw-muted">(check all that apply)</span>:</p>
-                    <div class="pw-chip-grid">
-                      <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Metro La Union Water District / local water district"><span>Metro La Union Water District / local water district</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Barangay / community water system"><span>Barangay / community water system</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Deep well / groundwater"><span>Deep well / groundwater</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Water delivery / storage"><span>Water delivery / storage</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Other"><span>Other</span></label>
-                    </div>
+                <!-- Reported Property Facts -->
+                <div class="pw-evidence-card-box">
+                  <h5>Reported frontage &amp; access conditions</h5>
+                  <div class="pw-road-fields">
+                    <fieldset class="pw-choice-field">
+                      <legend>Road frontage</legend>
+                      <div class="pw-options">
+                        <label><input type="radio" name="road_frontage" value="yes"><span><?= $pwIcon('check') ?> Yes</span></label>
+                        <label><input type="radio" name="road_frontage" value="no"><span>No</span></label>
+                        <label><input type="radio" name="road_frontage" value="not_verified" checked><span>Unknown / Not verified</span></label>
+                      </div>
+                    </fieldset>
+                    <label class="pw-field">Road surface
+                      <select name="road_surface">
+                        <option value="not_verified" selected>Unknown / Not verified</option>
+                        <option value="paved">Paved (concrete / asphalt)</option>
+                        <option value="gravel">Gravel / all-weather</option>
+                        <option value="unpaved">Unpaved / dirt track</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="pw-fields" style="margin-top: 12px;">
+                    <label class="pw-field pw-full">Access route &amp; carriageway condition
+                      <input name="access_route_condition" maxlength="250" placeholder="e.g. 2-lane concrete barangay road, 6m width, direct access">
+                    </label>
+                    <label class="pw-field pw-full">Distance to major commercial arterial / national highway
+                      <input name="distance_to_highway" maxlength="150" placeholder="e.g. 150 meters to MacArthur Highway / Manila North Road">
+                    </label>
                   </div>
                 </div>
 
-                <!-- Internet & Connectivity -->
-                <div class="pw-utility-card" data-utility-card="internet">
-                  <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge internet"><?= $pwIcon('wifi') ?></span><span class="pw-utility-name">Internet &amp; Connectivity</span></legend>
-                    <div class="pw-options">
-                      <label><input type="radio" name="internet" value="available" data-utility-radio="internet"><span><?= $pwIcon('check') ?> Available</span></label>
-                      <label><input type="radio" name="internet" value="unavailable" data-utility-radio="internet"><span>Unavailable</span></label>
-                      <label><input type="radio" name="internet" value="not_verified" data-utility-radio="internet" checked><span>Not verified</span></label>
+                <!-- Supporting Evidence Source Block -->
+                <div class="pw-supporting-evidence-box">
+                  <div class="pw-evidence-box-header">
+                    <h5>Supporting evidence</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <p class="pw-small pw-muted">Your selection is a declaration until reviewed. Provide the verifiable source or inspection record.</p>
+                  
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field">Source / issuer
+                      <input name="spatial_evidence_source" maxlength="250" placeholder="e.g. City Engineer's Office, DPWH, Licensed surveyor">
+                    </label>
+                    <label class="pw-field">Document / observation date
+                      <input name="spatial_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field pw-full">Document reference or URL
+                      <input name="spatial_evidence_reference" maxlength="500" placeholder="e.g. Cadastral Survey Lot 1234, Inspection Report #2026-04, or URL">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sidebar: Contextual Helper -->
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <p class="pw-helper-text">Upload or link to records that confirm actual road frontage and legal access:</p>
+                  <ul class="pw-helper-list">
+                    <li><strong>Cadastral survey plan</strong><br>An approved subdivision or lot survey showing right-of-way and frontage width.</li>
+                    <li><strong>City Engineer site inspection</strong><br>A dated inspection report from the City Engineer confirming pavement condition and roadway.</li>
+                    <li><strong>Geotagged site photo</strong><br>Ground photos showing the property boundary connected to the named public road.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- 2. INFRASTRUCTURE READINESS PANE (Mockup 2 Layout) -->
+          <div id="pwCriterionInfrastructure" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="infrastructure_readiness" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Infrastructure readiness</h4>
+                    <p class="pw-small pw-muted">Provide details on available services and connections at the site.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
+                </div>
+
+                <!-- Electricity / Water / Internet Tabs (Mockup 2) -->
+                <div class="pw-utility-tabs-bar" role="tablist" aria-label="Utility services">
+                  <button type="button" class="pw-utility-tab is-active" role="tab" aria-selected="true" data-util-tab="electricity">
+                    <span class="pw-util-icon-bolt">&#9889;</span> Electricity
+                  </button>
+                  <button type="button" class="pw-utility-tab" role="tab" aria-selected="false" data-util-tab="water">
+                    <span class="pw-util-icon-drop">&#128167;</span> Water
+                  </button>
+                  <button type="button" class="pw-utility-tab" role="tab" aria-selected="false" data-util-tab="internet">
+                    <span class="pw-util-icon-wifi">&#128246;</span> Internet
+                  </button>
+                </div>
+
+                <!-- ELECTRICITY SECTION -->
+                <div class="pw-util-section-pane" data-util-pane="electricity">
+                  <div class="pw-utility-card-block">
+                    <h5>What is the connection status?</h5>
+                    <div class="pw-status-radios-row">
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="electricity" value="available" data-utility-radio="electricity">
+                        <span>Connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="electricity" value="unavailable" data-utility-radio="electricity">
+                        <span>Not connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="electricity" value="not_verified" data-utility-radio="electricity" checked>
+                        <span>Unknown</span>
+                      </label>
                     </div>
-                  </fieldset>
-                  <div class="pw-utility-reveal" data-utility-reveal="internet" hidden>
-                    <p class="pw-small pw-disclosure-heading">Internet Providers <span class="pw-muted">(check all that apply)</span>:</p>
-                    <div class="pw-chip-grid">
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="PLDT"><span>PLDT</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Globe"><span>Globe</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Converge"><span>Converge</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Smart"><span>Smart</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="DITO"><span>DITO</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Other"><span>Other</span></label>
-                    </div>
-                    <p class="pw-small pw-disclosure-heading" style="margin-top: 10px;">Connection type:</p>
-                    <div class="pw-chip-grid">
-                      <label class="pw-chip"><input type="checkbox" name="internet_types[]" value="Fiber"><span>Fiber</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_types[]" value="Fixed broadband"><span>Fixed broadband</span></label>
-                      <label class="pw-chip"><input type="checkbox" name="internet_types[]" value="Mobile data"><span>Mobile data</span></label>
-                    </div>
-                    <div class="pw-subfield-row" style="margin-top: 12px;">
-                      <span class="pw-small pw-disclosure-heading">Connectivity quality:</span>
-                      <div class="pw-options pw-options-compact">
-                        <label><input type="radio" name="internet_quality" value="strong"><span>Strong</span></label>
-                        <label><input type="radio" name="internet_quality" value="moderate"><span>Moderate</span></label>
-                        <label><input type="radio" name="internet_quality" value="weak"><span>Weak</span></label>
-                        <label><input type="radio" name="internet_quality" value="not_verified" checked><span>Not verified</span></label>
+
+                    <!-- Conditional Electricity Details -->
+                    <div class="pw-utility-reveal" data-utility-reveal="electricity" hidden style="margin-top: 16px;">
+                      <div class="pw-fields-two-col">
+                        <label class="pw-field">Primary supply
+                          <select name="electricity_primary_supply">
+                            <option value="">Select supply type</option>
+                            <option value="Grid connection" selected>Grid connection</option>
+                            <option value="Solar / on-site renewable energy">Solar / on-site renewable energy</option>
+                            <option value="Off-grid generator">Off-grid generator</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                        <label class="pw-field">Provider
+                          <select name="electricity_provider">
+                            <option value="">Select provider</option>
+                            <option value="LUECO (La Union Electric Company)">LUECO (La Union Electric Company)</option>
+                            <option value="Direct NGCP feeder">Direct NGCP feeder</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="pw-fields-two-col" style="margin-top: 10px;">
+                        <label class="pw-field">Backup supply <span class="pw-muted">(optional)</span>
+                          <select name="electricity_backup">
+                            <option value="None reported" selected>None reported</option>
+                            <option value="Standby generator">Standby generator</option>
+                            <option value="Solar PV backup">Solar PV backup</option>
+                            <option value="Battery Energy Storage (BESS)">Battery Energy Storage (BESS)</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                        <label class="pw-field">Capacity, if known
+                          <input name="electricity_capacity" placeholder="Value + unit (e.g. 50 kVA, 3-phase)">
+                        </label>
+                      </div>
+                      <div style="margin-top: 12px;">
+                        <span class="pw-small pw-disclosure-heading">Provider / Source <span class="pw-muted">(check all that apply)</span>:</span>
+                        <div class="pw-chip-grid" style="margin-top: 6px;">
+                          <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="LUECO"><span>LUECO</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Solar / on-site renewable energy"><span>Solar / renewable</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Backup generator"><span>Backup generator</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="electricity_sources[]" value="Other"><span>Other</span></label>
+                        </div>
                       </div>
                     </div>
-                    <div class="pw-subfield-row" style="margin-top: 10px;">
-                      <label class="pw-field pw-speed-input-label">
-                        <span>Measured download speed <span class="pw-muted">(optional)</span></span>
-                        <div class="pw-input-group" style="max-width: 180px;">
-                          <input name="download_speed_mbps" type="number" min="0" max="10000" step="1" placeholder="e.g. 100">
-                          <span>Mbps</span>
-                        </div>
+                  </div>
+
+                  <!-- Supporting Evidence for Electricity (Mockup 2) -->
+                  <div class="pw-supporting-evidence-box" style="margin-top: 16px;">
+                    <div class="pw-evidence-box-header">
+                      <h5>Supporting evidence</h5>
+                      <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                    </div>
+                    <p class="pw-small pw-muted">Your selection is a declaration until reviewed.</p>
+
+                    <!-- Dashed Upload Dropzone -->
+                    <label class="pw-photo-drop pw-evidence-drop" data-evidence-drop>
+                      <input class="pw-file-input" name="evidence_files[]" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" data-evidence-files>
+                      <span class="pw-photo-icon"><?= $pwIcon('document') ?></span>
+                      <strong>Add file or source link</strong>
+                      <span>Drag and drop a file, or click to browse</span>
+                      <small>Service confirmation, redacted utility record, or dated inspection report.</small>
+                    </label>
+                    <div class="pw-evidence-file-list" data-evidence-file-list></div>
+                    <button class="pw-text-button" type="button" data-clear-evidence hidden>Clear selected files</button>
+
+                    <div class="pw-source-fields-grid" style="margin-top: 12px;">
+                      <label class="pw-field">Source / issuer
+                        <input name="utility_evidence_source" maxlength="250" placeholder="e.g. LUECO, City department, consultant">
+                      </label>
+                      <label class="pw-field">Document date
+                        <input name="utility_evidence_date" type="date">
+                      </label>
+                      <label class="pw-field pw-full">Reference
+                        <input name="utility_evidence_reference" maxlength="500" placeholder="e.g. account number, report ID, or URL">
                       </label>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- CLUP / Land Use Tab -->
-            <div id="pwEvidenceLanduse" class="pw-evidence-section" role="tabpanel" data-evidence-panel="landuse" hidden>
-              <div class="pw-clup-header-row">
-                <div>
-                  <h4>CLUP / Allowed Land Uses</h4>
-                  <p class="pw-small pw-muted">Identify which land uses are compatible with this parcel. Supports multi-select. Only city-validated uses appear as official investor search results.</p>
-                </div>
-                <span class="pw-badge pw-badge-amber">Pending city validation</span>
-              </div>
-              <div class="pw-chip-grid pw-clup-chip-grid">
-                <?php foreach ($pwClupUses as $pwUse): ?>
-                <label class="pw-chip pw-clup-chip" title="<?= $pwEscape($pwUse['description'] ?? '') ?>">
-                  <input type="checkbox" name="clup_allowed_uses[]" value="<?= $pwEscape($pwUse['label']) ?>">
-                  <span><?= $pwEscape($pwUse['label']) ?></span>
-                </label>
-                <?php endforeach; ?>
-              </div>
-              <div class="pw-fields" style="margin-top: 20px;">
-                <label class="pw-field pw-full">Observed existing land use<input name="existing_land_use" maxlength="180" placeholder="e.g. Vacant lot, commercial, residential"></label>
-                <label class="pw-field pw-full">Recorded zoning classification<input name="zoning_classification" maxlength="180" placeholder="Enter the classification from the zoning record"></label>
-                <label class="pw-field pw-full">CLUP source or reference<input name="clup_source_reference" maxlength="500" placeholder="Document title, date, and reference"></label>
-                <label class="pw-field pw-full">Environmental source or reference<input name="environmental_reference" maxlength="2000" placeholder="Classification, source document, and date"></label>
-              </div>
-            </div>
+                <!-- WATER SECTION -->
+                <div class="pw-util-section-pane" data-util-pane="water" hidden>
+                  <div class="pw-utility-card-block">
+                    <h5>What is the connection status?</h5>
+                    <div class="pw-status-radios-row">
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="water" value="available" data-utility-radio="water">
+                        <span>Connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="water" value="unavailable" data-utility-radio="water">
+                        <span>Not connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="water" value="not_verified" data-utility-radio="water" checked>
+                        <span>Unknown</span>
+                      </label>
+                    </div>
 
-            <!-- Hazards Tab -->
-            <div id="pwEvidenceHazards" class="pw-evidence-section" role="tabpanel" data-evidence-panel="hazards" hidden>
-              <div class="pw-clup-header-row">
-                <div>
-                  <h4>Hazard &amp; Environmental Screening</h4>
-                  <p class="pw-small pw-muted">Evaluated from official city spatial datasets using the property coordinates.</p>
-                </div>
-                <span class="pw-badge pw-badge-teal">City spatial dataset</span>
-              </div>
-              <div class="pw-hazard-cards-grid" data-hazard-panel-results>
-                <div class="pw-hazard-card">
-                  <span class="pw-hazard-stat-label">Flood susceptibility</span>
-                  <div class="pw-hazard-badge-row"><span class="pw-pill" data-hazard-flood-pill>Not assessed</span></div>
-                  <p class="pw-small pw-muted" data-hazard-flood-text>Property coordinates are screened against mapped MGB flood zones.</p>
-                </div>
-                <div class="pw-hazard-card">
-                  <span class="pw-hazard-stat-label">Fault-line screening</span>
-                  <div class="pw-hazard-badge-row"><span class="pw-pill" data-hazard-fault-pill>Not assessed</span></div>
-                  <p class="pw-small pw-muted" data-hazard-fault-text>Screened against mapped PHIVOLCS active fault database.</p>
-                </div>
-                <div class="pw-hazard-card">
-                  <span class="pw-hazard-stat-label">Environmental screening</span>
-                  <div class="pw-hazard-badge-row"><span class="pw-pill" data-hazard-env-pill>Not assessed</span></div>
-                  <p class="pw-small pw-muted" data-hazard-env-text>Evaluated against recorded environmental restrictions.</p>
-                </div>
-              </div>
-              <p class="pw-small pw-muted" style="margin-top: 14px;">Assessment results are updated automatically when you place or move the location pin in Area &amp; location.</p>
-            </div>
-
-            <!-- Documents Tab -->
-            <div id="pwEvidenceDocuments" class="pw-evidence-section" role="tabpanel" data-evidence-panel="documents" hidden>
-              <div class="pw-authority-section" data-authority-block>
-                <div class="pw-clup-header-row">
-                  <div>
-                    <h4>Authority to Sell <span class="pw-required-asterisk" style="color: #9E1B22;">*</span></h4>
-                    <p class="pw-small pw-muted">Upload proof that you are authorized to market this property. Accepted: PDF, JPG, JPEG, PNG (max 15 MB).</p>
+                    <!-- Conditional Water Details -->
+                    <div class="pw-utility-reveal" data-utility-reveal="water" hidden style="margin-top: 16px;">
+                      <div class="pw-fields-two-col">
+                        <label class="pw-field">Supply source
+                          <select name="water_source">
+                            <option value="">Select supply source</option>
+                            <option value="Metro La Union Water District / local water district">Metro La Union Water District (MLUWD)</option>
+                            <option value="Barangay / community water system">Barangay / community water system</option>
+                            <option value="Deep well / groundwater">Deep well / groundwater</option>
+                            <option value="Water delivery / storage">Water delivery / storage</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                        <label class="pw-field">Provider / Operator
+                          <input name="water_provider" placeholder="e.g. MLUWD or local waterworks">
+                        </label>
+                      </div>
+                      <div class="pw-fields-two-col" style="margin-top: 10px;">
+                        <label class="pw-field">Supply reliability / capacity
+                          <select name="water_capacity">
+                            <option value="24/7 continuous supply">24/7 continuous supply</option>
+                            <option value="Scheduled / intermittent supply">Scheduled / intermittent supply</option>
+                            <option value="On-site storage with booster pump">On-site storage with booster pump</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div style="margin-top: 12px;">
+                        <span class="pw-small pw-disclosure-heading">Source <span class="pw-muted">(check all that apply)</span>:</span>
+                        <div class="pw-chip-grid" style="margin-top: 6px;">
+                          <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Metro La Union Water District / local water district"><span>MLUWD</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Barangay / community water system"><span>Barangay waterworks</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Deep well / groundwater"><span>Deep well</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Water delivery / storage"><span>Water storage</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="water_sources[]" value="Other"><span>Other</span></label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <span class="pw-badge pw-badge-amber" data-authority-badge>Pending city validation</span>
                 </div>
-                <label class="pw-photo-drop pw-authority-drop" data-authority-drop>
-                  <input class="pw-file-input" name="authority_to_sell_file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" data-authority-file>
-                  <span class="pw-photo-icon"><?= $pwIcon('document') ?></span>
-                  <strong>Upload Authority to Sell</strong>
-                  <span>Drag file here, or click to browse</span>
-                  <small data-authority-filename>PDF, JPG, JPEG, or PNG &middot; Max 15 MB</small>
-                </label>
-                <div class="pw-authority-preview" data-authority-preview hidden>
-                  <span class="pw-badge pw-badge-teal"><?= $pwIcon('check') ?> File staged</span>
-                  <strong data-authority-staged-name></strong>
-                  <span class="pw-muted">&middot; Status: Pending city validation</span>
+
+                <!-- INTERNET SECTION -->
+                <div class="pw-util-section-pane" data-util-pane="internet" hidden>
+                  <div class="pw-utility-card-block">
+                    <h5>What is the connection status?</h5>
+                    <div class="pw-status-radios-row">
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="internet" value="available" data-utility-radio="internet">
+                        <span>Connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="internet" value="unavailable" data-utility-radio="internet">
+                        <span>Not connected</span>
+                      </label>
+                      <label class="pw-status-radio-pill">
+                        <input type="radio" name="internet" value="not_verified" data-utility-radio="internet" checked>
+                        <span>Unknown</span>
+                      </label>
+                    </div>
+
+                    <!-- Conditional Internet Details -->
+                    <div class="pw-utility-reveal" data-utility-reveal="internet" hidden style="margin-top: 16px;">
+                      <div class="pw-fields-two-col">
+                        <label class="pw-field">Technology
+                          <select name="internet_technology">
+                            <option value="Fiber">Fiber optic</option>
+                            <option value="Fixed broadband">Fixed broadband</option>
+                            <option value="Satellite">Satellite (Starlink)</option>
+                            <option value="Mobile data">Mobile data (4G/5G)</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </label>
+                        <label class="pw-field">Measured download speed <span class="pw-muted">(optional)</span>
+                          <div class="pw-input-group" style="max-width: 190px;">
+                            <input name="download_speed_mbps" type="number" min="0" max="10000" step="1" placeholder="e.g. 100">
+                            <span>Mbps</span>
+                          </div>
+                        </label>
+                      </div>
+                      <div style="margin-top: 12px;">
+                        <span class="pw-small pw-disclosure-heading">Available providers <span class="pw-muted">(check all that apply)</span>:</span>
+                        <div class="pw-chip-grid" style="margin-top: 6px;">
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="PLDT"><span>PLDT</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Globe"><span>Globe</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Converge"><span>Converge</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Smart"><span>Smart</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="DITO"><span>DITO</span></label>
+                          <label class="pw-chip"><input type="checkbox" name="internet_providers[]" value="Other"><span>Other</span></label>
+                        </div>
+                      </div>
+                      <div style="margin-top: 12px;">
+                        <span class="pw-small pw-disclosure-heading">Connection quality:</span>
+                        <div class="pw-options pw-options-compact" style="margin-top: 6px;">
+                          <label><input type="radio" name="internet_quality" value="strong"><span>Strong</span></label>
+                          <label><input type="radio" name="internet_quality" value="moderate"><span>Moderate</span></label>
+                          <label><input type="radio" name="internet_quality" value="weak"><span>Weak</span></label>
+                          <label><input type="radio" name="internet_quality" value="not_verified" checked><span>Not verified</span></label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p class="pw-small pw-muted" style="margin-top: 8px;">Note: The listing will NOT be publicly published until the Authority to Sell is validated by city personnel.</p>
+
+                <!-- Additional Services Accordion (Mockup 2) -->
+                <details class="pw-additional-services-disclosure" style="margin-top: 16px;">
+                  <summary class="pw-disclosure-trigger">
+                    <span class="pw-disclosure-arrow">&rsaquo;</span>
+                    <strong>Additional services</strong>
+                    <span class="pw-muted">&mdash; Drainage, wastewater and waste collection &mdash; where relevant.</span>
+                  </summary>
+                  <div class="pw-additional-services-fields">
+                    <label class="pw-field">Drainage
+                      <select name="drainage_service">
+                        <option value="">Select drainage status</option>
+                        <option value="Surface drainage canal">Surface drainage canal</option>
+                        <option value="Enclosed storm sewer">Enclosed storm sewer</option>
+                        <option value="Natural watercourse">Natural watercourse</option>
+                        <option value="Unlined ditch">Unlined ditch</option>
+                        <option value="None reported">None reported</option>
+                      </select>
+                    </label>
+                    <label class="pw-field">Wastewater &amp; sanitation
+                      <select name="wastewater_service">
+                        <option value="">Select wastewater system</option>
+                        <option value="Individual septic tank system">Individual septic tank system</option>
+                        <option value="Decentralized treatment facility">Decentralized treatment facility</option>
+                        <option value="Municipal sewer">Municipal sewer</option>
+                        <option value="None reported">None reported</option>
+                      </select>
+                    </label>
+                    <label class="pw-field">Waste collection
+                      <select name="waste_collection_service">
+                        <option value="">Select waste service</option>
+                        <option value="City LGU scheduled collection">City LGU scheduled collection</option>
+                        <option value="Private waste hauler">Private waste hauler</option>
+                        <option value="On-site handling">On-site handling</option>
+                        <option value="None reported">None reported</option>
+                      </select>
+                    </label>
+                  </div>
+                </details>
               </div>
 
-              <div class="pw-evidence-reference" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
-                <h4>Evidence attachment <span class="pw-muted">(optional)</span></h4>
-                <p class="pw-small pw-muted">Attach property title, tax declaration, or site photos to support this listing.</p>
-                <label class="pw-photo-drop pw-evidence-drop" data-evidence-drop><input class="pw-file-input" name="evidence_files[]" type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" data-evidence-files><span class="pw-photo-icon"><?= $pwIcon('photo') ?></span><strong>Add evidence files</strong><span>Drag files here, or click to browse</span><small>JPG, PNG, WEBP or PDF · Up to 4 files · 5 MB each</small></label>
-                <div class="pw-evidence-file-list" data-evidence-file-list></div>
-                <button class="pw-text-button" type="button" data-clear-evidence hidden>Clear selected files</button>
-                <details class="pw-disclosure" style="margin-top: 12px;"><summary><?= $pwIcon('document') ?><span>Source or document reference</span><?= $pwIcon('chevron') ?></summary><label class="pw-field">Reference<input name="evidence_reference" maxlength="2000" placeholder="Paste a link or enter a document reference"></label><p class="pw-small pw-muted">Include a source and date where available.</p></details>
-              </div>
-              <details class="pw-disclosure" style="margin-top: 12px;"><summary><?= $pwIcon('document') ?><span>Site observations <span class="pw-muted">(optional)</span></span><?= $pwIcon('chevron') ?></summary><label class="pw-field">Notes for the reviewing department<textarea name="readiness_notes" rows="3" maxlength="10000" placeholder="Add observed facts and note anything that still needs verification."></textarea></label></details>
-              <details class="pw-disclosure pw-context-details" style="margin-top: 12px;"><summary><?= $pwIcon('tag') ?><span>Additional site context <span class="pw-muted">(optional)</span></span><?= $pwIcon('chevron') ?></summary><div class="pw-context-tags"><?php foreach (\App\Support\PropertyCatalog::contextTags() as $pwTag): ?><label><input type="checkbox" name="assessmentTags[]" value="<?= $pwEscape($pwTag) ?>"><span><?= $pwEscape(ucwords(strtolower($pwTag))) ?></span></label><?php endforeach; ?></div><div data-nearby-editor><div class="pw-label-row"><h4>Recorded nearby places</h4><button class="pw-button pw-button-light pw-button-small" type="button" data-add-nearby>+ Add place</button></div><p class="pw-small pw-muted">Add up to six known places. Radar results use available mapped establishments.</p><div class="pw-nearby-list" data-nearby-list></div></div></details>
+              <!-- Sidebar: Contextual Helper (Mockup 2) -->
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <p class="pw-helper-text">Upload or link to records that confirm service availability at or near the site. Examples include:</p>
+                  <ul class="pw-helper-list">
+                    <li>
+                      <span class="pw-list-icon"><?= $pwIcon('document') ?></span>
+                      <div>
+                        <strong>Utility service confirmation</strong>
+                        <p class="pw-small pw-muted">A letter or email from the provider confirming connection or capacity.</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="pw-list-icon"><?= $pwIcon('text') ?></span>
+                      <div>
+                        <strong>Redacted utility record</strong>
+                        <p class="pw-small pw-muted">A recent bill or service record with sensitive details removed.</p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="pw-list-icon"><?= $pwIcon('camera') ?></span>
+                      <div>
+                        <strong>Dated inspection report</strong>
+                        <p class="pw-small pw-muted">A site or infrastructure inspection report that shows service availability.</p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
             </div>
+          </div>
 
-            <!-- Valuation Tab -->
-            <div id="pwEvidenceValuation" class="pw-evidence-section" role="tabpanel" data-evidence-panel="valuation" hidden>
-              <div class="pw-section-subhead">
-                <h4>BIR zonal reference</h4>
-                <p class="pw-small pw-muted">Record the reference for this location and its effective date.</p>
+          <!-- 3. ECONOMIC VIABILITY PANE -->
+          <div id="pwCriterionEconomic" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="economic_viability" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Economic viability</h4>
+                    <p class="pw-small pw-muted">Pricing terms, official BIR zonal valuation reference, and tax assessment indicators.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
+                </div>
+
+                <!-- Reused Pricing Context -->
+                <div class="pw-reused-banner">
+                  <span class="pw-reused-icon"><?= $pwIcon('chart') ?></span>
+                  <div>
+                    <span class="pw-reused-label">Reused financial data from Step 1</span>
+                    <p class="pw-reused-details">Listing terms: <strong data-reused-price>Price on request</strong> (<span data-reused-purpose>For Sale</span>) &middot; Area: <strong data-reused-area-econ>2,500 m²</strong></p>
+                  </div>
+                </div>
+
+                <!-- Reported Facts -->
+                <div class="pw-evidence-card-box">
+                  <h5>Official BIR zonal reference</h5>
+                  <div class="pw-fields">
+                    <label class="pw-field pw-full">Zonal value (PHP per m²)
+                      <input name="bir_zonal_value" type="number" min="0" step="0.01" placeholder="Enter recorded BIR zonal value">
+                    </label>
+                    <label class="pw-field">Reference date
+                      <input name="bir_date" type="date">
+                    </label>
+                    <label class="pw-field pw-full">Schedule / Department Order reference
+                      <input name="bir_source" maxlength="500" placeholder="e.g. BIR Department Order No. 042-2024, Revenue District Office 003">
+                    </label>
+                    <label class="pw-field pw-full">Assessed property market valuation (Tax Declaration) <span class="pw-muted">(optional)</span>
+                      <input name="assessed_market_value" maxlength="150" placeholder="e.g. Assessed value PHP 1,800,000 per ARP No. 2024-...">
+                    </label>
+                  </div>
+                  <p class="pw-small pw-muted" style="margin-top: 8px;">Asking prices are separate declarations from the city's official BIR zonal and tax valuation records. Speculative return-on-investment figures are not accepted.</p>
+                </div>
+
+                <!-- Supporting Evidence -->
+                <div class="pw-supporting-evidence-box">
+                  <div class="pw-evidence-box-header">
+                    <h5>Supporting evidence</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field">Source / issuer
+                      <input name="economic_evidence_source" maxlength="250" placeholder="e.g. BIR Revenue District Office 003, City Assessor">
+                    </label>
+                    <label class="pw-field">Document date
+                      <input name="economic_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field pw-full">Reference
+                      <input name="economic_evidence_reference" maxlength="500" placeholder="e.g. BIR Schedule RDO 003, Tax Declaration ARP #">
+                    </label>
+                  </div>
+                </div>
               </div>
-              <div class="pw-fields">
-                <label class="pw-field pw-full">Zonal value (PHP per m²)<input name="bir_zonal_value" type="number" min="0" step="0.01" placeholder="Enter the recorded value"></label>
-                <label class="pw-field pw-full">Source or reference<input name="bir_source" maxlength="500" placeholder="BIR schedule, zone, and document reference"></label>
-                <label class="pw-field">Reference date<input name="bir_date" type="date"></label>
-              </div>
+
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <ul class="pw-helper-list">
+                    <li><strong>BIR Zonal Valuation schedule</strong><br>The official schedule published by the Bureau of Internal Revenue for the barangay/street.</li>
+                    <li><strong>Certified Tax Declaration</strong><br>Current real property tax declaration issued by the City Assessor's Office.</li>
+                    <li><strong>PRC licensed appraisal</strong><br>Formal valuation report prepared by a licensed real estate appraiser.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
             </div>
-          </article><aside class="pw-evidence-sidebar"><details class="pw-card pw-readiness-card pw-readiness-disclosure"><summary><span>Assessment checklist</span><?= $pwIcon('chevron') ?></summary><p class="pw-small pw-muted">See which evidence is ready for city assessment.</p><div data-assessment-readiness><?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?><?php $pwReady = $pwReadiness[$pwKey]; ?><div class="pw-readiness-row" data-readiness-criterion="<?= $pwKey ?>"><?= $pwIcon($pwReady[0]) ?><div><strong><?= $pwEscape($pwCriterion) ?></strong><span data-readiness-message><?= $pwReady[1] ?></span></div><button type="button" class="pw-readiness-action<?= in_array($pwKey, ['spatial_accessibility', 'infrastructure_readiness'], true) ? ' needs-confirmation' : '' ?>" data-readiness-action="<?= $pwKey ?>"><?= $pwReady[2] ?></button></div><?php endforeach; ?></div></details><article class="pw-pending-card"><?= $pwIcon('chart') ?><div><h3 data-readiness-title>IAI not ready</h3><p data-readiness-summary>Complete the required evidence before calculating a final score.</p></div><button type="button" class="pw-text-button" data-view-assessment>View assessment criteria <?= $pwIcon('arrow') ?></button></article></aside>
+          </div>
+
+          <!-- 4. NEARBY BUSINESSES PANE -->
+          <div id="pwCriterionNearby" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="nearby_businesses" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Nearby businesses</h4>
+                    <p class="pw-small pw-muted">Commercial surroundings, corridor context, and 500-meter straight-line radius analysis.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">10% of MCE</span>
+                </div>
+
+                <!-- Reused Surroundings Context -->
+                <div class="pw-reused-banner">
+                  <span class="pw-reused-icon"><?= $pwIcon('store') ?></span>
+                  <div>
+                    <span class="pw-reused-label">Surroundings radar context (Step 4)</span>
+                    <p class="pw-reused-details">Search radius: <strong>500 meters</strong> straight-line from reference pin &middot; Missing mapped coverage is not zero businesses.</p>
+                  </div>
+                </div>
+
+                <!-- Reported Facts -->
+                <div class="pw-evidence-card-box">
+                  <h5>Commercial surroundings context</h5>
+                  <div class="pw-fields">
+                    <label class="pw-field">Commercial analysis origin
+                      <select name="nearby_analysis_origin">
+                        <option value="surroundings_radar">Surroundings 500m Radar</option>
+                        <option value="bplo_registry">City BPLO Commercial Census</option>
+                        <option value="field_survey">Field site inventory</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label class="pw-field">Commercial corridor / cluster
+                      <input name="commercial_corridor" maxlength="180" placeholder="e.g. MacArthur Highway Corridor, Sevilla Central">
+                    </label>
+                  </div>
+                  <div style="margin-top: 14px;">
+                    <details class="pw-disclosure pw-context-details" open>
+                      <summary><?= $pwIcon('tag') ?><span>Corridor context tags &amp; recorded nearby places</span><?= $pwIcon('chevron') ?></summary>
+                      <div class="pw-context-tags" style="margin-top: 8px;">
+                        <?php foreach (\App\Support\PropertyCatalog::contextTags() as $pwTag): ?>
+                        <label><input type="checkbox" name="assessmentTags[]" value="<?= $pwEscape($pwTag) ?>"><span><?= $pwEscape(ucwords(strtolower($pwTag))) ?></span></label>
+                        <?php endforeach; ?>
+                      </div>
+                      <div data-nearby-editor style="margin-top: 12px;">
+                        <div class="pw-label-row">
+                          <h4>Recorded nearby establishments</h4>
+                          <button class="pw-button pw-button-light pw-button-small" type="button" data-add-nearby>+ Add place</button>
+                        </div>
+                        <p class="pw-small pw-muted">Add up to six known places. Surroundings radar checks live mapped inventory in Step 4.</p>
+                        <div class="pw-nearby-list" data-nearby-list></div>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+
+                <!-- Supporting Evidence -->
+                <div class="pw-supporting-evidence-box">
+                  <div class="pw-evidence-box-header">
+                    <h5>Supporting evidence</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field">Source / inventory issuer
+                      <input name="nearby_evidence_source" maxlength="250" placeholder="e.g. City LEBDO / BPLO, OSM commercial dataset">
+                    </label>
+                    <label class="pw-field">Observation date
+                      <input name="nearby_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field pw-full">Reference / Inventory ID
+                      <input name="nearby_evidence_reference" maxlength="500" placeholder="e.g. BPLO Registry extract, commercial survey batch">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <ul class="pw-helper-list">
+                    <li><strong>BPLO registry extract</strong><br>City Business Permits and Licensing Office records showing registered commercial enterprises.</li>
+                    <li><strong>Corridor census inventory</strong><br>Field-verified list of operating businesses along the commercial strip.</li>
+                    <li><strong>Surroundings radar run</strong><br>Geographic distance screening performed in Step 4 showing mapped points of interest.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- 5. ZONING COMPATIBILITY (CLUP) PANE -->
+          <div id="pwCriterionZoning" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="zoning_compatibility" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Zoning compatibility (CLUP)</h4>
+                    <p class="pw-small pw-muted">Comprehensive Land Use Plan compliance, zoning classification, and verified allowed uses.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                </div>
+
+                <!-- Reused Proposed Category -->
+                <div class="pw-reused-banner">
+                  <span class="pw-reused-icon"><?= $pwIcon('document') ?></span>
+                  <div>
+                    <span class="pw-reused-label">Reused property category from Step 1</span>
+                    <p class="pw-reused-details">Proposed use: <strong data-reused-category>Vacant Land</strong> &middot; Selecting a proposed use is a declaration, NOT official zoning clearance.</p>
+                  </div>
+                </div>
+
+                <!-- Reported Facts -->
+                <div class="pw-evidence-card-box">
+                  <h5>Zoning &amp; land use declarations</h5>
+                  <div class="pw-fields">
+                    <label class="pw-field pw-full">Observed existing land use
+                      <input name="existing_land_use" maxlength="180" placeholder="e.g. Vacant lot, commercial strip, agricultural">
+                    </label>
+                    <label class="pw-field pw-full">Recorded zoning classification
+                      <input name="zoning_classification" maxlength="180" placeholder="e.g. C-1 General Commercial, I-1 Light Industrial, R-2 Residential">
+                    </label>
+                  </div>
+                  <div style="margin-top: 14px;">
+                    <span class="pw-small pw-disclosure-heading">CLUP Allowed Land Uses <span class="pw-muted">(multi-select from city plan)</span>:</span>
+                    <div class="pw-chip-grid pw-clup-chip-grid" style="margin-top: 8px;">
+                      <?php foreach ($pwClupUses as $pwUse): ?>
+                      <label class="pw-chip pw-clup-chip" title="<?= $pwEscape($pwUse['description'] ?? '') ?>">
+                        <input type="checkbox" name="clup_allowed_uses[]" value="<?= $pwEscape($pwUse['label']) ?>">
+                        <span><?= $pwEscape($pwUse['label']) ?></span>
+                      </label>
+                      <?php endforeach; ?>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Legal Authorization (Authority to Sell) for Brokers -->
+                <div class="pw-authority-section" data-authority-block style="margin-top: 16px;">
+                  <div class="pw-evidence-box-header">
+                    <h5>Authority to Sell <span class="pw-required-asterisk" style="color: #9E1B22;">*</span></h5>
+                    <span class="pw-badge pw-badge-amber" data-authority-badge>Pending city validation</span>
+                  </div>
+                  <p class="pw-small pw-muted">Brokers must upload proof of authorization to market this property (PDF, JPG, PNG &middot; max 15 MB).</p>
+                  <label class="pw-photo-drop pw-authority-drop" data-authority-drop>
+                    <input class="pw-file-input" name="authority_to_sell_file" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" data-authority-file>
+                    <span class="pw-photo-icon"><?= $pwIcon('document') ?></span>
+                    <strong>Upload Authority to Sell</strong>
+                    <span>Drag file here, or click to browse</span>
+                    <small data-authority-filename>PDF, JPG, JPEG, or PNG &middot; Max 15 MB</small>
+                  </label>
+                  <div class="pw-authority-preview" data-authority-preview hidden>
+                    <span class="pw-badge pw-badge-teal"><?= $pwIcon('check') ?> File staged</span>
+                    <strong data-authority-staged-name></strong>
+                    <span class="pw-muted">&middot; Status: Pending city validation</span>
+                  </div>
+                </div>
+
+                <!-- Supporting Evidence -->
+                <div class="pw-supporting-evidence-box" style="margin-top: 16px;">
+                  <div class="pw-evidence-box-header">
+                    <h5>CLUP &amp; zoning source reference</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field pw-full">CLUP source or reference
+                      <input name="clup_source_reference" maxlength="500" placeholder="e.g. City Ordinance No. ..., CLUP 2017-2027, CPDO Certificate">
+                    </label>
+                    <label class="pw-field">Document date
+                      <input name="zoning_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field">Zoning certificate / clearance number
+                      <input name="zoning_evidence_reference" maxlength="250" placeholder="e.g. CPDO Locational Clearance #2026-...">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <ul class="pw-helper-list">
+                    <li><strong>CPDO Locational Clearance</strong><br>Official zoning clearance issued by the City Planning and Development Coordinator.</li>
+                    <li><strong>CLUP Zoning Map extract</strong><br>The official city land use map confirming the parcel's zoning designation.</li>
+                    <li><strong>City Assessor tax classification</strong><br>Official land classification record on the property's tax declaration.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- 6. RISK CONSTRAINTS PANE (Mockup 1 Layout) -->
+          <div id="pwCriterionRisks" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="risk_constraints" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Understand the site constraints</h4>
+                    <p class="pw-small pw-muted">Keep hazard exposure and environmental conditions separate.</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">10% of MCE</span>
+                </div>
+
+                <!-- Risk Constraints Card (Mockup 1 Left Card) -->
+                <div class="pw-constraint-card pw-risk-card">
+                  <div class="pw-constraint-card-header">
+                    <span class="pw-constraint-icon-badge pw-risk-icon-badge">
+                      <svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </span>
+                    <div>
+                      <h5>Risk constraints</h5>
+                      <p class="pw-small pw-muted">What could threaten people or property?</p>
+                    </div>
+                  </div>
+
+                  <!-- Hazard Indicator Rows -->
+                  <div class="pw-hazard-status-rows">
+                    <div class="pw-hazard-status-row">
+                      <span>Flood exposure</span>
+                      <span class="pw-pill" data-hazard-flood-pill>Not assessed</span>
+                    </div>
+                    <div class="pw-hazard-status-row">
+                      <span>Active fault proximity</span>
+                      <span class="pw-pill" data-hazard-fault-pill>Not assessed</span>
+                    </div>
+                    <div class="pw-hazard-status-row">
+                      <span>Landslide susceptibility</span>
+                      <span class="pw-pill" data-hazard-landslide-pill>Not assessed</span>
+                    </div>
+                  </div>
+
+                  <!-- Spatial screening mini-summary -->
+                  <div class="pw-hazard-screening-summary" style="margin-top: 14px;">
+                    <div class="pw-hazard-map-shell">
+                      <div class="pw-hazard-results" data-hazard-results>
+                        <p class="pw-small pw-muted">Enter coordinates or place a pin in Step 2 to screen against MGB flood and PHIVOLCS fault layers.</p>
+                      </div>
+                    </div>
+                    <p class="pw-small pw-muted" style="margin-top: 8px;">Attach an official source or indicative hazard report.</p>
+                    <button type="button" class="pw-button pw-button-red-pill" data-trigger-hazard-evidence>
+                      <?= $pwIcon('document') ?> Add hazard evidence
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Bottom Banner Alert (Mockup 1) -->
+                <div class="pw-warning-alert-banner" style="margin-top: 16px;">
+                  <span class="pw-warning-symbol">⚠️</span>
+                  <div>
+                    <strong>Unknown does not mean safe.</strong>
+                    <p>A map screening result does not replace an official clearance.</p>
+                  </div>
+                </div>
+
+                <!-- Supporting Evidence Source Block -->
+                <div class="pw-supporting-evidence-box" style="margin-top: 16px;">
+                  <div class="pw-evidence-box-header">
+                    <h5>Hazard evidence source</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field">Source / issuing agency
+                      <input name="hazard_evidence_source" maxlength="250" placeholder="e.g. DOST-PHIVOLCS, MGB Region 1, CDRRMO">
+                    </label>
+                    <label class="pw-field">Screening / assessment date
+                      <input name="hazard_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field pw-full">Report ID / HazardHunterPH reference
+                      <input name="hazard_evidence_reference" maxlength="500" placeholder="e.g. HazardHunterPH Reference #HH-2026-..., MGB Geohazard Report #">
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <ul class="pw-helper-list">
+                    <li><strong>HazardHunterPH Assessment</strong><br>Official DOST-PHIVOLCS multi-hazard report generated for the parcel.</li>
+                    <li><strong>MGB Engineering Geohazard study</strong><br>Detailed geological assessment by the Mines and Geosciences Bureau.</li>
+                    <li><strong>CDRRMO drainage inspection</strong><br>Certified City Disaster Risk Reduction &amp; Management Office flood assessment.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- 7. ENVIRONMENTAL SAFETY PANE (Mockup 1 Right Card) -->
+          <div id="pwCriterionEnvironmental" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="environmental_safety" hidden>
+            <div class="pw-criterion-layout">
+              <div class="pw-criterion-main">
+                <div class="pw-criterion-title-row">
+                  <div>
+                    <h4>Environmental safety</h4>
+                    <p class="pw-small pw-muted">What environmental conditions affect suitability?</p>
+                  </div>
+                  <span class="pw-badge pw-badge-weight">5% of MCE</span>
+                </div>
+
+                <!-- Environmental Safety Card (Mockup 1 Right Card) -->
+                <div class="pw-constraint-card pw-env-card">
+                  <div class="pw-constraint-card-header">
+                    <span class="pw-constraint-icon-badge pw-env-icon-badge">
+                      <svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                    </span>
+                    <div>
+                      <h5>Environmental safety</h5>
+                      <p class="pw-small pw-muted">What environmental conditions affect suitability?</p>
+                    </div>
+                  </div>
+
+                  <!-- Environmental Conditions Rows -->
+                  <div class="pw-hazard-status-rows">
+                    <div class="pw-hazard-status-row">
+                      <span>Sensitive habitats</span>
+                      <span class="pw-pill" data-env-habitats-pill>Not assessed</span>
+                    </div>
+                    <div class="pw-hazard-status-row">
+                      <span>Protected-area overlap</span>
+                      <span class="pw-pill" data-env-protected-pill>Not assessed</span>
+                    </div>
+                    <div class="pw-hazard-status-row">
+                      <span>Documented contamination</span>
+                      <span class="pw-pill" data-env-contamination-pill>Not assessed</span>
+                    </div>
+                  </div>
+
+                  <!-- Center Dropzone Box (Mockup 1) -->
+                  <div class="pw-env-records-box" style="margin-top: 14px;">
+                    <span class="pw-env-doc-icon"><?= $pwIcon('document') ?></span>
+                    <strong>No environmental records added</strong>
+                    <p class="pw-small pw-muted">Add mapped sources, inspection records or relevant assessments.</p>
+                    <button type="button" class="pw-button pw-button-red-pill" data-trigger-env-evidence>
+                      <?= $pwIcon('document') ?> Add environmental evidence
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Supporting Evidence Source Block -->
+                <div class="pw-supporting-evidence-box" style="margin-top: 16px;">
+                  <div class="pw-evidence-box-header">
+                    <h5>Environmental clearance / assessment reference</h5>
+                    <span class="pw-info-icon" title="Your selection is a declaration until reviewed."><?= $pwIcon('info') ?></span>
+                  </div>
+                  <div class="pw-source-fields-grid">
+                    <label class="pw-field pw-full">Environmental source or reference
+                      <input name="environmental_reference" maxlength="2000" placeholder="e.g. DENR-EMB ECC/CNC, City ENRO certification, PAMB record">
+                    </label>
+                    <label class="pw-field">Document / clearance date
+                      <input name="environmental_evidence_date" type="date">
+                    </label>
+                    <label class="pw-field">Certificate / Tracking reference
+                      <input name="environmental_evidence_reference" maxlength="250" placeholder="e.g. ECC-R01-2026-..., CNC Clearance No. ...">
+                    </label>
+                  </div>
+                </div>
+
+                <div class="pw-supporting-evidence-box" style="margin-top: 16px;">
+                  <h5>General site observations &amp; notes <span class="pw-muted">(optional)</span></h5>
+                  <label class="pw-field pw-full" style="margin-top: 8px;">Notes for the reviewing department
+                    <textarea name="readiness_notes" rows="3" maxlength="10000" placeholder="Add observed facts and note anything that still needs verification by city staff."></textarea>
+                  </label>
+                </div>
+              </div>
+
+              <aside class="pw-criterion-aside">
+                <div class="pw-helper-card">
+                  <div class="pw-helper-header">
+                    <span class="pw-helper-icon"><?= $pwIcon('info') ?></span>
+                    <h4>What counts as evidence?</h4>
+                  </div>
+                  <ul class="pw-helper-list">
+                    <li><strong>DENR ECC / CNC</strong><br>Environmental Compliance Certificate or Certificate of Non-Coverage issued by DENR Environmental Management Bureau.</li>
+                    <li><strong>City ENRO inspection</strong><br>City Environment and Natural Resources Office site inspection certification.</li>
+                    <li><strong>Protected area clearance</strong><br>Verification against NIPAS protected zones and municipal conservation areas.</li>
+                  </ul>
+                </div>
+                <div class="pw-status-pill-card">
+                  <div class="pw-status-pill-header">
+                    <span class="pw-status-clock-icon">&#9679;</span>
+                    <strong>Not yet reviewed</strong>
+                  </div>
+                  <p class="pw-status-pill-desc">Evidence will be assessed by city staff during the review process.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- Bottom Rubric Note (Mockup 1 & 2 Footer Note) -->
+          <div class="pw-criteria-rubric-footnote">
+            <span class="pw-muted">Use each indicator once in the scoring rubric. Supporting records help city reviewers verify claims before publishing.</span>
+          </div>
         </div>
       </section>
       <section class="pw-panel" data-editor-panel="3" hidden>
@@ -352,14 +1352,81 @@ $pwReadiness = [
       <section class="pw-panel" data-editor-panel="4" hidden>
         <div class="pw-section-intro"><h3>Ready when you are</h3><p>Check the essentials below, then send the listing for city review.</p></div>
         <div class="pw-card pw-submission-summary" data-review-summary></div>
-        <p class="pw-review-note">Your listing can be submitted while evidence and scores are pending. CICTO reviews the property before publication.</p>
+
+        <!-- 4 Separate Review States: Submit, Completeness, Validation, Assessment -->
+        <div class="pw-review-states-grid">
+          <div class="pw-review-state-card" data-review-state="submit">
+            <div class="pw-state-header">
+              <span class="pw-state-icon"><?= $pwIcon('check') ?></span>
+              <div>
+                <strong>Ready to submit</strong>
+                <span class="pw-badge pw-badge-teal" data-submit-readiness-badge>Ready to submit</span>
+              </div>
+            </div>
+            <p class="pw-small pw-muted">Listing essentials are complete. You may submit this listing to city staff while evidence and scores are pending.</p>
+          </div>
+
+          <div class="pw-review-state-card" data-review-state="completeness">
+            <div class="pw-state-header">
+              <span class="pw-state-icon"><?= $pwIcon('document') ?></span>
+              <div>
+                <strong>Evidence completeness</strong>
+                <span class="pw-badge pw-badge-sky" data-completeness-badge><span data-completeness-count>0 of 7</span> criteria</span>
+              </div>
+            </div>
+            <p class="pw-small pw-muted">Intake progress metric tracking criteria with facts or records. <em>Not</em> an investment or suitability score.</p>
+          </div>
+
+          <div class="pw-review-state-card" data-review-state="validation">
+            <div class="pw-state-header">
+              <span class="pw-state-icon"><?= $pwIcon('info') ?></span>
+              <div>
+                <strong>Evidence validation</strong>
+                <span class="pw-badge pw-badge-amber">Declarations unverified</span>
+              </div>
+            </div>
+            <p class="pw-small pw-muted">All claims and uploads are declarations until inspected by city staff. Self-verification is strictly blocked.</p>
+          </div>
+
+          <div class="pw-review-state-card" data-review-state="assessment">
+            <div class="pw-state-header">
+              <span class="pw-state-icon"><?= $pwIcon('chart') ?></span>
+              <div>
+                <strong>Official assessment</strong>
+                <span class="pw-badge pw-badge-amber" data-assessment-readiness-badge>IAI pending</span>
+              </div>
+            </div>
+            <p class="pw-small pw-muted">Official MCE/IAI scores require complete verified evidence across all seven criteria. Missing data is never defaulted.</p>
+          </div>
+        </div>
+
+        <!-- Assessment Checklist Disclosure -->
+        <details class="pw-card pw-readiness-card pw-readiness-disclosure" style="margin-top: 16px;">
+          <summary><span>Assessment criteria checklist</span><?= $pwIcon('chevron') ?></summary>
+          <p class="pw-small pw-muted">See which evidence is ready for city assessment across the seven criteria. Click any row to jump to that criterion.</p>
+          <div data-assessment-readiness>
+            <?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?>
+            <?php $pwReady = $pwReadiness[$pwKey]; ?>
+            <div class="pw-readiness-row" data-readiness-criterion="<?= $pwKey ?>">
+              <?= $pwIcon($pwReady[0]) ?>
+              <div>
+                <strong><?= $pwEscape($pwCriterion) ?></strong>
+                <span data-readiness-message><?= $pwReady[1] ?></span>
+              </div>
+              <button type="button" class="pw-readiness-action" data-readiness-target="<?= $pwKey ?>"><?= $pwReady[2] ?></button>
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </details>
+
+        <p class="pw-review-note" style="margin-top: 16px;">Your listing can be submitted while evidence and scores are pending. CICTO reviews the property before publication.</p>
         <div class="pw-tabs pw-review-tabs" role="tablist" aria-label="Review view"><button type="button" role="tab" aria-selected="true" class="is-active" data-review-tab="assessment">City assessment &amp; IAI scores</button><button type="button" role="tab" aria-selected="false" data-review-tab="investor">Investor preview</button></div>
         <div data-review-panel="assessment"><article class="pw-card" data-automatic-assessment><div class="pw-review-heading"><div class="pw-card-heading"><h3>City assessment &amp; IAI scores</h3><p>MCE (Multi-Criteria Evaluation) and IAI (Investment Alignment Index) are calculated from verified city evidence.</p></div><span class="pw-badge"><?= $pwIcon('document') ?> Official evidence</span></div><div class="pw-live-scores pw-live-scores-top" data-live-scores><div><span>MCE Score (Physical Suitability)</span><strong data-total-mce>—</strong><small>/ 100</small></div><div><span>IAI Score (Investment Alignment)</span><strong data-total-iai>—</strong><small>/ 100</small></div><p data-computed-summary>Scores remain pending until all required evidence is available.</p></div><p class="pw-notice pw-notice-amber" data-legacy-assessment hidden>This listing has an earlier manual assessment. Saving calculates a new automatic assessment and retains the earlier result in its history.</p><div class="pw-assessment-status"><p class="pw-small pw-muted" data-assessment-status role="status">Add a property location to check verified source data.</p><button type="button" class="pw-button pw-button-light pw-button-small" data-recalculate-assessment><?= $pwIcon('reset') ?> Recalculate</button></div><div class="pw-assessment-criteria"><?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?><article class="pw-criterion" data-assessment-criterion="<?= $pwKey ?>"><div class="pw-criterion-heading"><h4><?= $pwEscape($pwCriterion) ?></h4><span><?= \App\Support\PropertyAssessment::WEIGHTS[$pwKey] ?>% of MCE</span><strong data-score-value>Awaiting data</strong></div><div class="pw-criterion-bar" role="progressbar" aria-label="<?= $pwEscape($pwCriterion) ?>" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Awaiting source data"><span></span></div><details class="pw-criterion-evidence"><summary>Evidence &amp; calculation <?= $pwIcon('chevron') ?></summary><p data-score-justification>Add the property location to check available source evidence.</p><p class="pw-small pw-muted" data-score-rule hidden></p><p class="pw-small pw-muted" data-score-evidence hidden></p></details></article><?php endforeach; ?></div><details class="pw-disclosure" data-spatial-context hidden><summary><?= $pwIcon('pin') ?><span>Location evidence</span><?= $pwIcon('chevron') ?></summary><dl></dl></details><details class="pw-disclosure"><summary><?= $pwIcon('document') ?><span>How scores are calculated</span><?= $pwIcon('chevron') ?></summary><p class="pw-small pw-muted" data-assessment-method>Scores depend on approved source conversion rules and the seven displayed criterion weights.</p></details></article></div>
         <div data-review-panel="investor" hidden><article class="pw-card pw-investor-card"><div class="pw-review-heading"><div class="pw-card-heading"><h3>Which business fits this property?</h3><p>Compare the modeled fit and see the evidence behind each result.</p></div><div class="pw-review-property" data-review-property><strong>Your new property</strong><span>Business matches await approved scoring profiles</span></div></div><div class="pw-business-matches" data-business-matches><div class="pw-match-placeholder"><?= $pwIcon('coffee') ?><div><strong>Café &amp; bakery</strong><span>Awaiting approved profile</span></div></div><div class="pw-match-placeholder"><?= $pwIcon('store') ?><div><strong>Convenience retail</strong><span>Awaiting approved profile</span></div></div><div class="pw-match-placeholder"><?= $pwIcon('office') ?><div><strong>Office</strong><span>Awaiting approved profile</span></div></div></div><div class="pw-review-columns"><section class="pw-review-breakdown" data-match-breakdown><div class="pw-label-row"><h4>Business fit: score breakdown</h4><span class="pw-small pw-muted">Seven weighted criteria</span></div><p class="pw-small pw-muted">Business-specific scores appear once approved rules and the required evidence are available.</p><div class="pw-score-table"><div class="pw-score-table-head"><span>Criteria</span><span>Rating</span><span>Weight</span></div><?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?><div class="pw-score-table-row"><span><?= $pwEscape($pwCriterion) ?></span><div class="pw-score-placeholder"><span></span><strong>—</strong></div><span><?= \App\Support\PropertyAssessment::WEIGHTS[$pwKey] ?>%</span></div><?php endforeach; ?></div><div class="pw-weighted-total"><div><strong>Weighted business score</strong><span>Pending approved business-specific scoring</span></div><strong>— <small>/ 100</small></strong></div></section><section class="pw-review-reasons" data-match-reasons><h4>What is needed for a match</h4><ol class="pw-reason-list"><li><span>1</span><div><strong>Confirm the assessment evidence.</strong><p>Check road access, utilities, valuation, land use, and available hazard findings.</p></div></li><li><span>2</span><div><strong>Apply an approved business profile.</strong><p>Eligibility and scoring rules must reflect the selected business type.</p></div></li></ol><h4 class="pw-concerns-heading"><?= $pwIcon('warning') ?> What still needs checking</h4><div class="pw-notice pw-notice-amber"><div><strong>Business ranking is not available yet</strong><p>The seven criteria and their displayed weights are retained. A top-three ranking requires approved business-specific scoring rules.</p></div></div><div class="pw-notice pw-notice-neutral"><?= $pwIcon('document') ?><div><strong>Validate demand and permitted use</strong><p>Review customer demand and land-use compatibility before an investment decision.</p></div></div></section></div><div class="pw-review-footnote"><?= $pwIcon('info') ?> Scores compare suitability under the selected method; they do not predict business success.</div></article></div>
       </section>
       <p class="pw-form-message" data-editor-message role="status"></p>
     </div>
-    <footer class="pw-footer"><span class="pw-progress" data-editor-progress>Step 1 of 5</span><div class="pw-footer-actions"><button type="button" class="pw-text-button pw-skip" data-skip-enrichment hidden>Skip optional details</button><button type="button" class="pw-button pw-button-light" data-editor-back disabled>Back</button><button type="button" class="pw-button pw-button-primary" data-editor-next><span data-editor-next-label>Continue</span><?= $pwIcon('arrow') ?></button><button type="submit" class="pw-button pw-button-primary" hidden><span>Submit listing</span><?= $pwIcon('arrow') ?></button></div></footer>
+    <footer class="pw-footer"><span class="pw-progress" data-editor-progress>Step 1 of 5</span><div class="pw-footer-actions"><button type="button" class="pw-text-button pw-skip" data-skip-enrichment hidden>Skip optional details</button><button type="button" class="pw-button pw-button-light" data-save-draft title="Save draft on this device"><?= $pwIcon('save') ?> Save draft</button><button type="button" class="pw-button pw-button-light" data-editor-back disabled>Back</button><button type="button" class="pw-button pw-button-primary" data-editor-next><span data-editor-next-label>Continue to location</span><?= $pwIcon('arrow') ?></button><button type="submit" class="pw-button pw-button-primary" hidden><span>Submit listing</span><?= $pwIcon('arrow') ?></button></div></footer>
   </form>
 </dialog>
 <?php unset($pwEscape, $pwIcon, $pwCriteria, $pwReadiness); ?>

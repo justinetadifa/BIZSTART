@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Listings Dashboard | Bubbly 3D UI</title>
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            ink: '#11224D',
+            'mce-red': '#A32635',
+            'iai-blush': '#F3A6B0',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Bubbly card elevation and gentle hover effect */
+    .bubbly-panel {
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+    }
+    .bubbly-panel:hover {
+      transform: translateY(-2px);
+    }
+    /* Soft scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-[#F4F6FA] font-sans text-slate-800 antialiased min-h-screen pb-16">
+
+  <!-- TOP HEADER: High-contrast, pill-shaped navbar -->
+  <header class="sticky top-0 z-50 pt-3.5 pb-2 px-4 sm:px-6">
+    <div class="max-w-[1300px] mx-auto bg-white/95 backdrop-blur-md rounded-full border border-slate-200/90 shadow-[0_8px_30px_rgba(17,34,77,0.08)] px-3.5 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo Container as a soft, heavily rounded pill capsule -->
+      <a href="#" class="inline-flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1 bg-slate-100/70 border border-slate-200/70 hover:bg-slate-100 transition-all no-underline">
+        <span class="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-xs overflow-hidden">
+          <img src="assets/images/logoLocusRedBlue.png" alt="LOCUS-SF" class="w-8 h-8 object-contain">
+        </span>
+        <div class="leading-tight">
+          <strong class="text-[17px] font-black tracking-tight text-[#11224D]">LOCUS<span class="text-[#E50000]">-SF</span></strong>
+          <small class="block text-[9.5px] font-medium text-slate-400">San Fernando, La Union</small>
+        </div>
+      </a>
+
+      <!-- Navigation links converted into soft rounded pill capsules -->
+      <nav class="hidden md:inline-flex items-center gap-1.5 bg-slate-100/60 p-1 rounded-full border border-slate-200/60">
+        <!-- Active link: High contrast dark pill capsule -->
+        <a href="#" class="rounded-full bg-[#11224D] text-white px-5 py-2 text-xs font-bold shadow-sm transition-all no-underline">
+          Overview
+        </a>
+        <a href="#" class="rounded-full text-slate-600 hover:text-slate-900 hover:bg-white/80 px-4 py-2 text-xs font-semibold transition-all no-underline">
+          Listings
+        </a>
+        <a href="#" class="rounded-full text-slate-600 hover:text-slate-900 hover:bg-white/80 px-4 py-2 text-xs font-semibold transition-all no-underline">
+          Priority board
+        </a>
+        <a href="#" class="rounded-full text-slate-600 hover:text-slate-900 hover:bg-white/80 px-4 py-2 text-xs font-semibold transition-all no-underline">
+          Map
+        </a>
+      </nav>
+
+      <!-- Account Links with updates badge, round avatar, and pill sign out button -->
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <!-- Updates button with tiny red circular pill badge -->
+        <button type="button" class="inline-flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white transition-all shadow-xs cursor-pointer">
+          <span>Updates</span>
+          <span class="inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-[#E50000] text-white text-[10px] font-bold">
+            3
+          </span>
+        </button>
+
+        <!-- Profile Link with Perfect Circle Avatar -->
+        <a href="#" class="inline-flex items-center gap-2 rounded-full pl-1 pr-3 py-1 bg-slate-50 border border-slate-200 hover:bg-white transition-all text-xs font-semibold text-slate-700 no-underline">
+          <img src="assets/images/user-default.png" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80'" alt="Avatar" class="w-7 h-7 rounded-full object-cover border-2 border-white shadow-xs">
+          <span class="hidden sm:inline">Profile</span>
+        </a>
+
+        <!-- Rounded Sign Out Button -->
+        <a href="#" class="rounded-full bg-white border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-rose-50 hover:text-[#E50000] hover:border-rose-200 transition-all no-underline shadow-xs">
+          Sign out
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD WRAPPER -->
+  <main class="max-w-[1300px] mx-auto px-4 sm:px-6 pt-3 space-y-6">
+
+    <!-- HERO BANNER: Solar-paneled building with dark capsule overlay buttons -->
+    <section class="relative isolate overflow-hidden rounded-[32px] bg-slate-900 shadow-2xl min-h-[250px] sm:min-h-[270px] flex flex-col justify-between p-6 sm:p-9">
+      
+      <!-- Solar-paneled architectural background image -->
+      <img src="assets/images/admin-city.jpg" onerror="this.src='https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80'" alt="City Building" class="absolute inset-0 w-full h-full object-cover object-[center_55%] pointer-events-none">
+      
+      <!-- Gradient overlay for strong text contrast -->
+      <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/60 to-slate-900/25 pointer-events-none"></div>
+
+      <!-- Top Right: Glassmorphic "TODAY Oct 10, 2026" Capsule with Date & Live Time -->
+      <div class="absolute top-5 right-5 sm:top-6 sm:right-7 z-20 flex items-center gap-3 rounded-2xl border border-white/25 bg-black/40 backdrop-blur-md px-4 py-2.5 text-white shadow-xl">
+        <svg class="w-5 h-5 text-white/85 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="5" width="18" height="16" rx="3"/>
+          <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
+        </svg>
+        <div>
+          <span class="block text-[9.5px] font-bold uppercase tracking-wider text-white/70">TODAY</span>
+          <time class="block text-xs sm:text-sm font-bold text-white">Oct 10, 2026</time>
+          <span class="block text-[10px] font-medium text-white/80" id="liveTimeText"></span>
+        </div>
+      </div>
+
+      <!-- Hero Titles -->
+      <div class="relative z-10 max-w-2xl pt-1">
+        <h1 class="text-2xl sm:text-3xl lg:text-[36px] font-black tracking-tight text-white leading-tight">
+          City Listings Dashboard
+        </h1>
+        <p class="mt-1.5 text-xs sm:text-sm text-white/85 leading-relaxed font-normal">
+          Review properties and manage technical access for your city team.
+        </p>
+      </div>
+
+      <!-- Capsule buttons directly overlaying the image -->
+      <div class="relative z-10 mt-8 flex flex-wrap items-center gap-2.5 sm:gap-3">
+        
+        <!-- White pill button: "Your responsibilities" with dropdown arrow -->
+        <div class="relative">
+          <button type="button" id="responsibilitiesBtn" class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs sm:text-[13px] font-bold text-slate-900 shadow-md hover:bg-slate-100 active:scale-[0.98] transition-all cursor-pointer">
+            <span>Your responsibilities</span>
+            <svg id="respChevron" class="w-3.5 h-3.5 text-slate-700 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+
+          <!-- Responsibilities popover menu -->
+          <div id="respMenu" class="hidden absolute left-0 top-full mt-2.5 z-30 w-72 sm:w-84 rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md p-3.5 shadow-2xl">
+            <div class="space-y-2">
+              <div class="rounded-xl bg-[#F1F3F7] p-2.5">
+                <strong class="block text-xs font-bold text-slate-900">Technical administration</strong>
+                <p class="mt-0.5 text-[11px] text-slate-600 leading-relaxed">Manage accounts and authorize CAO or LEBDO broker reviewers.</p>
+              </div>
+              <div class="rounded-xl bg-[#F1F3F7] p-2.5">
+                <strong class="block text-xs font-bold text-slate-900">Listing review</strong>
+                <p class="mt-0.5 text-[11px] text-slate-600 leading-relaxed">Review property evidence and decide which listings are published.</p>
+              </div>
+              <div class="rounded-xl bg-[#F1F3F7] p-2.5">
+                <strong class="block text-xs font-bold text-slate-900">City team</strong>
+                <p class="mt-0.5 text-[11px] text-slate-600 leading-relaxed">Create accounts for authorized CICTO, Assessor, and LEBDO personnel.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark, fully-rounded capsule buttons directly overlaying the image -->
+        <button type="button" class="inline-flex items-center rounded-full border border-white/20 bg-black/60 backdrop-blur-md px-4 py-2 text-xs sm:text-[13px] font-semibold text-white hover:bg-black/80 hover:border-white/40 transition-all cursor-pointer">
+          Technical administration
+        </button>
+        <button type="button" class="inline-flex items-center rounded-full border border-white/20 bg-black/60 backdrop-blur-md px-4 py-2 text-xs sm:text-[13px] font-semibold text-white hover:bg-black/80 hover:border-white/40 transition-all cursor-pointer">
+          Listing review
+        </button>
+        <button type="button" class="inline-flex items-center rounded-full border border-white/20 bg-black/60 backdrop-blur-md px-4 py-2 text-xs sm:text-[13px] font-semibold text-white hover:bg-black/80 hover:border-white/40 transition-all cursor-pointer">
+          City team
+        </button>
+      </div>
+
+    </section>
+
+    <!-- STATUS CARDS: Thick, heavily rounded 3D-like panels with vibrant circular badges -->
+    <section class="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-4 gap-4">
+      
+      <!-- Card 1: All properties (Blue badge) -->
+      <article class="bubbly-panel flex items-center gap-4 rounded-[28px] bg-white border border-slate-100 p-5 sm:p-6 shadow-[0_10px_26px_rgba(17,34,77,0.06)]">
+        <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-blue-400/30 bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="2"/>
+            <path d="M8 7h2M14 7h2M8 11h2M14 11h2M10 21v-6h4v6"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <span class="block text-xs sm:text-[13px] font-semibold text-slate-600">All properties</span>
+          <strong class="mt-0.5 block text-[32px] sm:text-[36px] font-black text-slate-900 leading-tight tracking-tight">14</strong>
+          <span class="mt-0.5 block text-[11px] text-slate-400">Across the city catalog</span>
+        </div>
+      </article>
+
+      <!-- Card 2: Awaiting review (Gold border & Gold badge) -->
+      <article class="bubbly-panel flex items-center gap-4 rounded-[28px] bg-[#FFFCF6] border-[2.5px] border-[#E8D196] p-5 sm:p-6 shadow-[0_10px_26px_rgba(232,209,150,0.22)]">
+        <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-amber-400/40 bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <span class="block text-xs sm:text-[13px] font-semibold text-slate-700">Awaiting review</span>
+          <strong class="mt-0.5 block text-[32px] sm:text-[36px] font-black text-slate-900 leading-tight tracking-tight">5</strong>
+          <span class="mt-0.5 block text-[11px] font-semibold text-[#B45309]">Ready for a city decision</span>
+        </div>
+      </article>
+
+      <!-- Card 3: Published (Green badge) -->
+      <article class="bubbly-panel flex items-center gap-4 rounded-[28px] bg-white border border-slate-100 p-5 sm:p-6 shadow-[0_10px_26px_rgba(17,34,77,0.06)]">
+        <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-emerald-400/30 bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="m8 12 3 3 5-6"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <span class="block text-xs sm:text-[13px] font-semibold text-slate-600">Published</span>
+          <strong class="mt-0.5 block text-[32px] sm:text-[36px] font-black text-slate-900 leading-tight tracking-tight">7</strong>
+          <span class="mt-0.5 block text-[11px] text-slate-400">Visible to investors</span>
+        </div>
+      </article>
+
+      <!-- Card 4: Needs site evidence (Red badge) -->
+      <article class="bubbly-panel flex items-center gap-4 rounded-[28px] bg-white border border-slate-100 p-5 sm:p-6 shadow-[0_10px_26px_rgba(17,34,77,0.06)]">
+        <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border border-rose-400/30 bg-rose-50 text-[#9E1B22] flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <div class="min-w-0">
+          <span class="block text-xs sm:text-[13px] font-semibold text-slate-600">Needs site evidence</span>
+          <strong class="mt-0.5 block text-[32px] sm:text-[36px] font-black text-slate-900 leading-tight tracking-tight">7</strong>
+          <span class="mt-0.5 block text-[11px] text-slate-400">Awaiting site verification</span>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- TWO COLUMN PANELS: Listing Reviews (Inset Capsules) & MCE/IAI Chart (3D Pill Cylinders) -->
+    <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
+
+      <!-- Left Column: Listing reviews Card -->
+      <section class="rounded-[28px] border border-slate-100 bg-white p-6 sm:p-7 shadow-[0_10px_28px_rgba(17,34,77,0.06)] flex flex-col justify-between">
+        
+        <!-- Header -->
+        <div>
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 class="text-lg sm:text-xl font-bold text-slate-900">Listing reviews</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Properties ready for a city decision.</p>
+            </div>
+            <a href="admin-properties.php" class="text-xs sm:text-[13px] font-bold text-[#9E1B22] hover:underline no-underline">
+              View all &rarr;
+            </a>
+          </div>
+
+          <!-- 3 Listing Rows encapsulated in smooth, light gray inset capsules -->
+          <div class="space-y-3">
+            
+            <!-- Row 1: Sevilla SFC -->
+            <article class="flex items-center justify-between gap-3.5 rounded-[22px] bg-[#EEF1F6] p-3 sm:p-4 hover:bg-[#E5EAEF] transition-all">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <img src="assets/images/sfcView.png" onerror="this.src='https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=150&q=80'" alt="Sevilla SFC" class="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-[18px] object-cover shadow-xs shrink-0">
+                <div class="min-w-0">
+                  <h3 class="truncate text-xs sm:text-[14px] font-bold text-slate-900">Sevilla SFC</h3>
+                  <p class="mt-0.5 text-[11px] sm:text-xs text-slate-500">San Fernando - 21,776 m²</p>
+                  <span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#FEF3C7] px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-[#92400E]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Awaiting review
+                  </span>
+                </div>
+              </div>
+              <a href="#" class="inline-flex items-center justify-center rounded-full border border-slate-200/90 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-xs hover:bg-slate-50 hover:shadow transition-all shrink-0 no-underline">
+                Review &rarr;
+              </a>
+            </article>
+
+            <!-- Row 2: Broker Test Commercial Site Biday (Updated) -->
+            <article class="flex items-center justify-between gap-3.5 rounded-[22px] bg-[#EEF1F6] p-3 sm:p-4 hover:bg-[#E5EAEF] transition-all">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <img src="assets/images/sfcView.png" onerror="this.src='https://images.unsplash.com/photo-1541888946425-d0fbb186f5f7?auto=format&fit=crop&w=150&q=80'" alt="Biday Site" class="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-[18px] object-cover shadow-xs shrink-0">
+                <div class="min-w-0">
+                  <h3 class="truncate text-xs sm:text-[14px] font-bold text-slate-900">Broker Test Commercial Site Biday (Updated)</h3>
+                  <p class="mt-0.5 text-[11px] sm:text-xs text-slate-500">Biday - 1,200 m²</p>
+                  <span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#FEF3C7] px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-[#92400E]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Awaiting review
+                  </span>
+                </div>
+              </div>
+              <a href="#" class="inline-flex items-center justify-center rounded-full border border-slate-200/90 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-xs hover:bg-slate-50 hover:shadow transition-all shrink-0 no-underline">
+                Review &rarr;
+              </a>
+            </article>
+
+            <!-- Row 3: Commercial lot in Biday -->
+            <article class="flex items-center justify-between gap-3.5 rounded-[22px] bg-[#EEF1F6] p-3 sm:p-4 hover:bg-[#E5EAEF] transition-all">
+              <div class="flex items-center gap-3.5 min-w-0">
+                <img src="assets/images/sfcView.png" onerror="this.src='https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=150&q=80'" alt="Commercial lot" class="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-[18px] object-cover shadow-xs shrink-0">
+                <div class="min-w-0">
+                  <h3 class="truncate text-xs sm:text-[14px] font-bold text-slate-900">Commercial lot in Biday</h3>
+                  <p class="mt-0.5 text-[11px] sm:text-xs text-slate-500">Biday - 70,000 m²</p>
+                  <span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#FEF3C7] px-3 py-0.5 text-[10px] sm:text-[11px] font-bold text-[#92400E]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Awaiting review
+                  </span>
+                </div>
+              </div>
+              <a href="#" class="inline-flex items-center justify-center rounded-full border border-slate-200/90 bg-white px-5 py-2 text-xs font-bold text-slate-800 shadow-xs hover:bg-slate-50 hover:shadow transition-all shrink-0 no-underline">
+                Review &rarr;
+              </a>
+            </article>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: MCE & IAI Card (3D Bubbly Pill Cylinders) -->
+      <section class="rounded-[28px] border border-slate-100 bg-white p-6 sm:p-7 shadow-[0_10px_28px_rgba(17,34,77,0.06)] flex flex-col justify-between">
+        
+        <!-- Header -->
+        <div>
+          <div class="flex items-center justify-between gap-3 mb-1">
+            <h2 class="text-lg sm:text-xl font-bold text-slate-900">MCE &amp; IAI</h2>
+            <a href="property-ranking.php" class="text-xs sm:text-[13px] font-bold text-[#9E1B22] hover:underline no-underline">
+              Priority board &rarr;
+            </a>
+          </div>
+          <p class="text-xs text-slate-500">Top scored properties · Connected benchmark plot</p>
+
+          <!-- Legend & Scale Badge -->
+          <div class="mt-4 mb-3 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500">
+            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+              Scale: 80–100
+            </span>
+            <div class="flex items-center gap-3.5 sm:gap-4">
+              <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#A32635]"></span>MCE (Site)</span>
+              <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-[#F3A6B0]"></span>IAI (Investment)</span>
+              <span class="flex items-center gap-1"><span class="inline-block h-1 w-2.5 rounded-full bg-slate-300"></span>Gap (&Delta;)</span>
+            </div>
+          </div>
+
+          <!-- Axis Ticks Header -->
+          <div class="flex items-center gap-3 pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400">
+            <div class="w-32 sm:w-44 lg:w-48 shrink-0 truncate">PROPERTY (#RANK)</div>
+            <div class="flex-1 flex items-center justify-between mx-2">
+              <span>80</span>
+              <span>85</span>
+              <span>90</span>
+              <span>95</span>
+              <span>100</span>
+            </div>
+            <div class="w-28 sm:w-32 shrink-0 text-right">MCE / IAI &middot; &Delta;</div>
+          </div>
+
+          <!-- Connected Dumbbell Rows -->
+          <div class="divide-y divide-slate-100/60">
+            
+            <!-- Row 1: LaFinns Beach Resort -->
+            <div class="group flex items-center gap-3 py-3 border-b border-slate-100/70 hover:bg-slate-50/70 rounded-xl px-1.5 -mx-1.5 transition-colors">
+              <div class="flex items-center gap-2.5 w-32 sm:w-44 lg:w-48 shrink-0 min-w-0">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-600">#1</span>
+                <div class="min-w-0">
+                  <a href="#" class="block truncate text-xs font-bold text-slate-900 hover:text-[#9E1B22] no-underline" title="LaFinns Beach Resort &amp; Hotel">LaFinns Beach Resort</a>
+                  <span class="block truncate text-[10px] text-slate-400">San Fernando &middot; Tourism</span>
+                </div>
+              </div>
+              <div class="relative flex-1 h-6 flex items-center mx-2">
+                <div class="pointer-events-none absolute inset-x-0 inset-y-0 flex justify-between">
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                </div>
+                <div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200/90"></div>
+                <div class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full shadow-sm bg-gradient-to-r from-[#F3A6B0] to-[#A32635]" style="left: 67%; width: 3%;"></div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 70%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#A32635] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="MCE: 94.0"></span>
+                </div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 67%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#F3A6B0] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="IAI: 93.4"></span>
+                </div>
+              </div>
+              <div class="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-2">
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#A32635]">94.0</span>
+                  <span class="text-[11px] font-medium text-slate-300">/</span>
+                  <span class="text-xs font-bold text-[#881337]">93.4</span>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200/70 px-2 py-0.5 text-[10px] font-bold text-[#9E1B22]" title="Investment priority -0.6 below site suitability">-0.6</span>
+              </div>
+            </div>
+
+            <!-- Row 2: Property 5 - Mixed Use -->
+            <div class="group flex items-center gap-3 py-3 border-b border-slate-100/70 hover:bg-slate-50/70 rounded-xl px-1.5 -mx-1.5 transition-colors">
+              <div class="flex items-center gap-2.5 w-32 sm:w-44 lg:w-48 shrink-0 min-w-0">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-600">#2</span>
+                <div class="min-w-0">
+                  <a href="#" class="block truncate text-xs font-bold text-slate-900 hover:text-[#9E1B22] no-underline" title="Property 5 - Mixed Use Sector">Property 5 - Mixed Use</a>
+                  <span class="block truncate text-[10px] text-slate-400">San Fernando &middot; Mixed-Use</span>
+                </div>
+              </div>
+              <div class="relative flex-1 h-6 flex items-center mx-2">
+                <div class="pointer-events-none absolute inset-x-0 inset-y-0 flex justify-between">
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                </div>
+                <div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200/90"></div>
+                <div class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full shadow-sm bg-gradient-to-r from-[#F3A6B0] to-[#A32635]" style="left: 67%; width: 3%;"></div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 70%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#A32635] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="MCE: 94.0"></span>
+                </div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 67%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#F3A6B0] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="IAI: 93.4"></span>
+                </div>
+              </div>
+              <div class="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-2">
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#A32635]">94.0</span>
+                  <span class="text-[11px] font-medium text-slate-300">/</span>
+                  <span class="text-xs font-bold text-[#881337]">93.4</span>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-rose-50 border border-rose-200/70 px-2 py-0.5 text-[10px] font-bold text-[#9E1B22]" title="Investment priority -0.6 below site suitability">-0.6</span>
+              </div>
+            </div>
+
+            <!-- Row 3: Feraren Commercial Complex -->
+            <div class="group flex items-center gap-3 py-3 border-b border-slate-100/70 hover:bg-slate-50/70 rounded-xl px-1.5 -mx-1.5 transition-colors">
+              <div class="flex items-center gap-2.5 w-32 sm:w-44 lg:w-48 shrink-0 min-w-0">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-600">#3</span>
+                <div class="min-w-0">
+                  <a href="#" class="block truncate text-xs font-bold text-slate-900 hover:text-[#9E1B22] no-underline" title="Feraren Commercial Complex">Feraren Commercial Complex</a>
+                  <span class="block truncate text-[10px] text-slate-400">San Fernando &middot; Commercial</span>
+                </div>
+              </div>
+              <div class="relative flex-1 h-6 flex items-center mx-2">
+                <div class="pointer-events-none absolute inset-x-0 inset-y-0 flex justify-between">
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                </div>
+                <div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200/90"></div>
+                <div class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full shadow-sm bg-gradient-to-r from-[#A32635] to-emerald-500" style="left: 55%; width: 3%;"></div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 55%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#A32635] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="MCE: 91.0"></span>
+                </div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 58%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#F3A6B0] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="IAI: 91.6"></span>
+                </div>
+              </div>
+              <div class="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-2">
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#A32635]">91.0</span>
+                  <span class="text-[11px] font-medium text-slate-300">/</span>
+                  <span class="text-xs font-bold text-[#881337]">91.6</span>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 text-[10px] font-bold text-emerald-700" title="Investment priority +0.6 above site suitability">+0.6</span>
+              </div>
+            </div>
+
+            <!-- Row 4: Property 3 - Technology Park -->
+            <div class="group flex items-center gap-3 py-3 border-b border-slate-100/70 hover:bg-slate-50/70 rounded-xl px-1.5 -mx-1.5 transition-colors">
+              <div class="flex items-center gap-2.5 w-32 sm:w-44 lg:w-48 shrink-0 min-w-0">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-600">#4</span>
+                <div class="min-w-0">
+                  <a href="#" class="block truncate text-xs font-bold text-slate-900 hover:text-[#9E1B22] no-underline" title="Property 3 - Technology Park">Property 3 - Tech Park</a>
+                  <span class="block truncate text-[10px] text-slate-400">San Fernando &middot; Industrial</span>
+                </div>
+              </div>
+              <div class="relative flex-1 h-6 flex items-center mx-2">
+                <div class="pointer-events-none absolute inset-x-0 inset-y-0 flex justify-between">
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                </div>
+                <div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200/90"></div>
+                <div class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full shadow-sm bg-gradient-to-r from-[#A32635] to-emerald-500" style="left: 55%; width: 3%;"></div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 55%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#A32635] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="MCE: 91.0"></span>
+                </div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 58%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#F3A6B0] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="IAI: 91.6"></span>
+                </div>
+              </div>
+              <div class="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-2">
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#A32635]">91.0</span>
+                  <span class="text-[11px] font-medium text-slate-300">/</span>
+                  <span class="text-xs font-bold text-[#881337]">91.6</span>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 text-[10px] font-bold text-emerald-700" title="Investment priority +0.6 above site suitability">+0.6</span>
+              </div>
+            </div>
+
+            <!-- Row 5: Property 10 - Bayside -->
+            <div class="group flex items-center gap-3 py-3 hover:bg-slate-50/70 rounded-xl px-1.5 -mx-1.5 transition-colors">
+              <div class="flex items-center gap-2.5 w-32 sm:w-44 lg:w-48 shrink-0 min-w-0">
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-600">#5</span>
+                <div class="min-w-0">
+                  <a href="#" class="block truncate text-xs font-bold text-slate-900 hover:text-[#9E1B22] no-underline" title="Property 10 - Bayside Commercial">Property 10 - Bayside</a>
+                  <span class="block truncate text-[10px] text-slate-400">San Fernando &middot; Commercial</span>
+                </div>
+              </div>
+              <div class="relative flex-1 h-6 flex items-center mx-2">
+                <div class="pointer-events-none absolute inset-x-0 inset-y-0 flex justify-between">
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                  <span class="h-full w-px bg-slate-100"></span>
+                </div>
+                <div class="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200/90"></div>
+                <div class="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full shadow-sm bg-gradient-to-r from-[#A32635] to-emerald-500" style="left: 55%; width: 3%;"></div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 55%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#A32635] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="MCE: 91.0"></span>
+                </div>
+                <div class="group/dot absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-10" style="left: 58%;">
+                  <span class="block h-3.5 w-3.5 rounded-full bg-[#F3A6B0] ring-2 ring-white shadow-sm group-hover/dot:scale-125 transition-transform cursor-pointer" title="IAI: 91.6"></span>
+                </div>
+              </div>
+              <div class="w-28 sm:w-32 shrink-0 flex items-center justify-end gap-2">
+                <div class="text-right">
+                  <span class="text-xs font-bold text-[#A32635]">91.0</span>
+                  <span class="text-[11px] font-medium text-slate-300">/</span>
+                  <span class="text-xs font-bold text-[#881337]">91.6</span>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 text-[10px] font-bold text-emerald-700" title="Investment priority +0.6 above site suitability">+0.6</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Footer Caption & Link -->
+        <div class="mt-4 flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-slate-100">
+          <figcaption class="text-[11px] text-slate-400">Scores out of 100 · ordered by IAI score</figcaption>
+          <a href="property-ranking.php" class="text-[11px] font-bold text-[#9E1B22] hover:underline no-underline inline-flex items-center gap-1">
+            <span>&#9658;</span> View exact scores
+          </a>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <script>
+    // Live clock ticker
+    const timeEl = document.getElementById('liveTimeText');
+    function updateClock() {
+      if (timeEl) {
+        const now = new Date();
+        timeEl.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+      }
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Dropdown toggle
+    const respBtn = document.getElementById('responsibilitiesBtn');
+    const respMenu = document.getElementById('respMenu');
+    const respChevron = document.getElementById('respChevron');
+    if (respBtn && respMenu) {
+      respBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = respMenu.classList.contains('hidden');
+        respMenu.classList.toggle('hidden', !isHidden);
+        respChevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+      document.addEventListener('click', (e) => {
+        if (!respBtn.contains(e.target) && !respMenu.contains(e.target)) {
+          respMenu.classList.add('hidden');
+          respChevron.style.transform = 'rotate(0deg)';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -10,11 +10,24 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             throw new InvalidArgumentException('CICTO must approve your broker account before you submit listings.');
         }
         // An allowlist prevents assignment, review and assessment fields being injected.
-        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'area_method', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
-        $allowed = array_merge($allowed, ['listing_purpose', 'listingPurpose', 'sale_price', 'salePrice', 'lease_price', 'leasePrice', 'lease_period', 'leasePeriod', 'lease_price_unit', 'leasePriceUnit']);
+        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'area_method', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'remove_image', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
+        $allowed = array_merge($allowed, ['listing_purpose', 'listingPurpose', 'sale_price', 'salePrice', 'sale_price_mode', 'lease_price', 'leasePrice', 'lease_price_mode', 'lease_period', 'leasePeriod', 'lease_price_unit', 'leasePriceUnit']);
         $allowed = array_merge($allowed, [
             'clup_allowed_uses', 'clupAllowedUses',
             'electricity_sources', 'water_sources', 'internet_providers', 'internet_types', 'internet_quality', 'download_speed_mbps', 'utilities',
+            'electricity_status', 'electricity_primary_supply', 'electricity_provider', 'electricity_backup', 'electricity_capacity',
+            'water_status', 'water_source', 'water_provider', 'water_capacity',
+            'internet_status', 'internet_technology',
+            'drainage_service', 'wastewater_service', 'waste_collection_service',
+            'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin',
+            'spatial_evidence_source', 'spatial_evidence_date', 'spatial_evidence_reference',
+            'utility_evidence_source', 'utility_evidence_date', 'utility_evidence_reference',
+            'economic_evidence_source', 'economic_evidence_date', 'economic_evidence_reference',
+            'nearby_evidence_source', 'nearby_evidence_date', 'nearby_evidence_reference',
+            'zoning_evidence_source', 'zoning_evidence_date', 'zoning_evidence_reference',
+            'hazard_evidence_source', 'hazard_evidence_date', 'hazard_evidence_reference',
+            'environmental_evidence_source', 'environmental_evidence_date', 'environmental_evidence_reference',
+            'sensitive_habitats', 'protected_area_overlap', 'documented_contamination',
             'authority_to_sell', 'authorityToSell',
         ]);
         $payload = array_intersect_key($payload, array_flip($allowed));

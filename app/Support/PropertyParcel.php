@@ -13,11 +13,11 @@ final class PropertyParcel
 {
     private const EARTH_RADIUS = 6371008.8;
     private const OBSERVATIONS = [
-        'road_frontage' => ['yes', 'no', 'not_verified'],
-        'road_surface' => ['paved', 'unpaved', 'gravel', 'other', 'not_verified'],
-        'electricity' => ['available', 'unavailable', 'not_verified'],
-        'water' => ['available', 'unavailable', 'not_verified'],
-        'internet' => ['available', 'unavailable', 'not_verified'],
+        'road_frontage' => ['yes', 'no', 'not_verified', 'unknown'],
+        'road_surface' => ['paved', 'unpaved', 'gravel', 'other', 'not_verified', 'unknown'],
+        'electricity' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
+        'water' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
+        'internet' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
     ];
 
     public static function fromPayload(array $payload, array $existing = []): array
@@ -62,14 +62,31 @@ final class PropertyParcel
             if (!is_string($payload[$key]) || !in_array($payload[$key], $allowed, true)) {
                 throw new InvalidArgumentException('Choose a valid ' . str_replace('_', ' ', $key) . ' observation.');
             }
-            $observations[$key] = $payload[$key];
+            $val = $payload[$key];
+            if ($val === 'connected') $val = 'available';
+            elseif ($val === 'not_connected') $val = 'unavailable';
+            elseif ($val === 'unknown') $val = 'not_verified';
+            $observations[$key] = $val;
         }
         if (array_key_exists('bir_zonal_value', $payload)) {
             $value = self::optionalNumber($payload['bir_zonal_value'], 'BIR zonal reference');
             if ($value !== null && $value <= 0) { throw new InvalidArgumentException('BIR zonal reference must be greater than zero.'); }
             $observations['bir_zonal_value'] = $value;
         }
-        foreach (['bir_source', 'evidence_reference', 'environmental_reference'] as $key) {
+        foreach ([
+            'sale_price_mode', 'lease_price_mode',
+            'bir_source', 'evidence_reference', 'environmental_reference',
+            'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin',
+            'spatial_evidence_source', 'spatial_evidence_date', 'spatial_evidence_reference',
+            'utility_evidence_source', 'utility_evidence_date', 'utility_evidence_reference',
+            'economic_evidence_source', 'economic_evidence_date', 'economic_evidence_reference',
+            'nearby_evidence_source', 'nearby_evidence_date', 'nearby_evidence_reference',
+            'zoning_evidence_source', 'zoning_evidence_date', 'zoning_evidence_reference',
+            'hazard_evidence_source', 'hazard_evidence_date', 'hazard_evidence_reference',
+            'environmental_evidence_source', 'environmental_evidence_date', 'environmental_evidence_reference',
+            'drainage_service', 'wastewater_service', 'waste_collection_service',
+            'sensitive_habitats', 'protected_area_overlap', 'documented_contamination',
+        ] as $key) {
             if (array_key_exists($key, $payload)) { $observations[$key] = self::text($payload[$key], str_replace('_', ' ', $key), 3000); }
         }
         if (array_key_exists('bir_date', $payload)) {
@@ -81,7 +98,7 @@ final class PropertyParcel
         }
         $utilities = isset($payload['utilities']) && is_array($payload['utilities'])
             ? self::normalizeUtilities($payload['utilities'], $existing['utilities'] ?? null)
-            : (isset($payload['electricity']) || isset($payload['water']) || isset($payload['internet']) || isset($payload['electricity_sources']) || isset($payload['water_sources']) || isset($payload['internet_providers'])
+            : (isset($payload['electricity']) || isset($payload['water']) || isset($payload['internet']) || isset($payload['electricity_sources']) || isset($payload['water_sources']) || isset($payload['internet_providers']) || isset($payload['electricity_status']) || isset($payload['water_status']) || isset($payload['internet_status'])
                 ? self::normalizeUtilities($payload, $existing['utilities'] ?? null)
                 : ($existing['utilities'] ?? null));
 
@@ -104,9 +121,19 @@ final class PropertyParcel
     public static function normalizeUtilities(array $payload, mixed $existing = null): array
     {
         $existing = is_array($existing) ? $existing : [];
-        $elecStatus = $payload['electricity'] ?? $existing['electricity']['status'] ?? 'not_verified';
-        $waterStatus = $payload['water'] ?? $existing['water']['status'] ?? 'not_verified';
-        $internetStatus = $payload['internet'] ?? $existing['internet']['status'] ?? 'not_verified';
+        $elecRaw = $payload['electricity_status'] ?? $payload['electricity'] ?? $existing['electricity']['connection_status'] ?? $existing['electricity']['status'] ?? 'not_verified';
+        $waterRaw = $payload['water_status'] ?? $payload['water'] ?? $existing['water']['connection_status'] ?? $existing['water']['status'] ?? 'not_verified';
+        $internetRaw = $payload['internet_status'] ?? $payload['internet'] ?? $existing['internet']['connection_status'] ?? $existing['internet']['status'] ?? 'not_verified';
+
+        $mapStatus = static fn (mixed $s): string => match (is_string($s) ? strtolower(trim($s)) : '') {
+            'connected', 'available' => 'available',
+            'not_connected', 'unavailable' => 'unavailable',
+            default => 'not_verified',
+        };
+
+        $elecStatus = $mapStatus($elecRaw);
+        $waterStatus = $mapStatus($waterRaw);
+        $internetStatus = $mapStatus($internetRaw);
 
         $cleanList = static function (mixed $items): array {
             if (!is_array($items)) {
@@ -126,19 +153,35 @@ final class PropertyParcel
 
         return [
             'electricity' => [
-                'status' => in_array($elecStatus, ['available', 'unavailable', 'not_verified'], true) ? $elecStatus : 'not_verified',
+                'status' => $elecStatus,
+                'connection_status' => (string) $elecRaw,
+                'primary_supply' => self::text($payload['electricity_primary_supply'] ?? $existing['electricity']['primary_supply'] ?? '', 'Electricity primary supply', 120),
+                'provider' => self::text($payload['electricity_provider'] ?? $existing['electricity']['provider'] ?? '', 'Electricity provider', 120),
+                'backup_supply' => self::text($payload['electricity_backup'] ?? $existing['electricity']['backup_supply'] ?? '', 'Electricity backup supply', 120),
+                'capacity' => self::text($payload['electricity_capacity'] ?? $existing['electricity']['capacity'] ?? '', 'Electricity capacity', 120),
                 'sources' => $elecStatus === 'available' ? $cleanList($elecSources) : [],
             ],
             'water' => [
-                'status' => in_array($waterStatus, ['available', 'unavailable', 'not_verified'], true) ? $waterStatus : 'not_verified',
+                'status' => $waterStatus,
+                'connection_status' => (string) $waterRaw,
+                'source' => self::text($payload['water_source'] ?? $existing['water']['source'] ?? '', 'Water source', 120),
+                'provider' => self::text($payload['water_provider'] ?? $existing['water']['provider'] ?? '', 'Water provider', 120),
+                'capacity_reliability' => self::text($payload['water_capacity'] ?? $existing['water']['capacity_reliability'] ?? '', 'Water capacity/reliability', 120),
                 'sources' => $waterStatus === 'available' ? $cleanList($waterSources) : [],
             ],
             'internet' => [
-                'status' => in_array($internetStatus, ['available', 'unavailable', 'not_verified'], true) ? $internetStatus : 'not_verified',
+                'status' => $internetStatus,
+                'connection_status' => (string) $internetRaw,
+                'technology' => self::text($payload['internet_technology'] ?? $existing['internet']['technology'] ?? '', 'Internet technology', 120),
                 'providers' => $internetStatus === 'available' ? $cleanList($internetProviders) : [],
                 'connection_types' => $internetStatus === 'available' ? $cleanList($internetTypes) : [],
                 'quality' => in_array($internetQuality, ['Strong', 'Moderate', 'Weak', 'Not verified'], true) ? $internetQuality : 'Not verified',
                 'download_speed_mbps' => $speed !== null && $speed >= 0 ? round($speed, 1) : null,
+            ],
+            'additional_services' => [
+                'drainage' => self::text($payload['drainage_service'] ?? $existing['additional_services']['drainage'] ?? '', 'Drainage service', 120),
+                'wastewater' => self::text($payload['wastewater_service'] ?? $existing['additional_services']['wastewater'] ?? '', 'Wastewater service', 120),
+                'waste_collection' => self::text($payload['waste_collection_service'] ?? $existing['additional_services']['waste_collection'] ?? '', 'Waste collection service', 120),
             ],
         ];
     }

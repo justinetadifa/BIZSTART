@@ -103,16 +103,16 @@ function utilitiesMarkup(property) {
 
   return `
     <div class="property-utilities-section" style="margin: 16px 0;">
-      <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #11224D; margin-bottom: 8px;">Utilities & Connectivity</h3>
+      <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; color: #64748B; margin: 0 0 10px;">Utilities & Connectivity</h3>
       <div style="display: flex; flex-wrap: wrap; gap: 8px;">
         ${items.map(item => {
           const tooltip = esc(`${item.label}\n${item.title}${item.desc ? `\n${item.desc}` : ''}`);
-          const chipBg = item.available ? '#ECFDF5' : '#F3F4F6';
-          const chipBorder = item.available ? '#A7F3D0' : '#E5E7EB';
-          const chipColor = item.available ? '#065F46' : '#4B5563';
+          const chipBg = item.available ? '#ECFDF5' : '#F8FAFC';
+          const chipBorder = item.available ? '#A7F3D0' : '#E2E8F0';
+          const chipColor = item.available ? '#065F46' : '#475569';
           return `
-            <div class="property-utility-chip" title="${tooltip}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 9999px; background: ${chipBg}; border: 1px solid ${chipBorder}; color: ${chipColor}; font-size: 13px; font-weight: 500; cursor: help;">
-              ${item.available ? '<span style="color: #059669; font-weight: 700;">✓</span>' : '<span style="color: #9CA3AF;">○</span>'}
+            <div class="property-utility-chip" title="${tooltip}" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 13px; border-radius: 9999px; background: ${chipBg}; border: 1px solid ${chipBorder}; color: ${chipColor}; font-size: 12.5px; font-weight: 600; cursor: help;">
+              ${item.available ? '<span style="color: #059669; font-weight: 700;">✓</span>' : '<span style="color: #94A3B8;">○</span>'}
               <span>${esc(item.label)}</span>
               ${item.desc ? `<span class="property-utility-source" style="font-size: 11px; opacity: 0.8; font-weight: 400;">(${esc(item.desc.split(' · ')[0])})</span>` : ''}
             </div>
@@ -289,7 +289,7 @@ export function propertyDetailsMarkup(property, options) {
   const location = [property.barangay, property.city].filter(Boolean).join(', ') || 'Location awaiting confirmation';
   // The shared <base> points to the app root; include this page when linking to its sections.
   const sectionHref = section => esc(path(`property-details.php?id=${encodeURIComponent(property.id)}#${section}`));
-  const contact = role === 'guest' ? '<p>Sign in to view available contact details and ask about this property.</p>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
+  const contact = role === 'guest' ? '<p class="property-contact-lead">Sign in to view available contact details and ask about this property.</p><ul class="property-trust-badges" aria-label="Official investor benefits"><li><span class="trust-badge-dot">✓</span> Verified City Economic Registry</li><li><span class="trust-badge-dot">✓</span> Cadastral survey &amp; title validation</li><li><span class="trust-badge-dot">✓</span> Direct LEBDO investment facilitation</li></ul>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
   const areaFacts = [['Listed area', area > 0 ? `${areaLabel} · ${fmt(area, 4)} ha` : 'Not specified'], [recordedAreaLabel, survey > 0 ? `${fmt(survey)} m²` : 'Not specified'], ['Drawn boundary estimate', mapped > 0 ? `${fmt(mapped)} m²` : 'No boundary drawn'], ['Boundary', parcel.boundary ? 'Recorded outline · mapped estimate' : 'Optional · not drawn']];
   return `${printHeaderMarkup(property)}
     <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1><p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
@@ -363,13 +363,18 @@ export function propertyDetailsMarkup(property, options) {
             <ul class="property-criterion-ratings-list" role="list">
               ${calc.rows.map(row => `
                 <li class="property-criterion-rating-item">
-                  <div class="property-criterion-label-wrap">
-                    <span class="property-criterion-name">${esc(row.label)}</span>
-                    <button type="button" class="locus-criterion-help-btn" data-help-criterion="${esc(row.key)}" aria-label="Help: ${esc(row.label)}" title="Learn more about ${esc(row.label)}">?</button>
+                  <div class="property-criterion-row-top">
+                    <div class="property-criterion-label-wrap">
+                      <span class="property-criterion-name">${esc(row.label)}</span>
+                      <button type="button" class="locus-criterion-help-btn" data-help-criterion="${esc(row.key)}" aria-label="Help: ${esc(row.label)}" title="Learn more about ${esc(row.label)}">?</button>
+                    </div>
+                    <div class="property-criterion-score-wrap">
+                      <strong>${row.score === null ? 'Pending' : rating(row.score)}</strong>
+                      <span>/ 100</span>
+                    </div>
                   </div>
-                  <div class="property-criterion-score-wrap">
-                    <strong>${row.score === null ? 'Pending' : rating(row.score)}</strong>
-                    <span>/ 100</span>
+                  <div class="property-criterion-bar-track" aria-hidden="true">
+                    <div class="property-criterion-bar-fill" style="width: ${row.score !== null ? Math.min(100, Math.max(0, row.score)) : 0}%;"></div>
                   </div>
                 </li>
               `).join('')}

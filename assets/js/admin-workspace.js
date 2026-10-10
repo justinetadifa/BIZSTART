@@ -145,12 +145,33 @@
     const approved = properties.filter((property) => property.approvalState === 'approved');
     const awaitingAssessment = properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     const stats = governance
-      ? [['Properties', properties.length], ['Awaiting review', pending.length], ['Approved', approved.length], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length]]
-      : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
-    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-block tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-mt-3 tw-block tw-text-2xl tw-font-semibold tw-text-[#11224d]">${escape(value)}</strong></div>`).join('');
+      ? [['All properties', properties.length, 'Across the city catalog', false], ['Awaiting review', pending.length, 'Ready for a city decision', true], ['Published', approved.length, 'Visible to investors', false], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length, 'Awaiting site verification', false]]
+      : [['All properties', properties.length, 'Across the city catalog', false], ['Needs assessment', awaitingAssessment.length, 'Ready for assessment', false], ['Awaiting review', pending.length, 'Ready for decision', true], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0)), 'Across city catalog', false]];
+    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, desc, isHighlight]) => `
+      <div class="tw-flex tw-items-center tw-gap-4 tw-rounded-[28px] ${isHighlight ? 'tw-bg-[#FFFCF6] tw-border-[2.5px] tw-border-[#E8D196] tw-shadow-[0_10px_26px_rgba(232,209,150,0.22)]' : 'tw-bg-white tw-border tw-border-slate-100 tw-shadow-[0_10px_26px_rgba(17,34,77,0.06)]'} tw-p-5 sm:tw-p-6">
+        <div>
+          <span class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600">${escape(label)}</span>
+          <strong class="tw-mt-0.5 tw-block tw-text-[32px] sm:tw-text-[36px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-slate-900">${escape(value)}</strong>
+          <span class="tw-mt-0.5 tw-block tw-text-[11px] ${isHighlight ? 'tw-text-[#B45309] tw-font-semibold' : 'tw-text-slate-400'}">${escape(desc)}</span>
+        </div>
+      </div>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} &rarr;</a></div>`).join('')
+      ? queue.slice(0, 3).map((property) => `
+        <article class="tw-flex tw-items-center tw-justify-between tw-gap-3.5 tw-rounded-[22px] tw-bg-[#EEF1F6] tw-p-3 sm:tw-p-4 tw-mb-3 hover:tw-bg-[#E5EAEF] tw-transition-all">
+          <div class="tw-flex tw-items-center tw-gap-3.5 tw-min-w-0">
+            <img class="tw-h-16 tw-w-16 sm:tw-h-[68px] sm:tw-w-[68px] tw-rounded-[18px] tw-object-cover tw-shadow-sm tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
+            <div class="tw-min-w-0">
+              <h3 class="tw-m-0 tw-truncate tw-text-xs sm:tw-text-sm tw-font-bold tw-text-slate-900">${escape(property.name)}</h3>
+              <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] sm:tw-text-xs tw-text-slate-500">${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p>
+              <span class="tw-mt-1.5 tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-[#FEF3C7] tw-px-3 tw-py-0.5 tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-[#92400E]">
+                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500"></span>
+                ${governance ? 'Awaiting review' : 'Source scores pending'}
+              </span>
+            </div>
+          </div>
+          <a class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-slate-200/90 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-800 tw-shadow-sm hover:tw-bg-slate-50 tw-transition-all tw-shrink-0 tw-no-underline" href="${escape(path(`admin-properties.php?edit=${property.id}`))}">Review &rarr;</a>
+        </article>`).join('')
       : '<p class="city-empty">All caught up.</p>';
     const ranked = approved.filter((property) => property.mceScore != null).sort((a, b) => b.mceScore - a.mceScore).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
@@ -170,20 +191,143 @@
     }).sort((a,b) => (listingTime(b.createdAt) ?? -Infinity) - (listingTime(a.createdAt) ?? -Infinity) || Number(b.id) - Number(a.id));
     const summary = root.querySelector('[data-property-summary]');
     const views = [['Latest Listings', retained.length, 'latest'], ['Active Listings', properties.filter(isActive).length, 'active'], ['Sold Listings', retained.filter(property => !isArchived(property) && property.status === 'Sold').length, 'Sold'], ['Leased Listings', retained.filter(property => !isArchived(property) && property.status === 'Leased').length, 'Leased'], ['Archived Listings', retained.filter(isArchived).length, 'archived'], ['Deleted Listings', properties.filter(property => property.isDeleted).length, 'deleted']];
-    if (summary) summary.innerHTML = views.map(([label, value, filter]) => `<button type="button" class="city-property-stat" data-property-filter="${filter}" aria-pressed="${state === filter}"><span>${escape(label)}</span><strong>${value}</strong></button>`).join('');
+    const statIcons = {
+      latest: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h11"/></svg>',
+      active: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      Sold: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      Leased: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>',
+      archived: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+      deleted: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+    };
+    const statHints = {
+      latest: 'All recorded',
+      active: 'Live in catalog',
+      Sold: 'Completed deals',
+      Leased: 'Active leases',
+      archived: 'Hidden listings',
+      deleted: 'Retained records'
+    };
+    if (summary) {
+      summary.innerHTML = views.map(([label, value, filter]) => `
+        <button type="button" class="city-property-stat stat-theme-${filter.toLowerCase()}" data-property-filter="${filter}" aria-pressed="${state === filter}">
+          <div class="city-stat-top">
+            <span class="city-stat-label">${escape(label)}</span>
+            <span class="city-stat-icon-wrap" aria-hidden="true">${statIcons[filter] || ''}</span>
+          </div>
+          <div class="city-stat-bottom">
+            <strong class="city-stat-value">${value}</strong>
+            <span class="city-stat-hint">${statHints[filter] || ''}</span>
+          </div>
+        </button>
+      `).join('');
+    }
     const viewTitle = root.querySelector('[data-property-view-title]');
     if (viewTitle) viewTitle.textContent = views.find(([, , filter]) => filter === state)?.[0] || root.querySelector('[data-property-state] option:checked')?.textContent || 'Listings';
     const viewDescription = root.querySelector('[data-property-view-description]');
     if (viewDescription) viewDescription.textContent = ({latest:'Listings ordered by creation date, newest first. Deleted listings have a separate view.',active:'Approved, available properties advertised in public listings, ordered newest first.',Sold:'Sold properties are kept for reference and are excluded from public listings.',Leased:'Leased properties are kept for reference and are excluded from public listings.',archived:'Archived properties are hidden from public listings. Unarchive to restore their prior listing status.',deleted:'Deleted properties are retained with their history. Restore to preserve their prior listing and archive status.'})[state] || 'Listings ordered by creation date, newest first.';
     const resultCount = root.querySelector('[data-property-result-count]');
     if (resultCount) resultCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'} shown.`;
+    const countPill = root.querySelector('[data-property-count-pill]');
+    if (countPill) countPill.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'}`;
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
-      <article class="tw-flex tw-flex-col tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-flex-row sm:tw-items-center sm:tw-p-5">
-        <img class="tw-h-36 tw-w-full tw-rounded-lg tw-object-cover sm:tw-h-24 sm:tw-w-28 sm:tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
-        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span>${property.isDeleted ? '<span class="city-pill city-deleted">Deleted</span>' : ''}${isArchived(property) ? '<span class="city-pill archived">Archived</span>' : ''}<span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">${escape(property.status)}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="city-listing-purpose">${escape(purposeLabel(property))}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${escape(askingPrice(property))}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p class="city-listing-dates">Created ${escape(listingDate(property.createdAt))}${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}</p></div>
-        <div class="tw-flex tw-items-center tw-gap-2"><div class="tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-slate-500">MCE</span><strong class="tw-text-sm tw-font-semibold">${score(property.mceScore)}</strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-amber-800">IAI</span><strong class="tw-text-sm tw-font-semibold">${score(property.iaiScore)}</strong></div></div>
-        <div class="city-listing-controls">${property.isDeleted ? `<button class="city-button city-button-secondary" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">Restore property</button>` : `<button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit details</button>${governance && !isArchived(property) ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}<details class="city-property-menu"><summary aria-label="Manage ${escape(property.name)}">Manage</summary><div>${isArchived(property) ? `<button type="button" data-property-lifecycle="unarchive" data-property-id="${property.id}">Unarchive property</button>` : `${['Available', 'Unavailable', 'Reserved', 'Sold', 'Leased'].filter((availability) => availability !== property.status).map((availability) => `<button type="button" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">Mark ${availability.toLowerCase()}</button>`).join('')}<button type="button" data-property-lifecycle="archive" data-property-id="${property.id}">Archive property</button>`}<button class="city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">Delete property</button></div></details>`}</div>
-      </article>`).join('') : '<p class="city-empty">No properties found.</p>';
+      <article class="city-card-item tw-flex tw-flex-col tw-gap-4 sm:tw-gap-5 tw-rounded-[24px] tw-border tw-border-slate-200/90 tw-bg-white tw-p-5 sm:tw-flex-row sm:tw-items-center sm:tw-p-6 tw-shadow-[0_4px_20px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.1)] hover:tw-border-slate-300 hover:tw--translate-y-0.5 tw-transition-all tw-duration-200">
+        <div class="city-card-thumb-wrap sm:tw-shrink-0">
+          <img class="city-card-thumb tw-h-40 tw-w-full sm:tw-h-28 sm:tw-w-36 tw-rounded-2xl tw-object-cover tw-border tw-border-slate-200/60 tw-shadow-sm" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
+        </div>
+        <div class="tw-min-w-0 tw-flex-1">
+          <div class="tw-mb-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-100 tw-px-2.5 tw-py-1 tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-600">${escape(property.category)}</span>
+            <span class="city-pill ${escape(property.approvalState)}">
+              <span class="city-pill-dot" aria-hidden="true"></span>
+              ${escape(stateLabel(property.approvalState))}
+            </span>
+            ${property.isDeleted ? '<span class="city-pill city-deleted"><span class="city-pill-dot" aria-hidden="true"></span>Deleted</span>' : ''}
+            ${isArchived(property) ? '<span class="city-pill archived"><span class="city-pill-dot" aria-hidden="true"></span>Archived</span>' : ''}
+            <span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">
+              <span class="city-pill-dot" aria-hidden="true"></span>
+              ${escape(property.status)}
+            </span>
+          </div>
+          <h2 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-tracking-tight">
+            <a class="tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-transition-colors tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a>
+          </h2>
+          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-font-medium tw-text-slate-500 tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tw-text-slate-400" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span>${escape(property.barangay || property.city || 'Location pending')}</span>
+            ${property.subcategory ? `<span class="tw-text-slate-300">·</span><span>${escape(property.subcategory)}</span>` : ''}
+          </p>
+          <div class="tw-mt-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
+            <span class="city-purpose-pill">${escape(purposeLabel(property))}</span>
+            <span class="tw-text-xs tw-text-[#11224d]">
+              <strong class="tw-font-bold tw-text-sm">${escape(askingPrice(property))}</strong>
+              <span class="tw-mx-1.5 tw-text-slate-300">/</span>
+              <span class="tw-text-slate-600">${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</span>
+            </span>
+          </div>
+          <p class="city-listing-dates tw-mt-2.5 tw-text-[11px] tw-text-slate-400 tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1">
+            <span>Created ${escape(listingDate(property.createdAt))}</span>
+            ${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}
+            ${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}
+          </p>
+        </div>
+        <div class="city-card-scores tw-flex tw-items-center tw-gap-2.5 sm:tw-px-1">
+          <div class="city-score-bubble city-score-mce">
+            <span class="tw-block tw-text-[10px] tw-font-bold tw-tracking-wider tw-text-slate-500 tw-uppercase">MCE</span>
+            <strong class="tw-text-base tw-font-extrabold tw-text-[#11224d] tw-leading-tight">${score(property.mceScore)}</strong>
+          </div>
+          <div class="city-score-bubble city-score-iai">
+            <span class="tw-block tw-text-[10px] tw-font-bold tw-tracking-wider tw-text-amber-800 tw-uppercase">IAI</span>
+            <strong class="tw-text-base tw-font-extrabold tw-text-amber-900 tw-leading-tight">${score(property.iaiScore)}</strong>
+          </div>
+        </div>
+        <div class="city-listing-controls sm:tw-shrink-0">
+          ${property.isDeleted ? `
+            <button class="city-button city-btn-pill city-btn-pill-restore" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              <span>Restore property</span>
+            </button>
+          ` : `
+            <button class="city-button city-button-secondary city-btn-pill city-btn-pill-secondary" type="button" data-edit-property="${property.id}">
+              Edit details
+            </button>
+            ${governance && !isArchived(property) ? `
+              <button class="city-button city-button-review city-btn-pill city-btn-pill-primary" type="button" data-review-property="${property.id}">
+                Review
+              </button>
+            ` : ''}
+            <details class="city-property-menu">
+              <summary aria-label="Manage ${escape(property.name)}" class="city-btn-pill city-btn-pill-manage">
+                <span>Manage</span>
+                <svg class="city-menu-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div class="city-menu-dropdown">
+                ${isArchived(property) ? `
+                  <button type="button" class="city-menu-item" data-property-lifecycle="unarchive" data-property-id="${property.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="m10 12 2-2 2 2"/><path d="M12 10v6"/></svg>
+                    <span>Unarchive property</span>
+                  </button>
+                ` : `
+                  ${['Available', 'Unavailable', 'Reserved', 'Sold', 'Leased'].filter((availability) => availability !== property.status).map((availability) => `
+                    <button type="button" class="city-menu-item" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">
+                      <span class="city-menu-item-dot city-availability-${availability.toLowerCase()}"></span>
+                      <span>Mark ${availability.toLowerCase()}</span>
+                    </button>
+                  `).join('')}
+                  <button type="button" class="city-menu-item" data-property-lifecycle="archive" data-property-id="${property.id}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                    <span>Archive property</span>
+                  </button>
+                `}
+                <button class="city-menu-item city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>Delete property</span>
+                </button>
+              </div>
+            </details>
+          `}
+        </div>
+      </article>
+    `).join('') : '<div class="city-empty-state tw-rounded-[24px] tw-border tw-border-dashed tw-border-slate-300 tw-bg-white tw-p-12 tw-text-center"><p class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">No properties found</p><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Try adjusting your search terms or selecting a different listing view.</p></div>';
   }
 
   root.addEventListener('click', (event) => {
@@ -324,7 +468,7 @@
     if (propertyWizard) {
       const nextButton = form.querySelector('[data-editor-next]');
       const nextLabel = nextButton.querySelector('[data-editor-next-label]') || nextButton;
-      nextLabel.textContent = 'Continue';
+      nextLabel.textContent = step === 0 ? 'Continue to location' : 'Continue';
     }
     const skip = form.querySelector('[data-skip-enrichment]');
     if (skip) skip.hidden = ![1,2,3].includes(step);

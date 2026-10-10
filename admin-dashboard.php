@@ -61,42 +61,130 @@ sfc_render_header($context, 'admin');
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
 <main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
-  <section class="tw-relative tw-isolate tw-overflow-hidden tw-rounded-2xl tw-bg-ink" aria-labelledby="cityOverviewTitle">
+  <section class="tw-relative tw-isolate tw-overflow-hidden tw-rounded-[32px] tw-bg-ink tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
     <img src="<?= $escape($context['assetBase']) ?>/images/admin-city.jpg" class="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_58%]" alt="" fetchpriority="high">
-    <div class="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(8,22,49,0.88)_0%,rgba(17,34,77,0.52)_55%,rgba(17,34,77,0.15)_100%)]"></div>
-    <div class="tw-relative tw-flex tw-flex-col tw-gap-4 tw-p-4 sm:tw-p-5 md:tw-flex-row md:tw-items-center md:tw-justify-between lg:tw-px-6 lg:tw-py-5">
-      <div class="tw-min-w-0 tw-max-w-2xl">
-        <span class="tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-[0.14em] tw-text-white/80">City workspace · <?= $escape($department) ?></span>
-        <h1 id="cityOverviewTitle" class="tw-mb-0 tw-mt-1.5 tw-text-[22px] tw-font-bold tw-leading-tight tw-tracking-tight tw-text-white sm:tw-text-[26px] lg:tw-text-[28px]"><?= $escape($profile['title']) ?></h1>
-        <p class="tw-mb-0 tw-mt-1 tw-max-w-xl tw-text-xs tw-leading-relaxed tw-text-white/80 sm:tw-text-sm"><?= $escape($profile['subtitle']) ?></p>
-        <details class="tw-mt-3">
-          <summary class="tw-w-fit tw-cursor-pointer tw-rounded-lg tw-border tw-border-white/30 tw-bg-white/10 tw-px-2.5 tw-py-1.5 tw-text-[11px] tw-font-semibold tw-text-white hover:tw-bg-white/20 tw-transition-colors focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-2 focus-visible:tw-outline-white">Your responsibilities</summary>
-          <div class="tw-mt-2.5 tw-grid tw-gap-2.5 sm:tw-grid-cols-3">
-            <?php foreach ($profile['responsibilities'] as $title => $description): ?>
-            <div class="tw-rounded-lg tw-bg-[#081631]/85 tw-border tw-border-white/10 tw-p-2.5"><strong class="tw-block tw-text-[11px] tw-font-semibold tw-text-white"><?= $escape($title) ?></strong><p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-white/75"><?= $escape($description) ?></p></div>
-            <?php endforeach; ?>
-          </div>
-        </details>
+    <div class="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(8,22,49,0.90)_0%,rgba(17,34,77,0.58)_55%,rgba(17,34,77,0.20)_100%)]"></div>
+    
+    <!-- Glassmorphic "TODAY" Capsule at Top Right (Current Date & Live Time) -->
+    <div class="tw-absolute tw-top-5 tw-right-5 sm:tw-top-6 sm:tw-right-6 tw-z-20 tw-flex tw-items-center tw-gap-3 tw-rounded-2xl tw-border tw-border-white/25 tw-bg-black/35 tw-backdrop-blur-md tw-px-4 tw-py-2.5 tw-text-white tw-shadow-xl" id="adminTodayCapsule">
+      <svg class="tw-h-5 tw-w-5 tw-shrink-0 tw-text-white/85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="3"/>
+        <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
+      </svg>
+      <div>
+        <span class="tw-block tw-text-[9.5px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-white/70">TODAY</span>
+        <time class="tw-block tw-text-xs sm:tw-text-sm tw-font-bold tw-text-white" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
+          <?= $today->format('M j, Y') ?>
+        </time>
+        <span class="tw-block tw-text-[10px] tw-font-medium tw-text-white/80" id="adminHeroLiveTime"></span>
       </div>
-      <div class="tw-flex tw-w-fit tw-shrink-0 tw-items-center tw-gap-2.5 tw-rounded-xl tw-border tw-border-white/20 tw-bg-white/10 tw-backdrop-blur-sm tw-px-3.5 tw-py-2 tw-text-white md:tw-ml-3">
-        <svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg>
-        <div><span class="tw-block tw-text-[9px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-white/70">Today</span><time class="tw-block tw-text-xs tw-font-bold" data-overview-date datetime="<?= $today->format('Y-m-d') ?>"><?= $today->format('M j, Y') ?></time></div>
+    </div>
+
+    <!-- Banner Content & Capsule Overlay Buttons -->
+    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-min-h-[220px] sm:tw-min-h-[240px] tw-p-6 sm:tw-p-8 sm:tw-pt-7 sm:tw-pb-8">
+      <div class="tw-min-w-0 tw-max-w-2xl">
+        <h1 id="cityOverviewTitle" class="tw-mb-1.5 tw-text-2xl sm:tw-text-3xl lg:tw-text-[36px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-white"><?= $escape($profile['title']) ?></h1>
+        <p class="tw-mb-0 tw-max-w-xl tw-text-xs sm:tw-text-sm tw-leading-relaxed tw-text-white/85"><?= $escape($profile['subtitle']) ?></p>
+      </div>
+
+      <!-- Fully-Rounded Capsule Buttons Directly Overlaying the Image -->
+      <div class="tw-mt-7 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
+        <!-- White capsule button with dropdown arrow: "Your responsibilities" -->
+        <div class="tw-relative">
+          <button type="button" id="responsibilitiesDropdownBtn" class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-slate-900 tw-shadow-md hover:tw-bg-slate-100 active:tw-scale-[0.98] tw-transition-all cursor-pointer">
+            <span>Your responsibilities</span>
+            <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-700 tw-transition-transform tw-duration-200" id="responsibilitiesChevron" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          
+          <!-- Dropdown popover for responsibilities -->
+          <div id="responsibilitiesMenu" class="tw-hidden tw-absolute tw-left-0 tw-top-full tw-mt-2.5 tw-z-30 tw-w-72 sm:tw-w-84 tw-rounded-2xl tw-border tw-border-slate-100 tw-bg-white tw-p-3.5 tw-shadow-2xl">
+            <div class="tw-space-y-2">
+              <?php foreach ($profile['responsibilities'] as $title => $description): ?>
+              <div class="tw-rounded-xl tw-bg-[#F1F3F7] tw-p-2.5">
+                <strong class="tw-block tw-text-xs tw-font-bold tw-text-slate-900"><?= $escape($title) ?></strong>
+                <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] tw-leading-relaxed tw-text-slate-600"><?= $escape($description) ?></p>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark, fully-rounded capsule buttons directly overlaying the image -->
+        <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
+          Technical administration
+        </a>
+        <a href="<?= $escape(sfc_path('/admin-properties.php')) ?>" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
+          Listing review
+        </a>
+        <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
+          City team
+        </a>
       </div>
     </div>
   </section>
   <p class="city-status tw-mb-0 tw-mt-3 tw-min-h-0 tw-text-xs empty:tw-hidden" data-workspace-status role="status">Loading workspace…</p>
-  <section class="tw-mb-5 tw-mt-5 tw-grid tw-grid-cols-1 tw-gap-3 min-[400px]:tw-grid-cols-2 lg:tw-grid-cols-4" aria-label="Overview" data-city-stats></section>
-  <div class="tw-grid tw-min-w-0 tw-gap-5 lg:tw-grid-cols-[1.1fr_1fr]">
-    <section class="tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5">
-      <div class="tw-mb-3 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink"><?= $governance ? 'Listing reviews' : 'Property records' ?></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500"><?= $governance ? 'Properties ready for a city decision.' : 'Keep site information complete and current.' ?></p></div><a class="tw-text-xs tw-font-semibold tw-text-[#9e1b22]" href="<?= $escape(sfc_path('/admin-properties.php')) ?>">View all →</a></div>
+  <section class="tw-mb-6 tw-mt-5 tw-grid tw-grid-cols-1 tw-gap-3.5 min-[400px]:tw-grid-cols-2 lg:tw-grid-cols-4" aria-label="Overview" data-city-stats></section>
+  <div class="tw-grid tw-min-w-0 tw-gap-6 lg:tw-grid-cols-[1.1fr_1fr]">
+    <section class="tw-min-w-0 tw-rounded-[28px] tw-border tw-border-slate-100 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-[0_10px_28px_rgba(17,34,77,0.06)]">
+      <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3">
+        <div>
+          <h2 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900"><?= $governance ? 'Listing reviews' : 'Property records' ?></h2>
+          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500"><?= $governance ? 'Properties ready for a city decision.' : 'Keep site information complete and current.' ?></p>
+        </div>
+        <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/admin-properties.php')) ?>">View all &rarr;</a>
+      </div>
       <div data-overview-listings></div>
     </section>
-    <section class="tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5">
-      <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">MCE &amp; IAI</h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Top scored, published properties.</p></div><a class="tw-text-xs tw-font-semibold tw-text-[#9e1b22]" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">Priority board →</a></div>
+    <section class="tw-min-w-0 tw-rounded-[28px] tw-border tw-border-slate-100 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-[0_10px_28px_rgba(17,34,77,0.06)]">
+      <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3">
+        <div>
+          <h2 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">MCE &amp; IAI</h2>
+          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Top scored, properties charts.</p>
+        </div>
+        <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">Priority board &rarr;</a>
+      </div>
       <div data-assessment-ranking></div>
-      <details class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-3 tw-text-xs tw-leading-relaxed tw-text-slate-500"><summary class="tw-cursor-pointer">How scores are calculated</summary><p class="tw-mb-0 tw-mt-2" data-assessment-method></p></details>
+      <details class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-3 tw-text-xs tw-leading-relaxed tw-text-slate-500">
+        <summary class="tw-cursor-pointer tw-font-semibold hover:tw-text-[#9e1b22] tw-transition-colors">How scores are calculated</summary>
+        <p class="tw-mb-0 tw-mt-2" data-assessment-method></p>
+      </details>
     </section>
   </div>
+  <script>
+    (() => {
+      // Toggle responsibilities dropdown
+      const btn = document.getElementById('responsibilitiesDropdownBtn');
+      const menu = document.getElementById('responsibilitiesMenu');
+      const chevron = document.getElementById('responsibilitiesChevron');
+      if (btn && menu) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isClosed = menu.classList.contains('tw-hidden');
+          menu.classList.toggle('tw-hidden', !isClosed);
+          if (chevron) chevron.style.transform = isClosed ? 'rotate(180deg)' : 'rotate(0deg)';
+        });
+        document.addEventListener('click', (e) => {
+          if (!btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('tw-hidden');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+          }
+        });
+      }
+
+      // Live time ticker for glassmorphic today capsule
+      const liveTime = document.getElementById('adminHeroLiveTime');
+      function tickClock() {
+        if (liveTime) {
+          const now = new Date();
+          liveTime.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+      }
+      tickClock();
+      setInterval(tickClock, 1000);
+    })();
+  </script>
   <?php if ($brokerReviewer): ?>
   <section class="tw-mt-8 tw-min-w-0" aria-labelledby="adminBrokerVerificationTitle">
     <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
