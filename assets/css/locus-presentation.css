@@ -52,7 +52,8 @@ body .account-auth::before { content: none; }
   background: #11224D;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(17, 34, 77, 0.22);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.35s cubic-bezier(0.25, 1.25, 0.5, 1);
+  will-change: transform;
   z-index: 1;
   pointer-events: none;
 }
@@ -107,5 +108,5 @@ html[data-investor-view="basic"] .investor-view-control .investor-view-pill {
   .investor-view-control button { min-height: 42px; }
   .locus-map-backdrop { background-size: auto 1000px; }
 }
-@media (prefers-reduced-motion: reduce) { .investor-view-control .investor-view-pill, .investor-view-control button { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .investor-view-control button { transition: none; } }
 @media print { .locus-map-backdrop, .investor-view-toolbar { display: none !important; } }

@@ -17,10 +17,12 @@
   root.dataset.investorViewEnabled = String(enabled);
   root.dataset.investorView = mode;
 
-  function refresh(scope = document) {
+  function refresh(scope = document, transition = null) {
     scope.querySelectorAll('[data-investor-view-toolbar]').forEach(toolbar => { toolbar.hidden = !enabled; });
     scope.querySelectorAll('[data-investor-view-control]').forEach(control => {
       if (control && control.dataset) {
+        const from = transition?.from;
+        const to = transition?.to;
         control.dataset.active = mode;
         let pill = control.querySelector?.('.investor-view-pill');
         if (!pill && typeof control.insertBefore === 'function' && typeof document?.createElement === 'function') {
@@ -28,6 +30,18 @@
           pill.className = 'investor-view-pill';
           pill.setAttribute('aria-hidden', 'true');
           control.insertBefore(pill, control.firstChild);
+        }
+        if (pill && from && to && from !== to && typeof pill.animate === 'function') {
+          const fromX = from === 'advanced' ? '100%' : '0%';
+          const toX = to === 'advanced' ? '100%' : '0%';
+          pill.animate([
+            { transform: `translateX(${fromX})` },
+            { transform: `translateX(${toX})` }
+          ], {
+            duration: 350,
+            easing: 'cubic-bezier(0.25, 1.25, 0.5, 1)',
+            fill: 'forwards'
+          });
         }
       }
     });
@@ -46,6 +60,7 @@
   function set(next, options = {}) {
     if (!enabled || !valid(next)) { return mode; }
     const changed = mode !== next;
+    const previous = mode;
     if (next === 'basic') {
       const active = document.activeElement;
       if (active?.closest('[data-investor-advanced]')) {
@@ -59,7 +74,7 @@
         try { window[name].setItem(storageKey, mode); } catch { /* Keep the current view even when storage is full or blocked. */ }
       }
     }
-    refresh();
+    refresh(document, changed ? { from: previous, to: mode } : null);
     if (changed) {
       document.querySelectorAll('[data-investor-view-announcement]').forEach(node => {
         node.textContent = mode === 'basic' ? 'Basic view selected. Hazard notices remain visible.' : 'Advanced view selected. Assessment details are now available.';
