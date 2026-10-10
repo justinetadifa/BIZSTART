@@ -34,6 +34,7 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    try { window.LocusSound?.play('error'); } catch (_) {}
     throw new Error(payload.error || `Request failed with status ${response.status}.`);
   }
 
@@ -113,6 +114,9 @@ export const api = {
     return request("properties.php", {
       method: "POST",
       body: payload instanceof FormData ? payload : JSON.stringify(payload),
+    }).then((res) => {
+      try { window.LocusSound?.play('success'); } catch (_) {}
+      return res;
     });
   },
   updateProperty(propertyId, payload) {
@@ -132,6 +136,9 @@ export const api = {
   deleteProperty(propertyId) {
     return request(`property.php?id=${propertyId}`, {
       method: "DELETE",
+    }).then((res) => {
+      try { window.LocusSound?.play('delete'); } catch (_) {}
+      return res;
     });
   },
   updateBarangay(propertyId, barangay) {

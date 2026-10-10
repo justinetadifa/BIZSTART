@@ -14639,8 +14639,13 @@ async function initAdminProperties() {
           await api.updateProperty(propertyId, {
             approval_state: "approved",
           });
+          if (!window.LocusSound?.isApprovalHandled(propertyId)) {
+            window.LocusSound?.markApprovalHandled(propertyId);
+            window.LocusSound?.play("approved");
+          }
           await reload();
         } catch (error) {
+          window.LocusSound?.play("error");
           window.alert(error.message || "Unable to approve this listing right now.");
         }
       });

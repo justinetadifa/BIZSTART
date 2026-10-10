@@ -20,6 +20,8 @@ $pwIcon = static function (string $name, string $class = '') use ($pwEscape): st
         'reset' => '<path d="M19 7a9 9 0 1 1-7-4m7 0v5h-5"/>',
         'road' => '<path d="m7 3-3 18m13-18 3 18M12 3v3m0 4v4m0 4v3"/>',
         'utilities' => '<path d="m13 2-8 12h6l-1 8 9-13h-7l1-7Z"/>',
+        'water' => '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>',
+        'wifi' => '<path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>',
         'chart' => '<path d="M5 20v-6m7 6V9m7 11V3" stroke-width="3"/>',
         'document' => '<path d="M6 3h9l4 4v14H6V3Zm9 0v5h4M9 12h7m-7 4h7"/>',
         'tag' => '<path d="M3 3h8l10 10-8 8L3 11V3Z"/><circle cx="7.5" cy="7.5" r="1"/>',
@@ -131,17 +133,23 @@ $pwReadiness = [
       <section class="pw-panel" data-editor-panel="2" hidden>
         <div class="pw-columns pw-evidence-columns"><article class="pw-card pw-main-card"><div class="pw-card-heading"><span class="pw-eyebrow">SITE EVIDENCE</span><h3>Access, zoning &amp; verification</h3><p>Provide evidence to support city assessment. Leave uncertain facts marked Not verified.</p></div><div class="pw-tabs pw-evidence-tabs" role="tablist" aria-label="Site evidence"><button class="is-active" type="button" role="tab" aria-selected="true" aria-controls="pwEvidenceAccess" data-evidence-tab="access"><?= $pwIcon('road') ?> Access &amp; utilities</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceLanduse" data-evidence-tab="landuse"><?= $pwIcon('document') ?> CLUP / Land use</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceHazards" data-evidence-tab="hazards"><?= $pwIcon('warning') ?> Hazards</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceDocuments" data-evidence-tab="documents"><?= $pwIcon('document') ?> Documents</button><button type="button" role="tab" aria-selected="false" aria-controls="pwEvidenceValuation" data-evidence-tab="valuation"><?= $pwIcon('chart') ?> Valuation</button></div>
             <div id="pwEvidenceAccess" class="pw-evidence-section" role="tabpanel" data-evidence-panel="access">
-              <h4>Road access</h4>
+              <div class="pw-section-subhead">
+                <h4>Road access</h4>
+                <p class="pw-small pw-muted">Indicate frontage presence and surface condition.</p>
+              </div>
               <div class="pw-road-fields">
                 <fieldset class="pw-choice-field"><legend>Road frontage</legend><div class="pw-options"><label><input type="radio" name="road_frontage" value="yes"><span><?= $pwIcon('check') ?> Yes</span></label><label><input type="radio" name="road_frontage" value="no"><span>No</span></label><label><input type="radio" name="road_frontage" value="not_verified" checked><span>Not verified</span></label></div></fieldset>
                 <label class="pw-field">Road surface<select name="road_surface"><option value="not_verified">Not verified</option><option value="paved">Paved</option><option value="gravel">Gravel</option><option value="unpaved">Unpaved</option><option value="other">Other</option></select></label>
               </div>
               <div class="pw-utilities-container">
-                <h4>Utilities</h4>
+                <div class="pw-section-subhead">
+                  <h4>Utilities</h4>
+                  <p class="pw-small pw-muted">Document on-site service connections and verified providers.</p>
+                </div>
                 <!-- Electricity -->
                 <div class="pw-utility-card" data-utility-card="electricity">
                   <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><?= $pwIcon('utilities') ?> Electricity</legend>
+                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge electricity"><?= $pwIcon('utilities') ?></span><span class="pw-utility-name">Electricity</span></legend>
                     <div class="pw-options">
                       <label><input type="radio" name="electricity" value="available" data-utility-radio="electricity"><span><?= $pwIcon('check') ?> Available</span></label>
                       <label><input type="radio" name="electricity" value="unavailable" data-utility-radio="electricity"><span>Unavailable</span></label>
@@ -162,7 +170,7 @@ $pwReadiness = [
                 <!-- Water -->
                 <div class="pw-utility-card" data-utility-card="water">
                   <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><?= $pwIcon('utilities') ?> Water</legend>
+                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge water"><?= $pwIcon('water') ?></span><span class="pw-utility-name">Water</span></legend>
                     <div class="pw-options">
                       <label><input type="radio" name="water" value="available" data-utility-radio="water"><span><?= $pwIcon('check') ?> Available</span></label>
                       <label><input type="radio" name="water" value="unavailable" data-utility-radio="water"><span>Unavailable</span></label>
@@ -184,7 +192,7 @@ $pwReadiness = [
                 <!-- Internet & Connectivity -->
                 <div class="pw-utility-card" data-utility-card="internet">
                   <fieldset class="pw-utility-main-row">
-                    <legend class="pw-utility-title"><?= $pwIcon('utilities') ?> Internet &amp; Connectivity</legend>
+                    <legend class="pw-utility-title"><span class="pw-utility-icon-badge internet"><?= $pwIcon('wifi') ?></span><span class="pw-utility-name">Internet &amp; Connectivity</span></legend>
                     <div class="pw-options">
                       <label><input type="radio" name="internet" value="available" data-utility-radio="internet"><span><?= $pwIcon('check') ?> Available</span></label>
                       <label><input type="radio" name="internet" value="unavailable" data-utility-radio="internet"><span>Unavailable</span></label>
@@ -323,8 +331,10 @@ $pwReadiness = [
 
             <!-- Valuation Tab -->
             <div id="pwEvidenceValuation" class="pw-evidence-section" role="tabpanel" data-evidence-panel="valuation" hidden>
-              <h4>BIR zonal reference</h4>
-              <p class="pw-small pw-muted">Record the reference for this location and its effective date.</p>
+              <div class="pw-section-subhead">
+                <h4>BIR zonal reference</h4>
+                <p class="pw-small pw-muted">Record the reference for this location and its effective date.</p>
+              </div>
               <div class="pw-fields">
                 <label class="pw-field pw-full">Zonal value (PHP per m²)<input name="bir_zonal_value" type="number" min="0" step="0.01" placeholder="Enter the recorded value"></label>
                 <label class="pw-field pw-full">Source or reference<input name="bir_source" maxlength="500" placeholder="BIR schedule, zone, and document reference"></label>

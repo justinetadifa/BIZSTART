@@ -295,25 +295,30 @@
 
 .locus-help-tabs {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 28px;
-  margin-bottom: 22px;
-  border-bottom: 1px solid var(--locus-help-border);
-  padding-bottom: 0;
+  gap: 4px;
+  margin: 0 auto 24px;
+  padding: 4px;
+  background-color: #f1f5f9;
+  border: 1px solid var(--locus-help-border);
+  border-radius: 12px;
+  max-width: max-content;
   flex-shrink: 0;
 }
 
 .locus-help-tab-btn {
   position: relative;
-  padding: 10px 4px 12px;
-  background: none;
+  padding: 8px 20px;
+  background: transparent;
   border: none;
+  border-radius: 8px;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--locus-help-secondary);
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
@@ -321,26 +326,22 @@
   color: var(--locus-help-text);
 }
 
-.locus-help-tab-btn[aria-selected="true"] {
+.locus-help-tab-btn[aria-selected="true"],
+.locus-help-tab-btn.is-active {
+  background-color: #ffffff;
   color: var(--locus-help-text);
-  font-weight: 700;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .locus-help-tab-btn[aria-selected="true"]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2.5px;
-  background-color: var(--locus-help-red);
-  border-radius: 2px 2px 0 0;
+  display: none;
 }
 
 .locus-help-tab-btn:focus-visible {
-  outline: 2px solid var(--locus-help-red);
-  outline-offset: 4px;
-  border-radius: 2px;
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 /* ==========================================================================
@@ -350,25 +351,36 @@
 .locus-accordion-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .locus-accordion-item {
   border: 1px solid var(--locus-help-border);
-  border-radius: 12px;
+  border-radius: 14px;
   background-color: #ffffff;
   overflow: hidden;
-  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              transform 0.2s ease;
+}
+
+.locus-accordion-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
 }
 
 .locus-accordion-item.is-expanded {
-  border-color: var(--locus-help-red);
+  border-color: #cbd5e1;
+  border-left: 4px solid #11224d;
   background-color: #ffffff;
-  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.06);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.07), 0 2px 6px -2px rgba(15, 23, 42, 0.03);
 }
 
 .locus-accordion-item.is-active-criterion {
-  border-color: var(--locus-help-red);
+  border-color: #cbd5e1;
+  border-left: 4px solid var(--locus-help-red);
+  box-shadow: 0 8px 24px -4px rgba(185, 28, 28, 0.09);
 }
 
 .locus-accordion-header {
@@ -377,19 +389,28 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 14px 18px;
+  padding: 15px 18px;
   background: transparent;
   border: none;
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  min-height: 52px;
+  min-height: 54px;
+  transition: background-color 0.15s ease;
+}
+
+.locus-accordion-header:hover {
+  background-color: #f8fafc;
+}
+
+.locus-accordion-item.is-expanded .locus-accordion-header {
+  background-color: #fafbfc;
 }
 
 .locus-accordion-header:focus-visible {
-  outline: 2px solid var(--locus-help-red);
+  outline: 2px solid #11224d;
   outline-offset: -2px;
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
 .locus-accordion-header-left {
@@ -400,42 +421,80 @@
 }
 
 .locus-accordion-num {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  font-size: 12px;
   font-weight: 700;
-  color: #94a3b8;
-  min-width: 24px;
+  color: #64748b;
   letter-spacing: -0.01em;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.locus-accordion-header:hover .locus-accordion-num {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.locus-accordion-item.is-expanded .locus-accordion-num {
+  background-color: #11224d;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.25);
 }
 
 .locus-accordion-title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 14.5px;
+  font-weight: 600;
   color: var(--locus-help-text);
   line-height: 1.35;
+  letter-spacing: -0.01em;
+  transition: color 0.15s ease;
+}
+
+.locus-accordion-item.is-expanded .locus-accordion-title {
+  color: #0f172a;
+  font-weight: 700;
 }
 
 .locus-accordion-toggle-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
-  background-color: var(--locus-help-red);
-  color: #ffffff;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
   border-radius: 50%;
-  transition: transform 0.2s ease, background-color 0.18s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.18s ease,
+              border-color 0.18s ease,
+              color 0.18s ease;
+}
+
+.locus-accordion-header:hover .locus-accordion-toggle-icon {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
 .locus-accordion-item.is-expanded .locus-accordion-toggle-icon {
-  background-color: #fee2e2;
-  color: var(--locus-help-red);
+  background-color: #11224d;
+  border-color: #11224d;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.2);
 }
 
 .locus-accordion-body {
-  padding: 4px 18px 18px 56px;
+  padding: 6px 20px 20px 60px;
   font-size: 13.5px;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--locus-help-secondary);
 }
 
@@ -450,18 +509,24 @@
 .locus-accordion-link {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 12.5px;
-  font-weight: 700;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--locus-help-red);
   text-decoration: none;
   cursor: pointer;
+  padding: 4px 10px;
+  margin-left: -10px;
+  border-radius: 6px;
+  transition: all 0.18s ease;
 }
 
 .locus-accordion-link:hover {
-  text-decoration: underline;
+  background-color: var(--locus-help-pale-red);
   color: var(--locus-help-red-hover);
+  transform: translateX(4px);
+  text-decoration: none;
 }
 
 /* ==========================================================================
@@ -738,12 +803,18 @@
   }
 
   .locus-help-tabs {
-    gap: 14px;
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 3px;
   }
 
   .locus-help-tab-btn {
-    font-size: 12.5px;
-    padding: 8px 2px 10px;
+    font-size: 12px;
+    padding: 7px 8px;
+    flex: 1 1 0;
+    text-align: center;
   }
 
   .locus-accordion-body {

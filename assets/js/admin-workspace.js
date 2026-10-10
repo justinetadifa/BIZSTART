@@ -18,7 +18,7 @@
   const targetDocumentPropertyId = Number(documentParams.get('propertyId') || 0);
   const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
   const number = (value) => new Intl.NumberFormat('en-PH', { maximumFractionDigits: 1 }).format(Number(value || 0));
-  const score = (value) => value == null ? 'â€”' : Number(value).toFixed(1);
+  const score = (value) => value == null ? '—' : Number(value).toFixed(1);
   const stateLabel = (state) => ({ approved: 'Approved', pending_review: 'Awaiting review', rejected: 'Declined', archived: 'Archived', draft: 'Draft', verified: 'Verified', suspended: 'Suspended' })[state] || state;
   const isArchived = (property) => Boolean(property.isArchived || property.approvalState === 'archived');
   const isActive = (property) => !property.isDeleted && !isArchived(property) && property.approvalState === 'approved' && ['available','active','open'].includes(String(property.status || '').toLowerCase());
@@ -26,8 +26,8 @@
   const askingPrice = (property) => {
     const amount = value => value === null || value === undefined || value === '' ? 'Price on request' : `PHP ${number(value)}`;
     const sale = amount(property.salePrice !== undefined ? property.salePrice : property.price);
-    const lease = `${amount(property.leasePrice)} / ${property.leasePriceUnit === 'sqm' ? 'mÂ² / ' : ''}${property.leasePeriod || 'month'}`;
-    return property.listingPurpose === 'lease' ? lease : property.listingPurpose === 'sale_or_lease' ? `Sale: ${sale} Â· Lease: ${lease}` : sale;
+    const lease = `${amount(property.leasePrice)} / ${property.leasePriceUnit === 'sqm' ? 'm² / ' : ''}${property.leasePeriod || 'month'}`;
+    return property.listingPurpose === 'lease' ? lease : property.listingPurpose === 'sale_or_lease' ? `Sale: ${sale} · Lease: ${lease}` : sale;
   };
   const listingTime = value => {
     if (!value) return null;
@@ -72,7 +72,7 @@
       const targeted = targetDocumentRequestId ? Number(item.id) === targetDocumentRequestId : (targetDocumentPropertyId && Number(item.propertyId) === targetDocumentPropertyId);
       return `<form class="city-broker-card${targeted ? ' city-evidence' : ''}" id="cityDocumentRequest-${Number(item.id)}" data-document-request="${Number(item.id)}" tabindex="-1">
         <h3>${escape(item.documentName)} <span class="city-pill">${escape(labels[item.status] || item.status)}</span></h3>
-        <p><a href="${escape(propertyUrl(item.propertyId))}">${escape(item.propertyName || 'Property')}</a> Â· ${escape(item.requesterName || 'Investor')}</p>
+        <p><a href="${escape(propertyUrl(item.propertyId))}">${escape(item.propertyName || 'Property')}</a> · ${escape(item.requesterName || 'Investor')}</p>
         ${item.note ? `<p>${escape(item.note)}</p>` : ''}
         <div class="city-form-grid">
           <label>Status<select name="status" aria-label="Request status">${Object.entries(labels).map(([value, label]) => `<option value="${value}"${value === item.status ? ' selected' : ''}>${label}</option>`).join('')}</select></label>
@@ -146,11 +146,11 @@
     const awaitingAssessment = properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     const stats = governance
       ? [['Properties', properties.length], ['Awaiting review', pending.length], ['Approved', approved.length], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length]]
-      : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (mÂ²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
+      : [['Properties', properties.length], ['Needs assessment', awaitingAssessment.length], ['Awaiting review', pending.length], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0))]];
     root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value]) => `<div class="tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-block tw-text-xs tw-text-slate-500">${escape(label)}</span><strong class="tw-mt-3 tw-block tw-text-2xl tw-font-semibold tw-text-[#11224d]">${escape(value)}</strong></div>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} Â· ${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} â†’</a></div>`).join('')
+      ? queue.slice(0, 5).map((property) => `<div class="city-list-row"><div><strong>${escape(property.name)}</strong><p>${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p></div><a href="${escape(path(`admin-properties.php?edit=${property.id}`))}">${governance ? 'Review' : 'Assess'} &rarr;</a></div>`).join('')
       : '<p class="city-empty">All caught up.</p>';
     const ranked = approved.filter((property) => property.mceScore != null).sort((a, b) => b.mceScore - a.mceScore).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
@@ -180,7 +180,7 @@
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
       <article class="tw-flex tw-flex-col tw-gap-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-flex-row sm:tw-items-center sm:tw-p-5">
         <img class="tw-h-36 tw-w-full tw-rounded-lg tw-object-cover sm:tw-h-24 sm:tw-w-28 sm:tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
-        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span>${property.isDeleted ? '<span class="city-pill city-deleted">Deleted</span>' : ''}${isArchived(property) ? '<span class="city-pill archived">Archived</span>' : ''}<span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">${escape(property.status)}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` Â· ${escape(property.subcategory)}` : ''}</p><p class="city-listing-purpose">${escape(purposeLabel(property))}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${escape(askingPrice(property))}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} mÂ²` : 'Area not provided'}</p><p class="city-listing-dates">Created ${escape(listingDate(property.createdAt))}${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}</p></div>
+        <div class="tw-min-w-0 tw-flex-1"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2"><span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500">${escape(property.category)}</span><span class="city-pill ${escape(property.approvalState)}">${escape(stateLabel(property.approvalState))}</span>${property.isDeleted ? '<span class="city-pill city-deleted">Deleted</span>' : ''}${isArchived(property) ? '<span class="city-pill archived">Archived</span>' : ''}<span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">${escape(property.status)}</span></div><h2 class="tw-m-0 tw-text-base tw-font-semibold"><a class="tw-text-[#11224d] tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">${escape(property.barangay || property.city || 'Location pending')}${property.subcategory ? ` · ${escape(property.subcategory)}` : ''}</p><p class="city-listing-purpose">${escape(purposeLabel(property))}</p><p class="tw-mb-0 tw-mt-3 tw-text-xs tw-text-[#11224d]"><strong class="tw-font-semibold">${escape(askingPrice(property))}</strong><span class="tw-mx-2 tw-text-slate-300">/</span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p class="city-listing-dates">Created ${escape(listingDate(property.createdAt))}${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}</p></div>
         <div class="tw-flex tw-items-center tw-gap-2"><div class="tw-rounded-lg tw-bg-slate-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-slate-500">MCE</span><strong class="tw-text-sm tw-font-semibold">${score(property.mceScore)}</strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-center"><span class="tw-block tw-text-[10px] tw-text-amber-800">IAI</span><strong class="tw-text-sm tw-font-semibold">${score(property.iaiScore)}</strong></div></div>
         <div class="city-listing-controls">${property.isDeleted ? `<button class="city-button city-button-secondary" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">Restore property</button>` : `<button class="city-button city-button-secondary" type="button" data-edit-property="${property.id}">Edit details</button>${governance && !isArchived(property) ? `<button class="city-button" type="button" data-review-property="${property.id}">Review</button>` : ''}<details class="city-property-menu"><summary aria-label="Manage ${escape(property.name)}">Manage</summary><div>${isArchived(property) ? `<button type="button" data-property-lifecycle="unarchive" data-property-id="${property.id}">Unarchive property</button>` : `${['Available', 'Unavailable', 'Reserved', 'Sold', 'Leased'].filter((availability) => availability !== property.status).map((availability) => `<button type="button" data-property-lifecycle="availability" data-property-id="${property.id}" data-availability="${availability}">Mark ${availability.toLowerCase()}</button>`).join('')}<button type="button" data-property-lifecycle="archive" data-property-id="${property.id}">Archive property</button>`}<button class="city-property-delete" type="button" data-property-lifecycle="delete" data-property-id="${property.id}">Delete property</button></div></details>`}</div>
       </article>`).join('') : '<p class="city-empty">No properties found.</p>';
@@ -203,8 +203,12 @@
     form.elements.status.value = action.dataset.availability || '';
     dialog.querySelector('[data-lifecycle-property]').textContent = property.name;
     const lifecycleAction = action.dataset.propertyLifecycle;
+    const cancelBtn = dialog.querySelector('[data-close-dialog]');
+    if (cancelBtn) {
+      cancelBtn.textContent = lifecycleAction === 'delete' ? 'Keep property' : 'Cancel';
+    }
     const copy = {
-      delete:['Move to Deleted Listings?', 'The property will leave public listings. Its listing status, archive state, evidence and history are retained, and authorized staff can restore it later.', 'Delete property'],
+      delete:[`Delete "${property.name}"?`, 'This moves the listing to Deleted Listings and removes it from public results. Its listing status, archive state, evidence and history are retained, and authorized staff can restore it later.', 'Delete property'],
       restore:['Restore this property?', `The property will return with its retained ${property.status} status${isArchived(property) ? ' and remain archived' : ''}. It will appear publicly only when available, approved and unarchived.`, 'Restore property'],
       archive:['Archive this property?', 'The property will leave public listings. Its listing status, review decision, evidence and history are retained for later unarchiving.', 'Archive property'],
       unarchive:['Unarchive this property?', `The property will return with its prior ${property.status} status. It will appear publicly only when available and approved.`, 'Unarchive property'],
@@ -222,15 +226,54 @@
     event.preventDefault();
     const form = event.currentTarget;
     const submit = form.querySelector('[type="submit"]');
+    const dialog = form.closest('dialog');
+    const cancelBtn = dialog?.querySelector('[data-close-dialog]');
+    const action = form.elements.action.value;
+    const targetId = Number(form.elements.id.value);
     submit.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (action === 'delete') {
+      submit.innerHTML = '<span class="locus-spinner locus-spinner-dark tw-mr-1.5"></span>Deleting…';
+    }
     try {
-      const action = form.elements.action.value;
-      await request(`property.php?id=${encodeURIComponent(form.elements.id.value)}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', body: JSON.stringify({ action, status: form.elements.status.value }) });
+      await request(`property.php?id=${encodeURIComponent(targetId)}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', body: JSON.stringify({ action, status: form.elements.status.value }) });
+      const row = Array.from(root.querySelectorAll('[data-property-list] article')).find(el => el.querySelector(`[data-property-id="${targetId}"]`));
+      if (row && action === 'delete') {
+        row.classList.add('is-deleting-collapse');
+      }
+      dialog?.close();
+      if (action === 'delete') {
+        await new Promise(resolve => setTimeout(resolve, 220));
+      }
       await refresh();
-      form.closest('dialog').close();
-      message(status, ({delete:'Property moved to Deleted Listings.',restore:'Property restored with its prior listing status.',archive:'Property archived.',unarchive:'Property unarchived with its prior listing status.',availability:'Property listing status updated.'})[action] || 'Property updated.');
-    } catch (error) { message(form.querySelector('[data-lifecycle-message]'), error.message, true); }
-    finally { submit.disabled = false; }
+      if (action === 'delete') {
+        status.innerHTML = `<span>Property deleted.</span> <button type="button" class="city-undo-btn tw-ml-2 tw-underline tw-font-semibold tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-cursor-pointer" data-undo-restore="${targetId}">Undo</button>`;
+      } else {
+        message(status, ({restore:'Property restored with its prior listing status.',archive:'Property archived.',unarchive:'Property unarchived with its prior listing status.',availability:'Property listing status updated.'})[action] || 'Property updated.');
+      }
+    } catch (error) {
+      message(form.querySelector('[data-lifecycle-message]'), error.message || 'The property could not be deleted.', true);
+    } finally {
+      submit.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (action === 'delete') submit.textContent = 'Delete property';
+    }
+  });
+
+  root.addEventListener('click', async (event) => {
+    const undo = event.target.closest('[data-undo-restore]');
+    if (undo) {
+      const undoId = Number(undo.dataset.undoRestore);
+      undo.disabled = true;
+      undo.textContent = 'Restoring…';
+      try {
+        await request(`property.php?id=${encodeURIComponent(undoId)}`, { method: 'PATCH', body: JSON.stringify({ action: 'restore' }) });
+        await refresh();
+        message(status, 'Property restored with its prior listing status.');
+      } catch (err) {
+        message(status, err.message || 'Unable to restore property.', true);
+      }
+    }
   });
 
   async function loadBrokerReviews() {
@@ -687,7 +730,9 @@
     if (!validateEditor() || !validateBoundary()) return;
     if (propertyWizard && !propertyWizard.validateSurroundings()) { setEditorStep(3); return; }
     const submit = form.querySelector('[type="submit"]');
+    const originalSubmitText = submit.innerHTML;
     submit.disabled = true;
+    submit.innerHTML = '<span class="locus-spinner tw-mr-1.5"></span>Submitting…';
     const id = form.elements.id.value;
     const data = new FormData(form);
     nearby?.append(data);
@@ -713,9 +758,12 @@
       propertyWizard?.saved();
       await refresh();
       editor.close();
-      message(status, 'Property saved for CICTO review.');
+      message(status, 'Property submitted for CICTO review.');
     } catch (error) { message(form.querySelector('[data-editor-message]'), error.message, true); }
-    finally { submit.disabled = false; }
+    finally {
+      submit.disabled = false;
+      submit.innerHTML = originalSubmitText;
+    }
   });
 
   reviewForm?.addEventListener('submit', async (event) => {
@@ -740,11 +788,28 @@
         payload.authority_to_sell_status = reviewForm.elements.authority_to_sell_status.value;
         payload.authority_to_sell_note = reviewForm.elements.authority_to_sell_note.value;
       }
-      await request(`property.php?id=${encodeURIComponent(reviewForm.elements.id.value)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const reviewedId = Number(reviewForm.elements.id.value);
+      await request(`property.php?id=${encodeURIComponent(reviewedId)}`, { method: 'PATCH', body: JSON.stringify(payload) });
       await refresh();
       reviewDialog.close();
-      message(status, 'Listing decision and Authority to Sell validation saved.');
-    } catch (error) { message(reviewForm.querySelector('[data-review-message]'), error.message, true); }
+      if (payload.approval_state === 'approved') {
+        if (!window.LocusSound?.isApprovalHandled(reviewedId)) {
+          window.LocusSound?.markApprovalHandled(reviewedId);
+          window.LocusSound?.play('approved');
+        }
+        const nextPending = properties.find((p) => p.approvalState === 'pending_review' && p.id !== reviewedId);
+        if (nextPending) {
+          status.innerHTML = `<span>Listing approved.</span> <button type="button" class="city-next-review-btn tw-ml-2 tw-underline tw-font-semibold tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-cursor-pointer" data-review-property="${nextPending.id}">Review next: ${escape(nextPending.name)} &rarr;</button>`;
+        } else {
+          message(status, 'Listing approved. All pending reviews complete.');
+        }
+      } else {
+        message(status, 'Listing decision and Authority to Sell validation saved.');
+      }
+    } catch (error) {
+      window.LocusSound?.play('error');
+      message(reviewForm.querySelector('[data-review-message]'), error.message, true);
+    }
     finally { submit.disabled = false; }
   });
 

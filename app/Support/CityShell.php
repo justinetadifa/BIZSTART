@@ -66,6 +66,8 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-glance.css<?= sfc_asset_version('css/home-glance.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/help-center.css<?= sfc_asset_version('css/help-center.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/sound-system.css<?= sfc_asset_version('css/sound-system.css') ?>">
+  <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/help-center.js<?= sfc_asset_version('js/help-center.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
@@ -143,6 +145,7 @@ function sfc_render_footer(array $context): void
         <a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a>
         <a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a>
         <a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a>
+        <button type="button" class="city-footer-link" id="cityFooterSoundBtn" onclick="window.openLocusHelp ? window.openLocusHelp('sounds') : null; return false;">Sound settings</button>
       </nav>
     </div>
   </footer>
@@ -174,6 +177,7 @@ function sfc_render_footer(array $context): void
   <?php endif; ?>
   <?php if (!empty($context['user'])): ?><script src="<?= $e($context['assetBase']) ?>/js/session-guard.js<?= sfc_asset_version('js/session-guard.js') ?>"></script><?php endif; ?>
   <?php if (!empty($GLOBALS['sfc_legacy_page'])): ?><script type="module" src="<?= $e($context['assetBase']) ?>/js/portal.js<?= sfc_asset_version('js/portal.js') ?>"></script><?php endif; ?>
+
   <?php \App\Support\HelpCenter::render(); ?>
 </body>
 </html>

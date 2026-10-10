@@ -27,12 +27,29 @@ class HelpCenter
                         <span aria-hidden="true">/</span>
                         <span>Help center</span>
                     </div>
-                    <button type="button" class="locus-help-close-btn" id="locusHelpCloseBtn" aria-label="Close help center">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
+                    <div class="locus-help-top-actions">
+                        <button type="button" class="locus-help-sound-btn" id="locusHelpSoundIndicator" data-open-sound-tab aria-label="Interface sound settings" title="Interface sounds">
+                            <span class="city-sound-icon-wrap" aria-hidden="true">
+                                <svg class="city-sound-icon-muted" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                                </svg>
+                                <svg class="city-sound-icon-active" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                </svg>
+                            </span>
+                            <span class="locus-sound-indicator-text" id="locusSoundIndicatorText">Sound: OFF</span>
+                        </button>
+                        <button type="button" class="locus-help-close-btn" id="locusHelpCloseBtn" aria-label="Close help center">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="locus-help-content">
@@ -40,6 +57,7 @@ class HelpCenter
                     <div class="locus-help-tabs" role="tablist" aria-label="Help topics">
                         <button type="button" class="locus-help-tab-btn is-active" role="tab" id="locusTabScores" data-locus-tab="scores" aria-selected="true" aria-controls="locusPanelScores">Scores &amp; criteria</button>
                         <button type="button" class="locus-help-tab-btn" role="tab" id="locusTabUsing" data-locus-tab="using" aria-selected="false" aria-controls="locusPanelUsing">Using LOCUS-SF</button>
+                        <button type="button" class="locus-help-tab-btn" role="tab" id="locusTabSounds" data-locus-tab="sounds" aria-selected="false" aria-controls="locusPanelSounds">Interface sounds</button>
                         <button type="button" class="locus-help-tab-btn" role="tab" id="locusTabTeam" data-locus-tab="team" aria-selected="false" aria-controls="locusPanelTeam">Contact team</button>
                     </div>
 
@@ -425,7 +443,114 @@ class HelpCenter
                         </div>
                     </div>
 
-                    <!-- TAB 3: Contact Team Panel (Screenshot 2) -->
+                    <!-- TAB 3: Interface Sounds & Volume Panel -->
+                    <div class="locus-help-tab-panel" id="locusPanelSounds" data-locus-panel="sounds" role="tabpanel" aria-labelledby="locusTabSounds" hidden>
+                        <div class="locus-help-header-wrap">
+                            <button type="button" class="locus-help-back-link locus-to-scores-tab">&larr; Back to common questions</button>
+                            <h2 class="locus-help-title">Interface sounds &amp; audio</h2>
+                            <p class="locus-help-subtitle">iOS-inspired subtle acoustic feedback for interactions, selections, and confirmations.</p>
+                        </div>
+
+                        <div class="locus-sound-panel-container">
+                            <!-- Master Card -->
+                            <div class="locus-sound-card locus-sound-master-card">
+                                <div class="locus-sound-card-header">
+                                    <div class="locus-sound-badge-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="locus-sound-card-title-group">
+                                        <h3 class="locus-sound-card-title">Interface sounds</h3>
+                                        <p class="locus-sound-card-desc">Enable soft micro-taps, gentle selection ticks, and short confirmation chimes across the interface.</p>
+                                    </div>
+                                    <label class="locus-ios-switch" aria-label="Toggle interface sounds">
+                                        <input type="checkbox" id="locusSoundToggle" role="switch" aria-checked="false">
+                                        <span class="locus-ios-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Controls Subgroup -->
+                            <div class="locus-sound-subgroup is-disabled" id="locusSoundControlsGroup">
+                                <!-- Volume Control Card -->
+                                <div class="locus-sound-card">
+                                    <div class="locus-sound-row-header">
+                                        <div class="locus-sound-row-text">
+                                            <label for="locusSoundVolume" class="locus-sound-label">Master volume</label>
+                                            <span class="locus-sound-card-desc">Adjust the playback level of interaction tones</span>
+                                        </div>
+                                        <span class="locus-sound-volume-val" id="locusSoundVolumeVal">35%</span>
+                                    </div>
+                                    <div class="locus-sound-slider-wrap">
+                                        <svg class="locus-vol-icon-min" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        </svg>
+                                        <input type="range" id="locusSoundVolume" min="0" max="100" value="35" aria-label="Master volume" disabled>
+                                        <svg class="locus-vol-icon-max" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                        </svg>
+                                        <button type="button" class="locus-sound-preview-btn" id="locusSoundPreviewBtn">
+                                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                            </svg>
+                                            <span>Preview sound</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Scroll Feedback Card -->
+                                <div class="locus-sound-card locus-sound-row-card">
+                                    <div class="locus-sound-card-title-group">
+                                        <label for="locusSoundScrollToggle" class="locus-sound-label">Scroll feedback</label>
+                                        <p class="locus-sound-card-desc">Play a subtle settling tick after deliberate user scrolling ends. Requires actual movement; ignores programmatic shifts and map zooming.</p>
+                                    </div>
+                                    <label class="locus-ios-switch" aria-label="Toggle scroll feedback">
+                                        <input type="checkbox" id="locusSoundScrollToggle" role="switch" aria-checked="false" disabled>
+                                        <span class="locus-ios-slider"></span>
+                                    </label>
+                                </div>
+
+                                <!-- Interactive Sound Palette / Sampler Card -->
+                                <div class="locus-sound-palette-card">
+                                    <h4 class="locus-sound-palette-title">Sound library sampler</h4>
+                                    <p class="locus-sound-palette-desc">Click any tone to test its synthesized acoustic envelope:</p>
+                                    <div class="locus-sound-sampler-grid">
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="tap">
+                                            <span class="locus-sound-pill-name">Tap</span>
+                                            <span class="locus-sound-pill-ms">40ms · Buttons &amp; navigation</span>
+                                        </button>
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="select">
+                                            <span class="locus-sound-pill-name">Select</span>
+                                            <span class="locus-sound-pill-ms">55ms · Tabs, filters &amp; save</span>
+                                        </button>
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="success">
+                                            <span class="locus-sound-pill-name">Success</span>
+                                            <span class="locus-sound-pill-ms">220ms · Submission &amp; login</span>
+                                        </button>
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="approved">
+                                            <span class="locus-sound-pill-name">Approved</span>
+                                            <span class="locus-sound-pill-ms">300ms · Property approval</span>
+                                        </button>
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="delete">
+                                            <span class="locus-sound-pill-name">Delete</span>
+                                            <span class="locus-sound-pill-ms">140ms · Listing removal</span>
+                                        </button>
+                                        <button type="button" class="locus-sound-sample-pill" data-sample-sound="error">
+                                            <span class="locus-sound-pill-name">Error</span>
+                                            <span class="locus-sound-pill-ms">160ms · Failed actions</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: Contact Team Panel (Screenshot 2) -->
                     <div class="locus-help-tab-panel" id="locusPanelTeam" data-locus-panel="team" role="tabpanel" aria-labelledby="locusTabTeam" hidden>
                         <div class="locus-help-header-wrap">
                             <button type="button" class="locus-help-back-link locus-to-scores-tab">&larr; Back to common questions</button>

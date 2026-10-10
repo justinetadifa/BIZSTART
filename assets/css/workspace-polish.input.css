@@ -9,12 +9,12 @@
   border-radius: 22px !important;
   border: 1px solid #e2e8f0 !important;
   background: #ffffff !important;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease !important;
 }
 
 .locus-property-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 16px 36px -10px rgba(17, 34, 77, 0.12), 0 4px 12px -2px rgba(17, 34, 77, 0.04) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 28px -6px rgba(17, 34, 77, 0.1), 0 4px 10px -2px rgba(17, 34, 77, 0.04) !important;
   border-color: #cbd5e1 !important;
 }
 
@@ -26,7 +26,7 @@
   border-radius: 18px !important;
   border: 1px solid rgba(255, 255, 255, 0.75) !important;
   box-shadow: 0 8px 24px -4px rgba(17, 34, 77, 0.1), 0 2px 6px -1px rgba(17, 34, 77, 0.06) !important;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease !important;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .locus-property-card:hover .locus-card-glass {
@@ -38,7 +38,7 @@
 .locus-card-drawer {
   display: grid !important;
   grid-template-rows: 0fr !important;
-  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease !important;
+  transition: grid-template-rows 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease !important;
   opacity: 0 !important;
   pointer-events: none;
 }
@@ -55,21 +55,21 @@
 
 /* Circle Toggle Button & Icon */
 .locus-card-toggle {
-  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+  transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease !important;
 }
 
 .locus-card-toggle:hover {
-  transform: scale(1.1) !important;
-  box-shadow: 0 6px 16px rgba(17, 34, 77, 0.15) !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 4px 12px rgba(17, 34, 77, 0.12) !important;
   background-color: #f8fafc !important;
 }
 
 .locus-card-toggle:active {
-  transform: scale(0.95) !important;
+  transform: scale(0.96) !important;
 }
 
 .locus-card-toggle-icon {
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .city-property-card.is-expanded .locus-card-toggle-icon {
@@ -91,7 +91,7 @@
   user-select: none !important;
   -webkit-user-select: none !important;
   touch-action: manipulation !important;
-  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
+  transition: background-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease !important;
 }
 
 .locus-btn-red-pill:hover {
@@ -106,11 +106,16 @@
   transform: scale(0.98) !important;
 }
 
+.locus-btn-red-pill:focus-visible {
+  outline: 2px solid #11224D !important;
+  outline-offset: 2px !important;
+}
+
 /* ==========================================================================
    LOCUS-SF Priority Board Styles
    ========================================================================== */
 .priority-card {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease !important;
 }
 
 .priority-card:hover {
@@ -128,12 +133,175 @@
    SAN FERNANDO AT A GLANCE
    ========================================================================== */
 .glance-card {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease !important;
 }
 
 .glance-card:hover {
-  transform: translateY(-3px) !important;
+  transform: translateY(-2px) !important;
   box-shadow: 0 12px 28px -4px rgba(17, 34, 77, 0.09), 0 4px 10px -2px rgba(17, 34, 77, 0.04) !important;
   border-color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   Refined Controls: View Details, Compare, Save, Deletion, Feedback
+   ========================================================================== */
+.locus-btn-primary {
+  transition: background-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease !important;
+}
+
+.locus-btn-primary:hover {
+  box-shadow: 0 4px 12px -2px rgba(17, 34, 77, 0.18) !important;
+  transform: translateY(-1px) !important;
+}
+
+.locus-btn-primary:active {
+  transform: scale(0.98) !important;
+}
+
+.locus-btn-primary:focus-visible {
+  outline: 2px solid #11224D !important;
+  outline-offset: 2px !important;
+}
+
+.locus-compare-btn,
+.locus-save-btn {
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.locus-compare-btn:hover {
+  border-color: #94A3B8 !important;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.06) !important;
+}
+
+.locus-save-btn:hover {
+  border-color: #FECDD3 !important;
+  box-shadow: 0 2px 6px rgba(158, 27, 34, 0.08) !important;
+}
+
+.locus-compare-btn:active,
+.locus-save-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.locus-compare-btn:focus-visible,
+.locus-save-btn:focus-visible {
+  outline: 2px solid #11224D !important;
+  outline-offset: 2px !important;
+}
+
+/* Micro-interaction pop animation for toggle actions */
+@keyframes locusTogglePop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.is-toggled-pop {
+  animation: locusTogglePop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Deletion collapse feedback */
+.is-deleting-collapse {
+  opacity: 0 !important;
+  transform: scale(0.98) translateY(4px) !important;
+  transition: opacity 200ms ease, transform 200ms ease, max-height 220ms ease !important;
+  pointer-events: none !important;
+}
+
+/* Indeterminate request spinner */
+.locus-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: locusSpin 0.6s linear infinite;
+  vertical-align: -1px;
+}
+
+.locus-spinner-dark {
+  border-color: rgba(17, 34, 77, 0.2);
+  border-top-color: #11224D;
+}
+
+@keyframes locusSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success Checkmark & Rewarding Celebration Accents */
+@keyframes locusCheckRingScale {
+  0% { transform: scale(0.75); opacity: 0; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.locus-check-ring {
+  animation: locusCheckRingScale 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes locusCheckmarkDraw {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.locus-check-icon {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: locusCheckmarkDraw 240ms ease 80ms forwards;
+}
+
+@keyframes locusRewardAccent {
+  0% { opacity: 0; transform: translateY(-4px); }
+  50% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.locus-reward-accent {
+  animation: locusRewardAccent 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Accessible focus styling for dialogs and links */
+.city-dialog:focus-visible,
+.broker-listing a:focus-visible,
+.broker-button:focus-visible {
+  outline: 2px solid #11224D !important;
+  outline-offset: 2px !important;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .locus-property-card,
+  .priority-card,
+  .glance-card,
+  .locus-btn-red-pill,
+  .locus-btn-primary,
+  .locus-compare-btn,
+  .locus-save-btn,
+  .is-deleting-collapse {
+    transition: none !important;
+  }
+
+  .locus-property-card:hover,
+  .priority-card:hover,
+  .glance-card:hover,
+  .locus-btn-red-pill:hover,
+  .locus-btn-primary:active,
+  .locus-compare-btn:active,
+  .locus-save-btn:active {
+    transform: none !important;
+  }
+
+  .is-toggled-pop,
+  .locus-check-ring,
+  .locus-check-icon,
+  .locus-reward-accent {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .locus-spinner {
+    animation-duration: 2s !important;
+  }
 }
 

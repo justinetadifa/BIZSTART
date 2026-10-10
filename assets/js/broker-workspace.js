@@ -229,8 +229,44 @@ function score(property, key) {
 
 function renderListings() {
   const own = ownProperties();
+  const approvedListings = own.filter((p) => p.approvalState === 'approved');
+  const newlyApproved = approvedListings.find((p) => {
+    try { return !sessionStorage.getItem(`locus.acknowledged_approval_${p.id}`); }
+    catch { return false; }
+  });
+
+  let approvalBannerHtml = '';
+  if (newlyApproved) {
+    approvalBannerHtml = `
+      <section class="broker-approval-banner locus-reward-panel tw-mb-5 tw-rounded-2xl tw-border tw-border-emerald-200 tw-bg-gradient-to-r tw-from-emerald-50/90 tw-via-white tw-to-emerald-50/50 tw-p-4 sm:tw-p-5 tw-shadow-sm" aria-label="Listing approval announcement">
+        <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-justify-between tw-gap-4">
+          <div class="tw-flex tw-items-center tw-gap-3.5">
+            <div class="locus-check-ring locus-reward-accent tw-flex tw-h-11 tw-w-11 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-100 tw-text-emerald-700">
+              <svg class="locus-check-icon tw-w-6 tw-h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h3 class="tw-text-base tw-font-bold tw-text-slate-900 tw-m-0">Your property has been approved!</h3>
+              <p class="tw-text-xs sm:tw-text-sm tw-text-slate-600 tw-mt-1 tw-mb-0">
+                <strong>${escape(newlyApproved.name)}</strong> · Your listing is now visible to investors.
+              </p>
+            </div>
+          </div>
+          <div class="tw-flex tw-items-center tw-gap-2.5 tw-shrink-0">
+            <a href="${basePath}/property-details.php?id=${Number(newlyApproved.id)}" class="locus-btn-primary tw-inline-flex tw-items-center tw-py-2 tw-px-3.5 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-transition-colors">
+              View property
+            </a>
+            <button type="button" class="tw-py-2 tw-px-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white hover:tw-bg-slate-50 tw-text-slate-600 tw-text-xs tw-font-medium tw-cursor-pointer tw-transition-colors" data-dismiss-approval="${newlyApproved.id}" aria-label="Dismiss approval announcement">
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </section>`;
+  }
+
   const properties = own.filter((property) => (state.filter === 'all' || property.approvalState === state.filter) && [property.name, property.barangay, property.category, property.subcategory].join(' ').toLowerCase().includes(state.query));
-  byId('brokerListings').innerHTML = properties.length ? properties.map((property) => `
+  const listingsHtml = properties.length ? properties.map((property) => `
     <article class="broker-listing" data-broker-property="${Number(property.id)}">
       <img class="broker-listing-photo" src="${escape(property.imageUrl || `${basePath}/assets/images/Property10.png`)}" alt="" loading="lazy">
       <div>
@@ -294,6 +330,7 @@ function renderListings() {
         </div>
       </div>
     </div>`;
+  byId('brokerListings').innerHTML = approvalBannerHtml + listingsHtml;
 }
 
 function setEditorStep(step) {
@@ -881,7 +918,9 @@ form?.addEventListener('submit', async (event) => {
     return;
   }
   const submit = form.querySelector('[type="submit"]');
+  const originalSubmitText = submit.innerHTML;
   submit.disabled = true;
+  submit.innerHTML = '<span class="locus-spinner tw-mr-1.5"></span>Submitting…';
   const id = form.elements.id.value;
   const payload = new FormData(form);
   nearby?.append(payload);
@@ -907,11 +946,13 @@ form?.addEventListener('submit', async (event) => {
   if (id) payload.set('_method', 'PATCH');
 
   try {
-    if (id) await api.updateProperty(id, payload);
-    else await api.createProperty(payload);
+    let result;
+    if (id) result = await api.updateProperty(id, payload);
+    else result = await api.createProperty(payload);
     propertyWizard?.saved();
     editor?.close();
-    feedback('Listing submitted for CICTO review.');
+    const savedPropertyId = result?.property?.id || result?.id || id;
+    showSubmissionSuccessModal(savedPropertyId);
     await reload();
   } catch (error) {
     const errorNode = form.querySelector('[data-editor-message]');
@@ -921,6 +962,58 @@ form?.addEventListener('submit', async (event) => {
     }
   } finally {
     submit.disabled = false;
+    submit.innerHTML = originalSubmitText;
+  }
+});
+
+function showSubmissionSuccessModal(propertyId) {
+  let modal = document.getElementById('brokerSubmissionSuccessModal');
+  if (!modal) {
+    modal = document.createElement('dialog');
+    modal.id = 'brokerSubmissionSuccessModal';
+    modal.className = 'city-dialog city-dialog-small tw-p-0 tw-rounded-2xl tw-border-0 tw-shadow-2xl';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div class="tw-p-6 sm:tw-p-7 tw-bg-white tw-rounded-2xl tw-text-center">
+      <div class="locus-check-ring tw-w-14 tw-h-14 tw-rounded-full tw-bg-emerald-100 tw-text-emerald-700 tw-mx-auto tw-flex tw-items-center tw-justify-center tw-mb-4 tw-shadow-sm">
+        <svg class="locus-check-icon tw-w-7 tw-h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h3 class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-1.5 tw-m-0">Property submitted!</h3>
+      <p class="tw-text-xs sm:tw-text-sm tw-text-slate-600 tw-mb-5 tw-leading-relaxed">
+        Your listing has been sent for review. You can track its status in My Properties.
+      </p>
+      <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-center tw-gap-2.5">
+        ${propertyId ? `<a href="${basePath}/property-details.php?id=${encodeURIComponent(propertyId)}" class="locus-btn-primary tw-w-full sm:tw-w-auto tw-py-2 tw-px-4 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-transition-colors">View submission</a>` : ''}
+        <button type="button" class="tw-w-full sm:tw-w-auto tw-py-2 tw-px-4 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white hover:tw-bg-slate-50 tw-text-slate-700 tw-text-xs tw-font-semibold tw-transition-colors tw-cursor-pointer" data-close-success-dialog>Back to properties</button>
+      </div>
+    </div>
+  `;
+  modal.querySelector('[data-close-success-dialog]')?.addEventListener('click', () => {
+    modal.close();
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.close();
+  });
+  modal.showModal();
+  modal.querySelector('a, button')?.focus();
+}
+
+byId('brokerListings')?.addEventListener('click', (event) => {
+  const dismissBtn = event.target.closest('[data-dismiss-approval]');
+  if (dismissBtn) {
+    const propId = dismissBtn.dataset.dismissApproval;
+    try { sessionStorage.setItem(`locus.acknowledged_approval_${propId}`, '1'); } catch {}
+    const banner = dismissBtn.closest('.broker-approval-banner');
+    if (banner) {
+      banner.style.transition = 'opacity 200ms ease, max-height 200ms ease';
+      banner.style.opacity = '0';
+      banner.style.maxHeight = '0';
+      banner.style.overflow = 'hidden';
+      setTimeout(() => banner.remove(), 210);
+    }
   }
 });
 

@@ -1,0 +1,736 @@
+/* ==========================================================================
+   LOCUS-SF Interaction Sound System Styles
+   iOS-inspired frosted glass dialog, toggle switches, smooth volume controls,
+   and accessible header/footer triggers.
+   ========================================================================== */
+
+/* 1. Header Trigger Button inside Glass Capsule */
+.city-sound-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--city-navy, #11224D);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.04);
+}
+
+.city-sound-button:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #cbd5e1;
+  color: var(--city-red, #9E1B22);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(17, 34, 77, 0.08);
+}
+
+.city-sound-button:active {
+  transform: translateY(0);
+}
+
+.city-sound-button:focus-visible {
+  outline: 2px solid var(--city-navy, #11224D);
+  outline-offset: 2px;
+}
+
+.city-sound-button.is-enabled {
+  background: rgba(17, 34, 77, 0.06);
+  border-color: rgba(17, 34, 77, 0.2);
+  color: var(--city-navy, #11224D);
+}
+
+.city-sound-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: currentColor;
+}
+
+.city-sound-label {
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+}
+
+/* 2. Sound Settings Modal Dialog (iOS Frosted Glass Style) */
+.locus-sound-dialog {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  margin: auto;
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(90vh, 580px);
+  padding: 0;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 24px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.locus-sound-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  animation: locusSoundFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.locus-sound-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+@keyframes locusSoundFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.locus-sound-dialog-container {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  height: 100%;
+}
+
+/* Header */
+.locus-sound-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.locus-sound-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.locus-sound-icon-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #11224d;
+  flex-shrink: 0;
+  border: 1px solid rgba(191, 219, 254, 0.8);
+}
+
+.locus-sound-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #11224d;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.locus-sound-subtitle {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+.locus-sound-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.locus-sound-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.locus-sound-close-btn:focus-visible {
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
+}
+
+/* Dialog Body */
+.locus-sound-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1 1 auto;
+}
+
+.locus-sound-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.locus-sound-row:hover {
+  border-color: #cbd5e1;
+}
+
+.locus-sound-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+}
+
+.locus-sound-row-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.locus-sound-row-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* Subgroup disabled state */
+.locus-sound-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 0.2s ease;
+}
+
+.locus-sound-subgroup.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Volume Row */
+.locus-sound-row-volume {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.locus-sound-row-volume .locus-sound-row-text {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.locus-sound-volume-readout {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #11224d;
+}
+
+.locus-sound-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.locus-sound-slider-wrap svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.locus-sound-slider-wrap input[type="range"] {
+  flex: 1 1 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 6px;
+  background: #cbd5e1;
+  border-radius: 9999px;
+  outline: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.locus-sound-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #11224d;
+  box-shadow: 0 2px 5px rgba(17, 34, 77, 0.2);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.locus-sound-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.locus-sound-slider-wrap input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #11224d;
+  box-shadow: 0 2px 5px rgba(17, 34, 77, 0.2);
+  cursor: pointer;
+}
+
+/* Preview Sound Button */
+.locus-sound-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #11224d;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.locus-sound-preview-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.locus-sound-preview-btn:active {
+  transform: translateY(0);
+}
+
+.locus-sound-preview-btn:focus-visible {
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
+}
+
+.locus-sound-preview-btn svg {
+  fill: #11224d;
+}
+
+/* 3. iOS Toggle Switch Control */
+.locus-ios-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.locus-ios-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.locus-ios-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #e2e8f0;
+  border-radius: 34px;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.locus-ios-slider::before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+.locus-ios-switch input:checked + .locus-ios-slider {
+  background-color: #11224d;
+}
+
+.locus-ios-switch input:focus-visible + .locus-ios-slider {
+  outline: 2px solid #11224d;
+  outline-offset: 3px;
+}
+
+.locus-ios-switch input:checked + .locus-ios-slider::before {
+  transform: translateX(20px);
+}
+
+/* Footer note */
+.locus-sound-dialog-footer {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+}
+
+.locus-sound-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Footer Link Trigger */
+.city-footer-link {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.city-footer-link:hover {
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Help Center FAQ Sound Interface Integration
+   ========================================================================== */
+
+/* Top bar sound status button inside Help Center */
+.locus-help-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.locus-help-sound-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.locus-help-sound-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.locus-help-sound-btn:active {
+  transform: translateY(0);
+}
+
+.locus-help-sound-btn:focus-visible {
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
+}
+
+.locus-help-sound-btn.is-enabled {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.locus-sound-indicator-text {
+  font-size: 11.5px;
+  letter-spacing: -0.01em;
+}
+
+/* Sound Tab Panel Container */
+.locus-sound-panel-container {
+  max-width: 660px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Sound Cards */
+.locus-sound-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.locus-sound-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.locus-sound-master-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1.5px solid #cbd5e1;
+}
+
+.locus-sound-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.locus-sound-badge-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #11224d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(191, 219, 254, 0.8);
+}
+
+.locus-sound-card-title-group {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.locus-sound-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.locus-sound-card-desc {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.locus-sound-label {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.locus-sound-row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.locus-sound-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.locus-sound-volume-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #11224d;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sound Palette / Sampler Card */
+.locus-sound-palette-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.locus-sound-palette-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.locus-sound-palette-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+.locus-sound-sampler-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.locus-sound-sample-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 11px 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.locus-sound-sample-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+}
+
+.locus-sound-sample-pill:active {
+  transform: translateY(0);
+  background: #e2e8f0;
+}
+
+.locus-sound-sample-pill:focus-visible {
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
+}
+
+.locus-sound-pill-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #11224d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.locus-sound-pill-name::after {
+  content: "▶";
+  font-size: 9px;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.locus-sound-sample-pill:hover .locus-sound-pill-name::after {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.locus-sound-pill-ms {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .city-sound-button .city-sound-label {
+    display: none;
+  }
+
+  .city-sound-button {
+    padding: 6px 8px;
+  }
+
+  .locus-sound-dialog {
+    width: calc(100vw - 24px);
+    border-radius: 20px;
+  }
+
+  .locus-sound-dialog-container {
+    padding: 20px 16px;
+  }
+
+  .locus-sound-row {
+    padding: 12px 14px;
+  }
+
+  .locus-sound-sampler-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .locus-sound-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .locus-sound-slider-wrap {
+    flex-wrap: wrap;
+  }
+
+  .locus-sound-preview-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-sound-dialog[open] {
+    animation: none;
+  }
+  .locus-ios-slider,
+  .locus-ios-slider::before,
+  .city-sound-button,
+  .locus-sound-sample-pill,
+  .locus-help-sound-btn {
+    transition: none;
+  }
+}

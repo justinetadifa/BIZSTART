@@ -6,7 +6,8 @@ body { position: relative; isolation: isolate; }
   z-index: -1;
   pointer-events: none;
   background: url('../images/mapgraphicstyle.png') center top / max(1440px, 100vw) auto repeat-y;
-  opacity: .12;
+  opacity: .04;
+  filter: grayscale(20%);
 }
 body .account-auth { background: transparent; }
 body .account-auth::before { content: none; }

@@ -64,23 +64,23 @@ sfc_render_header($context, 'admin');
   <section class="tw-relative tw-isolate tw-overflow-hidden tw-rounded-2xl tw-bg-ink" aria-labelledby="cityOverviewTitle">
     <img src="<?= $escape($context['assetBase']) ?>/images/admin-city.jpg" class="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_58%]" alt="" fetchpriority="high">
     <div class="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(8,22,49,0.88)_0%,rgba(17,34,77,0.52)_55%,rgba(17,34,77,0.15)_100%)]"></div>
-    <div class="tw-relative tw-flex tw-flex-col tw-gap-5 tw-p-5 sm:tw-p-7 md:tw-flex-row md:tw-items-start md:tw-justify-between lg:tw-p-8">
+    <div class="tw-relative tw-flex tw-flex-col tw-gap-4 tw-p-4 sm:tw-p-5 md:tw-flex-row md:tw-items-center md:tw-justify-between lg:tw-px-6 lg:tw-py-5">
       <div class="tw-min-w-0 tw-max-w-2xl">
-        <span class="tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-[0.15em] tw-text-white/85">City workspace · <?= $escape($department) ?></span>
-        <h1 id="cityOverviewTitle" class="tw-mb-0 tw-mt-3 tw-text-[28px] tw-font-semibold tw-leading-tight tw-tracking-tight tw-text-white sm:tw-text-[36px] lg:tw-text-[38px]"><?= $escape($profile['title']) ?></h1>
-        <p class="tw-mb-0 tw-mt-3 tw-max-w-xl tw-text-sm tw-leading-relaxed tw-text-white/85"><?= $escape($profile['subtitle']) ?></p>
-        <details class="tw-mt-5">
-          <summary class="tw-w-fit tw-cursor-pointer tw-rounded-lg tw-border tw-border-white/40 tw-bg-white/5 tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-white focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-4 focus-visible:tw-outline-white">Your responsibilities</summary>
-          <div class="tw-mt-3 tw-grid tw-gap-3 sm:tw-grid-cols-3">
+        <span class="tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-[0.14em] tw-text-white/80">City workspace · <?= $escape($department) ?></span>
+        <h1 id="cityOverviewTitle" class="tw-mb-0 tw-mt-1.5 tw-text-[22px] tw-font-bold tw-leading-tight tw-tracking-tight tw-text-white sm:tw-text-[26px] lg:tw-text-[28px]"><?= $escape($profile['title']) ?></h1>
+        <p class="tw-mb-0 tw-mt-1 tw-max-w-xl tw-text-xs tw-leading-relaxed tw-text-white/80 sm:tw-text-sm"><?= $escape($profile['subtitle']) ?></p>
+        <details class="tw-mt-3">
+          <summary class="tw-w-fit tw-cursor-pointer tw-rounded-lg tw-border tw-border-white/30 tw-bg-white/10 tw-px-2.5 tw-py-1.5 tw-text-[11px] tw-font-semibold tw-text-white hover:tw-bg-white/20 tw-transition-colors focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-2 focus-visible:tw-outline-white">Your responsibilities</summary>
+          <div class="tw-mt-2.5 tw-grid tw-gap-2.5 sm:tw-grid-cols-3">
             <?php foreach ($profile['responsibilities'] as $title => $description): ?>
-            <div class="tw-rounded-lg tw-bg-[#081631]/80 tw-p-3"><strong class="tw-block tw-text-xs tw-font-semibold tw-text-white"><?= $escape($title) ?></strong><p class="tw-mb-0 tw-mt-2 tw-text-xs tw-leading-relaxed tw-text-white/80"><?= $escape($description) ?></p></div>
+            <div class="tw-rounded-lg tw-bg-[#081631]/85 tw-border tw-border-white/10 tw-p-2.5"><strong class="tw-block tw-text-[11px] tw-font-semibold tw-text-white"><?= $escape($title) ?></strong><p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-white/75"><?= $escape($description) ?></p></div>
             <?php endforeach; ?>
           </div>
         </details>
       </div>
-      <div class="tw-flex tw-w-fit tw-shrink-0 tw-items-center tw-gap-3 tw-rounded-xl tw-border tw-border-white/20 tw-bg-white/15 tw-px-4 tw-py-3 tw-text-white md:tw-ml-3">
-        <svg class="tw-h-5 tw-w-5 tw-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg>
-        <div><span class="tw-block tw-text-[10px] tw-text-white/75">Today</span><time class="tw-mt-1 tw-block tw-text-xs tw-font-semibold" data-overview-date datetime="<?= $today->format('Y-m-d') ?>"><?= $today->format('M j, Y') ?></time></div>
+      <div class="tw-flex tw-w-fit tw-shrink-0 tw-items-center tw-gap-2.5 tw-rounded-xl tw-border tw-border-white/20 tw-bg-white/10 tw-backdrop-blur-sm tw-px-3.5 tw-py-2 tw-text-white md:tw-ml-3">
+        <svg class="tw-h-4 tw-w-4 tw-shrink-0 tw-text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/></svg>
+        <div><span class="tw-block tw-text-[9px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-white/70">Today</span><time class="tw-block tw-text-xs tw-font-bold" data-overview-date datetime="<?= $today->format('Y-m-d') ?>"><?= $today->format('M j, Y') ?></time></div>
       </div>
     </div>
   </section>
@@ -293,22 +293,56 @@ sfc_render_header($context, 'admin');
   <section class="city-staff-panel tw-mt-5 tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5">
     <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-4"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">Active department personnel</h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Authorized accounts for your city team.</p></div><div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><div class="city-staff-filter-bar tw-gap-1" role="group" aria-label="Filter staff by department"><button type="button" class="city-staff-filter-btn is-active tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="all">All</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="cicto">CICTO</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="assessor">Assessors</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="lebdo">LEBDO</button></div><button type="button" data-open-staff-form class="tw-cursor-pointer tw-rounded-lg tw-border-0 tw-bg-[#9e1b22] tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#7f151b]">+ Add personnel</button></div></div>
     <div class="city-staff-table-wrap tw-min-w-0 tw-overflow-x-auto tw-rounded-lg tw-shadow-none">
-      <table class="city-ranking-table tw-min-w-[620px] [&_th]:tw-px-3 [&_th]:tw-py-3 [&_th]:tw-text-[10px] [&_td]:tw-px-3 [&_td]:tw-py-3">
-        <thead><tr><th>Personnel</th><th>Department</th><th>Email</th><th>Status</th><th>Broker review access</th></tr></thead>
+      <table class="city-staff-table tw-w-full">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 28%;">Personnel</th>
+            <th scope="col" style="width: 15%;">Department</th>
+            <th scope="col" style="width: 25%;">Email</th>
+            <th scope="col" style="width: 12%;">Status</th>
+            <th scope="col" style="width: 20%;">Broker review access</th>
+          </tr>
+        </thead>
         <tbody id="cityStaffList">
           <?php foreach ($staffList as $staff):
               $sName = (string) ($staff['name'] ?? 'Staff');
               $sDept = (string) ($staff['department'] ?? 'CICTO');
               $sEmail = (string) ($staff['email'] ?? '');
           ?>
-          <tr><td><div class="city-staff-user-cell tw-gap-3"><span class="city-staff-avatar <?= $escape(strtolower($sDept)) ?> tw-h-9 tw-w-9 tw-rounded-full tw-border-0"><?= $escape($getInitials($sName)) ?></span><div class="city-staff-user-meta"><strong class="tw-text-xs"><?= $escape($sName) ?></strong><small class="tw-text-[10px]"><?= $escape($getRoleDesc($sDept)) ?></small></div></div></td><td><span class="city-pill <?= $escape(strtolower($sDept)) ?> tw-font-sans tw-text-[10px] tw-font-medium"><?= $escape($sDept) ?></span></td><td><span class="city-staff-email tw-font-sans tw-text-xs"><?= $escape($sEmail) ?></span></td><td><span class="city-pill approved tw-border-0 tw-text-[10px]"><span class="status-indicator-dot"></span>Active</span></td><td><?php if (in_array(strtoupper($sDept), ['ASSESSOR', 'CAO', 'LEBDO'], true)): ?><label class="broker-staff-permission"><input type="checkbox" data-broker-review-permission="<?= (int) $staff['id'] ?>" <?= !empty($staff['brokerReviewAuthorized']) ? 'checked' : '' ?> aria-label="Authorize <?= $escape($sName) ?> to review broker applications"><span>Authorized reviewer</span></label><?php else: ?><span class="tw-text-xs tw-text-slate-500">Technical administration</span><?php endif; ?></td></tr>
+          <tr>
+            <td>
+              <div class="city-staff-user-cell tw-gap-3">
+                <span class="city-staff-avatar <?= $escape(strtolower($sDept)) ?> tw-h-9 tw-w-9 tw-rounded-full tw-border-0"><?= $escape($getInitials($sName)) ?></span>
+                <div class="city-staff-user-meta">
+                  <strong class="tw-text-xs"><?= $escape($sName) ?></strong>
+                  <small class="tw-text-[10px]"><?= $escape($getRoleDesc($sDept)) ?></small>
+                </div>
+              </div>
+            </td>
+            <td><span class="city-pill <?= $escape(strtolower($sDept)) ?> tw-font-sans tw-text-[10px] tw-font-medium"><?= $escape($sDept) ?></span></td>
+            <td><span class="city-staff-email tw-font-sans tw-text-xs"><?= $escape($sEmail) ?></span></td>
+            <td><span class="city-pill approved tw-border-0 tw-text-[10px]"><span class="status-indicator-dot"></span>Active</span></td>
+            <td>
+              <?php if (in_array(strtoupper($sDept), ['ASSESSOR', 'CAO', 'LEBDO'], true)): ?>
+                <label class="broker-staff-permission" title="Toggle broker application review authorization for <?= $escape($sName) ?>">
+                  <input type="checkbox" data-broker-review-permission="<?= (int) $staff['id'] ?>" <?= !empty($staff['brokerReviewAuthorized']) ? 'checked' : '' ?> aria-label="Authorize <?= $escape($sName) ?> to review broker applications">
+                  <span>Authorized reviewer</span>
+                </label>
+              <?php else: ?>
+                <span class="city-staff-admin-badge" title="Technical administration accounts manage platform infrastructure and cannot review broker applications">
+                  <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-400 tw-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg>
+                  <span>Technical administration</span>
+                </span>
+              <?php endif; ?>
+            </td>
+          </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
     </div>
     <p class="tw-mb-0 tw-mt-2 tw-text-[10px] tw-text-slate-500 sm:tw-hidden">Swipe the directory to view all columns.</p>
     <details class="city-staff-provision-details tw-mt-4 tw-rounded-lg tw-shadow-none">
-      <summary class="city-provision-summary tw-flex-wrap tw-gap-3 tw-bg-slate-50 tw-p-4"><span class="tw-flex tw-min-w-0 tw-items-center tw-gap-3"><span class="tw-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-red-50 tw-text-[#9e1b22]"><svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M19 8v6M16 11h6"/></svg></span><span class="tw-min-w-0"><strong class="tw-block tw-text-xs tw-font-semibold tw-text-ink">Provision new department account</strong><span class="tw-mt-1 tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">Create access for authorized personnel.</span></span></span><span class="tw-text-[9px] tw-font-medium tw-uppercase tw-tracking-wider tw-text-slate-500">Authorized staff only</span></summary>
+      <summary class="city-provision-summary tw-flex-wrap tw-gap-3 tw-bg-slate-50 tw-p-4"><span class="tw-flex tw-min-w-0 tw-items-center tw-gap-3"><span class="tw-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg tw-bg-red-50 tw-text-[#9e1b22]"><svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M19 8v6M16 11h6"/></svg></span><span class="tw-min-w-0"><strong class="tw-block tw-text-xs tw-font-semibold tw-text-ink">Provision new department account</strong><span class="tw-mt-1 tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">Create access for authorized personnel.</span></span></span><span class="tw-flex tw-items-center tw-gap-2"><span class="tw-text-[9px] tw-font-medium tw-uppercase tw-tracking-wider tw-text-slate-500">Authorized staff only</span><svg class="provision-chevron tw-h-4 tw-w-4 tw-text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span></summary>
       <form id="cityStaffForm" class="city-form-grid tw-min-w-0 tw-gap-4 tw-p-4 sm:tw-p-5">
         <fieldset class="city-span-2 tw-m-0 tw-min-w-0 tw-border-0 tw-p-0"><legend class="tw-mb-2 tw-text-xs tw-font-semibold">Assigned department</legend><div class="city-dept-radio-cards tw-m-0 tw-gap-2">
           <?php foreach (['ASSESSOR' => ['Assessors (CAO)', 'Property records'], 'LEBDO' => ['LEBDO Office', 'Investment support'], 'CICTO' => ['CICTO Admin', 'Technical administration']] as $code => [$label, $description]): ?>
@@ -319,8 +353,26 @@ sfc_render_header($context, 'admin');
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputEmail">Official email</label><input id="staffInputEmail" name="email" type="email" required maxlength="190" autocomplete="email" placeholder="name@sfcelerate.local"><span class="city-input-hint">Use an authorized @sfcelerate.local address.</span></div>
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputPass">Password</label><input id="staffInputPass" name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></div>
         <div class="city-field-group tw-min-w-0"><label class="city-label" for="staffInputConfirm">Confirm password</label><input id="staffInputConfirm" name="confirm_password" type="password" required minlength="8" autocomplete="new-password" placeholder="Re-type password"></div>
-        <label class="broker-staff-permission city-span-2"><input type="checkbox" id="staffBrokerReviewer" name="broker_review_authorized" value="1"><span>Authorize broker application review. Available only to CAO or LEBDO personnel.</span></label>
-        <p class="city-form-message city-span-2" id="cityStaffStatus" role="status"></p><div class="city-span-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3"><button class="city-button tw-w-full sm:tw-w-auto" type="submit">Create department account</button><span class="tw-text-[11px] tw-text-slate-500">Access follows the selected department.</span></div>
+        <div class="city-staff-provision-permission city-span-2 tw-col-span-full" id="staffBrokerReviewCard">
+          <label class="provision-permission-inner" for="staffBrokerReviewer">
+            <input type="checkbox" id="staffBrokerReviewer" name="broker_review_authorized" value="1" class="provision-permission-checkbox">
+            <div class="permission-text-block">
+              <div class="permission-title-row">
+                <strong>Authorize broker application review</strong>
+                <span class="permission-scope-badge" id="staffBrokerBadge">CAO &amp; LEBDO ONLY</span>
+              </div>
+              <p>Allow this department account to inspect PRC accreditation credentials and make broker review determinations.</p>
+            </div>
+          </label>
+        </div>
+        <p class="city-form-message city-span-2" id="cityStaffStatus" role="status"></p>
+        <div class="city-span-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+          <button class="city-button tw-w-full sm:tw-w-auto" type="submit">
+            <svg class="tw-mr-1.5 tw-h-4 tw-w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"/></svg>
+            <span>Create department account</span>
+          </button>
+          <span class="tw-text-[11px] tw-text-slate-500">Access follows the selected department.</span>
+        </div>
       </form>
     </details>
   </section>

@@ -22,6 +22,8 @@
     return `<svg class="tw-h-5 tw-w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes[name] || shapes.properties}</svg>`;
   };
 
+  const cleanTitle = (name) => String(name || '').replace(/\s*[–-]\s*San Fernando.*$/i, '').trim();
+
   function renderOverview(properties, config = window.SFC_APP_CONFIG || {}) {
     const root = document.querySelector('[data-city-workspace="overview"]');
     if (!root) return;
@@ -31,16 +33,38 @@
     const published = items.filter((property) => property.approvalState === 'approved');
     const missingEvidence = items.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived');
     const stats = [
-      ['All properties', items.length, 'Across the city catalog', 'properties', 'tw-bg-blue-50 tw-text-blue-700'],
-      ['Awaiting review', pending.length, pending.length ? 'Ready for a city decision' : 'No pending listing decisions', 'review', 'tw-bg-amber-50 tw-text-amber-700'],
-      ['Published', published.length, 'Visible to investors', 'published', 'tw-bg-emerald-50 tw-text-emerald-700'],
-      ['Needs site evidence', missingEvidence.length, missingEvidence.length ? 'Awaiting site verification' : 'Site verification up to date', 'evidence', 'tw-bg-red-50 tw-text-[#9e1b22]'],
+      ['All properties', items.length, 'Across the city catalog', 'properties', 'tw-bg-blue-50 tw-text-blue-700', false],
+      ['Awaiting review', pending.length, pending.length ? 'Ready for a city decision' : 'No pending listing decisions', 'review', pending.length ? 'tw-bg-amber-100 tw-text-amber-800' : 'tw-bg-amber-50 tw-text-amber-700', pending.length > 0],
+      ['Published', published.length, 'Visible to investors', 'published', 'tw-bg-emerald-50 tw-text-emerald-700', false],
+      ['Needs site evidence', missingEvidence.length, missingEvidence.length ? 'Awaiting site verification' : 'Site verification up to date', 'evidence', 'tw-bg-red-50 tw-text-[#9e1b22]', false],
     ];
-    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, description, symbol, color]) => `<article class="tw-flex tw-min-w-0 tw-items-start tw-gap-3 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5"><span class="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl ${color}">${icon(symbol)}</span><div class="tw-min-w-0"><span class="tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${label}</span><strong class="tw-mt-1 tw-block tw-text-[28px] tw-font-semibold tw-leading-tight tw-tracking-tight tw-text-ink" data-overview-stat="${symbol}">${number(value)}</strong><span class="tw-mt-2 tw-block tw-text-[10px] tw-leading-relaxed tw-text-slate-500">${description}</span></div></article>`).join('');
+    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, description, symbol, color, isHighlight]) => `
+      <article class="tw-flex tw-min-w-0 tw-items-start tw-gap-3 tw-rounded-xl tw-border ${isHighlight ? 'tw-border-amber-300 tw-bg-amber-50/30 tw-ring-1 tw-ring-amber-200' : 'tw-border-slate-200 tw-bg-white'} tw-p-4 sm:tw-p-5 tw-transition-all hover:tw-shadow-sm">
+        <span class="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl ${color}">${icon(symbol)}</span>
+        <div class="tw-min-w-0">
+          <span class="tw-block tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${label}</span>
+          <strong class="tw-mt-1 tw-block tw-text-[28px] tw-font-semibold tw-leading-tight tw-tracking-tight tw-text-ink" data-overview-stat="${symbol}">${number(value)}</strong>
+          <span class="tw-mt-2 tw-block tw-text-[10px] tw-leading-relaxed ${isHighlight ? 'tw-text-amber-700 tw-font-medium' : 'tw-text-slate-500'}">${description}</span>
+        </div>
+      </article>`).join('');
 
     const queue = governance ? pending : items.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
-      ? queue.slice(0, 3).map((property) => `<article class="tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-border-t tw-border-slate-100 tw-py-4 first:tw-border-0 sm:tw-grid-cols-[64px_minmax(0,1fr)_auto]"><img class="tw-h-14 tw-w-14 tw-rounded-lg tw-object-cover sm:tw-h-16 sm:tw-w-16" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy"><div class="tw-min-w-0"><h3 class="tw-m-0 tw-break-words tw-text-xs tw-font-semibold tw-leading-relaxed tw-text-ink"><a class="tw-text-ink tw-no-underline" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(property.name)}</a></h3><p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${escape(property.barangay || 'San Fernando')} Â· ${number(Number(property.area) * 10000)} mÂ²</p><span class="tw-mt-2 tw-inline-flex tw-rounded-md tw-bg-amber-50 tw-px-2 tw-py-1 tw-text-[9px] tw-font-medium tw-text-amber-800">${governance ? 'Awaiting review' : 'Source scores pending'}</span></div><a class="tw-col-start-2 tw-flex tw-min-h-[36px] tw-w-fit tw-items-center tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-2 tw-text-[11px] tw-font-semibold tw-text-ink hover:tw-bg-slate-50 sm:tw-col-start-auto" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} â†’</a></article>`).join('')
+      ? queue.slice(0, 3).map((property) => `
+        <article class="tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-border-t tw-border-slate-100 tw-py-4 first:tw-border-0 sm:tw-grid-cols-[64px_minmax(0,1fr)_auto]">
+          <img class="tw-h-14 tw-w-14 tw-rounded-lg tw-object-cover sm:tw-h-16 sm:tw-w-16" src="${escape(imageUrl(property.imageUrl, config))}" alt="" loading="lazy">
+          <div class="tw-min-w-0">
+            <h3 class="tw-m-0 tw-break-words tw-text-xs tw-font-semibold tw-leading-relaxed tw-text-ink">
+              <a class="tw-text-ink tw-no-underline hover:tw-text-[#9e1b22] tw-transition-colors" href="${escape(path(`property-details.php?id=${encodeURIComponent(property.id)}`, config))}">${escape(cleanTitle(property.name))}</a>
+            </h3>
+            <p class="tw-mb-0 tw-mt-1 tw-text-[11px] tw-leading-relaxed tw-text-slate-500">${escape(property.barangay || 'San Fernando')} · ${number(Number(property.area) * 10000)} m²</p>
+            <span class="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-amber-50 tw-px-2 tw-py-1 tw-text-[9.5px] tw-font-medium tw-text-amber-800">
+              <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-500"></span>
+              ${governance ? 'Awaiting review' : 'Source scores pending'}
+            </span>
+          </div>
+          <a class="tw-col-start-2 tw-flex tw-min-h-[36px] tw-w-fit tw-items-center tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3.5 tw-py-2 tw-text-[11px] tw-font-semibold tw-text-ink hover:tw-bg-slate-50 hover:tw-border-slate-300 sm:tw-col-start-auto tw-transition-colors" href="${escape(path(`admin-properties.php?${governance ? 'review' : 'edit'}=${encodeURIComponent(property.id)}`, config))}">${governance ? 'Review' : 'Update'} &rarr;</a>
+        </article>`).join('')
       : '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-4 tw-text-center"><span class="tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700">' + icon('published') + '</span><strong class="tw-text-sm tw-font-semibold tw-text-ink">All caught up.</strong><p class="tw-m-0 tw-text-xs tw-leading-relaxed tw-text-slate-500">' + (governance ? 'New submissions will appear here for review.' : 'No properties are awaiting assessment.') + '</p></div>';
 
     const ranked = published.filter((property) => validScore(property.mceScore) && validScore(property.iaiScore))
@@ -53,14 +77,56 @@
     const width = ranked.length * 100;
     const grid = [0, 45, 90, 135, 180].map((y) => `<line x1="0" x2="${width}" y1="${y}" y2="${y}" stroke="#e8edf2" stroke-width="1"/>`).join('');
     const bars = ranked.map((property, index) => ['mceScore', 'iaiScore'].map((key, position) => {
-      const height = Number(property[key]) * 1.8;
-      return `<rect x="${index * 100 + 25 + position * 26}" y="${180 - height}" width="22" height="${height}" rx="3" fill="${position ? '#e9b5bc' : '#a32635'}" data-overview-score="${key}" data-property-id="${Number(property.id)}" data-score="${score(property[key])}"><title>${escape(property.name)}: ${position ? 'IAI' : 'MCE'} ${score(property[key])}</title></rect>`;
+      const height = Math.max(4, Number(property[key]) * 1.8);
+      const x = index * 100 + 24 + position * 26;
+      const y = 180 - height;
+      const val = score(property[key]);
+      return `<g class="chart-bar-group" data-property-id="${Number(property.id)}">
+        <rect x="${x}" y="${y}" width="22" height="${height}" rx="3" fill="${position ? '#e9b5bc' : '#a32635'}" data-overview-score="${key}" data-score="${val}">
+          <title>${escape(property.name)}: ${position ? 'IAI' : 'MCE'} ${val}</title>
+        </rect>
+        <text x="${x + 11}" y="${Math.max(10, y - 4)}" text-anchor="middle" font-size="9" font-weight="600" fill="${position ? '#a32635' : '#475569'}">${val}</text>
+      </g>`;
     }).join('')).join('');
-    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI scores for the top ${ranked.length} published properties"><div class="tw-mb-4 tw-flex tw-flex-wrap tw-justify-end tw-gap-4 tw-text-[10px] tw-text-slate-500"><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#a32635]"></span>MCE</span><span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#e9b5bc]"></span>IAI</span></div><div class="tw-grid tw-grid-cols-[24px_minmax(0,1fr)] tw-gap-2"><div class="tw-flex tw-h-[180px] tw-flex-col tw-justify-between tw-text-[10px] tw-leading-none tw-text-slate-400" aria-hidden="true"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div><div class="tw-min-w-0"><svg class="tw-block tw-h-[180px] tw-w-full tw-overflow-visible" viewBox="0 0 ${width} 180" preserveAspectRatio="none" role="img" aria-label="Score chart; exact values are listed below">${grid}${bars}</svg><div class="tw-mt-3 tw-grid tw-grid-flow-col tw-auto-cols-fr tw-gap-1">${ranked.map((property) => `<span class="tw-min-w-0 tw-truncate tw-text-center tw-text-[9px] tw-text-slate-500" title="${escape(property.name)}">${escape(property.name)}</span>`).join('')}</div></div></div><figcaption class="tw-mt-4 tw-text-[10px] tw-leading-relaxed tw-text-slate-500">Scores out of 100 Â· ordered by IAI</figcaption></figure><details class="tw-mt-3 tw-text-[11px] tw-text-slate-500"><summary class="tw-cursor-pointer">View exact scores</summary><dl class="tw-mb-0 tw-mt-3 tw-space-y-2">${ranked.map((property) => `<div class="tw-flex tw-flex-wrap tw-justify-between tw-gap-2"><dt class="tw-min-w-0 tw-break-words tw-text-ink">${escape(property.name)}</dt><dd class="tw-m-0 tw-whitespace-nowrap">MCE ${score(property.mceScore)} Â· IAI ${score(property.iaiScore)}</dd></div>`).join('')}</dl></details>`;
+
+    chart.innerHTML = `<figure class="tw-m-0" aria-label="MCE and IAI scores for the top ${ranked.length} published properties">
+      <div class="tw-mb-4 tw-flex tw-flex-wrap tw-justify-end tw-gap-4 tw-text-[10px] tw-text-slate-500">
+        <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#a32635]"></span>MCE (Deep Red)</span>
+        <span class="tw-flex tw-items-center tw-gap-1.5"><span class="tw-h-2.5 tw-w-2.5 tw-rounded-sm tw-bg-[#e9b5bc]"></span>IAI (Blush)</span>
+      </div>
+      <div class="tw-grid tw-grid-cols-[24px_minmax(0,1fr)] tw-gap-2">
+        <div class="tw-flex tw-h-[180px] tw-flex-col tw-justify-between tw-text-[10px] tw-leading-none tw-text-slate-400" aria-hidden="true">
+          <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+        </div>
+        <div class="tw-min-w-0">
+          <svg class="tw-block tw-h-[180px] tw-w-full tw-overflow-visible" viewBox="0 0 ${width} 180" preserveAspectRatio="none" role="img" aria-label="Score chart; exact values are listed below">
+            ${grid}${bars}
+          </svg>
+          <div class="tw-mt-3 tw-grid tw-grid-flow-col tw-auto-cols-fr tw-gap-1">
+            ${ranked.map((property, idx) => `
+              <div class="tw-min-w-0 tw-text-center tw-px-1" title="${escape(property.name)}">
+                <span class="tw-block tw-truncate tw-text-[10px] tw-font-semibold tw-text-slate-700">${escape(cleanTitle(property.name))}</span>
+                <span class="tw-block tw-text-[9px] tw-text-slate-400">#${idx + 1}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+      <figcaption class="tw-mt-4 tw-text-[10px] tw-leading-relaxed tw-text-slate-500">Scores out of 100 · ordered by IAI score</figcaption>
+    </figure>
+    <details class="tw-mt-3 tw-text-[11px] tw-text-slate-500">
+      <summary class="tw-cursor-pointer tw-font-medium hover:tw-text-[#9e1b22] tw-transition-colors">View exact scores</summary>
+      <dl class="tw-mb-0 tw-mt-3 tw-space-y-2.5">
+        ${ranked.map((property) => `
+          <div class="tw-flex tw-flex-wrap tw-justify-between tw-items-center tw-gap-2 tw-border-b tw-border-slate-100 tw-pb-2">
+            <dt class="tw-min-w-0 tw-break-words tw-text-ink tw-font-medium">${escape(property.name)}</dt>
+            <dd class="tw-m-0 tw-whitespace-nowrap tw-text-xs"><strong class="tw-text-[#a32635]">MCE ${score(property.mceScore)}</strong> · <strong class="tw-text-[#9e1b22]">IAI ${score(property.iaiScore)}</strong></dd>
+          </div>`).join('')}
+      </dl>
+    </details>`;
     chart.querySelectorAll('dl > div').forEach((row, index) => {
       const mode = ranked[index].assessmentMode;
       const modeLabel = document.createElement('span');
-      modeLabel.className = 'tw-mt-1 tw-block tw-text-[9px] tw-text-slate-500';
+      modeLabel.className = 'tw-mt-0.5 tw-block tw-text-[9px] tw-text-slate-400';
       modeLabel.textContent = mode === 'automatic' ? 'Automatic source-based assessment' : mode === 'legacy_manual' ? 'Legacy manual assessment' : 'Assessment mode not recorded';
       row.querySelector('dt').appendChild(modeLabel);
     });

@@ -100,6 +100,8 @@
       }
     } else if (tab === 'using') {
       showTab('using');
+    } else if (tab === 'sounds' || tab === 'sound') {
+      showTab('sounds');
     } else if (tab === 'team') {
       showTab('team');
     } else {
@@ -227,6 +229,13 @@
         e.preventDefault();
         showTab('scores');
         showScoresView('common');
+      });
+    });
+
+    dialog.querySelectorAll('[data-open-sound-tab]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showTab('sounds');
       });
     });
 

@@ -32,12 +32,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }));
   const cards = [...document.querySelectorAll('.city-dept-radio-card')];
   const reviewer = document.getElementById('staffBrokerReviewer');
+  const reviewCard = document.getElementById('staffBrokerReviewCard');
+  const reviewBadge = document.getElementById('staffBrokerBadge');
   const syncDepartment = () => {
     const department = form?.querySelector('[name="department"]:checked')?.value;
     cards.forEach(card => card.classList.toggle('is-selected', card.querySelector('input')?.checked));
+    const eligible = mayReview(department);
     if (reviewer) {
-      reviewer.disabled = !mayReview(department);
+      reviewer.disabled = !eligible;
       if (reviewer.disabled) reviewer.checked = false;
+    }
+    if (reviewCard) {
+      reviewCard.classList.toggle('is-disabled', !eligible);
+    }
+    if (reviewBadge) {
+      reviewBadge.textContent = eligible ? 'CAO & LEBDO ONLY' : 'NOT AVAILABLE FOR CICTO';
     }
   };
   form?.addEventListener('change', event => { if (event.target.name === 'department') syncDepartment(); });
@@ -60,7 +69,11 @@ document.addEventListener('DOMContentLoaded', () => {
     event.preventDefault();
     if (!form.reportValidity()) return;
     const button = form.querySelector('button[type="submit"]');
-    button.disabled = true;
+    const originalHtml = button?.innerHTML;
+    if (button) {
+      button.disabled = true;
+      button.innerHTML = '<span class="locus-spinner tw-mr-1.5"></span><span>Creating account…</span>';
+    }
     displayStatus('Creating department account…');
     try {
       const payload = await request('POST', new FormData(form));
@@ -74,11 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const row = document.createElement('tr');
         const initials = String(staff.name || '').trim().split(/\s+/).slice(0, 2).map(part => Array.from(part)[0] || '').join('').toUpperCase() || 'ST';
         const role = department === 'ASSESSOR' || department === 'CAO' ? 'City Assessor’s Office' : department === 'LEBDO' ? 'Local Economic Development' : 'Technical administration';
-        row.innerHTML = `<td><div class="city-staff-user-cell"><span class="city-staff-avatar ${escape(department.toLowerCase())}">${escape(initials)}</span><div class="city-staff-user-meta"><strong>${escape(staff.name)}</strong><small>${escape(role)}</small></div></div></td><td><span class="city-pill ${escape(department.toLowerCase())}">${escape(department)}</span></td><td><span class="city-staff-email">${escape(staff.email)}</span></td><td><span class="city-pill approved">Active</span></td><td>${mayReview(department) ? `<label class="broker-staff-permission"><input type="checkbox" data-broker-review-permission="${Number(staff.id)}" ${staff.brokerReviewAuthorized ? 'checked' : ''} aria-label="Authorize ${escape(staff.name)} to review broker applications"><span>Authorized reviewer</span></label>` : '<span>Technical administration</span>'}</td>`;
+        row.innerHTML = `<td><div class="city-staff-user-cell tw-gap-3"><span class="city-staff-avatar ${escape(department.toLowerCase())} tw-h-9 tw-w-9 tw-rounded-full tw-border-0">${escape(initials)}</span><div class="city-staff-user-meta"><strong class="tw-text-xs">${escape(staff.name)}</strong><small class="tw-text-[10px]">${escape(role)}</small></div></div></td><td><span class="city-pill ${escape(department.toLowerCase())} tw-font-sans tw-text-[10px] tw-font-medium">${escape(department)}</span></td><td><span class="city-staff-email tw-font-sans tw-text-xs">${escape(staff.email)}</span></td><td><span class="city-pill approved tw-border-0 tw-text-[10px]"><span class="status-indicator-dot"></span>Active</span></td><td>${mayReview(department) ? `<label class="broker-staff-permission" title="Toggle broker application review authorization for ${escape(staff.name)}"><input type="checkbox" data-broker-review-permission="${Number(staff.id)}" ${staff.brokerReviewAuthorized ? 'checked' : ''} aria-label="Authorize ${escape(staff.name)} to review broker applications"><span>Authorized reviewer</span></label>` : `<span class="city-staff-admin-badge" title="Technical administration accounts manage platform infrastructure and cannot review broker applications"><svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-400 tw-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/></svg><span>Technical administration</span></span>`}</td>`;
         list.prepend(row);
         document.querySelector('.city-staff-filter-btn[data-filter].is-active')?.click();
       }
     } catch (error) { displayStatus(error.message, true); }
-    finally { button.disabled = false; }
+    finally {
+      if (button) {
+        button.disabled = false;
+        if (originalHtml) button.innerHTML = originalHtml;
+      }
+    }
   });
 });
