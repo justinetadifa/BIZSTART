@@ -412,7 +412,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
 /**
  * Client-side evaluation fallback.
  */
-export function evaluateBusinessOpportunities(property, radiusMeters = 500) {
+export function evaluateBusinessOpportunities(property, radiusMeters = 500, sectorFilter = null) {
   const lat = Number(property.lat || 0);
   const lng = Number(property.lng || 0);
   const hasCoords = isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
@@ -599,7 +599,12 @@ export function evaluateBusinessOpportunities(property, radiusMeters = 500) {
     return a.id.localeCompare(b.id);
   });
 
-  const supportedMatches = candidates.slice(0, 3).map((item, idx) => ({ ...item, rank: idx + 1 }));
+  let eligible = candidates;
+  if (sectorFilter && sectorFilter !== 'all') {
+    eligible = candidates.filter(item => item.sector === sectorFilter);
+  }
+
+  const supportedMatches = eligible.slice(0, 3).map((item, idx) => ({ ...item, rank: idx + 1 }));
 
   return {
     status: supportedMatches.length ? 'supported' : 'no_candidates',
@@ -634,7 +639,7 @@ function esc(str) {
     .replace(/'/g, '&#039;');
 }
 
-const DEMO_MATCHES = [
+export const DEMO_MATCHES = [
   {
     id: 'bakery',
     label: 'BAKERY & PASTRY SHOP',
@@ -649,9 +654,9 @@ const DEMO_MATCHES = [
     explanation: 'Morning and afternoon commute patterns near nearby activity centers create dependable routine demand for fresh baked goods.',
     mainUnresolvedNotice: 'Confirm specialized baking ventilation and power load capacity.',
     supportingPlaces: [
-      { name: 'Hospital nearby', distanceFormatted: '180 m', category: 'Healthcare' },
-      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
-      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+      { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+      { name: 'School nearby', distanceFormatted: '240 m', distanceMeters: 240, category: 'Education' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', distanceMeters: 310, category: 'Civic' },
     ],
     areaGuideline: 'Typically 25–60 sqm for baking ovens and customer counter',
     areaStatus: 'Suitable for commercial frontage or leased stall',
@@ -680,9 +685,9 @@ const DEMO_MATCHES = [
     explanation: 'Presence of nearby activity centers provides an established base of students, professionals and visitors seeking social and meeting venues.',
     mainUnresolvedNotice: 'Verify stable high-speed broadband and commercial water pressure.',
     supportingPlaces: [
-      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
-      { name: 'Hospital nearby', distanceFormatted: '180 m', category: 'Healthcare' },
-      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+      { name: 'School nearby', distanceFormatted: '240 m', distanceMeters: 240, category: 'Education' },
+      { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', distanceMeters: 310, category: 'Civic' },
     ],
     areaGuideline: 'Typically 40–120 sqm; natural lighting and street frontage preferred',
     areaStatus: 'Suitable for street frontage',
@@ -711,9 +716,9 @@ const DEMO_MATCHES = [
     explanation: 'High foot-traffic anchors nearby provide regular customer flow for daily essentials.',
     mainUnresolvedNotice: 'Confirm commercial electric line capacity and delivery unloading space.',
     supportingPlaces: [
-      { name: 'Hospital nearby', distanceFormatted: '180 m', category: 'Healthcare' },
-      { name: 'School nearby', distanceFormatted: '240 m', category: 'Education' },
-      { name: 'City hall nearby', distanceFormatted: '310 m', category: 'Civic' },
+      { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+      { name: 'School nearby', distanceFormatted: '240 m', distanceMeters: 240, category: 'Education' },
+      { name: 'City hall nearby', distanceFormatted: '310 m', distanceMeters: 310, category: 'Civic' },
     ],
     areaGuideline: 'Typically 30–80 sqm; road frontage desirable',
     areaStatus: 'Suitable for frontage or sub-lease',
@@ -729,6 +734,269 @@ const DEMO_MATCHES = [
     version: RULE_VERSION,
   },
 ];
+
+export const SECTOR_DEMO_MATCHES = {
+  food_retail: [
+    DEMO_MATCHES[0],
+    DEMO_MATCHES[1],
+    {
+      id: 'eatery',
+      label: 'CASUAL DINING & EATERY (CARINDERIA)',
+      sector: 'food_retail',
+      sectorLabel: 'Food & Retail',
+      rank: 3,
+      statusLabel: 'Preliminary',
+      description: 'Affordable prepared-meal dining establishment catering to students, commuters, shift workers and office personnel.',
+      pillText: 'Potential daytime customers',
+      alertText: 'Confirm grease trap requirement and potable water reliability.',
+      icon: 'eatery',
+      explanation: 'Dense concentration of daily workers and students around nearby anchors generates high lunchtime customer flow.',
+      mainUnresolvedNotice: 'Confirm grease trap requirement and potable water reliability.',
+      supportingPlaces: [
+        { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'Education' },
+        { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic' },
+        { name: 'Commercial District', distanceFormatted: '250 m', distanceMeters: 250, category: 'Commercial' },
+      ],
+      areaGuideline: 'Typically 30–90 sqm with dining seating and sanitary food preparation space',
+      areaStatus: 'Suitable for ground-floor dining stall',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / General Commercial',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: '2 operating dining establishments recorded in radius',
+      competitorSample: ['Plaza Eatery', 'Daily Meals'],
+      complementaryCount: 3,
+      complementarySample: ['Convenience Store', 'Printing Services', 'Government Offices'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    }
+  ],
+  everyday_services: [
+    DEMO_MATCHES[2],
+    {
+      id: 'laundry',
+      label: 'LAUNDRY & GARMENT CARE',
+      sector: 'everyday_services',
+      sectorLabel: 'Everyday Services',
+      rank: 2,
+      statusLabel: 'Preliminary',
+      description: 'Self-service laundromat or full-service drop-off facility offering washing, drying, folding and garment care.',
+      pillText: 'Residential & student population proximity',
+      alertText: 'Requires verified sewer/drainage connection and commercial water flow rate.',
+      icon: 'laundry',
+      explanation: 'Surrounding student dormitories and residential units near nearby anchors generate weekly laundry turnover.',
+      mainUnresolvedNotice: 'Requires verified sewer/drainage connection and commercial water flow rate.',
+      supportingPlaces: [
+        { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'Education' },
+        { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+        { name: 'Residential Community', distanceFormatted: '210 m', distanceMeters: 210, category: 'Residential' },
+      ],
+      areaGuideline: 'Typically 35–80 sqm; wastewater discharge capacity required',
+      areaStatus: 'Suitable for utility-connected ground space',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Mixed Use',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: '1 operating laundry outlet recorded in radius',
+      competitorSample: ['QuickWash San Fernando'],
+      complementaryCount: 3,
+      complementarySample: ['Water Refilling Station', 'Convenience Retail Store', 'Student Dorms'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    },
+    {
+      id: 'water_refilling',
+      label: 'WATER REFILLING STATION',
+      sector: 'everyday_services',
+      sectorLabel: 'Everyday Services',
+      rank: 3,
+      statusLabel: 'Preliminary',
+      description: 'Purified, mineral, and alkaline drinking water processing, bottle sanitizing and neighborhood distribution center.',
+      pillText: 'Sustained residential & food establishment demand',
+      alertText: 'Sanitary permit and water source testing required before setup.',
+      icon: 'water_refilling',
+      explanation: 'Household density and dining establishments near nearby anchors require recurring weekly container drinking water delivery.',
+      mainUnresolvedNotice: 'Sanitary permit and water source testing required before setup.',
+      supportingPlaces: [
+        { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+        { name: 'School nearby', distanceFormatted: '240 m', distanceMeters: 240, category: 'Education' },
+        { name: 'Residential Community', distanceFormatted: '210 m', distanceMeters: 210, category: 'Residential' },
+      ],
+      areaGuideline: 'Typically 20–50 sqm for purification machinery and bottle storage',
+      areaStatus: 'Suitable for street-level water intake',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Mixed Use',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: '1 water station recorded in radius',
+      competitorSample: ['AquaPure Station'],
+      complementaryCount: 3,
+      complementarySample: ['Eatery', 'Laundry', 'Neighborhood Groceries'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    }
+  ],
+  tourism_recreation: [
+    {
+      id: 'accommodation',
+      label: 'TRAVELERS ACCOMMODATION & INN',
+      sector: 'tourism_recreation',
+      sectorLabel: 'Tourism & Recreation',
+      rank: 1,
+      statusLabel: 'Preliminary',
+      description: 'Boutique hotel, travelers inn or bed-and-breakfast rooms for leisure tourists and visiting business travelers.',
+      pillText: 'Transit route & civic center proximity',
+      alertText: 'Subject to DOT accreditation standards and dedicated guest parking clearance.',
+      icon: 'hotel',
+      explanation: 'Position along central corridors near civic and educational anchors accommodates visitors seeking lodging and transit access.',
+      mainUnresolvedNotice: 'Subject to DOT accreditation standards and dedicated guest parking clearance.',
+      supportingPlaces: [
+        { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic' },
+        { name: 'Transport Hub', distanceFormatted: '280 m', distanceMeters: 280, category: 'Transportation' },
+        { name: 'Commercial District', distanceFormatted: '250 m', distanceMeters: 250, category: 'Commercial' },
+      ],
+      areaGuideline: 'Typically 200–800 sqm lot or multi-story commercial building with parking',
+      areaStatus: 'Suitable for multi-level hospitality build',
+      zoningStatus: 'Compatible with Tourism / Commercial classification',
+      zoningClassification: 'Commercial / Tourism Mixed Use',
+      roadAccessRequirement: 'paved',
+      missingEvidence: [],
+      competitorsNotice: '1 boutique inn operating in radius',
+      competitorSample: ['City Center Inn'],
+      complementaryCount: 3,
+      complementarySample: ['Café & Beverage Specialty', 'Tour Booking Agency', 'Local Dining'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    },
+    {
+      id: 'tour_services',
+      label: 'TOUR & ACTIVITY BOOKING AGENCY',
+      sector: 'tourism_recreation',
+      sectorLabel: 'Tourism & Recreation',
+      rank: 2,
+      statusLabel: 'Preliminary',
+      description: 'Tour desk, coastal excursion booking office and regional travel assistance service.',
+      pillText: 'Visitor corridor & hospitality clustering',
+      alertText: 'Verify tourism operator accreditation requirements with City Tourism Office.',
+      icon: 'tour',
+      explanation: 'Clustering of visitor accommodations and dining near nearby anchors provides walk-in inquiries for regional and local tours.',
+      mainUnresolvedNotice: 'Verify tourism operator accreditation requirements with City Tourism Office.',
+      supportingPlaces: [
+        { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic' },
+        { name: 'Hotel / Inn nearby', distanceFormatted: '220 m', distanceMeters: 220, category: 'Hospitality' },
+        { name: 'Main Transport Route', distanceFormatted: '280 m', distanceMeters: 280, category: 'Transportation' },
+      ],
+      areaGuideline: 'Typically 15–40 sqm office counter and briefing space',
+      areaStatus: 'Suitable for compact booking counter',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Tourism Mixed Use',
+      roadAccessRequirement: 'paved',
+      missingEvidence: [],
+      competitorsNotice: 'No competing tour desks recorded in immediate radius',
+      competitorSample: [],
+      complementaryCount: 3,
+      complementarySample: ['Hotels & Inns', 'Specialty Cafes', 'Transit Terminals'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    },
+    DEMO_MATCHES[1],
+  ],
+  all: [
+    {
+      id: 'printing',
+      label: 'PRINTING & DOCUMENT SERVICES',
+      sector: 'professional_services',
+      sectorLabel: 'Professional Services',
+      rank: 1,
+      statusLabel: 'Preliminary',
+      description: 'Digital printing, photocopy, blueprint drafting, laminating, document binding and official ID photo services.',
+      pillText: 'School and government-office context',
+      alertText: 'Verify commercial electrical surge protection and internet connection.',
+      icon: 'printing',
+      explanation: 'Direct proximity to schools and civic offices creates daily recurring demand for academic requirements and official filings.',
+      mainUnresolvedNotice: 'Verify commercial electrical surge protection and internet connection.',
+      supportingPlaces: [
+        { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'Education' },
+        { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic' },
+        { name: 'Hospital nearby', distanceFormatted: '180 m', distanceMeters: 180, category: 'Healthcare' },
+      ],
+      areaGuideline: 'Typically 20–50 sqm for print machines, workstations and client counter',
+      areaStatus: 'Suitable for retail shopfront',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Institutional',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: '1 printing shop recorded in radius',
+      competitorSample: ['City Print Pro'],
+      complementaryCount: 3,
+      complementarySample: ['Saint Louis College', 'City Hall', 'School Supplies'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    },
+    {
+      id: 'school_supplies',
+      label: 'SCHOOL & OFFICE SUPPLIES RETAIL',
+      sector: 'professional_services',
+      sectorLabel: 'Professional Services',
+      rank: 2,
+      statusLabel: 'Preliminary',
+      description: 'Retail store providing stationery, writing materials, paper products, art supplies and basic office consumables.',
+      pillText: 'Direct academic & administrative foot traffic',
+      alertText: 'Confirm indoor dry storage and secure display layout.',
+      icon: 'school_supplies',
+      explanation: 'Walking distance to schools and government offices provides sustained student and staff demand for stationery and supplies.',
+      mainUnresolvedNotice: 'Confirm indoor dry storage and secure display layout.',
+      supportingPlaces: [
+        { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'Education' },
+        { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic' },
+        { name: 'Elementary School nearby', distanceFormatted: '260 m', distanceMeters: 260, category: 'Education' },
+      ],
+      areaGuideline: 'Typically 25–70 sqm display area',
+      areaStatus: 'Suitable for street-level retail display',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Institutional',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: 'No dedicated stationery store recorded in immediate radius',
+      competitorSample: [],
+      complementaryCount: 3,
+      complementarySample: ['Printing Services', 'Saint Louis College', 'City Hall'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    },
+    {
+      id: 'repair_shop',
+      label: 'ELECTRONICS & APPLIANCE REPAIR',
+      sector: 'everyday_services',
+      sectorLabel: 'Everyday Services',
+      rank: 3,
+      statusLabel: 'Preliminary',
+      description: 'Smartphone, computer, motorcycle and household appliance diagnostic and repair workshop.',
+      pillText: 'Community electronics & maintenance need',
+      alertText: 'Ensure grounded electrical installation and safe parts storage.',
+      icon: 'repair_shop',
+      explanation: 'Neighborhood accessibility near commercial and residential anchors provides convenient drop-off for electronics and household maintenance.',
+      mainUnresolvedNotice: 'Ensure grounded electrical installation and safe parts storage.',
+      supportingPlaces: [
+        { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'Education' },
+        { name: 'Commercial District', distanceFormatted: '250 m', distanceMeters: 250, category: 'Commercial' },
+        { name: 'Residential Community', distanceFormatted: '210 m', distanceMeters: 210, category: 'Residential' },
+      ],
+      areaGuideline: 'Typically 15–40 sqm for technician workbench and intake counter',
+      areaStatus: 'Suitable for workshop stall',
+      zoningStatus: 'Compatible with Commercial classification',
+      zoningClassification: 'Commercial / Light Industrial',
+      roadAccessRequirement: 'all_weather',
+      missingEvidence: [],
+      competitorsNotice: '1 repair shop recorded in radius',
+      competitorSample: ['TechFix San Fernando'],
+      complementaryCount: 3,
+      complementarySample: ['Hardware Stores', 'Convenience Retail', 'Electronics Resellers'],
+      ruleSource: RULE_SOURCE,
+      version: RULE_VERSION,
+    }
+  ]
+};
 
 function getOpportunityIconSvg(id) {
   const norm = String(id || '').toLowerCase();
@@ -847,6 +1115,217 @@ function formatAlertNotice(notice) {
 }
 
 /**
+ * Format a candidate item from evaluation into an opportunity card data structure.
+ */
+export function formatOpportunityDisplayItem(m, index = 0) {
+  let pillText = 'Multiple nearby activity centers';
+  if (Array.isArray(m.supportingPlaces) && m.supportingPlaces.length) {
+    if (m.supportingPlaces.length === 1) {
+      pillText = `Near ${m.supportingPlaces[0].name}${m.supportingPlaces[0].distanceFormatted ? ` (${m.supportingPlaces[0].distanceFormatted})` : ''}`;
+    } else {
+      pillText = `Near ${m.supportingPlaces[0].name} & ${m.supportingPlaces[1].name}`;
+    }
+  } else if (m.id && m.id.includes('eatery')) {
+    pillText = 'Potential daytime customers';
+  } else if (m.id && m.id.includes('printing')) {
+    pillText = 'School and government-office context';
+  }
+
+  const cleanAlert = formatAlertNotice(m.mainUnresolvedNotice);
+
+  return {
+    id: m.id,
+    label: (m.label || '').toUpperCase(),
+    sector: m.sector,
+    sectorLabel: m.sectorLabel,
+    rank: m.rank || (index + 1),
+    statusLabel: 'Preliminary',
+    description: m.description,
+    pillText,
+    alertText: cleanAlert,
+    icon: m.id,
+    explanation: m.explanation,
+    mainUnresolvedNotice: cleanAlert,
+    supportingPlaces: m.supportingPlaces || [],
+    areaGuideline: m.areaGuideline,
+    areaStatus: m.areaStatus,
+    zoningStatus: m.zoningStatus,
+    zoningClassification: m.zoningClassification,
+    roadAccessRequirement: m.roadAccessRequirement,
+    missingEvidence: m.missingEvidence || [],
+    competitorsNotice: m.competitorsNotice,
+    competitorSample: m.competitorSample || [],
+    complementaryCount: m.complementaryCount || 0,
+    complementarySample: m.complementarySample || [],
+    ruleSource: m.ruleSource || RULE_SOURCE,
+    version: m.version || RULE_VERSION,
+  };
+}
+
+/**
+ * Render a single opportunity card with iOS-refined scannable front and collapsible evidence drawer.
+ */
+export function renderOpportunityCard(item, property = null) {
+  const supportingList = (item.supportingPlaces && item.supportingPlaces.length) ? item.supportingPlaces : [
+    { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'College & Higher Education' },
+    { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic Administration' }
+  ];
+
+  return `
+    <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" id="oppCard-${esc(item.id)}">
+      <div class="opportunity-blue-main-row" data-toggle-opportunity-details="${esc(item.id)}" role="button" tabindex="0" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" title="Click to view detailed evidence">
+        <!-- White square icon box with burgundy SVG -->
+        <div class="opportunity-blue-icon-box" aria-hidden="true">
+          ${getOpportunityIconSvg(item.icon || item.id)}
+        </div>
+
+        <!-- Center information block (iOS Refined & Scannable) -->
+        <div class="opportunity-blue-content">
+          <div class="opportunity-card-kicker-row">
+            <span class="opportunity-preliminary-tag">${esc(item.statusLabel || 'Preliminary')}</span>
+          </div>
+
+          <h3 class="opportunity-blue-title">${esc(item.label)}</h3>
+          <p class="opportunity-blue-desc">${esc(item.description)}</p>
+          
+          <div class="opportunity-highlights-row">
+            <div class="opportunity-lime-pill">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              <span>${esc(item.pillText || 'Multiple nearby activity centers')}</span>
+            </div>
+
+            <div class="opportunity-red-warning">
+              <span class="warning-icon" aria-hidden="true">&#9888;</span>
+              <span>${esc(item.alertText || item.mainUnresolvedNotice || 'Confirm commercial electric line capacity and delivery unloading space.')}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark circular action button with white arrow -->
+        <button type="button" class="opportunity-circle-action-btn no-print" data-toggle-opportunity-details="${esc(item.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" aria-label="Toggle details for ${esc(item.label)}">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- iOS-Style Segmented Evidence Dropdown Drawer -->
+      <div class="opportunity-evidence-drawer" id="oppDetails-${esc(item.id)}" hidden>
+        <div class="opportunity-drawer-inner">
+          <div class="opportunity-drawer-header">
+            <div class="opportunity-drawer-heading-wrap">
+              <span class="opportunity-rank-tag">Rank #${item.rank || 1}</span>
+              <span class="opportunity-sector-badge">${esc(item.sectorLabel || 'Commercial Sector')}</span>
+              <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
+            </div>
+            <span class="opportunity-drawer-status">Verified Spatial Proximity</span>
+          </div>
+
+          <!-- 1. Supporting Activity Centers -->
+          <div class="opportunity-evidence-group">
+            <div class="opportunity-evidence-label">
+              <span>Supporting activity centers within radius</span>
+              <small>Direct walking &amp; commute anchors</small>
+            </div>
+            <ul class="opportunity-places-list">
+              ${supportingList.map(sp => {
+                const distM = sp.distanceMeters || (sp.distanceFormatted ? parseInt(sp.distanceFormatted, 10) : 180);
+                const walkMin = Math.max(1, Math.round((distM || 180) / 80));
+                return `
+                  <li class="opportunity-place-item">
+                    <div class="opportunity-place-main">
+                      <span class="opportunity-place-icon" aria-hidden="true">&#9679;</span>
+                      <strong class="opportunity-place-name">${esc(sp.name)}</strong>
+                    </div>
+                    <div class="opportunity-place-meta">
+                      <span class="opportunity-place-badge">${esc(sp.distanceFormatted || (distM + ' m'))}</span>
+                      <span class="amenity-walk-badge">~${walkMin} min walk</span>
+                      <span class="opportunity-place-cat">${esc(sp.category || 'Activity Center')}</span>
+                    </div>
+                  </li>
+                `;
+              }).join('')}
+            </ul>
+          </div>
+
+          <!-- 2. Property & Zoning Fit Tiles -->
+          <div class="opportunity-evidence-group">
+            <div class="opportunity-evidence-label">
+              <span>Property requirements vs site records</span>
+              <small>Infrastructure &amp; CLUP compliance</small>
+            </div>
+            <div class="opportunity-specs-grid">
+              <div class="opportunity-spec-item">
+                <span class="opportunity-spec-label">Area Guideline</span>
+                <strong class="opportunity-spec-val">${esc(item.areaGuideline || 'Standard commercial footprint')}</strong>
+                <span class="opportunity-spec-state">${esc(item.areaStatus || 'Suitable for commercial frontage')}</span>
+              </div>
+              <div class="opportunity-spec-item">
+                <span class="opportunity-spec-label">Zoning Compatibility</span>
+                <strong class="opportunity-spec-val">${esc(item.zoningStatus || 'Compatible with zoning')}</strong>
+                <span class="opportunity-spec-state">${esc(item.zoningClassification || 'Commercial / Mixed Use')}</span>
+              </div>
+              <div class="opportunity-spec-item">
+                <span class="opportunity-spec-label">Road Access</span>
+                <strong class="opportunity-spec-val">${esc(item.roadAccessRequirement || 'all_weather')} road required</strong>
+                <span class="opportunity-spec-state">Direct frontage preferred</span>
+              </div>
+              <div class="opportunity-spec-item">
+                <span class="opportunity-spec-label">Missing Records</span>
+                <strong class="opportunity-spec-val">${item.missingEvidence && item.missingEvidence.length ? esc(item.missingEvidence.join(' · ')) : 'None recorded'}</strong>
+                <span class="opportunity-spec-state">Ready for site evaluation</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Local Market Context -->
+          <div class="opportunity-evidence-group">
+            <div class="opportunity-evidence-label">
+              <span>Operating establishments in radius</span>
+              <small>Local competitive &amp; complementary density</small>
+            </div>
+            <div class="opportunity-comp-row">
+              <div class="opportunity-comp-box">
+                <strong>Recorded competitors:</strong>
+                <p>${esc(item.competitorsNotice || 'No competitors recorded in radius')}</p>
+                ${item.competitorSample && item.competitorSample.length ? `<small>Recorded examples: ${esc(item.competitorSample.join(', '))}</small>` : ''}
+              </div>
+              <div class="opportunity-comp-box">
+                <strong>Complementary businesses:</strong>
+                <p>${item.complementaryCount > 0 ? `${item.complementaryCount} complementary anchors found` : 'Complementary commercial synergy nearby'}</p>
+                ${item.complementarySample && item.complementarySample.length ? `<small>Synergies: ${esc(item.complementarySample.join(', '))}</small>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Direct City Planning Inquiry CTA -->
+          <div class="opportunity-drawer-cta-row">
+            <button type="button" class="opportunity-inquire-cta-btn" data-inquire-use="${esc(item.label)}" title="Contact City Investment Facilitation regarding ${esc(item.label)}">
+              <span>Inquire about ${esc(item.label)} suitability</span>
+              <span aria-hidden="true">&nearr;</span>
+            </button>
+            <p class="opportunity-drawer-disclaimer-note">Directs to City Planning &amp; Investment facilitation team</p>
+          </div>
+
+          <!-- 5. Rule provenance audit -->
+          <div class="opportunity-provenance-footer">
+            <div>
+              <strong>Rule source:</strong> <span>${esc(item.ruleSource || RULE_SOURCE)}</span>
+            </div>
+            <div>
+              <strong>Version:</strong> <span>${esc(item.version || RULE_VERSION)} &middot; Exploratory draft rule requiring City Planning validation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+/**
  * Render the "Business opportunities to explore" section markup matching Picture 2.
  */
 export function businessOpportunitiesMarkup(property, options = {}) {
@@ -868,7 +1347,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
     }
   }
 
-  // Build amenity chips list dynamically
+  // Build amenity chips list dynamically with estimated walking times
   let amenityChips = [];
   if (realAnchors.length > 0) {
     amenityChips = realAnchors.slice(0, 3).map((a, idx) => {
@@ -882,24 +1361,28 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         iconHtml = '<span class="amenity-icon text-orange" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M18 2v20M18 8a3 3 0 0 0 3-3V2h-3M6 2v6a3 3 0 0 0 3 3h0a3 3 0 0 0 3-3V2M9 11v11"/></svg></span>';
       }
 
-      const distLabel = a.distanceFormatted ? ` (${a.distanceFormatted})` : '';
+      const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
+      const walkMinutes = Math.max(1, Math.round((distM || 180) / 80));
+
       return {
         index: idx,
         iconHtml,
-        label: `${a.name}${distLabel}`,
+        label: `${a.name}${a.distanceFormatted ? ` (${a.distanceFormatted})` : ''}`,
+        walkMinutes,
         lat: a.lat,
         lng: a.lng,
         name: a.name,
-        category: a.category
+        category: a.category || 'Activity Center'
       };
     });
   } else {
-    // Demo fallback chips
+    // Demo fallback chips matching Picture 2
     amenityChips = [
       {
         index: 0,
         iconHtml: '<span class="amenity-icon text-red" aria-hidden="true">+</span>',
         label: 'Hospital nearby',
+        walkMinutes: 2,
         lat: lat + 0.002,
         lng: lng - 0.002,
         name: 'Hospital',
@@ -909,6 +1392,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         index: 1,
         iconHtml: '<span class="amenity-icon text-blue" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg></span>',
         label: 'School nearby',
+        walkMinutes: 3,
         lat: lat + 0.001,
         lng: lng + 0.003,
         name: 'School',
@@ -918,6 +1402,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         index: 2,
         iconHtml: '<span class="amenity-icon text-navy" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/></svg></span>',
         label: 'City hall nearby',
+        walkMinutes: 4,
         lat: lat - 0.002,
         lng: lng + 0.001,
         name: 'City hall',
@@ -927,50 +1412,9 @@ export function businessOpportunitiesMarkup(property, options = {}) {
   }
   
   // Format display matches: use dynamic matches formatted to Picture 2 specs, or fall back to DEMO_MATCHES
-  const displayCards = rawMatches.length ? rawMatches.map(m => {
-    let pillText = 'Multiple nearby activity centers';
-    if (Array.isArray(m.supportingPlaces) && m.supportingPlaces.length) {
-      if (m.supportingPlaces.length === 1) {
-        pillText = `Near ${m.supportingPlaces[0].name}${m.supportingPlaces[0].distanceFormatted ? ` (${m.supportingPlaces[0].distanceFormatted})` : ''}`;
-      } else {
-        pillText = `Near ${m.supportingPlaces[0].name} & ${m.supportingPlaces[1].name}`;
-      }
-    } else if (m.id.includes('eatery')) {
-      pillText = 'Potential daytime customers';
-    } else if (m.id.includes('printing')) {
-      pillText = 'School and government-office context';
-    }
-
-    const cleanAlert = formatAlertNotice(m.mainUnresolvedNotice);
-
-    return {
-      id: m.id,
-      label: m.label.toUpperCase(),
-      sector: m.sector,
-      sectorLabel: m.sectorLabel,
-      rank: m.rank,
-      statusLabel: 'Preliminary',
-      description: m.description,
-      pillText,
-      alertText: cleanAlert,
-      icon: m.id,
-      explanation: m.explanation,
-      mainUnresolvedNotice: cleanAlert,
-      supportingPlaces: m.supportingPlaces || [],
-      areaGuideline: m.areaGuideline,
-      areaStatus: m.areaStatus,
-      zoningStatus: m.zoningStatus,
-      zoningClassification: m.zoningClassification,
-      roadAccessRequirement: m.roadAccessRequirement,
-      missingEvidence: m.missingEvidence || [],
-      competitorsNotice: m.competitorsNotice,
-      competitorSample: m.competitorSample || [],
-      complementaryCount: m.complementaryCount || 0,
-      complementarySample: m.complementarySample || [],
-      ruleSource: m.ruleSource || RULE_SOURCE,
-      version: m.version || RULE_VERSION,
-    };
-  }) : DEMO_MATCHES;
+  const displayCards = rawMatches.length
+    ? rawMatches.map((m, idx) => formatOpportunityDisplayItem(m, idx))
+    : DEMO_MATCHES;
 
   return `
     <section class="property-panel property-opportunities" id="propertyOpportunitiesSection" aria-labelledby="propertyOpportunitiesTitle">
@@ -982,9 +1426,9 @@ export function businessOpportunitiesMarkup(property, options = {}) {
           radius,
           propertyName: property.name || 'Subject Property',
           anchors: realAnchors.length ? realAnchors : [
-            { name: 'Hospital', category: 'Healthcare', lat: lat + 0.002, lng: lng - 0.002, distanceFormatted: '180 m' },
-            { name: 'School', category: 'Education', lat: lat + 0.001, lng: lng + 0.003, distanceFormatted: '240 m' },
-            { name: 'City hall', category: 'Civic', lat: lat - 0.002, lng: lng + 0.001, distanceFormatted: '310 m' }
+            { name: 'Hospital', category: 'Healthcare', lat: lat + 0.002, lng: lng - 0.002, distanceFormatted: '180 m', distanceMeters: 180 },
+            { name: 'School', category: 'Education', lat: lat + 0.001, lng: lng + 0.003, distanceFormatted: '240 m', distanceMeters: 240 },
+            { name: 'City hall', category: 'Civic', lat: lat - 0.002, lng: lng + 0.001, distanceFormatted: '310 m', distanceMeters: 310 }
           ]
         })}
       </script>
@@ -1001,10 +1445,38 @@ export function businessOpportunitiesMarkup(property, options = {}) {
             </p>
           </div>
 
-          <!-- Stylized Map Box with Real Leaflet Canvas & Static Fallback -->
+          <!-- Stylized Map Box with Real Leaflet Canvas, Interactive Overlays & Static Fallback -->
           <div class="opportunities-map-box" id="opportunitiesInteractiveMap" data-lat="${lat}" data-lng="${lng}" data-radius="${radius}" data-property-name="${esc(property.name || 'Subject Property')}">
+            <!-- Map Recenter Button -->
+            <button type="button" class="opportunities-map-recenter-btn" id="oppRecenterBtn" title="Recenter to property location" aria-label="Recenter map to property location">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="2" x2="12" y2="6"></line>
+                <line x1="12" y1="18" x2="12" y2="22"></line>
+                <line x1="2" y1="12" x2="6" y2="12"></line>
+                <line x1="18" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </button>
+
+            <!-- Map Radius Switcher Pills: 300m, 500m, 1km -->
+            <div class="opportunities-map-radius-selector" role="group" aria-label="Screening radius selector">
+              <button type="button" class="opp-radius-btn" data-radius-val="300">300 m</button>
+              <button type="button" class="opp-radius-btn is-active" data-radius-val="500">500 m</button>
+              <button type="button" class="opp-radius-btn" data-radius-val="1000">1 km</button>
+            </div>
+
             <!-- Real Interactive Leaflet Map Canvas (Activated via JS) -->
             <div class="opportunities-leaflet-canvas" id="opportunitiesLeafletCanvas" role="region" aria-label="Interactive Screening Radius Map" style="display:none;width:100%;height:100%;position:absolute;top:0;left:0;border-radius:14px;z-index:2;"></div>
+
+            <!-- Map Layer Switcher Button (Street / Sat) -->
+            <button type="button" class="opportunities-map-layer-btn" id="oppLayerToggleBtn" title="Toggle Satellite / Street view" aria-label="Toggle map view">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+              </svg>
+              <span id="oppLayerBtnText">Sat</span>
+            </button>
 
             <!-- Fallback Vector Map Canvas (Displayed for SSR & headless test runners) -->
             <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback">
@@ -1042,7 +1514,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
               </svg>
 
               <!-- Callout bubble: 500 m -->
-              <div class="opportunities-map-radius-tag-bubble">
+              <div class="opportunities-map-radius-tag-bubble" id="opportunitiesMapRadiusTagBubble">
                 <span>500 m</span>
               </div>
 
@@ -1087,170 +1559,31 @@ export function businessOpportunitiesMarkup(property, options = {}) {
             </div>
 
             <!-- Map bottom-left tag overlay -->
-            <div class="opportunities-map-foot-chip" style="z-index: 5;">
+            <div class="opportunities-map-foot-chip" id="opportunitiesMapFootChip" style="z-index: 5;">
               <span>500 m straight-line screening radius &middot; Verified</span>
             </div>
           </div>
 
-          <!-- Dynamic Amenity Pill Chips below map -->
+          <!-- Dynamic Amenity Pill Chips below map with walking times -->
           <div class="opportunities-amenities-row">
             ${amenityChips.map(c => `
-              <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" title="Click to view ${esc(c.name)} on map">
+              <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" data-anchor-name="${esc(c.name)}" data-anchor-lat="${c.lat}" data-anchor-lng="${c.lng}" title="Click to focus ${esc(c.name)} on map">
                 ${c.iconHtml}
-                <span>${esc(c.label)}</span>
+                <span>${esc(c.name)}</span>
+                <span class="amenity-walk-badge">~${c.walkMinutes} min walk</span>
               </button>
             `).join('')}
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: Demo Scenario & 3 Powder-Blue Cards -->
+        <!-- RIGHT COLUMN: Demo Scenario & Dynamic Cards Stack -->
         <div class="opportunities-cards-column">
           <div class="opportunities-kicker-banner">
             <span>DEMO SCENARIO - Illustrative places and suggestions</span>
           </div>
 
-          <div class="opportunities-blue-stack">
-            ${displayCards.map(item => `
-              <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" id="oppCard-${esc(item.id)}">
-                <div class="opportunity-blue-main-row" data-toggle-opportunity-details="${esc(item.id)}" role="button" tabindex="0" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" title="Click to view detailed evidence">
-                  <!-- White square icon box with burgundy SVG -->
-                  <div class="opportunity-blue-icon-box" aria-hidden="true">
-                    ${getOpportunityIconSvg(item.icon)}
-                  </div>
-
-                  <!-- Center information block (iOS Refined & Scannable) -->
-                  <div class="opportunity-blue-content">
-                    <div class="opportunity-card-kicker-row">
-                      <span class="opportunity-preliminary-tag">${esc(item.statusLabel)}</span>
-                    </div>
-
-                    <h3 class="opportunity-blue-title">${esc(item.label)}</h3>
-                    <p class="opportunity-blue-desc">${esc(item.description)}</p>
-                    
-                    <div class="opportunity-highlights-row">
-                      <div class="opportunity-lime-pill">
-                        <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
-                          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                        </svg>
-                        <span>${esc(item.pillText)}</span>
-                      </div>
-
-                      <div class="opportunity-red-warning">
-                        <span class="warning-icon" aria-hidden="true">&#9888;</span>
-                        <span>${esc(item.alertText)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Dark circular action button with white arrow -->
-                  <button type="button" class="opportunity-circle-action-btn no-print" data-toggle-opportunity-details="${esc(item.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" aria-label="Toggle details for ${esc(item.label)}">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
-                  </button>
-                </div>
-
-                <!-- iOS-Style Segmented Evidence Dropdown Drawer -->
-                <div class="opportunity-evidence-drawer" id="oppDetails-${esc(item.id)}" hidden>
-                  <div class="opportunity-drawer-inner">
-                    <div class="opportunity-drawer-header">
-                      <div class="opportunity-drawer-heading-wrap">
-                        <span class="opportunity-rank-tag">Rank #${item.rank || 1}</span>
-                        <span class="opportunity-sector-badge">${esc(item.sectorLabel || 'Commercial Sector')}</span>
-                        <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
-                      </div>
-                      <span class="opportunity-drawer-status">Verified Spatial Proximity</span>
-                    </div>
-
-                    <!-- 1. Supporting Activity Centers -->
-                    <div class="opportunity-evidence-group">
-                      <div class="opportunity-evidence-label">
-                        <span>Supporting activity centers within 500m</span>
-                        <small>Direct walking &amp; commute anchors</small>
-                      </div>
-                      <ul class="opportunity-places-list">
-                        ${(item.supportingPlaces && item.supportingPlaces.length ? item.supportingPlaces : [
-                          { name: 'Saint Louis College', distanceFormatted: '165 m', category: 'College & Higher Education' },
-                          { name: 'City Hall of San Fernando', distanceFormatted: '185 m', category: 'Civic Administration' }
-                        ]).map(sp => `
-                          <li class="opportunity-place-item">
-                            <div class="opportunity-place-main">
-                              <span class="opportunity-place-icon" aria-hidden="true">&#9679;</span>
-                              <strong class="opportunity-place-name">${esc(sp.name)}</strong>
-                            </div>
-                            <div class="opportunity-place-meta">
-                              <span class="opportunity-place-badge">${esc(sp.distanceFormatted)}</span>
-                              <span class="opportunity-place-cat">${esc(sp.category)}</span>
-                            </div>
-                          </li>
-                        `).join('')}
-                      </ul>
-                    </div>
-
-                    <!-- 2. Property & Zoning Fit Tiles -->
-                    <div class="opportunity-evidence-group">
-                      <div class="opportunity-evidence-label">
-                        <span>Property requirements vs site records</span>
-                        <small>Infrastructure &amp; CLUP compliance</small>
-                      </div>
-                      <div class="opportunity-specs-grid">
-                        <div class="opportunity-spec-item">
-                          <span class="opportunity-spec-label">Area Guideline</span>
-                          <strong class="opportunity-spec-val">${esc(item.areaGuideline)}</strong>
-                          <span class="opportunity-spec-state">${esc(item.areaStatus)}</span>
-                        </div>
-                        <div class="opportunity-spec-item">
-                          <span class="opportunity-spec-label">Zoning Compatibility</span>
-                          <strong class="opportunity-spec-val">${esc(item.zoningStatus)}</strong>
-                          <span class="opportunity-spec-state">${esc(item.zoningClassification)}</span>
-                        </div>
-                        <div class="opportunity-spec-item">
-                          <span class="opportunity-spec-label">Road Access</span>
-                          <strong class="opportunity-spec-val">${esc(item.roadAccessRequirement)} road required</strong>
-                          <span class="opportunity-spec-state">Direct frontage preferred</span>
-                        </div>
-                        <div class="opportunity-spec-item">
-                          <span class="opportunity-spec-label">Missing Records</span>
-                          <strong class="opportunity-spec-val">${item.missingEvidence && item.missingEvidence.length ? esc(item.missingEvidence.join(' · ')) : 'None recorded'}</strong>
-                          <span class="opportunity-spec-state">Ready for site evaluation</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- 3. Local Market Context -->
-                    <div class="opportunity-evidence-group">
-                      <div class="opportunity-evidence-label">
-                        <span>Operating establishments in radius</span>
-                        <small>Local competitive &amp; complementary density</small>
-                      </div>
-                      <div class="opportunity-comp-row">
-                        <div class="opportunity-comp-box">
-                          <strong>Recorded competitors:</strong>
-                          <p>${esc(item.competitorsNotice)}</p>
-                          ${item.competitorSample && item.competitorSample.length ? `<small>Recorded examples: ${esc(item.competitorSample.join(', '))}</small>` : ''}
-                        </div>
-                        <div class="opportunity-comp-box">
-                          <strong>Complementary businesses:</strong>
-                          <p>${item.complementaryCount > 0 ? `${item.complementaryCount} complementary anchors found` : 'No direct complementary anchors recorded'}</p>
-                          ${item.complementarySample && item.complementarySample.length ? `<small>Synergies: ${esc(item.complementarySample.join(', '))}</small>` : ''}
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- 4. Rule provenance audit -->
-                    <div class="opportunity-provenance-footer">
-                      <div>
-                        <strong>Rule source:</strong> <span>${esc(item.ruleSource)}</span>
-                      </div>
-                      <div>
-                        <strong>Version:</strong> <span>${esc(item.version)} &middot; Exploratory draft rule requiring City Planning validation</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            `).join('')}
+          <div class="opportunities-blue-stack" id="opportunitiesCardsStack">
+            ${displayCards.map(item => renderOpportunityCard(item, property)).join('')}
           </div>
         </div>
       </div>
@@ -1354,16 +1687,97 @@ export function catalogDialogMarkup() {
  * 5. Full catalog explorer dialog
  */
 export function initBusinessOpportunities(root = document, property = null) {
+  // Helpers for wiring card drawer accordion & inquiry CTA
+  function bindDrawerEvents(container) {
+    container.querySelectorAll('[data-toggle-opportunity-details]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute('data-toggle-opportunity-details');
+        const drawer = container.querySelector(`#oppDetails-${id}`);
+        if (!drawer) return;
+        const isOpen = !drawer.hidden;
+        drawer.hidden = isOpen;
+
+        // Update card active class and button ARIA attributes
+        const card = container.querySelector(`#oppCard-${id}`);
+        if (card) card.classList.toggle('is-drawer-open', !isOpen);
+
+        container.querySelectorAll(`[data-toggle-opportunity-details="${id}"]`).forEach(b => {
+          b.setAttribute('aria-expanded', String(!isOpen));
+          b.classList.toggle('is-expanded', !isOpen);
+        });
+      });
+
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    });
+  }
+
+  function bindInquiryEvents(container) {
+    container.querySelectorAll('[data-inquire-use]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const useName = btn.getAttribute('data-inquire-use') || 'selected business use';
+        const inquiryPanel = document.getElementById('cityInquiryPanel');
+        const inquiryText = document.getElementById('cityInquiryText');
+
+        if (inquiryPanel) {
+          if (typeof inquiryPanel.open !== 'undefined') {
+            inquiryPanel.open = true;
+          }
+          if (inquiryText) {
+            inquiryText.value = `Inquiry regarding suitability for ${useName} at this property. Please advise on commercial zoning clearance and municipal permitting requirements.`;
+            inquiryText.focus();
+          }
+          inquiryPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // Floating toast for demo page or guest visitors
+          const existingToast = document.querySelector('.opp-inquiry-toast');
+          if (existingToast) existingToast.remove();
+
+          const toast = document.createElement('div');
+          toast.className = 'opp-inquiry-toast';
+          toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0F172A;color:#FFFFFF;padding:12px 20px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.25);font-family:Inter,sans-serif;font-size:13px;font-weight:600;z-index:99999;transition:all 0.25s ease;display:flex;align-items:center;gap:8px;';
+          toast.innerHTML = `<span style="color:#22C55E;font-size:15px;">&#10003;</span> Suitability inquiry for <strong>${esc(useName)}</strong> prepared for City Investment Facilitation.`;
+          document.body.appendChild(toast);
+          setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.remove(), 250);
+          }, 3200);
+        }
+      });
+    });
+  }
+
+  // Initial binding for cards present at render time
+  bindDrawerEvents(root);
+  bindInquiryEvents(root);
+
   // 1. Setup real interactive Leaflet map if Leaflet is available
   const mapBox = root.querySelector('#opportunitiesInteractiveMap');
   const leafletCanvas = root.querySelector('#opportunitiesLeafletCanvas');
   const fallbackSvg = root.querySelector('#opportunitiesMapStaticFallback');
 
+  let oppMap = null;
+  let radiusCircle = null;
+  let calloutMarker = null;
+  let streetLayer = null;
+  let satLayer = null;
+  let currentLayerType = 'street';
+  let currentRadius = parseFloat(mapBox?.getAttribute('data-radius')) || 500;
+  let currentSector = 'everyday_services';
+
   if (mapBox && leafletCanvas && window.L && typeof window.L.map === 'function') {
     try {
       const lat = parseFloat(mapBox.getAttribute('data-lat')) || 16.6159;
       const lng = parseFloat(mapBox.getAttribute('data-lng')) || 120.3166;
-      const radius = parseFloat(mapBox.getAttribute('data-radius')) || 500;
       const propName = mapBox.getAttribute('data-property-name') || 'Subject Property';
 
       // Parse anchors from data store
@@ -1381,7 +1795,7 @@ export function initBusinessOpportunities(root = document, property = null) {
 
       // Avoid duplicate init
       if (!leafletCanvas._leaflet_id) {
-        const oppMap = L.map(leafletCanvas, {
+        oppMap = L.map(leafletCanvas, {
           center: [lat, lng],
           zoom: 15,
           scrollWheelZoom: false,
@@ -1389,19 +1803,22 @@ export function initBusinessOpportunities(root = document, property = null) {
           attributionControl: false
         });
 
-        // Add subtle zoom control at bottom-right
+        // Subtle zoom control at bottom-right
         L.control.zoom({ position: 'bottomright' }).addTo(oppMap);
 
-        // Apple Maps-style light minimalist tiles
+        // Apple Maps-style light street tiles
         const tileUrl = window.SFC_APP_CONFIG?.mapTileUrl || 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        L.tileLayer(tileUrl, {
-          maxZoom: 19,
-          subdomains: 'abcd'
-        }).addTo(oppMap);
+        streetLayer = L.tileLayer(tileUrl, { maxZoom: 19, subdomains: 'abcd' }).addTo(oppMap);
 
-        // 500m screening radius circle
-        const radiusCircle = L.circle([lat, lng], {
-          radius: radius,
+        // High-resolution Satellite Imagery layer (Esri World Imagery)
+        satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: 'Esri, Maxar, Earthstar Geographics'
+        });
+
+        // Screening radius circle
+        radiusCircle = L.circle([lat, lng], {
+          radius: currentRadius,
           color: '#991B1B',
           weight: 2.2,
           dashArray: '5, 5',
@@ -1426,20 +1843,25 @@ export function initBusinessOpportunities(root = document, property = null) {
         centerMarker.bindPopup(`
           <div class="opp-leaflet-popup">
             <strong>${esc(propName)}</strong>
-            <span>Screening Origin &middot; ${Math.round(radius)}m screening radius</span>
+            <span>Screening Origin &middot; Subject Property</span>
           </div>
         `);
 
-        // Radius callout badge on circle edge
-        const calloutLat = lat + (radius / 111320) * 0.72;
-        const calloutLng = lng + (radius / (111320 * Math.cos(lat * Math.PI / 180))) * 0.72;
-        const calloutIcon = L.divIcon({
-          className: 'locus-opp-radius-tag',
-          html: `<div class="opp-radius-tag-badge">${Math.round(radius)} m</div>`,
-          iconSize: [52, 24],
-          iconAnchor: [26, 12]
-        });
-        L.marker([calloutLat, calloutLng], { icon: calloutIcon, interactive: false }).addTo(oppMap);
+        // Helper to update radius callout badge on circle perimeter
+        function updateRadiusTag(r) {
+          if (calloutMarker) oppMap.removeLayer(calloutMarker);
+          const calloutLat = lat + (r / 111320) * 0.72;
+          const calloutLng = lng + (r / (111320 * Math.cos(lat * Math.PI / 180))) * 0.72;
+          const rText = r >= 1000 ? (r / 1000) + ' km' : Math.round(r) + ' m';
+          const calloutIcon = L.divIcon({
+            className: 'locus-opp-radius-tag',
+            html: `<div class="opp-radius-tag-badge">${rText}</div>`,
+            iconSize: [52, 24],
+            iconAnchor: [26, 12]
+          });
+          calloutMarker = L.marker([calloutLat, calloutLng], { icon: calloutIcon, interactive: false }).addTo(oppMap);
+        }
+        updateRadiusTag(currentRadius);
 
         // Add real anchor markers for each nearby place
         const anchorMarkers = [];
@@ -1476,10 +1898,12 @@ export function initBusinessOpportunities(root = document, property = null) {
           });
 
           const m = L.marker([aLat, aLng], { icon: aIcon }).addTo(oppMap);
+          const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
+          const walkMin = Math.max(1, Math.round((distM || 180) / 80));
           m.bindPopup(`
             <div class="opp-leaflet-popup">
               <strong>${esc(a.name)}</strong>
-              <span>${esc(a.category || 'Activity Center')} &middot; ${esc(a.distanceFormatted || '')}</span>
+              <span>${esc(a.category || 'Activity Center')} &middot; ${esc(a.distanceFormatted || (distM + ' m'))} (~${walkMin} min walk)</span>
             </div>
           `);
           anchorMarkers.push({ data: a, marker: m });
@@ -1503,11 +1927,74 @@ export function initBusinessOpportunities(root = document, property = null) {
           }
         });
 
+        // Recenter button click
+        const recenterBtn = root.querySelector('#oppRecenterBtn');
+        if (recenterBtn) {
+          recenterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            oppMap.flyTo([lat, lng], 15, { duration: 0.8 });
+            centerMarker.openPopup();
+          });
+        }
+
+        // Layer Switcher button (Street / Satellite)
+        const layerToggleBtn = root.querySelector('#oppLayerToggleBtn');
+        const layerBtnText = root.querySelector('#oppLayerBtnText');
+        if (layerToggleBtn) {
+          layerToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (currentLayerType === 'street') {
+              oppMap.removeLayer(streetLayer);
+              satLayer.addTo(oppMap);
+              currentLayerType = 'satellite';
+              layerToggleBtn.classList.add('is-active');
+              if (layerBtnText) layerBtnText.textContent = 'Street';
+            } else {
+              oppMap.removeLayer(satLayer);
+              streetLayer.addTo(oppMap);
+              currentLayerType = 'street';
+              layerToggleBtn.classList.remove('is-active');
+              if (layerBtnText) layerBtnText.textContent = 'Sat';
+            }
+          });
+        }
+
+        // Radius Switcher buttons: 300m, 500m, 1km
+        root.querySelectorAll('[data-radius-val]').forEach(rBtn => {
+          rBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const newRadius = parseFloat(rBtn.getAttribute('data-radius-val')) || 500;
+            currentRadius = newRadius;
+
+            root.querySelectorAll('[data-radius-val]').forEach(b => {
+              b.classList.toggle('is-active', b === rBtn);
+            });
+
+            radiusCircle.setRadius(newRadius);
+            updateRadiusTag(newRadius);
+            oppMap.fitBounds(radiusCircle.getBounds(), { padding: [22, 22] });
+
+            // Update text labels
+            const rText = newRadius >= 1000 ? (newRadius / 1000) + ' km' : Math.round(newRadius) + ' m';
+            const footChip = root.querySelector('#opportunitiesMapFootChip span');
+            if (footChip) footChip.innerHTML = `${rText} straight-line screening radius &middot; Verified`;
+
+            const staticBubble = root.querySelector('#opportunitiesMapRadiusTagBubble span');
+            if (staticBubble) staticBubble.textContent = rText;
+
+            // Dynamically re-evaluate and update cards
+            updateCardsStack(currentSector, newRadius);
+          });
+        });
+
         // Wire amenity chips below map to fly to that anchor
         root.querySelectorAll('[data-anchor-index]').forEach(chip => {
           chip.addEventListener('click', (e) => {
             e.preventDefault();
             const idx = parseInt(chip.getAttribute('data-anchor-index'), 10);
+            root.querySelectorAll('[data-anchor-index]').forEach(c => c.classList.remove('is-active'));
+            chip.classList.add('is-active');
+
             if (anchorMarkers[idx]) {
               const am = anchorMarkers[idx];
               oppMap.flyTo([am.data.lat, am.data.lng], 16, { duration: 0.8 });
@@ -1524,35 +2011,43 @@ export function initBusinessOpportunities(root = document, property = null) {
     }
   }
 
-  // 2. Toggle detailed evidence dropdown on individual cards
-  root.querySelectorAll('[data-toggle-opportunity-details]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const id = btn.getAttribute('data-toggle-opportunity-details');
-      const drawer = root.querySelector(`#oppDetails-${id}`);
-      if (!drawer) return;
-      const isOpen = !drawer.hidden;
-      drawer.hidden = isOpen;
+  // Helper to dynamically re-render the 3 opportunity cards with smooth fade
+  function updateCardsStack(sectorKey, radiusVal) {
+    const stack = root.querySelector('#opportunitiesCardsStack');
+    if (!stack) return;
 
-      // Update aria attributes and active classes
-      const card = root.querySelector(`#oppCard-${id}`);
-      if (card) card.classList.toggle('is-drawer-open', !isOpen);
+    let itemsToDisplay = [];
 
-      root.querySelectorAll(`[data-toggle-opportunity-details="${id}"]`).forEach(b => {
-        b.setAttribute('aria-expanded', String(!isOpen));
-        b.classList.toggle('is-expanded', !isOpen);
-      });
-    });
-
-    // Keyboard support for Enter/Space on row
-    btn.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        btn.click();
+    // Try dynamic screening on property data if nearbyBusinesses is present
+    if (property && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length > 0) {
+      const dynamicOpp = evaluateBusinessOpportunities(property, radiusVal, sectorKey);
+      if (dynamicOpp.supportedMatches && dynamicOpp.supportedMatches.length > 0) {
+        itemsToDisplay = dynamicOpp.supportedMatches.map((m, idx) => formatOpportunityDisplayItem(m, idx));
       }
-    });
-  });
+    }
+
+    // If dynamic screening produced no items for this specific sector, fallback to curated sector matches
+    if (!itemsToDisplay.length) {
+      if (sectorKey && SECTOR_DEMO_MATCHES[sectorKey]) {
+        itemsToDisplay = SECTOR_DEMO_MATCHES[sectorKey];
+      } else {
+        itemsToDisplay = DEMO_MATCHES;
+      }
+    }
+
+    // Smooth transition
+    stack.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+    stack.style.opacity = '0.35';
+    stack.style.transform = 'translateY(4px)';
+
+    setTimeout(() => {
+      stack.innerHTML = itemsToDisplay.map(item => renderOpportunityCard(item, property)).join('');
+      stack.style.opacity = '1';
+      stack.style.transform = 'translateY(0)';
+      bindDrawerEvents(stack);
+      bindInquiryEvents(stack);
+    }, 150);
+  }
 
   // 3. View mode switcher: Compact view vs Detailed evidence
   root.querySelectorAll('[data-opportunities-mode]').forEach(btn => {
@@ -1626,22 +2121,17 @@ export function initBusinessOpportunities(root = document, property = null) {
     });
   });
 
-  // 6. Category filter pills below split screen
+  // 6. Category filter pills below split screen with dynamic card switching
   root.querySelectorAll('[data-cat-filter]').forEach(pill => {
     pill.addEventListener('click', () => {
       const cat = pill.getAttribute('data-cat-filter');
+      currentSector = cat;
+
       root.querySelectorAll('[data-cat-filter]').forEach(p => {
         p.classList.toggle('is-active', p === pill);
       });
-      root.querySelectorAll('.opportunity-blue-card').forEach(card => {
-        const sector = card.getAttribute('data-sector');
-        if (cat === 'all' || !cat || cat === sector) {
-          card.style.display = 'flex';
-          card.style.opacity = '1';
-        } else {
-          card.style.opacity = '0.35';
-        }
-      });
+
+      updateCardsStack(cat, currentRadius);
     });
   });
 }

@@ -193,6 +193,104 @@
   z-index: 5;
 }
 
+/* Map Interactive Controls (Radius Selector, Recenter, Layer Switcher) */
+.opportunities-map-radius-selector {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  border-radius: 9999px;
+  padding: 2.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  z-index: 5;
+}
+
+.opp-radius-btn {
+  background: transparent;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.opp-radius-btn:hover {
+  color: #0F172A;
+}
+
+.opp-radius-btn.is-active {
+  background: #0F172A;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.opportunities-map-recenter-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E293B;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+  transition: all 0.15s ease;
+}
+
+.opportunities-map-recenter-btn:hover {
+  background: #FFFFFF;
+  color: #000000;
+  transform: scale(1.08);
+}
+
+.opportunities-map-layer-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  z-index: 5;
+  transition: all 0.15s ease;
+}
+
+.opportunities-map-layer-btn:hover {
+  background: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.opportunities-map-layer-btn.is-active {
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+}
+
 /* Real Interactive Leaflet Canvas Overlay */
 .opportunities-leaflet-canvas {
   width: 100%;
@@ -371,6 +469,29 @@
 
 .opportunities-amenity-chip:active {
   transform: translateY(0);
+}
+
+.opportunities-amenity-chip.is-active {
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.opportunities-amenity-chip.is-active .amenity-walk-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.amenity-walk-badge {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 1.5px 6px;
+  border-radius: 9999px;
+  margin-left: 2px;
 }
 
 .amenity-icon.text-red {
@@ -792,6 +913,47 @@
   display: block;
   color: #64748B;
   font-size: 10.5px;
+}
+
+.opportunity-drawer-cta-row {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opportunity-inquire-cta-btn {
+  background: #18181B;
+  color: #FFFFFF;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.opportunity-inquire-cta-btn:hover {
+  background: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.opportunity-drawer-disclaimer-note {
+  font-size: 11px;
+  color: #64748B;
+  font-style: italic;
+  margin: 0;
 }
 
 .opportunity-provenance-footer {
