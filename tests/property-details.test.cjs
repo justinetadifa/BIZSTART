@@ -4,7 +4,9 @@ const { pathToFileURL } = require('node:url');
 const { resolve } = require('node:path');
 
 (async () => {
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8').replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href);
+  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
+    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
+    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
   const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'zoning_compatibility', 'risk_constraints', 'environmental_safety'];
   const property = {
@@ -92,6 +94,12 @@ const { resolve } = require('node:path');
   const investorDetails = propertyDetailsMarkup(property, { ...options, role: 'investor', investor: true, canInquire: true, investorTools: () => '<details id="cityDocumentsPanel"><summary>Request documents</summary></details>' });
   assert(investorDetails.includes('href="/property-details.php?id=10#cityInquiryPanel"'), 'The contact anchor stays on the details page despite the shared base URL');
   assert(details.includes('href="/property-details.php?id=10#propertyLocationSection"'), 'Section navigation includes the property page and ID');
+  assert(details.includes('href="/property-details.php?id=10#propertyOpportunitiesSection"'), 'Section navigation includes Opportunities anchor');
+  assert(details.includes('id="propertyOpportunitiesSection"'), 'Opportunities section must be present in details');
+  assert(details.includes('Business opportunities to explore'), 'Title must match required feature name');
+  assert(details.includes('Suggestions based on nearby establishments, property characteristics, infrastructure and available zoning information.'), 'Subtitle must match required exact text');
+  assert(details.includes('straight-line screening radius'), 'Screening radius must be explicitly labeled as straight-line');
+  assert(details.indexOf('id="propertyOpportunitiesSection"') < details.indexOf('id="propertyAssessmentSection"'), 'Opportunities section precedes assessment section in advanced mode');
   for (const marker of ['data-save="10"', 'data-compare="10"', 'id="cityInquiryPanel"', 'id="cityInquiryForm"', 'id="cityDocumentsPanel"']) assert(investorDetails.includes(marker), `Existing investor action ${marker} stays available`);
 
   const handlers = {};

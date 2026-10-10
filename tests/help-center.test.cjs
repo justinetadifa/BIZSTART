@@ -6,7 +6,8 @@ const { resolve } = require('node:path');
 (async () => {
   // 1. Verify property-details-view.js markup
   const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href);
+    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
+    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
   const { assessmentCalculation, propertyDetailsMarkup } = await import(
     `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
   );

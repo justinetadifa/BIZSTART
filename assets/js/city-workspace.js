@@ -2,6 +2,7 @@ import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePriceP
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
 import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } from './property-details-view.js';
+import { initBusinessOpportunities } from './business-opportunities.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
@@ -1739,6 +1740,7 @@ async function renderDetails() {
     if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
   }
   setupInvestmentEvaluation(property, config.policy || {});
+  initBusinessOpportunities(root);
 
   // Add nearby business markers to map if map is initialized
   if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {

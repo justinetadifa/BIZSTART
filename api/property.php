@@ -6,6 +6,7 @@ require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
 require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
+require_once dirname(__DIR__) . '/app/Support/BusinessOpportunities.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -22,6 +23,8 @@ api_handle(function (array $container): array {
         ]);
         $decorated = $container['clup']->decorateProperty($property, string_or_null($_GET['investmentType'] ?? null));
         $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
+        $oppRadius = isset($_GET['opportunitiesRadius']) ? (float) $_GET['opportunitiesRadius'] : \App\Support\BusinessOpportunities::DEFAULT_RADIUS_METERS;
+        $decorated['businessOpportunities'] = \App\Support\BusinessOpportunities::evaluate($decorated, $oppRadius);
         return ['property' => $decorated];
     }
     if (!in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {
@@ -147,5 +150,6 @@ api_handle(function (array $container): array {
     $container['line']->onListingUpdated($before, $property, $user);
     $decorated = $container['clup']->decorateProperty($container['decisionEngine']->decorateProperty($property));
     $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
+    $decorated['businessOpportunities'] = \App\Support\BusinessOpportunities::evaluate($decorated, \App\Support\BusinessOpportunities::DEFAULT_RADIUS_METERS);
     return ['property' => $decorated];
 });
