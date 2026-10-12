@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="120" height="90">
-  <rect width="120" height="90" rx="14" fill="#FFFFFF"/>
-  <!-- SM Royal Blue Circle -->
-  <circle cx="60" cy="45" r="34" fill="#003893"/>
-  <!-- Classic SM Interlocking Monogram in White -->
-  <g transform="translate(60, 45) scale(0.92)" fill="#FFFFFF">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <rect width="120" height="120" rx="16" fill="#FFFFFF"/>
+  <!-- SM Iconic Royal Blue Ring (Large & Bold) -->
+  <circle cx="60" cy="60" r="51" fill="#FFFFFF" stroke="#003893" stroke-width="6.5"/>
+  <!-- Classic SM Interlocking Monogram in Royal Blue -->
+  <g transform="translate(60, 60) scale(1.45)" fill="#003893">
     <!-- S curve -->
     <path d="M -16 -12 C -8 -20 2 -18 2 -10 C 2 -3 -6 0 -11 3 C -17 6 -20 12 -18 19 C -16 26 -7 28 0 26 C 2 25 4 24 5 22 L 5 13 C 3 15 0 17 -3 17 C -7 17 -10 14 -9 10 C -8 6 -2 3 3 0 C 10 -4 12 -11 10 -18 C 7 -25 -2 -28 -10 -26 C -14 -25 -17 -22 -19 -20 Z"/>
     <!-- M arches -->

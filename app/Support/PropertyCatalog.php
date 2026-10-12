@@ -10,42 +10,56 @@ final class PropertyCatalog
     public static function categories(): array
     {
         return [
-            'Vacant Land' => ['Agricultural', 'Residential Lot', 'Commercial Lot', 'Industrial Lot', 'Raw Land', 'Farm / Agribusiness'],
-            'Commercial' => ['Retail / Storefront', 'Shopping Center', 'Restaurant / Dining', 'Bank / Financial', 'Commercial Building', 'Auto / Service Center'],
-            'Office' => ['BPO / IT-BPM', 'Corporate Office', 'Medical Office', 'Business Center', 'Coworking Space'],
-            'Industrial / Warehouse' => ['Warehouse / Storage', 'Logistics / Distribution', 'Factory / Manufacturing', 'Light Industrial', 'Cold Storage'],
-            'Residential' => ['Apartment Building', 'Condominium', 'Housing Development', 'Townhouse / Multi-Unit', 'Residential Compound'],
-            'Hospitality / Tourism' => ['Hotel', 'Resort', 'Ecotourism', 'Lodging / Inn', 'Bed & Breakfast'],
-            'Mixed-Use' => ['Commercial-Residential', 'Office-Commercial', 'Mixed Commercial Complex'],
-            'Special Purpose' => ['Institutional / Government', 'Educational / School', 'Healthcare / Hospital', 'Sports / Recreation', 'Infrastructure / Utility', 'Parking Facility'],
+            'Land' => [
+                'Commercial Lot',
+                'Residential Lot',
+                'Industrial Lot',
+                'Agricultural',
+                'Raw Land',
+                'Farm / Agribusiness',
+                'Commercial',
+                'Industrial',
+                'Residential',
+                'Logistics',
+            ],
+            'Building' => [
+                'Commercial',
+                'Office',
+                'Industrial / Warehouse',
+                'Residential',
+                'Hospitality / Tourism',
+                'Mixed-Use',
+                'Retail / Storefront',
+                'Warehouse / Storage',
+                'Corporate Office',
+                'Apartment Building',
+                'Special Purpose',
+            ],
         ];
     }
 
     public static function categoryTooltips(): array
     {
         return [
-            'Vacant Land' => 'Undeveloped lot or parcel.',
-            'Commercial' => 'Shops, retail spaces, and commercial buildings.',
-            'Office' => 'Offices, BPO/IT-BPM spaces, and business centers.',
-            'Industrial / Warehouse' => 'Factories, warehouses, logistics, and industrial properties.',
-            'Residential' => 'Apartments, condominiums, housing, and residential developments.',
-            'Hospitality / Tourism' => 'Hotels, resorts, lodging, and tourism-related properties.',
-            'Mixed-Use' => 'A combination of commercial, residential, office, or other compatible uses.',
-            'Special Purpose' => 'Institutional or specialized properties that do not fit the standard categories.',
+            'Land' => 'Parcels, raw land, agricultural, or lot developments.',
+            'Building' => 'Commercial buildings, offices, warehouses, residential, or built structures.',
         ];
     }
 
-    public static function criteria(): array
+    public static function criteria(bool $includeInactive = false): array
     {
-        return [
-            'spatial_accessibility' => 'Spatial accessibility',
-            'infrastructure_readiness' => 'Infrastructure readiness',
-            'economic_viability' => 'Economic viability',
-            'nearby_businesses' => 'Nearby businesses',
-            'zoning_compatibility' => 'Zoning compatibility',
-            'risk_constraints' => 'Risk constraints',
-            'environmental_safety' => 'Environmental safety',
+        $criteria = [
+            'spatial_accessibility' => 'Spatial Accessibility',
+            'infrastructure_readiness' => 'Infrastructure Readiness',
+            'economic_viability' => 'Land Valuation / Economic Context',
+            'nearby_businesses' => 'Economic Activity / Business Environment',
+            'zoning_compatibility' => 'Zoning Compatibility',
+            'risk_constraints' => 'Risk Constraints',
         ];
+        if ($includeInactive) {
+            $criteria['environmental_safety'] = 'Environmental Safety';
+        }
+        return $criteria;
     }
 
     public static function contextTags(): array
@@ -53,123 +67,221 @@ final class PropertyCatalog
         return ['BEACH', 'AGRICULTURAL', 'CITY CENTER', 'HIGHWAY', 'PORT', 'RESIDENTIAL', 'COMMERCIAL', 'INDUSTRIAL', 'TOURISM'];
     }
 
-    public static function normalizeCategory(?string $category, ?string $subcategory, string $legacyType): array
+    /** Shared canonical classifications and explicit legacy aliases for API and form clients. */
+    public static function classificationCatalog(): array
     {
         $legacyAliases = [
-            'Land' => 'Vacant Land',
-            'Retail' => 'Commercial',
-            'Industrial' => 'Industrial / Warehouse',
-            'Hospitality' => 'Hospitality / Tourism',
-            'Mixed Use' => 'Mixed-Use',
-            'Multifamily' => 'Residential',
-            'Senior Living' => 'Residential',
-            'Mobile Home Park' => 'Residential',
-            'Self Storage' => 'Industrial / Warehouse',
-            'Note/Loan' => 'Special Purpose',
-            'Note / Loan' => 'Special Purpose',
-            'Business for Sale' => 'Commercial',
+            'Vacant Land' => 'Land',
+            'Commercial Lot' => 'Land',
+            'Residential Lot' => 'Land',
+            'Industrial Lot' => 'Land',
+            'Raw Land' => 'Land',
+            'Agricultural' => 'Land',
+            'Commercial' => 'Building',
+            'Retail' => 'Building',
+            'Office' => 'Building',
+            'Industrial' => 'Building',
+            'Industrial / Warehouse' => 'Building',
+            'Hospitality' => 'Building',
+            'Hospitality / Tourism' => 'Building',
+            'Mixed Use' => 'Building',
+            'Mixed-Use' => 'Building',
+            'Residential' => 'Building',
+            'Multifamily' => 'Building',
+            'Senior Living' => 'Building',
+            'Mobile Home Park' => 'Building',
+            'Self Storage' => 'Building',
+            'Special Purpose' => 'Building',
+            'Note/Loan' => 'Building',
+            'Note / Loan' => 'Building',
+            'Business for Sale' => 'Building',
         ];
 
-        if ($category === null || trim($category) === '') {
-            $category = match (strtolower(trim($legacyType))) {
-                'logistics', 'manufacturing' => 'Industrial / Warehouse',
-                'hotel', 'hospitality' => 'Hospitality / Tourism',
-                'bpo', 'office' => 'Office',
-                'residential' => 'Residential',
-                'commercial', 'retail' => 'Commercial',
-                'mixed_use', 'mixed use' => 'Mixed-Use',
-                default => 'Vacant Land',
-            };
-        } else {
-            $category = trim($category);
-            if (isset($legacyAliases[$category])) {
-                $category = $legacyAliases[$category];
-            }
-        }
-
-        $categories = self::categories();
-        if (!array_key_exists($category, $categories)) {
-            throw new InvalidArgumentException('Choose a valid property category.');
-        }
-
         $legacySubcategoryMap = [
-            'Vacant Land' => [
-                'Commercial' => 'Commercial Lot',
-                'Industrial' => 'Industrial Lot',
-                'Residential' => 'Residential Lot',
-                'Agricultural' => 'Agricultural',
+            'Land' => [
                 'Farm' => 'Farm / Agribusiness',
                 'Ranch' => 'Farm / Agribusiness',
                 'Islands' => 'Raw Land',
                 'Timber' => 'Raw Land',
                 'Hunting/Recreational' => 'Raw Land',
-                'Logistics' => 'Industrial Lot',
             ],
-            'Commercial' => [
+            'Building' => [
                 'Storefront' => 'Retail / Storefront',
                 'Retail' => 'Retail / Storefront',
-                'Restaurant' => 'Restaurant / Dining',
-                'Bar' => 'Restaurant / Dining',
-                'Bank' => 'Bank / Financial',
-                'Auto Shop' => 'Auto / Service Center',
+                'Shopping Center' => 'Commercial',
+                'Restaurant / Dining' => 'Commercial',
+                'Restaurant' => 'Commercial',
+                'Bar' => 'Commercial',
+                'Bank / Financial' => 'Commercial',
+                'Bank' => 'Commercial',
+                'Auto / Service Center' => 'Commercial',
+                'Auto Shop' => 'Commercial',
                 'Convenience Store' => 'Retail / Storefront',
-                'Gas Station' => 'Auto / Service Center',
-                'Grocery Store' => 'Shopping Center',
+                'Gas Station' => 'Commercial',
+                'Grocery Store' => 'Retail / Storefront',
                 'Pharmacy/Drug' => 'Retail / Storefront',
-                'Commercial Lot' => 'Commercial Building',
-            ],
-            'Industrial / Warehouse' => [
+                'Commercial Building' => 'Commercial',
                 'Warehouse' => 'Warehouse / Storage',
-                'Distribution' => 'Logistics / Distribution',
-                'Logistics' => 'Logistics / Distribution',
-                'Flex' => 'Light Industrial',
-                'Manufacturing' => 'Factory / Manufacturing',
-                'Factory' => 'Factory / Manufacturing',
-                'R&D' => 'Light Industrial',
-                'Industrial Lot' => 'Light Industrial',
-            ],
-            'Office' => [
-                'Traditional Office' => 'Corporate Office',
+                'Logistics / Distribution' => 'Industrial / Warehouse',
+                'Distribution' => 'Industrial / Warehouse',
+                'Factory / Manufacturing' => 'Industrial / Warehouse',
+                'Factory' => 'Industrial / Warehouse',
+                'Manufacturing' => 'Industrial / Warehouse',
+                'Light Industrial' => 'Industrial / Warehouse',
+                'Cold Storage' => 'Industrial / Warehouse',
+                'Flex' => 'Industrial / Warehouse',
+                'R&D' => 'Industrial / Warehouse',
+                'BPO / IT-BPM' => 'Office',
+                'BPO' => 'Office',
+                'Traditional Office' => 'Office',
                 'Executive Office' => 'Corporate Office',
-                'Creative Office' => 'Corporate Office',
-                'Medical Office' => 'Medical Office',
-                'BPO' => 'BPO / IT-BPM',
-            ],
-            'Residential' => [
-                'Student Housing' => 'Apartment Building',
-                'Single Family Rental Portfolio' => 'Housing Development',
-                'RV Park' => 'Residential Compound',
-                'Apartment Building' => 'Apartment Building',
-                'Residential Lot' => 'Housing Development',
-            ],
-            'Hospitality / Tourism' => [
-                'Hotel' => 'Hotel',
-                'Motel' => 'Lodging / Inn',
-                'Casino' => 'Resort',
+                'Creative Office' => 'Office',
+                'Medical Office' => 'Office',
+                'Business Center' => 'Office',
+                'Coworking Space' => 'Office',
+                'Student Housing' => 'Residential',
+                'Single Family Rental Portfolio' => 'Residential',
+                'RV Park' => 'Residential',
+                'Condominium' => 'Residential',
+                'Housing Development' => 'Residential',
+                'Townhouse / Multi-Unit' => 'Residential',
+                'Residential Compound' => 'Residential',
+                'Hotel' => 'Hospitality / Tourism',
+                'Resort' => 'Hospitality / Tourism',
+                'Ecotourism' => 'Hospitality / Tourism',
+                'Lodging / Inn' => 'Hospitality / Tourism',
+                'Motel' => 'Hospitality / Tourism',
+                'Bed & Breakfast' => 'Hospitality / Tourism',
+                'Casino' => 'Hospitality / Tourism',
+                'Commercial-Residential' => 'Mixed-Use',
+                'Office-Commercial' => 'Mixed-Use',
+                'Mixed Commercial Complex' => 'Mixed-Use',
+                'Institutional / Government' => 'Special Purpose',
+                'Educational / School' => 'Special Purpose',
+                'Healthcare / Hospital' => 'Special Purpose',
+                'Sports / Recreation' => 'Special Purpose',
+                'Infrastructure / Utility' => 'Special Purpose',
+                'Parking Facility' => 'Special Purpose',
             ],
         ];
 
-        $subcategory = $subcategory === null || trim($subcategory) === '' ? null : trim($subcategory);
-        if ($subcategory !== null) {
-            $parts = array_values(array_unique(array_filter(
-                array_map('trim', explode(',', $subcategory)),
-                static fn (string $item): bool => $item !== ''
-            )));
-            if (empty($parts)) {
-                $subcategory = null;
-            } else {
-                $normalizedParts = [];
-                foreach ($parts as $part) {
-                    $resolved = $legacySubcategoryMap[$category][$part] ?? $part;
-                    if (!in_array($resolved, $categories[$category], true)) {
-                        throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
-                    }
-                    $normalizedParts[] = $resolved;
-                }
-                $subcategory = implode(', ', array_unique($normalizedParts));
+        // These were accepted by the original, broader category catalog. Their
+        // meaning is defined by the explicit old category, never by Building or
+        // Land alone; a new Building + Commercial Lot pair remains invalid.
+        $legacyContextAliases = [
+            'Vacant Land' => ['Commercial' => 'Commercial Lot', 'Industrial' => 'Industrial Lot', 'Residential' => 'Residential Lot', 'Logistics' => 'Industrial Lot'],
+            'Commercial' => ['Commercial Lot' => 'Commercial'],
+            'Retail' => ['Commercial Lot' => 'Commercial'],
+            'Business for Sale' => ['Commercial Lot' => 'Commercial'],
+            'Industrial / Warehouse' => ['Industrial Lot' => 'Industrial / Warehouse', 'Logistics' => 'Industrial / Warehouse'],
+            'Industrial' => ['Industrial Lot' => 'Industrial / Warehouse', 'Logistics' => 'Industrial / Warehouse'],
+            'Self Storage' => ['Industrial Lot' => 'Industrial / Warehouse', 'Logistics' => 'Industrial / Warehouse'],
+            'Residential' => ['Residential Lot' => 'Residential'],
+            'Multifamily' => ['Residential Lot' => 'Residential'],
+            'Senior Living' => ['Residential Lot' => 'Residential'],
+            'Mobile Home Park' => ['Residential Lot' => 'Residential'],
+        ];
+
+        return [
+            'categories' => self::categories(),
+            'categoryAliases' => $legacyAliases,
+            'subcategoryAliases' => $legacySubcategoryMap,
+            'legacySubcategoryAliases' => $legacyContextAliases,
+        ];
+    }
+
+    public static function normalizeCategory(?string $category, ?string $subcategory, string $legacyType): array
+    {
+        $catalog = self::classificationCatalog();
+        $categories = $catalog['categories'];
+        $categoryInput = $category === null ? '' : self::classificationKey($category);
+        $contextAliases = [];
+        foreach ($catalog['legacySubcategoryAliases'] as $legacyCategory => $aliases) {
+            if (self::classificationKey($legacyCategory) === $categoryInput) {
+                $contextAliases = $aliases;
+                break;
             }
         }
-        return [$category, $subcategory];
+        $parts = $subcategory === null ? [] : array_values(array_filter(
+            array_map('trim', explode(',', $subcategory)),
+            static fn (string $item): bool => $item !== ''
+        ));
+
+        if ($categoryInput === '') {
+            // A missing historical category can be inferred only if every
+            // supplied classification is valid for the same single category.
+            $candidates = [];
+            if ($parts !== []) {
+                foreach ($categories as $candidate => $allowed) {
+                    $valid = true;
+                    foreach ($parts as $part) {
+                        if (self::resolveClassification($part, $allowed, $catalog['subcategoryAliases'][$candidate]) === null) {
+                            $valid = false;
+                            break;
+                        }
+                    }
+                    if ($valid) {
+                        $candidates[] = $candidate;
+                    }
+                }
+            }
+            $category = count($candidates) === 1 ? $candidates[0] : match (strtolower(trim($legacyType))) {
+                'commercial', 'retail', 'office', 'bpo', 'industrial', 'warehouse', 'manufacturing', 'logistics', 'hotel', 'hospitality', 'residential', 'mixed_use', 'mixed use' => 'Building',
+                default => 'Land',
+            };
+        } else {
+            $category = null;
+            foreach (array_keys($categories) as $canonical) {
+                if (self::classificationKey($canonical) === $categoryInput) {
+                    $category = $canonical;
+                    break;
+                }
+            }
+            if ($category === null) {
+                foreach ($catalog['categoryAliases'] as $alias => $canonical) {
+                    if (self::classificationKey($alias) === $categoryInput) {
+                        $category = $canonical;
+                        break;
+                    }
+                }
+            }
+            if ($category === null) {
+                throw new InvalidArgumentException('Choose a valid property category.');
+            }
+        }
+
+        $normalizedParts = [];
+        foreach ($parts as $part) {
+            $resolved = self::resolveClassification($part, $categories[$category], $contextAliases + $catalog['subcategoryAliases'][$category]);
+            if ($resolved === null) {
+                throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
+            }
+            $normalizedParts[] = $resolved;
+        }
+        return [$category, $normalizedParts === [] ? null : implode(', ', array_unique($normalizedParts))];
+    }
+
+    private static function classificationKey(string $value): string
+    {
+        return strtolower(trim((string) preg_replace('/\s+/', ' ', $value)));
+    }
+
+    private static function resolveClassification(string $value, array $allowed, array $aliases): ?string
+    {
+        $key = self::classificationKey($value);
+        // Category-specific historical aliases take precedence where an old
+        // generic label now also appears as a canonical option.
+        foreach ($aliases as $alias => $canonical) {
+            if (self::classificationKey($alias) === $key && in_array($canonical, $allowed, true)) {
+                return $canonical;
+            }
+        }
+        foreach ($allowed as $canonical) {
+            if (self::classificationKey($canonical) === $key) {
+                return $canonical;
+            }
+        }
+        return null;
     }
 
     public static function clupUseTypes(?\PDO $pdo = null): array

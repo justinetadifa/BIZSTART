@@ -1,0 +1,151 @@
+const fs = require('fs');
+const path = require('path');
+
+let failures = 0;
+let testsRun = 0;
+
+function assert(condition, message) {
+  testsRun++;
+  if (!condition) {
+    console.error(`❌ FAIL: ${message}`);
+    failures++;
+  } else {
+    console.log(`✅ PASS: ${message}`);
+  }
+}
+
+console.log('=== Step 3 Economic Viability Frontend Test Suite ===\n');
+
+// 1. View Template Inspection
+const viewPath = path.join(__dirname, '../app/Support/property-wizard-view.php');
+const viewHtml = fs.readFileSync(viewPath, 'utf8');
+
+assert(viewHtml.includes('id="pwCriterionEconomic"'), 'View contains #pwCriterionEconomic pane');
+assert(viewHtml.includes('pw-econ-from-details'), 'View contains pw-econ-from-details card');
+assert(viewHtml.includes('data-econ-from-purpose'), 'View contains data-econ-from-purpose');
+assert(viewHtml.includes('data-econ-from-price'), 'View contains data-econ-from-price');
+assert(viewHtml.includes('data-econ-from-area'), 'View contains data-econ-from-area');
+
+// Section 1: BIR Zonal Valuation
+assert(viewHtml.includes('1. BIR Zonal Valuation'), 'View contains 1. BIR Zonal Valuation heading');
+assert(viewHtml.includes('id="pwBirZonalValue"'), 'View contains #pwBirZonalValue input');
+assert(viewHtml.includes('pw-badge-source-req'), 'View contains Source required for verification badge');
+
+// Section 2: Additional Valuation References
+assert(viewHtml.includes('2. Additional Valuation References'), 'View contains 2. Additional Valuation References heading');
+assert(viewHtml.includes('id="pwComparableMarketPrice"'), 'View contains #pwComparableMarketPrice input');
+assert(viewHtml.includes('id="pwLguValuationType"'), 'View contains #pwLguValuationType select');
+assert(viewHtml.includes('id="pwLguValuationAmount"'), 'View contains #pwLguValuationAmount input');
+assert(viewHtml.includes('pw-econ-details'), 'View contains single expandable supporting details disclosure');
+
+// Section 3: Automatic Price Analysis Card
+assert(viewHtml.includes('data-econ-preview-card'), 'View contains data-econ-preview-card');
+assert(viewHtml.includes('data-econ-asking-sqm'), 'View contains data-econ-asking-sqm');
+assert(viewHtml.includes('data-econ-bir-sqm'), 'View contains data-econ-bir-sqm');
+assert(viewHtml.includes('data-econ-total-bir'), 'View contains data-econ-total-bir');
+assert(viewHtml.includes('data-econ-bir-diff'), 'View contains data-econ-bir-diff');
+assert(viewHtml.includes('data-econ-area-discrepancy'), 'View contains data-econ-area-discrepancy alert');
+assert(viewHtml.includes('data-econ-reset-example'), 'View contains data-econ-reset-example button');
+
+// Important methodology callout
+assert(viewHtml.includes('A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability'), 'View contains mandatory BIR difference explanatory callout');
+
+// 2. CSS Stylesheet Inspection
+const cssPath = path.join(__dirname, '../assets/css/property-wizard.css');
+const cssContent = fs.readFileSync(cssPath, 'utf8');
+
+assert(cssContent.includes('.property-wizard .pw-econ-card'), 'CSS contains .pw-econ-card');
+assert(cssContent.includes('.property-wizard .pw-econ-from-details'), 'CSS contains .pw-econ-from-details');
+assert(cssContent.includes('.property-wizard .pw-econ-preview-card'), 'CSS contains .pw-econ-preview-card');
+assert(cssContent.includes('.property-wizard .pw-econ-callout'), 'CSS contains .pw-econ-callout');
+assert(cssContent.includes('.property-wizard .pw-econ-warning'), 'CSS contains .pw-econ-warning');
+
+// 3. JS Client Evaluator Logic
+const jsPath = path.join(__dirname, '../assets/js/property-wizard.js');
+const jsContent = fs.readFileSync(jsPath, 'utf8');
+
+assert(jsContent.includes('function evaluateEconomicViabilityClient'), 'JS contains evaluateEconomicViabilityClient');
+assert(jsContent.includes('function syncEconomicViability'), 'JS contains syncEconomicViability');
+assert(jsContent.includes('data-econ-reset-example'), 'JS binds data-econ-reset-example click listener');
+
+// Extract evaluateEconomicViabilityClient function and run in VM
+const fnMatch = jsContent.match(/function evaluateEconomicViabilityClient\([\s\S]*?\n    \}/);
+assert(fnMatch !== null, 'Found evaluateEconomicViabilityClient function in property-wizard.js');
+
+// Helper dummy form context for VM evaluation
+const evaluatorFn = new Function('overrides', `
+  const form = {
+    querySelector: () => ({ value: 'amount' })
+  };
+  let estimatedArea = 0;
+  if (overrides && overrides.estimatedArea !== undefined) {
+    estimatedArea = overrides.estimatedArea;
+  }
+  const getListingPurpose = () => overrides?.listing_purpose || 'sale';
+  const enteredAreaSqm = () => overrides?.land_area || null;
+  const value = (name) => overrides?.[name] != null ? String(overrides[name]) : '';
+
+  ${fnMatch[0]}
+  return evaluateEconomicViabilityClient(overrides);
+`);
+
+// Test 3.1: Mockup conditions in client VM
+// Asking ₱9,000,000, Area 1,000 m², BIR ₱7,000/m²
+const clientMockup = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '9,000,000',
+  land_area: 1000,
+  bir_zonal_value: '7000',
+});
+
+assert(clientMockup.askingPricePerSqm === 9000, `Client asking price per sqm is 9,000 (actual: ${clientMockup.askingPricePerSqm})`);
+assert(clientMockup.totalBir === 7000000, `Client total BIR reference is 7,000,000 (actual: ${clientMockup.totalBir})`);
+assert(clientMockup.birDiffPct === 28.6, `Client BIR diff is 28.6% higher (actual: ${clientMockup.birDiffPct}%)`);
+assert(clientMockup.isComplete === false, 'Client assessment is incomplete without verified market comparables');
+assert(clientMockup.totalScore === null, 'Client score is null when market benchmark is missing');
+
+// Test 3.2: Lease conditions in client VM
+const clientLease = evaluatorFn({
+  listing_purpose: 'lease',
+  lease_price: '50,000',
+  land_area: 1000,
+  bir_zonal_value: '7000',
+});
+
+assert(clientLease.leasePricePerSqm === 50, `Client lease price per sqm is 50 (actual: ${clientLease.leasePricePerSqm})`);
+assert(clientLease.totalBir === 7000000, `Client lease total BIR reference is 7,000,000 (actual: ${clientLease.totalBir})`);
+
+// Test 3.3: Verified comparable market price in client VM
+const clientMarket = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '9,000,000',
+  land_area: 1000,
+  bir_zonal_value: '7000',
+  comparable_market_price: '9000',
+});
+
+assert(clientMarket.isComplete === true, 'Client assessment is complete with comparable market price');
+assert(clientMarket.totalScore === 100.0, 'Client score is 100.0 for matching market price');
+assert(clientMarket.iaiContribution === 20.00, 'Client IAI contribution is 20.00 pts (20% weight)');
+
+// Test 3.4: Area discrepancy flag in client VM (>25% diff)
+const clientDisc = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '9,000,000',
+  land_area: 1000,
+  estimatedArea: 500, // 50% discrepancy
+  bir_zonal_value: '7000',
+  comparable_market_price: '9000',
+});
+
+assert(clientDisc.isDiscrepancy === true, 'Client correctly flags area discrepancy when diff > 25%');
+assert(clientDisc.isComplete === false, 'Client keeps assessment incomplete when area discrepancy is flagged');
+
+console.log(`\nSummary: ${testsRun - failures}/${testsRun} tests passed.`);
+if (failures > 0) {
+  console.error(`❌ ${failures} test(s) failed.`);
+  process.exit(1);
+} else {
+  console.log('✅ All Economic Viability frontend tests passed successfully!');
+  process.exit(0);
+}

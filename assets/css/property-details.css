@@ -71,6 +71,23 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 .property-photo:hover img{transform:scale(1.02)}
 .property-photo figcaption{position:absolute;left:16px;bottom:16px;background:rgba(15,23,42,0.84);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;border:1px solid rgba(255,255,255,0.18);border-radius:9999px;padding:6px 16px;max-width:calc(100% - 32px);font-size:11.5px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,0.2)}
 
+/* Multi-photo Property Gallery */
+.property-gallery-container{display:flex!important;flex-direction:column!important;height:auto!important;min-height:350px!important;gap:10px;background:transparent!important;border:none!important;box-shadow:none!important}
+.property-gallery-stage{position:relative;width:100%;height:320px;border-radius:20px;overflow:hidden;background:#0f172a;border:1px solid rgba(226,232,240,0.85);box-shadow:0 4px 18px -2px rgba(15,23,42,0.06)}
+.property-gallery-stage img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .25s ease}
+.property-gallery-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:rgba(15,23,42,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;cursor:pointer;z-index:10;transition:background-color .15s ease,transform .15s ease,opacity .15s ease;user-select:none}
+.property-gallery-nav:hover{background:rgba(15,23,42,0.95);transform:translateY(-50%) scale(1.08)}
+.property-gallery-nav.is-prev{left:14px}
+.property-gallery-nav.is-next{right:14px}
+.property-gallery-counter{position:absolute;top:14px;right:14px;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:9999px;border:1px solid rgba(255,255,255,0.2);letter-spacing:.5px;z-index:10}
+.property-gallery-thumbnails{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+.property-gallery-thumbnails::-webkit-scrollbar{height:5px}
+.property-gallery-thumbnails::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+.property-gallery-thumb-btn{flex:0 0 76px;height:52px;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;background:#f1f5f9;padding:0;cursor:pointer;transition:border-color .15s ease,transform .15s ease,opacity .15s ease;opacity:.65}
+.property-gallery-thumb-btn:hover{opacity:.9;border-color:#94a3b8;transform:translateY(-1px)}
+.property-gallery-thumb-btn.is-active{opacity:1;border-color:#1a56db;box-shadow:0 0 0 2px rgba(26,86,219,0.2);transform:translateY(-1px)}
+.property-gallery-thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
+
 /* Row 1: Listing Assistance / Contact Card */
 .property-contact{grid-area:contact;min-height:350px;border:1px solid rgba(226,232,240,0.85);border-radius:20px;padding:24px 26px;background:#fff;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
 .property-contact .property-kicker{display:block;margin-bottom:6px}

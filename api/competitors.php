@@ -9,22 +9,15 @@ use App\Support\SurroundingsRadar;
 use App\Support\NearbyBusinesses;
 
 api_handle(function (array $container): array {
-    $rawLat = $_GET['lat'] ?? null;
-    $rawLng = $_GET['lng'] ?? null;
-
-    if ($rawLat !== null && $rawLng !== null && is_numeric($rawLat) && is_numeric($rawLng)) {
-        $lat = (float) $rawLat;
-        $lng = (float) $rawLng;
-        $radius = isset($_GET['radius']) && is_numeric($_GET['radius']) ? (int) $_GET['radius'] : 500;
-        $businessType = is_string($_GET['type'] ?? null) ? trim((string) $_GET['type']) : 'cafe';
-
+    $parameters = SurroundingsRadar::queryParameters($_GET);
+    if ($parameters !== null) {
         try {
-            return SurroundingsRadar::search($lat, $lng, $radius, $businessType);
+            return SurroundingsRadar::search($parameters['lat'], $parameters['lng'], $parameters['radius'], $parameters['type']);
         } catch (Throwable $e) {
             return [
                 503,
                 [
-                    'error' => 'Unable to load nearby data. ' . $e->getMessage(),
+                    'error' => 'Unable to load nearby data. Please retry.',
                     'canRetry' => true,
                     'type' => 'FeatureCollection',
                     'features' => [],

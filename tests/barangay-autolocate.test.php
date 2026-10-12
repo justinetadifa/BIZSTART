@@ -68,7 +68,7 @@ assertCheck(abs($brgy4Search['results'][0]['lat'] - 16.6143) < 0.001, 'Barangay 
 $pwJs = (string)file_get_contents(__DIR__ . '/../assets/js/property-wizard.js');
 assertCheck(strpos($pwJs, 'BARANGAY_COORDINATES') !== false, 'property-wizard.js contains BARANGAY_COORDINATES');
 assertCheck(strpos($pwJs, 'proceedToBarangay') !== false, 'property-wizard.js contains proceedToBarangay()');
-assertCheck(strpos($pwJs, 'lookupBarangay') !== false, 'property-wizard.js contains lookupBarangay()');
+assertCheck(strpos($pwJs, 'barangayMatches') !== false && strpos($pwJs, 'lookupExactBarangay') !== false, 'property-wizard.js distinguishes exact barangays from multiple partial matches');
 
 $adminLocJs = (string)file_get_contents(__DIR__ . '/../assets/js/admin-location.js');
 assertCheck(strpos($adminLocJs, 'proceedToBarangay') !== false, 'admin-location.js contains proceedToBarangay()');

@@ -189,6 +189,46 @@ function store_uploaded_public_image(?array $file, string $folder = 'properties'
     return $relativeDirectory . '/' . $fileName;
 }
 
+function store_uploaded_property_images(mixed $files): array
+{
+    $items = normalize_uploaded_files_array(is_array($files) ? $files : null);
+    $paths = [];
+    foreach ($items as $item) {
+        $stored = store_uploaded_public_image($item, 'properties');
+        if ($stored !== null) {
+            $paths[] = $stored;
+        }
+    }
+    return $paths;
+}
+
+function normalize_uploaded_files_array(?array $files): array
+{
+    if ($files === null || !is_array($files) || !isset($files['name'])) {
+        return [];
+    }
+    if (!is_array($files['name'])) {
+        if (($files['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return [];
+        }
+        return [$files];
+    }
+    $normalized = [];
+    foreach ($files['name'] as $index => $name) {
+        if (($files['error'][$index] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $normalized[] = [
+            'name' => $name,
+            'type' => $files['type'][$index] ?? '',
+            'tmp_name' => $files['tmp_name'][$index] ?? '',
+            'error' => $files['error'][$index] ?? UPLOAD_ERR_OK,
+            'size' => $files['size'][$index] ?? 0,
+        ];
+    }
+    return $normalized;
+}
+
 function store_uploaded_property_image(?array $file): ?string
 {
     return store_uploaded_public_image($file, 'properties');

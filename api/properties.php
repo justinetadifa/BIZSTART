@@ -5,6 +5,7 @@ require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
+require_once dirname(__DIR__) . '/app/Support/PropertyMediaSelection.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -37,12 +38,23 @@ api_handle(function (array $container): array {
         if (!sfc_can_manage_properties($user) && !sfc_broker_can_submit($user) && \App\Support\PropertyEvidenceFiles::uploadEntries($_FILES['evidence_files'] ?? null) !== []) {
             return [403, ['error' => 'A city department or approved broker account is required to attach assessment evidence.']];
         }
-        $payload = sfc_listing_payload(read_request_input(), $user, true);
+        $input = read_request_input();
+        $payload = sfc_listing_payload($input, $user, true);
         $payload = \App\Support\PropertyNearby::withUploads($payload, $_FILES);
-        $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
-        if ($image !== null) {
-            $payload['image_path'] = $image;
+        $uploadedImages = [];
+        if (!empty($_FILES['image_files'])) {
+            $uploadedImages = store_uploaded_property_images($_FILES['image_files']);
+        } elseif (!empty($_FILES['image_file'])) {
+            $single = store_uploaded_property_image($_FILES['image_file']);
+            if ($single !== null) {
+                $uploadedImages[] = $single;
+            }
         }
+        if ($uploadedImages !== []) {
+            $payload['image_path'] = $uploadedImages[0];
+            $payload['gallery_images'] = $uploadedImages;
+        }
+        $payload = \App\Support\PropertyMediaSelection::withUploads($payload, $input, $uploadedImages);
         $evidence = ['created' => []];
         if (sfc_can_manage_properties($user) || sfc_broker_can_submit($user)) {
             $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null);
@@ -52,7 +64,7 @@ api_handle(function (array $container): array {
         $authorityFile = \App\Support\PropertyAuthorityToSellFiles::stage($_FILES['authority_to_sell_file'] ?? null);
         if ($authorityFile !== null) {
             $payload['authority_to_sell'] = $authorityFile;
-        } elseif (($user['role'] ?? '') === 'seller' && empty($payload['authority_to_sell'])) {
+        } elseif (($user['role'] ?? '') === 'seller' && empty($payload['authority_to_sell']) && ($payload['approval_state'] ?? '') !== 'draft') {
             return [422, ['error' => 'Upload proof of Authority to Sell (PDF, JPG, JPEG, or PNG) before submitting this property.']];
         }
         try {

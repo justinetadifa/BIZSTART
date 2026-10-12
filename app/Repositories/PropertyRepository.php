@@ -34,14 +34,23 @@ final class PropertyRepository
         'institutional' => 18,
         'legal' => 20,
     ];
-    private const DOCUMENT_REQUIREMENTS = [
-        ['key' => 'title_copy', 'label' => 'Title Copy'],
-        ['key' => 'tax_declaration', 'label' => 'Tax Declaration'],
-        ['key' => 'survey_plan', 'label' => 'Survey Plan'],
-        ['key' => 'zoning_clearance', 'label' => 'Zoning Clearance'],
+    public const SUBMISSION_DOCUMENT_REQUIREMENTS = [
         ['key' => 'site_photos', 'label' => 'Site Photos'],
+        ['key' => 'zoning_clearance', 'label' => 'Zoning Clearance'],
         ['key' => 'hazard_report', 'label' => 'Hazard / Environmental Report'],
     ];
+
+    public const BROKER_DOCUMENT_REQUIREMENTS = [
+        ['key' => 'authority_to_sell', 'label' => 'Authority to Sell (ATS)'],
+    ];
+
+    public const DUE_DILIGENCE_DOCUMENT_REQUIREMENTS = [
+        ['key' => 'title_copy', 'label' => 'Title Copy (Restricted Due Diligence)'],
+        ['key' => 'tax_declaration', 'label' => 'Tax Declaration (Restricted Due Diligence)'],
+        ['key' => 'survey_plan', 'label' => 'Survey Plan (Technical Due Diligence)'],
+    ];
+
+    private const DOCUMENT_REQUIREMENTS = self::SUBMISSION_DOCUMENT_REQUIREMENTS;
     private const DOCUMENT_PROGRESS = [
         'missing' => 0,
         'requested' => 25,
@@ -101,18 +110,18 @@ final class PropertyRepository
 
         $statement = $this->pdo->prepare(
             'INSERT INTO properties (
-                name, city, lat, lng, area, listing_purpose, price, lease_price, lease_period, lease_price_unit, price_per_sqm, status, approval_state, score, type, corridor,
+                name, subname, city, lat, lng, area, listing_purpose, price, lease_price, lease_period, lease_price_unit, price_per_sqm, status, approval_state, score, type, corridor,
                 tags_json, facilities_json, road_access, image_url, description, barangay, owner_contact_json,
                 documents_json, seller_user_id, documents_reviewed_at, site_verified_at, last_confirmed_available_at,
-                dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification,
+                dist_to_road_km, utility_status, zoning_score, existing_land_use, zoning_classification, proposed_activity,
                 clup_allowed_uses_json, clup_conditional_uses_json, clup_restricted_uses_json, clup_source_reference,
                 clup_verified_at, assessed_value_sqm, readiness_notes,
                 category, subcategory, assessment_json, automatic_assessment_json, legacy_assessment_json, assessment_tags_json, nearby_properties_json, parcel_json, contact_mode, contact_broker_user_id, review_note, created_by_user_id
             ) VALUES (
-                :name, :city, :lat, :lng, :area, :listing_purpose, :price, :lease_price, :lease_period, :lease_price_unit, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
+                :name, :subname, :city, :lat, :lng, :area, :listing_purpose, :price, :lease_price, :lease_period, :lease_price_unit, :price_per_sqm, :status, :approval_state, :score, :type, :corridor,
                 :tags_json, :facilities_json, :road_access, :image_url, :description, :barangay, :owner_contact_json,
                 :documents_json, :seller_user_id, :documents_reviewed_at, :site_verified_at, :last_confirmed_available_at,
-                :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification,
+                :dist_to_road_km, :utility_status, :zoning_score, :existing_land_use, :zoning_classification, :proposed_activity,
                 :clup_allowed_uses_json, :clup_conditional_uses_json, :clup_restricted_uses_json, :clup_source_reference,
                 :clup_verified_at, :assessed_value_sqm, :readiness_notes,
                 :category, :subcategory, :assessment_json, :automatic_assessment_json, :legacy_assessment_json, :assessment_tags_json, :nearby_properties_json, :parcel_json, :contact_mode, :contact_broker_user_id, :review_note, :created_by_user_id
@@ -125,7 +134,8 @@ final class PropertyRepository
             $statement->execute($property);
             $propertyId = (int) $this->pdo->lastInsertId();
 
-            $this->syncPrimaryMedia($propertyId, $property['image_url'], $property['name']);
+            $gallery = isset($payload['gallery_images']) && is_array($payload['gallery_images']) ? $payload['gallery_images'] : [];
+            $this->syncPropertyMedia($propertyId, $property['image_url'], $property['name'], $gallery, null, false, $payload['cover_media_id'] ?? null, $payload['cover_image_path'] ?? null);
             $this->ensureDueDiligenceRecord($propertyId);
             $created = $this->rawPropertyRow($propertyId, null, false);
             $this->recordPropertyAudit('CREATE', $propertyId, null, $created, $actor);
@@ -150,6 +160,7 @@ final class PropertyRepository
         $statement = $this->pdo->prepare(
             'UPDATE properties SET
                 name = :name,
+                subname = :subname,
                 city = :city,
                 lat = :lat,
                 lng = :lng,
@@ -182,6 +193,7 @@ final class PropertyRepository
                 zoning_score = :zoning_score,
                 existing_land_use = :existing_land_use,
                 zoning_classification = :zoning_classification,
+                proposed_activity = :proposed_activity,
                 clup_allowed_uses_json = :clup_allowed_uses_json,
                 clup_conditional_uses_json = :clup_conditional_uses_json,
                 clup_restricted_uses_json = :clup_restricted_uses_json,
@@ -207,7 +219,10 @@ final class PropertyRepository
 
         try {
             $statement->execute($property);
-            $this->syncPrimaryMedia($propertyId, $property['image_url'], $property['name']);
+            $gallery = isset($payload['gallery_images']) && is_array($payload['gallery_images']) ? $payload['gallery_images'] : [];
+            $retainedMediaIds = isset($payload['retained_media_ids']) ? (array) $payload['retained_media_ids'] : null;
+            $removeImage = filter_var($payload['remove_image'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $this->syncPropertyMedia($propertyId, $property['image_url'], $property['name'], $gallery, $retainedMediaIds, $removeImage, $payload['cover_media_id'] ?? null, $payload['cover_image_path'] ?? null);
             $this->ensureDueDiligenceRecord($propertyId);
             $updated = $this->rawPropertyRow($propertyId, null, false);
             $this->recordPropertyAudit('EDIT', $propertyId, $existing, $updated, $actor);
@@ -550,13 +565,13 @@ final class PropertyRepository
         return array_map(function (array $row) use ($mediaMap, $documentRequestSummaryMap, $dueDiligenceSummaryMap, $groundTruthSummaryMap, $priceBenchmarkMap, $assessmentRanks): array {
             $propertyId = (int) $row['id'];
             $media = $mediaMap[$propertyId] ?? [];
+            $isBrokerListing = isset($row['seller_user_id']) && (int) $row['seller_user_id'] > 0;
             $rawDocs = $this->decodeJson($row['documents_json'] ?? '{}');
-            $documentStatuses = $this->normalizeDocumentStatuses($rawDocs);
+            $documentStatuses = $this->normalizeDocumentStatuses($rawDocs, $isBrokerListing);
             $authorityToSell = \App\Support\PropertyAuthorityToSellFiles::normalize($rawDocs['authority_to_sell'] ?? null);
             $authorityStatus = $authorityToSell['status'] ?? 'pending_review';
             $isAuthorityValidated = $authorityToSell !== null && $authorityStatus === 'validated';
             $approvalState = $this->normalizeApprovalState((string) ($row['approval_state'] ?? 'approved'));
-            $isBrokerListing = isset($row['seller_user_id']) && (int) $row['seller_user_id'] > 0;
             $propertyReviewStatus = 'Published';
             if ($approvalState !== 'approved') {
                 if ($isBrokerListing && (!$authorityToSell || $authorityStatus !== 'validated')) {
@@ -650,7 +665,7 @@ final class PropertyRepository
                         'lng' => float_or_null($row['lng'] ?? null),
                         'category' => $catFallback,
                         'subcategory' => $subcatFallback,
-                        'landArea' => float_or_null($row['area'] ?? null),
+                        'landArea' => $this->effectiveAreaHectares($row),
                     ]);
                     if ($evaluated['mceScore'] !== null) {
                         $assessment = $evaluated;
@@ -668,14 +683,16 @@ final class PropertyRepository
             return array_merge([
                 'id' => $propertyId,
                 'name' => (string) $row['name'],
+                'subname' => string_or_null($row['subname'] ?? null),
                 'propertyName' => (string) $row['name'],
+                'propertySubname' => string_or_null($row['subname'] ?? null),
                 'city' => (string) ($row['city'] ?? self::DEFAULT_CITY),
                 'lat' => float_or_null($row['lat'] ?? null),
                 'lng' => float_or_null($row['lng'] ?? null),
                 'hasExactLocation' => isset($row['lat'], $row['lng']),
-                'area' => float_or_null($row['area'] ?? null),
-                'landArea' => float_or_null($row['area'] ?? null),
-                'areaKnown' => isset($row['area']) && (float) $row['area'] > 0,
+                'area' => $this->effectiveAreaHectares($row),
+                'landArea' => $this->effectiveAreaHectares($row),
+                'areaKnown' => $this->effectiveAreaHectares($row) !== null && $this->effectiveAreaHectares($row) > 0,
                 'listingPurpose' => (string) ($row['listing_purpose'] ?? 'sale'),
                 'price' => isset($row['price']) ? (int) $row['price'] : null,
                 'salePrice' => isset($row['price']) ? (int) $row['price'] : null,
@@ -735,6 +752,7 @@ final class PropertyRepository
                 'clupProfile' => [
                     'existingLandUse' => string_or_null($row['existing_land_use'] ?? null),
                     'zoningClassification' => string_or_null($row['zoning_classification'] ?? null),
+                    'proposedActivity' => string_or_null($row['proposed_activity'] ?? null),
                     'allowedUses' => $clupAllowedUses,
                     'conditionalUses' => $clupConditionalUses,
                     'restrictedUses' => $clupRestrictedUses,
@@ -990,7 +1008,7 @@ final class PropertyRepository
     private function priceBenchmarkMap(): array
     {
         $statement = $this->pdo->query(
-            'SELECT type, listing_purpose, price, area, price_per_sqm
+            'SELECT type, listing_purpose, price, area, price_per_sqm, parcel_json
              FROM properties
              WHERE deleted_at IS NULL
                AND archived_at IS NULL
@@ -1034,10 +1052,14 @@ final class PropertyRepository
         if ($name === null) {
             throw new InvalidArgumentException('Property name is required.');
         }
+        $subname = string_or_null($payload['property_subname'] ?? $payload['subname'] ?? ($existing['subname'] ?? null));
 
         $city = string_or_null($payload['city'] ?? ($existing['city'] ?? null)) ?? self::DEFAULT_CITY;
         $barangay = string_or_null($payload['barangay'] ?? ($existing['barangay'] ?? null));
         $type = string_or_null($payload['property_type'] ?? $payload['type'] ?? ($existing['type'] ?? null));
+        if ($type === null && !empty($payload['category'])) {
+            $type = 'commercial';
+        }
         if ($type === null) {
             throw new InvalidArgumentException('Property type is required.');
         }
@@ -1068,10 +1090,18 @@ final class PropertyRepository
         $effectiveSqm = $parcel['surveyAreaSqm'] ?? $parcel['estimatedAreaSqm'];
         $retainHistoricalArea = !array_key_exists('boundary', $payload) && ($payload['land_area'] ?? $payload['area'] ?? null) === null;
         $area = $effectiveSqm !== null ? $effectiveSqm / 10000 : ($retainHistoricalArea ? float_or_null($existing['area'] ?? null) : null);
-        if ($area !== null && (!is_finite($area) || $area <= 0 || round($area, 4) <= 0)) {
+        if ($area !== null && (!is_finite($area) || $area > PropertyParcel::MAX_AREA_HECTARES)) {
+            throw new InvalidArgumentException('Land area exceeds the supported maximum of 99,999,999.9999 hectares.');
+        }
+        if ($area !== null && $area <= 0) {
             throw new InvalidArgumentException('Land area must be greater than zero.');
         }
-        // Assess and price the exact hectare value that DECIMAL(12, 4) stores.
+        if ($area !== null && round($area, 4) <= 0) {
+            throw new InvalidArgumentException('Land area must be at least 0.5 square meters.');
+        }
+        // Parcel JSON retains square-meter precision for valuation and pricing;
+        // the legacy hectare column remains compatible with its storage scale.
+        $assessmentArea = $area;
         $area = $area === null ? null : round($area, 4);
 
         $storedScore = int_or_null($payload['score'] ?? $payload['market_score'] ?? $payload['marketScore'] ?? ($existing['score'] ?? null));
@@ -1088,7 +1118,7 @@ final class PropertyRepository
             || ($lat === null) !== ($lng === null) || ($lat !== null && (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180))) {
             throw new InvalidArgumentException('Provide both valid latitude and longitude, or leave both blank.');
         }
-        if ($area === null && $lat === null) {
+        if ($area === null && $lat === null && $approvalState !== 'draft') {
             throw new InvalidArgumentException('Enter a positive area size or select the exact property location. Drawing a boundary is optional.');
         }
         // Preview, evidence and change detection must use the persisted coordinate precision.
@@ -1116,10 +1146,13 @@ final class PropertyRepository
             $existing ? $this->decodeExistingValue($existing['owner_contact_json'] ?? null) : null,
             $name
         );
+        $sellerUserId = int_or_null($payload['seller_user_id'] ?? $payload['sellerUserId'] ?? ($existing['seller_user_id'] ?? null));
+        $isBrokerListing = $sellerUserId !== null && $sellerUserId > 0;
         $existingDocs = $existing ? $this->decodeExistingValue($existing['documents_json'] ?? null) : [];
         $existingDocs = is_array($existingDocs) ? $existingDocs : [];
         $documents = $this->normalizeDocumentStatuses(
-            $payload['document_statuses'] ?? $payload['documentStatuses'] ?? $existingDocs
+            $payload['document_statuses'] ?? $payload['documentStatuses'] ?? $existingDocs,
+            $isBrokerListing
         );
         $authorityInput = $payload['authority_to_sell'] ?? $payload['authorityToSell'] ?? ($existingDocs['authority_to_sell'] ?? null);
         if ($authorityInput !== null && is_array($authorityInput)) {
@@ -1128,7 +1161,6 @@ final class PropertyRepository
                 $documents['authority_to_sell'] = $normalizedAuth;
             }
         }
-        $sellerUserId = int_or_null($payload['seller_user_id'] ?? $payload['sellerUserId'] ?? ($existing['seller_user_id'] ?? null));
         $documentsReviewedAt = $this->normalizeFlagTimestamp(
             $payload['documents_reviewed'] ?? $payload['documentsReviewed'] ?? null,
             $payload['documents_reviewed_at'] ?? $payload['documentsReviewedAt'] ?? null,
@@ -1154,6 +1186,18 @@ final class PropertyRepository
         );
         $existingLandUse = string_or_null($payload['existing_land_use'] ?? $payload['existingLandUse'] ?? ($existing['existing_land_use'] ?? null));
         $zoningClassification = string_or_null($payload['zoning_classification'] ?? $payload['zoningClassification'] ?? ($existing['zoning_classification'] ?? null));
+        $proposedActivity = string_or_null($payload['proposed_activity'] ?? $payload['proposedActivity'] ?? ($existing['proposed_activity'] ?? null));
+        if ($zoningClassification !== null) {
+            $act = $proposedActivity ?? string_or_null($payload['category'] ?? ($existing['category'] ?? null));
+            if ($act !== null) {
+                $eval = \App\Support\ZoningRulesEngine::evaluate($zoningClassification, $act);
+                if ($eval['score'] !== null) {
+                    $zoningScore = (int) round($eval['score']);
+                } elseif ($eval['status'] === \App\Support\ZoningRulesEngine::STATUS_PROHIBITED) {
+                    $zoningScore = 0;
+                }
+            }
+        }
         $clupAllowedUses = $this->normalizeStringList(
             $payload['clup_allowed_uses'] ?? $payload['clupAllowedUses'] ?? $this->decodeExistingValue($existing['clup_allowed_uses_json'] ?? null),
             []
@@ -1176,24 +1220,47 @@ final class PropertyRepository
             $payload['assessed_value_sqm'] ?? $payload['assessedValueSqm'] ?? ($existing['assessed_value_sqm'] ?? null)
         );
         $readinessNotes = string_or_null($payload['readiness_notes'] ?? $payload['readinessNotes'] ?? ($existing['readiness_notes'] ?? null));
-        $rawSubcat = $payload['subcategory'] ?? ($existing['subcategory'] ?? null);
+        $rawCategory = array_key_exists('category', $payload) ? $payload['category'] : ($existing['category'] ?? null);
+        if ($rawCategory !== null && !is_string($rawCategory)) {
+            throw new InvalidArgumentException('Choose a valid property category.');
+        }
+        $rawSubcat = array_key_exists('subcategory', $payload) ? $payload['subcategory'] : ($existing['subcategory'] ?? null);
         if (is_array($rawSubcat)) {
+            foreach ($rawSubcat as $item) {
+                if (!is_string($item)) {
+                    throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
+                }
+            }
             $rawSubcat = implode(', ', array_filter(array_map('trim', $rawSubcat), static fn ($s) => $s !== ''));
+        } elseif ($rawSubcat !== null && !is_string($rawSubcat)) {
+            throw new InvalidArgumentException('Choose a subcategory belonging to the selected category.');
         }
         [$category, $subcategory] = PropertyCatalog::normalizeCategory(
-            string_or_null($payload['category'] ?? ($existing['category'] ?? null)),
+            string_or_null($rawCategory),
             string_or_null($rawSubcat),
             $type
         );
         $assessment = PropertyAssessment::normalize($this->decodeExistingValue($existing['assessment_json'] ?? null));
         $automaticJson = $existing['automatic_assessment_json'] ?? null;
         $legacyJson = $existing['legacy_assessment_json'] ?? null;
-        [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(
-            string_or_null($existing['category'] ?? null), string_or_null($existing['subcategory'] ?? null), (string) ($existing['type'] ?? $type)
-        );
+        try {
+            [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(
+                string_or_null($existing['category'] ?? null), string_or_null($existing['subcategory'] ?? null), (string) ($existing['type'] ?? $type)
+            );
+        } catch (InvalidArgumentException) {
+            // A valid user-selected repair must not fail while comparing against
+            // incompatible historical tags. New input was strictly checked above.
+            try {
+                [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(string_or_null($existing['category'] ?? null), null, (string) ($existing['type'] ?? $type));
+            } catch (InvalidArgumentException) {
+                [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(null, null, (string) ($existing['type'] ?? $type));
+            }
+        }
         $spatialChanged = $existing === null || $lat !== float_or_null($existing['lat'] ?? null)
             || $lng !== float_or_null($existing['lng'] ?? null)
             || $area !== float_or_null($existing['area'] ?? null)
+            || $assessmentArea !== $this->effectiveAreaHectares($existing ?? [])
+            || ($automaticJson && ($this->decodeJson($automaticJson)['inputs']['landArea'] ?? null) !== ($assessmentArea === null ? null : round($assessmentArea, 6)))
             || $category !== $oldCategory || $subcategory !== $oldSubcategory;
         if ($spatialChanged || filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
             if ($existing !== null && !$automaticJson && !$legacyJson && count(array_filter($assessment, static fn ($value): bool => $value !== null)) > 0) {
@@ -1204,9 +1271,15 @@ final class PropertyRepository
                         'landArea' => float_or_null($existing['area'] ?? null), 'category' => $oldCategory, 'subcategory' => $oldSubcategory],
                 ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             }
-            $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area]);
+            $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $assessmentArea]);
             $assessment = $automatic['assessmentCriteria'];
+            if ($zoningScore !== null) {
+                $assessment['zoning_compatibility'] = (float) $zoningScore;
+            }
             $automaticJson = json_encode($automatic, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
+        }
+        if ($zoningScore !== null) {
+            $assessment['zoning_compatibility'] = (float) $zoningScore;
         }
         $nearbyProperties = PropertyNearby::normalize($payload['nearbyProperties'] ?? $this->decodeExistingValue($existing['nearby_properties_json'] ?? null));
         $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
@@ -1237,6 +1310,7 @@ final class PropertyRepository
 
         return [
             'name' => $name,
+            'subname' => $subname,
             'city' => $city,
             'lat' => $lat,
             'lng' => $lng,
@@ -1246,7 +1320,7 @@ final class PropertyRepository
             'lease_price' => $leasePrice,
             'lease_period' => $leasePeriod,
             'lease_price_unit' => $leasePriceUnit,
-            'price_per_sqm' => $listingPurpose === 'lease' ? null : $this->pricePerSqm($price, $area),
+            'price_per_sqm' => $listingPurpose === 'lease' ? null : $this->pricePerSqm($price, $assessmentArea),
             'status' => $status,
             'approval_state' => $approvalState,
             'score' => $storedScore,
@@ -1269,6 +1343,7 @@ final class PropertyRepository
             'zoning_score' => $zoningScore,
             'existing_land_use' => $existingLandUse,
             'zoning_classification' => $zoningClassification,
+            'proposed_activity' => $proposedActivity,
             'clup_allowed_uses_json' => json_encode($clupAllowedUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'clup_conditional_uses_json' => json_encode($clupConditionalUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'clup_restricted_uses_json' => json_encode($clupRestrictedUses, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -1384,10 +1459,10 @@ final class PropertyRepository
         return $clean !== [] ? $clean : $fallback;
     }
 
-    private function normalizeDocumentStatuses(mixed $value): array
+    private function normalizeDocumentStatuses(mixed $value, bool $isBrokerListing = false): array
     {
         $defaults = [];
-        foreach (self::DOCUMENT_REQUIREMENTS as $document) {
+        foreach (self::SUBMISSION_DOCUMENT_REQUIREMENTS as $document) {
             $defaults[$document['key']] = 'missing';
         }
 
@@ -1405,9 +1480,23 @@ final class PropertyRepository
             if ($normalizedKey === 'authority_to_sell') {
                 if (is_array($status)) {
                     $defaults['authority_to_sell'] = $status;
+                } elseif (is_string($status) && $status !== '') {
+                    $defaults['authority_to_sell'] = strtolower(trim($status));
                 }
                 continue;
             }
+
+            // Sensitive ownership documents (title_copy, tax_declaration, survey_plan)
+            // are NOT standard mandatory submission requirements for ordinary listings.
+            // They are preserved if legitimately submitted or reviewed in formal due diligence.
+            if (in_array($normalizedKey, ['title_copy', 'tax_declaration', 'survey_plan'], true)) {
+                $normalizedStatus = strtolower(trim((string) $status));
+                if (in_array($normalizedStatus, ['submitted', 'reviewed', 'requested'], true)) {
+                    $defaults[$normalizedKey] = $normalizedStatus;
+                }
+                continue;
+            }
+
             if ($normalizedKey === '' || !array_key_exists($normalizedKey, $defaults)) {
                 continue;
             }
@@ -1429,9 +1518,22 @@ final class PropertyRepository
 
         $total = 0;
         $count = 0;
-        foreach (self::DOCUMENT_REQUIREMENTS as $req) {
-            $status = $documents[$req['key']] ?? 'missing';
-            $total += self::DOCUMENT_PROGRESS[$status] ?? 0;
+        foreach ($documents as $key => $status) {
+            if ($key === 'authority_to_sell') {
+                $authStatus = is_array($status) ? ($status['status'] ?? 'pending_review') : (string) $status;
+                $points = match ($authStatus) {
+                    'validated' => 100,
+                    'pending_review' => 75,
+                    'requires_resubmission' => 25,
+                    default => 0,
+                };
+                $total += $points;
+                $count++;
+                continue;
+            }
+
+            $strStatus = is_string($status) ? strtolower(trim($status)) : 'missing';
+            $total += self::DOCUMENT_PROGRESS[$strStatus] ?? 0;
             $count++;
         }
 
@@ -2129,6 +2231,108 @@ final class PropertyRepository
         return max($min, min($max, $value));
     }
 
+    public function syncPropertyMedia(int $propertyId, string $primaryImageUrl, string $propertyName, array $galleryImages = [], ?array $retainedMediaIds = null, bool $removeImage = false, ?int $coverMediaId = null, ?string $coverImagePath = null): void
+    {
+        $read = $this->pdo->prepare('SELECT id, kind, source FROM property_media WHERE property_id = :property_id ORDER BY sort_order ASC, id ASC');
+        $read->execute(['property_id' => $propertyId]);
+        $existing = $read->fetchAll(PDO::FETCH_ASSOC);
+        $ownedImages = [];
+        foreach ($existing as $media) {
+            if ($media['kind'] === 'image') { $ownedImages[(int) $media['id']] = $media; }
+        }
+        if ($retainedMediaIds !== null) {
+            $retainedMediaIds = array_values(array_unique($retainedMediaIds));
+            foreach ($retainedMediaIds as $id) {
+                if ((!is_int($id) && !is_string($id)) || !preg_match('/^[1-9][0-9]*$/D', (string) $id) || !isset($ownedImages[(int) $id])) {
+                    throw new InvalidArgumentException('Retained photos must belong to this property.');
+                }
+            }
+            $retainedMediaIds = array_map('intval', $retainedMediaIds);
+        }
+        if ($coverMediaId !== null && $coverImagePath !== null) {
+            throw new InvalidArgumentException('Choose one cover photo from this listing.');
+        }
+        if ($coverMediaId !== null && (!isset($ownedImages[$coverMediaId]) || ($retainedMediaIds !== null && !in_array($coverMediaId, $retainedMediaIds, true)) || ($removeImage && empty($galleryImages) && empty($retainedMediaIds)))) {
+            throw new InvalidArgumentException('Choose a cover photo retained on this property.');
+        }
+        if ($coverImagePath !== null && (!in_array($coverImagePath, $galleryImages, true) || trim($coverImagePath) === '')) {
+            throw new InvalidArgumentException('Choose a cover photo from the uploaded property photos.');
+        }
+        if ($removeImage && empty($galleryImages) && empty($retainedMediaIds)) {
+            $del = $this->pdo->prepare('DELETE FROM property_media WHERE property_id = :property_id');
+            $del->execute(['property_id' => $propertyId]);
+            $this->syncPrimaryMedia($propertyId, $primaryImageUrl, $propertyName);
+            return;
+        }
+
+        if ($retainedMediaIds !== null) {
+            if (empty($retainedMediaIds)) {
+                $del = $this->pdo->prepare('DELETE FROM property_media WHERE property_id = :property_id');
+                $del->execute(['property_id' => $propertyId]);
+            } else {
+                $ids = $retainedMediaIds;
+                $placeholders = implode(',', array_fill(0, count($ids), '?'));
+                $del = $this->pdo->prepare("DELETE FROM property_media WHERE property_id = ? AND id NOT IN ({$placeholders})");
+                $del->execute(array_merge([$propertyId], $ids));
+            }
+        }
+
+        if (!empty($galleryImages)) {
+            $stmt = $this->pdo->prepare('SELECT COALESCE(MAX(sort_order), -1) AS max_sort FROM property_media WHERE property_id = :property_id');
+            $stmt->execute(['property_id' => $propertyId]);
+            $currentSort = (int) ($stmt->fetch()['max_sort'] ?? -1);
+
+            $insert = $this->pdo->prepare(
+                'INSERT INTO property_media (property_id, kind, source, alt_text, sort_order)
+                 VALUES (:property_id, :kind, :source, :alt_text, :sort_order)'
+            );
+
+            foreach ($galleryImages as $idx => $imgSource) {
+                if (!is_string($imgSource) || trim($imgSource) === '') {
+                    continue;
+                }
+                $sort = $currentSort + 1 + $idx;
+                $insert->execute([
+                    'property_id' => $propertyId,
+                    'kind' => 'image',
+                    'source' => trim($imgSource),
+                    'alt_text' => sprintf('%s photo %d', $propertyName, $sort + 1),
+                    'sort_order' => $sort,
+                ]);
+            }
+        }
+
+        $check = $this->pdo->prepare('SELECT id, source FROM property_media WHERE property_id = :property_id ORDER BY sort_order ASC, id ASC');
+        $check->execute(['property_id' => $propertyId]);
+        $ordered = $check->fetchAll(PDO::FETCH_ASSOC);
+        if ($ordered === []) {
+            $this->syncPrimaryMedia($propertyId, $primaryImageUrl, $propertyName);
+        } else {
+            if ($retainedMediaIds !== null) {
+                $positions = array_flip($retainedMediaIds);
+                usort($ordered, static fn (array $left, array $right): int => ($positions[(int) $left['id']] ?? PHP_INT_MAX) <=> ($positions[(int) $right['id']] ?? PHP_INT_MAX));
+            }
+            if ($coverMediaId !== null || $coverImagePath !== null) {
+                foreach ($ordered as $index => $media) {
+                    if (($coverMediaId !== null && (int) $media['id'] === $coverMediaId) || ($coverImagePath !== null && $media['source'] === $coverImagePath)) {
+                        array_splice($ordered, $index, 1);
+                        array_unshift($ordered, $media);
+                        break;
+                    }
+                }
+            }
+            $reorder = $this->pdo->prepare('UPDATE property_media SET sort_order = :sort_order WHERE id = :id AND property_id = :property_id');
+            foreach ($ordered as $sort => $media) {
+                $reorder->execute(['sort_order' => $sort, 'id' => (int) $media['id'], 'property_id' => $propertyId]);
+            }
+            $topSource = (string) $ordered[0]['source'];
+            if ($topSource !== '' && $topSource !== $primaryImageUrl) {
+                $updProp = $this->pdo->prepare('UPDATE properties SET image_url = :image_url WHERE id = :id');
+                $updProp->execute(['image_url' => $topSource, 'id' => $propertyId]);
+            }
+        }
+    }
+
     private function syncPrimaryMedia(int $propertyId, string $imageUrl, string $propertyName): void
     {
         $statement = $this->pdo->prepare(
@@ -2242,11 +2446,12 @@ final class PropertyRepository
 
         return [
             'name' => (string) ($row['name'] ?? ''),
+            'subname' => string_or_null($row['subname'] ?? null),
             'city' => (string) ($row['city'] ?? self::DEFAULT_CITY),
             'barangay' => string_or_null($row['barangay'] ?? null),
             'lat' => float_or_null($row['lat'] ?? null),
             'lng' => float_or_null($row['lng'] ?? null),
-            'area' => float_or_null($row['area'] ?? null),
+            'area' => $this->effectiveAreaHectares($row),
             'listingPurpose' => (string) ($row['listing_purpose'] ?? 'sale'),
             'price' => isset($row['price']) ? (int) $row['price'] : null,
             'salePrice' => isset($row['price']) ? (int) $row['price'] : null,
@@ -2277,6 +2482,9 @@ final class PropertyRepository
             'distToRoadKm' => float_or_null($row['dist_to_road_km'] ?? null),
             'utilityStatus' => string_or_null($row['utility_status'] ?? null),
             'zoningScore' => int_or_null($row['zoning_score'] ?? null),
+            'existingLandUse' => string_or_null($row['existing_land_use'] ?? null),
+            'zoningClassification' => string_or_null($row['zoning_classification'] ?? null),
+            'proposedActivity' => string_or_null($row['proposed_activity'] ?? null),
             'assessedValueSqm' => $this->effectiveAssessedValueSqm($row['assessed_value_sqm'] ?? null, $pricePerSqm),
             'readinessNotes' => string_or_null($row['readiness_notes'] ?? null),
             'category' => string_or_null($row['category'] ?? null),
@@ -2405,7 +2613,17 @@ final class PropertyRepository
     private function effectivePricePerSqm(array $row): ?int
     {
         if (($row['listing_purpose'] ?? 'sale') === 'lease') { return null; }
-        return $this->pricePerSqm(isset($row['price']) ? (int) $row['price'] : null, float_or_null($row['area'] ?? null));
+        return $this->pricePerSqm(isset($row['price']) ? (int) $row['price'] : null, $this->effectiveAreaHectares($row));
+    }
+
+    private function effectiveAreaHectares(array $row): ?float
+    {
+        $parcel = $this->decodeJson($row['parcel_json'] ?? '{}');
+        foreach (['surveyAreaSqm', 'estimatedAreaSqm'] as $key) {
+            $sqm = float_or_null($parcel[$key] ?? null);
+            if ($sqm !== null && is_finite($sqm) && $sqm > 0) { return $sqm / 10000; }
+        }
+        return float_or_null($row['area'] ?? null);
     }
 
     private function effectiveAssessedValueSqm(mixed $value, ?int $pricePerSqm): ?int
@@ -2416,10 +2634,15 @@ final class PropertyRepository
 
     private function pricePerSqm(?int $price, ?float $area): ?int
     {
-        if ($price === null || $area === null || $area <= 0) { return null; }
+        if ($price === null || $area === null || !is_finite($area) || $area <= 0) { return null; }
         // A one-square-metre parcel retains the exact integer, including large BIGINT values.
         if ($area === 0.0001) { return $price; }
-        return $price === 0 ? 0 : max(1, (int) round($price / ($area * 10000)));
+        if ($price === 0) { return 0; }
+        $derived = round($price / ($area * 10000));
+        if (!is_finite($derived) || $derived >= PHP_INT_MAX) {
+            throw new InvalidArgumentException('Sale asking price per square meter exceeds the supported whole PHP amount.');
+        }
+        return max(1, (int) $derived);
     }
 
     private function propertyTargetLabel(int $propertyId): string

@@ -15,7 +15,6 @@ final class PropertyBusinessProfiles
         'nearby_businesses' => 'Run the surroundings radar and confirm the operating-business inventory coverage.',
         'zoning_compatibility' => 'Add the CLUP or zoning reference and confirm permitted uses.',
         'risk_constraints' => 'Review available hazard evidence and confirm its coverage.',
-        'environmental_safety' => 'Add the authoritative environmental classification reference.',
     ];
 
     public function __construct(private array $config)
@@ -167,7 +166,7 @@ final class PropertyBusinessProfiles
         if (!preg_match('/^[a-z0-9][a-z0-9_-]{0,79}$/', $profile['id'])) {
             return false;
         }
-        $validCategories = array_merge(array_keys(PropertyCatalog::categories()), ['Land', 'Retail', 'Industrial', 'Hospitality', 'Mixed Use', 'Special Purpose']);
+        $validCategories = array_merge(array_keys(PropertyCatalog::categories()), ['Land', 'Building', 'Vacant Land', 'Retail', 'Commercial', 'Office', 'Industrial', 'Hospitality', 'Mixed Use', 'Special Purpose']);
         $eligibility = $profile['eligibility'] ?? null;
         if (!is_array($eligibility) || !self::stringList($eligibility['categories'] ?? null)
             || array_diff($eligibility['categories'], $validCategories)

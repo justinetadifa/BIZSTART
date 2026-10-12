@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use Throwable;
 
 require_once __DIR__ . '/PropertyAssessment.php';
+require_once __DIR__ . '/PropertyParcel.php';
 
 /** Reads trusted, versioned local evidence; request data can never supply scores or layers. */
 final class AutomaticPropertyAssessment
@@ -16,11 +17,10 @@ final class AutomaticPropertyAssessment
     private const METRICS = [
         'spatial_accessibility' => ['roads', 'road_distance_m', 'Distance to mapped road', 'm'],
         'infrastructure_readiness' => ['utilities', 'utility_status', 'Verified utility service', null],
-        'economic_viability' => ['valuation', 'bir_value_sqm', 'BIR zonal value', 'PHP/m²'],
-        'nearby_businesses' => ['businesses', 'business_count', 'Operating businesses within radius', 'businesses'],
+        'economic_viability' => ['valuation', 'bir_value_sqm', 'BIR zonal value (Economic Context)', 'PHP/m²'],
+        'nearby_businesses' => ['businesses', 'business_count', 'Operating businesses within radius (Economic Activity)', 'businesses'],
         'zoning_compatibility' => ['zoning', 'zoning_status', 'Category compatibility with zoning', null],
         'risk_constraints' => ['hazards', 'hazard_status', 'Mapped hazard exposure', null],
-        'environmental_safety' => ['environment', 'environment_status', 'Verified environmental classification', null],
     ];
     private array $config;
     private array $loaded = [];
@@ -38,22 +38,32 @@ final class AutomaticPropertyAssessment
 
     public static function presentStored(array $criteria, array $metadata = [], array $history = []): array
     {
-        $scores = PropertyAssessment::scores($criteria);
+        $zoningStatus = $metadata['criteriaDetails']['zoning_compatibility']['raw']['zoning_status'] ?? null;
+        $scores = PropertyAssessment::scores($criteria, [
+            'zoning_status' => $zoningStatus,
+            'criteria_details' => $metadata['criteriaDetails'] ?? [],
+        ]);
         if (($metadata['assessmentMode'] ?? '') === 'automatic' && ($metadata['assessmentVersion'] ?? '') === self::VERSION) {
             // Recompute totals from stored server criteria, while retaining the original evidence snapshot.
             return array_merge($metadata, $scores, [
-                'assessmentMethod' => (string) ($metadata['assessmentMethod'] ?? ''),
-                'automaticAssessment' => $metadata, 'legacyAssessment' => $history ?: null,
+                'assessmentMethod' => (string) ($scores['assessmentMethod'] ?? ($metadata['assessmentMethod'] ?? '')),
+                'automaticAssessment' => $metadata,
+                'legacyAssessment' => $history ?: null,
             ]);
         }
         return array_merge($scores, [
-            'assessmentMode' => 'legacy_manual', 'assessmentVersion' => null, 'criteriaDetails' => [], 'spatialContext' => [],
+            'assessmentMode' => 'legacy_manual',
+            'assessmentVersion' => null,
+            'criteriaDetails' => [],
+            'spatialContext' => [],
             'completedCount' => count(array_filter($scores['assessmentCriteria'], static fn ($value): bool => $value !== null)),
-            'totalCount' => 7, 'automaticAssessment' => null, 'legacyAssessment' => $history ?: null,
+            'totalCount' => count(PropertyAssessment::WEIGHTS),
+            'automaticAssessment' => null,
+            'legacyAssessment' => $history ?: null,
         ]);
     }
 
-    /** Matches repository storage: hectares; square metre aliases divide by 10,000. */
+    /** Hectares retain parcel JSON precision: six decimals equal 0.01 square meters. */
     public static function normalizeInputs(array $input): array
     {
         $lat = self::number($input['lat'] ?? null);
@@ -62,17 +72,25 @@ final class AutomaticPropertyAssessment
             || (isset($input['lat']) && $input['lat'] !== '' && $lat === null) || (isset($input['lng']) && $input['lng'] !== '' && $lng === null)) {
             throw new InvalidArgumentException('Provide both valid latitude and longitude, or leave both blank.');
         }
-        $rawArea = $input['land_area'] ?? $input['landArea'] ?? $input['area'] ?? null;
+        $parcel = is_array($input['parcel'] ?? null) ? $input['parcel'] : [];
+        $parcelArea = self::number($parcel['surveyAreaSqm'] ?? $parcel['estimatedAreaSqm'] ?? null);
+        $rawArea = $parcelArea !== null && $parcelArea > 0 ? $parcelArea : ($input['land_area'] ?? $input['landArea'] ?? $input['area'] ?? null);
         if ($rawArea === null || $rawArea === '') {
             $area = null;
         } else {
             $area = self::number(is_string($rawArea) ? str_replace(',', '', trim($rawArea)) : $rawArea);
-            $unit = strtolower(trim((string) ($input['land_area_unit'] ?? $input['landAreaUnit'] ?? 'ha')));
+            $unit = $parcelArea !== null && $parcelArea > 0 ? 'sqm' : strtolower(trim((string) ($input['land_area_unit'] ?? $input['landAreaUnit'] ?? 'ha')));
             if (in_array($unit, ['sqm', 'm2', 'square_meter', 'square_meters'], true) && $area !== null) {
                 $area /= 10000;
             }
-            if ($area === null || $area <= 0 || round($area, 4) <= 0) {
+            if ($area === null || $area <= 0) {
                 throw new InvalidArgumentException('Land area must be greater than zero.');
+            }
+            if (!is_finite($area) || $area > PropertyParcel::MAX_AREA_HECTARES) {
+                throw new InvalidArgumentException('Land area exceeds the supported maximum of 99,999,999.9999 hectares.');
+            }
+            if (round($area, 4) <= 0) {
+                throw new InvalidArgumentException('Land area must be at least 0.5 square meters.');
             }
         }
         if ($lat === null && $area === null) {
@@ -83,7 +101,7 @@ final class AutomaticPropertyAssessment
             isset($input['subcategory']) ? (string) $input['subcategory'] : null,
             (string) ($input['property_type'] ?? $input['type'] ?? 'Land')
         );
-        return ['lat' => $lat === null ? null : round($lat, 6), 'lng' => $lng === null ? null : round($lng, 6), 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area === null ? null : round($area, 4), 'landAreaUnit' => 'hectares'];
+        return ['lat' => $lat === null ? null : round($lat, 6), 'lng' => $lng === null ? null : round($lng, 6), 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area === null ? null : round($area, 6), 'landAreaUnit' => 'hectares'];
     }
 
     public function evaluate(array $input): array
@@ -135,13 +153,26 @@ final class AutomaticPropertyAssessment
                     'justification' => 'Observed mapped points only; an incomplete inventory does not establish that other businesses are absent.', 'evidence' => $measurement['evidence']];
             }
         }
-        $scores = PropertyAssessment::scores($criteria);
+        $zoningStatus = $details['zoning_compatibility']['raw']['zoning_status'] ?? null;
+        $scores = PropertyAssessment::scores($criteria, [
+            'zoning_status' => $zoningStatus,
+            'criteria_details' => $details,
+        ]);
+        $methodDesc = sprintf(
+            'Automatic evidence-based assessment (LOCUS-SF MCE v1.1). Distances use WGS84 coordinates and spherical model. Criteria scores require verified coverage and approved conversion. IAI = Σ(normalized score × weight ÷ 100), range 0–100. Status: %s. Decision support only; does not issue zoning, hazard, or investment clearance.',
+            $scores['assessmentStatus'] ?? 'complete'
+        );
         return array_merge($scores, [
-            'assessmentMode' => 'automatic', 'assessmentVersion' => self::VERSION,
-            'assessmentMethod' => 'Automatic evidence-based assessment. Distances use WGS84 coordinates and a spherical great-circle model (Earth radius 6,371,008.8 m). Scores require verified coverage and an approved conversion rule. All seven criteria are required. MCE = Σ(score × weight)/100, rounded to one decimal. IAI = 60% rounded MCE + 20% economic viability + 20% infrastructure readiness, rounded to one decimal. This model is decision support; it does not issue zoning, hazard or investment clearance.',
-            'completedCount' => count(array_filter($criteria, static fn ($value): bool => $value !== null)), 'totalCount' => 7,
-            'inputs' => $inputs, 'criteriaDetails' => $details, 'spatialContext' => $context,
-            'generatedAt' => gmdate('c'), 'ruleVersion' => $approved ? (string) $method['version'] : null,
+            'assessmentMode' => 'automatic',
+            'assessmentVersion' => self::VERSION,
+            'assessmentMethod' => $methodDesc,
+            'completedCount' => count(array_filter($criteria, static fn ($value): bool => $value !== null)),
+            'totalCount' => 7,
+            'inputs' => $inputs,
+            'criteriaDetails' => $details,
+            'spatialContext' => $context,
+            'generatedAt' => gmdate('c'),
+            'ruleVersion' => $approved ? (string) $method['version'] : null,
             'ruleApprovalReference' => $approved ? (string) $method['approval_reference'] : null,
             'ruleFingerprint' => $approved ? hash('sha256', json_encode($method, JSON_THROW_ON_ERROR)) : null,
         ]);
@@ -383,14 +414,16 @@ final class AutomaticPropertyAssessment
             return true;
         }
         $legacyAliases = [
-            'Vacant Land' => ['Land', 'Agricultural', 'Residential Lot', 'Commercial Lot', 'Industrial Lot', 'Raw Land'],
-            'Commercial' => ['Retail', 'Commercial Building', 'Storefront'],
-            'Office' => ['BPO', 'IT-BPM', 'Corporate Office'],
-            'Industrial / Warehouse' => ['Industrial', 'Warehouse', 'Logistics'],
-            'Hospitality / Tourism' => ['Hospitality', 'Hotel', 'Resort'],
-            'Mixed-Use' => ['Mixed Use', 'Commercial-Residential'],
-            'Residential' => ['Multifamily', 'Housing'],
-            'Special Purpose' => ['Institutional', 'Note/Loan', 'Note / Loan'],
+            'Land' => ['Vacant Land', 'Agricultural', 'Residential Lot', 'Commercial Lot', 'Industrial Lot', 'Raw Land', 'Farm / Agribusiness'],
+            'Vacant Land' => ['Land', 'Agricultural', 'Residential Lot', 'Commercial Lot', 'Industrial Lot', 'Raw Land', 'Farm / Agribusiness'],
+            'Building' => ['Commercial', 'Retail', 'Commercial Building', 'Storefront', 'Office', 'BPO', 'IT-BPM', 'Corporate Office', 'Industrial / Warehouse', 'Industrial', 'Warehouse', 'Logistics', 'Hospitality / Tourism', 'Hospitality', 'Hotel', 'Resort', 'Mixed-Use', 'Mixed Use', 'Commercial-Residential', 'Residential', 'Multifamily', 'Housing', 'Special Purpose', 'Institutional'],
+            'Commercial' => ['Building', 'Retail', 'Commercial Building', 'Storefront'],
+            'Office' => ['Building', 'BPO', 'IT-BPM', 'Corporate Office'],
+            'Industrial / Warehouse' => ['Building', 'Industrial', 'Warehouse', 'Logistics'],
+            'Hospitality / Tourism' => ['Building', 'Hospitality', 'Hotel', 'Resort'],
+            'Mixed-Use' => ['Building', 'Mixed Use', 'Commercial-Residential'],
+            'Residential' => ['Building', 'Multifamily', 'Housing'],
+            'Special Purpose' => ['Building', 'Institutional', 'Note/Loan', 'Note / Loan'],
         ];
         $aliases = $legacyAliases[$selectedCategory] ?? [];
         foreach ($aliases as $alias) {

@@ -47,10 +47,10 @@ final class ExternalServices
                 ],
             ],
             'location' => [
-                'provider' => $locationKey !== '' ? 'LocationIQ' : 'Local property search',
+                'provider' => $locationKey !== '' ? 'LocationIQ + local barangay search' : 'Local barangay and property search',
                 'mode' => $locationKey !== '' ? 'live-geocoding' : 'fallback-search',
-                'enabled' => $locationKey !== '',
-                'note' => $locationKey !== '' ? 'Location search is powered by server-side LocationIQ requests.' : 'Location search currently falls back to local property matching.',
+                'enabled' => true,
+                'note' => $locationKey !== '' ? 'Barangays resolve locally. Address search uses LocationIQ within San Fernando, La Union.' : 'Barangay search works offline. Configure LocationIQ for address search.',
             ],
             'media' => [
                 'provider' => $cloudinary ? 'Cloudinary' : 'Local property uploads',
@@ -254,54 +254,120 @@ final class ExternalServices
             return $fallback;
         }
 
+        // An exact barangay is a local navigation target, not a property address.
+        // It must remain immediate and usable when the geocoder is unavailable.
+        foreach ($fallback['results'] as $result) {
+            if ($result['kind'] === 'barangay' && ($result['match'] ?? null) === 'exact') {
+                return $fallback;
+            }
+        }
+
         $apiKey = $this->locationIqKey();
         if ($apiKey === '') {
             return $fallback;
         }
 
         try {
-            return $this->cache->remember('location-' . sha1(mb_strtolower($query)), 86400, function () use ($apiKey, $query, $fallback): array {
-                $payload = $this->httpJson('GET', 'https://us1.locationiq.com/v1/search.php', [
+            $scopedQuery = preg_match('/\bla\s+union\b/i', $query)
+                ? $query : $query . ', San Fernando, La Union, Philippines';
+            // Cache only provider data. Local property visibility belongs to the
+            // current caller and must never be retained in a shared geocode cache.
+            $payload = $this->cache->remember('location-sf-v2-' . sha1(mb_strtolower($scopedQuery)), 86400, function () use ($apiKey, $scopedQuery): array {
+                return $this->httpJson('GET', 'https://us1.locationiq.com/v1/search.php', [
                     'key' => $apiKey,
-                    'q' => $query,
+                    'q' => $scopedQuery,
                     'format' => 'json',
                     'limit' => 5,
                     'countrycodes' => 'ph',
                     'normalizecity' => 1,
-                ]);
-
-                $results = [];
-                foreach ((array) $payload as $entry) {
-                    if (!is_array($entry)) {
-                        continue;
-                    }
-                    $lat = float_or_null($entry['lat'] ?? null);
-                    $lng = float_or_null($entry['lon'] ?? null);
-                    if ($lat === null || $lng === null) {
-                        continue;
-                    }
-                    $results[] = [
-                        'kind' => 'geocode',
-                        'label' => (string) ($entry['display_name'] ?? 'San Fernando, La Union'),
-                        'subtitle' => (string) (($entry['type'] ?? 'Location') . ' | ' . ($entry['class'] ?? 'LocationIQ')),
-                        'lat' => $lat,
-                        'lng' => $lng,
-                    ];
-                }
-
-                return [
-                    'provider' => 'LocationIQ',
-                    'mode' => 'live-cached',
-                    'live' => true,
-                    'results' => array_merge($fallback['results'], $results),
-                    'fetchedAt' => gmdate(DATE_ATOM),
-                ];
+                    'addressdetails' => 1,
+                    'viewbox' => '120.28,16.68,120.45,16.54',
+                    'bounded' => 1,
+                ], null, [], 8);
             });
+            if (!is_array($payload) || isset($payload['error'])) {
+                throw new RuntimeException('The geocoder returned an invalid response.');
+            }
+            $results = $this->normalizeLocationResults($payload);
+
+            return [
+                'provider' => 'LocationIQ',
+                'mode' => 'live-cached',
+                'live' => true,
+                'note' => $results === [] ? 'No address matches found in San Fernando, La Union. Try a barangay or place the property pin on the map.' : 'Address results are map references. Confirm the property pin against the parcel records.',
+                'results' => array_slice(array_merge($fallback['results'], $results), 0, 10),
+                'fetchedAt' => gmdate(DATE_ATOM),
+            ];
         } catch (Throwable $e) {
-            $fallback['note'] = 'Live geocoding could not be loaded right now.';
-            $fallback['error'] = $e->getMessage();
+            $fallback['note'] = 'Address search is unavailable right now. Barangay search still works; you can also place a pin or enter coordinates.';
             return $fallback;
         }
+    }
+
+    private function normalizeLocationResults(array $payload): array
+    {
+        $results = [];
+        $seen = [];
+        foreach ($payload as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $lat = float_or_null($entry['lat'] ?? null);
+            $lng = float_or_null($entry['lon'] ?? null);
+            if (!$this->withinLocationSearchArea($lat, $lng)) {
+                continue;
+            }
+            $address = is_array($entry['address'] ?? null) ? $entry['address'] : [];
+            $country = strtolower(trim((string) ($address['country_code'] ?? '')));
+            $city = mb_strtolower(trim((string) ($address['city'] ?? $address['town'] ?? $address['municipality'] ?? '')));
+            $province = mb_strtolower(trim((string) ($address['state'] ?? '')));
+            if (($country !== '' && $country !== 'ph')
+                || ($city !== '' && !str_contains($city, 'san fernando'))
+                || ($province !== '' && $province !== 'la union' && !str_contains($province, 'iloc'))
+            ) {
+                continue;
+            }
+            $identity = sprintf('%.6f,%.6f', $lat, $lng);
+            if (isset($seen[$identity])) {
+                continue;
+            }
+            $seen[$identity] = true;
+            $result = [
+                'kind' => 'geocode',
+                'label' => (string) ($entry['display_name'] ?? 'San Fernando, La Union'),
+                'subtitle' => 'San Fernando, La Union · Address reference',
+                'lat' => $lat,
+                'lng' => $lng,
+                'source' => 'LocationIQ',
+                'sourceUrl' => 'https://locationiq.com/attribution',
+                'accuracy' => 'geocoded_reference',
+                'approximate' => true,
+            ];
+            // Provider order is south, north, west, east. Leaflet expects two
+            // latitude/longitude corners; omit malformed or unrelated bounds.
+            $box = $entry['boundingbox'] ?? null;
+            if (is_array($box) && count($box) === 4) {
+                $south = float_or_null($box[0] ?? null);
+                $north = float_or_null($box[1] ?? null);
+                $west = float_or_null($box[2] ?? null);
+                $east = float_or_null($box[3] ?? null);
+                if ($this->withinLocationSearchArea($south, $west)
+                    && $this->withinLocationSearchArea($north, $east)
+                    && $south <= $lat && $lat <= $north && $west <= $lng && $lng <= $east
+                ) {
+                    $result['bounds'] = [[$south, $west], [$north, $east]];
+                }
+            }
+            $results[] = $result;
+        }
+        return $results;
+    }
+
+    private function withinLocationSearchArea(?float $lat, ?float $lng): bool
+    {
+        // This rectangle is a search viewport, not an official city boundary.
+        return $lat !== null && $lng !== null && is_finite($lat) && is_finite($lng)
+            && $lat >= 16.54 && $lat <= 16.68 && $lng >= 120.28 && $lng <= 120.45;
     }
 
     public function propertySummary(array $property, array $votes = []): array
@@ -428,23 +494,55 @@ final class ExternalServices
 
     private function fallbackSearch(string $query, array $properties): array
     {
-        $needle = mb_strtolower($query);
-        $cleanNeedle = trim(str_ireplace('barangay', '', $needle));
+        $needle = mb_strtolower(trim($query));
+        $cleanNeedle = $this->normalizeBarangayQuery($query);
         $results = [];
 
         $allBarangays = PropertyCatalog::barangays();
+        $barangayMatches = [];
         foreach ($allBarangays as $bName => $bData) {
-            $bLower = mb_strtolower($bName);
-            if ($cleanNeedle !== '' && (str_contains($bLower, $cleanNeedle) || str_contains($cleanNeedle, $bLower))) {
-                $results[] = [
-                    'kind' => 'barangay',
-                    'label' => 'Barangay ' . $bName,
-                    'subtitle' => 'San Fernando City, La Union · ' . ($bData['district'] ?? 'Official Barangay Center'),
-                    'lat' => (float) $bData['lat'],
-                    'lng' => (float) $bData['lng'],
-                    'barangay' => $bName,
-                ];
+            $bLower = $this->normalizeBarangayQuery($bName);
+            $exact = $cleanNeedle !== '' && $cleanNeedle === $bLower;
+            $matchedBarangay = $bName;
+            if (!$exact && $cleanNeedle !== '' && !empty($bData['aliases'])) {
+                foreach ((array) $bData['aliases'] as $alias) {
+                    if ($this->normalizeBarangayQuery((string) $alias) === $cleanNeedle) {
+                        $exact = true;
+                        $matchedBarangay = (string) $alias;
+                        break;
+                    }
+                }
             }
+            $partial = mb_strlen($cleanNeedle) >= 2 && !preg_match('/^[iv]+$/', $cleanNeedle)
+                && str_contains($bLower, $cleanNeedle);
+            $lat = float_or_null($bData['lat'] ?? null);
+            $lng = float_or_null($bData['lng'] ?? null);
+            if ((!$exact && !$partial) || !$this->withinLocationSearchArea($lat, $lng)) {
+                continue;
+            }
+            $barangayMatches[] = [
+                'rank' => $exact ? 0 : (str_starts_with($bLower, $cleanNeedle) ? 1 : 2),
+                'kind' => 'barangay',
+                'label' => preg_match('/^barangay\b/i', $matchedBarangay) ? $matchedBarangay : 'Barangay ' . $matchedBarangay,
+                'subtitle' => 'San Fernando City, La Union · Approximate barangay reference',
+                'lat' => $lat,
+                'lng' => $lng,
+                'barangay' => $matchedBarangay,
+                'district' => $bData['district'] ?? null,
+                'match' => $exact ? 'exact' : 'partial',
+                'source' => 'Local barangay reference',
+                'accuracy' => 'barangay_center',
+                'approximate' => true,
+            ];
+        }
+        usort($barangayMatches, static fn (array $a, array $b): int => ($a['rank'] <=> $b['rank']) ?: strcasecmp($a['label'], $b['label']));
+        $hasExact = ($barangayMatches[0]['match'] ?? null) === 'exact';
+        foreach ($barangayMatches as $match) {
+            if ($hasExact && $match['match'] !== 'exact') {
+                continue;
+            }
+            unset($match['rank']);
+            $results[] = $match;
         }
         foreach ($properties as $property) {
             if (!is_array($property)) {
@@ -453,12 +551,13 @@ final class ExternalServices
             $label = (string) ($property['name'] ?? 'Property');
             $barangay = (string) ($property['barangay'] ?? 'San Fernando');
             $haystack = mb_strtolower($label . ' ' . $barangay . ' ' . (string) ($property['city'] ?? 'San Fernando, La Union'));
-            if ($needle !== '' && !str_contains($haystack, $needle)) {
+            // Do not return arbitrary properties for an empty or one-letter query.
+            if (mb_strlen($needle) < 2 || !str_contains($haystack, $needle)) {
                 continue;
             }
             $lat = float_or_null($property['lat'] ?? null);
             $lng = float_or_null($property['lng'] ?? null);
-            if ($lat === null || $lng === null) {
+            if (!$this->withinLocationSearchArea($lat, $lng)) {
                 continue;
             }
             $results[] = [
@@ -468,17 +567,30 @@ final class ExternalServices
                 'lat' => $lat,
                 'lng' => $lng,
                 'propertyId' => (int) ($property['id'] ?? 0),
+                'source' => 'Property listing',
+                'accuracy' => 'listing_reference',
+                'approximate' => true,
             ];
         }
 
         return [
-            'provider' => 'Local property search',
+            'provider' => 'Local barangay and property search',
             'mode' => 'fallback',
             'live' => false,
-            'note' => 'Configure LocationIQ to add live geocoding and external location lookup.',
+            'note' => 'Barangay references help you navigate. Place the pin at the property’s exact location; configure LocationIQ for address search.',
             'results' => array_slice($results, 0, 6),
             'fetchedAt' => gmdate(DATE_ATOM),
         ];
+    }
+
+    private function normalizeBarangayQuery(string $query): string
+    {
+        $query = mb_strtolower(trim($query));
+        $query = preg_split('/[,·•]/u', $query, 2)[0] ?? $query;
+        $query = (string) preg_replace('/^(?:barangay|baranggay|brgy\.?|bgy\.?)\s+/', '', $query);
+        $query = (string) preg_replace('/\s+(?:city of\s+)?san fernando(?: city)?(?:\s+la union)?(?:\s+philippines)?$/', '', $query);
+        $query = trim((string) preg_replace('/[\s-]+/u', ' ', $query));
+        return ['1' => 'i', '2' => 'ii', '3' => 'iii', '4' => 'iv'][$query] ?? $query;
     }
 
     private function fallbackSummary(array $property, array $votes): array
@@ -681,10 +793,10 @@ PROMPT;
         return (string) json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
-    private function httpJson(string $method, string $url, array $query = [], mixed $body = null, array $headers = []): array
+    private function httpJson(string $method, string $url, array $query = [], mixed $body = null, array $headers = [], int $timeoutSeconds = 25): array
     {
         $finalUrl = $query !== [] ? $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($query) : $url;
-        $raw = $this->httpRequest($method, $finalUrl, $body, $headers);
+        $raw = $this->httpRequest($method, $finalUrl, $body, $headers, false, $timeoutSeconds);
         $decoded = json_decode($raw, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('External API returned invalid JSON.');
@@ -711,7 +823,7 @@ PROMPT;
         return $decoded;
     }
 
-    private function httpRequest(string $method, string $url, mixed $body = null, array $headers = [], bool $multipart = false): string
+    private function httpRequest(string $method, string $url, mixed $body = null, array $headers = [], bool $multipart = false, int $timeoutSeconds = 25): string
     {
         $lines = [];
         foreach ($headers as $name => $value) {
@@ -725,7 +837,7 @@ PROMPT;
             }
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeoutSeconds);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($method));
 
             if ($body !== null) {
@@ -768,7 +880,7 @@ PROMPT;
                 'method' => strtoupper($method),
                 'header' => implode("\r\n", $lines),
                 'content' => $content,
-                'timeout' => 25,
+                'timeout' => $timeoutSeconds,
                 'ignore_errors' => true,
             ],
         ]);

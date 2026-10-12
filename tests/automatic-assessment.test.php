@@ -42,7 +42,6 @@ try {
         'businesses' => $writeLayer('businesses', [$feature(['type' => 'Point', 'coordinates' => [120.321, 16.61]], ['operating_status' => 'operating']), $feature(['type' => 'Point', 'coordinates' => [120.322, 16.61]], ['operating_status' => 'closed'])]),
         'zoning' => $writeLayer('zoning', [$feature($coverage, ['zone' => 'Synthetic zone', 'conditional_categories' => ['Land']])]),
         'hazards' => array_merge($writeLayer('hazards', [$feature($coverage, ['hazard_type' => 'flood', 'hazard_status' => 'high'])]), ['hazard_types' => ['flood', 'fault']]),
-        'environment' => $writeLayer('environment', [$feature($coverage, ['environment_status' => 'verified_clear'])]),
     ], 'method' => ['approved' => true, 'version' => 'SYNTHETIC-fixture-v1', 'approval_reference' => 'SYNTHETIC TEST ONLY; not an approved city method', 'rules' => [
         'spatial_accessibility' => ['metric' => 'road_distance_m', 'operator' => 'bands', 'bands' => [['max' => 100, 'score' => 100]], 'otherwise' => 50],
         'infrastructure_readiness' => ['metric' => 'utility_status', 'operator' => 'lookup', 'values' => ['power_water' => 80]],
@@ -50,11 +49,18 @@ try {
         'nearby_businesses' => ['metric' => 'business_count', 'operator' => 'bands', 'bands' => [['max' => 1, 'score' => 40]], 'otherwise' => 70],
         'zoning_compatibility' => ['metric' => 'zoning_status', 'operator' => 'lookup', 'values' => ['conditional' => 20, 'permitted' => 100, 'prohibited' => 0]],
         'risk_constraints' => ['metric' => 'hazard_status', 'operator' => 'lookup', 'aggregate' => 'minimum', 'required_hazard_types' => ['flood', 'fault'], 'values' => ['high' => 0, 'low' => 20, 'outside_mapped_hazards' => 100]],
-        'environmental_safety' => ['metric' => 'environment_status', 'operator' => 'lookup', 'values' => ['verified_clear' => 100]],
     ]]];
     $auto = (new Automatic($config))->evaluate($input);
-    $check($auto['assessmentComplete'] && $auto['completedCount'] === 7 && $auto['mceScore'] === 60.0 && $auto['iaiScore'] === 64.0, 'Independent weighted result 100/80/60/40/20/0/100 should be MCE 60 and IAI 64.');
+    $check($auto['assessmentComplete'] && $auto['completedCount'] === 6 && $auto['mceScore'] === 55.0 && $auto['iaiScore'] === 55.0, 'Independent weighted result 100/80/60/40/20/0 should be MCE 55 and IAI 55 without double counting.');
+    // Test zoning prohibited constraint
+    $prohibitedLayer = $writeLayer('zoning_prohibited', [$feature($coverage, ['zone' => 'Synthetic restricted zone', 'restricted_categories' => ['Land']])]);
+    $prohibitedConfig = $config;
+    $prohibitedConfig['layers']['zoning'] = $prohibitedLayer;
+    $prohibitedAuto = (new Automatic($prohibitedConfig))->evaluate($input);
+    $check($prohibitedAuto['assessmentStatus'] === 'not_suitable' && $prohibitedAuto['iaiScore'] === null, 'Prohibited zoning in automatic assessment must yield not_suitable and null IAI.');
     $check($auto['inputs']['landArea'] === .25 && $auto['criteriaDetails']['economic_viability']['raw']['bir_total_value'] === 8750000.0, 'Square metres normalize to hectares and BIR reference total uses actual area.');
+    $preciseArea = (new Automatic($config))->evaluate(array_replace($input, ['land_area' => 1.49]));
+    $check($preciseArea['inputs']['landArea'] === .000149 && $preciseArea['criteriaDetails']['economic_viability']['raw']['bir_total_value'] === 5215.0, 'BIR total value uses the exact 1.49 square meters from parcel precision, not rounded legacy hectares.');
     $precision = Automatic::normalizeInputs(array_replace($input, ['lat' => 16.61000049, 'lng' => 120.32000051]));
     $check($precision['lat'] === 16.61 && $precision['lng'] === 120.320001, 'Preview coordinates must use the six decimal places persisted by the property schema.');
     $check($auto['criteriaDetails']['nearby_businesses']['raw']['business_count'] === 1, 'Closed points must not count as operating businesses.');
@@ -62,7 +68,7 @@ try {
     $check($auto['ruleVersion'] === 'SYNTHETIC-fixture-v1' && strlen($auto['ruleFingerprint']) === 64 && count($auto['criteriaDetails']['zoning_compatibility']['evidence']) === 1, 'Evidence and approved method need reproducible fingerprints.');
     $check(str_contains($auto['criteriaDetails']['economic_viability']['justification'], 'Approved bands') && str_contains($auto['criteriaDetails']['zoning_compatibility']['justification'], 'conditional = 20'), 'Scoring justification must expose mathematical conversion.');
     $posted = (new Automatic($config))->evaluate($input + ['assessmentCriteria' => array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 100), 'price' => 1, 'bir_value_sqm' => 1]);
-    $check($posted['assessmentCriteria'] === $auto['assessmentCriteria'] && $posted['mceScore'] === 60.0, 'Client scores, price and raw valuation cannot influence automatic scores.');
+    $check($posted['assessmentCriteria'] === $auto['assessmentCriteria'] && $posted['mceScore'] === 55.0, 'Client scores, price and raw valuation cannot influence automatic scores.');
     $check(abs(Automatic::distance([0, 0], [90, 0]) - 10007557.221) < .001, 'Haversine quarter equator distance differs from independent spherical constant.');
     $check(abs(Automatic::segmentDistance([0, 1], [-1, 0], [1, 0]) - 111195.0802) < .01, 'Point-line cross-track distance is inaccurate.');
     $check(abs(Automatic::segmentDistance([2, 0], [-1, 0], [1, 0]) - Automatic::distance([2, 0], [1, 0])) < .001, 'Point outside segment must use nearest endpoint.');
@@ -117,7 +123,6 @@ try {
     $without = $config; $without['layers']['valuation']['effective_date'] = ''; $pending((new Automatic($without))->evaluate($input), 'economic_viability');
     $without = $config; $without['layers']['utilities'] = $writeLayer('utilities-overlap', [$feature($coverage, ['utility_status' => 'power_water']), $feature($coverage, ['utility_status' => 'off_grid'])]);
     $pending((new Automatic($without))->evaluate($input), 'infrastructure_readiness');
-    $without = $config; $without['layers']['environment'] = $writeLayer('environment-empty', []); $pending((new Automatic($without))->evaluate($input), 'environmental_safety');
     $without = $config; $without['method']['rules']['economic_viability']['bands'] = [['max' => 5000, 'score' => 60], ['max' => 4000, 'score' => 100]]; $pending((new Automatic($without))->evaluate($input), 'economic_viability');
     $without = $config; $without['method']['rules']['economic_viability']['bands'][0]['score'] = 101; $pending((new Automatic($without))->evaluate($input), 'economic_viability');
     $without = $config; unset($without['method']['rules']['infrastructure_readiness']['values']['power_water']); $pending((new Automatic($without))->evaluate($input), 'infrastructure_readiness');
@@ -160,7 +165,7 @@ try {
     $present = Automatic::presentStored($legacyCriteria);
     $check($present['assessmentMode'] === 'legacy_manual' && $present['automaticAssessment'] === null && $present['mceScore'] === 80.0, 'Historical manual score is explicitly labeled and remains available.');
     $present = Automatic::presentStored($auto['assessmentCriteria'], $auto, $history);
-    $check($present['assessmentMode'] === 'automatic' && $present['criteriaDetails'] === $auto['criteriaDetails'] && $present['legacyAssessment'] === $history && $present['mceScore'] === 60.0, 'Hydration exposes authoritative evidence and retained manual history.');
+    $check($present['assessmentMode'] === 'automatic' && $present['criteriaDetails'] === $auto['criteriaDetails'] && $present['legacyAssessment'] === $history && $present['mceScore'] === 55.0, 'Hydration exposes authoritative evidence and retained manual history.');
     echo in_array('--json-fixture', $argv, true) ? json_encode(['assessment' => $auto], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE) : "Automatic assessment checks passed: $checks (synthetic layers; no database mutations).\n";
 } finally {
     foreach ($files as $file) { if (is_file($file)) { unlink($file); } }

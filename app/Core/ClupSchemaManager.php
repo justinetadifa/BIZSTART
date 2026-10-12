@@ -13,6 +13,7 @@ final class ClupSchemaManager
             $pdo->exec($statement);
         }
         self::seedUseTypes($pdo);
+        \App\Support\ZoningRulesEngine::seedOfficialRules($pdo);
     }
 
     private static function statements(): array

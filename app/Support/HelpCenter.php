@@ -84,8 +84,8 @@ class HelpCenter
                                     </button>
                                     <div class="locus-accordion-body" id="locusFaqMceBody">
                                         <p>MCE stands for Multi-Criteria Evaluation. It combines several aspects of a property into a structured assessment, so the site is not judged using a single characteristic.</p>
-                                        <p>In the current LOCUS-SF screen, seven criteria receive ratings from 0 to 100. Higher ratings represent more favorable conditions under the selected assessment rules. Each rating is multiplied by its assigned weight, and the resulting contributions are added to produce the MCE score.</p>
-                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the seven criteria &rarr;</a>
+                                        <p>In the current LOCUS-SF screen, six criteria receive ratings from 0 to 100. Higher ratings represent more favorable conditions under the selected assessment rules. Each rating is multiplied by its assigned weight, and the resulting contributions are added to produce the MCE score.</p>
+                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the six criteria &rarr;</a>
                                     </div>
                                 </div>
 
@@ -120,8 +120,8 @@ class HelpCenter
                                         </span>
                                     </button>
                                     <div class="locus-accordion-body" id="locusFaqCritOverviewBody" hidden>
-                                        <p>Each of the seven criteria evaluates a distinct condition: spatial accessibility, infrastructure readiness, economic viability, nearby businesses, zoning compatibility, risk constraints, and environmental safety.</p>
-                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the seven criteria &rarr;</a>
+                                        <p>Each of the six criteria evaluates a distinct condition: spatial accessibility, infrastructure readiness, economic viability, nearby businesses, zoning compatibility, and risk constraints.</p>
+                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the six criteria &rarr;</a>
                                     </div>
                                 </div>
 
@@ -206,7 +206,7 @@ class HelpCenter
                         <div id="locusHelpSevenCriteria" hidden>
                             <div class="locus-help-header-wrap">
                                 <button type="button" class="locus-help-back-link locus-to-common-view">&larr; Back to common questions</button>
-                                <h2 class="locus-help-title">Understand the seven criteria</h2>
+                                <h2 class="locus-help-title">Understand the six criteria</h2>
                                 <p class="locus-help-subtitle">What each rating describes, in plain language.</p>
                                 <div class="locus-help-notice-banner">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -324,28 +324,9 @@ class HelpCenter
                                             </span>
                                         </button>
                                         <div class="locus-accordion-body" id="locusCritRiskBody" hidden>
-                                            <p><strong>Short tooltip:</strong> How recorded hazards and site limitations affect suitability.</p>
-                                            <p>Risk constraints describes the effect of the hazards and limitations included in the assessment. Relevant evidence may include mapped flood exposure or proximity to a mapped fault, where those datasets and rules are actually used.</p>
-                                            <p>In the current scoring direction, a higher rating means more favorable conditions or fewer assessed constraints. It does not mean higher risk, and a rating of 100 does not establish that a site is risk-free. Missing hazard data should remain an unknown condition.</p>
-                                            <a href="#" class="locus-accordion-link locus-view-property-evidence">View this property's evidence &rarr;</a>
-                                        </div>
-                                    </div>
-
-                                    <!-- 07: Environmental safety -->
-                                    <div class="locus-accordion-item" data-criterion-key="environmental_safety">
-                                        <button type="button" class="locus-accordion-header" aria-expanded="false" aria-controls="locusCritEnvBody">
-                                            <div class="locus-accordion-header-left">
-                                                <span class="locus-accordion-num">07</span>
-                                                <span class="locus-accordion-title">Environmental safety</span>
-                                            </div>
-                                            <span class="locus-accordion-toggle-icon" aria-hidden="true">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                            </span>
-                                        </button>
-                                        <div class="locus-accordion-body" id="locusCritEnvBody" hidden>
-                                            <p><strong>Short tooltip:</strong> The site's environmental conditions and restrictions considered by the assessment.</p>
-                                            <p>Environmental safety describes how the site meets the environmental conditions and restrictions included in the model. Its rating is meaningful only in relation to the documented evidence and assessment rule.</p>
-                                            <p>A high rating does not certify the absence of environmental harm or replace required environmental review. Keep this criterion distinct from Risk constraints so the same indicator is not unintentionally counted twice.</p>
+                                            <p><strong>Short tooltip:</strong> Authoritative multi-hazard screening across official geohazard mapping layers.</p>
+                                            <p>Risk constraints evaluates authoritative multi-hazard screening across six official geohazards: flood susceptibility (DENR-MGB, 25%), active fault proximity and ground rupture exclusion buffer (DOST-PHIVOLCS, 25%), rain-induced landslides (DENR-MGB, 15%), coastal storm surge (DOST-PAGASA, 15%), soil liquefaction (DOST-PHIVOLCS, 10%), and tsunami run-up exposure (DOST-PHIVOLCS, 10%).</p>
+                                            <p>In the scoring direction, higher ratings indicate lower hazard exposure. An active fault trace or 5-meter buffer conflict triggers a Critical Site Constraint. Environmental safety has been consolidated into this criterion to eliminate redundant double-counting.</p>
                                             <a href="#" class="locus-accordion-link locus-view-property-evidence">View this property's evidence &rarr;</a>
                                         </div>
                                     </div>

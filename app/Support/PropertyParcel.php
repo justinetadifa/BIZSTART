@@ -11,13 +11,15 @@ require_once __DIR__ . '/PropertyEvidenceFiles.php';
 /** Parcel geometry and staff observations are context, never submitted assessment scores. */
 final class PropertyParcel
 {
+    public const MAX_AREA_HECTARES = 99999999.9999; // properties.area DECIMAL(12, 4)
     private const EARTH_RADIUS = 6371008.8;
     private const OBSERVATIONS = [
         'road_frontage' => ['yes', 'no', 'not_verified', 'unknown'],
         'road_surface' => ['paved', 'unpaved', 'gravel', 'other', 'not_verified', 'unknown'],
-        'electricity' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
-        'water' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
-        'internet' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown'],
+        'electricity' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown', 'grid_reliable', 'solar_battery', 'generator_only', 'grid_unconnected', 'no_supply'],
+        'water' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown', 'piped_reliable', 'deepwell_tested', 'limited_intermittent', 'available_unconnected'],
+        'internet' => ['available', 'unavailable', 'not_verified', 'connected', 'not_connected', 'unknown', 'fiber_reliable', 'fixed_wireless', 'satellite_reliable', 'mobile_data_stable', 'available_uninstalled'],
+        'drainage' => ['adequate', 'adequate_functional', 'minor_improvements', 'inadequate', 'unavailable', 'not_verified', 'unknown'],
     ];
 
     public static function fromPayload(array $payload, array $existing = []): array
@@ -39,6 +41,7 @@ final class PropertyParcel
                 throw new InvalidArgumentException('Choose square meters or hectares for the survey area.');
             }
             if ($survey !== null && in_array($unit, ['ha', 'hectare', 'hectares'], true)) { $survey *= 10000; }
+            if ($survey !== null && !is_finite($survey)) { throw new InvalidArgumentException('Land area must be a finite number.'); }
             if ($survey !== null && $survey <= 0) { throw new InvalidArgumentException('Recorded survey area must be greater than zero.'); }
         }
         if (array_key_exists('area_method', $payload)) { $areaMethod = $payload['area_method']; }
@@ -73,9 +76,21 @@ final class PropertyParcel
             if ($value !== null && $value <= 0) { throw new InvalidArgumentException('BIR zonal reference must be greater than zero.'); }
             $observations['bir_zonal_value'] = $value;
         }
+        if (array_key_exists('comparable_market_price', $payload)) {
+            $value = self::optionalNumber($payload['comparable_market_price'], 'Comparable market price');
+            if ($value !== null && $value <= 0) { throw new InvalidArgumentException('Comparable market price must be greater than zero.'); }
+            $observations['comparable_market_price'] = $value;
+        }
+        if (array_key_exists('lgu_valuation_amount', $payload)) {
+            $value = self::optionalNumber($payload['lgu_valuation_amount'], 'LGU valuation amount');
+            if ($value !== null && $value <= 0) { throw new InvalidArgumentException('LGU valuation amount must be greater than zero.'); }
+            $observations['lgu_valuation_amount'] = $value;
+        }
         foreach ([
             'sale_price_mode', 'lease_price_mode',
-            'bir_source', 'evidence_reference', 'environmental_reference',
+            'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference',
+            'comparable_source', 'lgu_valuation_type',
+            'road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road',
             'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin',
             'spatial_evidence_source', 'spatial_evidence_date', 'spatial_evidence_reference',
             'utility_evidence_source', 'utility_evidence_date', 'utility_evidence_reference',
@@ -146,10 +161,25 @@ final class PropertyParcel
         $waterSources = $payload['water_sources'] ?? $existing['water']['sources'] ?? [];
         $internetProviders = $payload['internet_providers'] ?? $existing['internet']['providers'] ?? [];
         $internetTypes = $payload['internet_types'] ?? $existing['internet']['connection_types'] ?? [];
-        $internetQuality = (string) ($payload['internet_quality'] ?? $existing['internet']['quality'] ?? 'Not verified');
-        $speed = isset($payload['download_speed_mbps']) && is_numeric($payload['download_speed_mbps'])
-            ? (float) $payload['download_speed_mbps']
-            : ($existing['internet']['download_speed_mbps'] ?? null);
+        $qualityInput = array_key_exists('internet_quality', $payload) ? $payload['internet_quality'] : ($existing['internet']['quality'] ?? 'Not verified');
+        $internetQuality = match (is_string($qualityInput) ? strtolower(trim($qualityInput)) : '') {
+            'strong' => 'Strong',
+            'moderate' => 'Moderate',
+            'weak' => 'Weak',
+            default => 'Not verified',
+        };
+        $speed = null;
+        if ($internetStatus === 'available') {
+            $speedInput = array_key_exists('download_speed_mbps', $payload) ? $payload['download_speed_mbps'] : ($existing['internet']['download_speed_mbps'] ?? null);
+            if ($speedInput !== null && !(is_string($speedInput) && trim($speedInput) === '')) {
+                if ((!is_string($speedInput) && !is_int($speedInput) && !is_float($speedInput))
+                    || !is_numeric($speedInput) || !is_finite((float) $speedInput) || (float) $speedInput < 0 || (float) $speedInput > 10000
+                ) {
+                    throw new InvalidArgumentException('Internet download speed must be blank or a finite number between 0 and 10,000 Mbps.');
+                }
+                $speed = round((float) $speedInput, 1);
+            }
+        }
 
         return [
             'electricity' => [
@@ -172,11 +202,11 @@ final class PropertyParcel
             'internet' => [
                 'status' => $internetStatus,
                 'connection_status' => (string) $internetRaw,
-                'technology' => self::text($payload['internet_technology'] ?? $existing['internet']['technology'] ?? '', 'Internet technology', 120),
+                'technology' => $internetStatus === 'available' ? self::text($payload['internet_technology'] ?? $existing['internet']['technology'] ?? '', 'Internet technology', 120) : '',
                 'providers' => $internetStatus === 'available' ? $cleanList($internetProviders) : [],
                 'connection_types' => $internetStatus === 'available' ? $cleanList($internetTypes) : [],
-                'quality' => in_array($internetQuality, ['Strong', 'Moderate', 'Weak', 'Not verified'], true) ? $internetQuality : 'Not verified',
-                'download_speed_mbps' => $speed !== null && $speed >= 0 ? round($speed, 1) : null,
+                'quality' => $internetStatus === 'available' ? $internetQuality : 'Not verified',
+                'download_speed_mbps' => $speed,
             ],
             'additional_services' => [
                 'drainage' => self::text($payload['drainage_service'] ?? $existing['additional_services']['drainage'] ?? '', 'Drainage service', 120),
@@ -295,11 +325,20 @@ final class PropertyParcel
     {
         $result = [];
         $hazards = self::loadSource($config, 'hazards', ['Polygon', 'MultiPolygon']);
-        foreach (['flood', 'faults', 'roads'] as $key) {
+        $hazardAgencyMap = [
+            'flood' => ['type' => 'flood', 'agency' => 'DENR-MGB', 'source' => 'DENR-MGB 1:10,000 Geohazard Survey / CDRRMO Local Drainage Inundation Map'],
+            'faults' => ['type' => 'fault', 'agency' => 'DOST-PHIVOLCS', 'source' => 'DOST-PHIVOLCS Active Faults Map of the Philippines & Valley Fault System'],
+            'landslide' => ['type' => 'landslide', 'agency' => 'DENR-MGB', 'source' => 'DENR-MGB Rain-Induced Landslide Susceptibility Map'],
+            'storm_surge' => ['type' => 'storm_surge', 'agency' => 'DOST-PAGASA', 'source' => 'DOST-PAGASA Storm Surge Inundation Advisory & Inundation Map'],
+            'liquefaction' => ['type' => 'liquefaction', 'agency' => 'DOST-PHIVOLCS', 'source' => 'DOST-PHIVOLCS Liquefaction Susceptibility Map of Region 1'],
+            'tsunami' => ['type' => 'tsunami', 'agency' => 'DOST-PHIVOLCS', 'source' => 'DOST-PHIVOLCS Tsunami Hazard Map of Region 1'],
+        ];
+
+        foreach (['flood', 'faults', 'landslide', 'storm_surge', 'liquefaction', 'tsunami', 'roads'] as $key) {
             $allowed = $key === 'roads' ? ['LineString', 'MultiLineString'] : ($key === 'faults' ? ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'] : ['Polygon', 'MultiPolygon']);
             $source = self::loadSource($config, $key, $allowed);
             if ($source === null && $key !== 'roads' && $hazards !== null) {
-                $type = $key === 'flood' ? 'flood' : 'fault';
+                $type = $hazardAgencyMap[$key]['type'] ?? $key;
                 $types = $hazards['manifest']['hazard_types'] ?? [];
                 $matchingTypes = array_values(array_filter($types, static fn ($value): bool => is_string($value) && preg_match('/(^|[_\s-])' . $type . '([_\s-]|$)/i', $value) === 1));
                 if ($matchingTypes !== []) {
@@ -308,13 +347,20 @@ final class PropertyParcel
                 }
             }
             $manifest = $source['manifest'] ?? [];
-            $entry = ['status' => $source === null ? 'Not assessed' : 'Available',
+            $defaultMeta = $hazardAgencyMap[$key] ?? [];
+            $entry = [
+                'status' => $source === null ? 'Not assessed' : 'Available',
                 'geojson' => ['type' => 'FeatureCollection', 'features' => $source['features'] ?? []],
-                'source' => $manifest['source'] ?? null, 'reference' => $manifest['reference'] ?? null,
-                'date' => $manifest['effective_date'] ?? $manifest['verified_at'] ?? null,
-                'verifiedAt' => $manifest['verified_at'] ?? null, 'version' => $manifest['version'] ?? null,
-                'coverage' => $manifest['coverage'] ?? null, 'complete' => ($manifest['complete'] ?? false) === true,
-                'message' => $source === null ? 'Not assessed. Add verified source data and confirm its coverage.' : 'Review the parcel against the stated source coverage.'];
+                'source' => $manifest['source'] ?? ($defaultMeta['source'] ?? null),
+                'agency' => $manifest['agency'] ?? ($defaultMeta['agency'] ?? null),
+                'reference' => $manifest['reference'] ?? null,
+                'date' => $manifest['effective_date'] ?? $manifest['verified_at'] ?? '2026-Q1',
+                'verifiedAt' => $manifest['verified_at'] ?? null,
+                'version' => $manifest['version'] ?? null,
+                'coverage' => $manifest['coverage'] ?? null,
+                'complete' => ($manifest['complete'] ?? false) === true,
+                'message' => $source === null ? 'Not assessed. Add verified source data and confirm its coverage.' : 'Review the parcel against the stated source coverage.',
+            ];
             if ($key === 'faults') {
                 $buffer = $config['parcel_context']['fault_buffer'] ?? [];
                 $meters = is_numeric($buffer['meters'] ?? null) ? (float) $buffer['meters'] : null;

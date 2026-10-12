@@ -7,33 +7,49 @@ const fmt = (value, digits = 2) => new Intl.NumberFormat('en-PH', { maximumFract
 const fixed = value => Number(value).toFixed(1);
 const rating = value => fmt(value, 20);
 const money = value => numeric(value) !== null ? `PHP ${fmt(value)}` : "Price on request";
-const labels = [
-  ['spatial_accessibility', 'Spatial accessibility', 20],
-  ['infrastructure_readiness', 'Infrastructure readiness', 20],
-  ['economic_viability', 'Economic viability', 20],
-  ['nearby_businesses', 'Nearby businesses', 10],
-  ['zoning_compatibility', 'Zoning compatibility', 15],
-  ['risk_constraints', 'Risk constraints', 10],
-  ['environmental_safety', 'Environmental safety', 5],
+const criteria6 = [
+  ['spatial_accessibility', 'Spatial Accessibility', 20],
+  ['infrastructure_readiness', 'Infrastructure Readiness', 20],
+  ['economic_viability', 'Land Valuation / Economic Context', 20],
+  ['nearby_businesses', 'Economic Activity / Business Environment', 10],
+  ['zoning_compatibility', 'Zoning Compatibility', 15],
+  ['risk_constraints', 'Risk Constraints', 15],
+];
+
+const legacyCriteria7 = [
+  ['spatial_accessibility', 'Spatial Accessibility', 20],
+  ['infrastructure_readiness', 'Infrastructure Readiness', 20],
+  ['economic_viability', 'Land Valuation / Economic Context', 20],
+  ['nearby_businesses', 'Economic Activity / Business Environment', 10],
+  ['zoning_compatibility', 'Zoning Compatibility', 15],
+  ['risk_constraints', 'Risk Constraints', 10],
+  ['environmental_safety', 'Environmental Safety', 5],
 ];
 
 export function assessmentCalculation(property) {
-  const rows = labels.map(([key, label, defaultWeight]) => {
+  const isLegacy = property?.assessmentMethodologyVersion?.includes('v1.1')
+    || (property?.assessmentCriteria?.environmental_safety != null && property?.assessmentWeights?.environmental_safety !== 0);
+  const activeList = isLegacy ? legacyCriteria7 : criteria6;
+  const rows = activeList.map(([key, label, defaultWeight]) => {
     const value = numeric(property.assessmentCriteria?.[key]);
     const weight = numeric(property.assessmentWeights?.[key]) ?? defaultWeight;
     const score = value !== null && value >= 0 && value <= 100 ? value : null;
     return { key, label, weight, score, contribution: score === null ? null : score * weight / 100 };
   });
   const complete = property.assessmentComplete === true && rows.every(row => row.score !== null)
-    && rows.reduce((sum, row) => sum + row.weight, 0) === 100;
-  const mce = complete ? numeric(property.mceScore) : null;
-  const iai = complete ? numeric(property.iaiScore) : null;
-  const components = [
+    && Math.abs(rows.reduce((sum, row) => sum + row.weight, 0) - 100) < 0.01;
+  const iai = complete ? numeric(property.iaiScore ?? property.iai) : null;
+  const mce = complete ? numeric(property.mceScore ?? property.mce ?? iai) : null;
+  const isNotSuitable = property.assessmentStatus === 'not_suitable' || property.status === 'not_suitable';
+  const isConditional = property.assessmentStatus === 'conditional' || property.status === 'conditional';
+  const reason = property.reason || null;
+  const note = property.note || (isConditional ? 'Conditional compatibility — requires zoning clearance or further city review.' : null);
+  const components = isLegacy ? [
     { label: 'Rounded MCE', value: mce, weight: 60 },
-    { label: 'Economic viability', value: rows.find(row => row.key === 'economic_viability').score, weight: 20 },
-    { label: 'Infrastructure readiness', value: rows.find(row => row.key === 'infrastructure_readiness').score, weight: 20 },
-  ].map(row => ({ ...row, contribution: mce === null || row.value === null ? null : row.value * row.weight / 100 }));
-  return { rows, complete, mce, iai, components, completedCount: rows.filter(row => row.score !== null).length };
+    { label: 'Economic viability', value: rows.find(row => row.key === 'economic_viability')?.score, weight: 20 },
+    { label: 'Infrastructure readiness', value: rows.find(row => row.key === 'infrastructure_readiness')?.score, weight: 20 },
+  ].map(row => ({ ...row, contribution: mce === null || row.value === null ? null : row.value * row.weight / 100 })) : rows;
+  return { rows, complete, mce, iai, components, isNotSuitable, isConditional, reason, note, completedCount: rows.filter(row => row.score !== null).length };
 }
 
 function factsMarkup(rows, className = '') {
@@ -50,10 +66,13 @@ function recordedSafety(property) {
   const context = Array.isArray(property.spatialContext) ? property.spatialContext : [];
   const values = value => (Array.isArray(value) ? value : value == null ? [] : [value])
     .filter(value => typeof value === 'string' && value.trim()).map(value => value.trim().replaceAll('_', ' '));
-  return [
+  const items = [
     ['risk_constraints', 'hazard_status', 'Hazard screening'],
-    ['environmental_safety', 'environment_status', 'Environmental screening'],
-  ].map(([criterion, key, label]) => {
+  ];
+  if (property?.assessmentCriteria?.environmental_safety != null || property?.criteriaDetails?.environmental_safety) {
+    items.push(['environmental_safety', 'environment_status', 'Environmental screening']);
+  }
+  return items.map(([criterion, key, label]) => {
     const detail = property.criteriaDetails?.[criterion] || {};
     const spatial = context.find(item => item?.key === key) || {};
     return {
@@ -219,18 +238,21 @@ function safetyMarkup(property) {
 }
 
 function radarMarkup(calculation) {
-  if (!calculation.complete) return '<p class="property-pending-note">A radar profile will appear when all seven criteria have recorded ratings. Missing evidence is not plotted as zero.</p>';
-  const abbreviations = ['Access', 'Infrastructure', 'Economic', 'Businesses', 'Zoning', 'Risk', 'Environment'];
+  const count = calculation.rows.length;
+  if (!calculation.complete) return `<p class="property-pending-note">A radar profile will appear when all ${count === 6 ? 'six' : 'seven'} criteria have recorded ratings. Missing evidence is not plotted as zero.</p>`;
+  const abbreviations = count === 6
+    ? ['Access', 'Infra', 'Econ', 'Business', 'Zoning', 'Risk']
+    : ['Access', 'Infrastructure', 'Economic', 'Businesses', 'Zoning', 'Risk', 'Environment'];
   const point = (index, radius) => {
-    const angle = index * Math.PI * 2 / 7 - Math.PI / 2;
+    const angle = index * Math.PI * 2 / count - Math.PI / 2;
     return [180 + Math.cos(angle) * radius, 155 + Math.sin(angle) * radius];
   };
   const polygon = scale => calculation.rows.map((row, index) => point(index, 105 * scale(row)).map(value => value.toFixed(2)).join(',')).join(' ');
-  return `<div class="property-radar-layout"><svg class="property-radar" viewBox="0 0 360 320" role="img" aria-label="Radar profile of the seven recorded criterion ratings. Values are listed alongside the chart.">
+  return `<div class="property-radar-layout"><svg class="property-radar" viewBox="0 0 360 320" role="img" aria-label="Radar profile of the ${count} recorded criterion ratings. Values are listed alongside the chart.">
     ${[.25, .5, .75, 1].map(scale => `<polygon class="property-radar-grid" points="${polygon(() => scale)}"/>`).join('')}
     ${calculation.rows.map((row, index) => `<line class="property-radar-axis" x1="180" y1="155" x2="${point(index, 105)[0].toFixed(2)}" y2="${point(index, 105)[1].toFixed(2)}"/>`).join('')}
     <polygon class="property-radar-result" points="${polygon(row => row.score / 100)}"/>
-    ${calculation.rows.map((row, index) => `<circle class="property-radar-point" cx="${point(index, row.score * 1.05)[0].toFixed(2)}" cy="${point(index, row.score * 1.05)[1].toFixed(2)}" r="3"/><text x="${point(index, 137)[0].toFixed(2)}" y="${point(index, 137)[1].toFixed(2)}" text-anchor="middle" dominant-baseline="middle">${abbreviations[index]}</text>`).join('')}
+    ${calculation.rows.map((row, index) => `<circle class="property-radar-point" cx="${point(index, row.score * 1.05)[0].toFixed(2)}" cy="${point(index, row.score * 1.05)[1].toFixed(2)}" r="3"/><text x="${point(index, 137)[0].toFixed(2)}" y="${point(index, 137)[1].toFixed(2)}" text-anchor="middle" dominant-baseline="middle">${abbreviations[index] || row.label.slice(0, 6)}</text>`).join('')}
     <text class="property-radar-scale" x="185" y="55">100</text><text class="property-radar-scale" x="185" y="107">50</text>
     </svg><dl class="property-radar-values">${calculation.rows.map(row => `<div><dt>${esc(row.label)}</dt><dd>${rating(row.score)} <span>/ 100</span></dd></div>`).join('')}</dl></div>
     <p class="property-note">The chart shows the recorded ratings, without applying weights. Higher ratings are more favorable under the approved model; the risk rating is not a safety certificate.</p>`;
@@ -258,19 +280,101 @@ export function calculationMarkup(property) {
   const value = value => value === null ? 'Pending' : rating(value);
   const total = value => value === null ? 'Pending' : fixed(value);
   return `<section class="property-calculation" aria-labelledby="propertyCalculationTitle">
-    <h3 id="propertyCalculationTitle">MCE · Multi-Criteria Evaluation</h3>
-    <p class="property-note">Each rating is on a 0–100 scale; 100 is most favorable, including risk constraints. Contribution = rating × weight ÷ 100. All seven ratings are required.</p>
-    <div class="property-table-scroll"><table class="property-calculation-table"><caption>Seven criteria and their contributions to the MCE score</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Rating / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">MCE · rounded to 1 decimal</th><td>${total(calc.mce)}</td><td>100%</td><td>${calc.mce === null ? 'Pending' : fixed(calc.mce)}</td></tr></tfoot></table></div>
-    <p class="property-formula">MCE = round(Σ(rating × weight ÷ 100), 1)${calc.mce === null ? '' : ` = round(${calc.rows.map(row => fmt(row.contribution, 12)).join(' + ')}, 1) = ${fixed(calc.mce)}`}</p>
-    <h3>IAI · Investment Alignment Index</h3>
-    <p class="property-note">IAI uses the rounded MCE and the recorded economic viability and infrastructure readiness ratings. Components are summed before rounding the final result to one decimal.</p>
-    <div class="property-table-scroll"><table class="property-calculation-table"><caption>Components of the base IAI score</caption><thead><tr><th scope="col">Component</th><th scope="col">Rating / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.components.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${row.label === 'Rounded MCE' ? total(row.value) : value(row.value)}</td><td>${row.weight}%</td><td>${contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">Base IAI · rounded to 1 decimal</th><td>${total(calc.iai)}</td><td>100%</td><td>${total(calc.iai)}</td></tr></tfoot></table></div>
-    <p class="property-formula">IAI = round((MCE × 0.60) + (economic viability × 0.20) + (infrastructure readiness × 0.20), 1)${calc.iai === null ? '' : ` = round(${calc.components.map(row => fmt(row.contribution, 12)).join(' + ')}, 1) = ${fixed(calc.iai)}`}</p>
-    ${calc.mce === null || calc.iai === null ? `<p class="property-pending-note">Assessment pending · ${calc.completedCount} of 7 criteria have ratings. Missing evidence is not treated as zero; a total or rank is withheld until the assessment is complete.</p>` : ''}
-    <p class="property-note">This sheet records the base site IAI. Any approved priority adjustment for a proposed business is a separate evaluation and is excluded from these totals.</p>
+    <h3 id="propertyCalculationTitle">Investment Attractiveness Index (IAI) · MCE Breakdown</h3>
+    <p class="property-note">The Investment Attractiveness Index (IAI) is the composite 0–100 score produced by Multi-Criteria Evaluation (MCE). Each criterion is normalized on a 0–100 scale (100 is most favorable). Formula: IAI = Σ(normalized criterion score × criterion weight ÷ 100).</p>
+    ${calc.isNotSuitable ? `<div class="property-alert-danger" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;padding:12px 16px;border-radius:8px;margin-bottom:16px;"><strong>Site Not Eligible:</strong> ${esc(calc.reason || 'Proposed land use is not permitted under the applicable zoning / CLUP classification.')} Composite IAI is withheld.</div>` : ''}
+    ${calc.isConditional ? `<div class="property-alert-warning" style="background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;padding:12px 16px;border-radius:8px;margin-bottom:16px;"><strong>Conditional Compatibility:</strong> ${esc(calc.note)}</div>` : ''}
+    <div class="property-table-scroll"><table class="property-calculation-table"><caption>${calc.rows.length === 7 ? 'Seven' : 'Six'} criteria and their weighted contributions to the composite IAI score</caption><thead><tr><th scope="col">MCE Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">Composite IAI · rounded to 1 decimal</th><td>${total(calc.iai)}</td><td>100%</td><td>${calc.iai === null ? 'Pending' : fixed(calc.iai)}</td></tr></tfoot></table></div>
+    <p class="property-formula">IAI = round(Σ(score × weight ÷ 100), 1)${calc.iai === null ? '' : ` = round(${calc.rows.map(row => fmt(row.contribution, 2)).join(' + ')}, 1) = ${fixed(calc.iai)}`}</p>
+    ${calc.iai === null && !calc.isNotSuitable ? `<p class="property-pending-note">Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria have ratings. Assessment incomplete: Missing evidence is not treated as zero; a composite score or rank is withheld until all required criteria are complete.</p>` : ''}
+    <p class="property-note">This breakdown records the physical site IAI. Statutory policy incentives for proposed investments are evaluated separately by LEBDO and do not modify physical site suitability.</p>
     ${property.assessmentMethod ? `<p class="property-note"><strong>Recorded method:</strong> ${esc(property.assessmentMethod)}</p>` : ''}
-    ${factsMarkup([['Assessment mode', property.assessmentMode === 'automatic' ? 'Automatic · source evidence' : 'Recorded departmental assessment'], ['Evidence generated', dateLabel(property.generatedAt || property.automaticAssessment?.generatedAt)], ['Rule version', property.ruleVersion || 'Not recorded'], ['Approval reference', property.ruleApprovalReference || 'Not recorded']])}
+    ${factsMarkup([['Assessment mode', property.assessmentMode === 'automatic' ? 'Automatic · source evidence' : 'Recorded departmental assessment'], ['Evidence generated', dateLabel(property.generatedAt || property.automaticAssessment?.generatedAt)], ['Methodology version', property.methodology || property.ruleVersion || 'LOCUS-SF MCE v1.1'], ['Weight status', property.weightStatus || 'Provisional / Subject to LGU validation'], ['Approval reference', property.ruleApprovalReference || 'Not recorded']])}
   </section>`;
+}
+
+export function propertyGalleryMarkup(property, imageUrl, path) {
+  const mediaItems = Array.isArray(property.media) && property.media.length > 0
+    ? property.media.filter(m => (m.kind === 'image' || m.kind === 'photo') && (m.source || m.url))
+    : [];
+
+  const resolveUrl = src => {
+    if (!src) return imageUrl(property);
+    if (/^https?:\/\//i.test(src) || src.startsWith('/')) return src;
+    return typeof path === 'function' ? path(src) : src;
+  };
+
+  const images = mediaItems.length > 0
+    ? mediaItems.map(m => resolveUrl(m.source || m.url))
+    : [imageUrl(property)];
+
+  const categoryLabel = esc(property.category || property.type || 'Property');
+  const locationLabel = esc(property.barangay || property.city || 'San Fernando');
+
+  if (images.length <= 1) {
+    return `<figure class="property-photo"><img src="${esc(images[0])}" alt="${esc(property.name)}"><figcaption>${categoryLabel} · ${locationLabel}</figcaption></figure>`;
+  }
+
+  return `<figure class="property-photo property-gallery-container" data-property-gallery>
+    <div class="property-gallery-stage">
+      <img class="property-gallery-main-img" data-gallery-main src="${esc(images[0])}" alt="${esc(property.name)}">
+      <button type="button" class="property-gallery-nav is-prev" data-gallery-prev aria-label="Previous photo">‹</button>
+      <button type="button" class="property-gallery-nav is-next" data-gallery-next aria-label="Next photo">›</button>
+      <span class="property-gallery-counter" data-gallery-counter>1 / ${images.length}</span>
+      <figcaption data-gallery-caption>${categoryLabel} · ${locationLabel}</figcaption>
+    </div>
+    <div class="property-gallery-thumbnails" role="tablist" aria-label="Property photos">
+      ${images.map((src, idx) => `
+        <button type="button" class="property-gallery-thumb-btn ${idx === 0 ? 'is-active' : ''}" data-gallery-target="${idx}" role="tab" aria-selected="${idx === 0 ? 'true' : 'false'}" aria-label="View photo ${idx + 1}">
+          <img src="${esc(src)}" alt="${esc(property.name)} photo ${idx + 1}">
+        </button>
+      `).join('')}
+    </div>
+  </figure>`;
+}
+
+export function setupPropertyGallery(container = document) {
+  const galleries = container.querySelectorAll('[data-property-gallery]');
+  galleries.forEach(gallery => {
+    const mainImg = gallery.querySelector('[data-gallery-main]');
+    const counter = gallery.querySelector('[data-gallery-counter]');
+    const thumbs = Array.from(gallery.querySelectorAll('[data-gallery-target]'));
+    const prevBtn = gallery.querySelector('[data-gallery-prev]');
+    const nextBtn = gallery.querySelector('[data-gallery-next]');
+    if (!mainImg || thumbs.length <= 1) return;
+
+    let currentIndex = 0;
+    const count = thumbs.length;
+
+    function goTo(index) {
+      currentIndex = (index + count) % count;
+      const targetThumb = thumbs[currentIndex];
+      const targetImg = targetThumb?.querySelector('img');
+      if (targetImg && targetImg.src) {
+        mainImg.src = targetImg.src;
+      }
+      thumbs.forEach((t, i) => {
+        const active = i === currentIndex;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      if (counter) {
+        counter.textContent = `${currentIndex + 1} / ${count}`;
+      }
+      targetThumb?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+
+    prevBtn?.addEventListener('click', e => { e.preventDefault(); goTo(currentIndex - 1); });
+    nextBtn?.addEventListener('click', e => { e.preventDefault(); goTo(currentIndex + 1); });
+
+    thumbs.forEach(thumb => {
+      thumb.addEventListener('click', e => {
+        e.preventDefault();
+        const idx = Number(thumb.dataset.galleryTarget);
+        if (!isNaN(idx)) goTo(idx);
+      });
+    });
+  });
 }
 
 export function propertyDetailsMarkup(property, options) {
@@ -292,14 +396,14 @@ export function propertyDetailsMarkup(property, options) {
   const contact = role === 'guest' ? '<p class="property-contact-lead">Sign in to view available contact details and ask about this property.</p><ul class="property-trust-badges" aria-label="Official investor benefits"><li><span class="trust-badge-dot">✓</span> Verified City Economic Registry</li><li><span class="trust-badge-dot">✓</span> Cadastral survey &amp; title validation</li><li><span class="trust-badge-dot">✓</span> Direct LEBDO investment facilitation</li></ul>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
   const areaFacts = [['Listed area', area > 0 ? `${areaLabel} · ${fmt(area, 4)} ha` : 'Not specified'], [recordedAreaLabel, survey > 0 ? `${fmt(survey)} m²` : 'Not specified'], ['Drawn boundary estimate', mapped > 0 ? `${fmt(mapped)} m²` : 'No boundary drawn'], ['Boundary', parcel.boundary ? 'Recorded outline · mapped estimate' : 'Optional · not drawn']];
   return `${printHeaderMarkup(property)}
-    <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1><p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
+    <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1>${property.subname ? `<p class="property-subname" style="margin:2px 0 6px 0;font-size:14px;color:#64748b;font-weight:500;">${esc(property.subname)}</p>` : ''}<p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
     <div class="property-summary-strip"><div><span>Listing purpose</span><strong>${esc(listingPurposeLabel(property))}</strong></div>${listingPriceEntries(property).map(entry => `<div class="property-price-summary"><span>${esc(entry.label)}</span><strong>${esc(entry.value)}</strong></div>`).join('')}<div><span>Land area</span><strong>${areaLabel}</strong></div><div><span>Availability</span><strong>${esc(property.status || 'Awaiting confirmation')}</strong></div></div>
     <nav class="property-section-nav no-print" aria-label="Property sections"><a href="${sectionHref('propertyOverviewSection')}">Overview</a><a href="${sectionHref('propertyLocationSection')}">Location</a><a href="${sectionHref('propertyHazardsSection')}">Hazard checks</a><a href="${sectionHref('propertyOpportunitiesSection')}" data-investor-advanced>Opportunities</a><a href="${sectionHref('propertyAssessmentSection')}" data-investor-advanced>Assessment</a><a href="${sectionHref('propertySurroundingsSection')}" data-investor-advanced>Surroundings</a></nav>
     <div class="property-layout">
-      <figure class="property-photo"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><figcaption>${esc(property.category || property.type || 'Property')} · ${esc(property.barangay || property.city || 'San Fernando')}</figcaption></figure>
+      ${propertyGalleryMarkup(property, imageUrl, path)}
       <section class="property-panel property-contact"><span class="property-kicker">${property.contactMode === 'broker' ? 'Listing broker' : 'Listing assistance'}</span><h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>${contact}<div class="property-actions no-print">${role === 'guest' ? `<a class="city-button" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}${canInquire ? `<a class="city-button" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button></div><p class="property-note">Confirm the current availability and terms before making arrangements.</p></section>
       <section class="property-panel property-location" id="propertyLocationSection"><div class="property-section-heading"><div><span class="property-kicker">Find this property</span><h2>${locationLabel}</h2></div>${approximate ? '<span class="property-location-badge">Approximate pin</span>' : ''}</div><p>${esc(location)}</p>${hasLocation ? '<div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Property location map"></div>' : '<p class="property-pending-note">Exact location has not been recorded. The listed area or locality does not establish a precise property position.</p>'}${hasLocation ? `<p class="property-note">${approximate ? 'This pin shows an approximate location. Confirm the property position and legal boundaries before a site visit.' : 'The recorded pin is a location reference. Confirm the property position and legal boundaries against the survey records.'}</p>` : ''}${factsMarkup([['Recorded coordinates', hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not specified'], ['Boundary', parcel.boundary ? 'Drawn outline · mapped estimate' : 'No boundary drawn']])}${hasLocation ? `<a class="city-link no-print" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}" target="_blank" rel="noopener">Open ${approximate ? 'approximate ' : ''}location in maps ↗</a>` : ''}</section>
-      <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><h2>Property overview</h2><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : (property.clupProfile?.zoningClassification || 'Awaiting verification')], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'City verified listing'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
+      <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><h2>Property overview</h2><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : (property.clupProfile?.zoningClassification || 'Awaiting verification')], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ...(property.clupProfile?.proposedActivity || property.proposedActivity ? [['Proposed land use activity', property.clupProfile?.proposedActivity || property.proposedActivity]] : []), ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'City verified listing'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
         ${utilitiesMarkup(property)}
         <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
       </section>
@@ -315,7 +419,7 @@ export function propertyDetailsMarkup(property, options) {
               <p class="property-assessment-subtitle">A clear overview of the ratings behind the assessment.</p>
             </div>
             <div class="property-assessment-badge-wrap no-print">
-              <span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? 'All seven criteria rated' : 'Evidence pending'}</span>
+              <span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? `All ${calc.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending'}</span>
             </div>
           </div>
 
@@ -350,7 +454,7 @@ export function propertyDetailsMarkup(property, options) {
                 <strong>${calc.mce === null ? 'Pending' : fixed(calc.mce)}</strong>
                 ${calc.mce !== null ? '<small> / 100</small>' : ''}
               </div>
-              <p class="property-score-card-desc">Weighted assessment across seven criteria.</p>
+              <p class="property-score-card-desc">Weighted assessment across ${calc.rows.length === 6 ? 'six' : 'seven'} criteria.</p>
               <button type="button" class="property-score-card-action locus-trigger-criteria" data-locus-help-trigger data-locus-help-tab="criteria">Explore the criteria &rarr;</button>
             </div>
           </div>

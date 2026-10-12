@@ -14,7 +14,7 @@ let automaticAssessment = window.SFCAutomaticAssessment?.(form, { apiBase, dialo
 let propertyWizard = window.SFCPropertyWizard?.(form, { apiBase, dialog: editor, assessment: automaticAssessment });
 propertyWizard?.setNearby(nearby);
 let locationEditor = propertyWizard || window.SFCAdminLocation?.(form, { apiBase, dialog: editor });
-let editorLastStep = propertyWizard ? 4 : 2;
+let editorLastStep = form ? Math.max(0, form.querySelectorAll('[data-editor-panel]').length - 1) : (propertyWizard ? 3 : 2);
 let editorStep = 0;
 
 function ensureWizard() {
@@ -28,7 +28,7 @@ function ensureWizard() {
     propertyWizard = window.SFCPropertyWizard(form, { apiBase, dialog: editor, assessment: automaticAssessment });
     propertyWizard?.setNearby(nearby);
     locationEditor = propertyWizard;
-    editorLastStep = 4;
+    editorLastStep = form ? Math.max(0, form.querySelectorAll('[data-editor-panel]').length - 1) : 3;
   }
 }
 const state = { properties: [], profile: null, threads: [], requests: [], activeThread: null, threadData: null, query: '', filter: 'all' };
@@ -405,10 +405,10 @@ function setEditorStep(step) {
   if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
   if (propertyWizard && nextBtn) {
     const nextLabel = nextBtn.querySelector('[data-editor-next-label]') || nextBtn;
-    nextLabel.textContent = step === 0 ? 'Continue to location' : 'Continue';
+    nextLabel.textContent = step === 0 ? 'Continue to location' : (step === 1 ? 'Continue to Site Evidence' : (step === 2 ? 'Continue to Review' : 'Continue'));
   }
   const skip = form?.querySelector('[data-skip-enrichment]');
-  if (skip) skip.hidden = ![1,2,3].includes(step);
+  if (skip) skip.hidden = ![1,2].includes(step);
   const scrollContainer = form?.querySelector('.pw-content') || editor;
   if (scrollContainer) scrollContainer.scrollTop = 0;
   if (propertyWizard) propertyWizard.onStep(step);
@@ -420,15 +420,24 @@ function setEditorStep(step) {
 
 function validateEditor(container = form) {
   if (!container) return true;
+  const step = container === form ? null : Number(container.dataset.editorPanel);
+  if ((step === null || step === 0) && propertyWizard?.validateBasics && !propertyWizard.validateBasics()) {
+    setEditorStep(0);
+    return false;
+  }
+  if ((step === null || step === 1) && !validateBoundary()) return false;
   const invalid = Array.from(container.querySelectorAll('input,select,textarea')).find((field) => !field.disabled && !field.checkValidity());
   if (!invalid) return true;
   const panel = invalid.closest('[data-editor-panel]');
   if (panel) setEditorStep(Number(panel.dataset.editorPanel));
   if (['lat','lng'].includes(invalid.name)) form.querySelector('[data-location-method="pin"]')?.click();
-  const disclosure = invalid.closest('details');
-  if (disclosure) disclosure.open = true;
+  for (let parent = invalid.parentElement; parent && parent !== form; parent = parent.parentElement) {
+    if (parent.tagName === 'DETAILS') parent.open = true;
+  }
   const evidencePanel = invalid.closest('[data-evidence-panel]');
   if (evidencePanel) form.querySelector(`[data-evidence-tab="${evidencePanel.dataset.evidencePanel}"]`)?.click();
+  const utilityPanel = invalid.closest('[data-util-pane]');
+  if (utilityPanel) form.querySelector(`[data-util-tab="${utilityPanel.dataset.utilPane}"]`)?.click();
   invalid.focus();
   invalid.reportValidity();
   return false;
@@ -442,20 +451,18 @@ function validateBoundary() {
 
 form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
   if (!validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) return;
-  if (editorStep === 1 && !validateBoundary()) return;
   if (editorStep === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
   setEditorStep(Math.min(editorLastStep, editorStep + 1));
 });
 form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
 form?.querySelector('[data-skip-enrichment]')?.addEventListener('click', () => {
-  if (!validateEditor() || !validateBoundary()) return;
+  if (!validateEditor()) return;
   setEditorStep(editorLastStep);
 });
 form?.querySelectorAll('[data-editor-step]').forEach((button) => button.addEventListener('click', () => {
   const target = Number(button.dataset.editorStep);
   for (let step = 0; step < target; step++) {
     if (!validateEditor(form.querySelector(`[data-editor-panel="${step}"]`))) return;
-    if (step === 1 && !validateBoundary()) return;
     if (step === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
   }
   setEditorStep(target);
@@ -493,30 +500,34 @@ form?.querySelectorAll('[data-price-input]').forEach(input => input.addEventList
 const areaInput = form?.querySelector('[data-area-input]');
 const areaUnit = form?.querySelector('[data-area-unit]');
 const areaCalc = form?.querySelector('[data-area-calc]');
+let displayedAreaUnit = areaUnit?.value || 'sqm';
 
 function updateAreaCalculation() {
   if (!areaInput || !areaUnit || !areaCalc) return;
-  const rawVal = parseFloat(areaInput.value);
+  const rawVal = Number(areaInput.value);
   const unit = areaUnit.value;
-  areaInput.min = unit === 'sqm' ? '1' : '0.0001';
+  displayedAreaUnit = unit;
+  areaInput.min = propertyWizard ? (unit === 'sqm' ? '0.5' : '0.00005') : (unit === 'sqm' ? '1' : '0.0001');
   areaInput.step = propertyWizard ? 'any' : (unit === 'sqm' ? '1' : '0.0001');
-  if (isNaN(rawVal) || rawVal <= 0) {
-    areaCalc.textContent = 'Enter an area size, or leave it blank and provide an exact location.';
+  if (!Number.isFinite(rawVal) || rawVal <= 0) {
+    areaCalc.textContent = areaInput.value.trim() ? 'Enter a valid positive area.' : 'Leave blank if the area is not known.';
     return;
   }
-  if (unit === 'sqm') {
-    const hectares = rawVal / 10000;
-    const formattedHa = Number(hectares.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
-    const label = hectares === 1 ? 'hectare' : 'hectares';
-    areaCalc.textContent = `Calculated: ${formattedHa} ${label}`;
-  } else {
-    const sqm = rawVal * 10000;
-    const formattedSqm = Number(sqm.toFixed(2)).toLocaleString('en-US', { maximumFractionDigits: 2 });
-    areaCalc.textContent = `Calculated: ${formattedSqm} sqm`;
-  }
+  const squareMetres = unit === 'sqm' ? rawVal : rawVal * 10000;
+  if (!Number.isFinite(squareMetres)) { areaCalc.textContent = 'Enter a valid positive area.'; return; }
+  const format = value => value.toLocaleString('en-PH', { maximumFractionDigits: 6 });
+  areaCalc.textContent = `${format(squareMetres)} m² = ${format(squareMetres / 10000)} ha`;
 }
 areaInput?.addEventListener('input', updateAreaCalculation);
-areaUnit?.addEventListener('change', updateAreaCalculation);
+areaUnit?.addEventListener('change', () => {
+  const rawVal = Number(areaInput?.value);
+  if (areaInput?.value.trim() && Number.isFinite(rawVal) && rawVal > 0 && displayedAreaUnit !== areaUnit.value) {
+    const converted = rawVal * (areaUnit.value === 'sqm' ? 10000 : 0.0001);
+    if (Number.isFinite(converted)) areaInput.value = String(Number(converted.toPrecision(15)));
+  }
+  updateAreaCalculation();
+  areaInput?.dispatchEvent(new Event('input', {bubbles:true}));
+});
 
 const subcatWrapper = form?.querySelector('[data-subcategory-wrapper]');
 const subcatTrigger = subcatWrapper?.querySelector('[data-subcategory-trigger]');
@@ -555,14 +566,21 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-function renderSubcategoryTags() {
+function renderSubcategoryTags(sync = true) {
   if (!subcatTags || !subcatInput || !subcatTriggerText || !subcatCount) return;
+  if (sync && propertyWizard?.setAdditionalSubcategories) {
+    propertyWizard.setAdditionalSubcategories(Array.from(selectedSubcategories));
+    selectedSubcategories = new Set(propertyWizard.getClassification().additional);
+  }
   const list = Array.from(selectedSubcategories);
-  subcatInput.value = list.join(', ');
-  subcatInput.dispatchEvent(new Event('input', { bubbles: true }));
+  const serialized = list.join(', ');
+  if (subcatInput.value !== serialized) {
+    subcatInput.value = serialized;
+    subcatInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
 
   if (list.length === 0) {
-    subcatTriggerText.textContent = 'Select subcategories...';
+    subcatTriggerText.textContent = 'Select additional classifications...';
     subcatTriggerText.className = 'tw-truncate tw-text-sm tw-text-slate-500';
     subcatCount.textContent = 'Optional · multi-select';
     subcatTags.innerHTML = '';
@@ -592,10 +610,13 @@ function renderSubcategoryTags() {
   });
 }
 
-function updateSubcategories(selected = '') {
+function updateSubcategories(selected) {
   if (!subcatGrid) return;
   const categoryVal = form?.elements?.category?.value || 'Land';
-  const options = categories[categoryVal] || [];
+  const classification = propertyWizard?.getClassification?.();
+  const primary = classification?.primary || form?.elements?.subcategory?.value || '';
+  const options = (categories[categoryVal] || []).filter(item => item !== primary);
+  if (selected === undefined) selected = classification?.additional ?? subcatInput?.value ?? '';
 
   if (Array.isArray(selected)) {
     selectedSubcategories = new Set(selected.filter(Boolean));
@@ -644,12 +665,15 @@ function updateSubcategories(selected = '') {
     });
   }
 
-  renderSubcategoryTags();
+  renderSubcategoryTags(false);
 }
+
+form?.addEventListener('classificationchange', () => updateSubcategories());
 
 subcatWrapper?.querySelector('[data-subcategory-select-all]')?.addEventListener('click', (e) => {
   e.stopPropagation();
-  const options = categories[form?.elements?.category?.value] || [];
+  const primary = form?.elements?.subcategory?.value || '';
+  const options = (categories[form?.elements?.category?.value] || []).filter(item => item !== primary);
   options.forEach((opt) => selectedSubcategories.add(opt));
   subcatGrid?.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
   renderSubcategoryTags();
@@ -663,6 +687,7 @@ subcatWrapper?.querySelector('[data-subcategory-clear-all]')?.addEventListener('
 });
 
 form?.elements?.category?.addEventListener('change', () => updateSubcategories());
+form?.elements?.subcategory?.addEventListener('change', () => updateSubcategories());
 
 function openListing(property = null) {
   if (!canSubmit()) return;
@@ -689,9 +714,20 @@ function openListing(property = null) {
   }
 
   if (property) {
+    let cat = property.category || 'Land';
+    let sub = property.subcategory || '';
+    if (cat === 'Vacant Land') {
+      cat = 'Land';
+    } else if (cat !== 'Land' && cat !== 'Building') {
+      if (!sub) sub = cat;
+      const landLegacy = ['Commercial Lot', 'Residential Lot', 'Industrial Lot', 'Agricultural', 'Raw Land', 'Farm / Agribusiness'];
+      cat = landLegacy.includes(cat) ? 'Land' : 'Building';
+    }
     const values = {
       property_name: property.name,
-      category: property.category,
+      property_subname: property.subname || property.propertySubname || '',
+      category: cat,
+      subcategory: sub,
       barangay: property.barangay,
       status: property.status || 'Available',
       listing_purpose: property.listingPurpose || 'sale',
@@ -708,6 +744,7 @@ function openListing(property = null) {
       readiness_notes: property.readinessNotes,
       existing_land_use: property.existingLandUse,
       zoning_classification: property.zoningClassification,
+      proposed_activity: property.proposedActivity || property.clupProfile?.proposedActivity || '',
       clup_source_reference: property.clupSourceReference,
     };
     Object.entries(values).forEach(([name, value]) => {
@@ -720,19 +757,21 @@ function openListing(property = null) {
       areaInput.value = property.parcel?.boundary || property.parcel?.surveyAreaSqm ? (property.parcel.surveyAreaSqm || '') : (property.area > 0 ? Math.round(property.area * 10000 * 100) / 100 : '');
       updateAreaCalculation();
     }
-    updateSubcategories(property.subcategory || '');
+    updateSubcategories(sub);
     form.querySelectorAll('[name="assessmentTags[]"]').forEach((field) => {
       field.checked = (property.assessmentTags || []).includes(field.value);
     });
   } else {
     form.elements.category.value = 'Land';
+    if (form.elements.property_subname) form.elements.property_subname.value = '';
+    if (form.elements.subcategory) form.elements.subcategory.value = '';
     if (priceInput) priceInput.value = '';
     if (areaInput && areaUnit) {
       areaUnit.value = 'sqm';
       areaInput.value = '';
       updateAreaCalculation();
     }
-    updateSubcategories();
+    updateSubcategories([]);
     form.elements.lat.value = '';
     form.elements.lng.value = '';
     form.elements.owner_name.value = brokerName;
@@ -751,7 +790,7 @@ function openListing(property = null) {
   automaticAssessment?.setProperty(property);
   const restored = propertyWizard?.setProperty(property);
   if (restored?.nearby) nearby?.set(restored.nearby);
-  if (restored?.values?.subcategory) updateSubcategories(restored.values.subcategory);
+  updateSubcategories();
   updateAreaCalculation();
   const restoredStep = Number(restored?.step);
   setEditorStep(Number.isInteger(restoredStep) ? Math.max(0, Math.min(editorLastStep, restoredStep)) : 0);
@@ -961,9 +1000,9 @@ form?.addEventListener('submit', async (event) => {
     form.querySelector('[data-editor-next]').click();
     return;
   }
-  if (!validateEditor() || !validateBoundary()) return;
+  if (!validateEditor()) return;
   if (propertyWizard && !propertyWizard.validateSurroundings()) {
-    setEditorStep(3);
+    setEditorStep(2);
     return;
   }
   const submit = form.querySelector('[type="submit"]');
@@ -974,15 +1013,15 @@ form?.addEventListener('submit', async (event) => {
   const payload = new FormData(form);
   nearby?.append(payload);
   propertyWizard?.append(payload);
-  if (propertyWizard) propertyWizard.buildSubmission(payload, selectedSubcategories);
+  if (propertyWizard) propertyWizard.buildSubmission(payload);
   else {
     payload.delete('id');
     const unitVal = areaUnit?.value || 'sqm';
-    payload.set('land_area', String(areaInput?.value || '').replace(/[^\d.]/g, ''));
+    payload.set('land_area', String(areaInput?.value || '').trim());
     payload.set('land_area_unit', unitVal);
     const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
     payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
-    payload.set('subcategory', Array.from(selectedSubcategories).join(', '));
+    payload.set('subcategory', Array.from(new Set([form.elements.subcategory?.value, ...selectedSubcategories].filter(Boolean))).join(', '));
     payload.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
     payload.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
     payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
@@ -1004,10 +1043,15 @@ form?.addEventListener('submit', async (event) => {
     showSubmissionSuccessModal(savedPropertyId);
     await reload();
   } catch (error) {
-    const errorNode = form.querySelector('[data-editor-message]');
-    if (errorNode) {
-      errorNode.textContent = error.message || 'Unable to submit the listing.';
-      errorNode.className = 'pw-form-message is-error';
+    if (propertyWizard?.showSubmissionError) {
+      const issue = propertyWizard.showSubmissionError(error);
+      if (issue) setEditorStep(issue.step);
+    } else {
+      const errorNode = form.querySelector('[data-editor-message]');
+      if (errorNode) {
+        errorNode.textContent = error.message || 'Unable to submit the listing.';
+        errorNode.className = 'pw-form-message is-error';
+      }
     }
   } finally {
     submit.disabled = false;

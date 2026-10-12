@@ -5,6 +5,7 @@ require __DIR__ . '/_bootstrap.php';
 require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
+require_once dirname(__DIR__) . '/app/Support/PropertyMediaSelection.php';
 require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
 require_once dirname(__DIR__) . '/app/Support/BusinessOpportunities.php';
 
@@ -87,11 +88,16 @@ api_handle(function (array $container): array {
                 throw new InvalidArgumentException('A reason is required when rejecting the Authority to Sell.');
             }
             $currentAuth = $before['authorityToSell'] ?? [];
-            if (!is_array($currentAuth) || empty($currentAuth['fileId'])) {
+            $fileId = $currentAuth['id'] ?? $currentAuth['fileId'] ?? null;
+            if (!is_array($currentAuth) || empty($fileId)) {
                 throw new InvalidArgumentException('No Authority to Sell document has been uploaded for this property.');
             }
+            $currentAuth['id'] = $fileId;
+            $currentAuth['fileId'] = $fileId;
             $currentAuth['status'] = $targetStatus;
+            $currentAuth['reviewerId'] = (int) $user['id'];
             $currentAuth['reviewedByUserId'] = (int) $user['id'];
+            $currentAuth['reviewerName'] = (string) ($user['name'] ?? 'City Reviewer');
             $currentAuth['reviewedByUserName'] = (string) ($user['name'] ?? 'City Reviewer');
             $currentAuth['reviewedAt'] = gmdate('Y-m-d H:i:s');
             $currentAuth['reviewNote'] = $note;
@@ -107,10 +113,20 @@ api_handle(function (array $container): array {
             $payload['authority_to_sell'] = $authRecord;
         }
     }
-    $image = store_uploaded_property_image($_FILES['image_file'] ?? null);
-    if ($image !== null) {
-        $payload['image_path'] = $image;
+    $uploadedImages = [];
+    if (!empty($_FILES['image_files'])) {
+        $uploadedImages = store_uploaded_property_images($_FILES['image_files']);
+    } elseif (!empty($_FILES['image_file'])) {
+        $single = store_uploaded_property_image($_FILES['image_file']);
+        if ($single !== null) {
+            $uploadedImages[] = $single;
+        }
     }
+    if ($uploadedImages !== []) {
+        $payload['image_path'] = $uploadedImages[0];
+        $payload['gallery_images'] = $uploadedImages;
+    }
+    $payload = \App\Support\PropertyMediaSelection::withUploads($payload, $input, $uploadedImages);
     $evidence = ['created' => []];
     if (sfc_can_manage_properties($user) || sfc_broker_can_submit($user)) {
         $evidence = \App\Support\PropertyEvidenceFiles::stage($_FILES['evidence_files'] ?? null, $before['parcel']['attachments'] ?? []);

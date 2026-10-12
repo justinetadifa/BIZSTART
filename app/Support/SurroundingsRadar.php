@@ -31,22 +31,52 @@ final class SurroundingsRadar
         return self::EARTH_RADIUS * $c;
     }
 
+    /** Validate the nearby endpoint's optional reference point before directory fallback. */
+    public static function queryParameters(array $query): ?array
+    {
+        if (!array_key_exists('lat', $query) && !array_key_exists('lng', $query)) {
+            return null;
+        }
+        $lat = $query['lat'] ?? null;
+        $lng = $query['lng'] ?? null;
+        if (!is_scalar($lat) || !is_scalar($lng) || !is_numeric($lat) || !is_numeric($lng)
+            || !is_finite((float) $lat) || !is_finite((float) $lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180
+        ) {
+            throw new InvalidArgumentException('Provide both valid latitude and longitude for nearby search.');
+        }
+        $radius = $query['radius'] ?? 500;
+        if (!is_scalar($radius) || !is_numeric($radius) || !is_finite((float) $radius)
+            || (float) $radius < 100 || (float) $radius > 1500 || floor((float) $radius) !== (float) $radius
+        ) {
+            throw new InvalidArgumentException('Nearby search radius must be a whole number between 100 and 1500 meters.');
+        }
+        return [
+            'lat' => (float) $lat,
+            'lng' => (float) $lng,
+            'radius' => (int) $radius,
+            'type' => is_string($query['type'] ?? null) ? trim($query['type']) : 'cafe',
+        ];
+    }
+
     /**
      * Search establishments and road segments within $radiusMeters of ($lat, $lng).
      */
-    public static function search(float $lat, float $lng, int $radiusMeters = 500, string $businessType = 'cafe'): array
+    public static function search(float $lat, float $lng, int $radiusMeters = 500, string $businessType = 'cafe', array $options = []): array
     {
         if (!is_finite($lat) || abs($lat) > 90 || !is_finite($lng) || abs($lng) > 180) {
             throw new InvalidArgumentException('Invalid latitude or longitude coordinates.');
         }
 
         $radiusMeters = max(100, min(1500, $radiusMeters));
-        $cacheDir = dirname(__DIR__, 2) . '/data/cache/radar';
+        $cacheDir = $options['cache_directory'] ?? dirname(__DIR__, 2) . '/data/cache/radar';
+        $dataDir = $options['data_directory'] ?? dirname(__DIR__, 2) . '/data';
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0775, true);
         }
 
-        $cacheKey = sprintf('radar_%.4f_%.4f_%d.json', $lat, $lng, $radiusMeters);
+        // Coordinates are stored with six decimal places. Do not reuse another
+        // reference point's distances merely because both round to four digits.
+        $cacheKey = sprintf('radar_v2_%.6f_%.6f_%d.json', $lat, $lng, $radiusMeters);
         $cachePath = $cacheDir . '/' . $cacheKey;
         $now = time();
 
@@ -60,7 +90,7 @@ final class SurroundingsRadar
                     if (($now - $mtime) < 86400) {
                         $cached['cached'] = true;
                         $cached['stale'] = false;
-                        return $cached;
+                        return self::frameResult($cached, $lat, $lng, $radiusMeters);
                     }
                 }
             }
@@ -68,29 +98,19 @@ final class SurroundingsRadar
 
         // 2. Fetch from Overpass
         $osmData = null;
-        $fetchError = null;
         try {
-            $osmData = self::queryOverpass($lat, $lng, $radiusMeters);
+            $osmData = isset($options['fetcher']) ? ($options['fetcher'])($lat, $lng, $radiusMeters) : self::queryOverpass($lat, $lng, $radiusMeters);
+            if (!is_array($osmData) || !is_array($osmData['elements'] ?? null)) {
+                $osmData = null;
+            }
         } catch (Throwable $e) {
-            $fetchError = $e->getMessage();
+            $osmData = null;
         }
 
-        // 3. Fallback to stale or nearby cache if Overpass fails
+        // 3. A stale cache is usable only for this exact reference point. A
+        // neighboring search cannot cover the entire requested circle.
         if ($osmData === null) {
             $fallbackFile = is_file($cachePath) ? $cachePath : null;
-            if ($fallbackFile === null && is_dir($cacheDir)) {
-                $candidates = glob($cacheDir . '/radar_*_*_' . $radiusMeters . '.json') ?: [];
-                foreach ($candidates as $cand) {
-                    if (preg_match('/radar_([0-9.]+)_\d*([0-9.]+)_' . $radiusMeters . '\.json/', basename($cand), $m)) {
-                        $cLat = (float) $m[1];
-                        $cLng = (float) $m[2];
-                        if (self::distance($lat, $lng, $cLat, $cLng) <= 80.0) {
-                            $fallbackFile = $cand;
-                            break;
-                        }
-                    }
-                }
-            }
             if ($fallbackFile !== null) {
                 $raw = @file_get_contents($fallbackFile);
                 if ($raw !== false) {
@@ -98,19 +118,19 @@ final class SurroundingsRadar
                     if (is_array($cached) && isset($cached['features'])) {
                         $cached['cached'] = true;
                         $cached['stale'] = true;
-                        $cached['warning'] = 'Showing offline cached results: ' . ($fetchError ?? 'Geographic service unavailable');
-                        return $cached;
+                        $cached['warning'] = 'Showing older mapped records. Live nearby data is unavailable; operating status and inventory completeness are unverified.';
+                        return self::frameResult($cached, $lat, $lng, $radiusMeters);
                     }
                 }
             }
         }
 
         // 4. Load local verified records
-        $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters);
+        $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir);
 
         // If Overpass failed and we have no cache and no local records, return clean empty result
         if ($osmData === null && empty($localFeatures)) {
-            return [
+            return self::frameResult([
                 'type' => 'FeatureCollection',
                 'features' => [],
                 'roads' => [
@@ -119,18 +139,18 @@ final class SurroundingsRadar
                         'type' => 'FeatureCollection',
                         'features' => [],
                     ],
-                    'source' => 'San Fernando City Commercial Registry',
+                    'source' => 'Local commercial inventory',
                     'date' => gmdate('Y-m-d'),
                 ],
                 'center' => [$lat, $lng],
                 'radius' => $radiusMeters,
-                'source' => 'San Fernando City Commercial Registry',
+                'source' => 'Local commercial inventory',
                 'retrievalDate' => gmdate('Y-m-d'),
                 'cached' => false,
                 'stale' => false,
                 'coverage' => 'local_only',
-                'warning' => 'No recorded commercial establishments within ' . $radiusMeters . 'm.',
-            ];
+                'warning' => 'Live nearby data is unavailable and the local inventory has no matches. This does not establish zero businesses in the area.',
+            ], $lat, $lng, $radiusMeters);
         }
 
         // 5. Parse OSM elements into GeoJSON
@@ -148,17 +168,20 @@ final class SurroundingsRadar
                     'type' => 'FeatureCollection',
                     'features' => $parsed['roads'],
                 ],
-                'source' => $osmData !== null ? 'OpenStreetMap contributors (via Overpass API)' : 'San Fernando City Commercial Registry',
+                'source' => $osmData !== null ? 'OpenStreetMap contributors (via Overpass API)' : 'Local commercial inventory',
                 'date' => gmdate('Y-m-d'),
             ],
             'center' => [$lat, $lng],
             'radius' => $radiusMeters,
-            'source' => $osmData !== null ? 'OpenStreetMap & Local Verified Store Locators' : 'San Fernando City Commercial Registry',
+            'source' => $osmData !== null ? 'OpenStreetMap & local commercial inventory' : 'Local commercial inventory',
             'retrievalDate' => gmdate('Y-m-d'),
             'cached' => false,
             'stale' => false,
-            'coverage' => $osmData !== null ? 'complete' : 'local_only',
+            'coverage' => $osmData !== null ? 'mapped_only' : 'local_only',
+            'warning' => $osmData === null ? 'Live nearby data is unavailable. Showing matches from the local inventory; coverage is incomplete.'
+                : (!empty($osmData['remark']) ? 'The map provider returned partial results. Nearby inventory and operating status remain unverified.' : null),
         ];
+        $result = self::frameResult($result, $lat, $lng, $radiusMeters);
 
         // Save to cache
         @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -197,7 +220,7 @@ final class SurroundingsRadar
 
             if ($statusCode === 200 && is_string($response) && $response !== '') {
                 $decoded = json_decode($response, true);
-                if (is_array($decoded) && isset($decoded['elements'])) {
+                if (is_array($decoded) && is_array($decoded['elements'] ?? null)) {
                     return $decoded;
                 }
             }
@@ -208,14 +231,14 @@ final class SurroundingsRadar
         throw new RuntimeException($lastError);
     }
 
-    private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters): array
+    private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters, ?string $dataDir = null): array
     {
-        $baseDir = dirname(__DIR__, 2);
+        $dataDir ??= dirname(__DIR__, 2) . '/data';
         $results = [];
         $seen = [];
 
         // 1. Check data/competitors.json
-        $compFile = $baseDir . '/data/competitors.json';
+        $compFile = $dataDir . '/competitors.json';
         if (is_file($compFile)) {
             $raw = (string) @file_get_contents($compFile);
             $data = json_decode($raw, true);
@@ -231,11 +254,13 @@ final class SurroundingsRadar
                     $fLng = (float) $coords[0];
                     $fLat = (float) $coords[1];
                     $dist = self::distance($lat, $lng, $fLat, $fLng);
-                    if ($dist <= ($radiusMeters + 1.0)) {
+                    if ($dist <= ($radiusMeters + 0.000001) && !self::isClosed($f['properties'] ?? [])) {
                         $props = $f['properties'] ?? [];
-                        $props['source'] = 'Local Verified Store Locator';
+                        $props['source'] = $props['source'] ?? 'Local Store Locator';
                         $props['distanceMeters'] = round($dist, 1);
-                        $props['verified'] = true;
+                        $props['verified'] = (bool) ($props['verified'] ?? isset($props['locationSource']));
+                        $props['status'] = ($props['status'] ?? '') === 'existing' ? 'operating' : ($props['status'] ?? 'unknown');
+                        $props['businessType'] ??= 'fast_food';
                         $f['properties'] = $props;
                         $id = $f['id'] ?? ($props['name'] ?? null);
                         if ($id) {
@@ -248,7 +273,7 @@ final class SurroundingsRadar
         }
 
         // 2. Check data/commercial-directory.json
-        $commFile = $baseDir . '/data/commercial-directory.json';
+        $commFile = $dataDir . '/commercial-directory.json';
         if (is_file($commFile)) {
             $raw = (string) @file_get_contents($commFile);
             $data = json_decode($raw, true);
@@ -264,7 +289,7 @@ final class SurroundingsRadar
                     $fLng = (float) $coords[0];
                     $fLat = (float) $coords[1];
                     $dist = self::distance($lat, $lng, $fLat, $fLng);
-                    if ($dist <= ($radiusMeters + 1.0)) {
+                    if ($dist <= ($radiusMeters + 0.000001) && !self::isClosed($f['properties'] ?? [])) {
                         $props = $f['properties'] ?? [];
                         $name = $props['name'] ?? '';
                         $id = $f['id'] ?? $name;
@@ -272,9 +297,9 @@ final class SurroundingsRadar
                             continue;
                         }
                         $seen[$id] = true;
-                        $props['source'] = 'San Fernando City Commercial Registry';
+                        $props['source'] ??= 'Local Commercial Directory';
                         $props['distanceMeters'] = round($dist, 1);
-                        $props['verified'] = true;
+                        $props['verified'] = (bool) ($props['verified'] ?? false);
                         $f['properties'] = $props;
                         $results[] = $f;
                     }
@@ -295,7 +320,10 @@ final class SurroundingsRadar
             $type = $el['type'] ?? '';
             $id = $el['id'] ?? null;
             $tags = $el['tags'] ?? [];
-            if ($id === null) {
+            if ($id === null || !is_array($tags) || self::isClosed($tags)
+                || strtolower((string) ($tags['opening_hours'] ?? '')) === 'closed'
+                || in_array(strtolower((string) ($tags['disused'] ?? $tags['abandoned'] ?? '')), ['yes', 'true', '1'], true)
+            ) {
                 continue;
             }
 
@@ -378,7 +406,7 @@ final class SurroundingsRadar
             }
 
             $distance = self::distance($centerLat, $centerLng, $ptLat, $ptLng);
-            if ($distance > ($radiusMeters + 1.0)) {
+            if ($distance > ($radiusMeters + 0.000001)) {
                 continue;
             }
 
@@ -393,6 +421,7 @@ final class SurroundingsRadar
                 'properties' => [
                     'id' => $osmId,
                     'name' => $name,
+                    'nameGenerated' => !isset($tags['name']) && !isset($tags['brand']),
                     'businessType' => $businessType,
                     'category' => $businessType,
                     'status' => 'unknown', // treat unverified operating status as unknown
@@ -410,41 +439,140 @@ final class SurroundingsRadar
     private static function mergeEstablishments(array $local, array $osm): array
     {
         $merged = [];
-        $localPositions = [];
-
-        // Add verified local records first
-        foreach ($local as $loc) {
-            $coords = $loc['geometry']['coordinates'] ?? [0, 0];
-            $localPositions[] = [
-                'name' => strtolower((string) ($loc['properties']['name'] ?? '')),
-                'lng' => (float) $coords[0],
-                'lat' => (float) $coords[1],
-            ];
-            $merged[] = $loc;
-        }
-
-        // Add OSM records unless they match a local verified record spatially (< 30m with similar name)
-        foreach ($osm as $osmItem) {
-            $coords = $osmItem['geometry']['coordinates'] ?? [0, 0];
-            $oLng = (float) $coords[0];
-            $oLat = (float) $coords[1];
-            $oName = strtolower((string) ($osmItem['properties']['name'] ?? ''));
-
-            $isDuplicateOfLocal = false;
-            foreach ($localPositions as $locPos) {
-                $dist = self::distance($oLat, $oLng, $locPos['lat'], $locPos['lng']);
-                if ($dist < 35.0 && (str_contains($oName, $locPos['name']) || str_contains($locPos['name'], $oName))) {
-                    $isDuplicateOfLocal = true;
-                    break;
-                }
+        $seen = [];
+        // Deduplicate all source pairs, preserving first-source precedence and
+        // separate merchants or branches at different locations.
+        foreach (array_merge($local, $osm) as $feature) {
+            $coords = self::pointCoordinates($feature);
+            if ($coords === null || self::isClosed($feature['properties'] ?? [])) {
+                continue;
             }
-
-            if (!$isDuplicateOfLocal) {
-                $merged[] = $osmItem;
+            $name = self::placeName((string) ($feature['properties']['name'] ?? ''));
+            $id = $feature['id'] ?? $feature['properties']['id'] ?? null;
+            if ($id !== null && isset($seen[(string) $id])) {
+                continue;
             }
+            $duplicate = false;
+            foreach ($merged as $existing) {
+                $other = self::pointCoordinates($existing);
+                $otherName = self::placeName((string) ($existing['properties']['name'] ?? ''));
+                if (empty($feature['properties']['nameGenerated']) && empty($existing['properties']['nameGenerated'])
+                    && $name !== '' && $otherName !== '' && min(strlen($name), strlen($otherName)) >= 3
+                    && (str_contains($name, $otherName) || str_contains($otherName, $name))
+                    && self::distance($coords[1], $coords[0], $other[1], $other[0]) < 35.0
+                ) { $duplicate = true; break; }
+            }
+            if ($duplicate) {
+                continue;
+            }
+            if ($id !== null) { $seen[(string) $id] = true; }
+            $merged[] = $feature;
         }
-
         return $merged;
+    }
+
+    private static function frameResult(array $result, float $lat, float $lng, int $radiusMeters): array
+    {
+        $features = [];
+        foreach ($result['features'] ?? [] as $feature) {
+            if (!is_array($feature)) { continue; }
+            $coords = self::pointCoordinates($feature);
+            if ($coords === null) { continue; }
+            $distance = self::distance($lat, $lng, $coords[1], $coords[0]);
+            if ($distance > $radiusMeters + 0.000001) { continue; }
+            $feature['properties']['distanceMeters'] = round($distance, 1);
+            $feature['properties']['isBusiness'] = self::isBusiness($feature['properties'] ?? []);
+            $features[] = $feature;
+        }
+        $features = self::mergeEstablishments($features, []);
+        usort($features, static fn (array $a, array $b): int => $a['properties']['distanceMeters'] <=> $b['properties']['distanceMeters']);
+        $roads = [];
+        foreach ($result['roads']['geojson']['features'] ?? [] as $road) {
+            if (!is_array($road)) { continue; }
+            $distance = self::roadDistance($road, $lat, $lng);
+            if ($distance !== null && $distance <= $radiusMeters + 0.000001) {
+                $road['properties']['distanceMeters'] = round($distance, 1);
+                $roads[] = $road;
+            }
+        }
+        $result['features'] = $features;
+        $result['roads']['geojson'] = ['type' => 'FeatureCollection', 'features' => $roads];
+        $result['roads']['status'] = $roads !== [] ? 'Available'
+            : (($result['roads']['status'] ?? '') === 'Unavailable' ? 'Unavailable' : 'None nearby');
+        $result['center'] = [$lat, $lng];
+        $result['radius'] = $radiusMeters;
+        $result['radiusMeters'] = $radiusMeters;
+        $result['coverage'] = ($result['coverage'] ?? '') === 'local_only' ? 'local_only' : 'mapped_only';
+        $businesses = array_filter($features, static fn (array $feature): bool => self::isBusiness($feature['properties'] ?? []));
+        $operating = array_filter($businesses, static fn (array $feature): bool => in_array(strtolower((string) ($feature['properties']['status'] ?? '')), ['operating', 'existing'], true));
+        $area = M_PI * ($radiusMeters / 1000) ** 2;
+        $result['metrics'] = [
+            'observedPlaceCount' => count($features),
+            'observedBusinessCount' => count($businesses),
+            'observedOperatingBusinessCount' => count($operating),
+            'roadSegmentCount' => count($roads),
+            'searchAreaSqKm' => $area,
+            'observedBusinessesPerSqKm' => round(count($businesses) / $area, 2),
+            'businessesPerSqKm' => null,
+            'completeInventory' => false,
+        ];
+        $result['coverageNote'] = 'These are observed mapped places in a straight-line circle, not a complete operating-business inventory. Zero matches do not prove that no businesses exist.';
+        return $result;
+    }
+
+    private static function pointCoordinates(array $feature): ?array
+    {
+        $coords = $feature['geometry']['coordinates'] ?? null;
+        if (($feature['geometry']['type'] ?? null) !== 'Point' || !is_array($coords) || count($coords) < 2
+            || !is_numeric($coords[0]) || !is_numeric($coords[1])
+        ) { return null; }
+        $lng = (float) $coords[0]; $lat = (float) $coords[1];
+        return is_finite($lat) && is_finite($lng) && abs($lat) <= 90 && abs($lng) <= 180 ? [$lng, $lat] : null;
+    }
+
+    private static function placeName(string $name): string
+    {
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', strtolower($name)));
+    }
+
+    private static function isClosed(array $properties): bool
+    {
+        $status = strtolower(trim((string) ($properties['status'] ?? $properties['operating_status'] ?? '')));
+        return in_array($status, ['closed', 'temporarily_closed', 'permanently_closed', 'disused', 'demolished', 'abandoned'], true)
+            || preg_match('/\b(?:temporarily|permanently)?\s*closed\b/i', (string) ($properties['note'] ?? '')) === 1;
+    }
+
+    private static function isBusiness(array $properties): bool
+    {
+        $category = strtolower((string) ($properties['categoryKey'] ?? $properties['businessType'] ?? $properties['category'] ?? $properties['amenity'] ?? ''));
+        return $category !== '' && !in_array($category, ['school', 'college', 'university', 'townhall', 'courthouse', 'police', 'fire_station', 'place_of_worship', 'community_centre', 'library', 'toilets', 'parking', 'motorcycle_parking', 'bicycle_parking', 'bench', 'waste_basket', 'drinking_water', 'fountain', 'grave_yard', 'viewpoint', 'recycling', 'atm'], true);
+    }
+
+    private static function roadDistance(array $road, float $lat, float $lng): ?float
+    {
+        $geometry = $road['geometry'] ?? [];
+        $lines = ($geometry['type'] ?? '') === 'LineString' ? [$geometry['coordinates'] ?? []]
+            : (($geometry['type'] ?? '') === 'MultiLineString' ? ($geometry['coordinates'] ?? []) : []);
+        $minimum = INF;
+        $scaleX = M_PI / 180 * self::EARTH_RADIUS * cos(deg2rad($lat));
+        $scaleY = M_PI / 180 * self::EARTH_RADIUS;
+        foreach ($lines as $line) {
+            if (!is_array($line)) { continue; }
+            for ($index = 1; $index < count($line); $index++) {
+                $a = $line[$index - 1]; $b = $line[$index];
+                if (!is_array($a) || !is_array($b) || count($a) < 2 || count($b) < 2
+                    || !is_numeric($a[0]) || !is_numeric($a[1]) || !is_numeric($b[0]) || !is_numeric($b[1])
+                    || abs((float) $a[0]) > 180 || abs((float) $b[0]) > 180 || abs((float) $a[1]) > 90 || abs((float) $b[1]) > 90
+                ) { continue; }
+                $ax = ($a[0] - $lng) * $scaleX; $ay = ($a[1] - $lat) * $scaleY;
+                $bx = ($b[0] - $lng) * $scaleX; $by = ($b[1] - $lat) * $scaleY;
+                $dx = $bx - $ax; $dy = $by - $ay;
+                $lengthSquared = $dx ** 2 + $dy ** 2;
+                $t = $lengthSquared > 0 ? max(0, min(1, -($ax * $dx + $ay * $dy) / $lengthSquared)) : 0;
+                $minimum = min($minimum, hypot($ax + $t * $dx, $ay + $t * $dy));
+            }
+        }
+        return is_finite($minimum) ? $minimum : null;
     }
 
     private static function detectBusinessType(array $tags): ?string

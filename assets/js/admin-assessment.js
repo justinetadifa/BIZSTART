@@ -60,8 +60,8 @@
       });
       const complete = assessment?.assessmentComplete === true;
       total.querySelector('[data-total-mce]').textContent = complete ? score(assessment.mceScore) : '—';
-      total.querySelector('[data-total-iai]').textContent = complete ? score(assessment.iaiScore) : '—';
-      total.querySelector('[data-computed-summary]').textContent = complete ? 'All seven criteria computed from source evidence.' : `${assessment?.completedCount || 0} of 7 criteria ready. A complete source-based assessment is required for totals.`;
+      const totalCriteriaCount = root.querySelectorAll('[data-assessment-criterion]').length || 6;
+      total.querySelector('[data-computed-summary]').textContent = complete ? `All ${totalCriteriaCount === 6 ? 'six' : 'seven'} criteria computed from source evidence.` : `${assessment?.completedCount || 0} of ${totalCriteriaCount} criteria ready. A complete source-based assessment is required for totals.`;
       const method = root.querySelector('[data-assessment-method]');
       if (assessment?.assessmentMethod) method.textContent = assessment.assessmentMethod;
       const context = root.querySelector('[data-spatial-context]');

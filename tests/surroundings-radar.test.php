@@ -123,8 +123,8 @@ $check($merged[0]['properties']['source'] === 'Verified Local', 'Local verified 
 $check($merged[1]['id'] === 'osm:node:502', 'Separate branch retained with distinct identity');
 
 // 5. Caching and Stale Fallback
-$cacheDir = dirname(__DIR__) . '/data/cache/radar';
-$testCacheFile = sprintf('%s/radar_%.4f_%.4f_%d.json', $cacheDir, 16.6000, 120.3000, 500);
+$cacheDir = sys_get_temp_dir() . '/locus-radar-legacy-' . bin2hex(random_bytes(6));
+$testCacheFile = sprintf('%s/radar_v2_%.6f_%.6f_%d.json', $cacheDir, 16.6000, 120.3000, 500);
 
 // Write mock cache
 $mockCache = [
@@ -152,12 +152,17 @@ if (!is_dir($cacheDir)) {
 }
 file_put_contents($testCacheFile, json_encode($mockCache));
 
-$retrieved = SurroundingsRadar::search(16.6000, 120.3000, 500, 'cafe');
+$retrieved = SurroundingsRadar::search(16.6000, 120.3000, 500, 'cafe', [
+    'cache_directory' => $cacheDir,
+    'data_directory' => $cacheDir,
+    'fetcher' => static function (): array { throw new RuntimeException('Network calls prohibited in this test.'); },
+]);
 $check($retrieved['cached'] === true && $retrieved['stale'] === false, 'Served fresh from cache within TTL');
 $check($retrieved['features'][0]['properties']['name'] === 'Cached Mock Cafe', 'Cached features match stored data');
 
 // Clean up test cache file
 @unlink($testCacheFile);
+@rmdir($cacheDir);
 
 // 6. Test legacy api/competitors.php behaviour without coordinates
 $legacyData = json_decode((string) file_get_contents(dirname(__DIR__) . '/data/competitors.json'), true);

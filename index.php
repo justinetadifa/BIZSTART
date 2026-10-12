@@ -196,20 +196,62 @@ $cataloguePath = $context['user'] === null
 
       <div class="home-recipients-grid">
         <!-- 1. TaskUs La Union -->
-        <a href="#why-invest" class="home-recipient-item" title="TaskUs La Union: 6 years business tax holiday">
-          <div class="home-recipient-logo">
-            <img src="<?= $e($context['assetBase']) ?>/images/brands/taskus.svg" alt="TaskUs La Union" width="140" height="52" loading="lazy">
+        <a href="#investment-incentives-code" class="home-recipient-item" title="TaskUs La Union: 6 years business tax holiday (2024–2029)" data-recipient-card>
+          <div class="home-recipient-flip-card">
+            <div class="home-recipient-flipper">
+              <div class="home-recipient-front">
+                <img src="<?= $e($context['assetBase']) ?>/images/taskus.png" alt="TaskUs La Union" width="160" height="160" loading="lazy">
+                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                  <span>Info</span>
+                </span>
+              </div>
+              <div class="home-recipient-back">
+                <div class="home-recipient-back-top">
+                  <span class="home-recipient-back-badge">DIGITAL BPO &bull; AI</span>
+                  <span class="home-recipient-back-loc">MacArthur Hwy</span>
+                </div>
+                <div class="home-recipient-back-body">
+                  <strong class="home-recipient-back-stat">2,500+ Tech Jobs</strong>
+                  <p class="home-recipient-back-text">Lighthouse Campus anchoring 24/7 global tech, AI curation &amp; CX operations.</p>
+                </div>
+                <div class="home-recipient-back-foot">
+                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="home-recipient-info">
             <h3 class="home-recipient-name">TASKUS LA UNION</h3>
-            <span class="home-recipient-badge">6 yrs tax holiday*</span>
+            <span class="home-recipient-badge">6 yrs holiday &bull; 2024–29</span>
           </div>
         </a>
 
         <!-- 2. Robinsons La Union -->
-        <a href="#why-invest" class="home-recipient-item" title="Robinsons La Union: 6 years business tax holiday (2023–2028)">
-          <div class="home-recipient-logo">
-            <img src="<?= $e($context['assetBase']) ?>/images/brands/robinsons.svg" alt="Robinsons La Union" width="140" height="52" loading="lazy">
+        <a href="#investment-incentives-code" class="home-recipient-item" title="Robinsons La Union: 6 years business tax holiday (2023–2028)" data-recipient-card>
+          <div class="home-recipient-flip-card">
+            <div class="home-recipient-flipper">
+              <div class="home-recipient-front">
+                <img src="<?= $e($context['assetBase']) ?>/images/robs.png" alt="Robinsons La Union" width="160" height="160" loading="lazy">
+                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                  <span>Info</span>
+                </span>
+              </div>
+              <div class="home-recipient-back">
+                <div class="home-recipient-back-top">
+                  <span class="home-recipient-back-badge">REGIONAL RETAIL</span>
+                  <span class="home-recipient-back-loc">Brgy. Sevilla</span>
+                </div>
+                <div class="home-recipient-back-body">
+                  <strong class="home-recipient-back-stat">4-Level Lifestyle Hub</strong>
+                  <p class="home-recipient-back-text">Premier retail anchor with 100+ stores, Movieworld cinemas &amp; eco-design.</p>
+                </div>
+                <div class="home-recipient-back-foot">
+                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="home-recipient-info">
             <h3 class="home-recipient-name">ROBINSONS LA UNION</h3>
@@ -218,20 +260,62 @@ $cataloguePath = $context['user'] === null
         </a>
 
         <!-- 3. LUCS -->
-        <a href="#why-invest" class="home-recipient-item" title="La Union Concreting Solutions: 4 years business tax holiday (2023–2026)">
-          <div class="home-recipient-logo home-recipient-logo--lucs">
-            <img src="<?= $e($context['assetBase']) ?>/images/brands/lucs.svg" alt="La Union Concreting Solutions" width="140" height="52" loading="lazy">
+        <a href="#investment-incentives-code" class="home-recipient-item" title="La Union Concreting Solutions: 4 years business tax holiday (2023–2026)" data-recipient-card>
+          <div class="home-recipient-flip-card">
+            <div class="home-recipient-flipper">
+              <div class="home-recipient-front home-recipient-front--lucs">
+                <img src="<?= $e($context['assetBase']) ?>/images/lucs.png" alt="La Union Concreting Solutions" width="160" height="160" loading="lazy">
+                <span class="home-recipient-flip-hint home-recipient-flip-hint--dark" aria-hidden="true" title="Hover to view details">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                  <span>Info</span>
+                </span>
+              </div>
+              <div class="home-recipient-back">
+                <div class="home-recipient-back-top">
+                  <span class="home-recipient-back-badge">INFRASTRUCTURE</span>
+                  <span class="home-recipient-back-loc">San Fernando City</span>
+                </div>
+                <div class="home-recipient-back-body">
+                  <strong class="home-recipient-back-stat">Accredited Batching</strong>
+                  <p class="home-recipient-back-text">Ready-mix concrete &amp; pumpcrete powering regional highways, port &amp; builders.</p>
+                </div>
+                <div class="home-recipient-back-foot">
+                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="home-recipient-info">
-            <h3 class="home-recipient-name">LUCS</h3>
+            <h3 class="home-recipient-name">LUCS<span class="home-recipient-name-sub">La Union Concreting</span></h3>
             <span class="home-recipient-badge">4 yrs holiday &bull; 2023–26</span>
           </div>
         </a>
 
         <!-- 4. SM City La Union -->
-        <a href="#why-invest" class="home-recipient-item" title="SM City La Union: 6 years business tax holiday (2025–2030)">
-          <div class="home-recipient-logo">
-            <img src="<?= $e($context['assetBase']) ?>/images/brands/smcity-logo.svg" alt="SM City La Union" width="140" height="52" loading="lazy">
+        <a href="#investment-incentives-code" class="home-recipient-item" title="SM City La Union: 6 years business tax holiday (2025–2030)" data-recipient-card>
+          <div class="home-recipient-flip-card">
+            <div class="home-recipient-flipper">
+              <div class="home-recipient-front">
+                <img src="<?= $e($context['assetBase']) ?>/images/sm.png" alt="SM City La Union" width="160" height="160" loading="lazy">
+                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                  <span>Info</span>
+                </span>
+              </div>
+              <div class="home-recipient-back">
+                <div class="home-recipient-back-top">
+                  <span class="home-recipient-back-badge">SUPERMALL</span>
+                  <span class="home-recipient-back-loc">Brgy. Biday</span>
+                </div>
+                <div class="home-recipient-back-body">
+                  <strong class="home-recipient-back-stat">112k m² &bull; 3k+ Jobs</strong>
+                  <p class="home-recipient-back-text">89th SM Supermall featuring Cyberzone, cinemas, Sandbox &amp; 1,100+ parking slots.</p>
+                </div>
+                <div class="home-recipient-back-foot">
+                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="home-recipient-info">
             <h3 class="home-recipient-name">SM CITY LA UNION</h3>
@@ -946,7 +1030,7 @@ $cataloguePath = $context['user'] === null
           </button>
           <div class="city-about-drawer" aria-hidden="true">
             <div class="city-about-drawer-inner">
-              <p>Submit your PRC details for CICTO review, then submit properties for city approval.</p>
+              <p>Submit your PRC details for <abbr class="city-acronym" tabindex="0" role="button" aria-expanded="false" data-acronym="LEBDO" title="Local Economic and Business Development Office">LEBDO<span class="city-acronym-popover" role="tooltip">Local Economic and Business Development Office</span></abbr> and <abbr class="city-acronym" tabindex="0" role="button" aria-expanded="false" data-acronym="CAO" title="City Assessor's Office">CAO<span class="city-acronym-popover" role="tooltip">City Assessor's Office</span></abbr> review, then submit properties for city approval.</p>
               <p><a class="city-link" href="<?= $e(sfc_path('/seller-login.php?mode=register')) ?>">Register as a broker →</a></p>
             </div>
           </div>

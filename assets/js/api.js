@@ -35,7 +35,10 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     try { window.LocusSound?.play('error'); } catch (_) {}
-    throw new Error(payload.error || `Request failed with status ${response.status}.`);
+    const error = new Error(payload.error || `Request failed with status ${response.status}.`);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;

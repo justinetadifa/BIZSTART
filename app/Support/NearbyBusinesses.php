@@ -87,17 +87,17 @@ final class NearbyBusinesses
      *
      * @return array<string, array>
      */
-    public static function directory(): array
+    public static function directory(?string $dataDirectory = null): array
     {
-        if (self::$cachedDirectory !== null) {
+        if ($dataDirectory === null && self::$cachedDirectory !== null) {
             return self::$cachedDirectory;
         }
 
         $directory = [];
-        $baseDir = dirname(__DIR__, 2);
+        $dataDir = $dataDirectory ?? dirname(__DIR__, 2) . '/data';
 
         // 1. Primary: Load verified 2026 San Fernando City Commercial & Civic Directory
-        $commercialDirFile = $baseDir . '/data/commercial-directory.json';
+        $commercialDirFile = $dataDir . '/commercial-directory.json';
         if (is_file($commercialDirFile)) {
             $raw = @file_get_contents($commercialDirFile);
             if ($raw !== false) {
@@ -107,7 +107,7 @@ final class NearbyBusinesses
                         $props = $feature['properties'] ?? [];
                         $name = trim((string) ($props['name'] ?? ''));
                         $coords = $feature['geometry']['coordinates'] ?? null;
-                        if ($name === '' || !is_array($coords) || count($coords) < 2) {
+                        if ($name === '' || !self::validCoordinates($feature) || self::isClosed($props)) {
                             continue;
                         }
                         $lng = (float) $coords[0];
@@ -133,11 +133,11 @@ final class NearbyBusinesses
                             'icon' => $meta['icon'],
                             'lat' => $lat,
                             'lng' => $lng,
-                            'status' => 'operating',
+                            'status' => self::status($props),
                             'barangay' => $props['barangay'] ?? null,
                             'address' => $props['address'] ?? null,
                             'note' => $props['note'] ?? null,
-                            'source' => 'San Fernando City Commercial Registry',
+                            'source' => $props['source'] ?? 'Local Commercial Directory',
                         ];
                     }
                 }
@@ -145,7 +145,7 @@ final class NearbyBusinesses
         }
 
         // 2. Load competitor store-locator records
-        $compFile = $baseDir . '/data/competitors.json';
+        $compFile = $dataDir . '/competitors.json';
         if (is_file($compFile)) {
             $raw = @file_get_contents($compFile);
             if ($raw !== false) {
@@ -155,7 +155,7 @@ final class NearbyBusinesses
                         $props = $feature['properties'] ?? [];
                         $name = trim((string) ($props['name'] ?? ''));
                         $coords = $feature['geometry']['coordinates'] ?? null;
-                        if ($name === '' || !is_array($coords) || count($coords) < 2) {
+                        if ($name === '' || !self::validCoordinates($feature) || self::isClosed($props)) {
                             continue;
                         }
                         $lng = (float) $coords[0];
@@ -165,7 +165,7 @@ final class NearbyBusinesses
                         }
                         // Skip if locator note says temporarily closed
                         $note = strtolower((string) ($props['note'] ?? ''));
-                        $status = ($props['status'] ?? '') === 'existing' ? 'operating' : 'under_development';
+                        $status = self::status($props);
                         if (str_contains($note, 'temporarily closed') || str_contains($note, 'closed')) {
                             // Don't surface closed locations as operating
                             continue;
@@ -184,7 +184,7 @@ final class NearbyBusinesses
                                 'lng' => $lng,
                                 'status' => $status,
                                 'note' => $props['note'] ?? null,
-                                'source' => 'Verified Brand Locator',
+                                'source' => $props['source'] ?? 'Local Store Locator',
                             ];
                         }
                     }
@@ -200,7 +200,7 @@ final class NearbyBusinesses
         ];
 
         // 3. Load supplementary cached radar datasets with strict quality filtering
-        $radarFiles = glob($baseDir . '/data/cache/radar/*.json') ?: [];
+        $radarFiles = glob($dataDir . '/cache/radar/*.json') ?: [];
         foreach ($radarFiles as $file) {
             $raw = @file_get_contents($file);
             if ($raw === false) {
@@ -214,7 +214,7 @@ final class NearbyBusinesses
                 $props = $feature['properties'] ?? [];
                 $name = trim((string) ($props['name'] ?? ''));
                 $coords = $feature['geometry']['coordinates'] ?? null;
-                if ($name === '' || !is_array($coords) || count($coords) < 2) {
+                if ($name === '' || !self::validCoordinates($feature) || self::isClosed($props)) {
                     continue;
                 }
                 $lng = (float) $coords[0];
@@ -230,10 +230,16 @@ final class NearbyBusinesses
                 if (preg_match('/^Local (Toilets|Parking|Motorcycle parking|Car repair|Furniture|Doctors|Community centre|Convenience|Industrial)/i', $name)) {
                     continue;
                 }
-                // Check if already covered by verified directory within 45m
+                // A nearby different merchant is useful context. Only suppress
+                // records identifying the same establishment at that location.
                 $alreadyCovered = false;
+                $normalizedName = self::normalizedName($name);
                 foreach ($directory as $existing) {
-                    if (self::distance($lat, $lng, $existing['lat'], $existing['lng']) <= 45.0) {
+                    $existingName = self::normalizedName($existing['name']);
+                    if (!($props['nameGenerated'] ?? false) && min(strlen($normalizedName), strlen($existingName)) >= 3
+                        && (str_contains($normalizedName, $existingName) || str_contains($existingName, $normalizedName))
+                        && self::distance($lat, $lng, $existing['lat'], $existing['lng']) <= 45.0
+                    ) {
                         $alreadyCovered = true;
                         break;
                     }
@@ -259,16 +265,46 @@ final class NearbyBusinesses
                         'icon' => $meta['icon'],
                         'lat' => $lat,
                         'lng' => $lng,
-                        'status' => 'operating',
+                        'status' => self::status($props),
                         'note' => $props['note'] ?? null,
-                        'source' => 'San Fernando Commercial Registry',
+                        'source' => $props['source'] ?? 'Mapped place record',
                     ];
                 }
             }
         }
 
-        self::$cachedDirectory = $directory;
+        if ($dataDirectory === null) { self::$cachedDirectory = $directory; }
         return $directory;
+    }
+
+    private static function normalizedName(string $name): string
+    {
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', strtolower($name)));
+    }
+
+    private static function validCoordinates(array $feature): bool
+    {
+        $coords = $feature['geometry']['coordinates'] ?? null;
+        return ($feature['geometry']['type'] ?? '') === 'Point' && is_array($coords) && count($coords) >= 2
+            && is_numeric($coords[0]) && is_numeric($coords[1]) && is_finite((float) $coords[0]) && is_finite((float) $coords[1])
+            && abs((float) $coords[0]) <= 180 && abs((float) $coords[1]) <= 90;
+    }
+
+    private static function status(array $properties): string
+    {
+        $status = strtolower(trim((string) ($properties['status'] ?? $properties['operating_status'] ?? 'unknown')));
+        return match ($status) {
+            'operating', 'existing' => 'operating',
+            'under_development', 'construction', 'planned', 'proposed' => 'under_development',
+            default => 'unknown',
+        };
+    }
+
+    private static function isClosed(array $properties): bool
+    {
+        $status = strtolower(trim((string) ($properties['status'] ?? $properties['operating_status'] ?? '')));
+        return in_array($status, ['closed', 'temporarily_closed', 'permanently_closed', 'disused', 'abandoned', 'demolished'], true)
+            || preg_match('/\b(?:temporarily|permanently)?\s*closed\b/i', (string) ($properties['note'] ?? '')) === 1;
     }
 
     /**

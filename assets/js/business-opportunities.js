@@ -405,50 +405,91 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
   return R * c;
+}
+
+function recordedCoordinate(value, limit) {
+  if (!['string', 'number'].includes(typeof value) || (typeof value === 'string' && value.trim() === '')) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && Math.abs(number) <= limit ? number : null;
+}
+
+function recordedStatus(place) {
+  const status = String(place.status || place.operating_status || 'unknown').trim().toLowerCase();
+  if (status === 'existing') return 'operating';
+  return status;
+}
+
+function closedPlace(place) {
+  return ['closed', 'temporarily_closed', 'permanently_closed', 'disused', 'abandoned', 'demolished'].includes(recordedStatus(place))
+    || /\b(?:temporarily|permanently)?\s*closed\b/i.test(String(place.note || ''));
+}
+
+function mappedBusiness(place) {
+  if (typeof place.isBusiness === 'boolean') return place.isBusiness;
+  const category = String(place.categoryKey || place.businessType || '').toLowerCase();
+  return Boolean(category) && !['school', 'college', 'university', 'townhall', 'courthouse', 'police', 'fire_station',
+    'place_of_worship', 'community_centre', 'library', 'toilets', 'parking', 'motorcycle_parking', 'bicycle_parking',
+    'bench', 'waste_basket', 'drinking_water', 'fountain', 'grave_yard', 'viewpoint', 'recycling', 'atm'].includes(category);
+}
+
+/** An observed subset of mapped records; operating inventory completeness is unknown. */
+export function observedBusinessContext(property, radiusMeters = 500) {
+  const radius = Number(radiusMeters);
+  if (!['string', 'number'].includes(typeof radiusMeters) || !Number.isFinite(radius) || radius <= 0) throw new RangeError('Choose a positive screening radius in meters.');
+  const lat = recordedCoordinate(property.lat, 90);
+  const lng = recordedCoordinate(property.lng, 180);
+  const hasCoords = lat !== null && lng !== null;
+  const places = [];
+  if (hasCoords) {
+    for (const place of Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : []) {
+      const pLat = recordedCoordinate(place.lat, 90);
+      const pLng = recordedCoordinate(place.lng, 180);
+      const name = String(place.name || '').trim();
+      if (pLat === null || pLng === null || !name || closedPlace(place)) continue;
+      const distance = haversineMeters(lat, lng, pLat, pLng);
+      if (distance > radius + 0.000001) continue;
+      const nameNorm = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const duplicate = places.some(existing => {
+        const existingName = existing.name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        return (place.id && place.id === existing.id) || (!place.nameGenerated && !existing.nameGenerated
+          && Math.min(nameNorm.length, existingName.length) >= 3
+          && (nameNorm.includes(existingName) || existingName.includes(nameNorm))
+          && haversineMeters(existing.lat, existing.lng, pLat, pLng) < 35);
+      });
+      if (duplicate) continue;
+      places.push({ ...place, name, lat: pLat, lng: pLng, distanceMeters: Math.round(distance),
+        distanceFormatted: `${Math.round(distance)} m`, source: place.source || 'Source not recorded',
+        date: place.date || null, status: recordedStatus(place), isBusiness: mappedBusiness(place) });
+    }
+  }
+  places.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  const businesses = places.filter(place => place.isBusiness);
+  const area = Math.PI * (radius / 1000) ** 2;
+  return { lat, lng, hasCoords, radiusMeters: radius, nearbyPlaces: places,
+    metrics: { observedPlaceCount: hasCoords ? places.length : null,
+      observedBusinessCount: hasCoords ? businesses.length : null,
+      observedOperatingBusinessCount: hasCoords ? businesses.filter(place => place.status === 'operating').length : null,
+      searchAreaSqKm: hasCoords ? area : null,
+      observedBusinessesPerSqKm: hasCoords ? Math.round((businesses.length / area) * 100) / 100 : null,
+      businessesPerSqKm: null, completeInventory: false },
+    coverage: hasCoords ? 'mapped_subset' : 'unavailable',
+    coverageNote: hasCoords ? 'Observed mapped records are a partial inventory. Operating status is unverified unless recorded; zero matches do not prove zero businesses.'
+      : 'Choose the exact property location before measuring nearby places or density.' };
 }
 
 /**
  * Client-side evaluation fallback.
  */
 export function evaluateBusinessOpportunities(property, radiusMeters = 500, sectorFilter = null) {
-  const lat = Number(property.lat || 0);
-  const lng = Number(property.lng || 0);
-  const hasCoords = isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+  const context = observedBusinessContext(property, radiusMeters);
+  const { lat, lng, hasCoords } = context;
 
-  const originLabel = hasCoords ? `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E` : 'Unknown origin (unrecorded coordinates)';
+  const originLabel = hasCoords ? `${Math.abs(lat).toFixed(6)}° ${lat < 0 ? 'S' : 'N'}, ${Math.abs(lng).toFixed(6)}° ${lng < 0 ? 'W' : 'E'}` : 'Unknown origin (unrecorded coordinates)';
 
   // 1. Gather places strictly within radius
-  const rawPlaces = Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [];
-  const inRadiusPlaces = [];
-
-  for (const p of rawPlaces) {
-    const pLat = Number(p.lat || 0);
-    const pLng = Number(p.lng || 0);
-    if (!isFinite(pLat) || !isFinite(pLng) || (pLat === 0 && pLng === 0)) continue;
-    const dist = hasCoords ? haversineMeters(lat, lng, pLat, pLng) : Number(p.distanceMeters || 9999);
-    if (dist <= radiusMeters) {
-      inRadiusPlaces.push({
-        ...p,
-        distanceMeters: Math.round(dist),
-        distanceFormatted: `${Math.round(dist)} m`,
-        source: p.source || 'San Fernando City Commercial Registry',
-        date: p.date || '2026-01-01',
-        status: p.status || 'operating',
-      });
-    }
-  }
-
-  // Deduplicate by name & proximity (<50m)
-  const deduped = [];
-  for (const p of inRadiusPlaces) {
-    const nameNorm = (p.name || '').trim().toLowerCase();
-    if (!nameNorm) continue;
-    const dup = deduped.find(e => (e.name || '').trim().toLowerCase() === nameNorm && haversineMeters(e.lat, e.lng, p.lat, p.lng) <= 50);
-    if (!dup) deduped.push(p);
-  }
-  deduped.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  const deduped = context.nearbyPlaces;
 
   // Group by category
   const placesByCategory = {};
@@ -464,7 +505,8 @@ export function evaluateBusinessOpportunities(property, radiusMeters = 500, sect
   }
 
   const areaHa = Number(property.area || property.landArea || 0);
-  const areaSqm = areaHa > 0 ? (areaHa * 10000) : Number(property.parcel?.surveyAreaSqm || 0);
+  const parcelSqm = Number(property.parcel?.surveyAreaSqm ?? property.parcel?.estimatedAreaSqm ?? 0);
+  const areaSqm = Number.isFinite(parcelSqm) && parcelSqm > 0 ? parcelSqm : (Number.isFinite(areaHa) && areaHa > 0 ? areaHa * 10000 : 0);
   const zoningClassification = (property.clupProfile?.zoningClassification || property.zoningClassification || '').trim();
   const utilities = Array.isArray(property.utilities) ? property.utilities : [];
 
@@ -483,16 +525,16 @@ export function evaluateBusinessOpportunities(property, radiusMeters = 500, sect
     const hasResidential = placesByCategory.residential || placesByCategory.place_of_worship || placesByCategory.supermarket
       || zoningClassification.toLowerCase().includes('residential') || zoningClassification.toLowerCase().includes('mixed');
 
-    if (hasResidential && profile.activityCenters.includes('residential')) {
+    if (hasCoords && hasResidential && profile.activityCenters.includes('residential')) {
       if (!supporting.length) {
         supporting.push({
           name: `Residential Community (${property.barangay || 'Neighborhood'})`,
           category: 'Residential Settlement',
-          distanceMeters: 150,
-          distanceFormatted: `Within ${radiusMeters}m radius`,
+          distanceMeters: null,
+          distanceFormatted: 'Neighborhood context; distance not measured',
           source: 'CLUP Neighborhood Context',
-          date: '2026-01-01',
-          status: 'operating',
+          date: property.clupProfile?.verifiedAt || null,
+          status: 'not_applicable',
         });
       }
     }
@@ -574,16 +616,16 @@ export function evaluateBusinessOpportunities(property, radiusMeters = 500, sect
       nearestAnchorDistance: uniqueSupporters[0]?.distanceMeters ?? null,
       nearestAnchorFormatted: uniqueSupporters[0]?.distanceFormatted ?? null,
       areaGuideline: profile.areaGuideline,
-      recordedAreaSqm: areaSqm > 0 ? Math.round(areaSqm) : null,
-      areaStatus: areaSqm > 0 ? `${Math.round(areaSqm).toLocaleString()} sqm recorded` : 'Unknown (unrecorded)',
+      recordedAreaSqm: areaSqm > 0 ? Math.round(areaSqm * 100) / 100 : null,
+      areaStatus: areaSqm > 0 ? `${areaSqm.toLocaleString(undefined, { maximumFractionDigits: 2 })} sqm recorded` : 'Unknown (unrecorded)',
       roadAccessRequirement: profile.roadAccess,
       zoningClassification: zoningClassification || 'Unknown (awaiting verification)',
       zoningStatus: zoningExplanation,
       missingEvidence: missingItems,
       competitorsCount: competitors.length,
       competitorsNotice: competitors.length > 0
-        ? `${competitors.length} similar operating establishments recorded in radius`
-        : 'No competitors recorded in this dataset',
+        ? `${competitors.length} similar mapped establishments recorded in radius; operating status may be unverified`
+        : 'No competitors recorded in this partial dataset; completeness is unknown',
       competitorSample: competitors.slice(0, 3).map(c => c.name),
       complementaryCount: complementary.length,
       complementarySample: complementary.slice(0, 3).map(c => c.name),
@@ -615,6 +657,9 @@ export function evaluateBusinessOpportunities(property, radiusMeters = 500, sect
     analysisOrigin: originLabel,
     totalPlacesInRadius: deduped.length,
     nearbyPlaces: deduped,
+    metrics: context.metrics,
+    coverage: context.coverage,
+    coverageNote: context.coverageNote,
     ruleVersion: RULE_VERSION,
     ruleSource: RULE_SOURCE,
     reviewNotice: 'Seed relationships are draft exploratory rules requiring local review by City Planning and LEBDO before official validation. Suggestions do not claim profitability or guaranteed unmet demand.',
@@ -1283,10 +1328,7 @@ export function formatOpportunityDisplayItem(m, index = 0) {
  * Render a single opportunity card with iOS-refined scannable front and collapsible evidence drawer.
  */
 export function renderOpportunityCard(item, property = null) {
-  const supportingList = (item.supportingPlaces && item.supportingPlaces.length) ? item.supportingPlaces : [
-    { name: 'Saint Louis College', distanceFormatted: '165 m', distanceMeters: 165, category: 'College & Higher Education' },
-    { name: 'City Hall of San Fernando', distanceFormatted: '185 m', distanceMeters: 185, category: 'Civic Administration' }
-  ];
+  const supportingList = Array.isArray(item.supportingPlaces) ? item.supportingPlaces : [];
   const supportingNames = supportingList.map(sp => sp.name || '').filter(Boolean).join('|||');
 
   return `
@@ -1339,7 +1381,7 @@ export function renderOpportunityCard(item, property = null) {
               <span class="opportunity-sector-badge">${esc(item.sectorLabel || 'Commercial Sector')}</span>
               <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
             </div>
-            <span class="opportunity-drawer-status">Verified Spatial Proximity</span>
+            <span class="opportunity-drawer-status">Recorded map context · Operating status unverified</span>
           </div>
 
           <!-- 1. Supporting Activity Centers -->
@@ -1350,8 +1392,8 @@ export function renderOpportunityCard(item, property = null) {
             </div>
             <ul class="opportunity-places-list">
               ${supportingList.map(sp => {
-                const distM = sp.distanceMeters || (sp.distanceFormatted ? parseInt(sp.distanceFormatted, 10) : 180);
-                const walkMin = Math.max(1, Math.round((distM || 180) / 80));
+                const distM = typeof sp.distanceMeters === 'number' && Number.isFinite(sp.distanceMeters) && sp.distanceMeters >= 0 ? sp.distanceMeters : null;
+                const walkMin = distM === null ? null : Math.max(1, Math.round(distM / 80));
                 return `
                   <li class="opportunity-place-item">
                     <div class="opportunity-place-main">
@@ -1359,8 +1401,8 @@ export function renderOpportunityCard(item, property = null) {
                       <strong class="opportunity-place-name">${esc(sp.name)}</strong>
                     </div>
                     <div class="opportunity-place-meta">
-                      <span class="opportunity-place-badge">${esc(sp.distanceFormatted || (distM + ' m'))}</span>
-                      <span class="amenity-walk-badge">~${walkMin} min walk</span>
+                      <span class="opportunity-place-badge">${esc(sp.distanceFormatted || (distM === null ? 'Distance not measured' : `${distM} m`))}</span>
+                      ${walkMin === null ? '' : `<span class="amenity-walk-badge">~${walkMin} min walking estimate</span>`}
                       <span class="opportunity-place-cat">${esc(sp.category || 'Activity Center')}</span>
                     </div>
                   </li>
@@ -1402,18 +1444,18 @@ export function renderOpportunityCard(item, property = null) {
           <!-- 3. Local Market Context -->
           <div class="opportunity-evidence-group">
             <div class="opportunity-evidence-label">
-              <span>Operating establishments in radius</span>
-              <small>Local competitive &amp; complementary density</small>
+              <span>Mapped establishments in radius</span>
+              <small>Partial inventory · Operating status may be unverified</small>
             </div>
             <div class="opportunity-comp-row">
               <div class="opportunity-comp-box">
                 <strong>Recorded competitors:</strong>
-                <p>${esc(item.competitorsNotice || 'No competitors recorded in radius')}</p>
+                <p>${esc(item.competitorsNotice || 'Competitor coverage is not recorded')}</p>
                 ${item.competitorSample && item.competitorSample.length ? `<small>Recorded examples: ${esc(item.competitorSample.join(', '))}</small>` : ''}
               </div>
               <div class="opportunity-comp-box">
                 <strong>Complementary businesses:</strong>
-                <p>${item.complementaryCount > 0 ? `${item.complementaryCount} complementary anchors found` : 'Complementary commercial synergy nearby'}</p>
+                <p>${item.complementaryCount > 0 ? `${item.complementaryCount} complementary mapped anchors found` : 'No complementary places recorded in this partial dataset'}</p>
                 ${item.complementarySample && item.complementarySample.length ? `<small>Synergies: ${esc(item.complementarySample.join(', '))}</small>` : ''}
               </div>
             </div>
@@ -1447,14 +1489,16 @@ export function renderOpportunityCard(item, property = null) {
  * Render the "Business opportunities to explore" section markup matching Picture 2.
  */
 export function businessOpportunitiesMarkup(property, options = {}) {
+  const demo = options.demo === true;
   const opp = property.businessOpportunities || evaluateBusinessOpportunities(property, 500);
-  const rawMatches = Array.isArray(opp.supportedMatches) && opp.supportedMatches.length ? opp.supportedMatches : [];
   const radius = opp.radiusMeters || 500;
-  const lat = Number(property.lat || 16.6159);
-  const lng = Number(property.lng || 120.3166);
+  const observed = observedBusinessContext(property, radius);
+  const rawMatches = (observed.hasCoords || demo) && Array.isArray(opp.supportedMatches) && opp.supportedMatches.length ? opp.supportedMatches : [];
+  const lat = observed.lat;
+  const lng = observed.lng;
 
   // Determine real nearby places from opp or property
-  const rawNearby = opp.nearbyPlaces || (Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : []);
+  const rawNearby = observedBusinessContext({ ...property, nearbyBusinesses: opp.nearbyPlaces || property.nearbyBusinesses }, radius).nearbyPlaces;
   const realAnchors = [];
   const seenAnchorNames = new Set();
   for (const p of rawNearby) {
@@ -1484,7 +1528,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         category: a.category || 'Activity Center'
       };
     });
-  } else {
+  } else if (demo) {
     // Demo fallback chips matching Picture 2 with crisp vector icons
     amenityChips = [
       {
@@ -1520,10 +1564,10 @@ export function businessOpportunitiesMarkup(property, options = {}) {
     ];
   }
   
-  // Format display matches: use dynamic matches formatted to Picture 2 specs, or fall back to DEMO_MATCHES
+  // Illustrative records are available only when explicitly requested as a demo.
   const displayCards = rawMatches.length
     ? rawMatches.map((m, idx) => formatOpportunityDisplayItem(m, idx))
-    : DEMO_MATCHES;
+    : (demo ? DEMO_MATCHES : []);
 
   return `
     <section class="property-panel property-opportunities" id="propertyOpportunitiesSection" aria-labelledby="propertyOpportunitiesTitle">
@@ -1533,12 +1577,13 @@ export function businessOpportunitiesMarkup(property, options = {}) {
           lat,
           lng,
           radius,
+          demo,
           propertyName: property.name || 'Subject Property',
-          anchors: realAnchors.length ? realAnchors : [
+          anchors: realAnchors.length ? realAnchors : (demo ? [
             { name: 'Hospital', category: 'Healthcare', lat: lat + 0.002, lng: lng - 0.002, distanceFormatted: '180 m', distanceMeters: 180 },
             { name: 'School', category: 'Education', lat: lat + 0.001, lng: lng + 0.003, distanceFormatted: '240 m', distanceMeters: 240 },
             { name: 'City hall', category: 'Civic', lat: lat - 0.002, lng: lng + 0.001, distanceFormatted: '310 m', distanceMeters: 310 }
-          ]
+          ] : [])
         })}
       </script>
 
@@ -1555,7 +1600,7 @@ export function businessOpportunitiesMarkup(property, options = {}) {
           </div>
 
           <!-- Stylized Map Box with Real Leaflet Canvas, Interactive Overlays & Static Fallback -->
-          <div class="opportunities-map-box" id="opportunitiesInteractiveMap" data-lat="${lat}" data-lng="${lng}" data-radius="${radius}" data-property-name="${esc(property.name || 'Subject Property')}">
+          <div class="opportunities-map-box" id="opportunitiesInteractiveMap" data-lat="${lat ?? ''}" data-lng="${lng ?? ''}" data-demo="${demo}" data-radius="${radius}" data-property-name="${esc(property.name || 'Subject Property')}">
             <!-- Map Recenter Button -->
             <button type="button" class="opportunities-map-recenter-btn" id="oppRecenterBtn" title="Recenter to property location" aria-label="Recenter map to property location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1588,7 +1633,8 @@ export function businessOpportunitiesMarkup(property, options = {}) {
             </button>
 
             <!-- Fallback Vector Map Canvas (Displayed for SSR & headless test runners) -->
-            <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback">
+            <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback" ${demo ? '' : 'hidden'}>
+              ${demo ? `
               <svg class="opportunities-map-svg" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
                 <!-- Google Maps Land Base -->
                 <rect width="100%" height="100%" fill="#F1EFE8"/>
@@ -1670,11 +1716,12 @@ export function businessOpportunitiesMarkup(property, options = {}) {
                 </span>
                 <span class="poi-label">${esc(amenityChips[2]?.name || 'City hall')}</span>
               </div>
+              ` : ''}
             </div>
 
             <!-- Map bottom-left tag overlay -->
             <div class="opportunities-map-foot-chip" id="opportunitiesMapFootChip" style="z-index: 5;">
-              <span>500 m straight-line screening radius &middot; Verified</span>
+              <span>${observed.hasCoords ? `${radius} m straight-line screening radius · Partial mapped inventory` : 'Exact property location needed · Nearby inventory unknown'}</span>
             </div>
           </div>
 
@@ -1693,11 +1740,11 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         <!-- RIGHT COLUMN: Demo Scenario & Dynamic Cards Stack -->
         <div class="opportunities-cards-column">
           <div class="opportunities-kicker-banner">
-            <span>DEMO SCENARIO - Illustrative places and suggestions</span>
+            <span>${demo ? 'DEMO SCENARIO - Illustrative places and suggestions' : 'Draft suggestions · Partial mapped inventory'}</span>
           </div>
 
           <div class="opportunities-blue-stack" id="opportunitiesCardsStack">
-            ${displayCards.map(item => renderOpportunityCard(item, property)).join('')}
+            ${displayCards.length ? displayCards.map(item => renderOpportunityCard(item, property)).join('') : '<p class="opportunities-empty-state">No suggestions are supported by the recorded nearby places. Inventory completeness and operating business density remain unknown.</p>'}
           </div>
         </div>
       </div>
@@ -1894,10 +1941,13 @@ export function initBusinessOpportunities(root = document, property = null) {
   let currentRadius = parseFloat(mapBox?.getAttribute('data-radius')) || 500;
   let currentSector = 'everyday_services';
 
-  if (mapBox && leafletCanvas && window.L && typeof window.L.map === 'function') {
+  const recordedMapLat = recordedCoordinate(mapBox?.getAttribute('data-lat'), 90);
+  const recordedMapLng = recordedCoordinate(mapBox?.getAttribute('data-lng'), 180);
+  const demoMode = mapBox?.getAttribute('data-demo') === 'true';
+  if (mapBox && leafletCanvas && recordedMapLat !== null && recordedMapLng !== null && window.L && typeof window.L.map === 'function') {
     try {
-      const lat = parseFloat(mapBox.getAttribute('data-lat')) || 16.6159;
-      const lng = parseFloat(mapBox.getAttribute('data-lng')) || 120.3166;
+      const lat = recordedMapLat;
+      const lng = recordedMapLng;
       const propName = mapBox.getAttribute('data-property-name') || 'Subject Property';
 
       // Parse anchors from data store
@@ -1910,7 +1960,7 @@ export function initBusinessOpportunities(root = document, property = null) {
         } catch (_) {}
       }
       if (!anchors.length && property && Array.isArray(property.nearbyBusinesses)) {
-        anchors = property.nearbyBusinesses;
+        anchors = observedBusinessContext(property, currentRadius).nearbyPlaces;
       }
 
       // Avoid duplicate init
@@ -2014,7 +2064,7 @@ export function initBusinessOpportunities(root = document, property = null) {
           dispLat: parseFloat(a.lat),
           dispLng: parseFloat(a.lng),
           name: a.name || `Anchor ${idx + 1}`
-        })).filter(a => isFinite(a.rawLat) && isFinite(a.rawLng) && (a.rawLat !== 0 || a.rawLng !== 0));
+        })).filter(a => recordedCoordinate(a.rawLat, 90) !== null && recordedCoordinate(a.rawLng, 180) !== null && !closedPlace(a.data));
 
         // NOTE: Actual de-overlap layout runs in screen-pixel space (layoutPinsInPixelSpace below),
         // because a fixed degree offset (~30 m) is only ~6 px at zoom 15 — far smaller than a 28 px pin.
@@ -2132,7 +2182,7 @@ export function initBusinessOpportunities(root = document, property = null) {
                 <span>📍 ${esc(a.data.distanceFormatted || (distM + ' m'))}</span>
                 <span>🚶 ~${walkMin} min walk</span>
               </div>
-              <span class="opp-gmap-popup-sub">Verified neighborhood foot-traffic generator</span>
+              <span class="opp-gmap-popup-sub">Mapped place · ${esc(recordedStatus(a.data) === 'operating' ? 'Operating status recorded' : 'Operating status unverified')}</span>
             </div>
           `, { className: 'opp-gmap-popup-wrapper' });
 
@@ -2413,7 +2463,7 @@ export function initBusinessOpportunities(root = document, property = null) {
             // Update text labels
             const rText = newRadius >= 1000 ? (newRadius / 1000) + ' km' : Math.round(newRadius) + ' m';
             const footChip = root.querySelector('#opportunitiesMapFootChip span');
-            if (footChip) footChip.innerHTML = `${rText} straight-line screening radius &middot; Verified`;
+            if (footChip) footChip.textContent = `${rText} straight-line screening radius · Partial mapped inventory`;
 
             const staticBubble = root.querySelector('#opportunitiesMapRadiusTagBubble span');
             if (staticBubble) staticBubble.textContent = rText;
@@ -2425,7 +2475,7 @@ export function initBusinessOpportunities(root = document, property = null) {
       }
     } catch (err) {
       console.warn('Leaflet map initialization skipped or unsupported in environment:', err);
-      if (fallbackSvg) fallbackSvg.style.display = 'block';
+      if (fallbackSvg && demoMode) fallbackSvg.style.display = 'block';
     }
   }
 
@@ -2445,7 +2495,7 @@ export function initBusinessOpportunities(root = document, property = null) {
     }
 
     // If dynamic screening produced no items for this specific sector, fallback to curated sector matches
-    if (!itemsToDisplay.length) {
+    if (!itemsToDisplay.length && demoMode) {
       if (sectorKey && SECTOR_DEMO_MATCHES[sectorKey]) {
         itemsToDisplay = SECTOR_DEMO_MATCHES[sectorKey];
       } else {
@@ -2459,7 +2509,8 @@ export function initBusinessOpportunities(root = document, property = null) {
     stack.style.transform = 'translateY(4px)';
 
     setTimeout(() => {
-      stack.innerHTML = itemsToDisplay.map(item => renderOpportunityCard(item, property)).join('');
+      stack.innerHTML = itemsToDisplay.length ? itemsToDisplay.map(item => renderOpportunityCard(item, property)).join('')
+        : '<p class="opportunities-empty-state">No suggestions are supported by the recorded nearby places for this radius and category. Inventory completeness and operating business density remain unknown.</p>';
       stack.style.opacity = '1';
       stack.style.transform = 'translateY(0)';
       bindDrawerEvents(stack);

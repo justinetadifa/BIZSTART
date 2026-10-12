@@ -21,6 +21,8 @@ data/property-authority-to-sell/
 data/cache/
 *.bak
 *_backup.*
+backup_*
+*.sql.bak
 *.zip
 assets/uploads/profiles/*
 !assets/uploads/profiles/.htaccess

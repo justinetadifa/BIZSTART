@@ -10,7 +10,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             throw new InvalidArgumentException('CICTO must approve your broker account before you submit listings.');
         }
         // An allowlist prevents assignment, review and assessment fields being injected.
-        $allowed = ['property_name', 'name', 'property_type', 'type', 'category', 'subcategory', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'area_method', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'remove_image', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
+        $allowed = ['property_name', 'name', 'subname', 'property_subname', 'property_type', 'type', 'category', 'subcategory', 'additional_subcategories', 'city', 'barangay', 'description', 'price', 'land_area', 'area', 'land_area_unit', 'landAreaUnit', 'area_method', 'lat', 'lng', 'corridor', 'status', 'tags', 'tags_csv', 'facilities', 'facilities_csv', 'image_path', 'imageUrl', 'remove_image', 'owner_name', 'owner_email', 'owner_phone', 'owner_company', 'ownerContact', 'contactMode', 'contact_mode', 'nearbyProperties', 'boundary', 'reference_lat', 'reference_lng', 'reference_label', 'road_frontage', 'road_surface', 'electricity', 'water', 'internet', 'bir_zonal_value', 'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference', 'existing_land_use', 'existingLandUse', 'zoning_classification', 'zoningClassification', 'clup_source_reference', 'clupSourceReference', 'readiness_notes', 'readinessNotes', 'assessmentTags', 'assessment_tags'];
         $allowed = array_merge($allowed, ['listing_purpose', 'listingPurpose', 'sale_price', 'salePrice', 'sale_price_mode', 'lease_price', 'leasePrice', 'lease_price_mode', 'lease_period', 'leasePeriod', 'lease_price_unit', 'leasePriceUnit']);
         $allowed = array_merge($allowed, [
             'clup_allowed_uses', 'clupAllowedUses',
@@ -19,6 +19,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             'water_status', 'water_source', 'water_provider', 'water_capacity',
             'internet_status', 'internet_technology',
             'drainage_service', 'wastewater_service', 'waste_collection_service',
+            'road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road',
             'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin',
             'spatial_evidence_source', 'spatial_evidence_date', 'spatial_evidence_reference',
             'utility_evidence_source', 'utility_evidence_date', 'utility_evidence_reference',
@@ -29,12 +30,28 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             'environmental_evidence_source', 'environmental_evidence_date', 'environmental_evidence_reference',
             'sensitive_habitats', 'protected_area_overlap', 'documented_contamination',
             'authority_to_sell', 'authorityToSell',
+            'proposed_activity', 'proposedActivity', 'zoning_category', 'zoningCategory', 'zoning_conditions', 'zoningConditions',
+            'zoning_score', 'zoningScore',
+            'comparable_market_price', 'comparableMarketPrice', 'lgu_valuation_type', 'lgu_valuationType',
+            'lgu_valuation_amount', 'lguValuationAmount', 'comparable_source', 'comparableSource',
+            'electricity_arrangement', 'electricityArrangement', 'water_supply', 'waterSupply',
+            'internet_telecom', 'internetTelecom', 'drainage_conditions', 'drainageConditions',
+            'generator_fuel_type', 'generatorFuelType', 'generator_storage_notes', 'generatorStorageNotes',
+            'water_testing_notes', 'waterTestingNotes', 'water_storage_notes', 'waterStorageNotes',
+            'internet_backup_notes', 'internetBackupNotes', 'drainage_type', 'drainageType', 'drainage_outfall', 'drainageOutfall',
+            'radar_business_type', 'radarBusinessType',
+            'infrastructure_readiness_score', 'infrastructureReadinessScore',
+            'infrastructure_readiness_complete', 'infrastructureReadinessComplete',
+            'infrastructure_iai_contribution', 'infrastructureIaiContribution',
+            'zoning_compatibility_status', 'zoningCompatibilityStatus',
+            'zoning_iai_contribution', 'zoningIaiContribution',
         ]);
+        $requestedApproval = strtolower(trim((string) ($payload['approval_state'] ?? $payload['approvalState'] ?? '')));
         $payload = array_intersect_key($payload, array_flip($allowed));
         $payload['seller_user_id'] = (int) $user['id'];
         $payload['owner_name'] = $payload['owner_name'] ?? $user['name'];
         $payload['owner_email'] = $payload['owner_email'] ?? $user['email'];
-        $payload['approval_state'] = 'pending_review';
+        $payload['approval_state'] = $requestedApproval === 'draft' ? 'draft' : 'pending_review';
         $payload['assessmentCriteria'] = [];
         $payload['documents_reviewed'] = false;
         $payload['site_verified'] = false;

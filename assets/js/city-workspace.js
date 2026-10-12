@@ -1,7 +1,7 @@
 import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } from './property-details-view.js';
+import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
 
 const config = window.SFC_APP_CONFIG || {};
@@ -207,6 +207,7 @@ function card(property, index) {
                 ${esc(property.name)}
               </a>
             </h3>
+            ${property.subname ? `<p class="tw-text-[11px] tw-text-slate-500 tw-truncate tw-mb-0.5">${esc(property.subname)}</p>` : ''}
             <div class="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-slate-500">
               <svg class="tw-w-3.5 tw-h-3.5 tw-text-[#9E1B22] tw-flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -363,6 +364,7 @@ function card(property, index) {
                 ${esc(property.name)}
               </a>
             </h3>
+            ${property.subname ? `<p class="tw-text-[11px] tw-text-slate-500 tw-truncate tw-mb-0.5">${esc(property.subname)}</p>` : ''}
             <div class="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-slate-500">
               <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -809,7 +811,7 @@ function renderRanking() {
   window.SFCInvestorView?.refresh(root);
 
   const methodNote = document.getElementById('cityAssessmentMethod');
-  if (methodNote) methodNote.textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All seven criteria must be assessed before a score or rank is shown.';
+  if (methodNote) methodNote.textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All required criteria must be assessed before a score or rank is shown.';
 }
 
 function renderCompare() {
@@ -1684,7 +1686,7 @@ function nearbyBusinessesMarkup(property) {
                   <div class="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2">
                     <span class="nearby-biz-status-badge tw-inline-flex tw-items-center tw-gap-1 tw-text-[9.5px] tw-font-semibold tw-text-emerald-700">
                       <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500"></span>
-                      ${biz.status === 'operating' ? 'Recorded as operating' : 'Under development'}
+                      ${biz.status === 'operating' ? 'Recorded as operating' : biz.status === 'under_development' ? 'Under development' : 'Operating status unknown'}
                     </span>
                     ${hasCoordinates(property) && property.hasExactLocation !== false && hasCoordinates(biz) ? `<button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
                       Locate on map &rarr;
@@ -1740,6 +1742,7 @@ async function renderDetails() {
     evaluationMarkup, investorTools, policy: config.policy || {},
   });
   window.SFCInvestorView?.refresh(root);
+  setupPropertyGallery(root);
   const printState = setupPropertyDetailsPrint(root);
 
   filtered = [property];
@@ -2200,6 +2203,55 @@ function setupLandingFeatures() {
       const drawer = item.querySelector('.city-about-drawer');
       if (drawer) drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     });
+  });
+
+  document.querySelectorAll('.city-acronym').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wasActive = el.classList.contains('is-active');
+      document.querySelectorAll('.city-acronym.is-active').forEach(other => {
+        other.classList.remove('is-active');
+        other.setAttribute('aria-expanded', 'false');
+      });
+      if (!wasActive) {
+        el.classList.add('is-active');
+        el.setAttribute('aria-expanded', 'true');
+      }
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  });
+
+  document.querySelectorAll('.home-recipient-item[data-recipient-card]').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouch && !card.classList.contains('is-flipped')) {
+        e.preventDefault();
+        document.querySelectorAll('.home-recipient-item[data-recipient-card].is-flipped').forEach(other => {
+          if (other !== card) other.classList.remove('is-flipped');
+        });
+        card.classList.add('is-flipped');
+      }
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.city-acronym')) {
+      document.querySelectorAll('.city-acronym.is-active').forEach(el => {
+        el.classList.remove('is-active');
+        el.setAttribute('aria-expanded', 'false');
+      });
+    }
+    if (!e.target.closest('.home-recipient-item[data-recipient-card]')) {
+      document.querySelectorAll('.home-recipient-item[data-recipient-card].is-flipped').forEach(card => {
+        card.classList.remove('is-flipped');
+      });
+    }
   });
 }
 

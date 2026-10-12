@@ -12,7 +12,7 @@ export function evaluationMarkup(property, policy) {
     <div id="evalAlignmentCallout" class="tw-mt-4 tw-rounded-lg tw-bg-paper tw-p-3 tw-text-xs" aria-live="polite">Choose an activity to check its priority sector alignment.</div>
     <div class="tw-mt-4 tw-rounded-lg tw-border tw-border-solid tw-border-line tw-p-4"><span class="tw-block tw-text-[10px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-muted">Potential incentive</span><span id="evalIncentiveBadge" class="tw-mt-2 tw-inline-block tw-rounded-md tw-bg-paper tw-px-2 tw-py-1 tw-text-xs tw-font-semibold">Enter capitalization</span><p id="evalIncentiveCopy" class="tw-mb-0 tw-mt-2 tw-text-xs" aria-live="polite">See the potential incentive for your proposed investment.</p><p class="tw-mb-0 tw-mt-2 tw-text-[10px]">For new, expanding or modernizing city projects. The specific activity and capitalization basis require LGU review. (§19)</p>${policy.ordinance_url ? `<a class="tw-mt-2 tw-inline-block tw-text-[10px] tw-font-semibold tw-text-amber" href="${esc(policy.ordinance_url)}" target="_blank" rel="noopener noreferrer">Read ${esc(policy.ordinance_number)} ↗</a>` : ''}</div>
     <div class="tw-mt-5 tw-flex tw-flex-wrap tw-items-center tw-gap-3"><button id="evalRunMceBtn" class="${button}" type="submit">Run MCE evaluation</button><span class="tw-text-[11px] tw-text-muted">Uses the city’s completed site assessment.</span></div></form>
-    <div id="evalResult" class="tw-mt-5" hidden><div class="tw-grid tw-gap-2 sm:tw-grid-cols-3"><div class="tw-rounded-lg tw-bg-paper tw-p-3"><span class="tw-block tw-text-[10px] tw-text-muted">Base IAI</span><strong id="evalBaseIaiVal" class="tw-text-xl tw-tabular-nums"></strong></div><div class="tw-rounded-lg tw-bg-amber-50 tw-p-3"><span class="tw-block tw-text-[10px] tw-text-muted">Policy Priority Adjustment</span><strong id="evalAdjVal" class="tw-text-xl tw-tabular-nums"></strong><span id="evalAdjPts" class="tw-block tw-text-[10px]"></span></div><div class="tw-rounded-lg tw-bg-ink tw-p-3 tw-text-white"><span class="tw-block tw-text-[10px] tw-text-white/70">Final IAI</span><strong id="evalFinalIaiVal" class="tw-text-xl tw-tabular-nums"></strong></div></div><p id="evalRationaleText" class="tw-mb-0 tw-mt-3 tw-text-xs" aria-live="polite"></p><button id="evalGenerateReportBtn" class="${button} tw-mt-4" type="button">Generate report ↗</button></div>
+    <div id="evalResult" class="tw-mt-5" hidden><div class="tw-grid tw-gap-2 sm:tw-grid-cols-2"><div class="tw-rounded-lg tw-bg-paper tw-p-4"><span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-muted">Site Investment Attractiveness (IAI)</span><strong id="evalBaseIaiVal" class="tw-text-2xl tw-tabular-nums tw-font-extrabold tw-text-ink"></strong><span class="tw-block tw-text-[11px] tw-text-muted tw-mt-1">Composite physical suitability (0–100)</span></div><div class="tw-rounded-lg tw-bg-amber-50 tw-p-4"><span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-amber-800">Policy Alignment</span><strong id="evalSectorVal" class="tw-text-base tw-font-bold tw-text-amber-900 tw-block"></strong><span id="evalIncentiveSummary" class="tw-block tw-text-[11px] tw-text-amber-700 tw-mt-1"></span></div></div><p id="evalRationaleText" class="tw-mb-0 tw-mt-3 tw-text-xs" aria-live="polite"></p><button id="evalGenerateReportBtn" class="${button} tw-mt-4" type="button">Generate report ↗</button></div>
     <dialog id="evalComplianceModal" class="tw-w-[min(520px,calc(100%-24px))] tw-max-h-[90vh] tw-overflow-auto tw-rounded-2xl tw-border tw-border-solid tw-border-line tw-bg-white tw-p-6 tw-text-ink tw-shadow-xl backdrop:tw-bg-ink/40" aria-labelledby="complianceTitle"><form method="dialog"><div class="tw-flex tw-items-center tw-justify-between tw-gap-3"><h2 id="complianceTitle" class="tw-m-0 tw-text-lg">Investment Compliance Check</h2><button class="tw-h-9 tw-w-9 tw-rounded-full tw-border tw-border-solid tw-border-line tw-bg-white" aria-label="Close compliance check">×</button></div></form><ul class="tw-my-5 tw-grid tw-list-none tw-gap-3 tw-p-0">${(policy.compliance || []).map(row => `<li class="tw-rounded-lg tw-bg-paper tw-p-3"><strong class="tw-block tw-text-xs">${esc(row.title)}</strong><p class="tw-mb-0 tw-mt-1 tw-text-xs">${esc(row.copy)}</p></li>`).join('')}</ul>${policy.ordinance_url ? `<a class="tw-text-[11px] tw-font-semibold tw-text-amber" href="${esc(policy.ordinance_url)}" target="_blank" rel="noopener noreferrer">${esc(policy.ordinance_number)} · source ↗</a>` : ''}<p class="tw-text-[11px]">Review applicable requirements with the LGU. Acknowledgment records understanding; it does not certify compliance.</p><label class="tw-flex tw-items-center tw-gap-3 tw-text-xs"><input id="complianceAgreeCheck" type="checkbox" class="tw-h-4 tw-w-4 tw-accent-ink">I understand these requirements</label><button id="confirmGenerateReportBtn" class="${button} tw-mt-5 tw-w-full" type="button" disabled>Generate report</button></dialog>
   </section>`;
 }
@@ -43,14 +43,27 @@ export function setupInvestmentEvaluation(property, policy) {
   form.addEventListener('submit', event => {
     event.preventDefault();
     if (!form.reportValidity()) return;
-    evaluated = policyScore(property.assessmentComplete ? property.iaiScore : null, activity(), policy);
+    const currentActivity = activity();
+    const siteIai = (property.assessmentComplete && property.assessmentStatus !== 'not_suitable') ? property.iaiScore : null;
+    evaluated = {
+      base: siteIai,
+      final: siteIai,
+      sector: currentActivity?.sector || null,
+      isPriority: Boolean(currentActivity?.sector),
+      incentive: potentialIncentive(capital.value, policy),
+    };
     result.hidden = false;
-    document.getElementById('evalBaseIaiVal').textContent = displayScore(evaluated.base);
-    document.getElementById('evalAdjVal').textContent = evaluated.final == null ? '—' : `+${evaluated.percent}%`;
-    document.getElementById('evalAdjPts').textContent = evaluated.final == null ? 'Awaiting assessment' : `+${evaluated.applied.toFixed(1)} pts applied`;
-    document.getElementById('evalFinalIaiVal').textContent = displayScore(evaluated.final);
-    document.getElementById('evalRationaleText').textContent = evaluated.final == null ? (property.assessmentMode === 'automatic' ? 'Automatic assessment is awaiting source data or approved conversion rules. All seven criteria are required before MCE or IAI can be calculated.' : 'City assessment pending. All seven criteria are needed before MCE or IAI can be calculated.') : evaluated.percent ? `Policy adjustment: ${evaluated.percent}% of Base IAI, capped at 100. This separate policy modifier is not part of the original MCE methodology.` : 'The base departmental IAI is unchanged. A policy score modifier requires documented approval before it can be applied.';
-    document.getElementById('evalGenerateReportBtn').disabled = evaluated.final == null;
+    document.getElementById('evalBaseIaiVal').textContent = siteIai != null ? `${displayScore(siteIai)} / 100` : '—';
+    document.getElementById('evalSectorVal').textContent = currentActivity?.sector
+      ? `✓ Priority Sector: ${currentActivity.sector}`
+      : 'Standard economic category';
+    document.getElementById('evalIncentiveSummary').textContent = evaluated.incentive?.badge
+      ? `${evaluated.incentive.badge} · Subject to LEBDO evaluation (§19)`
+      : 'Subject to LEBDO evaluation under City Investment Code (§19)';
+    document.getElementById('evalRationaleText').textContent = siteIai == null
+      ? (property.assessmentStatus === 'not_suitable' ? 'Proposed land use is not permitted under applicable CLUP zoning classification.' : 'City assessment pending. All required criteria are needed before composite IAI is calculated.')
+      : 'The composite Investment Attractiveness Index (IAI) reflects physical and spatial site suitability. Potential statutory incentives are evaluated separately by LEBDO and do not alter physical site suitability.';
+    document.getElementById('evalGenerateReportBtn').disabled = siteIai == null;
   });
   document.getElementById('evalGenerateReportBtn').addEventListener('click', () => { if (evaluated?.final == null) return; agree.checked = false; confirm.disabled = true; dialog.showModal(); });
   agree.addEventListener('change', () => confirm.disabled = !agree.checked);

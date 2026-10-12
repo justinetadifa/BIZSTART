@@ -1,0 +1,46 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync('assets/js/property-wizard.js','utf8');
+const activeStart=source.indexOf('    function getActivePhotos()');
+const activeEnd=source.indexOf('    function getCoverPhotoSource()',activeStart);
+const actionsStart=source.indexOf('    function removePhotoAt(');
+const actionsEnd=source.indexOf('    function handlePhotoFiles(',actionsStart);
+assert(activeStart>0 && activeEnd>activeStart && actionsStart>0 && actionsEnd>actionsStart);
+function gallery() {
+  const existing=[{id:11,source:'existing-front.jpg',isRemoved:false},{id:12,source:'existing-side.jpg',isRemoved:false}];
+  const files=[{name:'new-front.jpg',_objectUrl:'blob:new-front'},{name:'new-side.jpg',_objectUrl:'blob:new-side'}];
+  const removal={value:'0'};
+  const context=vm.createContext({existingPhotoMedia:existing,selectedPhotoFiles:files,coverPhoto:null,
+    URL:{revokeObjectURL(){}},$:()=>removal,syncPhotoUI(){},preview(){},queueAutosave(){}});
+  vm.runInContext(source.slice(activeStart,activeEnd)+source.slice(actionsStart,actionsEnd),context);
+  const run=code=>vm.runInContext(code,context);
+  const order=()=>Array.from(run('getActivePhotos()'),item=>item.isNew?item.file.name:item.source);
+  return {context,existing,files,removal,run,order};
+}
+const newCover=gallery();
+newCover.run('makePhotoCover(3)');
+assert.deepEqual(newCover.order(),['new-side.jpg','existing-front.jpg','existing-side.jpg','new-front.jpg']);
+assert.equal(newCover.context.coverPhoto.file,newCover.files[1]);
+assert.deepEqual(newCover.files.map(file=>file.name),['new-front.jpg','new-side.jpg'],'Cover selection keeps upload indices stable.');
+newCover.run('removePhotoAt(0)');
+assert.deepEqual(newCover.order(),['existing-front.jpg','existing-side.jpg','new-front.jpg'],'Removing the visible new cover removes the selected file.');
+assert.equal(newCover.context.coverPhoto,null);
+assert(newCover.existing.every(item=>!item.isRemoved));
+const existingCover=gallery();
+existingCover.run('makePhotoCover(1)');
+assert.deepEqual(existingCover.order(),['existing-side.jpg','existing-front.jpg','new-front.jpg','new-side.jpg']);
+assert.equal(existingCover.context.coverPhoto.media.id,12);
+existingCover.run('removePhotoAt(0)');
+assert.equal(existingCover.existing[1].isRemoved,true);
+assert.equal(existingCover.existing[0].isRemoved,false);
+assert.equal(existingCover.files.length,2);
+assert.deepEqual(existingCover.order(),['existing-front.jpg','new-front.jpg','new-side.jpg']);
+const secondary=gallery();
+secondary.run('makePhotoCover(3);removePhotoAt(1)');
+assert.equal(secondary.existing[0].isRemoved,true,'A shifted gallery index still removes the visibly chosen existing photo.');
+assert.deepEqual(secondary.order(),['new-side.jpg','existing-side.jpg','new-front.jpg']);
+const empty=gallery();
+empty.run('removePhotoAt(0);removePhotoAt(0);removePhotoAt(0);removePhotoAt(0)');
+assert.deepEqual(empty.order(),[]);assert.equal(empty.removal.value,'1');
+console.log('Wizard gallery: mixed saved/new covers, stable upload indices, visible removal and empty gallery passed.');

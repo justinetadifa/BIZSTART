@@ -1,24 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90" width="120" height="90">
-  <!-- Dark Navy Blue Card Background -->
-  <rect width="120" height="90" rx="14" fill="#0B1B3D"/>
-  <!-- Concrete Mixer Truck Outline -->
-  <g transform="translate(35, 12)" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Truck Cab -->
-    <path d="M 6 22 L 6 12 C 6 10 8 8 10 8 L 18 8 L 22 14 L 22 22 Z"/>
-    <line x1="12" y1="10" x2="18" y2="10"/>
-    <rect x="10" y="11" width="7" height="6" rx="1" fill="#FFFFFF" fill-opacity="0.2"/>
-    <!-- Chassis & Bumper -->
-    <line x1="2" y1="22" x2="48" y2="22"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <rect width="120" height="120" rx="16" fill="#FFFFFF"/>
+  <!-- Concrete Mixer Truck Icon (Large & Centered) -->
+  <g transform="translate(26, 12) scale(1.42)">
     <!-- Mixer Drum -->
-    <path d="M 22 17 L 34 7 C 36 6 38 6 42 9 L 46 16 C 47 18 47 20 45 21 L 28 22" fill="#FFFFFF" fill-opacity="0.15"/>
-    <line x1="28" y1="12" x2="42" y2="18"/>
+    <path d="M 22 17 L 33 6 C 36 4 39 4 43 7 L 46 14 C 47 16 47 18 45 20 L 28 22 Z" fill="#1D4ED8" fill-opacity="0.16" stroke="#1D4ED8" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M 27 12 Q 35 13 43 17" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Truck Cab -->
+    <path d="M 6 22 L 6 12 C 6 9.5 8 7.5 10.5 7.5 L 18 7.5 L 22 14 L 22 22 Z" fill="#0B1B3D" stroke="#0B1B3D" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- Cab Window -->
+    <rect x="9.5" y="9.5" width="7.5" height="5.5" rx="1" fill="#FFFFFF" fill-opacity="0.95"/>
+    <!-- Chassis & Bumper -->
+    <line x1="2" y1="22" x2="48" y2="22" stroke="#0B1B3D" stroke-width="2" stroke-linecap="round"/>
     <!-- Wheels -->
-    <circle cx="12" cy="24" r="3.5" fill="#0B1B3D" stroke="#FFFFFF" stroke-width="1.8"/>
-    <circle cx="36" cy="24" r="3.5" fill="#0B1B3D" stroke="#FFFFFF" stroke-width="1.8"/>
-    <circle cx="43" cy="24" r="3.5" fill="#0B1B3D" stroke="#FFFFFF" stroke-width="1.8"/>
+    <circle cx="12" cy="24.5" r="3.6" fill="#0B1B3D"/>
+    <circle cx="12" cy="24.5" r="1.5" fill="#F8FAFC"/>
+    <circle cx="34" cy="24.5" r="3.6" fill="#0B1B3D"/>
+    <circle cx="34" cy="24.5" r="1.5" fill="#F8FAFC"/>
+    <circle cx="42" cy="24.5" r="3.6" fill="#0B1B3D"/>
+    <circle cx="42" cy="24.5" r="1.5" fill="#F8FAFC"/>
   </g>
-  <!-- L U C S Title -->
-  <text x="60" y="58" font-family="'Arial Black', -apple-system, sans-serif" font-weight="900" font-size="13" fill="#FFFFFF" text-anchor="middle" letter-spacing="4.5">LUCS</text>
-  <!-- Subtext -->
-  <text x="60" y="73" font-family="'Arial', -apple-system, sans-serif" font-weight="600" font-size="6.8" fill="#93C5FD" text-anchor="middle" letter-spacing="0.2">La Union Concreting Solutions</text>
+  <!-- L U C S Bold Name -->
+  <text x="60" y="78" font-family="'Montserrat', 'Arial Black', sans-serif" font-weight="900" font-size="16.5" fill="#0B1B3D" text-anchor="middle" letter-spacing="4.5">LUCS</text>
+  <!-- Subtitle -->
+  <text x="60" y="95" font-family="'Inter', -apple-system, sans-serif" font-weight="800" font-size="7.5" fill="#1D4ED8" text-anchor="middle" letter-spacing="0.5">LA UNION CONCRETING</text>
 </svg>

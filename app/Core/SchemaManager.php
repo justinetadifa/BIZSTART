@@ -96,6 +96,7 @@ SQL,
 CREATE TABLE IF NOT EXISTS properties (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  subname VARCHAR(180) NULL,
   city VARCHAR(120) NOT NULL DEFAULT 'San Fernando, La Union',
   lat DECIMAL(10, 6) NULL,
   lng DECIMAL(10, 6) NULL,
@@ -455,18 +456,82 @@ SQL,
         self::ensureShowcaseItemsColumns($pdo);
         self::ensureUserPreferenceRows($pdo);
         self::ensureIndexes($pdo);
+        self::ensureCriteriaConfigTable($pdo);
         require_once __DIR__ . '/BrokerSchemaManager.php';
         BrokerSchemaManager::ensure($pdo);
     }
 
+    public static function ensureCriteriaConfigTable(PDO $pdo): void
+    {
+        $pdo->exec(
+            <<<'SQL'
+CREATE TABLE IF NOT EXISTS criteria_config (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  criterion_key VARCHAR(60) NOT NULL UNIQUE,
+  display_name VARCHAR(120) NOT NULL,
+  weight DECIMAL(5, 2) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  is_required TINYINT(1) NOT NULL DEFAULT 1,
+  scoring_method VARCHAR(80) NOT NULL DEFAULT 'bands',
+  validation_status VARCHAR(60) NOT NULL DEFAULT 'provisional',
+  source_reference VARCHAR(255) NULL,
+  description TEXT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_criteria_config_active (is_active)
+)
+SQL
+        );
+
+        $count = (int) $pdo->query('SELECT COUNT(*) FROM criteria_config')->fetchColumn();
+        if ($count === 0) {
+            $stmt = $pdo->prepare(
+                'INSERT INTO criteria_config (criterion_key, display_name, weight, is_active, is_required, scoring_method, validation_status, source_reference, description, sort_order)
+                 VALUES (:criterion_key, :display_name, :weight, :is_active, :is_required, :scoring_method, :validation_status, :source_reference, :description, :sort_order)'
+            );
+            $defaults = [
+                ['criterion_key' => 'spatial_accessibility', 'display_name' => 'Spatial Accessibility', 'weight' => 20.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'bands', 'validation_status' => 'provisional', 'source_reference' => 'City road centerline & DPWH Atlas 2026', 'description' => 'Distance to mapped road centerline and accessibility network', 'sort_order' => 1],
+                ['criterion_key' => 'infrastructure_readiness', 'display_name' => 'Infrastructure Readiness', 'weight' => 20.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'lookup', 'validation_status' => 'provisional', 'source_reference' => 'LUECO & MSFWD verified service maps', 'description' => 'Verified availability of power, water, and telecom connections', 'sort_order' => 2],
+                ['criterion_key' => 'economic_viability', 'display_name' => 'Land Valuation / Economic Context', 'weight' => 20.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'bands', 'validation_status' => 'provisional', 'source_reference' => 'BIR District 8 Zonal Valuation DO 014-2026', 'description' => 'Bureau of Internal Revenue zonal valuation benchmark and economic context', 'sort_order' => 3],
+                ['criterion_key' => 'nearby_businesses', 'display_name' => 'Economic Activity / Business Environment', 'weight' => 10.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'bands', 'validation_status' => 'provisional', 'source_reference' => 'BPLO Business Registry 2026-Q1', 'description' => 'Operating business density and surrounding economic environment', 'sort_order' => 4],
+                ['criterion_key' => 'zoning_compatibility', 'display_name' => 'Zoning Compatibility', 'weight' => 15.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'lookup', 'validation_status' => 'provisional', 'source_reference' => 'City Ordinance No. 2018-06 / CPDO CLUP', 'description' => 'San Fernando City Zoning Ordinance 2018-06 & amendments land use eligibility', 'sort_order' => 5],
+                ['criterion_key' => 'risk_constraints', 'display_name' => 'Risk Constraints', 'weight' => 15.00, 'is_active' => 1, 'is_required' => 1, 'scoring_method' => 'lookup', 'validation_status' => 'provisional', 'source_reference' => 'DENR-MGB, DOST-PHIVOLCS & PAGASA Multi-Hazard Spatial Screening', 'description' => 'Multi-hazard susceptibility screening (flood, active faults, landslide, storm surge, liquefaction, tsunami)', 'sort_order' => 6],
+                ['criterion_key' => 'environmental_safety', 'display_name' => 'Environmental Safety (Legacy)', 'weight' => 0.00, 'is_active' => 0, 'is_required' => 0, 'scoring_method' => 'lookup', 'validation_status' => 'provisional', 'source_reference' => 'CENRO & DENR-EMB Environmental Classification', 'description' => 'Decommissioned criterion — consolidated with Risk Constraints to avoid double-counting', 'sort_order' => 7],
+            ];
+            foreach ($defaults as $row) {
+                $stmt->execute($row);
+            }
+        } else {
+            // Synchronize existing criteria_config to revised 6-criterion model
+            $pdo->exec("UPDATE criteria_config SET weight = 20.00, is_active = 1, is_required = 1 WHERE criterion_key = 'spatial_accessibility'");
+            $pdo->exec("UPDATE criteria_config SET weight = 20.00, is_active = 1, is_required = 1 WHERE criterion_key = 'infrastructure_readiness'");
+            $pdo->exec("UPDATE criteria_config SET weight = 20.00, is_active = 1, is_required = 1 WHERE criterion_key = 'economic_viability'");
+            $pdo->exec("UPDATE criteria_config SET weight = 10.00, is_active = 1, is_required = 1 WHERE criterion_key = 'nearby_businesses'");
+            $pdo->exec("UPDATE criteria_config SET weight = 15.00, is_active = 1, is_required = 1 WHERE criterion_key = 'zoning_compatibility'");
+            $pdo->exec("UPDATE criteria_config SET weight = 15.00, is_active = 1, is_required = 1, display_name = 'Risk Constraints', source_reference = 'DENR-MGB, DOST-PHIVOLCS & PAGASA Multi-Hazard Spatial Screening' WHERE criterion_key = 'risk_constraints'");
+            $pdo->exec("UPDATE criteria_config SET weight = 0.00, is_active = 0, is_required = 0, display_name = 'Environmental Safety (Legacy)' WHERE criterion_key = 'environmental_safety'");
+        }
+    }
+
     public static function tableExists(PDO $pdo, string $tableName): bool
     {
-        $statement = $pdo->prepare(
-            'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table_name'
-        );
-        $statement->execute(['table_name' => $tableName]);
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table_name'
+            );
+            $statement->execute(['table_name' => $tableName]);
 
-        return (int) $statement->fetchColumn() > 0;
+            if ((int) $statement->fetchColumn() <= 0) {
+                return false;
+            }
+
+            $escapedTable = str_replace('`', '``', $tableName);
+            $pdo->query("SELECT 1 FROM `{$escapedTable}` LIMIT 0");
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public static function columnExists(PDO $pdo, string $tableName, string $columnName): bool
@@ -654,6 +719,7 @@ SQL,
         self::ensureListingManagement($pdo);
 
         foreach ([
+            'subname' => 'VARCHAR(180) NULL AFTER name',
             'category' => 'VARCHAR(64) NULL',
             'subcategory' => 'VARCHAR(96) NULL',
             'assessment_json' => 'LONGTEXT NULL',
@@ -731,6 +797,9 @@ SQL,
         }
         if (!self::columnExists($pdo, 'properties', 'zoning_classification')) {
             $pdo->exec('ALTER TABLE properties ADD COLUMN zoning_classification VARCHAR(180) NULL AFTER existing_land_use');
+        }
+        if (!self::columnExists($pdo, 'properties', 'proposed_activity')) {
+            $pdo->exec('ALTER TABLE properties ADD COLUMN proposed_activity VARCHAR(180) NULL AFTER zoning_classification');
         }
         if (!self::columnExists($pdo, 'properties', 'clup_allowed_uses_json')) {
             $pdo->exec('ALTER TABLE properties ADD COLUMN clup_allowed_uses_json JSON NULL AFTER zoning_classification');

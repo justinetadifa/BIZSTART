@@ -8,11 +8,11 @@ const { resolve } = require('node:path');
     .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
     .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
   const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-  const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'zoning_compatibility', 'risk_constraints', 'environmental_safety'];
+  const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'zoning_compatibility', 'risk_constraints'];
   const property = {
     id: 10, name: 'A <sample> property', area: .25, price: 5000000, lat: 16.6, lng: 120.3,
-    assessmentComplete: true, mceScore: 84, iaiScore: 87.4,
-    assessmentCriteria: Object.fromEntries(keys.map((key, i) => [key, [50, 100, 85, 85, 100, 85, 100][i]])),
+    assessmentComplete: true, mceScore: 83.3, iaiScore: 83.3,
+    assessmentCriteria: Object.fromEntries(keys.map((key, i) => [key, [50, 100, 85, 85, 100, 85][i]])),
     assessmentMode: 'automatic', criteriaDetails: { spatial_accessibility: {
       raw: { road_distance_m: 485.17 }, conversion: 'road_distance_m <= 50 → 100; otherwise → 50',
       evidence: [{ source: 'Road inventory', reference: 'ROAD-01', version: '2026-01', verifiedAt: '2026-01-25', sha256: 'abc123' }],
@@ -20,17 +20,18 @@ const { resolve } = require('node:path');
   };
   const calc = assessmentCalculation(property);
   assert.equal(calc.complete, true);
-  assert.deepEqual(calc.rows.map(row => row.contribution), [10, 20, 17, 8.5, 15, 8.5, 5]);
-  assert.deepEqual(calc.components.map(row => row.contribution), [50.4, 17, 20]);
+  assert.deepEqual(calc.rows.map(row => row.contribution), [10, 20, 17, 8.5, 15, 12.75]);
+  assert.equal(calc.iai, 83.3, 'IAI must equal weighted MCE composite score without double counting');
+  assert.equal(calc.mce, 83.3, 'MCE composite score must equal IAI');
   const markup = calculationMarkup(property);
-  assert(markup.includes('round(10 + 20 + 17 + 8.5 + 15 + 8.5 + 5, 1) = 84.0'));
-  assert(markup.includes('round(50.4 + 17 + 20, 1) = 87.4'));
+  assert(markup.includes('round(10 + 20 + 17 + 8.5 + 15 + 12.75, 1) = 83.3'));
+  assert(markup.includes('Composite IAI · rounded to 1 decimal'));
   const precise = { ...property, assessmentCriteria: { ...property.assessmentCriteria, economic_viability: 77.77 } };
   assert(calculationMarkup(precise).includes('<td>77.77</td><td>20%</td><td>15.554</td>'), 'Recorded criterion precision must match its weighted contribution');
 
-  // IAI uses the rounded MCE returned by the server, rather than an unrounded re-total.
-  const rounded = assessmentCalculation({ ...property, mceScore: 80.3 });
-  assert.equal(rounded.components[0].contribution, 48.18);
+  // IAI is the unified composite index
+  const rounded = assessmentCalculation({ ...property, iaiScore: 80.3, mceScore: 80.3 });
+  assert.equal(rounded.iai, 80.3);
   const partial = { ...property, assessmentComplete: false, assessmentCriteria: { ...property.assessmentCriteria, economic_viability: null, spatial_accessibility: 0 } };
   const pending = assessmentCalculation(partial);
   assert.equal(pending.mce, null, 'A stale total must not appear for an incomplete assessment');
@@ -38,7 +39,7 @@ const { resolve } = require('node:path');
   assert.equal(pending.rows[0].score, 0, 'Zero is a valid recorded rating');
   assert.equal(pending.rows[0].contribution, 0);
   assert.equal(pending.rows[2].contribution, null, 'Missing evidence is not zero');
-  assert(calculationMarkup(partial).includes('Assessment pending · 6 of 7'));
+  assert(calculationMarkup(partial).includes('Assessment pending · 5 of 6'));
 
   const options = { role: 'guest', investor: false, saved: new Set(), compare: [], broker: null, canInquire: false, path: value => `/${value}`, imageUrl: () => '/sample.jpg', printHeaderMarkup: () => '', printFooterMarkup: () => '', printButtonMarkup: () => '', nearbyBusinessesMarkup: () => '', evaluationMarkup: () => '', investorTools: () => '', policy: {} };
   const details = propertyDetailsMarkup(property, options);
@@ -82,7 +83,7 @@ const { resolve } = require('node:path');
   assert(details.includes('<div class="property-advanced" data-investor-advanced>'));
   assert(details.indexOf('id="propertyHazardsSection"') < details.indexOf('<div class="property-advanced"'), 'Essential safety information precedes the advanced assessment');
   assert(details.indexOf('class="property-panel property-contact"') < details.indexOf('id="propertyAssessmentSection"'), 'The main contact action remains ahead of the advanced assessment');
-  assert(details.includes('class="property-radar-result"') && details.includes('<dt>Economic viability</dt><dd>85 <span>/ 100</span>'), 'Radar shows recorded criterion ratings with a text equivalent');
+  assert(details.includes('class="property-radar-result"') && (details.includes('<dt>Land Valuation / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic viability</dt><dd>85 <span>/ 100</span>')), 'Radar shows recorded criterion ratings with a text equivalent');
   assert(!propertyDetailsMarkup(partial, options).includes('class="property-radar-result"'), 'An incomplete radar must not plot missing scores as zero');
   assert(propertyDetailsMarkup(partial, options).includes('Missing evidence is not plotted as zero.'));
   const approximateDetails = propertyDetailsMarkup({ ...property, hasExactLocation: false }, options);
