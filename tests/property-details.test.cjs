@@ -83,7 +83,7 @@ const { resolve } = require('node:path');
   assert(details.includes('<div class="property-advanced" data-investor-advanced>'));
   assert(details.indexOf('id="propertyHazardsSection"') < details.indexOf('<div class="property-advanced"'), 'Essential safety information precedes the advanced assessment');
   assert(details.indexOf('class="property-panel property-contact"') < details.indexOf('id="propertyAssessmentSection"'), 'The main contact action remains ahead of the advanced assessment');
-  assert(details.includes('class="property-radar-result"') && (details.includes('<dt>Land Valuation / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic viability</dt><dd>85 <span>/ 100</span>')), 'Radar shows recorded criterion ratings with a text equivalent');
+  assert(details.includes('class="property-radar-result"') && (details.includes('<dt>Land Valuation / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic Viability / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic viability</dt><dd>85 <span>/ 100</span>')), 'Radar shows recorded criterion ratings with a text equivalent');
   assert(!propertyDetailsMarkup(partial, options).includes('class="property-radar-result"'), 'An incomplete radar must not plot missing scores as zero');
   assert(propertyDetailsMarkup(partial, options).includes('Missing evidence is not plotted as zero.'));
   const approximateDetails = propertyDetailsMarkup({ ...property, hasExactLocation: false }, options);

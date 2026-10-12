@@ -10,8 +10,8 @@ const money = value => numeric(value) !== null ? `PHP ${fmt(value)}` : "Price on
 const criteria6 = [
   ['spatial_accessibility', 'Spatial Accessibility', 20],
   ['infrastructure_readiness', 'Infrastructure Readiness', 20],
-  ['economic_viability', 'Land Valuation / Economic Context', 20],
-  ['nearby_businesses', 'Economic Activity / Business Environment', 10],
+  ['economic_viability', 'Economic Viability / Economic Context', 20],
+  ['nearby_businesses', 'Nearby Businesses / Business Environment', 10],
   ['zoning_compatibility', 'Zoning Compatibility', 15],
   ['risk_constraints', 'Risk Constraints', 15],
 ];
@@ -19,37 +19,99 @@ const criteria6 = [
 const legacyCriteria7 = [
   ['spatial_accessibility', 'Spatial Accessibility', 20],
   ['infrastructure_readiness', 'Infrastructure Readiness', 20],
-  ['economic_viability', 'Land Valuation / Economic Context', 20],
-  ['nearby_businesses', 'Economic Activity / Business Environment', 10],
+  ['economic_viability', 'Economic Viability / Economic Context', 20],
+  ['nearby_businesses', 'Nearby Businesses / Business Environment', 10],
   ['zoning_compatibility', 'Zoning Compatibility', 15],
   ['risk_constraints', 'Risk Constraints', 10],
   ['environmental_safety', 'Environmental Safety', 5],
 ];
 
+const criterionExplanations = {
+  spatial_accessibility: 'Proximity to primary roads, highways, and transport corridors.',
+  infrastructure_readiness: 'Verified availability of power (LUECO), water (LUWD), and telecom/fiber connectivity.',
+  economic_viability: 'Land market valuation, zonal pricing, and commercial investment yield context.',
+  nearby_businesses: 'Operating commercial density, foot-traffic generators, and cluster viability.',
+  zoning_compatibility: 'Conformance with San Fernando CLUP zoning classifications and permitted activities.',
+  risk_constraints: 'Comprehensive screening for flood, active fault lines, landslide, storm surge, and liquefaction hazards.',
+  environmental_safety: 'Screening against environmentally critical areas and conservation zones.',
+};
+
 export function assessmentCalculation(property) {
-  const isLegacy = property?.assessmentMethodologyVersion?.includes('v1.1')
-    || (property?.assessmentCriteria?.environmental_safety != null && property?.assessmentWeights?.environmental_safety !== 0);
+  const isLegacy = Boolean(
+    property?.assessmentMethodologyVersion?.includes('v1.1')
+    || property?.assessmentMethodologyVersion?.toLowerCase().includes('legacy')
+    || property?.methodology?.includes('v1.1')
+    || property?.methodology?.toLowerCase().includes('legacy')
+    || property?.ruleVersion?.includes('v1.1')
+    || (Number(property?.assessmentWeights?.environmental_safety) > 0 && Number(property?.assessmentWeights?.risk_constraints) <= 10)
+    || (property?.assessmentCriteria?.environmental_safety != null && property?.assessmentWeights == null && property?.assessmentCriteria?.risk_constraints != null && property?.iaiScore != null && Number(property?.iaiScore) !== Number(property?.mceScore))
+  );
   const activeList = isLegacy ? legacyCriteria7 : criteria6;
   const rows = activeList.map(([key, label, defaultWeight]) => {
     const value = numeric(property.assessmentCriteria?.[key]);
-    const weight = numeric(property.assessmentWeights?.[key]) ?? defaultWeight;
+    let weight = numeric(property.assessmentWeights?.[key]);
+    if (isLegacy) {
+      if (key === 'risk_constraints' && (weight == null || weight > 10)) weight = 10;
+      if (key === 'environmental_safety' && (weight == null || weight === 0)) weight = 5;
+      if (weight == null) weight = defaultWeight;
+    } else {
+      weight = weight ?? defaultWeight;
+    }
     const score = value !== null && value >= 0 && value <= 100 ? value : null;
-    return { key, label, weight, score, contribution: score === null ? null : score * weight / 100 };
+    return {
+      key,
+      label,
+      weight,
+      score,
+      contribution: score === null ? null : score * weight / 100,
+      explanation: criterionExplanations[key] || '',
+    };
   });
-  const complete = property.assessmentComplete === true && rows.every(row => row.score !== null)
-    && Math.abs(rows.reduce((sum, row) => sum + row.weight, 0) - 100) < 0.01;
-  const iai = complete ? numeric(property.iaiScore ?? property.iai) : null;
-  const mce = complete ? numeric(property.mceScore ?? property.mce ?? iai) : null;
-  const isNotSuitable = property.assessmentStatus === 'not_suitable' || property.status === 'not_suitable';
-  const isConditional = property.assessmentStatus === 'conditional' || property.status === 'conditional';
+  const weightSum = rows.reduce((sum, row) => sum + row.weight, 0);
+  const weightsValid = Math.abs(weightSum - 100) < 0.01;
+  const allScoresPresent = rows.every(row => row.score !== null);
+  const isNotSuitable = property.assessmentStatus === 'not_suitable'
+    || property.status === 'not_suitable'
+    || property.eligibility === 'prohibited'
+    || property.assessmentCriteria?.zoning_compatibility === 0;
+  const isConditional = property.assessmentStatus === 'conditional'
+    || property.status === 'conditional'
+    || property.eligibility === 'conditional';
   const reason = property.reason || null;
   const note = property.note || (isConditional ? 'Conditional compatibility — requires zoning clearance or further city review.' : null);
+
+  const isExplicitlyComplete = property.assessmentComplete === true
+    || (property.assessmentStatus === 'complete' && property.assessmentComplete !== false);
+
+  const complete = !isNotSuitable && isExplicitlyComplete && allScoresPresent && weightsValid;
+
+  const weightedSum = Math.round(rows.reduce((sum, row) => sum + (row.contribution ?? 0), 0) * 10) / 10;
+  const iai = complete ? numeric(property.iaiScore ?? property.iai ?? weightedSum) : null;
+  const mce = complete ? numeric(property.mceScore ?? property.mce ?? iai) : null;
+
+  const missingRows = rows.filter(row => row.score === null);
+  const missingCriteria = missingRows.map(row => row.label);
+
   const components = isLegacy ? [
     { label: 'Rounded MCE', value: mce, weight: 60 },
     { label: 'Economic viability', value: rows.find(row => row.key === 'economic_viability')?.score, weight: 20 },
     { label: 'Infrastructure readiness', value: rows.find(row => row.key === 'infrastructure_readiness')?.score, weight: 20 },
   ].map(row => ({ ...row, contribution: mce === null || row.value === null ? null : row.value * row.weight / 100 })) : rows;
-  return { rows, complete, mce, iai, components, isNotSuitable, isConditional, reason, note, completedCount: rows.filter(row => row.score !== null).length };
+
+  return {
+    rows,
+    complete,
+    mce,
+    iai,
+    components,
+    isNotSuitable,
+    isConditional,
+    isLegacy,
+    reason,
+    note,
+    completedCount: rows.filter(row => row.score !== null).length,
+    missingCriteria,
+  };
 }
 
 function factsMarkup(rows, className = '') {
@@ -279,17 +341,26 @@ export function calculationMarkup(property) {
   const contribution = value => value === null ? 'Pending' : fmt(value, 12);
   const value = value => value === null ? 'Pending' : rating(value);
   const total = value => value === null ? 'Pending' : fixed(value);
+  const totalWeight = Math.round(calc.rows.reduce((sum, r) => sum + r.weight, 0));
+  const methodologyLabel = property.methodology || property.assessmentMethodologyVersion || property.ruleVersion || (calc.rows.length === 6 ? 'LOCUS-SF MCE v2.0 (Provisional 6-Criterion)' : 'LOCUS-SF MCE v1.1 (Legacy 7-Criterion)');
   return `<section class="property-calculation" aria-labelledby="propertyCalculationTitle">
-    <h3 id="propertyCalculationTitle">Investment Attractiveness Index (IAI) · MCE Breakdown</h3>
-    <p class="property-note">The Investment Attractiveness Index (IAI) is the composite 0–100 score produced by Multi-Criteria Evaluation (MCE). Each criterion is normalized on a 0–100 scale (100 is most favorable). Formula: IAI = Σ(normalized criterion score × criterion weight ÷ 100).</p>
-    ${calc.isNotSuitable ? `<div class="property-alert-danger" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;padding:12px 16px;border-radius:8px;margin-bottom:16px;"><strong>Site Not Eligible:</strong> ${esc(calc.reason || 'Proposed land use is not permitted under the applicable zoning / CLUP classification.')} Composite IAI is withheld.</div>` : ''}
-    ${calc.isConditional ? `<div class="property-alert-warning" style="background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;padding:12px 16px;border-radius:8px;margin-bottom:16px;"><strong>Conditional Compatibility:</strong> ${esc(calc.note)}</div>` : ''}
-    <div class="property-table-scroll"><table class="property-calculation-table"><caption>${calc.rows.length === 7 ? 'Seven' : 'Six'} criteria and their weighted contributions to the composite IAI score</caption><thead><tr><th scope="col">MCE Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">Composite IAI · rounded to 1 decimal</th><td>${total(calc.iai)}</td><td>100%</td><td>${calc.iai === null ? 'Pending' : fixed(calc.iai)}</td></tr></tfoot></table></div>
+    <div class="property-calc-header-block">
+      <div>
+        <h3 id="propertyCalculationTitle">Investment Attractiveness Index (IAI) · MCE Breakdown</h3>
+        <p class="property-note">The Investment Attractiveness Index (IAI) is the composite 0–100 score produced by Multi-Criteria Evaluation (MCE). Each criterion is normalized on a 0–100 scale (100 is most favorable). Formula: IAI = Σ(normalized criterion score × criterion weight ÷ 100).</p>
+      </div>
+      <div class="property-calc-method-badge no-print">
+        <span>Methodology: <strong>${esc(methodologyLabel)}</strong></span>
+      </div>
+    </div>
+    ${calc.isNotSuitable ? `<div class="property-alert-danger" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;padding:12px 16px;border-radius:12px;margin-bottom:16px;"><strong>Site Not Eligible:</strong> ${esc(calc.reason || 'Proposed land use is not permitted under the applicable zoning / CLUP classification.')} Composite IAI is withheld.</div>` : ''}
+    ${calc.isConditional ? `<div class="property-alert-warning" style="background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;padding:12px 16px;border-radius:12px;margin-bottom:16px;"><strong>Conditional Compatibility:</strong> ${esc(calc.note)}</div>` : ''}
+    <div class="property-table-scroll"><table class="property-calculation-table"><caption>${calc.rows.length === 7 ? 'Seven' : 'Six'} criteria and their weighted contributions to the composite IAI score</caption><thead><tr><th scope="col">MCE Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">Composite IAI · rounded to 1 decimal</th><td>${total(calc.iai)}</td><td>${totalWeight}%</td><td>${calc.iai === null ? 'Pending' : fixed(calc.iai)}</td></tr></tfoot></table></div>
     <p class="property-formula">IAI = round(Σ(score × weight ÷ 100), 1)${calc.iai === null ? '' : ` = round(${calc.rows.map(row => fmt(row.contribution, 2)).join(' + ')}, 1) = ${fixed(calc.iai)}`}</p>
-    ${calc.iai === null && !calc.isNotSuitable ? `<p class="property-pending-note">Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria have ratings. Assessment incomplete: Missing evidence is not treated as zero; a composite score or rank is withheld until all required criteria are complete.</p>` : ''}
+    ${calc.iai === null && !calc.isNotSuitable ? `<p class="property-pending-note">Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria have ratings.${calc.missingCriteria?.length ? ` Missing: ${esc(calc.missingCriteria.join(', '))}.` : ''} Missing evidence is not treated as zero; a composite score or rank is withheld until all required criteria are complete.</p>` : ''}
     <p class="property-note">This breakdown records the physical site IAI. Statutory policy incentives for proposed investments are evaluated separately by LEBDO and do not modify physical site suitability.</p>
     ${property.assessmentMethod ? `<p class="property-note"><strong>Recorded method:</strong> ${esc(property.assessmentMethod)}</p>` : ''}
-    ${factsMarkup([['Assessment mode', property.assessmentMode === 'automatic' ? 'Automatic · source evidence' : 'Recorded departmental assessment'], ['Evidence generated', dateLabel(property.generatedAt || property.automaticAssessment?.generatedAt)], ['Methodology version', property.methodology || property.ruleVersion || 'LOCUS-SF MCE v1.1'], ['Weight status', property.weightStatus || 'Provisional / Subject to LGU validation'], ['Approval reference', property.ruleApprovalReference || 'Not recorded']])}
+    ${factsMarkup([['Assessment mode', property.assessmentMode === 'automatic' ? 'Automatic · source evidence' : 'Recorded departmental assessment'], ['Evidence generated', dateLabel(property.generatedAt || property.automaticAssessment?.generatedAt)], ['Methodology version', methodologyLabel], ['Weight status', property.weightStatus || 'Provisional / Subject to LGU validation'], ['Approval reference', property.ruleApprovalReference || 'Not recorded']])}
   </section>`;
 }
 
@@ -419,7 +490,7 @@ export function propertyDetailsMarkup(property, options) {
               <p class="property-assessment-subtitle">A clear overview of the ratings behind the assessment.</p>
             </div>
             <div class="property-assessment-badge-wrap no-print">
-              <span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? `All ${calc.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending'}</span>
+              <span class="property-status ${calc.complete ? '' : (calc.isNotSuitable ? 'is-not-suitable' : 'is-pending')}">${calc.isNotSuitable ? 'Not Suitable' : calc.complete ? `All ${calc.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending'}</span>
             </div>
           </div>
 
@@ -433,14 +504,20 @@ export function propertyDetailsMarkup(property, options) {
             <div class="property-score-card property-score-card-iai">
               <div class="property-score-card-kicker">
                 <span>IAI</span>
+                ${calc.isLegacy ? '<span class="property-legacy-chip">Legacy record</span>' : ''}
                 <button type="button" class="locus-criterion-help-btn" data-locus-help-trigger data-locus-help-tab="scores" data-locus-help-target="iai" aria-label="Help: What is IAI?" title="What is IAI?">?</button>
               </div>
               <h3 class="property-score-card-heading">Investment Alignment Index</h3>
               <div class="property-score-card-number">
-                <strong>${calc.iai === null ? 'Pending' : fixed(calc.iai)}</strong>
+                <strong>${calc.iai === null ? (calc.isNotSuitable ? 'Not Suitable' : 'Pending') : fixed(calc.iai)}</strong>
                 ${calc.iai !== null ? '<small> / 100</small>' : ''}
               </div>
-              <p class="property-score-card-desc">Uses MCE with added economic and infrastructure emphasis.</p>
+              <p class="property-score-card-desc">${calc.isNotSuitable
+                ? esc(calc.reason || 'Proposed land use is prohibited under CLUP zoning. Final IAI is withheld.')
+                : calc.complete
+                ? `Authoritative physical site suitability index derived from ${calc.rows.length === 6 ? 'six' : 'seven'} criteria totaling 100%.`
+                : `Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria rated.${calc.missingCriteria?.length ? ` Missing: ${esc(calc.missingCriteria.join(', '))}.` : ''}`
+              }</p>
               <button type="button" class="property-score-card-action locus-trigger-calculation" data-open-calculation>How is this calculated? &rarr;</button>
             </div>
 
@@ -451,7 +528,7 @@ export function propertyDetailsMarkup(property, options) {
               </div>
               <h3 class="property-score-card-heading">Multi-Criteria Evaluation</h3>
               <div class="property-score-card-number">
-                <strong>${calc.mce === null ? 'Pending' : fixed(calc.mce)}</strong>
+                <strong>${calc.mce === null ? (calc.isNotSuitable ? 'Not Suitable' : 'Pending') : fixed(calc.mce)}</strong>
                 ${calc.mce !== null ? '<small> / 100</small>' : ''}
               </div>
               <p class="property-score-card-desc">Weighted assessment across ${calc.rows.length === 6 ? 'six' : 'seven'} criteria.</p>
@@ -461,25 +538,40 @@ export function propertyDetailsMarkup(property, options) {
 
           <div class="property-criterion-ratings-card">
             <div class="property-criterion-ratings-header">
-              <h3>Criterion ratings</h3>
-              <p>Unweighted ratings · Higher is more favorable</p>
+              <div class="property-criterion-ratings-header-info">
+                <h3>Criterion ratings</h3>
+                <p>Unweighted ratings · Higher is more favorable</p>
+              </div>
+              <div class="property-criterion-ratings-header-badge">
+                <span class="property-criterion-model-tag">${calc.rows.length === 6 ? '6 Active Criteria' : '7 Legacy Criteria'} · 100% Total Weight</span>
+              </div>
             </div>
             <ul class="property-criterion-ratings-list" role="list">
               ${calc.rows.map(row => `
-                <li class="property-criterion-rating-item">
+                <li class="property-criterion-rating-item" data-criterion="${esc(row.key)}">
                   <div class="property-criterion-row-top">
                     <div class="property-criterion-label-wrap">
                       <span class="property-criterion-name">${esc(row.label)}</span>
                       <button type="button" class="locus-criterion-help-btn" data-help-criterion="${esc(row.key)}" aria-label="Help: ${esc(row.label)}" title="Learn more about ${esc(row.label)}">?</button>
                     </div>
+                    <span class="property-criterion-weight-badge">${fmt(row.weight)}% Weight</span>
+                  </div>
+                  <div class="property-criterion-metrics">
                     <div class="property-criterion-score-wrap">
+                      <span class="property-metric-micro-label">Score</span>
                       <strong>${row.score === null ? 'Pending' : rating(row.score)}</strong>
-                      <span>/ 100</span>
+                      ${row.score !== null ? '<span>/ 100</span>' : ''}
+                    </div>
+                    <div class="property-criterion-contrib-wrap">
+                      <span class="property-metric-micro-label">Contribution</span>
+                      <strong class="property-criterion-contrib">${row.contribution === null ? 'Pending' : `+${fmt(row.contribution, 2)}`}</strong>
+                      ${row.contribution !== null ? '<span>pts</span>' : ''}
                     </div>
                   </div>
                   <div class="property-criterion-bar-track" aria-hidden="true">
                     <div class="property-criterion-bar-fill" style="width: ${row.score !== null ? Math.min(100, Math.max(0, row.score)) : 0}%;"></div>
                   </div>
+                  <p class="property-criterion-desc" title="${esc(row.explanation)}">${esc(row.explanation)}</p>
                 </li>
               `).join('')}
             </ul>
