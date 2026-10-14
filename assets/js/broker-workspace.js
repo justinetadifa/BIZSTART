@@ -411,6 +411,10 @@ function setEditorStep(step) {
   if (skip) skip.hidden = ![1,2].includes(step);
   const scrollContainer = form?.querySelector('.pw-content') || editor;
   if (scrollContainer) scrollContainer.scrollTop = 0;
+  if (step === 2) {
+    const evidenceDisc = form?.querySelector('[data-evidence-editor]');
+    if (evidenceDisc) evidenceDisc.open = true;
+  }
   if (propertyWizard) propertyWizard.onStep(step);
   else {
     if (step === 2) automaticAssessment?.refresh();

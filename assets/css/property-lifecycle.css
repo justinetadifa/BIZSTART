@@ -343,18 +343,124 @@
   box-shadow: 0 12px 32px -4px rgba(17, 34, 77, 0.1), 0 4px 10px -1px rgba(17, 34, 77, 0.03) !important;
   border-color: #cbd5e1 !important;
 }
+.city-card-thumb-wrap {
+  position: relative;
+}
+.city-card-thumb-inner {
+  position: relative;
+  overflow: hidden;
+}
 .city-card-thumb {
-  border-radius: 18px !important;
+  border-radius: 16px !important;
   object-fit: cover !important;
-  border: 1px solid rgba(17, 34, 77, 0.08) !important;
-  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.06) !important;
-  transition: transform 0.2s ease !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .city-card-item:hover .city-card-thumb {
-  transform: scale(1.02);
+  transform: scale(1.04);
 }
 
-/* Status & Lifecycle Pills */
+.city-thumb-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  padding: 3.5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  text-transform: capitalize;
+}
+
+/* Single Status Indicator */
+.city-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 650;
+  line-height: 1.25;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.city-status-dot {
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.city-status-chip.city-status-available {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.city-status-chip.city-status-pending {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.city-status-chip.city-status-declined {
+  background: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+.city-status-chip.city-status-reserved {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.city-status-chip.city-status-sold {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+.city-status-chip.city-status-leased {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+.city-status-chip.city-status-archived {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+.city-status-chip.city-status-deleted {
+  background: #fff1f2;
+  color: #9f1239;
+  border-color: #fecdd3;
+}
+.city-status-chip.city-status-unavailable {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+}
+
+.city-purpose-kicker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 750;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2.5px 8px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Status & Lifecycle Pills (Backward Compatibility) */
 .city-pill {
   display: inline-flex;
   align-items: center;
@@ -397,7 +503,45 @@
   font-size: 11px;
   font-weight: 700;
   padding: 3px 10px;
+  border: 1px solid rgba(17, 34, 77, 0.08);
 }
+.city-purpose-pill.is-lease {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+.city-purpose-pill.is-sale {
+  background: #f0fdf4 !important;
+  color: #15803d !important;
+  border-color: #bbf7d0 !important;
+}
+
+/* Pricing and Specifications */
+.city-card-price strong {
+  letter-spacing: -0.01em;
+}
+.city-spec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #334155;
+  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.02);
+}
+.city-spec-chip svg {
+  flex-shrink: 0;
+}
+.city-spec-sub {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 11px;
+}
+
 .city-listing-purpose {
   margin: 9px 0 0;
   color: #11224d;
@@ -417,20 +561,52 @@
 .city-score-bubble {
   border-radius: 16px !important;
   padding: 8px 14px !important;
-  min-width: 64px !important;
+  min-width: 62px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
   text-align: center !important;
-  transition: transform 0.15s ease !important;
+  box-shadow: 0 1px 3px rgba(17, 34, 77, 0.04) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+  cursor: default;
 }
 .city-card-item:hover .city-score-bubble {
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(17, 34, 77, 0.06) !important;
+}
+.city-score-kicker {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.city-score-num {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
 }
 .city-score-mce {
   background: #f8fafc !important;
   border: 1.5px solid #e2e8f0 !important;
 }
+.city-score-mce .city-score-kicker {
+  color: #64748b;
+}
+.city-score-mce .city-score-num {
+  color: #11224d;
+}
 .city-score-iai {
   background: #fefce8 !important;
   border: 1.5px solid #fef08a !important;
+}
+.city-score-iai .city-score-kicker {
+  color: #92400e;
+}
+.city-score-iai .city-score-num {
+  color: #78350f;
 }
 
 /* Action buttons */
@@ -651,6 +827,8 @@
   border-radius: 24px !important;
   border: 1.5px solid #e2e8f0 !important;
   box-shadow: 0 24px 60px -12px rgba(17, 34, 77, 0.22) !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
 }
 .city-dialog-actions .city-button {
   border-radius: 9999px !important;
@@ -697,3 +875,523 @@
     border-radius: 20px !important;
   }
 }
+
+/* ==========================================================================
+   Review Listing Modal (Municipal Governance Review)
+   ========================================================================== */
+.city-review-dialog {
+  max-width: 860px !important;
+  width: 95vw !important;
+  max-height: 90vh !important;
+  border-radius: 20px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  padding: 24px 28px !important;
+  box-shadow: 0 25px 60px -12px rgba(17, 34, 77, 0.28) !important;
+}
+
+.city-review-dialog .city-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1.5px solid #f1f5f9;
+  margin-bottom: 20px;
+}
+
+.city-review-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.city-review-title-group h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #11224d;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.city-review-subtitle {
+  font-size: 12px;
+  font-weight: 550;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.city-review-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 18px 20px !important;
+  margin: 0 0 16px 0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02) !important;
+  transition: border-color 0.15s ease;
+}
+
+.city-review-section:hover {
+  border-color: #cbd5e1 !important;
+}
+
+.city-review-section-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.city-review-section-title {
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #11224d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.city-dossier-hero {
+  margin-bottom: 14px;
+}
+
+.city-dossier-title {
+  font-size: 17px;
+  font-weight: 750;
+  color: #0f172a;
+  line-height: 1.3;
+  margin: 0 0 6px 0;
+}
+
+.city-dossier-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.city-dossier-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.city-dossier-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.city-dossier-card-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.city-dossier-card-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.city-baseline-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.city-baseline-bar-track {
+  flex: 1 1 auto;
+  height: 8px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.city-baseline-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  transition: width 0.3s ease;
+}
+
+.city-photo-thumbnail {
+  display: inline-block;
+  flex-shrink: 0;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 70px;
+  width: 70px;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.city-photo-thumbnail:hover {
+  transform: scale(1.05);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.city-auth-exempt-box {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.city-auth-exempt-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   City Lifecycle Dialog (Delete / Restore / Archive / Status)
+   ========================================================================== */
+#cityLifecycleDialog {
+  width: min(520px, calc(100vw - 32px)) !important;
+  max-width: 520px !important;
+  border-radius: 24px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 25px 60px -12px rgba(17, 34, 77, 0.25) !important;
+  padding: 26px 28px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+}
+
+#cityLifecycleDialog::backdrop {
+  background: rgba(17, 34, 77, 0.48) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+#cityLifecycleDialog .city-dialog-heading {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.city-lifecycle-header-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.city-lifecycle-icon-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 13px !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.city-lifecycle-icon-badge.theme-delete {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+  border: 1px solid #fca5a5 !important;
+}
+
+.city-lifecycle-icon-badge.theme-archive {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+}
+
+.city-lifecycle-icon-badge.theme-restore,
+.city-lifecycle-icon-badge.theme-unarchive {
+  background: #d1fae5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.city-lifecycle-icon-badge.theme-availability {
+  background: #e0e7ff !important;
+  color: #4338ca !important;
+  border: 1px solid #c7d2fe !important;
+}
+
+.city-lifecycle-title-wrap {
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.city-lifecycle-kicker {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #64748b !important;
+  margin-bottom: 3px !important;
+}
+
+#cityLifecycleDialog h2 {
+  font-size: 20px !important;
+  font-weight: 750 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.025em !important;
+  margin: 0 !important;
+  line-height: 1.25 !important;
+  word-break: break-word !important;
+}
+
+/* Close button */
+#cityLifecycleDialog .city-dialog-close-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: all 0.15s ease !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+#cityLifecycleDialog .city-dialog-close-btn:hover {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Property Preview Card */
+.city-lifecycle-property-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  padding: 12px 14px !important;
+  margin-bottom: 16px !important;
+  box-shadow: 0 1px 3px rgba(17, 34, 77, 0.03) !important;
+  overflow: hidden !important;
+}
+
+.city-lifecycle-thumb {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 10px !important;
+  object-fit: cover !important;
+  background: #e2e8f0 !important;
+  border: 1px solid #cbd5e1 !important;
+  flex-shrink: 0 !important;
+}
+
+.city-lifecycle-details {
+  min-width: 0 !important;
+  flex: 1 !important;
+}
+
+.city-lifecycle-name {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  line-height: 1.35 !important;
+  word-break: break-word !important;
+  margin-bottom: 3px !important;
+}
+
+.city-lifecycle-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+.city-lifecycle-meta .city-lifecycle-dot {
+  color: #cbd5e1 !important;
+}
+
+.city-lifecycle-meta .city-lifecycle-price {
+  font-weight: 600 !important;
+  color: #11224d !important;
+}
+
+/* Impact Notice Box */
+.city-lifecycle-impact {
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+  margin-bottom: 18px !important;
+  transition: all 0.2s ease !important;
+}
+
+.city-lifecycle-impact.theme-delete {
+  background: #fffafa !important;
+  border: 1px solid #fecaca !important;
+  border-left: 4px solid #dc2626 !important;
+}
+
+.city-lifecycle-impact.theme-archive {
+  background: #fffdf5 !important;
+  border: 1px solid #fde68a !important;
+  border-left: 4px solid #d97706 !important;
+}
+
+.city-lifecycle-impact.theme-restore,
+.city-lifecycle-impact.theme-unarchive {
+  background: #f0fdf4 !important;
+  border: 1px solid #a7f3d0 !important;
+  border-left: 4px solid #059669 !important;
+}
+
+.city-lifecycle-impact.theme-availability {
+  background: #f5f7ff !important;
+  border: 1px solid #c7d2fe !important;
+  border-left: 4px solid #4f46e5 !important;
+}
+
+.city-lifecycle-impact p,
+#cityLifecycleDialog .city-help {
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  color: #334155 !important;
+}
+
+.city-lifecycle-safeguard {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-top: 9px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+}
+
+.city-lifecycle-safeguard svg {
+  flex-shrink: 0 !important;
+}
+
+/* Dialog actions */
+#cityLifecycleDialog .city-dialog-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 10px !important;
+  border-top: 1px solid #f1f5f9 !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-cancel-btn {
+  border-radius: 9999px !important;
+  padding: 10px 22px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  border: 1.5px solid #dce2ea !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-cancel-btn:hover {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn {
+  border-radius: 9999px !important;
+  padding: 10px 24px !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  border: 1.5px solid transparent !important;
+  color: #ffffff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-delete {
+  background: #9e1b22 !important;
+  border-color: #83141a !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(158, 27, 34, 0.28) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-delete:hover {
+  background: #7f151b !important;
+  box-shadow: 0 5px 16px rgba(158, 27, 34, 0.38) !important;
+  transform: translateY(-1px) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-restore {
+  background: #059669 !important;
+  border-color: #047857 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(5, 150, 105, 0.25) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-restore:hover {
+  background: #047857 !important;
+  box-shadow: 0 5px 16px rgba(5, 150, 105, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-primary {
+  background: #11224d !important;
+  border-color: #0b1735 !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(17, 34, 77, 0.22) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn.btn-theme-primary:hover {
+  background: #1a3575 !important;
+  box-shadow: 0 5px 16px rgba(17, 34, 77, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+
+#cityLifecycleDialog .city-lifecycle-submit-btn:disabled,
+#cityLifecycleDialog .city-lifecycle-cancel-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+

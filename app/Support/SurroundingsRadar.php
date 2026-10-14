@@ -90,7 +90,7 @@ final class SurroundingsRadar
                     if (($now - $mtime) < 86400) {
                         $cached['cached'] = true;
                         $cached['stale'] = false;
-                        return self::frameResult($cached, $lat, $lng, $radiusMeters);
+                        return self::frameResult($cached, $lat, $lng, $radiusMeters, $businessType);
                     }
                 }
             }
@@ -107,8 +107,10 @@ final class SurroundingsRadar
             $osmData = null;
         }
 
-        // 3. A stale cache is usable only for this exact reference point. A
-        // neighboring search cannot cover the entire requested circle.
+        // 3. Load local verified records
+        $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir, $businessType);
+
+        // 4. Stale cache fallback if live Overpass failed
         if ($osmData === null) {
             $fallbackFile = is_file($cachePath) ? $cachePath : null;
             if ($fallbackFile !== null) {
@@ -116,17 +118,16 @@ final class SurroundingsRadar
                 if ($raw !== false) {
                     $cached = json_decode($raw, true);
                     if (is_array($cached) && isset($cached['features'])) {
+                        // Merge local inventory features with cached records
+                        $cached['features'] = self::mergeEstablishments($localFeatures, $cached['features']);
                         $cached['cached'] = true;
                         $cached['stale'] = true;
                         $cached['warning'] = 'Showing older mapped records. Live nearby data is unavailable; operating status and inventory completeness are unverified.';
-                        return self::frameResult($cached, $lat, $lng, $radiusMeters);
+                        return self::frameResult($cached, $lat, $lng, $radiusMeters, $businessType);
                     }
                 }
             }
         }
-
-        // 4. Load local verified records
-        $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir);
 
         // If Overpass failed and we have no cache and no local records, return clean empty result
         if ($osmData === null && empty($localFeatures)) {
@@ -150,7 +151,7 @@ final class SurroundingsRadar
                 'stale' => false,
                 'coverage' => 'local_only',
                 'warning' => 'Live nearby data is unavailable and the local inventory has no matches. This does not establish zero businesses in the area.',
-            ], $lat, $lng, $radiusMeters);
+            ], $lat, $lng, $radiusMeters, $businessType);
         }
 
         // 5. Parse OSM elements into GeoJSON
@@ -181,7 +182,7 @@ final class SurroundingsRadar
             'warning' => $osmData === null ? 'Live nearby data is unavailable. Showing matches from the local inventory; coverage is incomplete.'
                 : (!empty($osmData['remark']) ? 'The map provider returned partial results. Nearby inventory and operating status remain unverified.' : null),
         ];
-        $result = self::frameResult($result, $lat, $lng, $radiusMeters);
+        $result = self::frameResult($result, $lat, $lng, $radiusMeters, $businessType);
 
         // Save to cache
         @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -193,7 +194,9 @@ final class SurroundingsRadar
     {
         $buffer = $radiusMeters + 30; // slight buffer for geometry intersection
         $query = sprintf(
-            '[out:json][timeout:8];(nwr(around:%d,%.6f,%.6f)["amenity"];nwr(around:%d,%.6f,%.6f)["shop"];nwr(around:%d,%.6f,%.6f)["tourism"];nwr(around:%d,%.6f,%.6f)["office"];nwr(around:%d,%.6f,%.6f)["commercial"];nwr(around:%d,%.6f,%.6f)["industrial"];way(around:%d,%.6f,%.6f)["highway"];);out body geom;',
+            '[out:json][timeout:8];(nwr(around:%d,%.6f,%.6f)["amenity"];nwr(around:%d,%.6f,%.6f)["shop"];nwr(around:%d,%.6f,%.6f)["tourism"];nwr(around:%d,%.6f,%.6f)["office"];nwr(around:%d,%.6f,%.6f)["commercial"];nwr(around:%d,%.6f,%.6f)["industrial"];nwr(around:%d,%.6f,%.6f)["building"~"commercial|retail|mall|supermarket"];nwr(around:%d,%.6f,%.6f)["landuse"="commercial"];way(around:%d,%.6f,%.6f)["highway"];);out body geom;',
+            $buffer, $lat, $lng,
+            $buffer, $lat, $lng,
             $buffer, $lat, $lng,
             $buffer, $lat, $lng,
             $buffer, $lat, $lng,
@@ -231,11 +234,62 @@ final class SurroundingsRadar
         throw new RuntimeException($lastError);
     }
 
-    private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters, ?string $dataDir = null): array
+    private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters, ?string $dataDir = null, string $businessType = 'cafe'): array
     {
         $dataDir ??= dirname(__DIR__, 2) . '/data';
         $results = [];
         $seen = [];
+
+        $addFeature = static function (array $f, string $defaultSource, string $defaultCategory) use (&$results, &$seen, $lat, $lng, $radiusMeters, $businessType): void {
+            if (self::isClosed($f['properties'] ?? [])) {
+                return;
+            }
+            $coords = self::featureRepresentativePoint($f);
+            if ($coords === null) {
+                return;
+            }
+            $dist = self::featureDistance($f, $lat, $lng);
+            if ($dist > ($radiusMeters + 0.000001)) {
+                return;
+            }
+            $props = $f['properties'] ?? [];
+            $name = trim((string) ($props['name'] ?? ''));
+            $norm = self::placeName($name);
+            $id = $f['id'] ?? $props['id'] ?? ($norm !== '' ? $norm : null);
+            if ($id !== null && isset($seen[(string) $id])) {
+                return;
+            }
+            foreach ($results as $existing) {
+                $eProps = $existing['properties'] ?? [];
+                $eNorm = self::placeName((string) ($eProps['name'] ?? ''));
+                if ($norm !== '' && $eNorm !== '' && (str_contains($norm, $eNorm) || str_contains($eNorm, $norm))) {
+                    $eCoords = self::featureRepresentativePoint($existing);
+                    if ($eCoords !== null && self::distance($coords[1], $coords[0], $eCoords[1], $eCoords[0]) < 35.0) {
+                        return;
+                    }
+                }
+            }
+            if ($id !== null) {
+                $seen[(string) $id] = true;
+            }
+            $props['source'] = $props['source'] ?? $defaultSource;
+            $props['distanceMeters'] = round($dist, 1);
+            $props['verified'] = (bool) ($props['verified'] ?? true);
+            $props['status'] = in_array(strtolower((string) ($props['status'] ?? $props['operating_status'] ?? '')), ['existing', 'operating'], true) ? 'operating' : 'unknown';
+            $props['businessType'] = strtolower((string) ($props['businessType'] ?? $props['categoryKey'] ?? $props['category'] ?? $defaultCategory));
+            $props['category'] = $props['category'] ?? $props['businessType'];
+            $props['categoryKey'] = $props['businessType'];
+            $classification = self::classifyEstablishment($props, $businessType);
+            $props['classification'] = $classification['classification'];
+            $props['classificationLabel'] = $classification['classificationLabel'];
+            $props['isAnchor'] = $classification['isAnchor'];
+            $f['properties'] = $props;
+            $f['geometry'] = [
+                'type' => 'Point',
+                'coordinates' => [$coords[0], $coords[1]],
+            ];
+            $results[] = $f;
+        };
 
         // 1. Check data/competitors.json
         $compFile = $dataDir . '/competitors.json';
@@ -244,30 +298,7 @@ final class SurroundingsRadar
             $data = json_decode($raw, true);
             if (is_array($data) && isset($data['features']) && is_array($data['features'])) {
                 foreach ($data['features'] as $f) {
-                    if (($f['geometry']['type'] ?? '') !== 'Point') {
-                        continue;
-                    }
-                    $coords = $f['geometry']['coordinates'] ?? null;
-                    if (!is_array($coords) || count($coords) < 2) {
-                        continue;
-                    }
-                    $fLng = (float) $coords[0];
-                    $fLat = (float) $coords[1];
-                    $dist = self::distance($lat, $lng, $fLat, $fLng);
-                    if ($dist <= ($radiusMeters + 0.000001) && !self::isClosed($f['properties'] ?? [])) {
-                        $props = $f['properties'] ?? [];
-                        $props['source'] = $props['source'] ?? 'Local Store Locator';
-                        $props['distanceMeters'] = round($dist, 1);
-                        $props['verified'] = (bool) ($props['verified'] ?? isset($props['locationSource']));
-                        $props['status'] = ($props['status'] ?? '') === 'existing' ? 'operating' : ($props['status'] ?? 'unknown');
-                        $props['businessType'] ??= 'fast_food';
-                        $f['properties'] = $props;
-                        $id = $f['id'] ?? ($props['name'] ?? null);
-                        if ($id) {
-                            $seen[$id] = true;
-                        }
-                        $results[] = $f;
-                    }
+                    $addFeature($f, 'Local Store Locator', 'fast_food');
                 }
             }
         }
@@ -279,30 +310,19 @@ final class SurroundingsRadar
             $data = json_decode($raw, true);
             if (is_array($data) && isset($data['features']) && is_array($data['features'])) {
                 foreach ($data['features'] as $f) {
-                    if (($f['geometry']['type'] ?? '') !== 'Point') {
-                        continue;
-                    }
-                    $coords = $f['geometry']['coordinates'] ?? null;
-                    if (!is_array($coords) || count($coords) < 2) {
-                        continue;
-                    }
-                    $fLng = (float) $coords[0];
-                    $fLat = (float) $coords[1];
-                    $dist = self::distance($lat, $lng, $fLat, $fLng);
-                    if ($dist <= ($radiusMeters + 0.000001) && !self::isClosed($f['properties'] ?? [])) {
-                        $props = $f['properties'] ?? [];
-                        $name = $props['name'] ?? '';
-                        $id = $f['id'] ?? $name;
-                        if (isset($seen[$id])) {
-                            continue;
-                        }
-                        $seen[$id] = true;
-                        $props['source'] ??= 'Local Commercial Directory';
-                        $props['distanceMeters'] = round($dist, 1);
-                        $props['verified'] = (bool) ($props['verified'] ?? false);
-                        $f['properties'] = $props;
-                        $results[] = $f;
-                    }
+                    $addFeature($f, 'Local Commercial Directory', 'commercial');
+                }
+            }
+        }
+
+        // 3. Check data/assessment/businesses.geojson (Official BPLO Registry)
+        $bploFile = $dataDir . '/assessment/businesses.geojson';
+        if (is_file($bploFile)) {
+            $raw = (string) @file_get_contents($bploFile);
+            $data = json_decode($raw, true);
+            if (is_array($data) && isset($data['features']) && is_array($data['features'])) {
+                foreach ($data['features'] as $f) {
+                    $addFeature($f, 'San Fernando City BPLO Registry', 'commercial');
                 }
             }
         }
@@ -367,14 +387,16 @@ final class SurroundingsRadar
             }
 
             // 2. Check if establishment / business feature
-            $businessType = self::detectBusinessType($tags);
-            if ($businessType === null) {
+            $businessTypeTag = self::detectBusinessType($tags);
+            if ($businessTypeTag === null) {
                 continue;
             }
 
-            // Determine coordinates
+            // Determine coordinates & footprint geometry
             $ptLat = null;
             $ptLng = null;
+            $polygonCoords = [];
+            $footprint = null;
             if ($type === 'node' && isset($el['lat'], $el['lon'])) {
                 $ptLat = (float) $el['lat'];
                 $ptLng = (float) $el['lon'];
@@ -391,12 +413,19 @@ final class SurroundingsRadar
                         if (isset($p['lat'], $p['lon'])) {
                             $sumLat += (float) $p['lat'];
                             $sumLng += (float) $p['lon'];
+                            $polygonCoords[] = [(float) $p['lon'], (float) $p['lat']];
                             $count++;
                         }
                     }
                     if ($count > 0) {
                         $ptLat = $sumLat / $count;
                         $ptLng = $sumLng / $count;
+                    }
+                    if (count($polygonCoords) >= 3) {
+                        $footprint = [
+                            'type' => 'Polygon',
+                            'coordinates' => [$polygonCoords],
+                        ];
                     }
                 }
             }
@@ -405,12 +434,15 @@ final class SurroundingsRadar
                 continue;
             }
 
-            $distance = self::distance($centerLat, $centerLng, $ptLat, $ptLng);
+            $distance = $footprint !== null
+                ? min(self::distance($centerLat, $centerLng, $ptLat, $ptLng), self::polygonDistance($polygonCoords, $centerLat, $centerLng))
+                : self::distance($centerLat, $centerLng, $ptLat, $ptLng);
+
             if ($distance > ($radiusMeters + 0.000001)) {
                 continue;
             }
 
-            $name = (string) ($tags['name'] ?? ($tags['brand'] ?? self::formatFallbackName($businessType)));
+            $name = (string) ($tags['name'] ?? ($tags['brand'] ?? self::formatFallbackName($businessTypeTag)));
             $establishments[] = [
                 'type' => 'Feature',
                 'id' => $osmId,
@@ -422,12 +454,13 @@ final class SurroundingsRadar
                     'id' => $osmId,
                     'name' => $name,
                     'nameGenerated' => !isset($tags['name']) && !isset($tags['brand']),
-                    'businessType' => $businessType,
-                    'category' => $businessType,
+                    'businessType' => $businessTypeTag,
+                    'category' => $businessTypeTag,
                     'status' => 'unknown', // treat unverified operating status as unknown
-                    'note' => ucfirst(str_replace('_', ' ', $businessType)),
+                    'note' => ucfirst(str_replace('_', ' ', $businessTypeTag)),
                     'source' => 'OpenStreetMap contributors',
                     'distanceMeters' => round($distance, 1),
+                    'footprint' => $footprint,
                     'tags' => array_keys($tags),
                 ],
             ];
@@ -471,17 +504,25 @@ final class SurroundingsRadar
         return $merged;
     }
 
-    private static function frameResult(array $result, float $lat, float $lng, int $radiusMeters): array
+    private static function frameResult(array $result, float $lat, float $lng, int $radiusMeters, string $businessType = 'cafe'): array
     {
         $features = [];
         foreach ($result['features'] ?? [] as $feature) {
             if (!is_array($feature)) { continue; }
-            $coords = self::pointCoordinates($feature);
+            $coords = self::featureRepresentativePoint($feature);
             if ($coords === null) { continue; }
-            $distance = self::distance($lat, $lng, $coords[1], $coords[0]);
+            $distance = self::featureDistance($feature, $lat, $lng);
             if ($distance > $radiusMeters + 0.000001) { continue; }
             $feature['properties']['distanceMeters'] = round($distance, 1);
             $feature['properties']['isBusiness'] = self::isBusiness($feature['properties'] ?? []);
+            $footprint = $feature['properties']['footprint'] ?? (($feature['geometry']['type'] ?? '') === 'Polygon' ? $feature['geometry'] : null);
+            if (is_array($footprint) && ($footprint['type'] ?? '') === 'Polygon' && is_array($footprint['coordinates'] ?? null)) {
+                $feature['properties']['boundaryDistanceMeters'] = round(self::polygonDistance($footprint['coordinates'], $lat, $lng), 1);
+            }
+            $classification = self::classifyEstablishment($feature['properties'] ?? [], $businessType);
+            $feature['properties']['classification'] = $classification['classification'];
+            $feature['properties']['classificationLabel'] = $classification['classificationLabel'];
+            $feature['properties']['isAnchor'] = $classification['isAnchor'];
             $features[] = $feature;
         }
         $features = self::mergeEstablishments($features, []);
@@ -522,12 +563,191 @@ final class SurroundingsRadar
 
     private static function pointCoordinates(array $feature): ?array
     {
+        return self::featureRepresentativePoint($feature);
+    }
+
+    public static function featureRepresentativePoint(array $feature): ?array
+    {
         $coords = $feature['geometry']['coordinates'] ?? null;
-        if (($feature['geometry']['type'] ?? null) !== 'Point' || !is_array($coords) || count($coords) < 2
-            || !is_numeric($coords[0]) || !is_numeric($coords[1])
-        ) { return null; }
-        $lng = (float) $coords[0]; $lat = (float) $coords[1];
-        return is_finite($lat) && is_finite($lng) && abs($lat) <= 90 && abs($lng) <= 180 ? [$lng, $lat] : null;
+        $type = $feature['geometry']['type'] ?? '';
+        if ($type === 'Point' && is_array($coords) && count($coords) >= 2
+            && is_numeric($coords[0]) && is_numeric($coords[1])
+        ) {
+            $lng = (float) $coords[0]; $lat = (float) $coords[1];
+            return is_finite($lat) && is_finite($lng) && abs($lat) <= 90 && abs($lng) <= 180 ? [$lng, $lat] : null;
+        }
+        if ($type === 'Polygon' && is_array($coords) && !empty($coords[0])) {
+            $sumLat = 0.0; $sumLng = 0.0; $count = 0;
+            foreach ($coords[0] as $pt) {
+                if (is_array($pt) && count($pt) >= 2 && is_numeric($pt[0]) && is_numeric($pt[1])) {
+                    $sumLng += (float) $pt[0];
+                    $sumLat += (float) $pt[1];
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                return [$sumLng / $count, $sumLat / $count];
+            }
+        }
+        $footprint = $feature['properties']['footprint'] ?? null;
+        if (is_array($footprint) && ($footprint['type'] ?? '') === 'Polygon' && !empty($footprint['coordinates'][0])) {
+            $sumLat = 0.0; $sumLng = 0.0; $count = 0;
+            foreach ($footprint['coordinates'][0] as $pt) {
+                if (is_array($pt) && count($pt) >= 2 && is_numeric($pt[0]) && is_numeric($pt[1])) {
+                    $sumLng += (float) $pt[0];
+                    $sumLat += (float) $pt[1];
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                return [$sumLng / $count, $sumLat / $count];
+            }
+        }
+        return null;
+    }
+
+    public static function polygonDistance(array $coordinates, float $lat, float $lng): float
+    {
+        if (empty($coordinates)) {
+            return INF;
+        }
+        if (isset($coordinates[0][0]) && is_array($coordinates[0][0])) {
+            $coordinates = $coordinates[0];
+        }
+
+        $minDist = INF;
+        $scaleX = M_PI / 180 * self::EARTH_RADIUS * cos(deg2rad($lat));
+        $scaleY = M_PI / 180 * self::EARTH_RADIUS;
+
+        $count = count($coordinates);
+        $inside = false;
+
+        for ($i = 0, $j = $count - 1; $i < $count; $j = $i++) {
+            $xi = (float) $coordinates[$i][0];
+            $yi = (float) $coordinates[$i][1];
+            $xj = (float) $coordinates[$j][0];
+            $yj = (float) $coordinates[$j][1];
+
+            $intersect = (($yi > $lat) !== ($yj > $lat))
+                && ($lng < ($xj - $xi) * ($lat - $yi) / (($yj - $yi) ?: 0.0000000001) + $xi);
+            if ($intersect) {
+                $inside = !$inside;
+            }
+
+            $ax = ($xj - $lng) * $scaleX;
+            $ay = ($yj - $lat) * $scaleY;
+            $bx = ($xi - $lng) * $scaleX;
+            $by = ($yi - $lat) * $scaleY;
+
+            $dx = $bx - $ax;
+            $dy = $by - $ay;
+            $lenSq = $dx * $dx + $dy * $dy;
+            $t = $lenSq > 0 ? max(0.0, min(1.0, -($ax * $dx + $ay * $dy) / $lenSq)) : 0.0;
+            $dist = hypot($ax + $t * $dx, $ay + $t * $dy);
+
+            if ($dist < $minDist) {
+                $minDist = $dist;
+            }
+        }
+
+        return $inside ? 0.0 : $minDist;
+    }
+
+    public static function featureDistance(array $feature, float $lat, float $lng): float
+    {
+        $geomType = $feature['geometry']['type'] ?? '';
+        if ($geomType === 'Polygon' && is_array($feature['geometry']['coordinates'] ?? null)) {
+            $polyDist = self::polygonDistance($feature['geometry']['coordinates'], $lat, $lng);
+            if (is_finite($polyDist)) {
+                return $polyDist;
+            }
+        }
+        $coords = self::featureRepresentativePoint($feature);
+        if ($coords !== null) {
+            return self::distance($lat, $lng, $coords[1], $coords[0]);
+        }
+        $footprint = $feature['properties']['footprint'] ?? null;
+        if (is_array($footprint) && ($footprint['type'] ?? '') === 'Polygon' && is_array($footprint['coordinates'] ?? null)) {
+            $polyDist = self::polygonDistance($footprint['coordinates'], $lat, $lng);
+            if (is_finite($polyDist)) {
+                return $polyDist;
+            }
+        }
+        return INF;
+    }
+
+    public static function classifyEstablishment(array $properties, ?string $proposedActivity = 'cafe'): array
+    {
+        $rawType = strtolower(trim((string) ($properties['businessType'] ?? $properties['category'] ?? $properties['categoryKey'] ?? '')));
+        $name = strtolower(trim((string) ($properties['name'] ?? '')));
+        $proposed = strtolower(trim((string) ($proposedActivity ?: 'cafe')));
+
+        // Check if Commercial Activity Anchor (regional shopping mall, commercial complex, supermarket, hypermarket, marketplace, hospital, college)
+        $isAnchor = in_array($rawType, ['mall', 'shopping_mall', 'commercial_complex', 'department_store', 'supermarket', 'hypermarket', 'marketplace', 'hospital', 'college', 'university', 'townhall'], true)
+            || preg_match('/\b(sm\s*(city|la union|prime)|csi\s*(city\s*mall|mall|market\s*square)|robinsons\s*place|manna\s*mall|puregold)\b/i', $name) === 1;
+
+        if ($isAnchor) {
+            if (in_array($proposed, ['mall', 'shopping_mall', 'commercial_complex'], true)) {
+                return [
+                    'classification' => 'competitor',
+                    'classificationLabel' => 'Direct Competitor',
+                    'isAnchor' => true,
+                ];
+            }
+            return [
+                'classification' => 'commercial_anchor',
+                'classificationLabel' => 'Commercial Activity Anchor',
+                'isAnchor' => true,
+            ];
+        }
+
+        // Direct competitor categories
+        $competitorProfiles = [
+            'cafe' => ['cafe', 'coffee_shop', 'coffee', 'bakery', 'pastry', 'tea', 'tea_house', 'bistro', 'ice_cream', 'dessert', 'donut'],
+            'restaurant' => ['restaurant', 'dining', 'diner', 'eatery', 'bistro', 'food_court'],
+            'fast_food' => ['fast_food', 'burger', 'qsr'],
+            'retail' => ['retail', 'convenience', 'grocery', 'general_store', 'clothes', 'shoes', 'electronics', 'variety_store'],
+            'convenience' => ['convenience', 'grocery', 'kiosk'],
+            'convenience_store' => ['convenience', 'grocery', 'kiosk'],
+            'office' => ['office', 'coworking', 'commercial_office', 'business_centre'],
+            'hospitality' => ['hotel', 'motel', 'hostel', 'lodging', 'resort', 'inn'],
+            'hotel' => ['hotel', 'motel', 'hostel', 'lodging', 'resort', 'inn'],
+            'industrial' => ['industrial', 'manufacturing', 'warehouse', 'factory', 'depot', 'logistics_hub'],
+            'pharmacy' => ['pharmacy', 'chemist', 'drugstore'],
+            'bank' => ['bank', 'financial', 'pawnbroker', 'money_transfer'],
+            'fuel' => ['fuel', 'gas_station', 'petrol'],
+            'hardware' => ['hardware', 'doityourself', 'building_materials'],
+            'automotive' => ['car_repair', 'motorcycle_repair', 'car_parts'],
+        ];
+
+        $directList = $competitorProfiles[$proposed] ?? [$proposed];
+        if (in_array($rawType, $directList, true)) {
+            return [
+                'classification' => 'competitor',
+                'classificationLabel' => 'Direct Competitor',
+                'isAnchor' => false,
+            ];
+        }
+
+        // Complementary business profiles
+        $complementaryList = [
+            'cafe', 'coffee_shop', 'restaurant', 'fast_food', 'office', 'bank', 'pharmacy',
+            'clinic', 'hospital', 'school', 'college', 'university', 'fuel', 'convenience',
+            'supermarket', 'hotel', 'beauty', 'hairdresser', 'laundry'
+        ];
+        if (in_array($rawType, $complementaryList, true)) {
+            return [
+                'classification' => 'complementary',
+                'classificationLabel' => 'Complementary Business',
+                'isAnchor' => false,
+            ];
+        }
+
+        return [
+            'classification' => 'other',
+            'classificationLabel' => 'Other Commercial Establishment',
+            'isAnchor' => false,
+        ];
     }
 
     private static function placeName(string $name): string
@@ -577,17 +797,21 @@ final class SurroundingsRadar
 
     private static function detectBusinessType(array $tags): ?string
     {
-        if (isset($tags['amenity'])) {
-            return strtolower((string) $tags['amenity']);
-        }
         if (isset($tags['shop'])) {
             return strtolower((string) $tags['shop']);
+        }
+        if (isset($tags['amenity'])) {
+            return strtolower((string) $tags['amenity']);
         }
         if (isset($tags['tourism'])) {
             return strtolower((string) $tags['tourism']);
         }
         if (isset($tags['office'])) {
             return 'office';
+        }
+        if (isset($tags['building']) && in_array(strtolower((string) $tags['building']), ['commercial', 'retail', 'mall', 'supermarket'], true)) {
+            $b = strtolower((string) $tags['building']);
+            return in_array($b, ['retail', 'commercial'], true) ? 'mall' : $b;
         }
         if (isset($tags['craft'])) {
             return strtolower((string) $tags['craft']);
@@ -597,6 +821,9 @@ final class SurroundingsRadar
         }
         if (isset($tags['industrial'])) {
             return 'industrial';
+        }
+        if (isset($tags['landuse']) && strtolower((string) $tags['landuse']) === 'commercial') {
+            return 'commercial';
         }
         return null;
     }

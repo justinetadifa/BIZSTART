@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+require_once __DIR__ . '/SurroundingsRadar.php';
+
 /**
  * Service to discover and format nearby businesses and commercial anchors
  * for parcels and candidate properties across San Fernando City, La Union.
@@ -38,6 +40,8 @@ final class NearbyBusinesses
         'convenience' => ['name' => 'Convenience Retail', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
         'marketplace' => ['name' => 'Public Market & Retail', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
         'mall' => ['name' => 'Commercial Mall & Plaza', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
+        'shopping_mall' => ['name' => 'Commercial Mall & Plaza', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
+        'commercial_complex' => ['name' => 'Commercial Complex & Center', 'group' => 'retail', 'color' => 'purple', 'icon' => 'building'],
         'department_store' => ['name' => 'Department Store', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
         'hotel' => ['name' => 'Hotel & Lodging', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
         'hostel' => ['name' => 'Hostel & Lodging', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
@@ -138,7 +142,62 @@ final class NearbyBusinesses
                             'address' => $props['address'] ?? null,
                             'note' => $props['note'] ?? null,
                             'source' => $props['source'] ?? 'Local Commercial Directory',
+                            'footprint' => $props['footprint'] ?? (($feature['geometry']['type'] ?? '') === 'Polygon' ? $feature['geometry'] : null),
+                            'bplo_no' => $props['bplo_no'] ?? null,
+                            'osm_id' => $props['osm_id'] ?? null,
                         ];
+                    }
+                }
+            }
+        }
+
+        // 2. Load official BPLO assessment registry records
+        $bploFile = $dataDir . '/assessment/businesses.geojson';
+        if (is_file($bploFile)) {
+            $raw = @file_get_contents($bploFile);
+            if ($raw !== false) {
+                $bploData = json_decode($raw, true);
+                if (is_array($bploData) && isset($bploData['features']) && is_array($bploData['features'])) {
+                    foreach ($bploData['features'] as $feature) {
+                        $props = $feature['properties'] ?? [];
+                        $name = trim((string) ($props['name'] ?? ''));
+                        $coords = self::representativePoint($feature);
+                        if ($name === '' || $coords === null || self::isClosed($props)) {
+                            continue;
+                        }
+                        $lng = (float) $coords[0];
+                        $lat = (float) $coords[1];
+                        if (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
+                            continue;
+                        }
+                        $rawCat = strtolower(trim((string) ($props['categoryKey'] ?? $props['category'] ?? 'commercial')));
+                        $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
+                        if (!isset($directory[$key])) {
+                            $meta = self::CATEGORY_MAP[$rawCat] ?? [
+                                'name' => ucwords(str_replace('_', ' ', $rawCat ?: 'Commercial Establishment')),
+                                'group' => 'commercial',
+                                'color' => 'slate',
+                                'icon' => 'store',
+                            ];
+                            $directory[$key] = [
+                                'id' => $props['id'] ?? ('bplo-' . md5($key)),
+                                'name' => $name,
+                                'category' => $meta['name'],
+                                'categoryKey' => $rawCat,
+                                'categoryGroup' => $meta['group'],
+                                'categoryColor' => $meta['color'],
+                                'icon' => $meta['icon'],
+                                'lat' => $lat,
+                                'lng' => $lng,
+                                'status' => self::status($props),
+                                'barangay' => $props['barangay'] ?? null,
+                                'address' => $props['address'] ?? null,
+                                'note' => $props['note'] ?? null,
+                                'source' => 'San Fernando City BPLO Registry',
+                                'footprint' => $props['footprint'] ?? (($feature['geometry']['type'] ?? '') === 'Polygon' ? $feature['geometry'] : null),
+                                'bplo_no' => $props['bplo_no'] ?? null,
+                            ];
+                        }
                     }
                 }
             }
@@ -282,12 +341,54 @@ final class NearbyBusinesses
         return trim((string) preg_replace('/[^a-z0-9]+/', ' ', strtolower($name)));
     }
 
-    private static function validCoordinates(array $feature): bool
+    public static function representativePoint(array $feature): ?array
     {
         $coords = $feature['geometry']['coordinates'] ?? null;
-        return ($feature['geometry']['type'] ?? '') === 'Point' && is_array($coords) && count($coords) >= 2
-            && is_numeric($coords[0]) && is_numeric($coords[1]) && is_finite((float) $coords[0]) && is_finite((float) $coords[1])
-            && abs((float) $coords[0]) <= 180 && abs((float) $coords[1]) <= 90;
+        $type = $feature['geometry']['type'] ?? '';
+        if ($type === 'Point' && is_array($coords) && count($coords) >= 2
+            && is_numeric($coords[0]) && is_numeric($coords[1])
+        ) {
+            $lng = (float) $coords[0];
+            $lat = (float) $coords[1];
+            return is_finite($lat) && is_finite($lng) && abs($lat) <= 90 && abs($lng) <= 180 ? [$lng, $lat] : null;
+        }
+        if ($type === 'Polygon' && is_array($coords) && !empty($coords[0])) {
+            $sumLat = 0.0;
+            $sumLng = 0.0;
+            $count = 0;
+            foreach ($coords[0] as $pt) {
+                if (is_array($pt) && count($pt) >= 2 && is_numeric($pt[0]) && is_numeric($pt[1])) {
+                    $sumLng += (float) $pt[0];
+                    $sumLat += (float) $pt[1];
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                return [$sumLng / $count, $sumLat / $count];
+            }
+        }
+        $footprint = $feature['properties']['footprint'] ?? null;
+        if (is_array($footprint) && ($footprint['type'] ?? '') === 'Polygon' && !empty($footprint['coordinates'][0])) {
+            $sumLat = 0.0;
+            $sumLng = 0.0;
+            $count = 0;
+            foreach ($footprint['coordinates'][0] as $pt) {
+                if (is_array($pt) && count($pt) >= 2 && is_numeric($pt[0]) && is_numeric($pt[1])) {
+                    $sumLng += (float) $pt[0];
+                    $sumLat += (float) $pt[1];
+                    $count++;
+                }
+            }
+            if ($count > 0) {
+                return [$sumLng / $count, $sumLat / $count];
+            }
+        }
+        return null;
+    }
+
+    private static function validCoordinates(array $feature): bool
+    {
+        return self::representativePoint($feature) !== null;
     }
 
     private static function status(array $properties): string
@@ -308,6 +409,57 @@ final class NearbyBusinesses
     }
 
     /**
+     * Classify establishment as competitor, complementary, commercial anchor, etc.
+     * Malls and major retail plazas are treated as commercial anchors unless the proposed
+     * activity is specifically a regional mall.
+     *
+     * @return array{classification: string, classificationLabel: string, isAnchor: bool}
+     */
+    public static function classifyEstablishment(array $properties, ?string $proposedActivity = 'general'): array
+    {
+        $name = strtolower(trim((string) ($properties['name'] ?? '')));
+        $categoryKey = strtolower(trim((string) ($properties['categoryKey'] ?? $properties['businessType'] ?? '')));
+        $category = strtolower(trim((string) ($properties['category'] ?? '')));
+        $proposedActivity = strtolower(trim((string) ($proposedActivity ?? 'general')));
+
+        $isMallOrComplex = in_array($categoryKey, ['mall', 'shopping_mall', 'commercial_complex', 'department_store'], true)
+            || str_contains($category, 'mall')
+            || str_contains($category, 'commercial complex')
+            || str_contains($name, 'sm city')
+            || str_contains($name, 'robinsons')
+            || str_contains($name, 'manna mall')
+            || str_contains($name, 'csi city mall');
+
+        if ($isMallOrComplex) {
+            $isAnchor = true;
+            $classification = in_array($proposedActivity, ['mall', 'shopping_mall'], true) ? 'competitor' : 'commercial_anchor';
+            $label = $classification === 'competitor' ? 'Direct Competitor (Regional Mall)' : 'Commercial Activity Anchor';
+            return ['classification' => $classification, 'classificationLabel' => $label, 'isAnchor' => $isAnchor];
+        }
+
+        if (in_array($categoryKey, ['supermarket', 'marketplace'], true)) {
+            $classification = in_array($proposedActivity, ['supermarket', 'grocery'], true) ? 'competitor' : 'commercial_anchor';
+            return [
+                'classification' => $classification,
+                'classificationLabel' => $classification === 'competitor' ? 'Direct Competitor' : 'Commercial Activity Anchor',
+                'isAnchor' => true,
+            ];
+        }
+
+        $isCompetitor = ($proposedActivity !== '' && $proposedActivity !== 'general' && (
+            $categoryKey === $proposedActivity
+            || str_contains($category, $proposedActivity)
+            || str_contains($proposedActivity, $categoryKey)
+        ));
+
+        return [
+            'classification' => $isCompetitor ? 'competitor' : 'complementary',
+            'classificationLabel' => $isCompetitor ? 'Direct Competitor' : 'Complementary Business',
+            'isAnchor' => false,
+        ];
+    }
+
+    /**
      * Export the verified directory as a GeoJSON FeatureCollection for frontend maps.
      *
      * @return array
@@ -318,6 +470,7 @@ final class NearbyBusinesses
         $features = [];
 
         foreach ($dir as $biz) {
+            $classInfo = self::classifyEstablishment($biz, 'general');
             $features[] = [
                 'type' => 'Feature',
                 'id' => $biz['id'],
@@ -338,6 +491,12 @@ final class NearbyBusinesses
                     'address' => $biz['address'] ?? null,
                     'note' => $biz['note'] ?? null,
                     'source' => $biz['source'] ?? 'Verified Commercial Directory',
+                    'footprint' => $biz['footprint'] ?? null,
+                    'bplo_no' => $biz['bplo_no'] ?? null,
+                    'osm_id' => $biz['osm_id'] ?? null,
+                    'classification' => $classInfo['classification'],
+                    'classificationLabel' => $classInfo['classificationLabel'],
+                    'isAnchor' => $classInfo['isAnchor'],
                 ],
             ];
         }
@@ -357,16 +516,19 @@ final class NearbyBusinesses
      * @param float|null $lng
      * @param int $limit
      * @param float $radiusMeters
+     * @param string|null $proposedActivity
      * @return array
      */
-    public static function find(array|float $propertyOrLat, ?float $lng = null, int $limit = 8, float $radiusMeters = 2000.0): array
+    public static function find(array|float $propertyOrLat, ?float $lng = null, int $limit = 8, float $radiusMeters = 2000.0, ?string $proposedActivity = null): array
     {
         if (is_array($propertyOrLat)) {
             $lat = (float) ($propertyOrLat['lat'] ?? 0);
             $lng = (float) ($propertyOrLat['lng'] ?? 0);
+            $proposedActivity = $proposedActivity ?? (string) ($propertyOrLat['proposed_activity'] ?? $propertyOrLat['investmentType'] ?? 'general');
         } else {
             $lat = (float) $propertyOrLat;
             $lng = (float) ($lng ?? 0);
+            $proposedActivity = $proposedActivity ?? 'general';
         }
 
         if ($lat === 0.0 || $lng === 0.0 || !is_finite($lat) || !is_finite($lng)) {
@@ -378,6 +540,12 @@ final class NearbyBusinesses
 
         foreach ($directory as $entry) {
             $dist = self::distance($lat, $lng, $entry['lat'], $entry['lng']);
+            if (!empty($entry['footprint']['coordinates'])) {
+                $polyDist = SurroundingsRadar::polygonDistance($entry['footprint']['coordinates'], $lat, $lng);
+                if (is_finite($polyDist)) {
+                    $entry['boundaryDistanceMeters'] = round($polyDist, 1);
+                }
+            }
             if ($dist <= $radiusMeters) {
                 $distRounded = round($dist);
                 $distKm = round($dist / 1000.0, 2);
@@ -391,6 +559,12 @@ final class NearbyBusinesses
                 $entry['distanceFormatted'] = $dist < 1000 ? "{$distRounded} m" : "{$distKm} km";
                 $entry['walkingMinutes'] = $walkingMinutes;
                 $entry['walkingFormatted'] = $walkingFormatted;
+
+                $classInfo = self::classifyEstablishment($entry, $proposedActivity);
+                $entry['classification'] = $classInfo['classification'];
+                $entry['classificationLabel'] = $classInfo['classificationLabel'];
+                $entry['isAnchor'] = $classInfo['isAnchor'];
+
                 $matches[] = $entry;
             }
         }

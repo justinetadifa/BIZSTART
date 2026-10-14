@@ -565,9 +565,10 @@ final class PropertyRepository
         return array_map(function (array $row) use ($mediaMap, $documentRequestSummaryMap, $dueDiligenceSummaryMap, $groundTruthSummaryMap, $priceBenchmarkMap, $assessmentRanks): array {
             $propertyId = (int) $row['id'];
             $media = $mediaMap[$propertyId] ?? [];
+            $hasMedia = !empty($media) || !empty($row['image_url']);
             $isBrokerListing = isset($row['seller_user_id']) && (int) $row['seller_user_id'] > 0;
             $rawDocs = $this->decodeJson($row['documents_json'] ?? '{}');
-            $documentStatuses = $this->normalizeDocumentStatuses($rawDocs, $isBrokerListing);
+            $documentStatuses = $this->normalizeDocumentStatuses($rawDocs, $isBrokerListing, $hasMedia);
             $authorityToSell = \App\Support\PropertyAuthorityToSellFiles::normalize($rawDocs['authority_to_sell'] ?? null);
             $authorityStatus = $authorityToSell['status'] ?? 'pending_review';
             $isAuthorityValidated = $authorityToSell !== null && $authorityStatus === 'validated';
@@ -1150,9 +1151,11 @@ final class PropertyRepository
         $isBrokerListing = $sellerUserId !== null && $sellerUserId > 0;
         $existingDocs = $existing ? $this->decodeExistingValue($existing['documents_json'] ?? null) : [];
         $existingDocs = is_array($existingDocs) ? $existingDocs : [];
+        $hasMedia = !empty($payload['image_path']) || !empty($payload['imageUrl']) || !empty($existing['image_url']);
         $documents = $this->normalizeDocumentStatuses(
             $payload['document_statuses'] ?? $payload['documentStatuses'] ?? $existingDocs,
-            $isBrokerListing
+            $isBrokerListing,
+            $hasMedia
         );
         $authorityInput = $payload['authority_to_sell'] ?? $payload['authorityToSell'] ?? ($existingDocs['authority_to_sell'] ?? null);
         if ($authorityInput !== null && is_array($authorityInput)) {
@@ -1459,11 +1462,17 @@ final class PropertyRepository
         return $clean !== [] ? $clean : $fallback;
     }
 
-    private function normalizeDocumentStatuses(mixed $value, bool $isBrokerListing = false): array
+    private function normalizeDocumentStatuses(mixed $value, bool $isBrokerListing = false, bool $hasMedia = false): array
     {
         $defaults = [];
         foreach (self::SUBMISSION_DOCUMENT_REQUIREMENTS as $document) {
             $defaults[$document['key']] = 'missing';
+        }
+        if ($hasMedia) {
+            $defaults['site_photos'] = 'submitted';
+        }
+        if ($isBrokerListing) {
+            $defaults['authority_to_sell'] = 'missing';
         }
 
         $items = [];
@@ -1478,10 +1487,24 @@ final class PropertyRepository
         foreach ($items as $key => $status) {
             $normalizedKey = trim((string) $key);
             if ($normalizedKey === 'authority_to_sell') {
-                if (is_array($status)) {
-                    $defaults['authority_to_sell'] = $status;
-                } elseif (is_string($status) && $status !== '') {
-                    $defaults['authority_to_sell'] = strtolower(trim($status));
+                if ($isBrokerListing) {
+                    if (is_array($status)) {
+                        $defaults['authority_to_sell'] = $status;
+                    } elseif (is_string($status) && $status !== '') {
+                        $defaults['authority_to_sell'] = strtolower(trim($status));
+                    }
+                }
+                continue;
+            }
+
+            if ($normalizedKey === 'site_photos') {
+                $normalizedStatus = strtolower(trim((string) $status));
+                if ($hasMedia && ($normalizedStatus === 'missing' || $normalizedStatus === 'not_submitted')) {
+                    $defaults['site_photos'] = 'submitted';
+                } elseif (array_key_exists($normalizedStatus, self::DOCUMENT_PROGRESS)) {
+                    $defaults['site_photos'] = $normalizedStatus;
+                } elseif ($hasMedia) {
+                    $defaults['site_photos'] = 'submitted';
                 }
                 continue;
             }

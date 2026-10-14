@@ -1,7 +1,7 @@
 import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery } from './property-details-view.js';
+import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
 
 const config = window.SFC_APP_CONFIG || {};
@@ -116,23 +116,23 @@ function hazardNotice(property, isGrid = false) {
 
   const intersectNotice = flood.badge === 'HIGH' ? `<div class="tw-text-[10.5px] tw-text-rose-700 tw-mt-1.5 tw-pt-1 tw-border-t tw-border-rose-100">Property intersects a mapped high flood-susceptibility zone.</div>` : '';
 
-  const marginClass = isGrid ? 'tw-mx-3 tw-my-2.5' : 'tw-my-2.5';
+  const marginClass = isGrid ? 'tw-mx-2.5 sm:tw-mx-3 tw-my-2 sm:tw-my-2.5' : 'tw-my-2.5';
 
   return `
-    ${locationNote ? `<p class="${isGrid ? 'tw-mx-3' : ''} tw-mt-2.5 tw-mb-0 tw-text-xs tw-text-slate-500">${esc(locationNote)}</p>` : ''}
-    <div class="${marginClass} tw-p-2.5 tw-rounded-2xl tw-bg-slate-50/90 tw-border tw-border-slate-200/80">
-      <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
-        <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[11px] tw-font-semibold tw-text-slate-600">
+    ${locationNote ? `<p class="${isGrid ? 'tw-mx-2.5 sm:tw-mx-3' : ''} tw-mt-2 tw-mb-0 tw-text-xs tw-text-slate-500">${esc(locationNote)}</p>` : ''}
+    <div class="${marginClass} tw-p-2 sm:tw-p-2.5 tw-rounded-xl sm:tw-rounded-2xl tw-bg-slate-50/95 tw-border tw-border-slate-200/80">
+      <div class="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-flex-wrap">
+        <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[10.5px] sm:tw-text-[11px] tw-font-semibold tw-text-slate-600">
           <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
           <span>Hazards & environment</span>
         </div>
         <div class="tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap tw-justify-end">
-          <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-bold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-bold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
             Flood: ${esc(flood.badge)}
           </span>
-          <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-bold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-bold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
             Fault: ${esc(fault.proximity || fault.badge)}
           </span>
         </div>
@@ -337,35 +337,35 @@ function card(property, index) {
 
   return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
     <!-- Media / Satellite Image Container -->
-    <div class="tw-relative tw-h-[260px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
+    <div class="tw-relative tw-h-[230px] sm:tw-h-[250px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
       <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
       
       <!-- Top-left: ● Available Badge & Authority to Sell -->
-      <div class="tw-absolute tw-left-3 tw-top-3 tw-z-10 tw-flex tw-flex-col tw-gap-1.5">
-        <div class="tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-3 tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
+      <div class="tw-absolute tw-left-2.5 sm:tw-left-3 tw-top-2.5 sm:tw-top-3 tw-z-10 tw-flex tw-flex-col tw-gap-1">
+        <div class="tw-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-white/95 tw-backdrop-blur-md tw-px-2.5 sm:tw-px-3 tw-py-0.5 sm:tw-py-1 tw-shadow-sm tw-border tw-border-white/60">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-emerald-500 tw-inline-block"></span>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
+          <span class="tw-text-[11px] sm:tw-text-xs tw-font-semibold tw-text-slate-800">${esc(property.status || 'Available')}</span><span class="tw-text-[11px] sm:tw-text-xs tw-font-semibold tw-text-slate-800">${esc(listingPurposeLabel(property))}</span>
         </div>
         ${property.authorityToSellVerified ? `
-        <div class="tw-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50/95 tw-backdrop-blur-md tw-px-2.5 tw-py-0.5 tw-shadow-sm tw-border tw-border-emerald-200">
-          <span class="tw-text-[10.5px] tw-font-bold tw-text-emerald-800">Authority to Sell ✓ Verified</span>
+        <div class="tw-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50/95 tw-backdrop-blur-md tw-px-2 tw-py-0.5 tw-shadow-sm tw-border tw-border-emerald-200">
+          <span class="tw-text-[10px] tw-font-bold tw-text-emerald-800">Authority to Sell ✓ Verified</span>
         </div>` : ''}
       </div>
 
       <!-- Floating Frosted Glass Panel -->
-      <div class="locus-card-glass tw-absolute tw-inset-x-2.5 tw-bottom-2.5 tw-z-10 tw-p-3.5">
-        <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
+      <div class="locus-card-glass tw-absolute tw-inset-x-2 sm:tw-inset-x-2.5 tw-bottom-2 sm:tw-bottom-2.5 tw-z-10 tw-p-2.5 sm:tw-p-3">
+        <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
           <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-md tw-text-[11px] tw-font-semibold tw-border ${accent}">
+            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[10px] sm:tw-text-[10.5px] tw-font-semibold tw-border ${accent}">
               ${esc(property.subcategory || property.category || property.type || 'Commercial')}
             </span>
-            <h3 class="tw-mt-1.5 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
+            <h3 class="tw-mt-1 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
               <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-max-w-full tw-truncate hover:tw-text-[#9E1B22] tw-transition-colors">
                 ${esc(property.name)}
               </a>
             </h3>
-            ${property.subname ? `<p class="tw-text-[11px] tw-text-slate-500 tw-truncate tw-mb-0.5">${esc(property.subname)}</p>` : ''}
-            <div class="tw-flex tw-items-center tw-gap-1 tw-text-xs tw-font-medium tw-text-slate-500">
+            ${property.subname ? `<p class="tw-text-[10.5px] sm:tw-text-[11px] tw-text-slate-500 tw-truncate tw-mb-0.5">${esc(property.subname)}</p>` : ''}
+            <div class="tw-flex tw-items-center tw-gap-1 tw-text-[11px] sm:tw-text-xs tw-font-medium tw-text-slate-500">
               <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -375,25 +375,25 @@ function card(property, index) {
           </div>
 
           ${isLoggedIn ? `
-          <button type="button" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
-            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <button type="button" class="locus-card-toggle tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9 tw-rounded-full tw-bg-white tw-shadow-sm tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-105 hover:tw-shadow-md tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer tw-mt-0.5" data-toggle-card="${property.id}" aria-expanded="${isExpanded ? 'true' : 'false'}" aria-label="Toggle details">
+            <svg class="locus-card-toggle-icon tw-w-3.5 tw-h-3.5 sm:tw-w-4 sm:tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </button>
           ` : `
-          <a href="${path('investor-login.php')}" class="locus-card-toggle tw-w-9 tw-h-9 tw-rounded-full tw-bg-white tw-shadow-md tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-110 hover:tw-shadow-lg tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer" title="Log in to view assessments and details" aria-label="Log in to view assessments and details">
-            <svg class="locus-card-toggle-icon tw-w-4 tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <a href="${path('investor-login.php')}" class="locus-card-toggle tw-w-8 tw-h-8 sm:tw-w-9 sm:tw-h-9 tw-rounded-full tw-bg-white tw-shadow-sm tw-flex tw-items-center tw-justify-center tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-scale-105 hover:tw-shadow-md tw-transition-all tw-flex-shrink-0 tw-border tw-border-slate-100 tw-cursor-pointer tw-mt-0.5" title="Log in to view assessments and details" aria-label="Log in to view assessments and details">
+            <svg class="locus-card-toggle-icon tw-w-3.5 tw-h-3.5 sm:tw-w-4 sm:tw-h-4 tw-transition-transform tw-duration-300 ${isExpanded ? 'tw-rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </a>
           `}
         </div>
 
-        <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2.5 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
-          <strong class="tw-text-lg sm:tw-text-xl tw-font-bold tw-text-[#11224D] tw-tracking-tight">
+        <div class="tw-flex tw-items-baseline tw-justify-between tw-mt-2 tw-pt-1.5 tw-border-t tw-border-slate-900/5">
+          <strong class="tw-text-base sm:tw-text-lg tw-font-bold tw-text-[#11224D] tw-tracking-tight">
             ${esc(listingPriceLabel(property))}
           </strong>
-          <span class="tw-text-xs sm:tw-text-sm tw-font-medium tw-text-slate-500">
+          <span class="tw-text-[11px] sm:tw-text-xs tw-font-medium tw-text-slate-500">
             ${areaText(property)}
           </span>
         </div>
@@ -568,18 +568,18 @@ function priorityListCard(property, idx) {
   // Compact rank badge replacing oversized red ranking strip
   let rankBadge = '';
   if (rankKey) {
-    if (scientificRank === 1) {
+    if (!property.assessmentComplete || scientificRank == null) {
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-500 tw-border tw-border-slate-200/60" title="Unranked: assessment incomplete">
+        <span>Unranked · Pending assessment</span>
+      </span>`;
+    } else if (scientificRank === 1) {
       rankBadge = `<span class="locus-rank-badge locus-rank-top tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-bold tw-bg-[#8B1A1A] tw-text-white tw-shadow-sm" title="Rank #1 by ${esc(rankKey.toUpperCase())}">
         <svg class="tw-w-3 tw-h-3 tw-text-amber-300 tw-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
         <span>#1</span> <span class="tw-text-[10.5px] tw-font-semibold tw-text-white/90">${esc(rankKey.toUpperCase())} rank</span>
       </span>`;
-    } else if (scientificRank != null) {
+    } else {
       rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200" title="Rank #${scientificRank} by ${esc(rankKey.toUpperCase())}">
         <strong class="tw-font-bold tw-text-slate-900">#${scientificRank}</strong> <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(rankKey.toUpperCase())} rank</span>
-      </span>`;
-    } else {
-      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-50 tw-text-slate-400 tw-border tw-border-slate-200/60">
-        <span>—</span> <span class="tw-text-[10px]">${esc(rankKey.toUpperCase())} rank</span>
       </span>`;
     }
   }
@@ -639,25 +639,17 @@ function priorityListCard(property, idx) {
 
     <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap tw-items-center tw-justify-between xl:tw-justify-end tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-w-full xl:tw-w-auto">
       <div class="tw-flex tw-items-center tw-gap-2.5 tw-shrink-0">
-        <div class="tw-w-20 sm:tw-w-22 tw-py-3 tw-px-2 tw-rounded-2xl tw-bg-slate-50 tw-border tw-border-slate-200/80 tw-text-center tw-shrink-0 tw-shadow-2xs">
-          <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
-          ${property.mceScore != null ? `
-            <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">${number(property.mceScore)}</strong>
-            <div class="tw-w-8 tw-h-1 tw-bg-slate-700 tw-mx-auto tw-rounded-full tw-mt-1"></div>
-          ` : `
-            <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
-            <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
-          `}
-        </div>
-
-        <div class="tw-w-20 sm:tw-w-22 tw-py-3 tw-px-2 tw-rounded-2xl ${property.iaiScore != null ? 'tw-bg-[#FFF7ED] tw-border tw-border-orange-200/80' : 'tw-bg-slate-50 tw-border tw-border-slate-200/80'} tw-text-center tw-shrink-0 tw-shadow-2xs">
-          <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${property.iaiScore != null ? 'tw-text-[#9E1B22]' : 'tw-text-slate-400'} tw-uppercase">IAI</span>
-          ${property.iaiScore != null ? `
+        <div class="tw-w-36 sm:tw-w-40 tw-py-2.5 tw-px-3 tw-rounded-2xl ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-bg-[#FFF7ED] tw-border tw-border-orange-200/80' : 'tw-bg-slate-50 tw-border tw-border-slate-200/80'} tw-text-center tw-shrink-0 tw-shadow-2xs">
+          <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
+            <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-text-[#9E1B22]' : 'tw-text-slate-400'} tw-uppercase">IAI composite</span>
+            <span class="tw-text-[10px] tw-text-slate-400">/ 100</span>
+          </div>
+          ${(property.iaiScore != null && property.assessmentComplete) ? `
             <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">${number(property.iaiScore)}</strong>
-            <div class="tw-w-8 tw-h-1 tw-bg-[#9E1B22] tw-mx-auto tw-rounded-full tw-mt-1"></div>
+            <span class="tw-block tw-text-[9.5px] tw-text-slate-500 tw-font-medium tw-mt-0.5">MCE methodology (6 criteria)</span>
           ` : `
             <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
-            <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Awaiting assessment</span>
+            <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
           `}
         </div>
       </div>
@@ -1678,16 +1670,19 @@ function nearbyBusinessesMarkup(property) {
                     <h4 class="tw-m-0 tw-truncate tw-text-xs tw-font-bold tw-text-slate-900" title="${esc(biz.name)}">${esc(biz.name)}</h4>
                     <span class="nearby-biz-dist-pill tw-shrink-0 tw-rounded-md tw-bg-white tw-border tw-border-solid tw-border-slate-200 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-800">${esc(biz.distanceFormatted)}</span>
                   </div>
-                  <div class="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                  <div class="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
                     <span class="tw-text-[11px] tw-font-medium tw-text-slate-600">${esc(biz.category)}</span>
                     <span class="tw-text-[10px] tw-text-slate-400">&middot;</span>
                     <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(biz.walkingFormatted || '')}</span>
+                    ${biz.classification === 'commercial_anchor' || biz.isAnchor ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-purple-100 tw-border tw-border-solid tw-border-purple-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-purple-800">Commercial Activity Anchor</span>` : (biz.classification === 'competitor' ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-rose-100 tw-border tw-border-solid tw-border-rose-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-rose-800">Direct Competitor</span>` : (biz.classification === 'complementary' ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-blue-100 tw-border tw-border-solid tw-border-blue-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-blue-800">Complementary</span>` : ''))}
+                    ${biz.footprint ? `<span class="tw-inline-flex tw-items-center tw-gap-0.5 tw-rounded tw-bg-slate-200/80 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-medium tw-text-slate-700" title="Polygon Footprint Mapped">Footprint</span>` : ''}
                   </div>
                   <div class="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2">
                     <span class="nearby-biz-status-badge tw-inline-flex tw-items-center tw-gap-1 tw-text-[9.5px] tw-font-semibold tw-text-emerald-700">
                       <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500"></span>
                       ${biz.status === 'operating' ? 'Recorded as operating' : biz.status === 'under_development' ? 'Under development' : 'Operating status unknown'}
                     </span>
+                    <span class="tw-text-[9px] tw-text-slate-400 tw-truncate tw-max-w-[140px]" title="${esc(biz.source || '')}">${esc(biz.source || 'Commercial Directory')}</span>
                     ${hasCoordinates(property) && property.hasExactLocation !== false && hasCoordinates(biz) ? `<button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
                       Locate on map &rarr;
                     </button>` : ''}
@@ -1743,7 +1738,7 @@ async function renderDetails() {
   });
   window.SFCInvestorView?.refresh(root);
   setupPropertyGallery(root);
-  const printState = setupPropertyDetailsPrint(root);
+  const printState = setupPropertyDetailsPrint(root, property);
 
   filtered = [property];
   setupMap();
@@ -1753,24 +1748,45 @@ async function renderDetails() {
   }
   setupInvestmentEvaluation(property, config.policy || {});
   initBusinessOpportunities(root, property);
+  setupInvestorScenario(root, property);
 
   // Add nearby business markers to map if map is initialized
   if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {
     const bizGroup = L.layerGroup();
     property.nearbyBusinesses.forEach(biz => {
       if (!hasCoordinates(biz)) return;
+      const isAnchor = biz.classification === 'commercial_anchor' || biz.isAnchor || biz.categoryKey === 'mall' || biz.categoryKey === 'shopping_mall';
+      if (biz.footprint && typeof L.geoJSON === 'function') {
+        const polyLayer = L.geoJSON(biz.footprint, {
+          style: {
+            color: isAnchor ? '#7c3aed' : '#2563eb',
+            weight: 2,
+            dashArray: '4 4',
+            fillColor: isAnchor ? '#a78bfa' : '#60a5fa',
+            fillOpacity: 0.2
+          }
+        });
+        bizGroup.addLayer(polyLayer);
+      }
       const marker = L.circleMarker([biz.lat, biz.lng], {
-        radius: 6,
-        color: '#ffffff',
-        weight: 2,
-        fillColor: biz.categoryColor === 'amber' ? '#f59e0b' : (biz.categoryColor === 'blue' ? '#2563eb' : (biz.categoryColor === 'emerald' ? '#10b981' : (biz.categoryColor === 'purple' ? '#9333ea' : '#475569'))),
+        radius: isAnchor ? 8 : 6,
+        color: isAnchor ? '#7c3aed' : '#ffffff',
+        weight: isAnchor ? 2.5 : 2,
+        fillColor: isAnchor ? '#8b5cf6' : (biz.categoryColor === 'amber' ? '#f59e0b' : (biz.categoryColor === 'blue' ? '#2563eb' : (biz.categoryColor === 'emerald' ? '#10b981' : (biz.categoryColor === 'purple' ? '#9333ea' : '#475569')))),
         fillOpacity: 0.95
       });
+      const badgeHtml = isAnchor
+        ? '<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#f3e8ff;color:#6b21a8;padding:2px 6px;border-radius:4px;display:inline-block;">Commercial Activity Anchor</span></div>'
+        : (biz.classification === 'competitor'
+          ? '<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#ffe4e6;color:#9f1239;padding:2px 6px;border-radius:4px;display:inline-block;">Direct Competitor</span></div>'
+          : (biz.classificationLabel ? `<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#f1f5f9;color:#334155;padding:2px 6px;border-radius:4px;display:inline-block;">${esc(biz.classificationLabel)}</span></div>` : ''));
       marker.bindPopup(`
         <div class="city-popup" style="font-family:sans-serif;min-width:180px;">
+          ${badgeHtml}
           <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(biz.name)}</strong>
           <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(biz.category)}</span>
           <span style="font-size:10px;font-weight:700;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#334155;">${esc(biz.distanceFormatted)} &middot; ${esc(biz.walkingFormatted || '')}</span>
+          <div style="margin-top:4px;font-size:9.5px;color:#64748b;">Source: ${esc(biz.source || 'Verified Directory')}</div>
           <div style="margin-top:6px;">
             <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${biz.lat},${biz.lng}`)}" target="_blank" rel="noopener" style="font-size:10.5px;color:#2563eb;text-decoration:none;font-weight:600;">Open in Google Maps &nearr;</a>
           </div>

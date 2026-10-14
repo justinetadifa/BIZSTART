@@ -883,12 +883,15 @@ $cataloguePath = $context['user'] === null
 
   <!-- INVESTMENT ASSISTANCE & CONCIERGE -->
   <section class="city-container city-section" id="properties">
-    <div class="city-section-heading tw-flex-wrap tw-items-end tw-justify-between tw-mb-6">
+    <div class="city-section-heading tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-end sm:tw-justify-between tw-gap-3 sm:tw-gap-4 tw-mb-6">
       <div>
         <h2 class="tw-m-0 tw-text-2xl sm:tw-text-3xl tw-font-black tw-italic tw-uppercase tw-tracking-tight tw-text-[#9E1B22]" style="font-family: 'Poppins', sans-serif;">FEATURED PROPERTIES.</h2>
-        <p class="tw-mt-1.5 tw-mb-0 tw-text-sm sm:tw-text-base tw-font-semibold tw-text-[#11224D]">Three listings to get you started.</p>
+        <p class="tw-mt-1 tw-mb-0 tw-text-sm sm:tw-text-base tw-font-semibold tw-text-[#11224D]">Three listings to get you started.</p>
       </div>
-      <a class="tw-inline-flex tw-items-center tw-justify-center tw-px-7 tw-py-2.5 tw-rounded-full tw-bg-[#9E1B22] tw-text-white tw-font-semibold tw-text-sm hover:tw-bg-[#80141a] hover:tw-shadow-md hover:tw-scale-[1.02] active:tw-scale-[0.98] tw-transition-all tw-duration-200" href="<?= $e(sfc_path($cataloguePath)) ?>">View all properties</a>
+      <a class="city-featured-props-cta tw-inline-flex tw-items-center tw-justify-center tw-whitespace-nowrap tw-w-fit tw-px-5 sm:tw-px-6 tw-py-2 sm:tw-py-2.5 tw-rounded-full tw-bg-[#9E1B22] tw-text-white tw-font-semibold tw-text-xs sm:tw-text-sm hover:tw-bg-[#80141a] hover:tw-shadow-md hover:tw-scale-[1.02] active:tw-scale-[0.98] tw-transition-all tw-duration-200" href="<?= $e(sfc_path($cataloguePath)) ?>">
+        <span>View all properties</span>
+        <span class="tw-ml-1.5" aria-hidden="true">&rarr;</span>
+      </a>
     </div>
     <?php sfc_investor_view_control($context); ?>
     <div class="city-property-grid" id="cityPropertyGrid" aria-live="polite"><div class="city-loading">Loading properties…</div></div>

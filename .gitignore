@@ -26,3 +26,4 @@ backup_*
 *.zip
 assets/uploads/profiles/*
 !assets/uploads/profiles/.htaccess
+*.pdf

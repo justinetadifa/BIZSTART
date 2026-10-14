@@ -59,6 +59,30 @@
     },
     {
       "type": "Feature",
+      "id": "biz-sm-city-la-union",
+      "geometry": { "type": "Point", "coordinates": [120.32245, 16.6255] },
+      "properties": {
+        "id": "biz-sm-city-la-union",
+        "name": "SM City La Union",
+        "category": "mall",
+        "businessType": "mall",
+        "categoryKey": "mall",
+        "status": "operating",
+        "barangay": "Biday",
+        "address": "San Fernando Diversion Road, Barangay Biday, San Fernando City, La Union",
+        "note": "Regional commercial shopping mall, major retail anchor, supermarket, dining, and cinema complex.",
+        "verified": true,
+        "source": "San Fernando City BPLO Registry & OpenStreetMap",
+        "bplo_no": "BPLO-2026-1002",
+        "osm_id": "way:1253912822",
+        "footprint": {
+          "type": "Polygon",
+          "coordinates": [[[120.3208226,16.6275078],[120.3209701,16.6270067],[120.3211981,16.6264876],[120.3212544,16.626156],[120.3212303,16.6258245],[120.3211176,16.6255726],[120.320954,16.6252847],[120.3209084,16.6251434],[120.3209192,16.6245651],[120.3213456,16.62456],[120.3213067,16.6240516],[120.3225177,16.6239766],[120.3225499,16.6243801],[120.3228868,16.624362],[120.3230726,16.6250825],[120.3238267,16.6249429],[120.3241609,16.626038],[120.3232338,16.6261626],[120.3232804,16.6264369],[120.3225051,16.6265465],[120.3225183,16.6266376],[120.3219733,16.6265929],[120.3219625,16.6271969],[120.3216809,16.6272097],[120.3216836,16.6270864],[120.3211713,16.6271172],[120.3210506,16.6275644],[120.3208226,16.6275078]]]
+        }
+      }
+    },
+    {
+      "type": "Feature",
       "id": "biz-manna-mall",
       "geometry": { "type": "Point", "coordinates": [120.3242, 16.6238] },
       "properties": {

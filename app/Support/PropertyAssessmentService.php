@@ -1232,13 +1232,27 @@ final class PropertyAssessmentService
             ? (float) $data['land_area']
             : null;
 
+        $offeredScope = (string) ($data['offered_space_scope'] ?? '');
+        if ($offeredScope === 'entire_land') {
+            $offeredArea = $landArea;
+        } elseif (isset($data['offered_area_sqm']) && is_numeric($data['offered_area_sqm']) && (float) $data['offered_area_sqm'] > 0) {
+            $offeredScope = $offeredScope ?: 'part_property';
+            $offeredArea = (float) $data['offered_area_sqm'];
+        } elseif (isset($data['leasable_area_sqm']) && is_numeric($data['leasable_area_sqm']) && (float) $data['leasable_area_sqm'] > 0) {
+            $offeredScope = $offeredScope ?: 'part_property';
+            $offeredArea = (float) $data['leasable_area_sqm'];
+        } else {
+            $offeredScope = $offeredScope ?: 'entire_land';
+            $offeredArea = $landArea;
+        }
+
         $birZonal = isset($data['bir_zonal_value']) && is_numeric($data['bir_zonal_value']) && (float) $data['bir_zonal_value'] > 0
             ? (float) $data['bir_zonal_value']
             : null;
 
         $askingPrice = isset($data['asking_price']) && is_numeric($data['asking_price']) && (float) $data['asking_price'] > 0
             ? (float) $data['asking_price']
-            : null;
+            : (isset($data['price']) && is_numeric($data['price']) && (float) $data['price'] > 0 ? (float) $data['price'] : null);
 
         $leasePrice = isset($data['lease_price']) && is_numeric($data['lease_price']) && (float) $data['lease_price'] > 0
             ? (float) $data['lease_price']
@@ -1249,8 +1263,26 @@ final class PropertyAssessmentService
             $purpose = 'sale';
         }
 
+        $depositMonths = isset($data['security_deposit_months']) && is_numeric($data['security_deposit_months']) && (float) $data['security_deposit_months'] >= 0
+            ? (float) $data['security_deposit_months']
+            : null;
+
+        $advanceMonths = isset($data['advance_rent_months']) && is_numeric($data['advance_rent_months']) && (float) $data['advance_rent_months'] >= 0
+            ? (float) $data['advance_rent_months']
+            : null;
+
+        $utilitiesIncluded = !empty($data['utilities_included']) ? (string) $data['utilities_included'] : null;
+
+        $additionalCosts = isset($data['additional_purchase_costs']) && is_numeric($data['additional_purchase_costs']) && (float) $data['additional_purchase_costs'] >= 0
+            ? (float) $data['additional_purchase_costs']
+            : null;
+
         $comparableMarket = isset($data['comparable_market_price']) && is_numeric($data['comparable_market_price']) && (float) $data['comparable_market_price'] > 0
             ? (float) $data['comparable_market_price']
+            : null;
+
+        $comparableLease = isset($data['comparable_lease_price']) && is_numeric($data['comparable_lease_price']) && (float) $data['comparable_lease_price'] > 0
+            ? (float) $data['comparable_lease_price']
             : null;
 
         $lguValType = !empty($data['lgu_valuation_type']) ? (string) $data['lgu_valuation_type'] : null;
@@ -1261,33 +1293,78 @@ final class PropertyAssessmentService
         $areaDiscrepancy = !empty($data['area_discrepancy']) || (!empty($data['discrepancy_percent']) && (float) $data['discrepancy_percent'] > 25.0);
 
         // Compute metrics
-        $askingPricePerSqm = ($askingPrice !== null && $landArea !== null) ? round($askingPrice / $landArea, 2) : null;
-        $leasePricePerSqm = ($leasePrice !== null && $landArea !== null) ? round($leasePrice / $landArea, 2) : null;
+        // Asking price per m² uses offered area (or recorded land area if offering entire property)
+        $askingPricePerSqm = ($askingPrice !== null && $offeredArea !== null && $offeredArea > 0) ? round($askingPrice / $offeredArea, 2) : null;
+        // Monthly rent per m² uses actual leasable area, not automatically total land area
+        $leasePricePerSqm = ($leasePrice !== null && $offeredArea !== null && $offeredArea > 0) ? round($leasePrice / $offeredArea, 2) : null;
+        // BIR zonal valuation is statutory tax reference on recorded land area
         $birTotalRef = ($birZonal !== null && $landArea !== null) ? round($birZonal * $landArea, 2) : null;
 
         $askingVsBirPct = ($askingPricePerSqm !== null && $birZonal !== null)
             ? round((($askingPricePerSqm - $birZonal) / $birZonal) * 100.0, 1)
             : null;
 
-        $askingVsMarketPct = ($askingPricePerSqm !== null && $comparableMarket !== null)
-            ? round((($askingPricePerSqm - $comparableMarket) / $comparableMarket) * 100.0, 1)
+        $askingVsMarketPct = ($askingPricePerSqm !== null && $comparableMarket !== null && $comparableMarket > 0)
+            ? round((($askingPricePerSqm - $comparableMarket) / $comparableMarket) * 100.0, 2)
             : null;
+
+        $leaseVsMarketPct = ($leasePricePerSqm !== null && $comparableLease !== null && $comparableLease > 0)
+            ? round((($leasePricePerSqm - $comparableLease) / $comparableLease) * 100.0, 2)
+            : null;
+
+        // Known upfront outlay calculation
+        $knownUpfrontCosts = 0.0;
+        if ($purpose === 'lease' || $purpose === 'sale_or_lease') {
+            $months = ($depositMonths ?? 0.0) + ($advanceMonths ?? 0.0);
+            $knownUpfrontCosts += round($months * ($leasePrice ?? 0.0), 2);
+        }
+        if ($purpose === 'sale' || $purpose === 'sale_or_lease') {
+            $knownUpfrontCosts += round($additionalCosts ?? 0.0, 2);
+        }
+
+        // Price competitiveness ratio: Asking unit price / Comparable benchmark rate
+        $competitivenessRatio = null;
+        $activeDiffPct = null;
+        if ($purpose === 'lease') {
+            if ($leasePricePerSqm !== null && $comparableLease !== null && $comparableLease > 0) {
+                $competitivenessRatio = round($leasePricePerSqm / $comparableLease, 4);
+                $activeDiffPct = $leaseVsMarketPct;
+            }
+        } else {
+            if ($askingPricePerSqm !== null && $comparableMarket !== null && $comparableMarket > 0) {
+                $competitivenessRatio = round($askingPricePerSqm / $comparableMarket, 4);
+                $activeDiffPct = $askingVsMarketPct;
+            } elseif ($purpose === 'sale_or_lease' && $leasePricePerSqm !== null && $comparableLease !== null && $leasePricePerSqm > 0) {
+                $competitivenessRatio = round($leasePricePerSqm / $comparableLease, 4);
+                $activeDiffPct = $leaseVsMarketPct;
+            }
+        }
 
         $pricingAnalysis = [
             'listing_purpose' => $purpose,
             'land_area_sqm' => $landArea,
+            'offered_space_scope' => $offeredScope,
+            'offered_area_sqm' => $offeredArea,
             'asking_price' => $askingPrice,
             'asking_price_per_sqm' => $askingPricePerSqm,
             'lease_price' => $leasePrice,
             'lease_price_per_sqm' => $leasePricePerSqm,
+            'security_deposit_months' => $depositMonths,
+            'advance_rent_months' => $advanceMonths,
+            'utilities_included' => $utilitiesIncluded,
+            'additional_purchase_costs' => $additionalCosts,
+            'known_upfront_costs' => $knownUpfrontCosts > 0 ? $knownUpfrontCosts : null,
             'bir_zonal_value' => $birZonal,
             'bir_total_reference' => $birTotalRef,
             'bir_date' => $data['bir_date'] ?? null,
             'bir_source' => $data['bir_source'] ?? null,
             'asking_vs_bir_percent' => $askingVsBirPct,
             'comparable_market_price' => $comparableMarket,
+            'comparable_lease_price' => $comparableLease,
             'comparable_source' => $data['comparable_source'] ?? null,
             'asking_vs_market_percent' => $askingVsMarketPct,
+            'lease_vs_market_percent' => $leaseVsMarketPct,
+            'price_competitiveness_ratio' => $competitivenessRatio,
             'lgu_valuation_type' => $lguValType,
             'lgu_valuation_amount' => $lguValAmount,
             'area_discrepancy_flagged' => $areaDiscrepancy,
@@ -1295,17 +1372,22 @@ final class PropertyAssessmentService
 
         // Missing requirements tracking
         $missing = [];
-        if ($landArea === null) {
+        if ($landArea === null && $offeredArea === null) {
             $missing[] = 'Valid property land area';
         }
-        if ($birZonal === null) {
-            $missing[] = 'BIR zonal valuation schedule';
-        }
-        if ($comparableMarket === null) {
+        $hasComparableBenchmark = ($purpose === 'lease' && $comparableLease !== null) || ($comparableMarket !== null);
+        if (!$hasComparableBenchmark) {
             $missing[] = 'Verified local comparable market benchmark';
         }
         if (!$isVerified) {
             $missing[] = 'Authorized CAO/LEBDO valuation verification';
+        }
+
+        $hasSuspiciousArea = ($landArea !== null && $landArea < 0.5) || ($offeredScope !== 'entire_land' && $offeredArea !== null && $offeredArea < 0.5);
+        $hasAreaExceeded = ($offeredScope === 'part_property' && $landArea !== null && $offeredArea !== null && $offeredArea > $landArea);
+        $hasSuspiciousPrice = ($askingPrice !== null && $askingPrice <= 0) || ($leasePrice !== null && $leasePrice <= 0);
+        if ($hasSuspiciousArea || $hasAreaExceeded || $hasSuspiciousPrice) {
+            $missing[] = 'Plausible and consistent property area and pricing';
         }
 
         // Methodological check:
@@ -1314,7 +1396,13 @@ final class PropertyAssessmentService
         if ($areaDiscrepancy || !empty($missing)) {
             $discrepancyMsg = $areaDiscrepancy
                 ? 'Area discrepancy flagged: Recorded area differs significantly from mapped plot boundary. Economic metrics are preliminary until parcel survey verification.'
-                : 'Assessment incomplete: A difference from statutory BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability. A verified comparable market benchmark and authorized CAO/LEBDO verification are required for an authoritative score.';
+                : ($hasAreaExceeded
+                    ? 'Reasonableness warning: Leasable unit area exceeds total recorded parcel land area. Choose Entire Building if multi-story or adjust leasable space.'
+                    : ($hasSuspiciousArea
+                        ? 'Reasonableness warning: Property area is suspiciously small. Verify property area and units.'
+                        : ($hasSuspiciousPrice
+                            ? 'Reasonableness warning: Asking price or rent cannot be zero or negative.'
+                            : 'Assessment incomplete: A difference from statutory BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability. A verified comparable market benchmark and authorized CAO/LEBDO verification are required for an authoritative score.')));
 
             return [
                 'score' => null,
@@ -1338,7 +1426,7 @@ final class PropertyAssessmentService
         // - 15% to 30% above market: 70.0 (Substantial premium)
         // - > 30% above market: 50.0 (Elevated asking price)
         // - More than 20% below market without distressed note: 75.0 (Discounted / review required)
-        $compPct = $askingVsMarketPct ?? 0.0;
+        $compPct = $activeDiffPct ?? 0.0;
         if ($compPct >= -5.0 && $compPct <= 5.0) {
             $score = 100.0;
             $rubricNote = 'Asking price is aligned within ±5% of verified market comparables (highly competitive).';

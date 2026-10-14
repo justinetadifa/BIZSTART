@@ -303,7 +303,7 @@ final class RiskConstraintsEngine
 
         $criticalConstraintMessage = null;
         if ($hasCriticalFaultConflict) {
-            $criticalConstraintMessage = 'CRITICAL SITE CONSTRAINT: Parcel intersects authoritative active fault trace or mandated 5-meter exclusion buffer corridor (DOST-PHIVOLCS). Mandatory geological hazard review required; structural development prohibited or strictly conditioned upon competent structural clearance.';
+            $criticalConstraintMessage = 'CRITICAL SITE CONSTRAINT: Parcel intersects active fault trace or recommended 5-meter buffer corridor (DOST-PHIVOLCS guideline). Mandatory site-specific engineering geological and geohazard assessment (EGGAR) required prior to building permitting; development within buffer zone requires competent clearance from the Local Building Official and PHIVOLCS certification.';
         }
 
         $formula = 'Risk Constraints Score = Σ(Subcriterion Score × Subcriterion Weight ÷ 100): '

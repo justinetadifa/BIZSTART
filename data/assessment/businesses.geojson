@@ -55,13 +55,15 @@
                 "name": "SM City La Union",
                 "category": "Shopping Mall",
                 "operating_status": "operating",
-                "bplo_no": "BPLO-2026-1002"
+                "bplo_no": "BPLO-2026-1002",
+                "barangay": "Biday",
+                "address": "San Fernando Diversion Road, Barangay Biday, San Fernando City, La Union"
             },
             "geometry": {
                 "type": "Point",
                 "coordinates": [
-                    120.3225,
-                    16.621
+                    120.32245,
+                    16.6255
                 ]
             }
         },

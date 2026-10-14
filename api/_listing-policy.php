@@ -90,10 +90,10 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             $payload['seller_user_id'] = null;
             unset($payload['sellerUserId']);
         } elseif (in_array($requestedApproval, ['approved', 'rejected'], true)) {
-            if ((int) ($existing['sellerUserId'] ?? 0) === (int) $user['id']) {
+            if ((int) ($existing['sellerUserId'] ?? 0) > 0 && (int) $existing['sellerUserId'] === (int) $user['id']) {
                 throw new InvalidArgumentException('You cannot review your own listing.');
             }
-            if (trim((string) ($payload['reviewNote'] ?? $payload['review_note'] ?? '')) === '') {
+            if ((int) ($existing['sellerUserId'] ?? 0) > 0 && trim((string) ($payload['reviewNote'] ?? $payload['review_note'] ?? '')) === '') {
                 throw new InvalidArgumentException('Add a review message for the broker.');
             }
             if ($requestedApproval === 'approved' && (int) ($existing['sellerUserId'] ?? 0) > 0 && !($existing['sellerBrokerVerified'] ?? false)) {

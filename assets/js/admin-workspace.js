@@ -5,6 +5,7 @@
   const config = window.SFC_APP_CONFIG || {};
   const apiBase = config.apiBase || `${config.basePath || ''}/api`;
   const governance = root.dataset.listingReviewer === 'true' || (!root.hasAttribute('data-listing-reviewer') && root.dataset.department === 'CICTO');
+  const isReviewer = governance || ['ASSESSOR', 'CAO', 'LEBDO'].includes(root.dataset.department);
   const brokerReviewer = root.dataset.brokerReviewer === 'true' || Boolean(config.user?.brokerReviewAuthorized && ['ASSESSOR', 'CAO', 'LEBDO'].includes(root.dataset.department));
   const status = root.querySelector('[data-workspace-status]');
   let properties = [];
@@ -23,6 +24,16 @@
   const isArchived = (property) => Boolean(property.isArchived || property.approvalState === 'archived');
   const isActive = (property) => !property.isDeleted && !isArchived(property) && property.approvalState === 'approved' && ['available','active','open'].includes(String(property.status || '').toLowerCase());
   const purposeLabel = (property) => ({sale:'For Sale',lease:'For Lease',sale_or_lease:'For Sale or Lease'})[property.listingPurpose] || 'For Sale';
+  const propertyOperationalStatus = (property) => {
+    if (property.isDeleted) return { label: 'Deleted', tone: 'deleted' };
+    if (isArchived(property)) return { label: 'Archived', tone: 'archived' };
+    if (property.approvalState === 'pending_review') return { label: 'Awaiting review', tone: 'pending' };
+    if (property.approvalState === 'rejected') return { label: 'Declined', tone: 'declined' };
+    if (['Sold', 'Leased'].includes(property.status)) return { label: property.status, tone: property.status.toLowerCase() };
+    if (property.status === 'Reserved') return { label: 'Reserved', tone: 'reserved' };
+    if (property.status === 'Unavailable') return { label: 'Unavailable', tone: 'unavailable' };
+    return { label: 'Available', tone: 'available' };
+  };
   const askingPrice = (property) => {
     const amount = value => value === null || value === undefined || value === '' ? 'Price on request' : `PHP ${number(value)}`;
     const sale = amount(property.salePrice !== undefined ? property.salePrice : property.price);
@@ -234,55 +245,53 @@
     if (resultCount) resultCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'} shown.`;
     const countPill = root.querySelector('[data-property-count-pill]');
     if (countPill) countPill.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'}`;
-    root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => `
+    root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => {
+      const statusInfo = propertyOperationalStatus(property);
+      return `
       <article class="city-card-item tw-flex tw-flex-col tw-gap-4 sm:tw-gap-5 tw-rounded-[24px] tw-border tw-border-slate-200/90 tw-bg-white tw-p-5 sm:tw-flex-row sm:tw-items-center sm:tw-p-6 tw-shadow-[0_4px_20px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.1)] hover:tw-border-slate-300 hover:tw--translate-y-0.5 tw-transition-all tw-duration-200">
         <div class="city-card-thumb-wrap sm:tw-shrink-0">
-          <img class="city-card-thumb tw-h-40 tw-w-full sm:tw-h-28 sm:tw-w-36 tw-rounded-2xl tw-object-cover tw-border tw-border-slate-200/60 tw-shadow-sm" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
+          <div class="city-card-thumb-inner tw-relative tw-h-40 sm:tw-h-32 sm:tw-w-44 tw-rounded-2xl tw-overflow-hidden tw-bg-gradient-to-br tw-from-slate-100 tw-to-slate-200/90 tw-border tw-border-slate-200/80 tw-shadow-sm">
+            <img class="city-card-thumb tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-300 hover:tw-scale-105" src="${escape(imageUrl(property.imageUrl))}" alt="${escape(property.name)}" loading="lazy" onerror="this.onerror=null; this.src='${escape(path('assets/images/sfcView.png'))}';">
+            <span class="city-thumb-tag">${escape(property.category || 'Property')}</span>
+          </div>
         </div>
         <div class="tw-min-w-0 tw-flex-1">
-          <div class="tw-mb-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-100 tw-px-2.5 tw-py-1 tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-600">${escape(property.category)}</span>
-            <span class="city-pill ${escape(property.approvalState)}">
-              <span class="city-pill-dot" aria-hidden="true"></span>
-              ${escape(stateLabel(property.approvalState))}
-            </span>
-            ${property.isDeleted ? '<span class="city-pill city-deleted"><span class="city-pill-dot" aria-hidden="true"></span>Deleted</span>' : ''}
-            ${isArchived(property) ? '<span class="city-pill archived"><span class="city-pill-dot" aria-hidden="true"></span>Archived</span>' : ''}
-            <span class="city-pill city-availability-${escape(String(property.status || '').toLowerCase())}">
-              <span class="city-pill-dot" aria-hidden="true"></span>
-              ${escape(property.status)}
+          <div class="tw-mb-1.5 tw-flex tw-items-center tw-gap-2">
+            <span class="city-status-chip city-status-${escape(statusInfo.tone)}">
+              <span class="city-status-dot" aria-hidden="true"></span>
+              <span>${escape(statusInfo.label)}</span>
             </span>
           </div>
           <h2 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-tracking-tight">
             <a class="tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-transition-colors tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a>
           </h2>
-          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-font-medium tw-text-slate-500 tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap">
+          <p class="tw-mb-0 tw-mt-1.5 tw-text-xs tw-font-medium tw-text-slate-500 tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tw-text-slate-400" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            <span>${escape(property.barangay || property.city || 'Location pending')}</span>
-            ${property.subcategory ? `<span class="tw-text-slate-300">·</span><span>${escape(property.subcategory)}</span>` : ''}
+            <span class="tw-font-semibold tw-text-slate-700">${escape(property.barangay || property.city || 'Location pending')}</span>
+            ${property.subcategory ? `<span class="tw-text-slate-300">·</span><span class="tw-text-slate-500">${escape(property.subcategory)}</span>` : ''}
           </p>
-          <div class="tw-mt-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
-            <span class="city-purpose-pill">${escape(purposeLabel(property))}</span>
-            <span class="tw-text-xs tw-text-[#11224d]">
-              <strong class="tw-font-bold tw-text-sm">${escape(askingPrice(property))}</strong>
-              <span class="tw-mx-1.5 tw-text-slate-300">/</span>
-              <span class="tw-text-slate-600">${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</span>
-            </span>
+          <div class="tw-mt-3 tw-flex tw-flex-wrap tw-items-baseline tw-gap-2.5">
+            <span class="city-purpose-kicker">${escape(purposeLabel(property))}</span>
+            <span class="city-card-price"><strong class="tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-[#11224d]">${escape(askingPrice(property))}</strong></span>
+            <div class="city-spec-chip" title="Total footprint area">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tw-text-slate-400" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18M9 21V9"/></svg>
+              <span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}${property.area >= 1 ? ` <span class="city-spec-sub">(${number(property.area)} ha)</span>` : ''}</span>
+            </div>
           </div>
-          <p class="city-listing-dates tw-mt-2.5 tw-text-[11px] tw-text-slate-400 tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1">
+          <p class="city-listing-dates tw-mt-3 tw-text-[11px] tw-text-slate-400 tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1">
             <span>Created ${escape(listingDate(property.createdAt))}</span>
             ${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}
             ${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}
           </p>
         </div>
         <div class="city-card-scores tw-flex tw-items-center tw-gap-2.5 sm:tw-px-1">
-          <div class="city-score-bubble city-score-mce">
-            <span class="tw-block tw-text-[10px] tw-font-bold tw-tracking-wider tw-text-slate-500 tw-uppercase">MCE</span>
-            <strong class="tw-text-base tw-font-extrabold tw-text-[#11224d] tw-leading-tight">${score(property.mceScore)}</strong>
+          <div class="city-score-bubble city-score-mce" title="Municipal Commercial Evaluation">
+            <span class="city-score-kicker">MCE</span>
+            <strong class="city-score-num">${score(property.mceScore)}</strong>
           </div>
-          <div class="city-score-bubble city-score-iai">
-            <span class="tw-block tw-text-[10px] tw-font-bold tw-tracking-wider tw-text-amber-800 tw-uppercase">IAI</span>
-            <strong class="tw-text-base tw-font-extrabold tw-text-amber-900 tw-leading-tight">${score(property.iaiScore)}</strong>
+          <div class="city-score-bubble city-score-iai" title="Investor Appeal Index">
+            <span class="city-score-kicker">IAI</span>
+            <strong class="city-score-num">${score(property.iaiScore)}</strong>
           </div>
         </div>
         <div class="city-listing-controls sm:tw-shrink-0">
@@ -292,16 +301,19 @@
               <span>Restore property</span>
             </button>
           ` : `
-            <button class="city-button city-button-secondary city-btn-pill city-btn-pill-secondary" type="button" data-edit-property="${property.id}">
-              Edit details
-            </button>
-            ${governance && !isArchived(property) ? `
+            ${isReviewer && !isArchived(property) ? `
               <button class="city-button city-button-review city-btn-pill city-btn-pill-primary" type="button" data-review-property="${property.id}">
-                Review
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span>Review</span>
               </button>
             ` : ''}
+            <button class="city-button city-button-secondary city-btn-pill city-btn-pill-secondary" type="button" data-edit-property="${property.id}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <span>Edit details</span>
+            </button>
             <details class="city-property-menu">
               <summary aria-label="Manage ${escape(property.name)}" class="city-btn-pill city-btn-pill-manage">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Manage</span>
                 <svg class="city-menu-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
               </summary>
@@ -331,8 +343,8 @@
             </details>
           `}
         </div>
-      </article>
-    `).join('') : '<div class="city-empty-state tw-rounded-[24px] tw-border tw-border-dashed tw-border-slate-300 tw-bg-white tw-p-12 tw-text-center"><p class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">No properties found</p><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Try adjusting your search terms or selecting a different listing view.</p></div>';
+      </article>`;
+    }).join('') : '<div class="city-empty-state tw-rounded-[24px] tw-border tw-border-dashed tw-border-slate-300 tw-bg-white tw-p-12 tw-text-center"><p class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">No properties found</p><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Try adjusting your search terms or selecting a different listing view.</p></div>';
   }
 
   root.addEventListener('click', (event) => {
@@ -350,25 +362,114 @@
     form.elements.id.value = property.id;
     form.elements.action.value = action.dataset.propertyLifecycle;
     form.elements.status.value = action.dataset.availability || '';
-    dialog.querySelector('[data-lifecycle-property]').textContent = property.name;
+
     const lifecycleAction = action.dataset.propertyLifecycle;
-    const cancelBtn = dialog.querySelector('[data-close-dialog]');
+    const cancelBtn = dialog.querySelector('[data-lifecycle-cancel]');
+    const submitBtn = form.querySelector('[type="submit"]');
+    const iconBadge = dialog.querySelector('[data-lifecycle-icon-badge]');
+    const impactBox = dialog.querySelector('[data-lifecycle-impact]');
+    const kickerEl = dialog.querySelector('[data-lifecycle-kicker]');
+    const safeguardTextEl = dialog.querySelector('[data-lifecycle-safeguard-text]');
+
+    dialog.querySelector('[data-lifecycle-property]').textContent = property.name || 'Untitled property';
+    const thumbEl = dialog.querySelector('[data-lifecycle-thumb]');
+    if (thumbEl) {
+      thumbEl.src = imageUrl(property.imageUrl);
+      thumbEl.alt = property.name || 'Property thumbnail';
+    }
+    const locationEl = dialog.querySelector('[data-lifecycle-location]');
+    if (locationEl) {
+      locationEl.textContent = property.barangay || property.city || 'San Fernando';
+    }
+    const priceEl = dialog.querySelector('[data-lifecycle-price]');
+    if (priceEl) {
+      priceEl.textContent = askingPrice(property) || 'Price on request';
+    }
+    const categoryEl = dialog.querySelector('[data-lifecycle-category]');
+    if (categoryEl) {
+      categoryEl.textContent = property.category || property.type || 'Commercial';
+    }
+
     if (cancelBtn) {
       cancelBtn.textContent = lifecycleAction === 'delete' ? 'Keep property' : 'Cancel';
     }
+
+    const icons = {
+      delete: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+      restore: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+      archive: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+      unarchive: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="m10 12 2-2 2 2"/><path d="M12 10v6"/></svg>',
+      availability: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+    };
+
     const copy = {
-      delete:[`Delete "${property.name}"?`, 'This moves the listing to Deleted Listings and removes it from public results. Its listing status, archive state, evidence and history are retained, and authorized staff can restore it later.', 'Delete property'],
-      restore:['Restore this property?', `The property will return with its retained ${property.status} status${isArchived(property) ? ' and remain archived' : ''}. It will appear publicly only when available, approved and unarchived.`, 'Restore property'],
-      archive:['Archive this property?', 'The property will leave public listings. Its listing status, review decision, evidence and history are retained for later unarchiving.', 'Archive property'],
-      unarchive:['Unarchive this property?', `The property will return with its prior ${property.status} status. It will appear publicly only when available and approved.`, 'Unarchive property'],
-      availability:[`Mark as ${String(action.dataset.availability || '').toLowerCase()}?`, action.dataset.availability === 'Available' ? 'The listing will be visible to investors when approved and unarchived.' : 'The property will leave public listings. Its evidence and history are retained, and you can change its listing status later.', 'Update listing status'],
+      delete:[
+        'Delete listing?',
+        'This moves the listing to Deleted Listings and removes it from public catalog results. Its listing status, archive state, evidence and history are retained, and authorized staff can restore it later.',
+        'Delete property',
+        'Delete Listing',
+        'Retained in Deleted Listings — authorized staff can restore anytime.'
+      ],
+      restore:[
+        'Restore this property?',
+        `The property will return with its retained ${property.status} status${isArchived(property) ? ' and remain archived' : ''}. It will appear publicly only when available, approved and unarchived.`,
+        'Restore property',
+        'Restore Listing',
+        'Listing will be restored with all prior reviews and history intact.'
+      ],
+      archive:[
+        'Archive this property?',
+        'The property will leave public listings. Its listing status, review decision, evidence and history are retained for later unarchiving.',
+        'Archive property',
+        'Archive Listing',
+        'Listing will be hidden from public catalog but preserved in archive.'
+      ],
+      unarchive:[
+        'Unarchive this property?',
+        `The property will return with its prior ${property.status} status. It will appear publicly only when available and approved.`,
+        'Unarchive property',
+        'Unarchive Listing',
+        'Listing will be reactivated from the archive with its preserved state.'
+      ],
+      availability:[
+        `Mark as ${String(action.dataset.availability || '').toLowerCase()}?`,
+        action.dataset.availability === 'Available' ? 'The listing will be visible to investors when approved and unarchived.' : 'The property will leave public listings. Its evidence and history are retained, and you can change its listing status later.',
+        'Update listing status',
+        'Update Availability',
+        'Listing status will be updated immediately across the catalog.'
+      ],
     }[lifecycleAction];
     if (!copy) return;
+
+    if (iconBadge) {
+      iconBadge.className = `city-lifecycle-icon-badge theme-${lifecycleAction}`;
+      iconBadge.innerHTML = icons[lifecycleAction] || icons.availability;
+    }
+    if (impactBox) {
+      impactBox.className = `city-lifecycle-impact theme-${lifecycleAction}`;
+    }
+    if (kickerEl) {
+      kickerEl.textContent = copy[3];
+    }
+    if (safeguardTextEl) {
+      safeguardTextEl.textContent = copy[4];
+    }
+
     dialog.querySelector('[data-lifecycle-title]').textContent = copy[0];
     dialog.querySelector('[data-lifecycle-description]').textContent = copy[1];
-    form.querySelector('[type="submit"]').textContent = copy[2];
+
+    if (submitBtn) {
+      submitBtn.textContent = copy[2];
+      submitBtn.className = `city-button city-lifecycle-submit-btn ${lifecycleAction === 'delete' ? 'btn-theme-delete' : lifecycleAction === 'restore' ? 'btn-theme-restore' : 'btn-theme-primary'}`;
+    }
     message(form.querySelector('[data-lifecycle-message]'), '');
     dialog.showModal();
+  });
+
+  document.querySelector('#cityLifecycleDialog')?.addEventListener('click', (event) => {
+    if (event.target.id === 'cityLifecycleDialog') {
+      event.target.close();
+    }
   });
 
   document.querySelector('[data-lifecycle-form]')?.addEventListener('submit', async (event) => {
@@ -376,13 +477,16 @@
     const form = event.currentTarget;
     const submit = form.querySelector('[type="submit"]');
     const dialog = form.closest('dialog');
-    const cancelBtn = dialog?.querySelector('[data-close-dialog]');
+    const cancelBtn = dialog?.querySelector('[data-lifecycle-cancel]');
     const action = form.elements.action.value;
     const targetId = Number(form.elements.id.value);
     submit.disabled = true;
     if (cancelBtn) cancelBtn.disabled = true;
+    const originalText = submit.textContent;
     if (action === 'delete') {
       submit.innerHTML = '<span class="locus-spinner locus-spinner-dark tw-mr-1.5"></span>Deleting…';
+    } else {
+      submit.innerHTML = '<span class="locus-spinner locus-spinner-dark tw-mr-1.5"></span>Updating…';
     }
     try {
       await request(`property.php?id=${encodeURIComponent(targetId)}`, { method: action === 'delete' ? 'DELETE' : 'PATCH', body: JSON.stringify({ action, status: form.elements.status.value }) });
@@ -401,11 +505,15 @@
         message(status, ({restore:'Property restored with its prior listing status.',archive:'Property archived.',unarchive:'Property unarchived with its prior listing status.',availability:'Property listing status updated.'})[action] || 'Property updated.');
       }
     } catch (error) {
-      message(form.querySelector('[data-lifecycle-message]'), error.message || 'The property could not be deleted.', true);
+      message(form.querySelector('[data-lifecycle-message]'), error.message || 'The property action could not be completed.', true);
     } finally {
       submit.disabled = false;
       if (cancelBtn) cancelBtn.disabled = false;
-      if (action === 'delete') submit.textContent = 'Delete property';
+      if (action === 'delete') {
+        submit.textContent = 'Delete property';
+      } else {
+        submit.textContent = originalText;
+      }
     }
   });
 
@@ -478,6 +586,10 @@
     const skip = form.querySelector('[data-skip-enrichment]');
     if (skip) skip.hidden = ![1,2].includes(step);
     (form.querySelector('.pw-content') || editor).scrollTop = 0;
+    if (step === 2) {
+      const evidenceDisc = form.querySelector('[data-evidence-editor]');
+      if (evidenceDisc) evidenceDisc.open = true;
+    }
     if (propertyWizard) propertyWizard.onStep(step);
     else {
       if (step === 2) automaticAssessment?.refresh();
@@ -826,6 +938,142 @@
       reviewForm.elements.clup_verified.checked = Boolean(property.clupVerifiedAt);
     }
 
+    const isCityProperty = !property.sellerUserId || property.listing_type === 'city' || property.isCityProperty || property.seller_user_id === null;
+    const isBrokerListing = !isCityProperty && Boolean(property.sellerUserId || property.seller_user_id);
+    const currentUserId = Number(root.dataset.userId || config.user?.id || 0);
+    // Self-approval restriction applies strictly to private broker submissions where the user is the submitting seller/broker.
+    // Official City LGU municipal properties (sellerUserId is null) created by government administrators can be reviewed and published directly by authorized city governance.
+    const isSelf = isBrokerListing && currentUserId > 0 && (
+      Number(property.sellerUserId) === currentUserId ||
+      Number(property.seller_user_id) === currentUserId
+    );
+
+    const selfWarning = reviewForm.querySelector('[data-review-self-warning]');
+    const decisionSelect = reviewForm.querySelector('[data-review-decision-select]');
+    const submitBtn = reviewForm.querySelector('[data-review-submit-btn]');
+
+    if (selfWarning) {
+      selfWarning.hidden = !isSelf;
+    }
+    if (decisionSelect) {
+      decisionSelect.disabled = isSelf;
+    }
+    if (submitBtn) {
+      submitBtn.disabled = isSelf;
+    }
+
+    const areaSqm = property.parcel?.surveyAreaSqm || (property.area > 0 ? property.area * 10000 : 0);
+    const isSuspiciousArea = areaSqm > 0 && areaSqm <= 0.5;
+
+    // --- Section 1: Property Summary ---
+    const summaryContainer = reviewForm.querySelector('[data-review-summary-content]');
+    if (summaryContainer) {
+      const typeBadge = isBrokerListing
+        ? `<span class="city-badge tw-bg-blue-50 tw-text-blue-700" style="font-weight: 600;">Private Broker Submission</span>`
+        : `<span class="city-badge tw-bg-indigo-50 tw-text-indigo-800" style="font-weight: 600; border: 1px solid #C7D2FE;">🏛️ City LGU Municipal Property</span>`;
+
+      const verificationBadge = isBrokerListing
+        ? (property.sellerBrokerVerified
+            ? `<span class="city-badge tw-bg-emerald-50 tw-text-emerald-800">PRC Verified Broker</span>`
+            : `<span class="city-badge tw-bg-amber-50 tw-text-amber-800">Awaiting PRC Verification</span>`)
+        : `<span class="city-badge tw-bg-slate-100 tw-text-slate-700">Recorded by ${escape(property.createdByName || root.dataset.department || 'CICTO')}</span>`;
+
+      const classificationBadge = `<span class="city-badge tw-bg-slate-100 tw-text-slate-700">${escape(property.category || 'Commercial')}${property.subcategory ? ' · ' + escape(property.subcategory) : ''}</span>`;
+
+      const mceDisplay = score(property.mceScore);
+      const iaiDisplay = property.iaiScore != null ? score(property.iaiScore) : 'Pending investor activity';
+
+      summaryContainer.innerHTML = `
+        ${isSuspiciousArea ? `
+          <div style="background: #FEF3C7; border: 1.5px solid #F59E0B; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; color: #92400E; display: flex; align-items: flex-start; gap: 10px;">
+            <span style="font-size: 18px; line-height: 1; flex-shrink: 0;">⚠️</span>
+            <div>
+              <strong style="color: #78350F;">Suspicious Recorded Area (${number(areaSqm)} m²):</strong> The parcel area is recorded as 0.5 m² or less. This likely reflects a unit conversion anomaly (0.5 ha vs 0.5 m²) or test coordinate entry. Physical site inspection and title reconciliation are recommended prior to publication.
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="city-dossier-hero">
+          <h3 class="city-dossier-title">
+            ${escape(property.name)}
+            ${property.propertySubname || property.subname ? `<span style="font-size: 14px; font-weight: 500; color: #64748B;"> (${escape(property.propertySubname || property.subname)})</span>` : ''}
+          </h3>
+          <div class="city-dossier-tags">
+            ${typeBadge}
+            ${classificationBadge}
+            ${verificationBadge}
+          </div>
+        </div>
+
+        <div class="city-dossier-grid">
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Official Location</span>
+            <span class="city-dossier-card-val">${escape(property.barangay ? 'Brgy. ' + property.barangay : (property.city || 'San Fernando'))}</span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Survey Land Area</span>
+            <span class="city-dossier-card-val">${areaSqm > 0 ? `${number(areaSqm)} m² (${(areaSqm / 10000).toFixed(4)} ha)` : 'Not recorded'}</span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Asking Price / Lease Rate</span>
+            <span class="city-dossier-card-val" style="color: #047857;">${escape(askingPrice(property))}</span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Ratings (MCE · IAI)</span>
+            <span class="city-dossier-card-val" style="color: #11224D;">MCE ${mceDisplay} · IAI ${iaiDisplay}</span>
+          </div>
+        </div>
+
+        ${property.description ? `
+          <div style="font-size: 12.5px; color: #334155; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; line-height: 1.55;">
+            <strong style="color: #0F172A;">Description:</strong> ${escape(property.description)}
+          </div>
+        ` : ''}
+
+        ${property.readinessNotes ? `
+          <div style="font-size: 12px; color: #475569; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; line-height: 1.5;">
+            <strong style="color: #92400E;">Inspection &amp; Readiness Notes:</strong> ${escape(property.readinessNotes)}
+          </div>
+        ` : ''}
+
+        <div style="margin-top: 6px;">
+          <a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; color: #11224D; text-decoration: none; padding: 6px 12px; background: #F1F5F9; border-radius: 6px; transition: background 0.15s ease;">
+            <span>Open Property Details &amp; Interactive Map</span>
+            <span style="font-size: 14px;">↗</span>
+          </a>
+        </div>
+      `;
+    }
+
+    // --- Section 2: Uploaded Documents ---
+    // Photos
+    const photoCountBadge = reviewForm.querySelector('[data-review-photo-count]');
+    const photoThumbnails = reviewForm.querySelector('[data-review-photo-thumbnails]');
+    let photos = [];
+    if (Array.isArray(property.media) && property.media.length > 0) {
+      photos = property.media.map(m => typeof m === 'string' ? { url: m } : m);
+    } else if (Array.isArray(property.galleryImages) && property.galleryImages.length > 0) {
+      photos = property.galleryImages.map(m => typeof m === 'string' ? { url: m } : m);
+    } else if (property.imageUrl || property.imagePath) {
+      photos = [{ url: property.imageUrl || property.imagePath, label: 'Primary photo' }];
+    }
+
+    if (photoCountBadge) {
+      photoCountBadge.textContent = `${photos.length} photo${photos.length === 1 ? '' : 's'}`;
+    }
+    if (photoThumbnails) {
+      if (photos.length > 0) {
+        photoThumbnails.innerHTML = photos.map((p, idx) => `
+          <a href="${escape(imageUrl(p.url || p.path))}" target="_blank" rel="noopener noreferrer" class="city-photo-thumbnail">
+            <img src="${escape(imageUrl(p.url || p.path))}" alt="Photo ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='assets/images/sfcView.png'">
+          </a>
+        `).join('');
+      } else {
+        photoThumbnails.innerHTML = '<span style="font-size: 11.5px; color: #94A3B8; font-style: italic;">No property photos uploaded.</span>';
+      }
+    }
+
+    // Authority to Sell (ATS)
     const authCard = reviewForm.querySelector('[data-authority-review-card]');
     const authDetails = reviewForm.querySelector('[data-authority-review-details]');
     const authBadge = reviewForm.querySelector('[data-authority-review-status-badge]');
@@ -833,40 +1081,59 @@
     const auth = property.authorityToSell;
 
     if (authCard) {
-      if (auth && auth.fileId) {
+      const authFormControls = authCard.querySelectorAll('label, div:has([data-quick-reject-auth]), div:has([data-quick-validate-auth])');
+      if (!isBrokerListing) {
         authCard.hidden = false;
+        if (authBadge) {
+          authBadge.textContent = 'Exempt';
+          authBadge.className = 'city-badge tw-bg-slate-100 tw-text-slate-700';
+        }
         if (authDetails) {
           authDetails.innerHTML = `
-            <div><strong>Document:</strong> ${escape(auth.originalName || 'authority-to-sell')}</div>
-            <div><strong>Submitted by:</strong> ${escape(property.sellerName || property.ownerName || 'Submitting Broker')}</div>
-            <div><strong>Submitted:</strong> ${auth.uploadedAt ? new Date(auth.uploadedAt).toLocaleDateString('en-PH', {year:'numeric',month:'short',day:'numeric'}) : 'Recent'}</div>
-            ${auth.reviewedByUserName ? `<div><strong>Last reviewed by:</strong> ${escape(auth.reviewedByUserName)} on ${new Date(auth.reviewedAt).toLocaleDateString('en-PH')}</div>` : ''}
+            <div class="city-auth-exempt-box">
+              <div class="city-auth-exempt-icon">🏛️</div>
+              <div>
+                <div style="font-weight: 700; color: #11224D; font-size: 12.5px;">City LGU Municipal Asset — Authority to Sell Exempt</div>
+                <div style="font-size: 12px; color: #64748B; margin-top: 2px;">Authority to Sell (ATS) is not required for City Government managed and cataloged properties.</div>
+              </div>
+            </div>
           `;
         }
-        if (authLink) {
-          authLink.href = `api/property-authority-to-sell.php?id=${encodeURIComponent(property.id)}`;
-          authLink.hidden = false;
-        }
-        if (authBadge) {
-          const st = auth.status || 'pending_review';
-          authBadge.textContent = st.replaceAll('_', ' ');
-          authBadge.className = `city-badge ${st === 'validated' ? 'tw-bg-emerald-100 tw-text-emerald-800' : st === 'rejected' ? 'tw-bg-rose-100 tw-text-rose-800' : 'tw-bg-amber-100 tw-text-amber-800'}`;
-        }
-        if (reviewForm.elements.authority_to_sell_status) {
-          reviewForm.elements.authority_to_sell_status.value = auth.status || 'pending_review';
-        }
-        if (reviewForm.elements.authority_to_sell_note) {
-          reviewForm.elements.authority_to_sell_note.value = auth.reviewNote || '';
-        }
+        if (authLink) authLink.style.display = 'none';
+        authFormControls.forEach(el => el.style.display = 'none');
       } else {
-        if (!property.sellerUserId) {
-          authCard.hidden = true;
-        } else {
-          authCard.hidden = false;
+        authCard.hidden = false;
+        authFormControls.forEach(el => el.style.display = '');
+
+        if (auth && (auth.fileId || auth.id)) {
           if (authDetails) {
-            authDetails.innerHTML = '<p class="city-help">No Authority to Sell document uploaded by broker yet.</p>';
+            authDetails.innerHTML = `
+              <div><strong>Document:</strong> ${escape(auth.originalName || 'authority-to-sell.pdf')}</div>
+              <div><strong>Submitted by:</strong> ${escape(property.sellerName || 'Broker')}</div>
+              <div><strong>Submitted:</strong> ${auth.uploadedAt ? new Date(auth.uploadedAt).toLocaleDateString('en-PH', {year:'numeric',month:'short',day:'numeric'}) : 'Recent'}</div>
+              ${auth.reviewedByUserName ? `<div><strong>Last reviewed by:</strong> ${escape(auth.reviewedByUserName)} on ${new Date(auth.reviewedAt).toLocaleDateString('en-PH')}</div>` : ''}
+            `;
           }
-          if (authLink) authLink.hidden = true;
+          if (authLink) {
+            authLink.href = `api/property-authority-to-sell.php?id=${encodeURIComponent(property.id)}`;
+            authLink.style.display = '';
+          }
+          const st = (typeof auth === 'object' && auth.status) ? auth.status : 'pending_review';
+          if (authBadge) {
+            authBadge.textContent = String(st).replaceAll('_', ' ');
+            authBadge.className = `city-badge ${st === 'validated' ? 'tw-bg-emerald-100 tw-text-emerald-800' : st === 'rejected' ? 'tw-bg-rose-100 tw-text-rose-800' : 'tw-bg-amber-100 tw-text-amber-800'}`;
+          }
+          if (reviewForm.elements.authority_to_sell_status) {
+            reviewForm.elements.authority_to_sell_status.value = st;
+          }
+          if (reviewForm.elements.authority_to_sell_note) {
+            reviewForm.elements.authority_to_sell_note.value = auth.reviewNote || '';
+          }
+        } else {
+          if (authDetails) {
+            authDetails.innerHTML = '<p class="city-help" style="color: #991B1B;">No Authority to Sell document uploaded by broker yet.</p>';
+          }
+          if (authLink) authLink.style.display = 'none';
           if (authBadge) {
             authBadge.textContent = 'Missing document';
             authBadge.className = 'city-badge tw-bg-rose-100 tw-text-rose-800';
@@ -875,11 +1142,260 @@
       }
     }
 
-    const checklist = Object.entries(property.documentStatuses || {}).map(([key, value]) => `<dt>${escape(key.replaceAll('_', ' '))}</dt><dd>${escape(value)}</dd>`).join('');
-    reviewForm.querySelector('[data-review-evidence]').innerHTML = `<div class="city-evidence"><strong>${escape(property.name)}</strong><p>${escape(property.description)}</p><p>Broker registration: ${property.sellerUserId ? (property.sellerBrokerVerified ? 'Verified and current' : 'Awaiting valid PRC verification') : 'City listing'}</p><p>${escape(property.category)} · ${escape(property.barangay || 'Barangay not specified')} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p><p>MCE ${score(property.mceScore)} · IAI ${score(property.iaiScore)}</p><p>${escape(property.readinessNotes || 'Department assessment basis not provided.')}</p><dl>${checklist}</dl><a href="${escape(propertyUrl(property.id))}" target="_blank" rel="noopener noreferrer">View property and map ↗</a></div>`;
+    // Document Checklist
+    const docChecklistContainer = reviewForm.querySelector('[data-review-doc-checklist]');
+    if (docChecklistContainer) {
+      const statuses = property.documentStatuses || {};
+      const photoCount = photos.length;
+      const rows = Object.entries(statuses).map(([key, val]) => {
+        let rawStatus = 'not_submitted';
+        if (typeof val === 'string') {
+          rawStatus = val;
+        } else if (typeof val === 'object' && val !== null) {
+          rawStatus = val.status || val.label || 'submitted';
+        }
+
+        const label = key.replaceAll('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+        if (key === 'site_photos') {
+          if (photoCount > 0) {
+            return `
+              <tr style="border-bottom: 1px solid #F1F5F9;">
+                <td style="padding: 8px 10px; font-weight: 600; color: #1E293B;">Site Photos</td>
+                <td style="padding: 8px 10px;">
+                  <span class="city-badge tw-bg-emerald-50 tw-text-emerald-800" style="font-size: 11px; font-weight: 600;">Uploaded (${photoCount} photo${photoCount === 1 ? '' : 's'})</span>
+                </td>
+                <td style="padding: 8px 10px; font-size: 11px; color: #64748B;">Attached to listing media gallery</td>
+              </tr>
+            `;
+          }
+        }
+
+        if (key === 'zoning_clearance' || key === 'hazard_report') {
+          return `
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 8px 10px; font-weight: 600; color: #1E293B;">${escape(label)}</td>
+              <td style="padding: 8px 10px;">
+                <span class="city-badge tw-bg-teal-50 tw-text-teal-800" style="font-size: 11px; font-weight: 600;">Municipal GIS Assessment</span>
+              </td>
+              <td style="padding: 8px 10px; font-size: 11px; color: #64748B;">Automated CLUP &amp; DOST-PHIVOLCS multi-layer screening</td>
+            </tr>
+          `;
+        }
+
+        if (key === 'authority_to_sell' && !isBrokerListing) {
+          return `
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 8px 10px; font-weight: 600; color: #1E293B;">Authority To Sell</td>
+              <td style="padding: 8px 10px;"><span class="city-badge tw-bg-slate-100 tw-text-slate-600" style="font-size: 11px; font-weight: 600;">Exempt</span></td>
+              <td style="padding: 8px 10px; font-size: 11px; color: #64748B;">Not required for City LGU properties</td>
+            </tr>
+          `;
+        }
+
+        const badgeClass = rawStatus === 'validated' || rawStatus === 'submitted' || rawStatus === 'approved'
+          ? 'tw-bg-emerald-50 tw-text-emerald-800'
+          : rawStatus === 'rejected'
+          ? 'tw-bg-rose-50 tw-text-rose-800'
+          : rawStatus === 'pending_review'
+          ? 'tw-bg-amber-50 tw-text-amber-800'
+          : 'tw-bg-slate-100 tw-text-slate-600';
+
+        return `
+          <tr style="border-bottom: 1px solid #F1F5F9;">
+            <td style="padding: 8px 10px; font-weight: 600; color: #1E293B;">${escape(label)}</td>
+            <td style="padding: 8px 10px;">
+              <span class="city-badge ${badgeClass}" style="font-size: 11px; font-weight: 600;">${escape(rawStatus.replaceAll('_', ' '))}</span>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; color: #64748B;">${rawStatus === 'submitted' || rawStatus === 'validated' ? 'Provided' : 'Pending submitter upload'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      docChecklistContainer.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px;">
+          <thead>
+            <tr style="text-align: left; background: #F8FAFC; border-bottom: 1.5px solid #E2E8F0;">
+              <th style="padding: 8px 10px; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em;">Document</th>
+              <th style="padding: 8px 10px; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em;">Status</th>
+              <th style="padding: 8px 10px; font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.04em;">Verification Basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="3" style="padding: 10px; color: #94A3B8;">No document requirements defined.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // --- Section 3: Zoning & Risk Status ---
+    const zoningRiskContainer = reviewForm.querySelector('[data-review-zoning-risk-content]');
+    if (zoningRiskContainer) {
+      const officialZone = property.zoningClassification || property.clupProfile?.zoningClassification || 'Not assigned';
+      const existingUse = property.existingLandUse || 'Not recorded';
+      let allowedCount = 0;
+      if (Array.isArray(property.clupAllowedUses)) {
+        allowedCount = property.clupAllowedUses.length;
+      } else if (typeof property.clupAllowedUses === 'string') {
+        try { allowedCount = JSON.parse(property.clupAllowedUses).length; } catch { allowedCount = 0; }
+      }
+
+      const criteria = property.assessmentCriteria || property.criteriaDetails || {};
+      const physicalCriteriaConfig = [
+        { key: 'spatial_accessibility', altKeys: [], weight: 20.0 },
+        { key: 'infrastructure_readiness', altKeys: [], weight: 20.0 },
+        { key: 'economic_viability', altKeys: ['economic_dynamism'], weight: 20.0 },
+        { key: 'nearby_businesses', altKeys: ['nearby_attractors'], weight: 10.0 },
+        { key: 'risk_constraints', altKeys: ['environmental_risk'], weight: 15.0 },
+      ];
+
+      let physicalSubtotal = 0;
+      let physicalAvailable = 0;
+
+      physicalCriteriaConfig.forEach(cfg => {
+        let item = criteria[cfg.key];
+        if (item === undefined) {
+          for (const alt of cfg.altKeys) {
+            if (criteria[alt] !== undefined) {
+              item = criteria[alt];
+              break;
+            }
+          }
+        }
+
+        let scoreVal = null;
+        if (typeof item === 'number') {
+          scoreVal = item;
+        } else if (typeof item === 'string' && item.trim() !== '' && !isNaN(Number(item))) {
+          scoreVal = Number(item);
+        } else if (item && typeof item === 'object') {
+          if (item.score != null) scoreVal = Number(item.score);
+          else if (item.rating != null) scoreVal = Number(item.rating);
+          else if (item.value != null) scoreVal = Number(item.value);
+        }
+
+        if (scoreVal != null && !isNaN(scoreVal)) {
+          physicalSubtotal += (scoreVal / 100) * cfg.weight;
+          physicalAvailable += cfg.weight;
+        }
+      });
+
+      // Fallback: If individual criteria breakdown is missing or 0 but property.mceScore exists (> 0),
+      // the physical site baseline is intrinsically the 85% physical portion of the MCE rating
+      if (physicalSubtotal === 0 && Number(property.mceScore) > 0) {
+        physicalSubtotal = Math.round(Number(property.mceScore) * 0.85 * 10) / 10;
+        physicalAvailable = 85.0;
+      }
+
+      const baselinePct = physicalAvailable > 0
+        ? Math.min(100, Math.round((physicalSubtotal / physicalAvailable) * 100))
+        : 0;
+
+      const riskDetail = criteria.risk_constraints || {};
+      const hazardIndicators = riskDetail.indicators || riskDetail.hazards || {};
+      const faultNear = hazardIndicators.fault || hazardIndicators.active_fault || {};
+      const hasFaultConcern = faultNear.warning || (faultNear.distanceMeters != null && faultNear.distanceMeters <= 500);
+
+      zoningRiskContainer.innerHTML = `
+        <div class="city-dossier-grid" style="margin-bottom: 14px;">
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Official Zoning District</span>
+            <span class="city-dossier-card-val"><span class="city-badge tw-bg-indigo-50 tw-text-indigo-900" style="font-size: 11.5px; font-weight: 700;">${escape(officialZone)}</span></span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Existing Property Use</span>
+            <span class="city-dossier-card-val">${escape(existingUse)}</span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Permitted Land Uses</span>
+            <span class="city-dossier-card-val">${allowedCount > 0 ? `${allowedCount} registered uses` : 'Ordinance defaults apply'}</span>
+          </div>
+          <div class="city-dossier-card">
+            <span class="city-dossier-card-label">Physical Site Baseline</span>
+            <span class="city-dossier-card-val" style="color: #11224D;">${physicalSubtotal.toFixed(1)} / ${physicalAvailable > 0 ? physicalAvailable.toFixed(0) : '85'} pts <span style="font-size: 11px; font-weight: 500; color: #64748B;">(85% max)</span></span>
+          </div>
+        </div>
+
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11.5px; font-weight: 650; color: #475569; text-transform: uppercase; letter-spacing: 0.04em;">Physical Site Baseline Progress</span>
+            <span style="font-size: 12px; font-weight: 750; color: #11224D;">${physicalSubtotal.toFixed(1)} / ${physicalAvailable > 0 ? physicalAvailable.toFixed(0) : '85'} pts (${baselinePct}%)</span>
+          </div>
+          <div class="city-baseline-bar-container" style="margin-top: 0;">
+            <div class="city-baseline-bar-track">
+              <div class="city-baseline-bar-fill" style="width: ${baselinePct}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: #475569; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
+          <span style="font-size: 15px; line-height: 1; flex-shrink: 0;">ℹ️</span>
+          <div>
+            <strong style="color: #1E293B;">Zoning Compatibility (15%):</strong> Evaluated interactively by prospective investors based on proposed activity. Physical baseline reflects intrinsic infrastructure, connectivity, and environmental risk constraints.
+          </div>
+        </div>
+
+        ${hasFaultConcern ? `
+          <div style="background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; padding: 12px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;">
+            <span style="font-size: 16px; line-height: 1; flex-shrink: 0;">⚠️</span>
+            <div>
+              <strong style="color: #7F1D1D;">Active Fault Setback Notice:</strong> DOST-PHIVOLCS guidelines recommend a 5-meter buffer corridor from active fault traces. A site-specific geotechnical Engineering Geological and Geohazard Assessment Report (EGGAR) is required for development clearances.
+            </div>
+          </div>
+        ` : `
+          <div style="font-size: 12px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
+            <span style="font-size: 15px; line-height: 1; flex-shrink: 0;">✓</span>
+            <div>
+              <strong style="color: #065F46;">Hazard Screening Passed:</strong> Multi-hazard layers evaluated (DOST-PHIVOLCS / MGB / NOAH). Unassessed layers default to "Not Assessed" without penalizing property scores.
+            </div>
+          </div>
+        `}
+      `;
+    }
+
+    // --- Section 4: Reviewer Decision ---
+    const roleCaption = reviewForm.querySelector('[data-reviewer-role-caption]');
+    const noteLabel = reviewForm.querySelector('[data-review-note-label]');
+
+    if (roleCaption) {
+      roleCaption.textContent = governance
+        ? 'CICTO Final Publication Authority: Approving this listing makes it live and publicly searchable on LOCUS-SF. Rejecting notifies the submitter.'
+        : 'Departmental Verification: CAO/LEBDO personnel endorse property readiness and verify official zoning and site data. CICTO performs final publication.';
+    }
+
+    if (noteLabel) {
+      noteLabel.textContent = isBrokerListing ? 'Message to broker' : 'Internal Review Remarks';
+    }
+    if (reviewForm.elements.reviewNote) {
+      reviewForm.elements.reviewNote.placeholder = isBrokerListing
+        ? 'Explain decision, required corrections, or document resubmission instructions...'
+        : 'Enter internal departmental review notes or validation remarks...';
+    }
+
+    if (decisionSelect) {
+      if (governance) {
+        decisionSelect.innerHTML = `
+          <option value="approved"${property.approvalState === 'approved' ? ' selected' : ''}>Approve &amp; Publish Listing</option>
+          <option value="pending_review"${property.approvalState === 'pending_review' ? ' selected' : ''}>Keep in Pending Review</option>
+          <option value="rejected"${property.approvalState === 'rejected' ? ' selected' : ''}>Reject / Decline Listing</option>
+          <option value="draft"${property.approvalState === 'draft' ? ' selected' : ''}>Return to Draft</option>
+        `;
+      } else {
+        decisionSelect.innerHTML = `
+          <option value="pending_review" selected>Endorse (Pending CICTO Publication)</option>
+        `;
+      }
+    }
+
+    if (submitBtn) {
+      submitBtn.textContent = governance ? 'Submit Publication Decision' : 'Save Departmental Endorsement';
+    }
+
     message(reviewForm.querySelector('[data-review-message]'), '');
     reviewDialog.showModal();
-    reviewForm.elements.reviewNote.focus();
+    if (!isSelf) {
+      reviewForm.elements.reviewNote.focus();
+    }
   }
 
   reviewForm?.querySelector('[data-quick-reject-auth]')?.addEventListener('click', () => {
@@ -960,6 +1476,25 @@
   reviewForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!reviewForm.reportValidity()) return;
+    const reviewedId = Number(reviewForm.elements.id.value);
+    const property = properties.find((item) => item.id === reviewedId);
+
+    const currentUserId = Number(root.dataset.userId || config.user?.id || 0);
+    const isBroker = Boolean(property && property.sellerUserId);
+    if (isBroker && currentUserId > 0 && (
+      Number(property.sellerUserId) === currentUserId ||
+      Number(property.seller_user_id) === currentUserId
+    )) {
+      message(reviewForm.querySelector('[data-review-message]'), 'Brokers cannot review or approve their own submissions.', true);
+      return;
+    }
+
+    if (property && property.sellerUserId && ['approved', 'rejected'].includes(reviewForm.elements.approval_state.value) && !reviewForm.elements.reviewNote.value.trim()) {
+      message(reviewForm.querySelector('[data-review-message]'), 'Add a review message for the broker.', true);
+      reviewForm.elements.reviewNote.focus();
+      return;
+    }
+
     if (reviewForm.elements.authority_to_sell_status?.value === 'rejected' && !reviewForm.elements.authority_to_sell_note?.value.trim()) {
       message(reviewForm.querySelector('[data-review-message]'), 'A note/reason is required when rejecting Authority to Sell.', true);
       reviewForm.elements.authority_to_sell_note?.focus();
@@ -975,11 +1510,10 @@
         site_verified: reviewForm.elements.site_verified.checked,
         clup_verified: reviewForm.elements.clup_verified ? reviewForm.elements.clup_verified.checked : false,
       };
-      if (reviewForm.elements.authority_to_sell_status) {
+      if (reviewForm.elements.authority_to_sell_status && property?.sellerUserId) {
         payload.authority_to_sell_status = reviewForm.elements.authority_to_sell_status.value;
         payload.authority_to_sell_note = reviewForm.elements.authority_to_sell_note.value;
       }
-      const reviewedId = Number(reviewForm.elements.id.value);
       await request(`property.php?id=${encodeURIComponent(reviewedId)}`, { method: 'PATCH', body: JSON.stringify(payload) });
       await refresh();
       reviewDialog.close();
@@ -994,6 +1528,8 @@
         } else {
           message(status, 'Listing approved. All pending reviews complete.');
         }
+      } else if (!governance) {
+        message(status, 'Departmental verification and endorsement saved.');
       } else {
         message(status, 'Listing decision and Authority to Sell validation saved.');
       }

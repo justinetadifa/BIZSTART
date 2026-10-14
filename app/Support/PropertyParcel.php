@@ -81,6 +81,31 @@ final class PropertyParcel
             if ($value !== null && $value <= 0) { throw new InvalidArgumentException('Comparable market price must be greater than zero.'); }
             $observations['comparable_market_price'] = $value;
         }
+        if (array_key_exists('comparable_lease_price', $payload)) {
+            $value = self::optionalNumber($payload['comparable_lease_price'], 'Comparable lease price');
+            if ($value !== null && $value <= 0) { throw new InvalidArgumentException('Comparable lease price must be greater than zero.'); }
+            $observations['comparable_lease_price'] = $value;
+        }
+        if (array_key_exists('offered_area_sqm', $payload)) {
+            $value = self::optionalNumber($payload['offered_area_sqm'], 'Offered space area');
+            if ($value !== null && $value <= 0) { throw new InvalidArgumentException('Offered space area must be greater than zero.'); }
+            $observations['offered_area_sqm'] = $value;
+        }
+        if (array_key_exists('security_deposit_months', $payload)) {
+            $value = self::optionalNumber($payload['security_deposit_months'], 'Security deposit');
+            if ($value !== null && $value < 0) { throw new InvalidArgumentException('Security deposit months cannot be negative.'); }
+            $observations['security_deposit_months'] = $value;
+        }
+        if (array_key_exists('advance_rent_months', $payload)) {
+            $value = self::optionalNumber($payload['advance_rent_months'], 'Advance rent');
+            if ($value !== null && $value < 0) { throw new InvalidArgumentException('Advance rent months cannot be negative.'); }
+            $observations['advance_rent_months'] = $value;
+        }
+        if (array_key_exists('additional_purchase_costs', $payload)) {
+            $value = self::optionalNumber($payload['additional_purchase_costs'], 'Additional purchase costs');
+            if ($value !== null && $value < 0) { throw new InvalidArgumentException('Additional purchase costs cannot be negative.'); }
+            $observations['additional_purchase_costs'] = $value;
+        }
         if (array_key_exists('lgu_valuation_amount', $payload)) {
             $value = self::optionalNumber($payload['lgu_valuation_amount'], 'LGU valuation amount');
             if ($value !== null && $value <= 0) { throw new InvalidArgumentException('LGU valuation amount must be greater than zero.'); }
@@ -88,6 +113,7 @@ final class PropertyParcel
         }
         foreach ([
             'sale_price_mode', 'lease_price_mode',
+            'offered_space_scope', 'utilities_included',
             'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference',
             'comparable_source', 'lgu_valuation_type',
             'road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road',

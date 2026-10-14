@@ -51,6 +51,13 @@
       const match = btn.getAttribute('data-locus-tab') === tabName;
       btn.setAttribute('aria-selected', match ? 'true' : 'false');
       btn.classList.toggle('is-active', match);
+      if (match) {
+        try {
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } catch (e) {
+          // Ignored
+        }
+      }
     });
 
     // Update tab panels
@@ -59,6 +66,12 @@
       const match = panel.getAttribute('data-locus-panel') === tabName;
       panel.hidden = !match;
     });
+
+    // Close feedback drawer if switching away from team tab
+    if (tabName !== 'team') {
+      const drawer = document.getElementById('locusFeedbackDrawer');
+      if (drawer) drawer.hidden = true;
+    }
   }
 
   function showScoresView(subview) {
@@ -179,9 +192,12 @@
       }
     });
 
-    // Tab buttons
+    // Tab buttons with sound feedback
     dialog.querySelectorAll('.locus-help-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('tap');
+        }
         const tab = btn.getAttribute('data-locus-tab');
         if (tab === 'scores') {
           showTab('scores');
@@ -192,9 +208,12 @@
       });
     });
 
-    // Accordion headers
+    // Accordion headers with sound feedback
     dialog.querySelectorAll('.locus-accordion-header').forEach(header => {
       header.addEventListener('click', () => {
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('tap');
+        }
         const item = header.closest('.locus-accordion-item');
         if (item) toggleAccordion(item);
       });
@@ -204,6 +223,9 @@
     dialog.querySelectorAll('.locus-to-criteria-view').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('select');
+        }
         showTab('scores');
         showScoresView('criteria');
       });
@@ -212,6 +234,9 @@
     dialog.querySelectorAll('.locus-to-common-view').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('select');
+        }
         showTab('scores');
         showScoresView('common');
       });
@@ -220,6 +245,9 @@
     dialog.querySelectorAll('.locus-to-team-tab').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('select');
+        }
         showTab('team');
       });
     });
@@ -227,6 +255,9 @@
     dialog.querySelectorAll('.locus-to-scores-tab').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('select');
+        }
         showTab('scores');
         showScoresView('common');
       });
@@ -235,9 +266,76 @@
     dialog.querySelectorAll('[data-open-sound-tab]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('tap');
+        }
         showTab('sounds');
       });
     });
+
+    // Interactive Team Feedback Drawer
+    const openFeedbackBtn = document.getElementById('locusOpenFeedbackBtn');
+    const closeFeedbackBtn = document.getElementById('locusCloseFeedbackBtn');
+    const cancelFeedbackBtn = document.getElementById('locusCancelFeedbackBtn');
+    const feedbackDrawer = document.getElementById('locusFeedbackDrawer');
+    const feedbackForm = document.getElementById('locusFeedbackForm');
+    const feedbackStatus = document.getElementById('locusFeedbackStatus');
+
+    function toggleFeedbackDrawer(forceState) {
+      if (!feedbackDrawer) return;
+      const willShow = forceState !== undefined ? forceState : feedbackDrawer.hidden;
+      feedbackDrawer.hidden = !willShow;
+      if (willShow) {
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('select');
+        }
+        const firstField = feedbackDrawer.querySelector('input, select, textarea');
+        if (firstField) {
+          setTimeout(() => firstField.focus(), 50);
+        }
+        feedbackDrawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+
+    if (openFeedbackBtn) {
+      openFeedbackBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleFeedbackDrawer();
+      });
+    }
+
+    if (closeFeedbackBtn) {
+      closeFeedbackBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleFeedbackDrawer(false);
+      });
+    }
+
+    if (cancelFeedbackBtn) {
+      cancelFeedbackBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleFeedbackDrawer(false);
+      });
+    }
+
+    if (feedbackForm) {
+      feedbackForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (window.CitySound && typeof window.CitySound.play === 'function') {
+          window.CitySound.play('success');
+        }
+        if (feedbackStatus) {
+          feedbackStatus.className = 'locus-feedback-status is-success';
+          feedbackStatus.innerHTML = '<strong>Message recorded!</strong> Thank you for your feedback. The research authors will review your submission.';
+          feedbackStatus.hidden = false;
+        }
+        feedbackForm.reset();
+        setTimeout(() => {
+          if (feedbackStatus) feedbackStatus.hidden = true;
+          toggleFeedbackDrawer(false);
+        }, 3000);
+      });
+    }
 
     // View this property's evidence link
     dialog.querySelectorAll('.locus-view-property-evidence').forEach(link => {

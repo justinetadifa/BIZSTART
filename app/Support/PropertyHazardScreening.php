@@ -47,6 +47,8 @@ final class PropertyHazardScreening
         $hazardsData = self::loadHazards();
         $envData = self::loadEnvironment();
 
+        $parcelRing = self::extractVertices($boundary);
+
         // 1. Flood evaluation
         $floodResult = [
             'status' => 'not_assessed',
@@ -64,14 +66,17 @@ final class PropertyHazardScreening
                 }
                 $geom = $feature['geometry'] ?? [];
                 if (($geom['type'] ?? '') === 'Polygon' && isset($geom['coordinates'][0])) {
-                    if (self::pointInPolygon([$lng, $lat], $geom['coordinates'][0])) {
+                    $hazardRing = $geom['coordinates'][0];
+                    $isInsideOrIntersects = self::pointInPolygon([$lng, $lat], $hazardRing)
+                        || ($parcelRing !== null && self::polygonIntersectsPolygon($parcelRing, $hazardRing));
+                    if ($isInsideOrIntersects) {
                         $hzStatus = strtolower((string) ($feature['properties']['hazard_status'] ?? ''));
                         if ($hzStatus === 'high') {
                             $floodResult = [
                                 'status' => 'high',
                                 'badge' => 'HIGH',
                                 'color' => 'red',
-                                'details' => 'Property intersects a mapped high-susceptibility zone.',
+                                'details' => 'Property boundary intersects a mapped high-susceptibility riverine flood zone.',
                                 'source' => (string) ($feature['properties']['source'] ?? 'MGB Region 1 Geo-Hazard Assessment'),
                                 'reference' => (string) ($feature['properties']['reference'] ?? 'MGB-R1-SFC-FL01'),
                             ];
@@ -80,7 +85,7 @@ final class PropertyHazardScreening
                                 'status' => 'moderate',
                                 'badge' => 'MODERATE',
                                 'color' => 'amber',
-                                'details' => 'Property intersects a mapped moderate flood susceptibility zone.',
+                                'details' => 'Property boundary intersects a mapped moderate flood susceptibility zone.',
                                 'source' => (string) ($feature['properties']['source'] ?? 'MGB Region 1 Geo-Hazard Assessment'),
                                 'reference' => (string) ($feature['properties']['reference'] ?? 'MGB-R1-SFC-FL02'),
                             ];
@@ -123,14 +128,24 @@ final class PropertyHazardScreening
                 }
                 $geom = $feature['geometry'] ?? [];
                 if (($geom['type'] ?? '') === 'Polygon' && isset($geom['coordinates'][0])) {
-                    $isInside = self::pointInPolygon([$lng, $lat], $geom['coordinates'][0]);
-                    if ($isInside && ($feature['properties']['hazard_status'] ?? '') === 'high') {
+                    $hazardRing = $geom['coordinates'][0];
+                    $isInsideOrIntersects = self::pointInPolygon([$lng, $lat], $hazardRing)
+                        || ($parcelRing !== null && self::polygonIntersectsPolygon($parcelRing, $hazardRing));
+                    if ($isInsideOrIntersects && ($feature['properties']['hazard_status'] ?? '') === 'high') {
                         $insideFaultZone = true;
                         $faultFeatureProps = $feature['properties'];
                     }
                     if (($feature['properties']['hazard_status'] ?? '') === 'high') {
-                        foreach ($geom['coordinates'][0] as $vertex) {
+                        foreach ($hazardRing as $vertex) {
                             $dist = self::haversineKm($lat, $lng, (float) $vertex[1], (float) $vertex[0]);
+                            if ($parcelRing !== null) {
+                                foreach ($parcelRing as $pPt) {
+                                    $distP = self::haversineKm((float) $pPt[1], (float) $pPt[0], (float) $vertex[1], (float) $vertex[0]);
+                                    if ($distP < $dist) {
+                                        $dist = $distP;
+                                    }
+                                }
+                            }
                             if ($dist < $minFaultDist) {
                                 $minFaultDist = $dist;
                                 $faultFeatureProps = $feature['properties'];
@@ -147,7 +162,7 @@ final class PropertyHazardScreening
                     'color' => 'red',
                     'distance_km' => 0.0,
                     'proximity' => '0.0 km (Within active fault corridor)',
-                    'details' => 'Property intersects active tectonic fault buffer corridor.',
+                    'details' => 'Property boundary intersects active tectonic fault buffer corridor (DOST-PHIVOLCS recommended 5m setback; site-specific EGGAR review required).',
                     'source' => (string) ($faultFeatureProps['source'] ?? 'PHIVOLCS Active Faults Map'),
                     'reference' => (string) ($faultFeatureProps['reference'] ?? 'PHIVOLCS-Q1-WIFS-2025'),
                 ];
@@ -162,7 +177,7 @@ final class PropertyHazardScreening
                     'color' => $color,
                     'distance_km' => $roundedKm,
                     'proximity' => $roundedKm . ' km',
-                    'details' => $roundedKm . ' km from nearest mapped fault',
+                    'details' => $roundedKm . ' km from nearest mapped fault trace',
                     'source' => (string) ($faultFeatureProps['source'] ?? 'PHIVOLCS Active Faults Map of the Philippines'),
                     'reference' => (string) ($faultFeatureProps['reference'] ?? 'PHIVOLCS-WIFS-2025'),
                 ];
@@ -228,8 +243,8 @@ final class PropertyHazardScreening
             'fault' => $faultResult,
             'environment' => $envResult,
             'source' => 'City spatial dataset',
-            'status_label' => 'City validated',
-            'validated' => true,
+            'status_label' => 'Provisional spatial screening',
+            'validated' => false,
         ];
     }
 
@@ -294,5 +309,66 @@ final class PropertyHazardScreening
              sin($dLon / 2) * sin($dLon / 2);
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
         return $earthRadius * $c;
+    }
+
+    private static function extractVertices(mixed $boundary): ?array
+    {
+        if (!is_array($boundary)) {
+            return null;
+        }
+        if (isset($boundary['geometry']['coordinates'][0]) && is_array($boundary['geometry']['coordinates'][0])) {
+            return $boundary['geometry']['coordinates'][0];
+        }
+        if (isset($boundary['coordinates'][0]) && is_array($boundary['coordinates'][0])) {
+            return $boundary['coordinates'][0];
+        }
+        if (isset($boundary[0]) && is_array($boundary[0]) && isset($boundary[0][0]) && is_numeric($boundary[0][0])) {
+            return $boundary;
+        }
+        return null;
+    }
+
+    private static function polygonIntersectsPolygon(array $polyA, array $polyB): bool
+    {
+        foreach ($polyA as $pt) {
+            if (is_array($pt) && count($pt) >= 2 && self::pointInPolygon([(float) $pt[0], (float) $pt[1]], $polyB)) {
+                return true;
+            }
+        }
+        foreach ($polyB as $pt) {
+            if (is_array($pt) && count($pt) >= 2 && self::pointInPolygon([(float) $pt[0], (float) $pt[1]], $polyA)) {
+                return true;
+            }
+        }
+        $countA = count($polyA) - 1;
+        $countB = count($polyB) - 1;
+        for ($i = 0; $i < $countA; $i++) {
+            for ($j = 0; $j < $countB; $j++) {
+                if (self::segmentsIntersect($polyA[$i], $polyA[$i + 1], $polyB[$j], $polyB[$j + 1])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static function segmentsIntersect(array $p1, array $p2, array $p3, array $p4): bool
+    {
+        $d1 = self::ccw($p3, $p4, $p1);
+        $d2 = self::ccw($p3, $p4, $p2);
+        $d3 = self::ccw($p1, $p2, $p3);
+        $d4 = self::ccw($p1, $p2, $p4);
+
+        if ((($d1 > 0 && $d2 < 0) || ($d1 < 0 && $d2 > 0)) &&
+            (($d3 > 0 && $d4 < 0) || ($d3 < 0 && $d4 > 0))) {
+            return true;
+        }
+        return false;
+    }
+
+    private static function ccw(array $a, array $b, array $c): float
+    {
+        return ((float) $b[0] - (float) $a[0]) * ((float) $c[1] - (float) $a[1])
+            - ((float) $b[1] - (float) $a[1]) * ((float) $c[0] - (float) $a[0]);
     }
 }

@@ -136,6 +136,128 @@ assertCondition($scalarRes['iai_contribution'] === 16.00, "Scalar score returns 
 $facadeRes = PropertyAssessment::evaluateEconomicViability($mockupInput);
 assertCondition($facadeRes['pricing_analysis']['asking_price_per_sqm'] === 9000.0, "PropertyAssessment facade delegates cleanly");
 
+// 10. Leasable floor space calculation for Lease (uses actual leasable area, not total land area)
+$leasableInput = [
+    'listing_purpose' => 'lease',
+    'lease_price' => 50000.0,
+    'land_area' => 1000.0,
+    'offered_area_sqm' => 250.0,
+    'security_deposit_months' => 2.0,
+    'advance_rent_months' => 1.0,
+    'utilities_included' => 'included',
+    'comparable_lease_price' => 200.0,
+];
+$leasableRes = PropertyAssessmentService::evaluateEconomicViability($leasableInput, ['is_verified' => true]);
+$lsp = $leasableRes['pricing_analysis'];
+assertCondition($lsp['lease_price_per_sqm'] === 200.0, "Monthly lease rent calculated using actual leasable space: ₱200/m²/month (actual: {$lsp['lease_price_per_sqm']})");
+assertCondition($lsp['known_upfront_costs'] === 150000.0, "Known upfront costs calculated: ₱150,000 (actual: {$lsp['known_upfront_costs']})");
+assertCondition($lsp['price_competitiveness_ratio'] === 1.0, "Price-competitiveness ratio is exactly 1.0x (actual: {$lsp['price_competitiveness_ratio']})");
+assertCondition($leasableRes['score'] === 100.0, "Verified lease benchmark score is 100.0 for matching market rate");
+assertCondition($leasableRes['iai_contribution'] === 20.00, "IAI contribution is 20.00 pts for 100.0 score");
+
+// 11. Sale property with additional purchase / improvement costs
+$saleCostsInput = [
+    'listing_purpose' => 'sale',
+    'asking_price' => 9000000.0,
+    'land_area' => 1000.0,
+    'additional_purchase_costs' => 150000.0,
+];
+$saleCostsRes = PropertyAssessmentService::evaluateEconomicViability($saleCostsInput);
+assertCondition($saleCostsRes['pricing_analysis']['known_upfront_costs'] === 150000.0, "Sale upfront outlay reflects known additional purchase/improvement costs");
+
+// 12. Price on Request (asking_price null)
+$requestInput = [
+    'listing_purpose' => 'sale',
+    'asking_price' => null,
+    'land_area' => 1000.0,
+    'bir_zonal_value' => 7000.0,
+];
+$requestRes = PropertyAssessmentService::evaluateEconomicViability($requestInput);
+assertCondition($requestRes['pricing_analysis']['asking_price_per_sqm'] === null, "Price on request leaves asking price per sqm null without error");
+assertCondition($requestRes['is_complete'] === false, "Price on request assessment is incomplete");
+
+// 13. Competitiveness Rubric Multi-Tier Verification
+// 13.1 Substantial Premium (+20% higher)
+$compInput70 = [
+    'listing_purpose' => 'sale',
+    'asking_price' => 10800000.0, // ₱10,800/sqm vs ₱9,000 = +20%
+    'land_area' => 1000.0,
+    'comparable_market_price' => 9000.0,
+];
+$compRes70 = PropertyAssessmentService::evaluateEconomicViability($compInput70, ['is_verified' => true]);
+assertCondition($compRes70['score'] === 70.0, "Score is 70.0 for substantial 20% premium over market benchmark");
+
+// 13.2 Elevated asking price (>30% higher)
+$compInput50 = [
+    'listing_purpose' => 'sale',
+    'asking_price' => 13500000.0, // ₱13,500/sqm vs ₱9,000 = +50%
+    'land_area' => 1000.0,
+    'comparable_market_price' => 9000.0,
+];
+$compRes50 = PropertyAssessmentService::evaluateEconomicViability($compInput50, ['is_verified' => true]);
+assertCondition($compRes50['score'] === 50.0, "Score is 50.0 for elevated asking price > 30% above market benchmark");
+
+// 13.3 Discounted asking price (< -5%)
+$compInput75 = [
+    'listing_purpose' => 'sale',
+    'asking_price' => 7200000.0, // ₱7,200/sqm vs ₱9,000 = -20%
+    'land_area' => 1000.0,
+    'comparable_market_price' => 9000.0,
+];
+$compRes75 = PropertyAssessmentService::evaluateEconomicViability($compInput75, ['is_verified' => true]);
+assertCondition($compRes75['score'] === 75.0, "Score is 75.0 for discounted asking price below market benchmark");
+
+// 14. PropertyParcel observation normalization
+require_once __DIR__ . '/../app/Support/PropertyParcel.php';
+$parcelPayload = [
+    'land_area' => '1000',
+    'land_area_unit' => 'sqm',
+    'offered_space_scope' => 'part_property',
+    'offered_area_sqm' => '250',
+    'security_deposit_months' => '2',
+    'advance_rent_months' => '1',
+    'utilities_included' => 'included',
+    'additional_purchase_costs' => '150000',
+    'comparable_lease_price' => '200',
+];
+$normalizedParcel = \App\Support\PropertyParcel::fromPayload($parcelPayload);
+$obs = $normalizedParcel['observations'];
+assertCondition($obs['offered_space_scope'] === 'part_property', "PropertyParcel preserves offered_space_scope");
+assertCondition($obs['offered_area_sqm'] === 250.0, "PropertyParcel normalizes offered_area_sqm as float 250.0");
+assertCondition($obs['security_deposit_months'] === 2.0, "PropertyParcel normalizes security_deposit_months as float 2.0");
+assertCondition($obs['advance_rent_months'] === 1.0, "PropertyParcel normalizes advance_rent_months as float 1.0");
+assertCondition($obs['utilities_included'] === 'included', "PropertyParcel preserves utilities_included");
+assertCondition($obs['additional_purchase_costs'] === 150000.0, "PropertyParcel normalizes additional_purchase_costs as float 150000.0");
+assertCondition($obs['comparable_lease_price'] === 200.0, "PropertyParcel normalizes comparable_lease_price as float 200.0");
+
+// 15. User Specific Acceptance Test Case:
+// Monthly rent: ₱25,000, Leasable area: 100 m², Comparable rent: ₱300/m²/month, Security deposit: 2 months, Advance rent: 1 month
+// Expected results:
+// - Monthly rent per m² = ₱250.
+// - Price difference = 16.67% below comparable benchmark.
+// - Price-competitiveness ratio = 0.8333.
+// - Known upfront outlay = ₱75,000.
+$userAcceptanceInput = [
+    'listing_purpose' => 'lease',
+    'lease_price' => 25000.0,
+    'land_area' => 500.0,
+    'offered_space_scope' => 'part_property',
+    'offered_area_sqm' => 100.0,
+    'comparable_lease_price' => 300.0,
+    'security_deposit_months' => 2.0,
+    'advance_rent_months' => 1.0,
+];
+$userAcceptanceRes = PropertyAssessmentService::evaluateEconomicViability($userAcceptanceInput, ['is_verified' => true]);
+$uap = $userAcceptanceRes['pricing_analysis'];
+
+assertCondition($uap['lease_price_per_sqm'] === 250.0, "User Acceptance: Monthly rent per m² is ₱250 (actual: {$uap['lease_price_per_sqm']})");
+assertCondition($uap['lease_vs_market_percent'] === -16.67, "User Acceptance: Price difference is 16.67% below benchmark (actual: {$uap['lease_vs_market_percent']}%)");
+assertCondition($uap['price_competitiveness_ratio'] === 0.8333, "User Acceptance: Price-competitiveness ratio is 0.8333 (actual: {$uap['price_competitiveness_ratio']})");
+assertCondition($uap['known_upfront_costs'] === 75000.0, "User Acceptance: Known upfront outlay is ₱75,000 (actual: {$uap['known_upfront_costs']})");
+assertCondition($userAcceptanceRes['is_complete'] === true, "User Acceptance: Assessment is complete with verified lease benchmark");
+assertCondition($userAcceptanceRes['score'] === 75.0, "User Acceptance: Score is 75.0 for discounted lease rate (actual: {$userAcceptanceRes['score']})");
+assertCondition($userAcceptanceRes['iai_contribution'] === 15.00, "User Acceptance: IAI contribution is 15.00 pts (75.0 * 0.20)");
+
 echo "\nSummary: " . ($testsRun - $failures) . "/{$testsRun} assertions passed.\n";
 if ($failures > 0) {
     echo "❌ {$failures} test(s) failed.\n";

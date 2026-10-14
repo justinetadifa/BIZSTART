@@ -22,7 +22,7 @@ sfc_render_header($context, 'admin-properties');
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-wizard.css<?= sfc_asset_version('css/property-wizard.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
-<main class="city-workspace" data-city-workspace="properties" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>">
+<main class="city-workspace" data-city-workspace="properties" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-user-id="<?= htmlspecialchars((string) ($context['user']['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
   <div class="city-desk-hero">
     <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-gap-6 sm:tw-flex-row sm:tw-items-center">
       <div>
@@ -111,44 +111,205 @@ sfc_render_header($context, 'admin-properties');
     <div data-document-request-list><p class="city-empty">Loading requests...</p></div>
   </details>
 </main>
-<dialog class="city-dialog city-dialog-small" id="cityLifecycleDialog" aria-labelledby="cityLifecycleTitle"><form data-lifecycle-form><div class="city-dialog-heading"><h2 id="cityLifecycleTitle" data-lifecycle-title>Manage property</h2><button type="button" class="city-icon-button" data-close-dialog aria-label="Close">×</button></div><input type="hidden" name="id"><input type="hidden" name="action"><input type="hidden" name="status"><strong class="city-lifecycle-property" data-lifecycle-property></strong><p class="city-help" data-lifecycle-description></p><p class="city-form-message" data-lifecycle-message role="status"></p><div class="city-dialog-actions"><button type="button" class="city-button city-button-secondary" data-close-dialog>Cancel</button><button type="submit" class="city-button">Confirm</button></div></form></dialog>
+<dialog class="city-dialog city-dialog-small" id="cityLifecycleDialog" aria-labelledby="cityLifecycleTitle">
+  <form data-lifecycle-form>
+    <div class="city-dialog-heading">
+      <div class="city-lifecycle-header-group">
+        <div class="city-lifecycle-icon-badge theme-delete" data-lifecycle-icon-badge aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </div>
+        <div class="city-lifecycle-title-wrap">
+          <span class="city-lifecycle-kicker" data-lifecycle-kicker>Listing Action</span>
+          <h2 id="cityLifecycleTitle" data-lifecycle-title>Manage property</h2>
+        </div>
+      </div>
+      <button type="button" class="city-dialog-close-btn" data-close-dialog aria-label="Close dialog">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <input type="hidden" name="id">
+    <input type="hidden" name="action">
+    <input type="hidden" name="status">
+
+    <!-- Property Preview Card -->
+    <div class="city-lifecycle-property-card" data-lifecycle-card>
+      <img class="city-lifecycle-thumb" data-lifecycle-thumb src="" alt="" loading="lazy">
+      <div class="city-lifecycle-details">
+        <div class="city-lifecycle-name" data-lifecycle-property>Property name</div>
+        <div class="city-lifecycle-meta">
+          <span data-lifecycle-location>San Fernando</span>
+          <span class="city-lifecycle-dot">·</span>
+          <span class="city-lifecycle-price" data-lifecycle-price>₱ 0</span>
+          <span class="city-lifecycle-dot">·</span>
+          <span data-lifecycle-category>Commercial</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact explanation box -->
+    <div class="city-lifecycle-impact theme-delete" data-lifecycle-impact>
+      <p class="city-help" data-lifecycle-description></p>
+      <div class="city-lifecycle-safeguard" data-lifecycle-safeguard>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span data-lifecycle-safeguard-text>Retained in Deleted Listings — authorized staff can restore anytime.</span>
+      </div>
+    </div>
+
+    <p class="city-form-message" data-lifecycle-message role="status"></p>
+
+    <div class="city-dialog-actions">
+      <button type="button" class="city-button city-lifecycle-cancel-btn" data-lifecycle-cancel data-close-dialog>Keep property</button>
+      <button type="submit" class="city-button city-lifecycle-submit-btn btn-theme-delete" data-lifecycle-submit>Confirm</button>
+    </div>
+  </form>
+</dialog>
 <?php require __DIR__ . '/app/Support/property-wizard-view.php'; ?>
-<?php if ($governance): ?>
-<dialog class="city-dialog" id="cityReviewDialog" aria-labelledby="cityReviewTitle"><form data-listing-review-form style="max-width: 600px;"><div class="city-dialog-heading"><h2 id="cityReviewTitle">Review listing</h2><button type="button" class="city-icon-button" data-close-dialog aria-label="Close">×</button></div><input type="hidden" name="id"><div data-review-evidence></div>
-<div class="city-card-box" data-authority-review-card style="margin: 16px 0; padding: 14px; background: #F8F9FA; border: 1px solid #E5E7EB; border-radius: 8px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-    <strong style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #11224D;">Authority to Sell</strong>
-    <span class="city-badge" data-authority-review-status-badge>Pending review</span>
-  </div>
-  <div data-authority-review-details style="font-size: 13px; color: #4B5563; margin-bottom: 10px;"></div>
-  <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-    <a class="city-button city-button-secondary city-button-small" data-authority-preview-link href="#" target="_blank" rel="noopener noreferrer">Preview document ↗</a>
-  </div>
-  <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Review status
-    <select name="authority_to_sell_status" style="width: 100%; margin-top: 4px;">
-      <option value="pending_review">Pending review</option>
-      <option value="validated">Validated</option>
-      <option value="rejected">Rejected</option>
-      <option value="requires_resubmission">Requires resubmission</option>
-    </select>
-  </label>
-  <label style="font-size: 12px; font-weight: 500; display: block; margin-top: 8px;">Reviewer note <span style="color: #9E1B22;">(required if rejected)</span>
-    <input name="authority_to_sell_note" maxlength="1000" placeholder="Note or reason for rejection" style="width: 100%; margin-top: 4px;">
-  </label>
-  <div style="display: flex; gap: 8px; margin-top: 10px;">
-    <button type="button" class="city-button city-button-secondary city-button-small" data-quick-reject-auth style="color: #9E1B22;">Reject</button>
-    <button type="button" class="city-button city-button-small" data-quick-validate-auth style="background: #0D9488; color: #fff;">Validate authority</button>
-  </div>
-</div>
-<label>Message to broker<textarea name="reviewNote" rows="3" required maxlength="3000" placeholder="Decision and supporting reasons"></textarea></label>
-<div class="city-check-options" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0;">
-  <label><input type="checkbox" name="documents_reviewed">Documents checked</label>
-  <label><input type="checkbox" name="site_verified">Site checked</label>
-  <label><input type="checkbox" name="clup_verified">CLUP / zoning validated</label>
-</div>
-<label>Listing Decision<select name="approval_state"><option value="approved">Accept listing</option><option value="rejected">Decline listing</option></select></label>
-<p class="city-form-message" data-review-message role="status"></p>
-<div class="city-dialog-actions"><button class="city-button" type="submit">Send decision</button></div></form></dialog>
+<?php if ($governance || in_array($department, ['ASSESSOR', 'CAO', 'LEBDO'], true)): ?>
+<dialog class="city-dialog city-review-dialog" id="cityReviewDialog" aria-labelledby="cityReviewTitle">
+  <form data-listing-review-form style="max-width: 100%;">
+    <div class="city-dialog-heading">
+      <div class="city-review-title-group">
+        <h2 id="cityReviewTitle">Review Listing</h2>
+        <span class="city-review-subtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Municipal Governance &amp; CPDO Land Verification
+        </span>
+      </div>
+      <button type="button" class="city-icon-button" data-close-dialog aria-label="Close">×</button>
+    </div>
+    <input type="hidden" name="id">
+
+    <!-- Self-approval alert banner for private broker submissions -->
+    <div data-review-self-warning hidden style="background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; padding: 14px 16px; border-radius: 12px; margin-bottom: 18px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.08);">
+      <span style="font-size: 16px; line-height: 1; flex-shrink: 0;">🛡️</span>
+      <div>
+        <strong style="color: #7F1D1D;">Self-Approval Prohibited:</strong> You submitted this listing as a private broker. Under municipal governance policies, independent review from CPDO, Assessor, or LEBDO is required prior to endorsement or publication.
+      </div>
+    </div>
+
+    <!-- Section 1: Property Summary -->
+    <div class="city-review-section" data-review-section="1">
+      <div class="city-review-section-legend">
+        <span class="city-review-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          1. Property Summary &amp; Classification
+        </span>
+      </div>
+      <div data-review-summary-content></div>
+    </div>
+
+    <!-- Section 2: Uploaded Documents -->
+    <div class="city-review-section" data-review-section="2">
+      <div class="city-review-section-legend">
+        <span class="city-review-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          2. Uploaded Documents &amp; Authority
+        </span>
+      </div>
+
+      <!-- Property Photos sub-block -->
+      <div data-review-photos-box style="margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #F1F5F9;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <strong style="font-size: 13px; color: #11224D; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Property Photos
+          </strong>
+          <span class="city-badge" data-review-photo-count>0 photos</span>
+        </div>
+        <div data-review-photo-thumbnails style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px;"></div>
+      </div>
+
+      <!-- Authority to Sell card -->
+      <div class="city-card-box" data-authority-review-card style="margin: 0 0 14px 0; padding: 14px 16px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <strong style="font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.05em; color: #11224D;">Authority to Sell (ATS)</strong>
+          <span class="city-badge" data-authority-review-status-badge>Pending review</span>
+        </div>
+        <div data-authority-review-details style="font-size: 12.5px; color: #475569; margin-bottom: 10px;"></div>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <a class="city-button city-button-secondary city-button-small" data-authority-preview-link href="#" target="_blank" rel="noopener noreferrer">Preview ATS document ↗</a>
+        </div>
+        <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; color: #1E293B;">ATS review status
+          <select name="authority_to_sell_status" style="width: 100%; margin-top: 4px; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #CBD5E1;">
+            <option value="pending_review">Pending review</option>
+            <option value="validated">Validated</option>
+            <option value="rejected">Rejected</option>
+            <option value="requires_resubmission">Requires resubmission</option>
+          </select>
+        </label>
+        <label style="font-size: 12px; font-weight: 600; display: block; margin-top: 10px; color: #1E293B;">ATS reviewer note <span style="color: #9E1B22;">(required if rejected)</span>
+          <input name="authority_to_sell_note" maxlength="1000" placeholder="Note or reason for rejection" style="width: 100%; margin-top: 4px; border-radius: 8px; padding: 8px 12px; border: 1.5px solid #CBD5E1;">
+        </label>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+          <button type="button" class="city-button city-button-secondary city-button-small" data-quick-reject-auth style="color: #9E1B22; border-color: #FECDD3;">Reject</button>
+          <button type="button" class="city-button city-button-small" data-quick-validate-auth style="background: #0D9488; color: #fff;">Validate authority</button>
+        </div>
+      </div>
+
+      <!-- Mandatory Documents Checklist -->
+      <div data-review-doc-checklist style="font-size: 12px; color: #475569;"></div>
+    </div>
+
+    <!-- Section 3: Zoning & Risk Status -->
+    <div class="city-review-section" data-review-section="3">
+      <div class="city-review-section-legend">
+        <span class="city-review-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          3. CLUP Zoning &amp; Risk Baseline
+        </span>
+      </div>
+      <div data-review-zoning-risk-content></div>
+    </div>
+
+    <!-- Section 4: Reviewer Decision -->
+    <div class="city-review-section" data-review-section="4">
+      <div class="city-review-section-legend">
+        <span class="city-review-section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          4. Governance Decision &amp; Audit Trail
+        </span>
+      </div>
+      <p class="city-help" data-reviewer-role-caption style="margin: 0 0 12px 0; font-size: 12px; color: #64748B; line-height: 1.5;"></p>
+
+      <div class="city-check-options" style="display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 14px 0;">
+        <label style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: #1E293B; cursor: pointer;">
+          <input type="checkbox" name="documents_reviewed"> Documents checked
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: #1E293B; cursor: pointer;">
+          <input type="checkbox" name="site_verified"> Site checked
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 12.5px; font-weight: 550; color: #1E293B; cursor: pointer;">
+          <input type="checkbox" name="clup_verified"> CLUP / zoning validated
+        </label>
+      </div>
+
+      <label style="display: block; margin-bottom: 12px;">
+        <span data-review-note-label style="font-size: 12px; font-weight: 650; color: #11224D;">Message to broker</span>
+        <textarea name="reviewNote" rows="3" maxlength="3000" placeholder="Decision and supporting reasons" style="width: 100%; margin-top: 6px; border-radius: 8px; padding: 10px 12px; border: 1.5px solid #CBD5E1; font-size: 13px;"></textarea>
+      </label>
+
+      <label style="display: block; margin-bottom: 6px;">
+        <span style="font-size: 12px; font-weight: 650; color: #11224D;">Listing Decision</span>
+        <select name="approval_state" data-review-decision-select style="width: 100%; margin-top: 6px; border-radius: 8px; padding: 10px 12px; border: 1.5px solid #CBD5E1; font-size: 13px; font-weight: 600;"></select>
+      </label>
+    </div>
+
+    <p class="city-form-message" data-review-message role="status"></p>
+    <div class="city-dialog-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px;">
+      <button type="button" class="city-button city-button-secondary" data-close-dialog>Cancel</button>
+      <button class="city-button" type="submit" data-review-submit-btn style="background: linear-gradient(135deg, #11224D 0%, #0F172A 100%); color: #fff; padding: 10px 24px; font-weight: 700; box-shadow: 0 4px 12px rgba(17, 34, 77, 0.2);">Send decision</button>
+    </div>
+  </form>
+</dialog>
 <?php endif; ?>
 <script type="application/json" id="cityAssessmentWeights"><?= json_encode(\App\Support\PropertyAssessment::WEIGHTS) ?></script>
 <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/nearby-editor.js<?= sfc_asset_version('js/nearby-editor.js') ?>" defer></script>

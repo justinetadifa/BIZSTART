@@ -45,7 +45,7 @@ assert(viewHtml.includes('data-econ-bir-sqm'), 'View contains data-econ-bir-sqm'
 assert(viewHtml.includes('data-econ-total-bir'), 'View contains data-econ-total-bir');
 assert(viewHtml.includes('data-econ-bir-diff'), 'View contains data-econ-bir-diff');
 assert(viewHtml.includes('data-econ-area-discrepancy'), 'View contains data-econ-area-discrepancy alert');
-assert(viewHtml.includes('data-econ-reset-example'), 'View contains data-econ-reset-example button');
+assert(!viewHtml.includes('data-econ-reset-example'), 'View does NOT contain data-econ-reset-example button (removed from production)');
 
 // Important methodology callout
 assert(viewHtml.includes('A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability'), 'View contains mandatory BIR difference explanatory callout');
@@ -140,6 +140,114 @@ const clientDisc = evaluatorFn({
 
 assert(clientDisc.isDiscrepancy === true, 'Client correctly flags area discrepancy when diff > 25%');
 assert(clientDisc.isComplete === false, 'Client keeps assessment incomplete when area discrepancy is flagged');
+
+// Test 3.5: Offered leasable space calculation for Lease (uses actual leasable area, not total land area)
+const clientLeasableArea = evaluatorFn({
+  listing_purpose: 'lease',
+  lease_price: '50,000',
+  land_area: 1000,
+  offered_area_sqm: '250', // 250 m² leasable area
+  comparable_lease_price: '200',
+});
+
+assert(clientLeasableArea.leasePricePerSqm === 200, `Client calculates monthly rent per m² using actual leasable area (expected: 200, actual: ${clientLeasableArea.leasePricePerSqm})`);
+assert(clientLeasableArea.compRatio === 1.00, `Client calculates exact price-competitiveness ratio 1.00x (actual: ${clientLeasableArea.compRatio})`);
+assert(clientLeasableArea.isComplete === true, 'Client completes assessment when comparable lease benchmark is present');
+assert(clientLeasableArea.totalScore === 100.0, 'Client gives 100.0 score for matching lease benchmark');
+assert(clientLeasableArea.iaiContribution === 20.00, 'Client calculates 20.00 pts IAI contribution (20% weight)');
+
+// Test 3.6: Both (sale_or_lease) separate calculations
+const clientBoth = evaluatorFn({
+  listing_purpose: 'sale_or_lease',
+  price: '10,000,000',
+  lease_price: '60,000',
+  land_area: 1000,
+  offered_area_sqm: '500',
+});
+
+assert(clientBoth.askingPricePerSqm === 20000, `Dual listing maintains separate sale calculation: ₱20,000/m² (actual: ${clientBoth.askingPricePerSqm})`);
+assert(clientBoth.leasePricePerSqm === 120, `Dual listing maintains separate lease calculation: ₱120/m²/month (actual: ${clientBoth.leasePricePerSqm})`);
+
+// Test 3.7: Additional Costs & Known Upfront Outlay
+const clientUpfrontLease = evaluatorFn({
+  listing_purpose: 'lease',
+  lease_price: '50,000',
+  land_area: 1000,
+  security_deposit_months: '2',
+  advance_rent_months: '1',
+});
+
+assert(clientUpfrontLease.knownUpfrontCosts === 150000, `Lease upfront outlay equals deposit + advance: ₱150,000 (actual: ${clientUpfrontLease.knownUpfrontCosts})`);
+
+const clientUpfrontSale = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '9,000,000',
+  land_area: 1000,
+  additional_purchase_costs: '150,000',
+});
+
+assert(clientUpfrontSale.knownUpfrontCosts === 150000, `Sale upfront outlay reflects known additional closing costs: ₱150,000 (actual: ${clientUpfrontSale.knownUpfrontCosts})`);
+
+// Test 3.8: Price on Request (handles missing price gracefully without crashing)
+const clientRequest = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '',
+  land_area: 1000,
+  bir_zonal_value: '7000',
+});
+
+assert(clientRequest.askingPricePerSqm === null, 'Price on request leaves unit price null');
+assert(clientRequest.isComplete === false, 'Price on request leaves score incomplete');
+assert(clientRequest.totalScore === null, 'Price on request produces null score');
+
+// Test 3.9: Missing benchmark produces incomplete status and null score
+const clientNoBench = evaluatorFn({
+  listing_purpose: 'sale',
+  price: '9,000,000',
+  land_area: 1000,
+  bir_zonal_value: '7000',
+});
+
+assert(clientNoBench.isComplete === false, 'Assessment is incomplete when benchmark is missing');
+assert(clientNoBench.totalScore === null, 'Score is null when benchmark is missing (never fabricated)');
+
+// Test 3.10: Leasable unit exceeding total land area flags reasonableness warning
+const clientAreaMismatch = evaluatorFn({
+  listing_purpose: 'lease',
+  lease_price: '50,000',
+  land_area: 500,
+  offered_space_scope: 'part_property',
+  offered_area_sqm: '800', // 800 m² > 500 m² for part of property
+});
+
+assert(clientAreaMismatch.isReasonablenessWarning === true, 'Flags warning when part_property leasable space exceeds total land area');
+assert(clientAreaMismatch.isComplete === false, 'Holds score incomplete when area mismatch warning is active');
+
+// Test 3.11: User Specific Acceptance Test Case:
+// Monthly rent: ₱25,000, Leasable area: 100 m², Comparable rent: ₱300/m²/month, Security deposit: 2 months, Advance rent: 1 month
+// Expected results:
+// - Monthly rent per m² = ₱250.
+// - Price difference = 16.67% below comparable benchmark.
+// - Price-competitiveness ratio = 0.8333.
+// - Known upfront outlay = ₱75,000.
+const clientAcceptance = evaluatorFn({
+  listing_purpose: 'lease',
+  lease_price: '25,000',
+  land_area: 500,
+  offered_space_scope: 'part_property',
+  offered_area_sqm: '100',
+  comparable_lease_price: '300',
+  security_deposit_months: '2',
+  advance_rent_months: '1',
+});
+
+assert(clientAcceptance.leasePricePerSqm === 250, `User Acceptance: Monthly rent per m² is ₱250 (actual: ${clientAcceptance.leasePricePerSqm})`);
+assert(clientAcceptance.activeDiffPct === -16.67, `User Acceptance: Price difference is 16.67% below benchmark (actual: ${clientAcceptance.activeDiffPct}%)`);
+assert(clientAcceptance.compRatio === 0.8333, `User Acceptance: Price-competitiveness ratio is 0.8333 (actual: ${clientAcceptance.compRatio})`);
+assert(clientAcceptance.knownUpfrontCosts === 75000, `User Acceptance: Known upfront outlay is ₱75,000 (actual: ${clientAcceptance.knownUpfrontCosts})`);
+assert(clientAcceptance.isComplete === true, 'User Acceptance: Assessment is complete with verified lease benchmark');
+assert(clientAcceptance.totalScore === 75.0, `User Acceptance: Score is 75.0 for discounted lease rate (actual: ${clientAcceptance.totalScore})`);
+assert(clientAcceptance.iaiContribution === 15.00, `User Acceptance: IAI contribution is 15.00 pts (actual: ${clientAcceptance.iaiContribution})`);
 
 console.log(`\nSummary: ${testsRun - failures}/${testsRun} tests passed.`);
 if (failures > 0) {

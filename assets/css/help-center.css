@@ -311,51 +311,88 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   margin: 0 auto 24px;
-  padding: 4px;
+  padding: 5px;
   background-color: #f1f5f9;
   border: 1px solid var(--locus-help-border);
-  border-radius: 12px;
-  max-width: max-content;
+  border-radius: 14px;
+  max-width: 100%;
+  width: max-content;
   flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.locus-help-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .locus-help-tab-btn {
   position: relative;
-  padding: 8px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 18px;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   color: var(--locus-help-secondary);
   cursor: pointer;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.locus-tab-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .locus-help-tab-btn:hover {
   color: var(--locus-help-text);
 }
 
+.locus-help-tab-btn:hover .locus-tab-icon {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 .locus-help-tab-btn[aria-selected="true"],
 .locus-help-tab-btn.is-active {
   background-color: #ffffff;
   color: var(--locus-help-text);
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08), 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.locus-help-tab-btn[aria-selected="true"]::after {
-  display: none;
+.locus-help-tab-btn[aria-selected="true"] .locus-tab-icon,
+.locus-help-tab-btn.is-active .locus-tab-icon {
+  opacity: 1;
+  color: var(--locus-help-red);
 }
 
 .locus-help-tab-btn:focus-visible {
   outline: 2px solid #11224d;
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: 10px;
+}
+
+.locus-tab-text-full {
+  display: inline;
+}
+
+.locus-tab-text-short {
+  display: none;
 }
 
 /* ==========================================================================
@@ -641,148 +678,738 @@
 }
 
 /* ==========================================================================
-   7. Contact Team View (Screenshot 2)
+   7. Contact Team View & Meet the Team
    ========================================================================== */
+
+.locus-help-sheet-handle {
+  display: none;
+}
+
+.locus-team-hero-header {
+  text-align: center;
+  margin: 4px 0 24px;
+}
+
+.locus-team-hero-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.locus-team-hero-nav .locus-help-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  padding: 6px 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.locus-team-hero-nav .locus-help-back-link:hover {
+  background-color: var(--locus-help-pale-red);
+  color: var(--locus-help-red);
+  border-color: var(--locus-help-border-red);
+  transform: translateX(-2px);
+  text-decoration: none;
+}
+
+.locus-team-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 4px 10px;
+}
+
+.locus-team-live-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+.locus-team-academic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  color: #1e40af;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.locus-team-academic-badge svg {
+  color: #2563eb;
+  flex-shrink: 0;
+}
 
 .locus-team-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 720px;
+  gap: 20px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
+/* Card container */
 .locus-team-section-card {
   background-color: #ffffff;
   border: 1px solid var(--locus-help-border);
-  border-radius: 14px;
-  padding: 18px 20px;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.locus-team-section-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.locus-team-adviser-card {
+  border-left: 4px solid #7c3aed;
+  background: linear-gradient(to right, #faf5ff 0%, #ffffff 18%);
+}
+
+.locus-team-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.locus-team-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.locus-team-section-icon-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.locus-team-section-icon-badge.authors-badge {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.locus-team-section-icon-badge.adviser-badge {
+  background-color: #f5f3ff;
+  color: #7c3aed;
 }
 
 .locus-team-section-kicker {
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  letter-spacing: 0.05em;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 12px;
+}
+
+.locus-team-badge-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  padding: 2px 9px;
+}
+
+.locus-team-badge-pill.adviser {
+  color: #6d28d9;
+  background-color: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.locus-team-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .locus-team-member-row {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 0;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: #fafbfc;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
 }
 
-.locus-team-member-row + .locus-team-member-row {
-  border-top: 1px solid #f1f5f9;
+.locus-team-member-row:hover {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+  transform: translateY(-1px);
 }
 
+.locus-author-highlight {
+  border-color: #e0e7ff;
+  background: linear-gradient(to right, #f8faff 0%, #ffffff 100%);
+}
+
+.locus-adviser-row {
+  border-color: #ede9fe;
+  background: linear-gradient(to right, #fbfaff 0%, #ffffff 100%);
+}
+
+/* Luxury Monogram Avatars */
 .locus-team-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
   flex-shrink: 0;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 
-.locus-team-avatar svg {
-  width: 18px;
-  height: 18px;
+.locus-avatar-gradient-blue {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.locus-avatar-gradient-emerald {
+  background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.locus-avatar-gradient-amber {
+  background: linear-gradient(135deg, #9a3412 0%, #f97316 100%);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.locus-avatar-gradient-purple {
+  background: linear-gradient(135deg, #581c87 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+}
+
+.locus-avatar-initials {
+  line-height: 1;
+}
+
+.locus-avatar-status-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  border: 2px solid #ffffff;
+}
+
+.locus-avatar-mentor-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  border: 2px solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
 }
 
 .locus-team-info {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.locus-team-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .locus-team-name {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--locus-help-text);
-  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.locus-team-role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.locus-team-role-chip.primary {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.locus-team-role-chip.emerald {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.locus-team-role-chip.amber {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.locus-team-role-chip.purple {
+  background-color: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
 }
 
 .locus-team-role {
   font-size: 12px;
-  color: var(--locus-help-secondary);
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.locus-team-bio {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #475569;
+  margin: 5px 0 6px;
+}
+
+.locus-team-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.locus-micro-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+/* Routing section */
+.locus-team-routing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.locus-team-routing-heading {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 6px 0 0;
 }
 
 .locus-team-routing-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 4px;
 }
 
 .locus-team-routing-card {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  color: inherit;
+}
+
+.locus-team-routing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.08);
+}
+
+.locus-team-routing-card:hover .icon-system {
+  background-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.locus-team-routing-card:hover .icon-academic {
+  background-color: #6d28d9;
+  color: #ffffff;
+}
+
+.locus-team-routing-card:hover .locus-routing-arrow {
+  transform: translateX(3px);
+  color: var(--locus-help-red);
 }
 
 .locus-team-routing-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
   flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.locus-team-routing-icon.icon-system {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.locus-team-routing-icon.icon-academic {
+  background-color: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #7c3aed;
 }
 
 .locus-team-routing-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
-.locus-team-routing-text strong {
-  display: block;
-  font-size: 12px;
+.locus-team-routing-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.locus-team-routing-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.locus-team-routing-headline strong {
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--locus-help-text);
 }
 
-.locus-team-routing-text span {
+.locus-routing-arrow {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.locus-routing-target {
+  display: inline-block;
   font-size: 11.5px;
-  color: var(--locus-help-secondary);
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.locus-routing-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #475569;
+  margin: 6px 0 8px;
+}
+
+.locus-routing-action-hint {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.locus-team-routing-link .locus-routing-action-hint {
+  color: #7c3aed;
+}
+
+/* Feedback Drawer */
+.locus-team-feedback-drawer {
+  background-color: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 18px 20px;
+  animation: locusDrawerSlide 0.22s ease-out;
+}
+
+@keyframes locusDrawerSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.locus-feedback-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.locus-feedback-drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.locus-feedback-drawer-title svg {
+  color: #2563eb;
+}
+
+.locus-feedback-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.locus-feedback-close-btn:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.locus-feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.locus-feedback-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.locus-feedback-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.locus-feedback-field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.locus-feedback-select,
+.locus-feedback-input,
+.locus-feedback-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0f172a;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.locus-feedback-select:focus,
+.locus-feedback-input:focus,
+.locus-feedback-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.locus-feedback-textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.locus-feedback-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.locus-feedback-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background-color: #2563eb;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.locus-feedback-submit-btn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.locus-feedback-cancel-btn {
+  padding: 8px 14px;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.locus-feedback-cancel-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.locus-feedback-status {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.locus-feedback-status.is-success {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+/* Contact Notice Card */
+.locus-team-contact-notice-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.locus-team-notice-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.locus-team-notice-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.locus-team-notice-text strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
 }
 
 .locus-team-contact-notice {
   font-size: 12px;
   color: #64748b;
   font-style: italic;
-  text-align: left;
-  margin: 12px 0 0;
+  margin: 0;
+  line-height: 1.45;
 }
 
+/* Bottom Bar */
 .locus-team-bottom-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid #f1f5f9;
 }
 
+.locus-team-bottom-brand-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
 .locus-team-bottom-brand {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
   letter-spacing: 0.05em;
+}
+
+.locus-team-bottom-sub {
+  font-size: 11px;
+  color: #94a3b8;
 }
 
 /* ==========================================================================
@@ -799,6 +1426,9 @@
   .locus-team-routing-grid {
     grid-template-columns: 1fr;
   }
+  .locus-feedback-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -807,45 +1437,100 @@
     max-width: 100vw;
     height: 100%;
     max-height: 100%;
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
     margin: 0;
-    inset: 40px 0 0 0;
+    inset: 24px 0 0 0;
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.25);
+  }
+
+  .locus-help-sheet-handle {
+    display: block;
+    width: 38px;
+    height: 4.5px;
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+    margin: 8px auto 2px;
+    flex-shrink: 0;
   }
 
   .locus-help-content {
-    padding: 0 16px 24px;
+    padding: 0 16px 28px;
   }
 
   .locus-help-tabs {
     width: 100%;
     max-width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 4px;
     padding: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
   }
 
   .locus-help-tab-btn {
     font-size: 12px;
-    padding: 7px 8px;
-    flex: 1 1 0;
-    text-align: center;
+    padding: 7px 11px;
+    gap: 5px;
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+  }
+
+  .locus-tab-icon {
+    width: 13px;
+    height: 13px;
   }
 
   .locus-accordion-body {
     padding-left: 18px;
   }
 
-  .locus-floating-help-btn {
-    right: 16px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  .locus-team-hero-nav {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .locus-team-member-row {
+    padding: 10px 10px;
+    gap: 12px;
+  }
+
+  .locus-team-avatar {
     width: 40px;
     height: 40px;
+    font-size: 13.5px;
+    border-radius: 10px;
+  }
+
+  .locus-floating-help-btn {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    width: 38px;
+    height: 38px;
     padding: 0;
+    box-shadow: 0 4px 14px rgba(185, 28, 28, 0.35);
   }
 
   .locus-floating-help-btn .locus-floating-help-icon {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
+  }
+}
+
+@media (max-width: 440px) {
+  /* On compact mobile screens, switch to compact tab labels */
+  .locus-tab-text-full {
+    display: none;
+  }
+  .locus-tab-text-short {
+    display: inline;
+  }
+  .locus-help-tab-btn {
+    flex: 1 1 0;
+    padding: 7px 4px;
+    font-size: 11.5px;
+    text-align: center;
   }
 }
 
@@ -855,7 +1540,9 @@
   }
   .locus-floating-help-btn,
   .locus-accordion-item,
-  .locus-accordion-toggle-icon {
+  .locus-accordion-toggle-icon,
+  .locus-team-member-row,
+  .locus-team-routing-card {
     transition: none;
   }
 }
