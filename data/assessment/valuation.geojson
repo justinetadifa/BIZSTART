@@ -4,7 +4,7 @@
         {
             "type": "Feature",
             "properties": {
-                "bir_value_sqm": 4500,
+                "bir_value_sqm": 12500,
                 "applicable_categories": [
                     "Retail",
                     "Multifamily",
@@ -20,7 +20,7 @@
                     "Note/Loan",
                     "Business for Sale"
                 ],
-                "zone_name": "San Fernando Urban Growth Corridor",
+                "zone_name": "Catbangen & Downtown Commercial CBD",
                 "source": "Bureau of Internal Revenue District 8",
                 "reference": "BIR-DO-014-2026"
             },
@@ -28,26 +28,140 @@
                 "type": "Polygon",
                 "coordinates": [
                     [
-                        [
-                            120.25,
-                            16.55
-                        ],
-                        [
-                            120.4,
-                            16.55
-                        ],
-                        [
-                            120.4,
-                            16.7
-                        ],
-                        [
-                            120.25,
-                            16.7
-                        ],
-                        [
-                            120.25,
-                            16.55
-                        ]
+                        [120.305, 16.608],
+                        [120.320, 16.608],
+                        [120.320, 16.620],
+                        [120.305, 16.620],
+                        [120.305, 16.608]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "bir_value_sqm": 8500,
+                "applicable_categories": [
+                    "Retail",
+                    "Multifamily",
+                    "Office",
+                    "Industrial",
+                    "Hospitality",
+                    "Mixed Use",
+                    "Land",
+                    "Self Storage",
+                    "Mobile Home Park",
+                    "Senior Living",
+                    "Special Purpose",
+                    "Note/Loan",
+                    "Business for Sale"
+                ],
+                "zone_name": "Biday Commercial Corridor & Diversion Growth Area",
+                "source": "Bureau of Internal Revenue District 8",
+                "reference": "BIR-DO-014-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [120.315, 16.620],
+                        [120.338, 16.620],
+                        [120.338, 16.655],
+                        [120.315, 16.655],
+                        [120.315, 16.620]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "bir_value_sqm": 6500,
+                "applicable_categories": [
+                    "Retail",
+                    "Multifamily",
+                    "Office",
+                    "Industrial",
+                    "Hospitality",
+                    "Mixed Use",
+                    "Land",
+                    "Self Storage",
+                    "Mobile Home Park",
+                    "Senior Living",
+                    "Special Purpose",
+                    "Note/Loan",
+                    "Business for Sale"
+                ],
+                "zone_name": "Sevilla National Highway South Corridor",
+                "source": "Bureau of Internal Revenue District 8",
+                "reference": "BIR-DO-014-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [120.310, 16.585],
+                        [120.335, 16.585],
+                        [120.335, 16.608],
+                        [120.310, 16.608],
+                        [120.310, 16.585]
+                    ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "bir_value_sqm": 4000,
+                "applicable_categories": [
+                    "Retail",
+                    "Multifamily",
+                    "Office",
+                    "Industrial",
+                    "Hospitality",
+                    "Mixed Use",
+                    "Land",
+                    "Self Storage",
+                    "Mobile Home Park",
+                    "Senior Living",
+                    "Special Purpose",
+                    "Note/Loan",
+                    "Business for Sale"
+                ],
+                "zone_name": "San Fernando Urban Transition & Growth Corridor",
+                "source": "Bureau of Internal Revenue District 8",
+                "reference": "BIR-DO-014-2026"
+            },
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [120.25, 16.55],
+                        [120.40, 16.55],
+                        [120.40, 16.70],
+                        [120.25, 16.70],
+                        [120.25, 16.55]
+                    ],
+                    [
+                        [120.305, 16.608],
+                        [120.305, 16.620],
+                        [120.320, 16.620],
+                        [120.320, 16.608],
+                        [120.305, 16.608]
+                    ],
+                    [
+                        [120.315, 16.620],
+                        [120.315, 16.655],
+                        [120.338, 16.655],
+                        [120.338, 16.620],
+                        [120.315, 16.620]
+                    ],
+                    [
+                        [120.310, 16.585],
+                        [120.310, 16.608],
+                        [120.335, 16.608],
+                        [120.335, 16.585],
+                        [120.310, 16.585]
                     ]
                 ]
             }

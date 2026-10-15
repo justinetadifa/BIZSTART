@@ -285,11 +285,11 @@
           </p>
         </div>
         <div class="city-card-scores tw-flex tw-items-center tw-gap-2.5 sm:tw-px-1">
-          <div class="city-score-bubble city-score-mce" title="Municipal Commercial Evaluation">
+          <div class="city-score-bubble city-score-mce" title="Municipal Commercial Evaluation (MCE) · 6-Criteria Site Suitability: ${score(property.mceScore)}/100">
             <span class="city-score-kicker">MCE</span>
             <strong class="city-score-num">${score(property.mceScore)}</strong>
           </div>
-          <div class="city-score-bubble city-score-iai" title="Investor Appeal Index">
+          <div class="city-score-bubble city-score-iai" title="Investment Attractiveness Index (IAI) · Composite Investment Rating: ${score(property.iaiScore)}/100">
             <span class="city-score-kicker">IAI</span>
             <strong class="city-score-num">${score(property.iaiScore)}</strong>
           </div>

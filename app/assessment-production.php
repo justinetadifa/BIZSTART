@@ -150,11 +150,12 @@ return [
                 'metric' => 'bir_value_sqm',
                 'operator' => 'bands',
                 'bands' => [
-                    ['max' => 2500, 'score' => 60],
-                    ['max' => 5000, 'score' => 85],
-                    ['max' => 10000, 'score' => 95],
+                    ['max' => 3000, 'score' => 65],
+                    ['max' => 5000, 'score' => 75],
+                    ['max' => 7000, 'score' => 85],
+                    ['max' => 10000, 'score' => 92],
                 ],
-                'otherwise' => 80,
+                'otherwise' => 98,
             ],
             'nearby_businesses' => [
                 'metric' => 'business_count',
