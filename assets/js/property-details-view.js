@@ -501,9 +501,13 @@ export function investorBriefReportMarkup(property, options = {}, calc) {
   const rent = numeric(property.leasePrice ?? property.lease_price);
   const period = property.leasePeriod || property.lease_period || 'month';
   const perSqm = (property.leasePriceUnit || property.lease_price_unit) === 'sqm';
+  const validArea = val => { const n = numeric(val); return n !== null && n >= 0.5 ? n : null; };
   const scope = property.offeredSpaceScope || property.offered_space_scope || parcel.observations?.offered_space_scope;
-  const offered = positive(property.offeredAreaSqm ?? property.offered_area_sqm ?? parcel.observations?.offered_area_sqm)
-    ?? (scope === 'entire_land' ? area : floor);
+  const explicitOffered = validArea(property.offeredAreaSqm ?? property.offered_area_sqm ?? parcel.observations?.offered_area_sqm);
+  const offered = explicitOffered
+    ?? (isBuilding
+      ? (scope === 'part_property' ? null : floor)
+      : (scope === 'portion_of_land' || scope === 'part_property' ? null : area));
   const rentText = rent !== null && rent >= 0 ? `PHP ${fmt(rent)}${perSqm ? ' / m²' : ''}` : 'Price on request';
   const rentTotal = rent !== null && rent >= 0 ? perSqm ? offered ? rent * offered : null : rent : null;
   const quote = sale !== null && sale >= 0 ? `PHP ${fmt(sale)}` : 'Price on request';
@@ -533,7 +537,9 @@ export function investorBriefReportMarkup(property, options = {}, calc) {
   });
   const assessedHazards = hazards.filter(row => row.assessed).length;
   const missing = [...new Set([...(property.missing_requirements || property.missingRequirements || []), ...(!hasScore ? calc.missingCriteria || [] : [])])];
-  const reason = calc.reason || property.reason || (hasScore ? 'Ratings reflect the configured operational rubric; methodology and weights remain subject to validation.' : 'Required evidence or observations are incomplete. Missing criteria are never scored as zero.');
+  const reason = (hasScore && !calc.isConditional && !calc.isNotSuitable)
+    ? (calc.reason && !/incomplete/i.test(calc.reason) ? calc.reason : 'Ratings reflect the configured operational rubric; methodology and weights remain subject to validation.')
+    : (calc.reason || property.reason || (hasScore ? 'Ratings reflect the configured operational rubric; methodology and weights remain subject to validation.' : 'Required evidence or observations are incomplete. Missing criteria are never scored as zero.'));
   const attention = hasScore
     ? calc.isConditional ? 'No actionable investment rank. Resolve the conditions attached to the proposed use before proceeding.' : 'Confirm evidence dates, parcel coverage and commercial terms before using this assessment.'
     : missing.length ? `Complete the missing observations and verify supporting evidence. ${missing.length} outstanding requirements remain; see the assessment evidence for details.` : reason;
