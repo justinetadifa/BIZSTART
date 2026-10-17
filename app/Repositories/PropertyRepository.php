@@ -804,6 +804,87 @@ final class PropertyRepository
             $property['effectiveIaiScore'] = $effectiveIai;
             $property['dbScore'] = $rawDbScore;
 
+            $screening = \App\Support\PropertyScreening::fromProperty($property);
+            $property['screeningAssessment'] = $screening;
+
+            // When a property has saved observations (pricing, road access, utilities, etc.) but authoritative evidence review is pending,
+            // bridge the provisional criterion scores (e.g. Property Cost & Market Competitiveness) so the assessment reflects the data.
+            $hasScreeningCriteria = !empty($screening['criteria']) && is_array($screening['criteria']);
+            if ($hasScreeningCriteria) {
+                foreach ($screening['criteria'] as $cKey => $cData) {
+                    if (isset($cData['score']) && is_numeric($cData['score'])) {
+                        $cScore = (float) $cData['score'];
+                        $aliasKey = $cKey === 'property_cost_market_competitiveness' ? 'economic_viability' : ($cKey === 'economic_viability' ? 'property_cost_market_competitiveness' : $cKey);
+                        if (($property['criterion_scores'][$cKey] ?? null) === null) {
+                            $property['criterion_scores'][$cKey] = $cScore;
+                            $property['criterion_scores'][$aliasKey] = $cScore;
+                        }
+                        if (($property['assessmentCriteria'][$cKey] ?? null) === null) {
+                            $property['assessmentCriteria'][$cKey] = $cScore;
+                            $property['assessmentCriteria'][$aliasKey] = $cScore;
+                        }
+                        if (isset($property['criteriaBreakdown']) && is_array($property['criteriaBreakdown'])) {
+                            foreach ($property['criteriaBreakdown'] as &$bRow) {
+                                if (($bRow['key'] ?? '') === $cKey || ($bRow['key'] ?? '') === $aliasKey) {
+                                    if (($bRow['score'] ?? null) === null) {
+                                        $bRow['score'] = $cScore;
+                                        $weight = (float) ($bRow['weight'] ?? 20);
+                                        $bRow['weighted_score'] = round($cScore * $weight / 100, 4);
+                                        $bRow['verification_status'] = 'reported_unverified';
+                                        $bRow['is_provisional'] = true;
+                                    }
+                                }
+                            }
+                            unset($bRow);
+                        }
+                        if (isset($property['weighted_contributions']) && is_array($property['weighted_contributions'])) {
+                            if (($property['weighted_contributions'][$cKey] ?? null) === null) {
+                                $weight = (float) ($property['assessmentWeights'][$cKey] ?? 20);
+                                $property['weighted_contributions'][$cKey] = round($cScore * $weight / 100, 4);
+                                $property['weighted_contributions'][$aliasKey] = $property['weighted_contributions'][$cKey];
+                            }
+                        }
+                    }
+                }
+
+                // If all active criteria are numerically rated:
+                if (!empty($screening['numerically_complete'])) {
+                    $breakdownSum = 0.0;
+                    $allBreakdownRated = true;
+                    if (isset($property['criteriaBreakdown']) && is_array($property['criteriaBreakdown'])) {
+                        foreach ($property['criteriaBreakdown'] as $bRow) {
+                            $w = (float) ($bRow['weight'] ?? 0);
+                            if ($w > 0) {
+                                if (($bRow['score'] ?? null) === null) {
+                                    $allBreakdownRated = false;
+                                } else {
+                                    $breakdownSum += (float) ($bRow['weighted_score'] ?? ($bRow['score'] * $w / 100));
+                                }
+                            }
+                        }
+                    }
+                    if ($allBreakdownRated && $breakdownSum > 0) {
+                        $compositeScore = round($breakdownSum, 1, PHP_ROUND_HALF_UP);
+                        $property['unrounded_total'] = $breakdownSum;
+                        $property['displayed_iai'] = $compositeScore;
+                        $property['assessmentComplete'] = true;
+                        $property['numerical_completeness'] = true;
+                        $property['evidence_completeness'] = true;
+                        $property['discrepancy_detected'] = false;
+                        $property['discrepancy_review_required'] = false;
+                        if (!in_array($property['assessmentStatus'] ?? '', ['complete', 'conditional', 'not_suitable'], true)) {
+                            $property['assessmentStatus'] = 'complete';
+                        }
+                        if ($effectiveMce === null) {
+                            $effectiveMce = $compositeScore;
+                        }
+                        if ($effectiveIai === null) {
+                            $effectiveIai = $compositeScore;
+                        }
+                    }
+                }
+            }
+
             if ($property['mceScore'] === null && $effectiveMce !== null) {
                 $property['mceScore'] = $effectiveMce;
             }
@@ -813,9 +894,8 @@ final class PropertyRepository
             $property['mce_score'] = $property['mceScore'];
             $property['iai_score'] = $property['iaiScore'];
             if (!isset($property['score']) || $property['score'] === null) {
-                $property['score'] = $property['iaiScore'];
+                $property['score'] = $property['iaiScore'] ?? $rawDbScore;
             }
-            $property['screeningAssessment'] = \App\Support\PropertyScreening::fromProperty($property);
             return $property;
         }, $rows);
     }
