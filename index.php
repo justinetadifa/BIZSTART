@@ -1011,7 +1011,7 @@ $cataloguePath = $context['user'] === null
           </button>
           <div class="city-about-drawer" aria-hidden="true">
             <div class="city-about-drawer-inner">
-              <p>Multi-Criteria Evaluation (MCE) weighs seven city assessment criteria. The Investment Attractiveness Index (IAI) combines MCE with economic viability and infrastructure readiness. Scores appear after a complete assessment; the provisional method is shown on the priority board.</p>
+              <p>Multi-Criteria Evaluation (MCE) synthesizes five core criteria totaling 100% (Spatial Accessibility 25%, Infrastructure Readiness 25%, Property Cost &amp; Market Competitiveness 20%, Nearby Businesses 15%, and Risk Constraints 15%). The Investment Attractiveness Index (IAI) is screened through a mandatory, non-compensatory CLUP Zoning Eligibility Screening Gate (0% weight). Ratings appear after complete assessment; unassessed criteria are never scored as zero.</p>
             </div>
           </div>
         </div>
