@@ -224,8 +224,11 @@
       deleted: 'Retained records'
     };
     if (summary) {
-      summary.innerHTML = views.map(([label, value, filter]) => `
-        <button type="button" class="city-property-stat stat-theme-${filter.toLowerCase()}" data-property-filter="${filter}" aria-pressed="${state === filter}">
+      summary.innerHTML = views.map(([label, value, filter]) => {
+        const isZero = value === 0;
+        const isPressed = state === filter;
+        return `
+        <button type="button" class="city-property-stat stat-theme-${filter.toLowerCase()}${isZero ? ' is-zero' : ''}" data-property-filter="${filter}" aria-pressed="${isPressed}">
           <div class="city-stat-top">
             <span class="city-stat-label">${escape(label)}</span>
             <span class="city-stat-icon-wrap" aria-hidden="true">${statIcons[filter] || ''}</span>
@@ -234,8 +237,10 @@
             <strong class="city-stat-value">${value}</strong>
             <span class="city-stat-hint">${statHints[filter] || ''}</span>
           </div>
+          ${isPressed ? '<span class="city-stat-active-indicator" aria-hidden="true"></span>' : ''}
         </button>
-      `).join('');
+      `;
+      }).join('');
     }
     const viewTitle = root.querySelector('[data-property-view-title]');
     if (viewTitle) viewTitle.textContent = views.find(([, , filter]) => filter === state)?.[0] || root.querySelector('[data-property-state] option:checked')?.textContent || 'Listings';
@@ -1410,7 +1415,41 @@
     if (target.dataset.reviewProperty) openReview(target.dataset.reviewProperty);
     if (target.hasAttribute('data-close-dialog')) target.closest('dialog')?.close();
   });
-  root.querySelector('[data-property-search]')?.addEventListener('input', renderProperties);
+  const searchInput = root.querySelector('[data-property-search]');
+  const searchClearBtn = root.querySelector('#propertySearchClearBtn');
+  const searchKbd = root.querySelector('#propertySearchKbd');
+  function onSearchChange() {
+    if (searchClearBtn) searchClearBtn.hidden = !searchInput?.value.trim();
+    if (searchKbd) searchKbd.hidden = Boolean(searchInput?.value.trim());
+    renderProperties();
+  }
+  searchInput?.addEventListener('input', onSearchChange);
+  searchClearBtn?.addEventListener('click', () => {
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.focus();
+    }
+    onSearchChange();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && searchInput && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) {
+      e.preventDefault();
+      searchInput.focus();
+      searchInput.select();
+    }
+  });
+
+  // Live time ticker for Property Desk hero capsule
+  const deskLiveTime = document.getElementById('propertyDeskLiveTime');
+  function tickDeskClock() {
+    if (deskLiveTime) {
+      const now = new Date();
+      deskLiveTime.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+    }
+  }
+  tickDeskClock();
+  setInterval(tickDeskClock, 1000);
+
   root.querySelector('[data-property-state]')?.addEventListener('change', renderProperties);
   form?.elements.category.addEventListener('change', () => updateSubcategories());
   form?.elements.subcategory?.addEventListener('change', () => updateSubcategories());

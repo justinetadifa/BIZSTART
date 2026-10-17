@@ -12,6 +12,7 @@ if (!sfc_can_manage_properties($context['user'])) {
     exit('A city department account is required.');
 }
 $governance = sfc_can_review_listings($context['user']);
+$today = new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
 $field = 'tw-mt-2 tw-block tw-w-full tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3 tw-py-3 tw-text-sm tw-text-[#11224d] focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-amber-200';
 $label = 'tw-block tw-text-xs tw-font-medium tw-text-[#11224d]';
 sfc_render_head('Properties | LOCUS-SF', $context, ['page' => 'admin-workspace', 'role' => 'admin']);
@@ -25,21 +26,41 @@ sfc_render_header($context, 'admin-properties');
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
 <main class="city-workspace" data-city-workspace="properties" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-user-id="<?= htmlspecialchars((string) ($context['user']['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
   <div class="city-desk-hero">
-    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-gap-6 sm:tw-flex-row sm:tw-items-center">
+    <img src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/images/admin-city.jpg" class="city-hero-backdrop-img" alt="" fetchpriority="high">
+    <div class="city-hero-scrim"></div>
+    <div class="city-hero-glow" aria-hidden="true"></div>
+
+    <!-- Live Glassmorphic Today & Live Clock Capsule -->
+    <div class="city-desk-today-capsule" id="propertyDeskTodayCapsule">
+      <svg class="city-capsule-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="3"/>
+        <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
+      </svg>
       <div>
-        <div class="tw-mb-3.5 tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-backdrop-blur-md tw-border tw-border-white/20 tw-px-3.5 tw-py-1 tw-text-[11px] tw-font-bold tw-uppercase tw-tracking-widest tw-text-white/90">
-          <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-400 tw-animate-pulse" aria-hidden="true"></span>
+        <span class="city-capsule-label">CITY DESK · TODAY</span>
+        <time class="city-capsule-date" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
+          <?= $today->format('M j, Y') ?>
+        </time>
+        <span class="city-capsule-time" id="propertyDeskLiveTime"></span>
+      </div>
+    </div>
+
+    <div class="city-desk-content">
+      <div class="city-desk-text">
+        <div class="city-desk-badge">
+          <span class="city-badge-dot" aria-hidden="true"></span>
           <span>City workspace · <?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?></span>
         </div>
-        <h1 class="tw-m-0 tw-text-3xl sm:tw-text-4xl tw-font-extrabold tw-tracking-tight tw-text-white">Property desk</h1>
-        <p class="tw-mb-0 tw-mt-2.5 tw-text-sm sm:tw-text-base tw-text-white/80 tw-leading-relaxed tw-max-w-xl"><?= $governance ? 'Review listings, check evidence, and publish with confidence.' : 'Record site details and complete the city assessment.' ?></p>
+        <h1 class="city-desk-title">Property desk</h1>
+        <p class="city-desk-subtitle"><?= $governance ? 'Review listings, check evidence, and publish with confidence.' : 'Record site details and complete the city assessment.' ?></p>
       </div>
-      <button class="city-btn-pill-add" type="button" data-add-listing>
-        <span class="tw-flex tw-h-5 tw-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-[#11224d]/10 tw-text-sm tw-font-black" aria-hidden="true">+</span>
-        <span>Add property</span>
-      </button>
+      <div class="city-desk-action-wrap">
+        <button class="city-btn-pill-add" type="button" data-add-listing>
+          <span class="city-btn-add-plus" aria-hidden="true">+</span>
+          <span>Add property</span>
+        </button>
+      </div>
     </div>
-    <div class="city-hero-glow" aria-hidden="true"></div>
   </div>
 
   <div class="city-property-summary-grid" data-property-summary aria-label="Listing management views"></div>
@@ -55,10 +76,15 @@ sfc_render_header($context, 'admin-properties');
         </svg>
       </span>
       <input id="propertySearchInput" type="search" data-property-search placeholder="Search properties by name, barangay, or type…" class="city-search-input">
+      <button type="button" class="city-search-clear-btn" id="propertySearchClearBtn" aria-label="Clear search" hidden>&times;</button>
+      <kbd class="city-search-kbd" id="propertySearchKbd" title="Press / to focus search">/</kbd>
     </div>
 
     <div class="city-select-box">
       <label for="propertyStateSelect" class="visually-hidden">Listing view</label>
+      <span class="city-select-icon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+      </span>
       <select id="propertyStateSelect" data-property-state class="city-select-input">
         <option value="latest">Latest Listings</option>
         <option value="active">Active Listings</option>
@@ -92,16 +118,16 @@ sfc_render_header($context, 'admin-properties');
         <line x1="16" y1="6" x2="16" y2="22"></line>
       </svg>
       <span>Map explorer</span>
-      <span aria-hidden="true">↗</span>
+      <span class="city-map-arrow" aria-hidden="true">↗</span>
     </a>
   </div>
 
   <div class="city-listing-view">
-    <div class="tw-flex tw-items-center tw-gap-2.5">
-      <h2 data-property-view-title class="tw-m-0 tw-text-xl tw-font-bold tw-tracking-tight tw-text-[#11224d]">Latest Listings</h2>
+    <div class="city-listing-view-top">
+      <h2 data-property-view-title class="city-listing-view-title">Latest Listings</h2>
       <span class="city-listing-count-pill" data-property-count-pill>0 listings</span>
     </div>
-    <p data-property-view-description class="tw-mb-0 tw-mt-1.5 tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-leading-relaxed">Listings ordered by creation date, newest first. Deleted listings have a separate view.</p>
+    <p data-property-view-description class="city-listing-view-desc">Listings ordered by creation date, newest first. Deleted listings have a separate view.</p>
     <p class="visually-hidden" data-property-result-count aria-live="polite"></p>
   </div>
 
