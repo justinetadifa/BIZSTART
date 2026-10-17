@@ -22,44 +22,278 @@
   body[data-page="city-details"] .city-print-trigger-btn { background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%) !important; color: #ffffff !important; border: 1px solid #7f1d1d !important; border-radius: 12px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 4px 12px rgba(127,29,29,0.25) !important; min-height: 44px; padding: 10px 20px !important; font-family: 'Inter', sans-serif !important; font-weight: 600 !important; font-size: 13px !important; }
   body[data-page="city-details"] .city-print-trigger-btn svg { stroke: #ffffff !important; }
   body[data-page="city-details"] .city-print-trigger-btn:hover { background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%) !important; border-color: #991b1b !important; color: #ffffff !important; box-shadow: 0 6px 18px rgba(127,29,29,0.32) !important; }
-  body[data-page="city-details"] .property-summary-strip { border: 0; background: transparent; border-block: 1px solid #dce3e4; border-radius: 0; box-shadow: none; gap: 0; margin-bottom: 16px; }
-  body[data-page="city-details"] .property-summary-strip > div { padding: 20px 22px; background: transparent; border-color: #dce3e4; }
-  body[data-page="city-details"] .property-summary-strip > div:first-child { padding-left: 0; }
-  body[data-page="city-details"] .property-summary-strip span { font-size: 10px; letter-spacing: .1em; font-weight: 600; }
-  body[data-page="city-details"] .property-summary-strip strong { font-family: Inter, Arial, sans-serif; font-size: 22px; font-weight: 600; letter-spacing: -.04em; }
-  body[data-page="city-details"] .property-price-summary strong { font-size: 25px !important; font-weight: 650 !important; }
-  body[data-page="city-details"] .property-section-nav { display: flex; width: fit-content; background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; gap: 22px; margin-bottom: 24px; }
-  body[data-page="city-details"] .property-section-nav a { padding: 12px 0; border-radius: 0; border-bottom: 2px solid transparent; color: #61717a; font-size: 13px; }
-  body[data-page="city-details"] .property-section-nav a:hover, body[data-page="city-details"] .property-section-nav a:focus-visible { border-bottom-color: #9a3539; color: #172e40; background: transparent; box-shadow: none; transform: none; }
-  body[data-page="city-details"] .property-layout { display: flex !important; flex-direction: column !important; gap: 28px !important; }
-  body[data-page="city-details"] .property-top-overview-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr); gap: 24px; align-items: stretch; }
-  body[data-page="city-details"] .property-panel { border: 1px solid #dfe5e6; border-radius: 14px; padding: 26px; box-shadow: 0 3px 12px #172e4003; transition: none; }
-  body[data-page="city-details"] .property-panel:hover { border-color: #dfe5e6; box-shadow: 0 3px 12px #172e4003; }
-  body[data-page="city-details"] .property-panel h2 { font-family: Inter, Arial, sans-serif; font-size: 19px; font-weight: 650; letter-spacing: -.025em; }
-  body[data-page="city-details"] .property-panel h3 { font-family: Inter, Arial, sans-serif; font-weight: 600; }
-  body[data-page="city-details"] .property-panel p { font-size: 14px; }
-  body[data-page="city-details"] .property-photo { border: 0; border-radius: 14px; height: 390px; box-shadow: none; background: #e4e9e7; }
-  body[data-page="city-details"] .property-photo img { object-fit: contain; }
-  body[data-page="city-details"] .property-photo:hover img { transform: none; }
-  .property-photo > .site-photo-empty { display: none; }
-  .property-photo.is-image-missing > .site-photo-empty { display: flex; height: 100%; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; }
-  .site-photo-empty > span { font-size: 42px; color: #a3b3a9; margin-bottom: 20px; }
-  .site-photo-empty strong { font-size: 17px; font-weight: 500; color: #587461; }
-  .site-photo-empty p { font-size: 13px; color: #7e9085; margin-top: 10px; }
-  .property-photo img[hidden], .site-compare-photo img[hidden] { display: none !important; }
-  body[data-page="city-details"] .property-photo figcaption { font-size: 11px; font-weight: 500; border-radius: 6px; backdrop-filter: none; box-shadow: none; background: #172e40e8; }
-  body[data-page="city-details"] .property-gallery-container { min-height: 0 !important; }
-  body[data-page="city-details"] .property-gallery-stage { height: 330px; border-radius: 14px; box-shadow: none; }
-  body[data-page="city-details"] .property-contact { min-height: 390px; padding: 28px; background: #182f3d; border-color: #182f3d; justify-content: flex-start; gap: 18px; }
-  body[data-page="city-details"] .property-contact :is(h2, p, a, .property-contact-name) { color: #fff; }
-  body[data-page="city-details"] .property-contact p { color: #e2ebef !important; }
-  body[data-page="city-details"] .property-contact .property-kicker, body[data-page="city-details"] .property-contact .property-note { color: #bac9d1; }
-  body[data-page="city-details"] .property-contact h2 { font: normal 29px/1.2 Georgia, serif; margin-bottom: 8px; }
-  body[data-page="city-details"] .property-contact .property-actions { margin-top: auto; display: grid; grid-template-columns: 1fr; gap: 10px; }
-  body[data-page="city-details"] .property-contact .property-actions :is(a, button) { border-radius: 8px !important; min-height: 44px; padding: 11px 16px; background: #fff !important; color: #183140 !important; border: 1px solid #fff !important; text-align: center; font-size: 13px; box-shadow: none !important; }
-  body[data-page="city-details"] .property-contact .property-actions .city-button-secondary { color: #e2ebef !important; border-color: #607581 !important; background: transparent !important; }
-  body[data-page="city-details"] .property-contact .property-note { font-size: 12px; margin: 0; border: 0; background: transparent; padding: 0; color: #b7c7ce !important; }
-  body[data-page="city-details"] .property-contact .city-link { display: inline-block; text-decoration: underline; text-underline-offset: 4px; font-size: 13px; }
+  /* Executive Financial Metrics Showcase */
+  body[data-page="city-details"] .property-summary-strip {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.04) !important;
+    margin-bottom: 20px !important;
+    overflow: hidden !important;
+    gap: 0 !important;
+  }
+  body[data-page="city-details"] .property-summary-strip > div {
+    padding: 18px 22px !important;
+    border: 0 !important;
+    border-right: 1px solid #f1f5f9 !important;
+    background: transparent !important;
+  }
+  body[data-page="city-details"] .property-summary-strip > div:last-child {
+    border-right: 0 !important;
+  }
+  body[data-page="city-details"] .property-summary-strip span {
+    display: block !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    color: #64748b !important;
+    margin-bottom: 6px !important;
+  }
+  body[data-page="city-details"] .property-summary-strip strong {
+    display: block !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 21px !important;
+    font-weight: 750 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.02em !important;
+  }
+  body[data-page="city-details"] .property-price-summary strong {
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+  }
+
+  /* Sticky Floating Segmented Navigation */
+  body[data-page="city-details"] .property-section-nav {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 6px 10px !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05) !important;
+    margin-bottom: 24px !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    width: auto !important;
+  }
+  body[data-page="city-details"] .property-section-nav a {
+    padding: 8px 18px !important;
+    border-radius: 9999px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    text-decoration: none !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    border: 0 !important;
+    border-bottom: 0 !important;
+  }
+  body[data-page="city-details"] .property-section-nav a:hover,
+  body[data-page="city-details"] .property-section-nav a:focus-visible {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15) !important;
+  }
+
+  /* Modern Unified Vertical Layout with Hero Split */
+  body[data-page="city-details"] .property-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 28px !important;
+  }
+  body[data-page="city-details"] .property-hero-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.62fr) minmax(340px, 1fr) !important;
+    gap: 24px !important;
+    align-items: stretch !important;
+    margin-bottom: 4px !important;
+  }
+
+  body[data-page="city-details"] .property-panel {
+    background: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.85) !important;
+    border-radius: 20px !important;
+    padding: 28px !important;
+    box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.04) !important;
+    transition: box-shadow .2s ease, border-color .2s ease !important;
+  }
+  body[data-page="city-details"] .property-panel:hover {
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.06) !important;
+  }
+  body[data-page="city-details"] .property-panel h2 {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 19px !important;
+    font-weight: 700 !important;
+    letter-spacing: -.02em !important;
+    color: #0f172a !important;
+  }
+  body[data-page="city-details"] .property-panel h3 {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+  body[data-page="city-details"] .property-panel p {
+    font-size: 13.5px !important;
+    line-height: 1.65 !important;
+    color: #475569 !important;
+  }
+
+  /* Executive Investor Action Hub (Replaces Old Dark Void) */
+  body[data-page="city-details"] .property-contact.property-executive-hub {
+    min-height: 480px !important;
+    padding: 26px 28px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(226, 232, 240, 0.9) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+  }
+  body[data-page="city-details"] .property-executive-hub h2 {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 20px !important;
+    font-weight: 750 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.02em !important;
+    margin: 2px 0 0 0 !important;
+  }
+  body[data-page="city-details"] .executive-hub-price-badge {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    margin: 4px 0 !important;
+  }
+  body[data-page="city-details"] .executive-price-primary strong {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 24px !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.03em !important;
+  }
+  body[data-page="city-details"] .executive-price-sub {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    margin-top: 2px !important;
+  }
+  body[data-page="city-details"] .executive-quick-specs {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  body[data-page="city-details"] .executive-spec-pill {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+  }
+  body[data-page="city-details"] .executive-spec-pill svg {
+    stroke: #64748b !important;
+    flex-shrink: 0 !important;
+  }
+  body[data-page="city-details"] .executive-contact-body p {
+    font-size: 13px !important;
+    color: #475569 !important;
+    margin: 0 0 4px !important;
+  }
+  body[data-page="city-details"] .executive-contact-body .property-contact-name {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+  }
+  body[data-page="city-details"] .executive-contact-body a {
+    color: #0284c7 !important;
+    font-weight: 600 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 3px !important;
+    font-size: 12.5px !important;
+    display: inline-block !important;
+    margin-top: 2px !important;
+  }
+  body[data-page="city-details"] .property-executive-hub .property-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #f1f5f9 !important;
+  }
+  body[data-page="city-details"] .executive-inquire-btn {
+    background: linear-gradient(180deg, #991b1b 0%, #7f1d1d 100%) !important;
+    color: #ffffff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+    padding: 12px 18px !important;
+    border-radius: 10px !important;
+    border: 1px solid #7f1d1d !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-shadow: 0 2px 10px rgba(153, 27, 27, 0.22) !important;
+    transition: all .2s ease !important;
+  }
+  body[data-page="city-details"] .executive-inquire-btn:hover {
+    background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%) !important;
+    box-shadow: 0 4px 14px rgba(153, 27, 27, 0.32) !important;
+    transform: translateY(-1px) !important;
+  }
+  body[data-page="city-details"] .executive-action-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  body[data-page="city-details"] .executive-action-row button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    background: #f8fafc !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
+    padding: 9px 12px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all .15s ease !important;
+  }
+  body[data-page="city-details"] .executive-action-row button:hover {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+  }
+  body[data-page="city-details"] .executive-action-row button svg {
+    stroke: currentColor !important;
+  }
+  body[data-page="city-details"] .property-executive-hub .property-note {
+    font-size: 11px !important;
+    color: #64748b !important;
+    line-height: 1.45 !important;
+    margin: 0 !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+  }
   body[data-page="city-details"] .property-facts { gap: 0 24px; }
   body[data-page="city-details"] .property-facts > div { border: 0; border-bottom: 1px solid #e6ebed; border-radius: 0; background: transparent; padding: 13px 0; }
   body[data-page="city-details"] .property-facts dt { font-size: 11px; text-transform: none; letter-spacing: 0; font-weight: 500; }

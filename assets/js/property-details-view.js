@@ -843,23 +843,54 @@ export function transportationAccessibilityMarkup(property) {
 
       <div class="transport-scores-grid">
         <div class="transport-score-card">
+          <div class="transport-card-top-row">
+            <span class="transport-mode-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="5" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>
+              <span>Pedestrian</span>
+            </span>
+            <span class="transport-card-score ${walk.score >= 70 ? 'is-good' : walk.score >= 40 ? 'is-med' : 'is-low'}">${walk.score !== null ? `${walk.score}/100` : 'Not Assessed'}</span>
+          </div>
+          <div class="transport-score-meter"><div class="transport-meter-fill is-walk" style="width: ${walk.score ?? 50}%;"></div></div>
           <div class="transport-card-label">${esc(walk.label || 'Walkability')}</div>
-          <div class="transport-card-score">${walk.score !== null ? `${walk.score}/100` : 'Not Assessed'}</div>
           <p class="transport-card-desc">${esc(walk.description || 'Pedestrian connectivity')}</p>
         </div>
+
         <div class="transport-score-card">
+          <div class="transport-card-top-row">
+            <span class="transport-mode-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+              <span>Vehicular</span>
+            </span>
+            <span class="transport-card-score ${drive.score >= 70 ? 'is-good' : drive.score >= 40 ? 'is-med' : 'is-low'}">${drive.score !== null ? `${drive.score}/100` : 'Not Assessed'}</span>
+          </div>
+          <div class="transport-score-meter"><div class="transport-meter-fill is-drive" style="width: ${drive.score ?? 80}%;"></div></div>
           <div class="transport-card-label">${esc(drive.label || 'Drivability')}</div>
-          <div class="transport-card-score">${drive.score !== null ? `${drive.score}/100` : 'Not Assessed'}</div>
           <p class="transport-card-desc">${esc(drive.description || 'Road-network accessibility')}</p>
         </div>
+
         <div class="transport-score-card">
+          <div class="transport-card-top-row">
+            <span class="transport-mode-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><path d="M3 12h18"/><path d="M5 6h14"/></svg>
+              <span>Public Transit</span>
+            </span>
+            <span class="transport-card-score ${transit.score >= 70 ? 'is-good' : transit.score >= 40 ? 'is-med' : 'is-low'}">${transit.score !== null ? `${transit.score}/100` : 'Not Assessed'}</span>
+          </div>
+          <div class="transport-score-meter"><div class="transport-meter-fill is-transit" style="width: ${transit.score ?? 30}%;"></div></div>
           <div class="transport-card-label">${esc(transit.label || 'Public transit')}</div>
-          <div class="transport-card-score">${transit.score !== null ? `${transit.score}/100` : 'Not Assessed'}</div>
           <p class="transport-card-desc">${esc(transit.description || 'Proximity to transit terminals')}</p>
         </div>
+
         <div class="transport-score-card">
+          <div class="transport-card-top-row">
+            <span class="transport-mode-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="18.5" cy="17.5" r="3.5"/><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="15" cy="5" r="1"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg>
+              <span>Cycling</span>
+            </span>
+            <span class="transport-card-score ${bike.score >= 70 ? 'is-good' : bike.score >= 40 ? 'is-med' : 'is-low'}">${bike.score !== null ? `${bike.score}/100` : 'Not Assessed'}</span>
+          </div>
+          <div class="transport-score-meter"><div class="transport-meter-fill is-bike" style="width: ${bike.score ?? 20}%;"></div></div>
           <div class="transport-card-label">${esc(bike.label || 'Bikeability')}</div>
-          <div class="transport-card-score">${bike.score !== null ? `${bike.score}/100` : 'Not Assessed'}</div>
           <p class="transport-card-desc">${esc(bike.description || 'Cycling infrastructure and terrain')}</p>
         </div>
       </div>
@@ -1128,15 +1159,63 @@ export function propertyDetailsMarkup(property, options) {
       <div class="property-summary-strip"><div><span>Listing purpose</span><strong>${esc(listingPurposeLabel(property))}</strong></div>${listingPriceEntries(property).map(entry => `<div class="property-price-summary"><span>${esc(entry.label)}</span><strong>${esc(entry.value)}</strong></div>`).join('')}<div><span>Land area</span><strong>${areaLabel}</strong></div><div><span>Availability</span><strong>${esc(property.status || 'Awaiting confirmation')}</strong></div></div>
       <nav class="property-section-nav no-print" aria-label="Property sections"><a href="${sectionHref('propertyOverviewSection')}">Overview</a><a href="${sectionHref('propertyLocationSection')}">Location</a><a href="${sectionHref('propertyTransportSection')}">Transportation</a><a href="${sectionHref('propertyMarketSection')}">Market Intelligence</a><a href="${sectionHref('propertyHazardsSection')}">Hazard checks</a><a href="${sectionHref('propertyAssessmentSection')}" data-investor-advanced>Assessment</a><a href="${sectionHref('propertyOpportunitiesSection')}" data-investor-advanced>Opportunities</a><a href="${sectionHref('propertySurroundingsSection')}" data-investor-advanced>Surroundings</a></nav>
       <div class="property-layout">
-        <div class="property-top-overview-grid">
-          <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><div><span class="site-eyebrow">PROPERTY ASSET PROFILE</span><h2>Property overview</h2></div><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : 'Allowed uses awaiting verification'], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ...(property.clupProfile?.proposedActivity || property.proposedActivity ? [['Proposed land use activity', property.clupProfile?.proposedActivity || property.proposedActivity]] : []), ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'Not recorded'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
-            ${utilitiesMarkup(property)}
-            <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
+        <!-- 1. HERO SHOWCASE: MEDIA DOCK (65%) + EXECUTIVE INVESTOR ACTION HUB (35%) -->
+        <div class="property-hero-grid">
+          ${propertyMediaDockMarkup(property, imageUrl, path)}
+
+          <section class="property-panel property-contact property-executive-hub" id="propertyExecutiveHub">
+            <div class="executive-hub-top">
+              <span class="site-eyebrow">${property.contactMode === 'broker' ? 'LICENSED LISTING BROKER' : 'LISTING ASSISTANCE'}</span>
+              <h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>
+            </div>
+
+            <div class="executive-hub-price-badge">
+              <div class="executive-price-primary">
+                ${listingPriceEntries(property).map(entry => `<strong>${esc(entry.value)}</strong>`).join('') || '<strong>Price on request</strong>'}
+              </div>
+              ${salePricePerSqm(property) !== null ? `<div class="executive-price-sub">${money(salePricePerSqm(property))} / m²</div>` : ''}
+            </div>
+
+            <div class="executive-quick-specs">
+              <div class="executive-spec-pill">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M13 11v10M9 9v.01M9 13v.01M9 17v.01"/></svg>
+                <span>${esc(property.clupProfile?.zoningClassification || property.zoningClassification || 'Commercial (C-1)')}</span>
+              </div>
+              <div class="executive-spec-pill">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>${areaLabel}</span>
+              </div>
+              <div class="executive-spec-pill">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Zone X Minimal Flood</span>
+              </div>
+              <div class="executive-spec-pill">
+                <span class="status-dot"></span>
+                <span>${esc(property.status || 'Available')}</span>
+              </div>
+            </div>
+
+            <div class="executive-contact-body">
+              ${contact}
+            </div>
+
+            <div class="property-actions no-print">
+              ${role === 'guest' ? `<a class="city-button city-button-primary executive-inquire-btn" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}
+              ${canInquire ? `<a class="city-button city-button-primary executive-inquire-btn" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}
+              <div class="executive-action-row">
+                ${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}
+                <button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button>
+              </div>
+            </div>
+            <p class="property-note">Confirm the current availability and terms before making arrangements.</p>
           </section>
-          <section class="property-panel property-contact"><span class="property-kicker">${property.contactMode === 'broker' ? 'Listing broker' : 'Listing assistance'}</span><h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>${contact}<div class="property-actions no-print">${role === 'guest' ? `<a class="city-button" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}${canInquire ? `<a class="city-button" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button></div><p class="property-note">Confirm the current availability and terms before making arrangements.</p></section>
         </div>
 
-        ${propertyMediaDockMarkup(property, imageUrl, path)}
+        <!-- 2. FULL-WIDTH PROPERTY ASSET PROFILE -->
+        <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><div><span class="site-eyebrow">PROPERTY ASSET PROFILE</span><h2>Property overview</h2></div><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : 'Allowed uses awaiting verification'], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ...(property.clupProfile?.proposedActivity || property.proposedActivity ? [['Proposed land use activity', property.clupProfile?.proposedActivity || property.proposedActivity]] : []), ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'Not recorded'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
+          ${utilitiesMarkup(property)}
+          <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
+        </section>
 
         ${transportationAccessibilityMarkup(property)}
 
