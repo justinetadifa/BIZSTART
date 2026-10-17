@@ -25,11 +25,10 @@ console.log('--- Priority 1: Scoring & Weight Consistency ---');
 
 // 1. Authoritative weights in PropertyAssessment::WEIGHTS
 const expectedWeights = {
-  spatial_accessibility: 20,
-  infrastructure_readiness: 20,
-  economic_viability: 20,
-  nearby_businesses: 10,
-  zoning_compatibility: 15,
+  spatial_accessibility: 25,
+  infrastructure_readiness: 25,
+  property_cost_market_competitiveness: 20,
+  nearby_businesses: 15,
   risk_constraints: 15,
 };
 
@@ -39,49 +38,46 @@ for (const [key, weight] of Object.entries(expectedWeights)) {
   assert(assessmentContent.includes(`'${key}' => ${weight}`), `PropertyAssessment::WEIGHTS must define ${key} as ${weight}%`);
 }
 assert.strictEqual(sumWeights, 100, 'Criterion weights must total exactly 100%');
-console.log('✅ PASS: PropertyAssessment::WEIGHTS defines 20/20/20/10/15/15 totaling 100%');
+console.log('✅ PASS: PropertyAssessment::WEIGHTS defines 25/25/20/15/15 totaling 100%');
 
 // 2. Step 3 headers in view have authoritative weights
-assert(viewContent.includes('Economic viability (20%)'), 'Mobile picker must show Economic viability (20%)');
-assert(viewContent.includes('Zoning compatibility - CLUP (15%)'), 'Mobile picker must show Zoning compatibility - CLUP (15%)');
-assert(viewContent.includes('Spatial access</span>\n                    <span class="pw-crit-weight">20% weight'), 'Spatial tab must show 20% weight');
-assert(viewContent.includes('Infrastructure</span>\n                    <span class="pw-crit-weight">20% weight'), 'Infra tab must show 20% weight');
-assert(viewContent.includes('Economic</span>\n                    <span class="pw-crit-weight">20% weight'), 'Economic tab must show 20% weight');
-assert(viewContent.includes('Nearby places</span>\n                    <span class="pw-crit-weight">10% weight'), 'Nearby tab must show 10% weight');
+assert(viewContent.includes('Property cost &amp; market competitiveness (20%)'), 'Mobile picker must show Property cost & market competitiveness (20%)');
+assert(viewContent.includes('CLUP &amp; Land-Use Screening (Mandatory Gate)'), 'Mobile picker must show CLUP & Land-Use Screening (Mandatory Gate)');
+assert(viewContent.includes('Spatial access</span>\n                    <span class="pw-crit-weight">25% weight'), 'Spatial tab must show 25% weight');
+assert(viewContent.includes('Infrastructure</span>\n                    <span class="pw-crit-weight">25% weight'), 'Infra tab must show 25% weight');
+assert(viewContent.includes('Cost &amp; Market</span>\n                    <span class="pw-crit-weight">20% weight'), 'Cost & Market tab must show 20% weight');
+assert(viewContent.includes('Nearby places</span>\n                    <span class="pw-crit-weight">15% weight'), 'Nearby tab must show 15% weight');
 assert(viewContent.includes('Risk &amp; hazards</span>\n                    <span class="pw-crit-weight">15% weight'), 'Risk tab must show 15% weight');
-assert(viewContent.includes('CLUP Zoning</span>\n                    <span class="pw-crit-weight">15% weight'), 'Zoning tab must show 15% weight');
-console.log('✅ PASS: Step 3 tabs and picker display authoritative weights (20/20/20/10/15/15)');
+assert(viewContent.includes('CLUP Zoning</span>\n                    <span class="pw-crit-weight">Eligibility Gate</span>'), 'Zoning tab must show Eligibility Gate');
+console.log('✅ PASS: Step 3 tabs and picker display authoritative weights (25/25/20/15/15 + Eligibility Gate)');
 
-// 3. Synthetic calculation test: scores [90, 80, 75, 60, 60, 100] = 79.0/100
+// 3. Synthetic calculation test: scores [90, 80, 75, 70, 85] = 80.8/100
 function calculateComposite(scores) {
   const w = {
-    spatial: 20,
-    infra: 20,
-    econ: 20,
-    nearby: 10,
-    risk: 15,
-    zoning: 15
+    spatial: 25,
+    infra: 25,
+    pcmc: 20,
+    nearby: 15,
+    risk: 15
   };
   const val = (scores.spatial * w.spatial +
                scores.infra * w.infra +
-               scores.econ * w.econ +
+               scores.pcmc * w.pcmc +
                scores.nearby * w.nearby +
-               scores.risk * w.risk +
-               scores.zoning * w.zoning) / 100;
+               scores.risk * w.risk) / 100;
   return Math.round(val * 10) / 10;
 }
 
 const syntheticScores = {
   spatial: 90,
   infra: 80,
-  econ: 75,
-  nearby: 60,
-  risk: 60,
-  zoning: 100
+  pcmc: 75,
+  nearby: 70,
+  risk: 85
 };
 const syntheticResult = calculateComposite(syntheticScores);
-assert.strictEqual(syntheticResult, 79.0, `Synthetic scores [90, 80, 75, 60, 60, 100] must equal 79.0, got ${syntheticResult}`);
-console.log(`✅ PASS: Synthetic test scores [90, 80, 75, 60, 60, 100] produce exactly IAI = ${syntheticResult}/100`);
+assert.strictEqual(syntheticResult, 80.8, `Synthetic scores [90, 80, 75, 70, 85] must equal 80.8, got ${syntheticResult}`);
+console.log(`✅ PASS: Synthetic test scores [90, 80, 75, 70, 85] produce exactly IAI = ${syntheticResult}/100`);
 
 // =========================================================================
 // PRIORITY 2: Property Location and Area Validation

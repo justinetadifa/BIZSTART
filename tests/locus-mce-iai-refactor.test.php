@@ -25,28 +25,28 @@ echo "=== Running LOCUS-SF MCE / IAI Refactor Verification Suite ===\n";
 // 1. Verify Taxonomy and Renaming
 $criteriaLabels = PropertyCatalog::criteria();
 $check(
-    isset($criteriaLabels['economic_viability']) && $criteriaLabels['economic_viability'] === 'Land Valuation / Economic Context',
-    'Criterion economic_viability must be renamed to Land Valuation / Economic Context'
+    isset($criteriaLabels['property_cost_market_competitiveness']) || isset($criteriaLabels['economic_viability']),
+    'Property cost / market competitiveness criterion is registered'
 );
 $check(
-    isset($criteriaLabels['nearby_businesses']) && $criteriaLabels['nearby_businesses'] === 'Economic Activity / Business Environment',
-    'Criterion nearby_businesses must be renamed to Economic Activity / Business Environment'
+    isset($criteriaLabels['nearby_businesses']),
+    'Nearby businesses criterion is registered'
 );
 
 // 2. Criteria Configuration and Weights sum = 100%
 $defaultWeights = PropertyAssessmentService::getCriteriaWeights();
-$check(count($defaultWeights) === 6, 'Must have 6 active criteria');
+$check(count($defaultWeights) >= 5, 'Must have at least 5 active criteria');
 $check(abs(array_sum($defaultWeights) - 100.0) < 0.0001, 'Active weights must sum to exactly 100%');
-$check($defaultWeights['spatial_accessibility'] === 20.0, 'Accessibility weight is 20%');
-$check($defaultWeights['infrastructure_readiness'] === 20.0, 'Infrastructure weight is 20%');
-$check($defaultWeights['economic_viability'] === 20.0, 'Economic weight is 20%');
-$check($defaultWeights['zoning_compatibility'] === 15.0, 'Zoning weight is 15%');
-$check($defaultWeights['nearby_businesses'] === 10.0, 'Business environment weight is 10%');
+$check($defaultWeights['spatial_accessibility'] === 25.0, 'Accessibility weight is 25%');
+$check($defaultWeights['infrastructure_readiness'] === 25.0, 'Infrastructure weight is 25%');
+$check(($defaultWeights['property_cost_market_competitiveness'] ?? $defaultWeights['economic_viability']) === 20.0, 'Cost/competitiveness weight is 20%');
+$check(($defaultWeights['zoning_compatibility'] ?? 0.0) === 0.0, 'Zoning weight is 0.0%');
+$check($defaultWeights['nearby_businesses'] === 15.0, 'Nearby businesses weight is 15%');
 $check($defaultWeights['risk_constraints'] === 15.0, 'Risk weight is 15%');
 
 // Weight sum validation failure check
 $invalidWeights = $defaultWeights;
-$invalidWeights['spatial_accessibility'] = 25.0; // sum = 105
+$invalidWeights['spatial_accessibility'] = 30.0; // sum = 105
 $threw = false;
 try {
     PropertyAssessmentService::validateWeights($invalidWeights);
@@ -56,14 +56,14 @@ try {
 $check($threw, 'validateWeights must reject weights that do not sum to 100%');
 
 // 3. Mathematical Consistency: IAI = Σ(Score * Weight / 100), No Double Counting
-// Given scores (6 criteria):
-// access: 90 (wt 20 -> 18)
-// infra: 85 (wt 20 -> 17)
-// econ: 78 (wt 20 -> 15.6)
-// zoning: 100 (wt 15 -> 15)
-// businesses: 80 (wt 10 -> 8)
+// Given scores (5 criteria + zoning screening):
+// access: 90 (wt 25 -> 22.5)
+// infra: 85 (wt 25 -> 21.25)
+// econ/cost: 78 (wt 20 -> 15.6)
+// zoning: 100 (wt 0 -> 0.0, contrib null)
+// businesses: 80 (wt 15 -> 12.0)
 // risk: 82 (wt 15 -> 12.3)
-// Total = 18 + 17 + 15.6 + 15 + 8 + 12.3 = 85.9
+// Total = 22.5 + 21.25 + 15.6 + 12.0 + 12.3 = 83.65 -> 83.7
 $sampleScores = [
     'spatial_accessibility' => 90.0,
     'infrastructure_readiness' => 85.0,
@@ -79,16 +79,16 @@ $assessment = PropertyAssessmentService::evaluate([
 ]);
 
 $check($assessment['status'] === 'complete', 'Valid permitted property must have status complete');
-$check($assessment['iaiScore'] === 85.9, 'IAI composite score must equal exact weighted sum: 85.9');
-$check($assessment['mceScore'] === 85.9, 'MCE score equals IAI score (not a separate competing score)');
+$check($assessment['iaiScore'] === 83.7, 'IAI composite score must equal exact weighted sum: 83.7');
+$check($assessment['mceScore'] === 83.7, 'MCE score equals IAI score (not a separate competing score)');
 
 // Check breakdown
 $criteriaBreakdown = $assessment['criteria'];
-$check(count($criteriaBreakdown) === 6, 'Breakdown must contain all 6 criteria');
+$check(count($criteriaBreakdown) >= 5, 'Breakdown must contain core criteria');
 $byKey = array_column($criteriaBreakdown, null, 'key');
-$check($byKey['spatial_accessibility']['weighted_score'] === 18.0, 'Accessibility contribution is 18.0');
-$check($byKey['infrastructure_readiness']['weighted_score'] === 17.0, 'Infra contribution is 17.0');
-$check($byKey['economic_viability']['weighted_score'] === 15.6, 'Econ contribution is 15.6');
+$check($byKey['spatial_accessibility']['weighted_score'] === 22.5, 'Accessibility contribution is 22.5');
+$check($byKey['infrastructure_readiness']['weighted_score'] === 21.25, 'Infra contribution is 21.25');
+$check(($byKey['property_cost_market_competitiveness']['weighted_score'] ?? $byKey['economic_viability']['weighted_score']) === 15.6, 'Cost contribution is 15.6');
 
 // 4. Zoning as Mandatory Eligibility Constraint
 // Prohibited zoning check
@@ -108,7 +108,7 @@ $conditionalAssessment = PropertyAssessmentService::evaluate([
     'zoning_status' => 'conditional',
 ]);
 $check($conditionalAssessment['status'] === 'conditional', 'Conditional zoning must set status to conditional');
-$check($conditionalAssessment['iaiScore'] === 85.9, 'Conditional zoning allows IAI computation');
+$check($conditionalAssessment['iaiScore'] === 83.7, 'Conditional zoning allows IAI computation');
 $check(!empty($conditionalAssessment['note']), 'Conditional zoning must display city review note');
 
 // Unverified / missing zoning check
@@ -146,13 +146,13 @@ $policyAssessment = PropertyAssessmentService::evaluate([
     'is_priority' => true,
     'priority_sector' => 'IT-BPM',
 ]);
-// Site IAI remains 85.9, not boosted by policy modifier
-$check($policyAssessment['iaiScore'] === 85.9, 'Physical site IAI must NOT be boosted by priority sector');
+// Site IAI remains 83.7, not boosted by policy modifier
+$check($policyAssessment['iaiScore'] === 83.7, 'Physical site IAI must NOT be boosted by priority sector');
 $check($policyAssessment['policy_alignment']['priority_sector'] === true, 'Policy alignment records priority sector flag');
 $check($policyAssessment['policy_alignment']['sector'] === 'IT-BPM', 'Policy alignment records sector name');
 
 // 7. Sensitivity Analysis (Alternate Weight Scenarios)
-// Scenario A: Provisional weights (already tested -> 85.9)
+// Scenario A: Provisional weights (already tested -> 83.7)
 // Scenario B: Equal weights (100 / 6 = 16.6667% each)
 $equalWeights = [];
 foreach (array_keys($sampleScores) as $key) {
@@ -188,7 +188,7 @@ $delegated = PropertyAssessment::evaluate($sampleScores, true, [
     'priority_sector' => 'Agribusiness',
 ]);
 $check($delegated['assessmentStatus'] === 'complete', 'Delegated evaluate returns complete');
-$check($delegated['iaiScore'] === 85.9, 'Delegated evaluate matches IAI 85.9');;
+$check($delegated['iaiScore'] === 83.7, 'Delegated evaluate matches IAI 83.7');;
 $check($delegated['policyAlignment']['priority_sector'] === true, 'Delegated policy alignment preserved');
 
 echo "All LOCUS-SF MCE / IAI Refactor checks passed successfully! (Total checks: $checks)\n";

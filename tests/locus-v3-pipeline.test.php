@@ -31,12 +31,13 @@ try {
     $check(!AssessmentEvidence::authenticated($assertion), 'Agency, dates and hash alone cannot authenticate evidence.');
     $check(!AssessmentEvidence::authenticated(array_replace($evidence, ['sha256' => str_repeat('0', 64)])), 'Review must bind the evidence fingerprint.');
 
-    $fixture = ['spatial_accessibility' => 100, 'infrastructure_readiness' => 100, 'economic_viability' => 85,
+    $fixture = ['spatial_accessibility' => 100, 'infrastructure_readiness' => 100,
+        'property_cost_market_competitiveness' => 85, 'economic_viability' => 85,
         'nearby_businesses' => 85, 'risk_constraints' => 100, 'zoning_compatibility' => 85];
-    $check(Assessment::calculateIAI($fixture) === 93.3, 'Historical arithmetic example: 93.25 rounds half-up to 93.3; not a verified LaFinns assessment.');
+    $check(Assessment::calculateIAI($fixture) === 94.8, 'Definitive arithmetic example: 94.75 rounds half-up to 94.8.');
     $sum = 0.0;
     foreach (Assessment::DEFAULT_WEIGHTS as $key => $weight) { $sum += Assessment::calculateWeightedScore($fixture[$key], $weight); }
-    $check($sum === 93.25, 'Arithmetic sum retains 93.25 before display rounding.');
+    $check($sum === 94.75, 'Arithmetic sum retains 94.75 before display rounding.');
     $check(Assessment::calculateWeightedScore(88.888888, 15) === 88.888888 * 15 / 100, 'Intermediate contributions retain precision.');
 
     $raw = [
@@ -69,8 +70,8 @@ try {
     $result = Assessment::evaluate($raw, $options);
     $check($result['assessmentStatus'] === 'complete', 'Fully evidenced synthetic observations complete under v3.');
     $check($result['criterion_scores']['economic_viability'] === 85.0, 'Existing comparable rubric evaluates a 15% premium at 85.');
-    $check($result['unrounded_total'] === 95.5 && $result['displayed_iai'] === 95.5, 'Known six-criterion weighted calculation is 95.5.');
-    $check($result['physical_subtotal'] === 80.5 && $result['physical_subtotal_max'] === 85.0, 'Physical subtotal is separate from scenario index.');
+    $check($result['unrounded_total'] === 94.75 && $result['displayed_iai'] === 94.8, 'Known five-criterion weighted calculation is 94.8.');
+    $check($result['physical_subtotal'] === 94.75 && $result['physical_subtotal_max'] === 100.0, 'Physical subtotal is separate from scenario index.');
     $check($result['rank_eligible'] && $result['numerical_completeness'] && $result['evidence_completeness'], 'Completeness and eligibility are explicit.');
     $check($result['methodology_validation'] !== $result['evidence_completeness'], 'Methodology validation remains separate from evidence.');
     $coverageOnly = $options; $coverageOnly['criteria_details']['infrastructure_readiness']['evidence'] = [$evidence];
@@ -121,7 +122,7 @@ try {
     $registerClaims($conditionalOptions['criteria_details']['zoning_compatibility']['evidence']);
     $registerClaims($conditionalOptions['criteria_details']['nearby_businesses']['evidence']);
     $conditional = Assessment::evaluate([], $conditionalOptions);
-    $check($conditional['assessmentStatus'] === 'conditional' && $conditional['iaiScore'] === 91.0, 'Conditional scenario retains explanatory index.');
+    $check($conditional['assessmentStatus'] === 'conditional' && $conditional['iaiScore'] === 94.8, 'Conditional scenario retains explanatory index.');
     $check(!$conditional['rank_eligible'] && !$conditional['eligibility']['conditions_met'] && count($conditional['eligibility']['outstanding_requirements']) > 0, 'Conditional score does not clear requirements or create an actionable rank.');
     $unselected = Assessment::evaluate($raw, array_replace($options, ['proposed_activity' => '']));
     $check($unselected['iaiScore'] === null && $unselected['physical_subtotal'] === null, 'Unselected activity withholds final IAI and business-specific subtotal.');
@@ -159,7 +160,7 @@ try {
     $noInventory = $raw['nearby_businesses']; unset($noInventory['inventory_version']);
     $check(Assessment::evaluateNearbyBusinesses($noInventory, ['is_verified' => true])['score'] === null, 'Nearby scoring requires versioned complete inventory.');
 
-    $custom = Assessment::DEFAULT_WEIGHTS; $custom['zoning_compatibility'] = 20; $custom['spatial_accessibility'] = 15;
+    $custom = Assessment::DEFAULT_WEIGHTS; $custom['zoning_compatibility'] = 20; $custom['spatial_accessibility'] = 5;
     $customResult = Assessment::evaluate($raw, array_replace($options, ['weights' => $custom]));
     $check($customResult['physical_subtotal_max'] === 80.0 && $customResult['weighted_contributions']['zoning_compatibility'] === 20.0, 'Configured zoning weight supplies subtotal and contribution.');
     $check($customResult['comparison_key'] !== $result['comparison_key'], 'Different weights cannot share ranking cohort.');

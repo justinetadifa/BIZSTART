@@ -11,6 +11,7 @@ final class PropertyBusinessProfiles
     private const NEXT_ACTIONS = [
         'spatial_accessibility' => 'Confirm road access and add the authoritative road reference.',
         'infrastructure_readiness' => 'Confirm utility services and add their source evidence.',
+        'property_cost_market_competitiveness' => 'Add suitable, dated market comparables for authorized verification; record BIR tax references separately.',
         'economic_viability' => 'Add suitable, dated market comparables for authorized verification; record BIR tax references separately.',
         'nearby_businesses' => 'Run the surroundings radar and confirm the operating-business inventory coverage.',
         'zoning_compatibility' => 'Add the CLUP or zoning reference and confirm permitted uses.',

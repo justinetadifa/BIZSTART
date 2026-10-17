@@ -111,6 +111,11 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     <div><h1><?= $e($heading) ?></h1><p><?= $e($description) ?></p></div>
     <?php if ($mode === 'investor'): ?>
       <a class="city-button city-button-secondary" href="<?= $e(sfc_path('/property-explorer.php')) ?>"><?= sfc_icon('map') ?> Map view</a>
+    <?php elseif ($mode === 'compare'): ?>
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <a class="city-button city-button-secondary tw-text-xs" href="<?= $e(sfc_path('/property-explorer.php')) ?>"><?= sfc_icon('map') ?> Explore catalog</a>
+        <a class="city-button city-button-secondary tw-text-xs" href="<?= $e(sfc_path('/property-ranking.php')) ?>"><span class="tw-w-4 tw-h-4"><?= sfc_icon('ranking') ?></span> Priority board</a>
+      </div>
     <?php endif; ?>
   </div>
   <?php endif; ?>

@@ -58,8 +58,8 @@ assertTest(
 
 // 2. MCE Weight Verification
 assertTest(
-    PropertyAssessment::WEIGHTS['nearby_businesses'] === 10,
-    'Nearby businesses weight is preserved at exactly 10% of overall MCE'
+    PropertyAssessment::WEIGHTS['nearby_businesses'] === 15,
+    'Nearby businesses weight is preserved at exactly 15% of overall MCE'
 );
 
 // 3. Provisional / Missing Benchmarks Handling (Must NOT Invent Numerical Thresholds)
@@ -98,8 +98,8 @@ $benchEval = $service->evaluateNearbyBusinesses($benchmarkedInput);
 assertTest($benchEval['is_complete'] === true, 'Assessment is complete when certified benchmarks are provided');
 // Expected score: 80*0.25 + 90*0.30 + 70*0.30 + 80*0.15 = 20 + 27 + 21 + 12 = 80.0
 assertTest($benchEval['score'] === 80.0, 'Calculates exact normalized score: 80.0 / 100');
-// 80.0 * 0.10 = 8.00 pts
-assertTest($benchEval['iai_contribution'] === 8.00, 'IAI contribution is exactly 8.00 pts (80.0 * 0.10)');
+// 80.0 * 0.15 = 12.00 pts
+assertTest($benchEval['iai_contribution'] === 12.00, 'IAI contribution is exactly 12.00 pts (80.0 * 0.15)');
 assertTest($benchEval['status_label'] === 'Verified Benchmark Score', 'Status label is Verified Benchmark Score');
 assertTest($benchEval['subcriteria']['commercial_activity']['score'] === 80.0, 'Commercial Activity subcriterion score is 80.0');
 assertTest($benchEval['subcriteria']['complementary_businesses']['score'] === 90.0, 'Complementary Businesses subcriterion score is 90.0');
@@ -110,7 +110,7 @@ assertTest($benchEval['subcriteria']['activity_anchors']['score'] === 80.0, 'Act
 $scalarEval = $service->evaluateNearbyBusinesses(85.0);
 assertTest($scalarEval['is_complete'] === true, 'Scalar score evaluates to complete');
 assertTest($scalarEval['score'] === 85.0, 'Scalar score preserved at 85.0');
-assertTest($scalarEval['iai_contribution'] === 8.50, 'Scalar score 85.0 contributes 8.50 pts (85 * 0.10)');
+assertTest($scalarEval['iai_contribution'] === 12.75, 'Scalar score 85.0 contributes 12.75 pts (85 * 0.15)');
 
 // 6. Normalization & Evaluation Integration
 $normFloat = $service->normalizeCriterion('nearby_businesses', $benchmarkedInput);
@@ -123,12 +123,12 @@ $evalResult = PropertyAssessmentService::evaluate(['nearby_businesses' => $bench
 assertTest($evalResult['assessmentCriteria']['nearby_businesses'] === null, 'Scenario-free nearby observations cannot establish an activity-specific score');
 $nearbyCriterion = array_values(array_filter($evalResult['criteria'], fn($c) => $c['key'] === 'nearby_businesses'))[0] ?? null;
 assertTest($nearbyCriterion !== null && $nearbyCriterion['score'] === null, 'Criterion breakdown also withholds the scenario-free nearby score');
-assertTest($nearbyCriterion['weight'] === 10.0, 'evaluate() weight is 10.0%');
+assertTest($nearbyCriterion['weight'] === 15.0, 'evaluate() weight is 15.0%');
 
 // 7. PropertyAssessment Facade Delegation
 $facadeEval = PropertyAssessment::evaluateNearbyBusinesses($benchmarkedInput);
 assertTest($facadeEval['score'] === 80.0, 'PropertyAssessment facade delegates evaluateNearbyBusinesses correctly');
-assertTest($facadeEval['iai_contribution'] === 8.00, 'PropertyAssessment facade returns matching IAI contribution');
+assertTest($facadeEval['iai_contribution'] === 12.00, 'PropertyAssessment facade returns matching IAI contribution');
 
 echo "\nSummary: {$passed}/{$total} assertions passed.\n";
 echo "✅ All Nearby Businesses PHP backend tests passed successfully!\n";

@@ -1,4 +1,3 @@
-import { comparisonMarkup } from './property-comparison-view.js';
 import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
@@ -854,26 +853,68 @@ function renderRanking() {
 function renderCompare() {
   const root = document.getElementById('cityCompareMatrix');
   if (!root) return;
-  const selected = [...new Set(compare)].map(id => properties.find(property => property.id === id)).filter(Boolean).slice(0,3);
-  if (selected.length < 2) compareOnlyDifferences = false;
-  root.innerHTML = comparisonMarkup(selected, { path, imageUrl, differencesOnly: compareOnlyDifferences });
-  const applyDifferences = () => {
-    root.querySelectorAll('.site-same-row').forEach(row => { row.hidden = compareOnlyDifferences; });
-    root.querySelectorAll('.site-compare-group').forEach(group => {
-      let visible = false;
-      for (let row = group.nextElementSibling; row && !row.classList.contains('site-compare-group'); row = row.nextElementSibling) { if (!row.hidden) visible = true; }
-      group.hidden = !visible;
-    });
-  };
-  applyDifferences();
-  root.querySelector('[data-compare-differences]')?.addEventListener('click', event => {
-    compareOnlyDifferences = !compareOnlyDifferences;
-    event.currentTarget.setAttribute('aria-pressed', String(compareOnlyDifferences));
-    applyDifferences();
-  });
-  root.querySelector('[data-compare-clear]')?.addEventListener('click', () => {
-    compare = []; saveCompare(); renderTray(); renderCompare(); toast('Comparison cleared.');
-  });
+  const selected = compare.map(id => properties.find(property => property.id === id)).filter(Boolean);
+  if (!selected.length) {
+    root.innerHTML = `<div class="city-empty city-compare-empty-state">
+      <div class="city-compare-empty-icon" aria-hidden="true">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="8" height="18" rx="2"/>
+          <rect x="14" y="3" width="8" height="18" rx="2"/>
+          <line x1="6" y1="8" x2="6.01" y2="8"/>
+          <line x1="18" y1="8" x2="18.01" y2="8"/>
+          <line x1="6" y1="12" x2="6.01" y2="12"/>
+          <line x1="18" y1="12" x2="18.01" y2="12"/>
+        </svg>
+      </div>
+      <h3>Choose properties to compare.</h3>
+      <p>Add up to three listings from the property catalog to evaluate zoning, pricing, and assessments side by side.</p>
+      <a class="city-button city-button-primary" href="${path(investor ? 'investor-dashboard.php' : 'property-explorer.php')}">Explore properties</a>
+    </div>`;
+    return;
+  }
+  const cardsHtml = selected.map(property => {
+    const facts = [
+      ['Category', property.subcategory || property.category], ['Location', [property.barangay, property.city].filter(Boolean).join(', ')],
+      ['Map location', hasCoordinates(property) ? propertyLocationLabel(property) : 'Not recorded'],
+      ['Listing purpose', listingPurposeLabel(property)], ['Availability', property.status],
+      ...listingPriceEntries(property).map(entry => [entry.label, entry.value]), ['Area', areaText(property)],
+      ['Sale price / m²', pricePerSqmText(property)], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],
+      ['Hazards & environment', propertyHazardSummary(property)],
+    ];
+    const assessments = [
+      ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? 'Pending' : `#${property.mceRank}`],
+      ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? 'Pending' : `#${property.iaiRank}`],
+      ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]),
+      ['Assessment context', property.assessmentTags?.join(', ') || 'Not recorded'],
+    ];
+    const rows = (entries, advanced = false) => entries.map(([label, value]) => `<div${advanced ? ' data-investor-advanced' : ''}><dt>${esc(label)}</dt><dd>${esc(value ?? 'Not recorded')}</dd></div>`).join('');
+
+    const purposeLabel = property.listingPurpose === 'lease' ? 'FOR LEASE' : 'FOR SALE';
+    const brokerName = property.brokerContact?.name || property.sellerName || 'City Investment Desk';
+    const brokerPhone = property.brokerContact?.phone || property.phone || '+63 72 682 9100';
+
+    return `<article class="city-compare-column"><div class="city-compare-media"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy"><span class="city-compare-badge">${esc(purposeLabel)}</span><button type="button" class="city-compare-remove-icon" data-compare="${property.id}" aria-label="Remove ${esc(property.name)} from comparison" title="Remove from comparison">×</button></div><div class="city-compare-body"><div class="city-compare-header"><span class="city-compare-kicker">${esc(property.subcategory || property.category || 'Commercial')}</span><h3 class="city-compare-title"><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3></div><dl class="city-compare-specs">${rows(facts)}${rows(assessments, true)}</dl></div><div class="city-compare-footer"><div class="city-compare-contact-panel"><div class="city-compare-contact-meta"><span class="city-compare-contact-label">Contact person:</span><strong class="city-compare-contact-name">${esc(brokerName)}</strong></div><a class="city-compare-contact-phone" href="tel:${esc(brokerPhone.replace(/[^0-9+]/g, ''))}">${esc(brokerPhone)}</a></div><div class="city-card-actions"><a class="city-button city-button-primary city-compare-cta" href="${path(`property-details.php?id=${property.id}#propertyLocationSection`)}">View map & contact</a><button type="button" class="city-compare-btn-remove" data-compare="${property.id}">Remove</button></div></div></article>`;
+  }).join('');
+
+  const emptySlotsCount = Math.max(0, 3 - selected.length);
+  const emptySlotHtml = (selected.length > 0 && emptySlotsCount > 0) ? `
+    <div class="city-compare-empty-slot" role="region" aria-label="Add property slot">
+      <div class="city-compare-empty-slot-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </div>
+      <h4 class="city-compare-empty-slot-title">Add property to compare</h4>
+      <p class="city-compare-empty-slot-desc">Select up to three listings from the property catalog to evaluate side by side.</p>
+      <a class="city-button city-button-secondary city-compare-empty-slot-btn" href="${path(investor ? 'investor-dashboard.php' : 'property-explorer.php')}">
+        + Browse catalog
+      </a>
+    </div>
+  ` : '';
+
+  root.innerHTML = cardsHtml + emptySlotHtml;
+  window.SFCInvestorView?.refresh(root);
 }
 
 function render() {
@@ -1877,18 +1918,24 @@ async function renderDetails() {
   // Wire Map Locate buttons
   root.querySelectorAll('[data-locate-biz]').forEach(btn => {
     btn.addEventListener('click', () => {
+      const tabMapBtn = root.querySelector('#tabMapBtn');
+      if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
+        tabMapBtn.click();
+      }
       const idx = Number(btn.dataset.locateBiz);
       const biz = property.nearbyBusinesses?.[idx];
       if (map && hasCoordinates(biz)) {
-        map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
-          animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
-          duration: 1.0,
-          easeLinearity: 0.25
-        });
-        if (biz._marker) {
-          biz._marker.openPopup();
-        }
-        document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
+            animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+            duration: 1.0,
+            easeLinearity: 0.25
+          });
+          if (biz._marker) {
+            biz._marker.openPopup();
+          }
+          document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
       }
     });
   });
@@ -1937,7 +1984,7 @@ async function renderDetails() {
     });
   }
 
-  setupMediaDock(root, map);
+  setupMediaDock(root, map, property);
   setupTransportationInteractions(root, property, map);
   setupDemographicsInteractions(root, property);
   setupClimateRiskInteractions(root, property, map);
@@ -1959,7 +2006,7 @@ async function renderDetails() {
   window.addEventListener('hashchange', revealLinkedPanel);
 }
 
-function setupMediaDock(root, map) {
+function setupMediaDock(root, map, property) {
   const tabBtns = root.querySelectorAll('[data-media-tab]');
   const tabPanes = root.querySelectorAll('[data-media-pane]');
   if (!tabBtns.length) return;
@@ -1984,6 +2031,19 @@ function setupMediaDock(root, map) {
       if (target === 'map' && map) {
         setTimeout(() => {
           map.invalidateSize();
+          if (property?.parcel?.boundary && window.L) {
+            try {
+              const boundary = L.geoJSON(property.parcel.boundary);
+              if (boundary.getBounds().isValid()) {
+                map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
+              }
+            } catch (_) {}
+          } else if (property?.lat && property?.lng) {
+            const pLat = Number(property.lat), pLng = Number(property.lng);
+            if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
+              map.setView([pLat, pLng], Math.max(map.getZoom(), 15));
+            }
+          }
         }, 120);
       }
     });

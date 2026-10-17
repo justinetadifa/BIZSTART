@@ -14,10 +14,10 @@ foreach ([0.0, 100.0] as $boundary) {
     $scores = PropertyAssessment::scores(array_fill_keys($keys, $boundary));
     $check(PropertyAssessmentService::calculateIAI(array_fill_keys($keys, $boundary)) === $boundary && $scores['iaiScore'] === null && !$scores['assessmentComplete'], 'Boundary arithmetic must be correct while unsupported assessments remain withheld.');
 }
-// Independent calculation: 100*.20 + 80*.20 + 60*.20 + 40*.10 + 20*.15 + 0*.15 = 55.
-$mixed = array_combine($keys, [100, 80, 60, 40, 20, 0]);
+// Independent calculation: 100*.25 + 80*.25 + 60*.20 + 40*.15 + 20*.15 = 66.
+$mixed = array_combine($keys, [100, 80, 60, 40, 20]);
 $scores = PropertyAssessment::scores($mixed);
-$check(PropertyAssessmentService::calculateIAI($mixed) === 55.0 && $scores['iaiScore'] === null, 'MCE composite score must equal IAI without double counting.');
+$check(PropertyAssessmentService::calculateIAI($mixed) === 66.0 && $scores['iaiScore'] === null, 'MCE composite score must equal IAI without double counting.');
 $check($scores['assessmentStatus'] === 'incomplete', 'Zoning eligibility cannot be inferred from a numeric rating.');
 
 // Zoning constraint: prohibited land use (score 0 or explicit prohibited) must yield not_suitable and null IAI
@@ -26,7 +26,7 @@ $check($prohibited['assessmentStatus'] === 'incomplete' && $prohibited['iaiScore
 $check(!empty($prohibited['reason']), 'Prohibited zoning must provide explicit disqualification reason.');
 
 // MCE = 73.49 rounds to 73.5: 73.4 * 0.85 + 74.0 * 0.15 = 73.49 -> 73.5
-$rounding = array_combine($keys, [73.4, 73.4, 73.4, 73.4, 73.4, 74.0]);
+$rounding = array_combine($keys, [73.4, 73.4, 73.4, 73.4, 74.0]);
 $scores = PropertyAssessment::scores($rounding);
 $check(PropertyAssessmentService::calculateIAI($rounding) === 73.5 && $scores['iaiScore'] === null, 'Half-tenth rounding is inconsistent.');
 $missing = $mixed;

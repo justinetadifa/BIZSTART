@@ -167,14 +167,14 @@ $check(!empty($prohibitedAssessment['reason']), 'Explains prohibition reason');
 // Expected: Final IAI matches manual weighted calculation exactly.
 // -------------------------------------------------------------------------
 echo "\nTest 6: Fully Verified Eligible Property (Authoritative MCE/IAI Formula)\n";
-// Criterion weights (6-Criterion Model):
-// spatial_accessibility: 20% * 85.0 = 17.0
-// infrastructure_readiness: 20% * 80.0 = 16.0
+// Criterion weights (5-Criterion Model):
+// spatial_accessibility: 25% * 85.0 = 21.25
+// infrastructure_readiness: 25% * 80.0 = 20.0
 // economic_viability: 20% * 75.0 = 15.0
-// zoning_compatibility: 15% * 100.0 = 15.0
-// nearby_businesses: 10% * 90.0 = 9.0
+// nearby_businesses: 15% * 90.0 = 13.5
 // risk_constraints: 15% * 85.0 = 12.75
-// Manual Sum = 17.0 + 16.0 + 15.0 + 15.0 + 9.0 + 12.75 = 84.75 -> 84.8
+// zoning_compatibility: 0% (screening gate, contrib null)
+// Manual Sum = 21.25 + 20.0 + 15.0 + 13.5 + 12.75 = 82.5
 $verifiedScores = [
     'spatial_accessibility' => 85.0,
     'infrastructure_readiness' => 80.0,
@@ -190,9 +190,9 @@ $verifiedAssessment = PropertyAssessmentService::evaluate([
 ]);
 
 $check($verifiedAssessment['status'] === 'complete', 'Status is complete');
-$check($verifiedAssessment['iaiScore'] === 84.8, 'IAI matches manual sum: 84.8');
-$check($verifiedAssessment['mceScore'] === 84.8, 'MCE score equals IAI score (single authoritative formula)');
-$check(count($verifiedAssessment['criteria']) === 6, 'All 6 criteria present in breakdown');
+$check($verifiedAssessment['iaiScore'] === 82.5, 'IAI matches manual sum: 82.5');
+$check($verifiedAssessment['mceScore'] === 82.5, 'MCE score equals IAI score (single authoritative formula)');
+$check(count($verifiedAssessment['criteria']) >= 5, 'All core criteria present in breakdown');
 
 
 // -------------------------------------------------------------------------

@@ -72,7 +72,7 @@ for (const invalid of [-1, 'Infinity', '-Infinity', 'NaN']) {
 const composite = input => evaluate('calculateWizardCompositeMce', input);
 // The aggregate function accepts arithmetic inputs only; the intake UI withholds publication.
 const valid = {spatial_accessibility: 100, infrastructure_readiness: 100, economic_viability: 85, nearby_businesses: 85, risk_constraints: 100, zoning_compatibility: 85};
-assert.equal(composite(valid).iaiScore, 93.3); checks++;
+assert.equal(composite(valid).iaiScore, 94.8); checks++;
 for (const invalid of ['', '100', true, 101, -1, null]) {
   assert.equal(composite({...valid, nearby_businesses: invalid}).iaiScore, null); checks++;
 }

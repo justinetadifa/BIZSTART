@@ -246,8 +246,8 @@ assert(clientAcceptance.activeDiffPct.toFixed(2) === '-16.67' && Math.abs(client
 assert(clientAcceptance.compRatio === 0.8333, `User Acceptance: Price-competitiveness ratio is 0.8333 (actual: ${clientAcceptance.compRatio})`);
 assert(clientAcceptance.knownUpfrontCosts === 75000, `User Acceptance: Known upfront outlay is ₱75,000 (actual: ${clientAcceptance.knownUpfrontCosts})`);
 assert(clientAcceptance.isComplete === true, 'User Acceptance: Assessment is complete with verified lease benchmark');
-assert(clientAcceptance.totalScore === 75.0, `User Acceptance: Score is 75.0 for discounted lease rate (actual: ${clientAcceptance.totalScore})`);
-assert(clientAcceptance.iaiContribution === 15.00, `User Acceptance: IAI contribution is 15.00 pts (actual: ${clientAcceptance.iaiContribution})`);
+assert(clientAcceptance.totalScore === 90.0, `User Acceptance: Score is 90.0 for discounted lease rate (actual: ${clientAcceptance.totalScore})`);
+assert(clientAcceptance.iaiContribution === 18.00, `User Acceptance: IAI contribution is 18.00 pts (actual: ${clientAcceptance.iaiContribution})`);
 
 console.log(`\nSummary: ${testsRun - failures}/${testsRun} tests passed.`);
 if (failures > 0) {

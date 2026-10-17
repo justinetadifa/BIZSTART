@@ -41,6 +41,7 @@ $pwClupUses = \App\Support\PropertyCatalog::clupUseTypes($pdo ?? ($GLOBALS['pdo'
 $pwReadiness = [
     'spatial_accessibility' => ['pin', 'Confirm road evidence.', 'Confirm'],
     'infrastructure_readiness' => ['utilities', 'Confirm utilities.', 'Confirm'],
+    'property_cost_market_competitiveness' => ['chart', 'Add BIR reference.', 'Add reference'],
     'economic_viability' => ['chart', 'Add BIR reference.', 'Add reference'],
     'nearby_businesses' => ['store', 'Run the nearby business radar.', 'Run radar'],
     'zoning_compatibility' => ['document', 'Add CLUP evidence.', 'Add evidence'],
@@ -707,12 +708,12 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <div class="pw-criteria-mobile-picker">
                 <label for="pwCriteriaMobileSelect" class="pw-sr-only">Choose assessment criterion</label>
                 <select id="pwCriteriaMobileSelect" class="pw-criteria-select-mobile" data-criteria-mobile-select>
-                  <option value="spatial_accessibility">1. Spatial accessibility (20%)</option>
-                  <option value="infrastructure_readiness">2. Infrastructure readiness (20%)</option>
-                  <option value="economic_viability">3. Economic viability (20%)</option>
-                  <option value="nearby_businesses">4. Nearby businesses (10%)</option>
+                  <option value="spatial_accessibility">1. Spatial accessibility (25%)</option>
+                  <option value="infrastructure_readiness">2. Infrastructure readiness (25%)</option>
+                  <option value="economic_viability">3. Property cost &amp; market competitiveness (20%)</option>
+                  <option value="nearby_businesses">4. Nearby businesses (15%)</option>
                   <option value="risk_constraints">5. Risk constraints (15%)</option>
-                  <option value="zoning_compatibility">6. Zoning compatibility - CLUP (15%)</option>
+                  <option value="zoning_compatibility">6. CLUP &amp; Land-Use Screening (Mandatory Gate)</option>
                   <option value="authority_to_sell" class="pw-broker-only-option" <?= $pwUserRole !== 'seller' ? 'style="display:none;" disabled' : '' ?>>7. Authority to Sell / Lease (Broker req.)</option>
                 </select>
               </div>
@@ -723,20 +724,20 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <span class="pw-crit-num">1</span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Spatial access</span>
-                    <span class="pw-crit-weight">20% weight</span>
+                    <span class="pw-crit-weight">25% weight</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionInfrastructure" data-evidence-tab="infrastructure_readiness">
                   <span class="pw-crit-num">2</span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Infrastructure</span>
-                    <span class="pw-crit-weight">20% weight</span>
+                    <span class="pw-crit-weight">25% weight</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionEconomic" data-evidence-tab="economic_viability">
                   <span class="pw-crit-num">3</span>
                   <span class="pw-crit-content">
-                    <span class="pw-crit-title">Economic</span>
+                    <span class="pw-crit-title">Cost &amp; Market</span>
                     <span class="pw-crit-weight">20% weight</span>
                   </span>
                 </button>
@@ -744,7 +745,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <span class="pw-crit-num">4</span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Nearby places</span>
-                    <span class="pw-crit-weight">10% weight</span>
+                    <span class="pw-crit-weight">15% weight</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionRisks" data-evidence-tab="risk_constraints">
@@ -758,7 +759,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <span class="pw-crit-num">6</span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">CLUP Zoning</span>
-                    <span class="pw-crit-weight">15% weight</span>
+                    <span class="pw-crit-weight">Eligibility Gate</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab pw-broker-only-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionAuthority" data-evidence-tab="authority_to_sell" <?= $pwUserRole !== 'seller' ? 'style="display:none;" hidden' : '' ?>>
@@ -1301,37 +1302,47 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <div class="pw-econ-section-body">
                   <!-- AUTO-RETRIEVED PROPERTY DETAILS CARD (Steps 1–2 Context) -->
                   <div class="pw-econ-from-details">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-                      <span class="pw-econ-from-kicker">From basic information</span>
-                      <button type="button" class="pw-button pw-button-light pw-button-small" data-review-edit="0" style="font-size:0.75rem; padding: 2px 8px;">
+                    <div class="pw-econ-from-header">
+                      <div class="pw-econ-from-title-wrap">
+                        <span class="pw-econ-from-kicker">
+                          <svg class="pw-econ-kicker-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                          From basic information
+                        </span>
+                        <span class="pw-econ-synced-pill">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                          Auto-synced
+                        </span>
+                      </div>
+                      <button type="button" class="pw-econ-edit-link" data-review-edit="0">
                         <?= $pwIcon('edit') ?> <span>Edit basic information</span>
                       </button>
                     </div>
                     <div class="pw-econ-from-grid">
-                      <div class="pw-econ-from-row">
+                      <div class="pw-econ-from-row pw-econ-from-col">
                         <span class="pw-econ-from-label">Listing purpose</span>
                         <strong class="pw-econ-from-val" data-econ-from-purpose data-reused-purpose>For Sale</strong>
                       </div>
-                      <div class="pw-econ-from-row">
+                      <div class="pw-econ-from-row pw-econ-from-col">
                         <span class="pw-econ-from-label">Asking price / rent</span>
                         <strong class="pw-econ-from-val" data-econ-from-price data-reused-price>&#8369;9,000,000</strong>
                       </div>
-                      <div class="pw-econ-from-row">
+                      <div class="pw-econ-from-row pw-econ-from-col">
                         <span class="pw-econ-from-label">Property type</span>
                         <strong class="pw-econ-from-val" data-econ-from-type data-reused-category>Commercial Space</strong>
                       </div>
-                      <div class="pw-econ-from-row">
+                      <div class="pw-econ-from-row pw-econ-from-col">
                         <span class="pw-econ-from-label">Recorded parcel land area</span>
                         <strong class="pw-econ-from-val" data-econ-from-area data-reused-area-econ>1,000 m&sup2;</strong>
                       </div>
                     </div>
-                    <div style="margin-top:6px; font-size:0.75rem; color:#64748b;">
-                      Update shared fields once; all views use the same values.
+                    <div class="pw-econ-from-footer">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                      <span>Update shared fields once; all views use the same values.</span>
                     </div>
                   </div>
 
                   <!-- Space Offered Scope and Relevant Floor / Land Area -->
-                  <div class="pw-fields-two-col">
+                  <div class="pw-fields-two-col pw-econ-scope-grid">
                     <div class="pw-econ-field-group">
                       <label for="pwOfferedSpaceScope" class="pw-econ-label">Space offered <span class="pw-required">*</span></label>
                       <div class="pw-select-wrapper">
@@ -1346,23 +1357,41 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
                     <div class="pw-econ-field-group" data-econ-offered-area-wrap>
                       <label for="pwOfferedAreaSqm" class="pw-econ-label" data-econ-offered-area-label>Offered floor / space area (m&sup2;)</label>
-                      <input id="pwOfferedAreaSqm" name="offered_area_sqm" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 100 (actual leasable floor space)" data-econ-input="offered_area_sqm">
-                      <div class="pw-econ-auto-area-note" data-econ-auto-area-note hidden>
-                        <span>&#10003; Automatically using recorded parcel land area (<strong data-econ-auto-land-area>1,000 m&sup2;</strong>). No re-entry required.</span>
+                      <div class="pw-econ-area-slot">
+                        <input id="pwOfferedAreaSqm" name="offered_area_sqm" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 100 (actual leasable floor space)" data-econ-input="offered_area_sqm">
+                        <div class="pw-econ-auto-area-note" data-econ-auto-area-note hidden>
+                          <div class="pw-econ-auto-area-main">
+                            <span class="pw-econ-auto-area-icon" aria-hidden="true">✓</span>
+                            <span>Auto-using recorded parcel land area (<strong data-econ-auto-land-area>1,000 m&sup2;</strong>)</span>
+                          </div>
+                          <span class="pw-econ-auto-area-badge">No re-entry required</span>
+                        </div>
                       </div>
-                      <span class="pw-econ-field-hint" data-econ-offered-area-hint>Actual usable floor/space area. Clearly separate from total parcel land area.</span>
+                      <span class="pw-econ-field-hint" data-econ-offered-area-hint>Applies to the entire parcel. Automatically using recorded parcel land area.</span>
                     </div>
                   </div>
 
                   <!-- Live Unit Rates in Section 1 -->
                   <div class="pw-econ-rates-strip" data-econ-rates-strip>
                     <div class="pw-econ-rate-card" data-econ-sale-rate-card>
-                      <span class="pw-econ-rate-kicker">Calculated Sale Rate</span>
+                      <div class="pw-econ-rate-header">
+                        <span class="pw-econ-rate-kicker">
+                          <span class="pw-econ-rate-pulse" aria-hidden="true"></span>
+                          Calculated Sale Rate
+                        </span>
+                        <span class="pw-econ-rate-tag">Unit Rate</span>
+                      </div>
                       <strong class="pw-econ-rate-val" data-econ-asking-sqm>&#8369;9,000</strong>
                       <span class="pw-econ-rate-sub" data-econ-sale-basis>based on recorded parcel land area</span>
                     </div>
                     <div class="pw-econ-rate-card" data-econ-lease-rate-card hidden>
-                      <span class="pw-econ-rate-kicker">Calculated Monthly Rent</span>
+                      <div class="pw-econ-rate-header">
+                        <span class="pw-econ-rate-kicker">
+                          <span class="pw-econ-rate-pulse" aria-hidden="true"></span>
+                          Calculated Monthly Rent
+                        </span>
+                        <span class="pw-econ-rate-tag">Unit Rate</span>
+                      </div>
                       <strong class="pw-econ-rate-val" data-econ-lease-sqm>&mdash;</strong>
                       <span class="pw-econ-rate-sub" data-econ-lease-basis>based on leasable floor area</span>
                     </div>
@@ -2105,9 +2134,9 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <table class="pw-findings-table" id="pwRiskFindingsTable">
                           <thead>
                             <tr>
-                              <th style="width: 28%;">Hazard</th>
+                              <th style="width: 30%;">Hazard</th>
                               <th style="width: 52%;">Source finding</th>
-                              <th style="width: 20%;">Evidence</th>
+                              <th style="width: 18%;">Evidence</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -3015,15 +3044,15 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 </button>
               </div>
             </div>
-            <p class="pw-composite-desc" data-review-composite-desc>0 of 6 criteria have complete inputs. Evidence review pending. Final IAI unavailable until all six criteria have verified evidence. Missing criteria are never defaulted.</p>
+            <p class="pw-composite-desc" data-review-composite-desc>0 of 5 criteria have complete inputs. Zoning compatibility serves as mandatory eligibility screening. Final IAI unavailable until all criteria have verified evidence. Missing criteria are never defaulted.</p>
           </div>
 
-          <!-- 6 Criteria Readiness Grid -->
+          <!-- 5 Criteria Readiness Grid + Zoning Screening Gate -->
           <div class="pw-review-criteria-grid">
             <div class="pw-review-crit-row" data-review-crit="spatial_accessibility">
               <div class="pw-crit-col-name">
                 <strong>1. Spatial Accessibility</strong>
-                <span class="pw-muted">20% weight &middot; Road frontage &amp; passability</span>
+                <span class="pw-muted">25% weight &middot; Road frontage &amp; passability</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="spatial_accessibility">&mdash;</span>
@@ -3040,7 +3069,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <div class="pw-review-crit-row" data-review-crit="infrastructure_readiness">
               <div class="pw-crit-col-name">
                 <strong>2. Infrastructure Readiness</strong>
-                <span class="pw-muted">20% weight &middot; Power, water, telecom, drainage</span>
+                <span class="pw-muted">25% weight &middot; Power, water, telecom, drainage</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="infrastructure_readiness">&mdash;</span>
@@ -3056,8 +3085,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
             <div class="pw-review-crit-row" data-review-crit="economic_viability">
               <div class="pw-crit-col-name">
-                <strong>3. Economic Viability</strong>
-                <span class="pw-muted">20% weight &middot; Market context &amp; benchmarks</span>
+                <strong>3. Property Cost &amp; Market Competitiveness</strong>
+                <span class="pw-muted">20% weight &middot; Unit price vs verified market comparables</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="economic_viability">&mdash;</span>
@@ -3074,7 +3103,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <div class="pw-review-crit-row" data-review-crit="nearby_businesses">
               <div class="pw-crit-col-name">
                 <strong>4. Nearby Businesses</strong>
-                <span class="pw-muted">10% weight &middot; Commercial density radar</span>
+                <span class="pw-muted">15% weight &middot; Commercial density &amp; activity anchors</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="nearby_businesses">&mdash;</span>
@@ -3107,8 +3136,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
             <div class="pw-review-crit-row" data-review-crit="zoning_compatibility">
               <div class="pw-crit-col-name">
-                <strong>6. Zoning Compatibility (CLUP)</strong>
-                <span class="pw-muted">15% weight &middot; Ordinance No. 2018-06 compliance</span>
+                <strong>6. CLUP &amp; Land-Use Screening</strong>
+                <span class="pw-muted">Mandatory Eligibility Gate &middot; Ordinance No. 2018-06</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="zoning_compatibility">&mdash;</span>
@@ -3235,14 +3264,20 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
           </div>
           <div data-assessment-readiness>
             <?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?>
-            <?php $pwReady = $pwReadiness[$pwKey]; ?>
-            <div class="pw-readiness-row" data-readiness-criterion="<?= $pwKey ?>">
+            <?php
+              $pwReady = $pwReadiness[$pwKey]
+                ?? ($pwKey === 'property_cost_market_competitiveness' ? ($pwReadiness['economic_viability'] ?? null) : null)
+                ?? ($pwKey === 'economic_viability' ? ($pwReadiness['property_cost_market_competitiveness'] ?? null) : null)
+                ?? ['info', 'Confirm details.', 'Review'];
+              $pwTarget = ($pwKey === 'property_cost_market_competitiveness') ? 'economic_viability' : $pwKey;
+            ?>
+            <div class="pw-readiness-row" data-readiness-criterion="<?= $pwEscape($pwKey) ?>">
               <?= $pwIcon($pwReady[0]) ?>
               <div>
                 <strong><?= $pwEscape($pwCriterion) ?></strong>
-                <span data-readiness-message><?= $pwReady[1] ?></span>
+                <span data-readiness-message><?= $pwEscape($pwReady[1]) ?></span>
               </div>
-              <button type="button" class="pw-readiness-action" data-readiness-target="<?= $pwKey ?>"><?= $pwReady[2] ?></button>
+              <button type="button" class="pw-readiness-action" data-readiness-target="<?= $pwEscape($pwTarget) ?>"><?= $pwEscape($pwReady[2]) ?></button>
             </div>
             <?php endforeach; ?>
           </div>

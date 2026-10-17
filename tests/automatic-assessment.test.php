@@ -155,7 +155,7 @@ try {
     $check($approval['assessment_json'] === $legacyRow['assessment_json'] && $approval['automatic_assessment_json'] === null, 'Approval-only PATCH preserves manual history and ignores forged scores.');
     $recalculated = $normalize->invoke($repository, ['recalculate_assessment' => true], $legacyRow);
     $history = json_decode($recalculated['legacy_assessment_json'], true);
-    $check((float) $history['snapshots'][0]['assessmentCriteria']['economic_viability'] === 80.0 && $recalculated['automatic_assessment_json'] !== null, 'Explicit recalculation stores historical manual criteria separately.');
+    $check((float) ($history['snapshots'][0]['assessmentCriteria']['property_cost_market_competitiveness'] ?? $history['snapshots'][0]['assessmentCriteria']['economic_viability'] ?? 0) === 80.0 && $recalculated['automatic_assessment_json'] !== null, 'Explicit recalculation stores historical manual criteria separately.');
     $changed = $normalize->invoke($repository, ['lat' => 16.62], $legacyRow);
     $check(json_decode($changed['automatic_assessment_json'], true)['inputs']['lat'] === 16.62 && $changed['legacy_assessment_json'] !== null, 'Changed coordinates recalculate from server and preserve manual history.');
     $changedAgain = $normalize->invoke($repository, ['land_area' => 5000, 'land_area_unit' => 'sqm'], $recalculated);

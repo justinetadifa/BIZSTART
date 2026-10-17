@@ -34,11 +34,18 @@ require_once __DIR__ . '/ZoningRulesEngine.php';
  */
 final class PropertyAssessmentService
 {
-    public const METHODOLOGY_VERSION = 'locus-detailed-v3.0-provisional';
+    public const METHODOLOGY_VERSION = 'LOCUS-SF MCE v3.0 — Five-Criterion Investment Attractiveness Model with Mandatory Zoning Eligibility';
     public const WEIGHT_TOLERANCE = 0.000001;
     public const TOTAL_TOLERANCE = 0.000001;
-    public const DEFAULT_WEIGHTS = ['spatial_accessibility' => 20, 'infrastructure_readiness' => 20, 'economic_viability' => 20, 'nearby_businesses' => 10, 'risk_constraints' => 15, 'zoning_compatibility' => 15];
+    public const DEFAULT_WEIGHTS = [
+        'spatial_accessibility' => 25.0,
+        'infrastructure_readiness' => 25.0,
+        'property_cost_market_competitiveness' => 20.0,
+        'nearby_businesses' => 15.0,
+        'risk_constraints' => 15.0,
+    ];
     public const LEGACY_METHODOLOGY_VERSION = 'LOCUS-SF MCE v1.1 (Legacy 7-Criterion)';
+    public const PROVISIONAL_V2_METHODOLOGY_VERSION = 'locus-detailed-v3.0-provisional';
     public const WEIGHT_STATUS_PROVISIONAL = 'Provisional / Subject to LGU validation';
     public const WEIGHT_STATUS_VALIDATED = 'Expert / LGU Validated';
     public const THRESHOLD_SOURCE_RUBRIC = 'LOCUS-SF operational scoring rubric — subject to expert validation';
@@ -47,17 +54,19 @@ final class PropertyAssessmentService
     public const RISK_CONSTRAINTS_VALIDATION_STATUS = RiskConstraintsEngine::VALIDATION_STATUS;
     public const RISK_CONSTRAINTS_WEIGHT = RiskConstraintsEngine::WEIGHT;
 
-    public const INFRASTRUCTURE_READINESS_VERSION = 'LOCUS-SF Infrastructure Readiness Operational Rubric v1.0 (Provisional)';
+    public const SPATIAL_ACCESSIBILITY_VERSION = 'LOCUS-SF Spatial Accessibility Operational Rubric v3.0 (Provisional)';
+    public const INFRASTRUCTURE_READINESS_VERSION = 'LOCUS-SF Infrastructure Readiness Operational Rubric v3.0 (Provisional)';
     public const INFRASTRUCTURE_VALIDATION_STATUS = 'Provisional / Awaiting Technical & LGU Validation';
 
-    public const ECONOMIC_VIABILITY_VERSION = 'LOCUS-SF Economic Viability & Valuation Reference Rubric v1.0 (Provisional)';
+    public const PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION = 'LOCUS-SF Property Cost and Market Competitiveness Rubric v3.0 (Provisional)';
+    public const ECONOMIC_VIABILITY_VERSION = self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION;
     public const ECONOMIC_VALIDATION_STATUS = 'Provisional / Awaiting Market Comparables & LGU Validation';
 
-    public const NEARBY_BUSINESSES_VERSION = 'LOCUS-SF Nearby Businesses & Commercial Environment Rubric v1.0 (Provisional)';
+    public const NEARBY_BUSINESSES_VERSION = 'LOCUS-SF Nearby Businesses & Commercial Environment Rubric v3.0 (Provisional)';
     public const NEARBY_VALIDATION_STATUS = 'Provisional / Awaiting BPLO Commercial Census Benchmarks';
 
     public const ZONING_RULES_VERSION = ZoningRulesEngine::VERSION;
-    public const ZONING_WEIGHT = ZoningRulesEngine::ZONING_WEIGHT;
+    public const ZONING_WEIGHT = ZoningRulesEngine::ZONING_WEIGHT; // 0.0 — Mandatory eligibility gate; does not contribute a numerical score to IAI
 
     public const NEARBY_BUSINESSES_SUBCRITERIA = [
         'commercial_activity' => [
@@ -169,8 +178,6 @@ final class PropertyAssessmentService
         ],
     ];
 
-    public const SPATIAL_ACCESSIBILITY_VERSION = 'LOCUS-SF Spatial Accessibility Operational Rubric v1.0 (Provisional)';
-
     /**
      * Defined Spatial Accessibility subcriteria and their provisional operational weights.
      * Weights total exactly 100.0%.
@@ -243,7 +250,7 @@ final class PropertyAssessmentService
         'spatial_accessibility' => [
             'criterion_key' => 'spatial_accessibility',
             'display_name' => 'Spatial Accessibility',
-            'weight' => 20.0,
+            'weight' => 25.0,
             'is_active' => true,
             'is_required' => true,
             'scoring_method' => 'bands',
@@ -256,46 +263,33 @@ final class PropertyAssessmentService
         'infrastructure_readiness' => [
             'criterion_key' => 'infrastructure_readiness',
             'display_name' => 'Infrastructure Readiness',
-            'weight' => 20.0,
+            'weight' => 25.0,
             'is_active' => true,
             'is_required' => true,
             'scoring_method' => 'lookup',
             'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
             'source_reference' => 'LUECO & MSFWD verified service maps',
-            'description' => 'Verified availability of power, water, and telecom utility connections',
-            'missing_label' => 'Utility verification (power, water, telecom connectivity)',
+            'description' => 'Verified availability of power, water, telecom and drainage connections',
+            'missing_label' => 'Utility verification (power, water, telecom, drainage connectivity)',
             'sort_order' => 2,
         ],
-        'economic_viability' => [
-            'criterion_key' => 'economic_viability',
-            'display_name' => 'Economic Context / Price Competitiveness',
+        'property_cost_market_competitiveness' => [
+            'criterion_key' => 'property_cost_market_competitiveness',
+            'display_name' => 'Property Cost and Market Competitiveness',
             'weight' => 20.0,
             'is_active' => true,
             'is_required' => true,
             'scoring_method' => 'bands',
             'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
-            'source_reference' => 'Required: suitable market comparables; BIR references are descriptive only',
-            'description' => 'Offered unit price against suitable comparable evidence; no profitability inference',
-            'missing_label' => 'Suitable market comparables with compatible price units',
+            'source_reference' => 'Required: suitable market comparables; BIR/LGU references are descriptive only',
+            'description' => 'Offered unit price per m² against documented local comparable market benchmarks; no business profitability inference',
+            'missing_label' => 'Suitable market comparables with compatible price units and area scope',
             'sort_order' => 3,
-        ],
-        'zoning_compatibility' => [
-            'criterion_key' => 'zoning_compatibility',
-            'display_name' => 'Zoning Compatibility',
-            'weight' => 15.0,
-            'is_active' => true,
-            'is_required' => true,
-            'scoring_method' => 'lookup',
-            'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
-            'source_reference' => 'Required: authenticated district record and applicable activity rule',
-            'description' => 'CLUP 2026-2035 zoning classification and land use eligibility',
-            'missing_label' => 'CLUP / zoning classification validation',
-            'sort_order' => 4,
         ],
         'nearby_businesses' => [
             'criterion_key' => 'nearby_businesses',
-            'display_name' => 'Economic Activity / Business Environment',
-            'weight' => 10.0,
+            'display_name' => 'Nearby Businesses',
+            'weight' => 15.0,
             'is_active' => true,
             'is_required' => true,
             'scoring_method' => 'bands',
@@ -303,7 +297,7 @@ final class PropertyAssessmentService
             'source_reference' => 'BPLO Business Registry 2026-Q1',
             'description' => 'Operating business density and surrounding economic commercial environment',
             'missing_label' => 'Economic activity / business registry inventory',
-            'sort_order' => 5,
+            'sort_order' => 4,
         ],
         'risk_constraints' => [
             'criterion_key' => 'risk_constraints',
@@ -316,7 +310,33 @@ final class PropertyAssessmentService
             'source_reference' => 'DENR-MGB, DOST-PHIVOLCS & PAGASA Multi-Hazard Spatial Screening',
             'description' => 'Multi-hazard susceptibility screening (flood, active faults, landslide, storm surge, liquefaction, tsunami)',
             'missing_label' => 'Hazard susceptibility assessment (flood, active faults, geohazards)',
+            'sort_order' => 5,
+        ],
+        'zoning_compatibility' => [
+            'criterion_key' => 'zoning_compatibility',
+            'display_name' => 'CLUP & Land-Use Regulations',
+            'weight' => 0.0,
+            'is_active' => true,
+            'is_required' => true,
+            'scoring_method' => 'lookup',
+            'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
+            'source_reference' => 'San Fernando City Ordinance 2018-06 & amendments / CPDO CLUP',
+            'description' => 'Mandatory non-compensatory CLUP zoning compatibility screening',
+            'missing_label' => 'CLUP / zoning classification validation',
             'sort_order' => 6,
+        ],
+        'economic_viability' => [
+            'criterion_key' => 'economic_viability',
+            'display_name' => 'Property Cost and Market Competitiveness (Legacy Alias)',
+            'weight' => 0.0,
+            'is_active' => false,
+            'is_required' => false,
+            'scoring_method' => 'bands',
+            'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
+            'source_reference' => 'Legacy alias for property_cost_market_competitiveness',
+            'description' => 'Backward-compatible alias for Property Cost and Market Competitiveness',
+            'missing_label' => 'Suitable market comparables with compatible price units',
+            'sort_order' => 7,
         ],
         'environmental_safety' => [
             'criterion_key' => 'environmental_safety',
@@ -329,7 +349,7 @@ final class PropertyAssessmentService
             'source_reference' => 'CENRO & DENR-EMB Environmental Classification',
             'description' => 'Decommissioned criterion — consolidated with Risk Constraints to avoid double-counting',
             'missing_label' => 'Environmental classification verification (legacy)',
-            'sort_order' => 7,
+            'sort_order' => 8,
         ],
     ];
 
@@ -409,12 +429,6 @@ final class PropertyAssessmentService
      */
     public static function validateWeights(array $weights): void
     {
-        $legacyKeys = array_merge(array_keys(self::DEFAULT_WEIGHTS), ['environmental_safety']);
-        $diffA = array_diff(array_keys($weights), $legacyKeys);
-        $diffB = array_diff(array_keys(self::DEFAULT_WEIGHTS), array_keys($weights));
-        if (!empty($diffA) || (!empty($diffB) && !isset($weights['environmental_safety']))) {
-            throw new DomainException('Active weights must contain exactly the six protocol criterion keys.');
-        }
         if (empty($weights)) {
             throw new DomainException("MCE criteria weights configuration cannot be empty.");
         }
@@ -427,6 +441,39 @@ final class PropertyAssessmentService
         if (abs($sum - 100.0) > self::WEIGHT_TOLERANCE) {
             throw new DomainException("MCE criteria weights must sum to exactly 100%. Current sum: {$sum}%.");
         }
+
+        $activeCanonical = ['spatial_accessibility', 'infrastructure_readiness', 'property_cost_market_competitiveness', 'nearby_businesses', 'risk_constraints'];
+        $activeWithAlias = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'risk_constraints'];
+        $legacy6 = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'risk_constraints', 'zoning_compatibility'];
+        $legacy6WithPcmc = ['spatial_accessibility', 'infrastructure_readiness', 'property_cost_market_competitiveness', 'nearby_businesses', 'risk_constraints', 'zoning_compatibility'];
+        $legacy7 = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'risk_constraints', 'zoning_compatibility', 'environmental_safety'];
+
+        $keys = array_keys($weights);
+        sort($keys);
+        $check = static function (array $expected) use ($keys): bool {
+            sort($expected);
+            return $keys === $expected;
+        };
+
+        if ($check($activeCanonical) || $check($activeWithAlias) || $check($legacy6) || $check($legacy6WithPcmc) || $check($legacy7)) {
+            return;
+        }
+
+        if (isset($weights['zoning_compatibility']) && (float) $weights['zoning_compatibility'] === 0.0) {
+            $withoutZoning = $weights;
+            unset($withoutZoning['zoning_compatibility']);
+            $keysWithout = array_keys($withoutZoning);
+            sort($keysWithout);
+            $checkWithout = static function (array $expected) use ($keysWithout): bool {
+                sort($expected);
+                return $keysWithout === $expected;
+            };
+            if ($checkWithout($activeCanonical) || $checkWithout($activeWithAlias)) {
+                return;
+            }
+        }
+
+        throw new DomainException('Active weights must contain the protocol criterion keys totaling 100%.');
     }
 
     /**
@@ -471,12 +518,20 @@ final class PropertyAssessmentService
         $total = 0.0;
         foreach ($weights as $key => $weight) {
             $score = $normalizedScores[$key] ?? null;
+            if ($score === null && $key === 'property_cost_market_competitiveness') {
+                $score = $normalizedScores['economic_viability'] ?? null;
+            } elseif ($score === null && $key === 'economic_viability') {
+                $score = $normalizedScores['property_cost_market_competitiveness'] ?? null;
+            }
+            if ($key === 'zoning_compatibility' && (float) $weight === 0.0 && $score === null) {
+                continue;
+            }
             if (!is_numeric($score) || !is_finite((float) $score) || $score < 0 || $score > 100) {
                 return null;
             }
             $total += ((float) $score * (float) $weight) / 100.0;
         }
-        return round(max(0.0, min(100.0, $total)), 1);
+        return round(max(0.0, min(100.0, $total)), 1, PHP_ROUND_HALF_UP);
     }
 
     /**
@@ -489,7 +544,7 @@ final class PropertyAssessmentService
      *
      * Formula:
      *   Spatial Accessibility Score = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)
-     *   IAI Contribution = Spatial Accessibility Score × 0.20 (since Spatial Accessibility has a 20% MCE weight)
+     *   IAI Contribution = Spatial Accessibility Score × 0.25 (since Spatial Accessibility has a 25% MCE weight)
      */
     public static function evaluateSpatialAccessibility(mixed $input, array $options = []): array
     {
@@ -654,16 +709,16 @@ final class PropertyAssessmentService
                 'missing_subcriteria' => $missing,
                 'missing_keys' => $missingKeys,
                 'subcriteria' => $subcriteria,
-                'formula' => 'Spatial Accessibility = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
+                'formula' => 'Spatial Accessibility (25% MCE weight) = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
                 'methodology_version' => self::SPATIAL_ACCESSIBILITY_VERSION,
-                'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all six criteria.',
+                'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all criteria.',
                 'explanation' => 'Assessment incomplete: Provide all four required inputs (' . implode(', ', $missing) . ') before a provisional score can be calculated.',
             ];
         }
 
         $calculatedScore = ($accessScore * 0.30) + ($surfaceScore * 0.25) + ($widthScore * 0.25) + ($distanceScore * 0.20);
         $finalScore = max(0.0, min(100.0, $calculatedScore));
-        $iaiContribution = round($finalScore * 0.20, 2);
+        $iaiContribution = round($finalScore * 0.25, 2);
 
         return [
             'score' => $finalScore,
@@ -673,11 +728,11 @@ final class PropertyAssessmentService
             'missing_subcriteria' => [],
             'missing_keys' => [],
             'subcriteria' => $subcriteria,
-            'formula' => 'Spatial Accessibility = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
+            'formula' => 'Spatial Accessibility (25% MCE weight) = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
             'methodology_version' => self::SPATIAL_ACCESSIBILITY_VERSION,
-            'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all six criteria.',
+            'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all criteria.',
             'explanation' => sprintf(
-                'Spatial Accessibility Score = %s/100 (Road Access: %.1f, Passability: %.1f, Width: %.1f, Proximity: %.1f). IAI Contribution: %.2f pts (20%% weight). Verification: %s.',
+                'Spatial Accessibility Score = %s/100 (Road Access: %.1f, Passability: %.1f, Width: %.1f, Proximity: %.1f). IAI Contribution: %.2f pts (25%% weight). Verification: %s.',
                 number_format($finalScore, 1),
                 $accessScore * 0.30,
                 $surfaceScore * 0.25,
@@ -1031,7 +1086,7 @@ final class PropertyAssessmentService
                 'missing_keys' => $missingKeys,
                 'subcategories' => $subcategoriesBreakdown,
                 'cross_criteria_considerations' => $crossCriteria,
-                'formula' => 'Infrastructure Readiness Score = (Electricity × 0.35) + (Water × 0.30) + (Internet × 0.20) + (Drainage × 0.15)',
+                'formula' => 'Infrastructure Readiness (25% MCE weight) = (Electricity × 0.35) + (Water × 0.30) + (Internet × 0.20) + (Drainage × 0.15)',
                 'methodology_version' => self::INFRASTRUCTURE_READINESS_VERSION,
                 'validation_status' => self::INFRASTRUCTURE_VALIDATION_STATUS,
                 'disclaimer' => 'Provisional operational scoring demonstration awaiting technical/LGU validation. Does not establish official LGU assessment.',
@@ -1041,10 +1096,10 @@ final class PropertyAssessmentService
 
         $calculatedScore = ($elecScore * 0.35) + ($waterScore * 0.30) + ($netScore * 0.20) + ($drainageScore * 0.15);
         $finalScore = max(0.0, min(100.0, $calculatedScore));
-        $iaiContribution = round($finalScore * 0.20, 2);
+        $iaiContribution = round($finalScore * 0.25, 2);
 
         $explanation = sprintf(
-            'Infrastructure Readiness Score = %s/100 (Electricity: %.2f, Water: %.2f, Internet: %.2f, Drainage: %.2f). IAI Contribution: %.2f pts (20%% weight). Verification: %s.',
+            'Infrastructure Readiness Score = %s/100 (Electricity: %.2f, Water: %.2f, Internet: %.2f, Drainage: %.2f). IAI Contribution: %.2f pts (25%% weight). Verification: %s.',
             number_format($finalScore, 1),
             $elecScore * 0.35,
             $waterScore * 0.30,
@@ -1063,7 +1118,7 @@ final class PropertyAssessmentService
             'missing_keys' => [],
             'subcategories' => $subcategoriesBreakdown,
             'cross_criteria_considerations' => $crossCriteria,
-            'formula' => 'Infrastructure Readiness Score = (Electricity × 0.35) + (Water × 0.30) + (Internet × 0.20) + (Drainage × 0.15)',
+            'formula' => 'Infrastructure Readiness (25% MCE weight) = (Electricity × 0.35) + (Water × 0.30) + (Internet × 0.20) + (Drainage × 0.15)',
             'methodology_version' => self::INFRASTRUCTURE_READINESS_VERSION,
             'validation_status' => self::INFRASTRUCTURE_VALIDATION_STATUS,
             'disclaimer' => 'Provisional operational scoring demonstration awaiting technical/LGU validation. Does not establish official LGU assessment.',
@@ -1075,23 +1130,22 @@ final class PropertyAssessmentService
      * Legacy evaluation fallback for property records or suites specifying road_connectivity without drainage.
      */
     /**
-     * Authoritative Economic Viability & Valuation Reference evaluation engine.
-     * Evaluates property pricing, statutory BIR zonal baseline, and market comparables.
+     * Authoritative Property Cost and Market Competitiveness evaluation engine (Criterion 3, 20% MCE weight).
+     * Evaluates property pricing against documented local comparable market benchmarks.
+     * Permanently renamed from Economic Viability to reflect strict pricing/cost focus without profitability claims.
      *
      * Core Methodological Principles:
-     * - BIR Zonal Valuation is a statutory tax floor, NOT a market selling price or proof of viability.
-     * - Higher BIR zonal values DO NOT automatically produce higher Economic Viability scores.
-     * - Speculative ROI, business profitability, and expected revenues are not invented.
-     * - An arbitrary 85/100 score is NEVER assigned based solely on a BIR price band.
-     * - A valid score requires documented, comparable market evidence and authorized CAO/LEBDO verification.
-     * - If verified market comparables are missing, the assessment is explicitly marked Incomplete.
+     * - Focus strictly on property pricing and documented market comparisons, NOT business profitability, ROI, or revenue predictions.
+     * - BIR Zonal Valuation is a statutory tax floor/reference, NOT a market benchmark or proof of viability.
+     * - Higher BIR zonal values DO NOT automatically produce higher scores.
+     * - A valid score requires documented, comparable market evidence and authorized verification.
+     * - If verified market comparables are missing or Price on Request, the assessment is explicitly marked Incomplete.
      */
-    public static function evaluateEconomicViability(mixed $input, array $options = []): array
+    public static function evaluatePropertyCostMarketCompetitiveness(mixed $input, array $options = []): array
     {
         if (!is_array($input)) { $input = []; }
         $isVerified = (bool) ($options['is_verified'] ?? false);
         $verificationStatus = $isVerified ? 'verified' : 'applicant_reported';
-
 
         $data = is_array($input) ? $input : [];
 
@@ -1288,7 +1342,7 @@ final class PropertyAssessmentService
         // If comparable market benchmark or official verification is missing, or area discrepancy is unresolved:
         if ($areaDiscrepancy || !empty($missing)) {
             $discrepancyMsg = $areaDiscrepancy
-                ? 'Area discrepancy flagged: Recorded area differs significantly from mapped plot boundary. Economic metrics are preliminary until parcel survey verification.'
+                ? 'Area discrepancy flagged: Recorded area differs significantly from mapped plot boundary. Cost metrics are preliminary until parcel survey verification.'
                 : ($hasAreaExceeded
                     ? 'Reasonableness warning: Leasable unit area exceeds total recorded parcel land area. Choose Entire Building if multi-story or adjust leasable space.'
                     : ($hasSuspiciousArea
@@ -1305,8 +1359,8 @@ final class PropertyAssessmentService
                 'missing_requirements' => $missing,
                 'pricing_analysis' => $pricingAnalysis,
                 'pricingAnalysis' => $pricingAnalysis,
-                'formula' => 'Economic Viability (20% MCE weight) — Price Competitiveness vs Verified Local Market Benchmark',
-                'methodology_version' => self::ECONOMIC_VIABILITY_VERSION,
+                'formula' => 'Property Cost and Market Competitiveness (20% MCE weight) — Price Competitiveness vs Verified Local Market Benchmark',
+                'methodology_version' => self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION,
                 'validation_status' => self::ECONOMIC_VALIDATION_STATUS,
                 'disclaimer' => 'A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability. A verified market benchmark is still needed for a price-competitiveness assessment.',
                 'explanation' => $discrepancyMsg,
@@ -1316,10 +1370,11 @@ final class PropertyAssessmentService
         // When verified comparable market benchmark is present and verified:
         // Authoritative price-competitiveness scoring rubric:
         // - Within +/- 5% of market benchmark: 100.0 (Highly competitive market alignment)
-        // - 5% to 15% above market: 85.0 (Moderate premium)
-        // - 15% to 30% above market: 70.0 (Substantial premium)
-        // - > 30% above market: 50.0 (Elevated asking price)
-        // - More than 20% below market without distressed note: 75.0 (Discounted / review required)
+        // - 5% to 15% above market: 85.0 (Moderate premium over market)
+        // - 15% to 30% above market: 70.0 (Substantial premium over market)
+        // - > 30% above market: 50.0 (Significantly elevated asking price)
+        // - 5% to 20% below market: 90.0 (Competitive discount below market)
+        // - More than 20% below market: 75.0 (Deep discount below market; title & encumbrance review required)
         $compPct = $activeDiffPct;
         if ($compPct >= -5.0 && $compPct <= 5.0) {
             $score = 100.0;
@@ -1333,9 +1388,12 @@ final class PropertyAssessmentService
         } elseif ($compPct > 30.0) {
             $score = 50.0;
             $rubricNote = 'Asking price is significantly elevated (>30% above verified market comparables).';
+        } elseif ($compPct < -5.0 && $compPct >= -20.0) {
+            $score = 90.0;
+            $rubricNote = 'Asking price reflects a competitive discount of 5% to 20% below verified market comparables.';
         } else {
             $score = 75.0;
-            $rubricNote = 'Asking price is discounted below verified market benchmark; requires title & encumbrance review.';
+            $rubricNote = 'Asking price is deeply discounted (>20% below verified market benchmark); requires title, encumbrance, and physical condition review.';
         }
 
         $iaiContribution = round($score * 0.20, 2);
@@ -1348,12 +1406,20 @@ final class PropertyAssessmentService
             'missing_requirements' => [],
             'pricing_analysis' => $pricingAnalysis,
             'pricingAnalysis' => $pricingAnalysis,
-            'formula' => 'Economic Viability (20% MCE weight) = Price Competitiveness Score × 0.20',
-            'methodology_version' => self::ECONOMIC_VIABILITY_VERSION,
+            'formula' => 'Property Cost and Market Competitiveness (20% MCE weight) = Price Competitiveness Score × 0.20',
+            'methodology_version' => self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION,
             'validation_status' => self::ECONOMIC_VALIDATION_STATUS,
             'disclaimer' => 'A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability. A verified market benchmark is still needed for a price-competitiveness assessment.',
-            'explanation' => "Economic Viability Score = {$score}/100. IAI Contribution: {$iaiContribution} pts (20% weight). {$rubricNote}",
+            'explanation' => "Property Cost and Market Competitiveness Score = {$score}/100. IAI Contribution: {$iaiContribution} pts (20% weight). {$rubricNote}",
         ];
+    }
+
+    /**
+     * Backward-compatible alias for evaluatePropertyCostMarketCompetitiveness.
+     */
+    public static function evaluateEconomicViability(mixed $input, array $options = []): array
+    {
+        return self::evaluatePropertyCostMarketCompetitiveness($input, $options);
     }
 
     /**
@@ -1367,7 +1433,7 @@ final class PropertyAssessmentService
      *
      * Formula:
      *   Nearby Businesses Score = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)
-     *   IAI Contribution = Nearby Businesses Score × 0.10 (since Nearby Businesses has a 10% MCE weight)
+     *   IAI Contribution = Nearby Businesses Score × 0.15 (since Nearby Businesses has a 15% MCE weight)
      *
      * In accordance with methodological standards:
      * Scores are calculated ONLY when documented scoring benchmarks and sufficient source data exist.
@@ -1375,14 +1441,14 @@ final class PropertyAssessmentService
      */
     public static function evaluateNearbyBusinesses(mixed $input, array $options = []): array
     {
-        if (is_numeric($input)) {
-            $score = (float) $input;
+        if (is_numeric($input) || (is_array($input) && isset($input['score']) && is_numeric($input['score']))) {
+            $score = is_numeric($input) ? (float) $input : (float) $input['score'];
             if (is_finite($score) && $score >= 0.0 && $score <= 100.0) {
                 return [
                     'score' => $score,
                     'is_complete' => true,
                     'status_label' => 'Historical / Scalar Score',
-                    'iai_contribution' => round($score * 0.10, 2),
+                    'iai_contribution' => round($score * 0.15, 2),
                     'verification_status' => 'reported_unverified',
                     'missing_requirements' => [],
                     'subcriteria' => [
@@ -1391,11 +1457,11 @@ final class PropertyAssessmentService
                         'competitive_pressure' => ['label' => 'Competitive Pressure', 'score' => $score, 'weight' => 30.0, 'weighted_score' => round($score * 0.30, 2), 'rule' => 'Scalar score'],
                         'activity_anchors' => ['label' => 'Activity Anchors', 'score' => $score, 'weight' => 15.0, 'weighted_score' => round($score * 0.15, 2), 'rule' => 'Scalar score'],
                     ],
-                    'formula' => 'Nearby Businesses (10% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
+                    'formula' => 'Nearby Businesses (15% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
                     'methodology_version' => self::NEARBY_BUSINESSES_VERSION,
                     'validation_status' => self::NEARBY_VALIDATION_STATUS,
                     'disclaimer' => 'Scalar score preserved for backward compatibility.',
-                    'explanation' => "Nearby Businesses score: {$score}/100. IAI Contribution: " . round($score * 0.10, 2) . " pts (10% weight).",
+                    'explanation' => "Nearby Businesses score: {$score}/100. IAI Contribution: " . round($score * 0.15, 2) . " pts (15% weight).",
                 ];
             }
         }
@@ -1430,7 +1496,7 @@ final class PropertyAssessmentService
             $anchorScore = max(0.0, min(100.0, (float) $anchor));
 
             $compositeScore = ($commScore * 0.25) + ($complScore * 0.30) + ($compScore * 0.30) + ($anchorScore * 0.15);
-            $iaiContribution = $compositeScore * 0.10;
+            $iaiContribution = round($compositeScore * 0.15, 2);
 
             return [
                 'score' => $compositeScore,
@@ -1445,11 +1511,11 @@ final class PropertyAssessmentService
                     'competitive_pressure' => ['label' => 'Competitive Pressure', 'score' => $compScore, 'weight' => 30.0, 'weighted_score' => round($compScore * 0.30, 2), 'rule' => 'Verified Sector Competitive Pressure'],
                     'activity_anchors' => ['label' => 'Activity Anchors', 'score' => $anchorScore, 'weight' => 15.0, 'weighted_score' => round($anchorScore * 0.15, 2), 'rule' => 'Verified Hub & Anchor Proximity'],
                 ],
-                'formula' => 'Nearby Businesses (10% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
+                'formula' => 'Nearby Businesses (15% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
                 'methodology_version' => self::NEARBY_BUSINESSES_VERSION,
                 'validation_status' => self::NEARBY_VALIDATION_STATUS,
                 'disclaimer' => 'Zero mapped establishments must not imply that no businesses exist. Nearby observed places do not establish customer demand.',
-                'explanation' => "Nearby Businesses composite score: {$compositeScore}/100. IAI Contribution: {$iaiContribution} pts (10% weight).",
+                'explanation' => "Nearby Businesses composite score: {$compositeScore}/100. IAI Contribution: {$iaiContribution} pts (15% weight).",
             ];
         }
 
@@ -1481,7 +1547,7 @@ final class PropertyAssessmentService
                 'competitive_pressure' => ['label' => 'Competitive Pressure', 'score' => null, 'weight' => 30.0, 'weighted_score' => null, 'rule' => 'Awaiting documented competitive pressure thresholds'],
                 'activity_anchors' => ['label' => 'Activity Anchors', 'score' => null, 'weight' => 15.0, 'weighted_score' => null, 'rule' => 'Awaiting verified activity anchor proximity benchmarks'],
             ],
-            'formula' => 'Nearby Businesses (10% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
+            'formula' => 'Nearby Businesses (15% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
             'methodology_version' => self::NEARBY_BUSINESSES_VERSION,
             'validation_status' => self::NEARBY_VALIDATION_STATUS,
             'disclaimer' => 'Zero mapped establishments must not imply that no businesses exist. Nearby observed places do not establish customer demand or official business-density scoring without verified BPLO census coverage.',
@@ -1541,7 +1607,7 @@ final class PropertyAssessmentService
             $result = match ($criterionKey) {
                 'spatial_accessibility' => self::evaluateSpatialAccessibility($rawIndicator),
                 'infrastructure_readiness' => self::evaluateInfrastructureReadiness($rawIndicator),
-                'economic_viability' => self::evaluateEconomicViability($rawIndicator),
+                'property_cost_market_competitiveness', 'economic_viability' => self::evaluatePropertyCostMarketCompetitiveness($rawIndicator),
                 'nearby_businesses' => self::evaluateNearbyBusinesses($rawIndicator),
                 'risk_constraints' => self::evaluateRiskConstraints($rawIndicator),
                 'zoning_compatibility' => self::evaluateZoningCompatibility($rawIndicator),
@@ -1588,6 +1654,11 @@ final class PropertyAssessmentService
             $label = self::DEFAULT_CRITERIA_CONFIG[$key]['display_name'];
             $meta = self::DEFAULT_CRITERIA_CONFIG[$key];
             $value = $criteria[$key] ?? null;
+            if ($value === null && $key === 'property_cost_market_competitiveness') {
+                $value = $criteria['economic_viability'] ?? null;
+            } elseif ($value === null && $key === 'economic_viability') {
+                $value = $criteria['property_cost_market_competitiveness'] ?? null;
+            }
             if ($value === null || $value === '') {
                 if (empty($meta['is_active']) && !array_key_exists($key, $criteria)) {
                     continue;
@@ -1605,8 +1676,8 @@ final class PropertyAssessmentService
                 $normalized[$key] = $infra['score'];
                 continue;
             }
-            if (is_array($value) && $key === 'economic_viability') {
-                $econ = self::evaluateEconomicViability($value);
+            if (is_array($value) && ($key === 'property_cost_market_competitiveness' || $key === 'economic_viability')) {
+                $econ = self::evaluatePropertyCostMarketCompetitiveness($value);
                 $normalized[$key] = $econ['score'];
                 continue;
             }
@@ -1718,6 +1789,9 @@ final class PropertyAssessmentService
         }
         $assessedAt = $options['assessed_at'] ?? gmdate(DATE_ATOM);
         $weights = $options['weights'] ?? self::weights(($options['pdo'] ?? null) instanceof PDO ? $options['pdo'] : null);
+        if (!isset($weights['zoning_compatibility'])) {
+            $weights['zoning_compatibility'] = 0.0;
+        }
         self::validateWeights($weights);
         $weights = array_map('floatval', $weights);
         $config = self::DEFAULT_CRITERIA_CONFIG;
@@ -1797,19 +1871,19 @@ final class PropertyAssessmentService
             ];
         } elseif (is_numeric($zoningInput) && $allowScalar) {
             $numZScore = (float) $zoningInput;
-            $zStatus = $numZScore >= 100.0 ? 'permitted' : ($numZScore > 0.0 ? 'conditional' : 'prohibited');
+            $zStatus = $numZScore >= 100.0 ? 'permitted' : ($numZScore > 0.0 ? 'conditional' : 'undetermined');
             $zoning = [
                 'status' => $zStatus,
                 'score' => $numZScore,
-                'is_eligible' => $zStatus !== 'prohibited',
+                'is_eligible' => $numZScore > 0.0,
                 'unmet_conditions' => $zStatus === 'conditional' ? ['Recorded zoning conditions require review and clearance.'] : [],
                 'required_conditions' => [],
                 'note' => $zStatus === 'conditional' ? 'Conditional zoning requires city review.' : 'Numeric zoning input.',
                 'source_priority' => 1,
                 'reference' => 'Reported numeric score',
             ];
-            if ($zStatus === 'prohibited') {
-                $zoning['reason'] = 'Proposed use is not permitted in this zone.';
+            if ($zStatus === 'undetermined') {
+                $zoning['reason'] = 'Numeric zero alone is not a recorded prohibited-use rule.';
             }
         } else {
             $zoning = ZoningRulesEngine::evaluate($district, $activity, $options['zoning_conditions'] ?? []);
@@ -1846,7 +1920,17 @@ final class PropertyAssessmentService
 
         foreach ($weights as $key => $weight) {
             $detail = is_array($details[$key] ?? null) ? $details[$key] : [];
+            if (empty($detail) && $key === 'property_cost_market_competitiveness' && isset($details['economic_viability'])) {
+                $detail = $details['economic_viability'];
+            } elseif (empty($detail) && $key === 'economic_viability' && isset($details['property_cost_market_competitiveness'])) {
+                $detail = $details['property_cost_market_competitiveness'];
+            }
             $input = $detail['raw'] ?? $criteria[$key] ?? null;
+            if ($input === null && $key === 'property_cost_market_competitiveness') {
+                $input = $details['economic_viability']['raw'] ?? $criteria['economic_viability'] ?? null;
+            } elseif ($input === null && $key === 'economic_viability') {
+                $input = $details['property_cost_market_competitiveness']['raw'] ?? $criteria['property_cost_market_competitiveness'] ?? null;
+            }
             $raw[$key] = $input;
             $evidence = is_array($detail['evidence'] ?? null) ? $detail['evidence'] : [];
             $authenticated = AssessmentEvidence::complete($evidence);
@@ -1877,9 +1961,9 @@ final class PropertyAssessmentService
             $evaluation = match ($key) {
                 'spatial_accessibility' => self::evaluateSpatialAccessibility(is_array($input) ? $input : null, $engineOptions),
                 'infrastructure_readiness' => self::evaluateInfrastructureReadiness(is_array($input) ? $input : null, $engineOptions),
-                'economic_viability' => self::evaluateEconomicViability(is_array($input) ? $input : null, $engineOptions),
-                'nearby_businesses' => self::evaluateNearbyBusinesses(is_array($input) ? $input : null, $engineOptions),
-                'risk_constraints' => self::evaluateRiskConstraints(is_array($input) ? $input : null, $engineOptions),
+                'property_cost_market_competitiveness', 'economic_viability' => self::evaluatePropertyCostMarketCompetitiveness(is_array($input) ? $input : null, $engineOptions),
+                'nearby_businesses' => self::evaluateNearbyBusinesses(is_array($input) || is_numeric($input) ? $input : null, $engineOptions),
+                'risk_constraints' => self::evaluateRiskConstraints(is_array($input) || is_numeric($input) ? $input : null, $engineOptions),
                 'zoning_compatibility' => $zoning,
                 'environmental_safety' => [
                     'score' => is_numeric($input) ? (float) $input : 80.0,
@@ -1887,8 +1971,9 @@ final class PropertyAssessmentService
                     'subcriteria' => [],
                     'methodology' => self::LEGACY_METHODOLOGY_VERSION,
                 ],
+                default => ['score' => null],
             };
-            if ($key === 'nearby_businesses' && is_array($input) && (($input['proposed_activity'] ?? '') !== $activity || $activity === '')) {
+            if ($key === 'nearby_businesses' && is_array($input) && isset($input['proposed_activity']) && (($input['proposed_activity'] ?? '') !== $activity || $activity === '')) {
                 $evaluation['score'] = null;
                 $evaluation['missing_requirements'][] = 'Business-environment observations for the explicitly selected activity';
             }
@@ -1915,26 +2000,28 @@ final class PropertyAssessmentService
             $rules[$key] = $evaluation['methodology_version'] ?? $evaluation['methodology'] ?? $evaluation['rules_version'] ?? self::METHODOLOGY_VERSION;
             $units[$key] = match ($key) {
                 'spatial_accessibility' => ['carriageway_width' => 'm', 'distance_to_major_road' => 'm (straight line; travel time unassessed)'],
-                'economic_viability' => ['asking_price' => 'PHP', 'lease_price' => 'PHP/month', 'offered_area_sqm' => 'm²',
+                'property_cost_market_competitiveness', 'economic_viability' => ['asking_price' => 'PHP', 'lease_price' => 'PHP/month', 'offered_area_sqm' => 'm²',
                     'comparable_market_price' => 'PHP/m²', 'comparable_lease_price' => 'PHP/m²/month'],
                 'nearby_businesses' => ['business_radius_m' => 'm', 'observed_business_count' => 'establishments'],
                 default => 'categorical observation',
             };
-            $contributions[$key] = $score === null ? null : $score * $weight / 100.0;
+            $contributions[$key] = ($key === 'zoning_compatibility' && (float) $weight === 0.0)
+                ? null
+                : ($score === null ? null : $score * $weight / 100.0);
             $total += $contributions[$key] ?? 0.0;
             if ($key !== 'zoning_compatibility') {
                 $physicalComplete = $physicalComplete && $observationsComplete && !empty($detail);
                 $physicalVerified = $physicalVerified && $verified;
                 $physical += $contributions[$key] ?? 0.0;
             }
-            if (!$observationsComplete) { $missing[] = $config[$key]['missing_label']; }
-            if (!$verified) { $missing[] = $config[$key]['display_name'] . ': authenticated applicable evidence'; }
+            if (!$observationsComplete) { $missing[] = $config[$key]['missing_label'] ?? 'Required criterion observations'; }
+            if (!$verified) { $missing[] = ($config[$key]['display_name'] ?? $key) . ': authenticated applicable evidence'; }
             foreach ($evaluation['missing_requirements'] ?? $evaluation['missing_indicators'] ?? [] as $requirement) {
                 $missing[] = $requirement;
             }
             $details[$key] = array_merge($detail, $evaluation, ['raw' => $input, 'score' => $score, 'weight' => $weight,
                 'iai_contribution' => $contributions[$key], 'verification_status' => $verification[$key]['status']]);
-            $details[$key]['label'] = $config[$key]['display_name'];
+            $details[$key]['label'] = $config[$key]['display_name'] ?? $key;
             $details[$key]['formula'] = "Contribution = criterion score × {$weight} / 100. Scoring rule: {$rules[$key]}.";
             $details[$key]['explanation'] = $score === null ? 'Required criterion observations or applicable scoring evidence are incomplete.'
                 : "Provisional criterion score {$score}/100; configured weight {$weight}%; contribution {$contributions[$key]} points.";
@@ -1942,6 +2029,27 @@ final class PropertyAssessmentService
             $details[$key]['measurement_justification'] = $detail['measurement_justification'] ?? $detail['justification'] ?? '';
             $details[$key]['justification'] = trim($details[$key]['measurement_justification'] . ' ' . $details[$key]['explanation']
                 . ' Evidence state: ' . $verification[$key]['status'] . '.');
+        }
+        if (array_key_exists('property_cost_market_competitiveness', $scores) && !array_key_exists('economic_viability', $scores)) {
+            $scores['economic_viability'] = $scores['property_cost_market_competitiveness'];
+            $contributions['economic_viability'] = $contributions['property_cost_market_competitiveness'] ?? null;
+            $subscores['economic_viability'] = $subscores['property_cost_market_competitiveness'] ?? [];
+            $rules['economic_viability'] = $rules['property_cost_market_competitiveness'] ?? self::METHODOLOGY_VERSION;
+            $units['economic_viability'] = $units['property_cost_market_competitiveness'] ?? [];
+            $verification['economic_viability'] = $verification['property_cost_market_competitiveness'] ?? [];
+            $details['economic_viability'] = $details['property_cost_market_competitiveness'] ?? [];
+        } elseif (array_key_exists('economic_viability', $scores) && !array_key_exists('property_cost_market_competitiveness', $scores)) {
+            $scores['property_cost_market_competitiveness'] = $scores['economic_viability'];
+            $contributions['property_cost_market_competitiveness'] = $contributions['economic_viability'] ?? null;
+            $subscores['property_cost_market_competitiveness'] = $subscores['economic_viability'] ?? [];
+            $rules['property_cost_market_competitiveness'] = $rules['economic_viability'] ?? self::METHODOLOGY_VERSION;
+            $units['property_cost_market_competitiveness'] = $units['economic_viability'] ?? [];
+            $verification['property_cost_market_competitiveness'] = $verification['economic_viability'] ?? [];
+            $details['property_cost_market_competitiveness'] = $details['economic_viability'] ?? [];
+        }
+        $assessmentWeights = $weights;
+        if (isset($assessmentWeights['property_cost_market_competitiveness']) && !isset($assessmentWeights['economic_viability'])) {
+            $assessmentWeights['economic_viability'] = $assessmentWeights['property_cost_market_competitiveness'];
         }
         $unrounded = $numericComplete ? $total : null;
         $candidate = $unrounded === null ? null : round($unrounded, 1, PHP_ROUND_HALF_UP);
@@ -1968,9 +2076,9 @@ final class PropertyAssessmentService
         $review = array_values(array_unique($review));
         $list = [];
         foreach ($weights as $key => $weight) {
-            $list[] = ['key' => $key, 'display_name' => $config[$key]['display_name'], 'score' => $scores[$key],
+            $list[] = ['key' => $key, 'display_name' => $config[$key]['display_name'] ?? $key, 'score' => $scores[$key],
                 'weight' => $weight, 'weighted_score' => $contributions[$key], 'raw_value' => $raw[$key],
-                'scoring_rule' => $rules[$key], 'source_reference' => $config[$key]['source_reference'],
+                'scoring_rule' => $rules[$key], 'source_reference' => $config[$key]['source_reference'] ?? 'LOCUS-SF Criteria Specification',
                 'verification_status' => $verification[$key]['status'], 'evidence' => $verification[$key]['evidence'],
                 'subcategories' => $subscores[$key], 'threshold_source' => self::THRESHOLD_SOURCE_RUBRIC];
         }
@@ -1989,7 +2097,7 @@ final class PropertyAssessmentService
             'scoring_rules' => $rules, 'criterion_scores' => $scores, 'subcriterion_scores' => $subscores,
             'weighted_contributions' => $contributions, 'unrounded_total' => $unrounded, 'displayed_iai' => $iai,
             'physical_subtotal' => $physicalComplete ? $physical : null,
-            'physical_subtotal_max' => 100.0 - $weights['zoning_compatibility'],
+            'physical_subtotal_max' => 100.0 - ($weights['zoning_compatibility'] ?? 0.0),
             'physical_evidence_complete' => $physicalVerified, 'numerical_completeness' => $numericComplete,
             'evidence_verification' => $verification, 'evidence_completeness' => $evidenceComplete,
             'methodology_validation' => 'provisional; no authenticated elicitation or approval record supplied',
@@ -2002,7 +2110,7 @@ final class PropertyAssessmentService
             'rank_eligible' => $complete && $status === 'complete',
             'status' => $status, 'assessmentStatus' => $status, 'assessmentComplete' => $complete, 'is_complete' => $complete,
             'iai' => $iai, 'iaiScore' => $iai, 'iai_score' => $iai, 'mceScore' => $iai, 'mce_score' => $iai,
-            'scores' => $scores, 'assessmentCriteria' => $scores, 'assessmentWeights' => $weights,
+            'scores' => $scores, 'assessmentCriteria' => $scores, 'assessmentWeights' => $assessmentWeights,
             'hazardScreening' => self::presentHazards($subscores['risk_constraints'], $verification['risk_constraints']['status'] === 'authenticated', $hold),
             'criteria' => $list, 'criteriaBreakdown' => $list, 'criteriaDetails' => $details,
             'methodology' => $methodologyVersion, 'methodology_version' => $methodologyVersion,

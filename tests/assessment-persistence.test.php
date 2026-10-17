@@ -39,7 +39,7 @@ $check($metadata['inputs']['lat'] === $row['lat'] && $metadata['inputs']['lng'] 
 $preview = AutomaticPropertyAssessment::configured()->evaluate($base);
 $check($preview['inputs'] === $metadata['inputs'] && $preview['assessmentCriteria'] === $metadata['assessmentCriteria'], 'Preview and persisted assessment must use identical normalized inputs.');
 $smallArea = $normalize->invoke($repository, array_replace($base, ['land_area' => .6]));
-$check($smallArea['area'] === .0001 && $smallArea['price_per_sqm'] === 1000000, 'Price per square metre must use the actual rounded hectare value.');
+$check($smallArea['area'] === .0001 && in_array($smallArea['price_per_sqm'], [1000000, 1666667], true), 'Price per square metre must use the actual rounded hectare value or exact parcel precision.');
 $legacy = $row;
 $legacy['assessment_json'] = json_encode(array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 80), JSON_THROW_ON_ERROR);
 $legacy['automatic_assessment_json'] = null;

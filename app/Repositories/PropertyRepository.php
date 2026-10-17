@@ -519,10 +519,6 @@ final class PropertyRepository
             return "p.deleted_at IS NULL AND (($publicPublished) OR p.seller_user_id = :visible_seller_user_id)";
         }
 
-        if ($userId < 1) {
-            return "$publicPublished AND p.id IN (SELECT featured.id FROM (SELECT id FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open') AND (seller_user_id IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(documents_json, '$.authority_to_sell.status')) = 'validated') ORDER BY created_at DESC, id DESC LIMIT 3) featured)";
-        }
-
         return $publicPublished;
     }
 

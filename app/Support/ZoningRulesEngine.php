@@ -23,7 +23,7 @@ final class ZoningRulesEngine
     public const VERSION = 'sfc-zo-2018-06-v2.1';
     public const DATASET_NAME = 'San Fernando City Zoning Ordinance 2018-06 & Amendments';
     public const DATASET_VERSION = 'ZO-2018-06-AMENDED';
-    public const ZONING_WEIGHT = 15.0; // 15% of overall MCE
+    public const ZONING_WEIGHT = 0.0; // Mandatory non-compensatory eligibility gate; does not contribute a numerical score to IAI
 
     public const SOURCE_PRIORITY_LOCAL_ORDINANCE = 1;
     public const SOURCE_PRIORITY_OFFICIAL_MAP = 2;
@@ -1104,14 +1104,14 @@ final class ZoningRulesEngine
             $score = 100.0;
             $suitability = 'suitable';
             $statusLabel = 'Permitted Use';
-            $iaiContrib = round($score * (self::ZONING_WEIGHT / 100.0), 2); // 100 * 0.15 = 15.00 pts
+            $iaiContrib = null; // Mandatory eligibility gate; does not contribute a numerical score to IAI
         } elseif ($status === self::STATUS_CONDITIONAL) {
             $isComplete = true;
             $isEligible = true;
             $score = 70.0;
             $suitability = 'conditional';
             $statusLabel = 'Conditional Use';
-            $iaiContrib = round($score * (self::ZONING_WEIGHT / 100.0), 2); // 70 * 0.15 = 10.50 pts
+            $iaiContrib = null; // Mandatory eligibility gate; does not contribute a numerical score to IAI
         } elseif ($status === self::STATUS_PROHIBITED) {
             $isComplete = true;
             $isEligible = false;

@@ -12,7 +12,7 @@ $check = static function (bool $condition, string $message) use (&$checks): void
     $checks++;
 };
 $keys = array_keys(PropertyAssessment::WEIGHTS);
-$ratings = array_combine($keys, [100, 80, 60, 40, 20, 0]);
+$ratings = array_combine($keys, [100, 80, 60, 40, 20]);
 // Isolate profile mapping with an explicit synthetic completed-result envelope.
 // Production assessment verification is exercised by the v3 pipeline tests.
 $assessment = ['assessmentCriteria' => $ratings, 'assessmentComplete' => true] + [
@@ -47,14 +47,14 @@ $missing = $assessment;
 $missing['assessmentCriteria']['risk_constraints'] = null;
 $missing['assessmentComplete'] = false;
 $out = (new PropertyBusinessProfiles($config))->evaluate($missing);
-$check($out['status'] === 'pending' && $out['matches'] === [] && $out['completedCount'] === 5 && $out['totalCount'] === 6, 'Incomplete evidence must prevent business scores even when profiles are approved.');
+$check($out['status'] === 'pending' && $out['matches'] === [] && $out['completedCount'] === 4 && $out['totalCount'] === 5, 'Incomplete evidence must prevent business scores even when profiles are approved.');
 $check($out['missingCriteria'][0]['key'] === 'risk_constraints' && $out['missingCriteria'][0]['nextAction'] !== '', 'Missing evidence needs a criterion-specific action.');
 $legacy = $assessment; $legacy['assessmentMode'] = 'legacy_manual';
 $check((new PropertyBusinessProfiles($config))->evaluate($legacy)['matches'] === [], 'Legacy manual scores cannot drive the new business preview.');
 $out = (new PropertyBusinessProfiles($config))->evaluate($assessment);
-$check($out['status'] === 'ready' && count($out['matches']) === 1 && $out['matches'][0]['score'] === 55.0, 'Independent six-criterion ratings 100/80/60/40/20/0 yield 55.0.');
-$check($out['matches'][0]['criteria'][5]['rating'] === 0.0 && $out['matches'][0]['criteria'][5]['contribution'] === 0.0, 'A real measured zero is a valid rating.');
-$check(count($out['matches'][0]['criteria']) === 6 && count($out['matches'][0]['reasons']) === 6 && $out['matches'][0]['concerns'] === ['Synthetic risk requires review'], 'Complete score breakdown, documented reasons and concerns are returned.');
+$check($out['status'] === 'ready' && count($out['matches']) === 1 && $out['matches'][0]['score'] === 66.0, 'Independent five-criterion ratings 100/80/60/40/20 yield 66.0.');
+$check($out['matches'][0]['criteria'][4]['rating'] === 20.0 && $out['matches'][0]['criteria'][4]['contribution'] === 3.0, 'A real measured rating is valid.');
+$check(count($out['matches'][0]['criteria']) === 5 && count($out['matches'][0]['reasons']) === 5 && $out['matches'][0]['concerns'] === ['Synthetic risk requires review'], 'Complete score breakdown, documented reasons and concerns are returned.');
 $check($out['metadata']['approvalReference'] === 'SYNTHETIC TEST ONLY' && $out['metadata']['assessmentRuleVersion'] === 'SYNTHETIC-rule', 'Method and evidence provenance must accompany matches.');
 $boundary = $assessment;
 $boundary['assessmentCriteria'] = array_fill_keys($keys, 0);

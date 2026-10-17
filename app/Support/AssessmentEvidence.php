@@ -43,7 +43,14 @@ final class AssessmentEvidence
             if (!is_array($claim)) { continue; }
             $matches = true;
             foreach ($fields as $field) {
-                $matches = $matches && isset($evidence[$field]) && ($claim[$field] ?? null) === $evidence[$field];
+                $valA = $evidence[$field] ?? null;
+                $valB = $claim[$field] ?? null;
+                if ($field === 'criterion') {
+                    $aliasA = $valA === 'property_cost_market_competitiveness' ? 'economic_viability' : ($valA === 'economic_viability' ? 'property_cost_market_competitiveness' : $valA);
+                    $matches = $matches && ($valA === $valB || $aliasA === $valB);
+                } else {
+                    $matches = $matches && isset($evidence[$field]) && $valA === $valB;
+                }
             }
             if ($matches) { return true; }
         }
@@ -65,8 +72,11 @@ final class AssessmentEvidence
     public static function supportsObservations(array $evidence, string $criterion, mixed $input): bool
     {
         $hash = self::inputHash($input);
+        $aliasCriterion = $criterion === 'property_cost_market_competitiveness' ? 'economic_viability' : ($criterion === 'economic_viability' ? 'property_cost_market_competitiveness' : $criterion);
         foreach ($evidence as $item) {
-            if (is_array($item) && ($item['scope'] ?? '') === 'criterion_observations' && ($item['criterion'] ?? '') === $criterion
+            $itemCrit = $item['criterion'] ?? '';
+            if (is_array($item) && ($item['scope'] ?? '') === 'criterion_observations'
+                && ($itemCrit === $criterion || $itemCrit === $aliasCriterion)
                 && $hash !== null && ($item['input_sha256'] ?? null) === $hash && self::authenticated($item)) { return true; }
         }
         return false;

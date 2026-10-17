@@ -51,13 +51,14 @@ final class PropertyCatalog
         $criteria = [
             'spatial_accessibility' => 'Spatial Accessibility',
             'infrastructure_readiness' => 'Infrastructure Readiness',
-            'economic_viability' => 'Land Valuation / Economic Context',
-            'nearby_businesses' => 'Economic Activity / Business Environment',
-            'zoning_compatibility' => 'Zoning Compatibility',
+            'property_cost_market_competitiveness' => 'Property Cost and Market Competitiveness',
+            'nearby_businesses' => 'Nearby Businesses',
             'risk_constraints' => 'Risk Constraints',
         ];
         if ($includeInactive) {
-            $criteria['environmental_safety'] = 'Environmental Safety';
+            $criteria['zoning_compatibility'] = 'CLUP & Land-Use Regulations (Mandatory Eligibility Screening)';
+            $criteria['economic_viability'] = 'Property Cost and Market Competitiveness (Legacy Alias)';
+            $criteria['environmental_safety'] = 'Environmental Safety (Legacy)';
         }
         return $criteria;
     }

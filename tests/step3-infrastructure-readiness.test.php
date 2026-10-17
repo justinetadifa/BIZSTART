@@ -50,7 +50,7 @@ $mockupRes = PropertyAssessmentService::evaluateInfrastructureReadiness($mockupI
 
 assertCondition($mockupRes['is_complete'] === true, "Mockup assessment is complete");
 assertCondition($mockupRes['score'] === 79.0, "Mockup score is exactly 79.0 / 100 (actual: {$mockupRes['score']})");
-assertCondition($mockupRes['iai_contribution'] === 15.80, "Mockup IAI contribution is exactly 15.80 pts (actual: {$mockupRes['iai_contribution']})");
+assertCondition($mockupRes['iai_contribution'] === 19.75, "Mockup IAI contribution is exactly 19.75 pts (79 * 0.25) (actual: {$mockupRes['iai_contribution']})");
 assertCondition($mockupRes['subcategories']['electricity']['weighted_score'] === 14.00, "Electricity weighted score is 14.00 pts (40 * 0.35)");
 assertCondition($mockupRes['subcategories']['water']['weighted_score'] === 30.00, "Water weighted score is 30.00 pts (100 * 0.30)");
 assertCondition($mockupRes['subcategories']['internet']['weighted_score'] === 20.00, "Internet weighted score is 20.00 pts (100 * 0.20)");
@@ -71,7 +71,7 @@ $perfectInput = [
 $perfectRes = PropertyAssessmentService::evaluateInfrastructureReadiness($perfectInput);
 assertCondition($perfectRes['is_complete'] === true, "Perfect input is complete");
 assertCondition($perfectRes['score'] === 100.0, "Perfect score is 100.0 / 100");
-assertCondition($perfectRes['iai_contribution'] === 20.00, "Perfect IAI contribution is 20.00 pts");
+assertCondition($perfectRes['iai_contribution'] === 25.00, "Perfect IAI contribution is 25.00 pts (100 * 0.25)");
 assertCondition(empty($perfectRes['cross_criteria_considerations']), "No generator cross-criteria notes for reliable grid");
 
 // 4. Alternative realistic conditions
@@ -85,7 +85,7 @@ $altInput = [
 ];
 $altRes = PropertyAssessmentService::evaluateInfrastructureReadiness($altInput);
 assertCondition($altRes['score'] === 86.0, "Alternative condition score is 86.0 / 100 (actual: {$altRes['score']})");
-assertCondition($altRes['iai_contribution'] === 17.20, "Alternative IAI contribution is 17.20 pts (actual: {$altRes['iai_contribution']})");
+assertCondition($altRes['iai_contribution'] === 21.50, "Alternative IAI contribution is 21.50 pts (86 * 0.25) (actual: {$altRes['iai_contribution']})");
 
 // 5. Incomplete / Unknown inputs handling
 $incompleteInput = [

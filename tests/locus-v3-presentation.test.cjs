@@ -15,7 +15,7 @@ const { resolve } = require('node:path');
   const check = (condition, message) => { assert.ok(condition, message); checks++; };
   const complete = fixture.complete;
   const calc = view.assessmentCalculation(complete);
-  check(calc.iai === 95.5 && calc.mce === 95.5, 'Browser consumes server total.');
+  check(calc.iai === 94.8 && calc.mce === 94.8, 'Browser consumes server total.');
   check(calc.rows.reduce((sum, row) => sum + row.contribution, 0) === complete.unrounded_total, 'Server and browser contributions agree.');
   for (const [label, property] of Object.entries(fixture)) {
     if (!property || typeof property !== 'object' || ['complete', 'conditional', 'scenario'].includes(label)) continue;
@@ -27,10 +27,10 @@ const { resolve } = require('node:path');
     check(report.includes(property.assessmentStatus.replaceAll('_', ' ')), `${label}: PDF names assessment status.`);
   }
   const report = view.investorBriefReportMarkup(complete);
-  check(report.includes('IAI: 95.5 / 100') && report.includes('95.5 / 100'), 'PDF and server use the same displayed IAI.');
+  check(report.includes('IAI: 94.8 / 100') && report.includes('94.8 / 100'), 'PDF and server use the same displayed IAI.');
   check(report.includes(complete.protocol_version) && report.includes(complete.proposed_activity), 'PDF identifies protocol and scenario.');
   check(view.investorBriefReportMarkup(complete, { includeAppendix: true }).includes(complete.comparison_key), 'PDF evidence appendix identifies comparison group.');
-  check(view.investorBriefReportMarkup(fixture.conditional).includes('IAI: 91.0 / 100'), 'Conditional PDF retains explanatory score.');
+  check(view.investorBriefReportMarkup(fixture.conditional).includes('IAI: 94.8 / 100'), 'Conditional PDF retains explanatory score.');
   check(view.investorBriefReportMarkup(fixture.conditional).includes('No actionable investment rank'), 'Conditional PDF does not imply clearance.');
   const bad = structuredClone(complete); bad.displayed_iai = 80; bad.iaiScore = 80;
   check(view.assessmentCalculation(bad).iai === null, 'Browser independently detects mismatched stored total.');
@@ -52,7 +52,7 @@ const { resolve } = require('node:path');
     printButtonMarkup: () => '', nearbyBusinessesMarkup: () => '', evaluationMarkup: () => '', investorTools: () => '', policy: {},
   };
   const page = view.propertyDetailsMarkup({ ...complete, facilities: [], area: .01 }, options);
-  check(page.includes('95.5') && page.includes('locusInvestorBrief'), 'Full details page renders the authoritative score and printable report.');
+  check(page.includes('94.8') && page.includes('locusInvestorBrief'), 'Full details page renders the authoritative score and printable report.');
   const subtotalOnly = view.propertyDetailsMarkup({ ...complete, facilities: [], assessmentComplete: false, displayed_iai: null, iaiScore: null, assessmentStatus: 'incomplete' }, options);
   check(subtotalOnly.includes('data-active-iai-score><strong>Withheld</strong>'), 'A physical subtotal never appears as the headline IAI.');
 
@@ -72,8 +72,8 @@ const { resolve } = require('node:path');
   element('#investorProposedActivitySelect').value = 'retail_convenience';
   await element('#investorProposedActivitySelect').listeners.change();
   check(requested.includes('/api/property-assessment.php?id=999001&activity=retail_convenience'), 'Scenario sends only property id and explicit activity to server.');
-  check(element('[data-scenario-total-iai]').textContent === '95.5 / 100', 'Scenario shows server result.');
-  check(element('#locusInvestorBrief').outerHTML.includes('IAI: 95.5 / 100'), 'Scenario and PDF share the returned result.');
+  check(element('[data-scenario-total-iai]').textContent === '94.8 / 100', 'Scenario shows server result.');
+  check(element('#locusInvestorBrief').outerHTML.includes('IAI: 94.8 / 100'), 'Scenario and PDF share the returned result.');
   global.fetch = async () => ({ ok: true, json: async () => ({ assessment: fixture.held }) });
   await element('#investorProposedActivitySelect').listeners.change();
   check(element('[data-scenario-total-iai]').textContent === 'Withheld', 'Held scenario stays withheld.');

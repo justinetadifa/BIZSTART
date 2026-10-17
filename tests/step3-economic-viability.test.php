@@ -25,8 +25,9 @@ echo "=== LOCUS-SF Step 3 Economic Viability Unit Tests ===\n\n";
 
 // 1. Central Configuration & Metadata
 $weights = PropertyAssessmentService::weights();
-assertCondition(isset($weights['economic_viability']), "economic_viability weight exists in active configuration");
-assertCondition($weights['economic_viability'] === 20.0, "economic_viability weight is preserved at exactly 20.0% of MCE");
+$evWeight = $weights['property_cost_market_competitiveness'] ?? ($weights['economic_viability'] ?? null);
+assertCondition($evWeight !== null, "economic_viability / property_cost_market_competitiveness weight exists in active configuration");
+assertCondition($evWeight === 20.0, "economic_viability / property_cost_market_competitiveness weight is preserved at exactly 20.0% of MCE");
 assertCondition(str_contains(PropertyAssessmentService::ECONOMIC_VIABILITY_VERSION, 'Provisional'), "ECONOMIC_VIABILITY_VERSION indicates provisional status");
 assertCondition(str_contains(PropertyAssessmentService::ECONOMIC_VALIDATION_STATUS, 'Awaiting Market Comparables'), "ECONOMIC_VALIDATION_STATUS mentions awaiting market comparables");
 
@@ -203,16 +204,27 @@ $compInput50 = [
 $compRes50 = PropertyAssessmentService::evaluateEconomicViability($compInput50, ['is_verified' => true]);
 assertCondition($compRes50['score'] === 50.0, "Score is 50.0 for elevated asking price > 30% above market benchmark");
 
-// 13.3 Discounted asking price (< -5%)
+// 13.3 Deeply discounted asking price (< -20%)
 $compInput75 = [
     'listing_purpose' => 'sale',
-    'asking_price' => 7200000.0, // ₱7,200/sqm vs ₱9,000 = -20%
+    'asking_price' => 6750000.0, // ₱6,750/sqm vs ₱9,000 = -25% (> 20% discount)
     'land_area' => 1000.0,
     'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes75 = PropertyAssessmentService::evaluateEconomicViability($compInput75, ['is_verified' => true]);
-assertCondition($compRes75['score'] === 75.0, "Score is 75.0 for discounted asking price below market benchmark");
+assertCondition($compRes75['score'] === 75.0, "Score is 75.0 for deep discount (>20% below market benchmark)");
+
+// 13.4 Moderate competitive discount (5% to 20% below benchmark)
+$compInput90 = [
+    'listing_purpose' => 'sale',
+    'asking_price' => 8100000.0, // ₱8,100/sqm vs ₱9,000 = -10% (between 5% and 20% discount)
+    'land_area' => 1000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
+    'comparable_market_price' => 9000.0,
+];
+$compRes90 = PropertyAssessmentService::evaluateEconomicViability($compInput90, ['is_verified' => true]);
+assertCondition($compRes90['score'] === 90.0, "Score is 90.0 for competitive discount (5% to 20% below market benchmark)");
 
 // 14. PropertyParcel observation normalization
 require_once __DIR__ . '/../app/Support/PropertyParcel.php';
@@ -264,8 +276,8 @@ assertCondition($uap['lease_vs_market_percent'] === -16.67, "User Acceptance: Pr
 assertCondition($uap['price_competitiveness_ratio'] === 0.8333, "User Acceptance: Price-competitiveness ratio is 0.8333 (actual: {$uap['price_competitiveness_ratio']})");
 assertCondition($uap['known_upfront_costs'] === 75000.0, "User Acceptance: Known upfront outlay is ₱75,000 (actual: {$uap['known_upfront_costs']})");
 assertCondition($userAcceptanceRes['is_complete'] === true, "User Acceptance: Assessment is complete with verified lease benchmark");
-assertCondition($userAcceptanceRes['score'] === 75.0, "User Acceptance: Score is 75.0 for discounted lease rate (actual: {$userAcceptanceRes['score']})");
-assertCondition($userAcceptanceRes['iai_contribution'] === 15.00, "User Acceptance: IAI contribution is 15.00 pts (75.0 * 0.20)");
+assertCondition($userAcceptanceRes['score'] === 90.0, "User Acceptance: Score is 90.0 for competitive discounted lease rate (-16.67%) (actual: {$userAcceptanceRes['score']})");
+assertCondition($userAcceptanceRes['iai_contribution'] === 18.00, "User Acceptance: IAI contribution is 18.00 pts (90.0 * 0.20) (actual: {$userAcceptanceRes['iai_contribution']})");
 
 echo "\nSummary: " . ($testsRun - $failures) . "/{$testsRun} assertions passed.\n";
 if ($failures > 0) {

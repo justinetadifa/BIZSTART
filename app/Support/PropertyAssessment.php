@@ -8,13 +8,12 @@ require_once __DIR__ . '/PropertyAssessmentService.php';
 
 final class PropertyAssessment
 {
-    // Provisional LOCUS-SF 6-criterion weights totaling exactly 100%
+    // Definitive LOCUS-SF 5-criterion weights totaling exactly 100%
     public const WEIGHTS = [
-        'spatial_accessibility' => 20,
-        'infrastructure_readiness' => 20,
-        'economic_viability' => 20,
-        'nearby_businesses' => 10,
-        'zoning_compatibility' => 15,
+        'spatial_accessibility' => 25,
+        'infrastructure_readiness' => 25,
+        'property_cost_market_competitiveness' => 20,
+        'nearby_businesses' => 15,
         'risk_constraints' => 15,
     ];
 
@@ -38,6 +37,15 @@ final class PropertyAssessment
     {
         if (is_array($optionsOrComplete)) {
             $options = array_merge($optionsOrComplete, $options);
+        } elseif ($optionsOrComplete === true) {
+            $options['allow_scalar_completion'] = true;
+            $options['is_complete'] = true;
+        }
+        if (!isset($options['scores'])) {
+            $options['scores'] = true;
+        }
+        if (!isset($options['allow_scalar_completion'])) {
+            $options['allow_scalar_completion'] = true;
         }
         $result = PropertyAssessmentService::evaluate($criteria, $options);
         return array_merge($result, [
@@ -70,9 +78,14 @@ final class PropertyAssessment
         return PropertyAssessmentService::evaluateInfrastructureReadiness($input, $options);
     }
 
+    public static function evaluatePropertyCostMarketCompetitiveness(mixed $input, array $options = []): array
+    {
+        return PropertyAssessmentService::evaluatePropertyCostMarketCompetitiveness($input, $options);
+    }
+
     public static function evaluateEconomicViability(mixed $input, array $options = []): array
     {
-        return PropertyAssessmentService::evaluateEconomicViability($input, $options);
+        return PropertyAssessmentService::evaluatePropertyCostMarketCompetitiveness($input, $options);
     }
 
     public static function evaluateNearbyBusinesses(mixed $input, array $options = []): array

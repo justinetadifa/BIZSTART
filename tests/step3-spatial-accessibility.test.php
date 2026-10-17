@@ -41,7 +41,7 @@ assertCondition(abs($sumWeights - 100.0) < 0.0001, 'Internal subcriteria weights
 // Usable Carriageway Width: 6m (100 * 0.25 = 25)
 // Distance to major road: 250m (85 * 0.20 = 17)
 // Total = 30 + 25 + 25 + 17 = 97.0 / 100
-// IAI Contribution (20% MCE weight) = 97.0 * 0.20 = 19.4
+// IAI Contribution (25% MCE weight) = 97.0 * 0.25 = 24.25
 $completeInput = [
     'road_access' => 'frontage',
     'road_surface_passability' => 'paved',
@@ -51,7 +51,7 @@ $completeInput = [
 $resultComplete = PropertyAssessmentService::evaluateSpatialAccessibility($completeInput);
 assertCondition($resultComplete['is_complete'] === true, 'Complete input marks is_complete = true');
 assertCondition(abs($resultComplete['score'] - 97.0) < 0.01, 'Complete input scores exactly 97.0/100');
-assertCondition(abs($resultComplete['iai_contribution'] - 19.4) < 0.01, 'Complete input contributes exactly 19.4 points to IAI');
+assertCondition(abs($resultComplete['iai_contribution'] - 24.25) < 0.01, 'Complete input contributes exactly 24.25 points to IAI');
 assertCondition($resultComplete['verification_status'] === 'applicant_reported', 'Applicant input produces preliminary applicant_reported status');
 assertCondition(count($resultComplete['missing_subcriteria']) === 0, 'No missing subcriteria in complete input');
 
@@ -68,7 +68,7 @@ assertCondition($sub['distance_to_major_road']['score'] === 85.0 && $sub['distan
 // Usable Carriageway Width: 2m (50 * 0.25 = 12.5)
 // Distance to major road: 250m (85 * 0.20 = 17)
 // Total = 30 + 10 + 12.5 + 17 = 69.5 / 100
-// IAI Contribution = 69.5 * 0.20 = 13.9
+// IAI Contribution = 69.5 * 0.25 = 17.38
 $partialInput = [
     'road_access' => 'frontage',
     'road_surface_passability' => 'unpaved',
@@ -78,7 +78,7 @@ $partialInput = [
 $resultPartial = PropertyAssessmentService::evaluateSpatialAccessibility($partialInput);
 assertCondition($resultPartial['is_complete'] === true, 'Partial input with all valid answers is complete');
 assertCondition(abs($resultPartial['score'] - 69.5) < 0.01, 'Partial input scores exactly 69.5/100');
-assertCondition(abs($resultPartial['iai_contribution'] - 13.9) < 0.01, 'Partial input contributes exactly 13.9 points to IAI');
+assertCondition(abs($resultPartial['iai_contribution'] - 17.38) < 0.01, 'Partial input contributes exactly 17.38 points to IAI');
 
 // 4. Missing Inputs Handling
 $missingInput = [

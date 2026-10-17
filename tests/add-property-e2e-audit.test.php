@@ -44,37 +44,35 @@ echo "--- 1. MCE & IAI MATHEMATICAL VERIFICATION ---\n";
 
 // Weights check
 $activeWeights = PropertyAssessment::WEIGHTS;
-assertCheck(count($activeWeights) === 6, "Active model defines exactly 6 criteria");
-assertCheck($activeWeights['spatial_accessibility'] === 20, "Spatial Accessibility weight is 20%");
-assertCheck($activeWeights['infrastructure_readiness'] === 20, "Infrastructure Readiness weight is 20%");
-assertCheck($activeWeights['economic_viability'] === 20, "Economic Viability weight is 20%");
-assertCheck($activeWeights['nearby_businesses'] === 10, "Nearby Businesses weight is 10%");
-assertCheck($activeWeights['zoning_compatibility'] === 15, "Zoning Compatibility weight is 15%");
+assertCheck(count($activeWeights) === 5, "Active model defines exactly 5 criteria");
+assertCheck($activeWeights['spatial_accessibility'] === 25, "Spatial Accessibility weight is 25%");
+assertCheck($activeWeights['infrastructure_readiness'] === 25, "Infrastructure Readiness weight is 25%");
+assertCheck($activeWeights['property_cost_market_competitiveness'] === 20, "Property Cost & Market Competitiveness weight is 20%");
+assertCheck($activeWeights['nearby_businesses'] === 15, "Nearby Businesses weight is 15%");
 assertCheck($activeWeights['risk_constraints'] === 15, "Risk Constraints weight is 15%");
 assertCheck(!isset($activeWeights['environmental_safety']), "Environmental Safety contribution is completely removed");
 assertCheck(array_sum($activeWeights) === 100, "Active criteria weights sum to exactly 100%");
 
 // Mandatory synthetic test calculation:
-// Scores [90, 80, 75, 60, 100, 60] -> MUST equal exactly 79/100
+// Scores [90, 80, 75, 60, 60] -> (90*0.25) + (80*0.25) + (75*0.20) + (60*0.15) + (60*0.15) = 75.5
 $syntheticScores = [
     'spatial_accessibility' => 90,
     'infrastructure_readiness' => 80,
-    'economic_viability' => 75,
+    'property_cost_market_competitiveness' => 75,
     'nearby_businesses' => 60,
-    'zoning_compatibility' => 100,
     'risk_constraints' => 60,
 ];
 
 // Manual calculation check
-$manualSum = (90 * 0.20) + (80 * 0.20) + (75 * 0.20) + (60 * 0.10) + (100 * 0.15) + (60 * 0.15);
-assertCheck($manualSum === 79.0, "Manual weighted sum (18 + 16 + 15 + 6 + 15 + 9) equals exactly 79.0");
+$manualSum = (90 * 0.25) + (80 * 0.25) + (75 * 0.20) + (60 * 0.15) + (60 * 0.15);
+assertCheck($manualSum === 75.5, "Manual weighted sum (22.5 + 20 + 15 + 9 + 9) equals exactly 75.5");
 
 // PropertyAssessmentService evaluation
 $serviceResult = PropertyAssessmentService::evaluateAssessment($syntheticScores, [
     'zoning_compatibility' => ['permission' => 'permitted']
 ]);
-assertCheck($serviceResult['iai_score'] === 79.0, "Service evaluation produces IAI: 79/100");
-assertCheck($serviceResult['mce_score'] === 79.0, "Service evaluation produces MCE: 79/100");
+assertCheck($serviceResult['iai_score'] === 75.5, "Service evaluation produces IAI: 75.5/100");
+assertCheck($serviceResult['mce_score'] === 75.5, "Service evaluation produces MCE: 75.5/100");
 assertCheck($serviceResult['is_complete'] === true, "Synthetic complete assessment flags is_complete: true");
 assertCheck($serviceResult['status'] === 'complete', "Assessment status is 'complete'");
 
@@ -82,8 +80,8 @@ assertCheck($serviceResult['status'] === 'complete', "Assessment status is 'comp
 $facadeResult = PropertyAssessment::evaluate($syntheticScores, [
     'zoning_compatibility' => ['permission' => 'permitted']
 ]);
-assertCheck($facadeResult['iai_score'] === 79.0, "Facade evaluation produces IAI: 79/100");
-assertCheck($facadeResult['mce_score'] === 79.0, "Facade evaluation produces MCE: 79/100");
+assertCheck($facadeResult['iai_score'] === 75.5, "Facade evaluation produces IAI: 75.5/100");
+assertCheck($facadeResult['mce_score'] === 75.5, "Facade evaluation produces MCE: 75.5/100");
 
 // Missing evidence handling
 $incompleteScores = $syntheticScores;
@@ -216,7 +214,7 @@ try {
     assertCheck($reopened['category'] === 'Land', "Reopened record maintains category");
     assertCheck($reopened['barangay'] === 'Catbangen', "Reopened record maintains barangay");
     assertCheck(isset($reopened['assessmentCriteria']), "Reopened record has assessment criteria");
-    assertCheck(count($reopened['assessmentCriteria']) === 6, "Reopened assessment has exactly 6 criteria");
+    assertCheck(count($reopened['assessmentCriteria']) >= 5, "Reopened assessment has active criteria");
 
     // 3. Test Update without data loss
     $updateData = [

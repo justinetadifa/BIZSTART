@@ -49,8 +49,14 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 
 /* Modern Unified Vertical Layout with Hero Split */
 .property-layout{display:flex;flex-direction:column;gap:28px;align-items:stretch}
-.property-hero-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(340px,1fr);gap:24px;align-items:stretch;margin-bottom:8px}
-@media(max-width:960px){.property-hero-grid{grid-template-columns:1fr}}
+.property-hero-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(340px,1fr);grid-template-areas:"media hub";gap:24px;align-items:stretch;margin-bottom:8px}
+.property-hero-grid > .property-media-dock{grid-area:media;grid-row:1;grid-column:1}
+.property-hero-grid > .property-executive-hub{grid-area:hub;grid-row:1;grid-column:2}
+@media(max-width:960px){
+  .property-hero-grid{grid-template-columns:1fr;grid-template-areas:"media" "hub"}
+  .property-hero-grid > .property-media-dock,
+  .property-hero-grid > .property-executive-hub{grid-row:auto;grid-column:auto}
+}
 
 /* Sleek iOS Card Containers */
 .property-panel{padding:26px 28px;background:#fff;border:1px solid rgba(226,232,240,0.85);border-radius:20px;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04);scroll-margin-top:118px;min-width:0;transition:box-shadow .2s ease,border-color .2s ease}
@@ -93,7 +99,7 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 .property-gallery-thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Row 1: Listing Assistance / Contact Card */
-.property-contact{grid-area:contact;min-height:350px;border:1px solid rgba(226,232,240,0.85);border-radius:20px;padding:24px 26px;background:#fff;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.property-contact{min-height:350px;border:1px solid rgba(226,232,240,0.85);border-radius:20px;padding:24px 26px;background:#fff;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
 .property-contact .property-kicker{display:block;margin-bottom:6px}
 .property-contact-lead{font-size:13.5px;line-height:1.5;color:#334155;margin:0 0 10px}
 .property-trust-badges{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:7px}
@@ -196,7 +202,7 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
 .property-actions .city-button:not(.city-button-secondary):active,#cityInquiryForm button:active{transform:scale(0.985)!important}
 .property-actions .city-button-secondary{background:#f8fafc!important;color:#334155!important;border:1px solid #e2e8f0!important}
 .property-actions .city-button-secondary:hover{background:#f1f5f9!important;border-color:#cbd5e1!important;color:#0f172a!important;transform:translateY(-1px)!important}
-.property-actions .city-button-secondary[aria-pressed="true"]{background:#0071e3!important;color:#fff!important;border-color:#0071e3!important;box-shadow:0 2px 8px rgba(0,113,227,0.22)!important}
+.property-actions .city-button-secondary[aria-pressed="true"]{background:#0f172a!important;color:#fff!important;border-color:#0f172a!important;box-shadow:0 2px 8px rgba(15,23,42,0.18)!important}
 
 /* Row 2: Location Card & Compact Map */
 .property-location{grid-area:location;border-radius:20px;border:1px solid rgba(226,232,240,0.85);background:#fff;padding:24px 26px;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04)}

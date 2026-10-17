@@ -19,6 +19,7 @@ final class AutomaticPropertyAssessment
     private const METRICS = [
         'spatial_accessibility' => ['roads', 'road_distance_m', 'Distance to mapped road', 'm'],
         'infrastructure_readiness' => ['utilities', 'utility_status', 'Mapped service coverage (not a parcel connection)', null],
+        'property_cost_market_competitiveness' => ['valuation', 'bir_value_sqm', 'Property Cost & Market Benchmark', 'PHP/m²'],
         'economic_viability' => ['valuation', 'bir_value_sqm', 'BIR zonal value (Economic Context)', 'PHP/m²'],
         'nearby_businesses' => ['businesses', 'business_count', 'Operating businesses within radius (Economic Activity)', 'businesses'],
         'zoning_compatibility' => ['zoning', 'zoning_status', 'Recorded zoning district', null],
@@ -41,7 +42,16 @@ final class AutomaticPropertyAssessment
     public static function presentStored(array $criteria, array $metadata = [], array $history = []): array
     {
         if (($metadata['protocol_version'] ?? '') !== PropertyAssessmentService::METHODOLOGY_VERSION) {
-            $safe = PropertyAssessment::scores([], ['assessed_at' => $metadata['assessed_at'] ?? $metadata['generatedAt'] ?? null]);
+            $safe = PropertyAssessment::scores($criteria, [
+                'assessed_at' => $metadata['assessed_at'] ?? $metadata['generatedAt'] ?? null,
+                'allow_scalar_completion' => true,
+                'zoning_status' => isset($criteria['zoning_compatibility']) && (float) $criteria['zoning_compatibility'] > 0 ? 'permitted' : 'unverified',
+                'zoning_compatibility' => isset($criteria['zoning_compatibility']) && is_numeric($criteria['zoning_compatibility']) ? [
+                    'score' => (float) $criteria['zoning_compatibility'],
+                    'status' => 'permitted',
+                    'permission' => 'permitted',
+                ] : null,
+            ]);
             return array_merge($safe, [
                 'status' => 'historical_review_required', 'assessmentStatus' => 'historical_review_required',
                 'protocol' => $metadata['protocol'] ?? $metadata['assessmentVersion'] ?? 'legacy-unversioned',
@@ -49,6 +59,7 @@ final class AutomaticPropertyAssessment
                 'assessmentMode' => 'historical', 'assessmentVersion' => $metadata['assessmentVersion'] ?? null,
                 'historical_snapshot' => ['assessmentCriteria' => $criteria, 'metadata' => $metadata],
                 'legacyAssessment' => $history ?: null, 'rank_eligible' => false, 'comparison_key' => null,
+                'iaiScore' => null, 'mceScore' => null, 'displayed_iai' => null,
                 'reason' => 'Historical snapshot retained. A new assessment under the current protocol requires explicit recalculation.',
                 'review_reasons' => ['Historical protocol or missing version; excluded from current comparable rankings.'],
                 'assessed_at' => $metadata['assessed_at'] ?? $metadata['generatedAt'] ?? null,
@@ -163,7 +174,8 @@ final class AutomaticPropertyAssessment
             $measurement = $inputs['lat'] === null
                 ? ['raw' => [], 'evidence' => [], 'missingData' => ['Exact location is required.'], 'justification' => 'Location unrecorded; exact location is required.']
                 : $this->measure($layerKey, $point, $inputs);
-            $raw = array_merge($measurement['raw'], is_array($observations[$key] ?? null) ? $observations[$key] : []);
+            $obsVal = $observations[$key] ?? null;
+            $raw = array_merge($measurement['raw'], is_array($obsVal) ? $obsVal : (is_numeric($obsVal) ? ['score' => (float) $obsVal] : []));
             $details[$key] = ['raw' => $raw, 'evidence' => $measurement['evidence'],
                 'missingData' => $measurement['missingData'], 'justification' => $measurement['justification']];
             $context[] = ['key' => $metric, 'label' => $label, 'value' => $measurement['raw'][$metric] ?? null, 'unit' => $unit,
@@ -202,8 +214,9 @@ final class AutomaticPropertyAssessment
                 'water' => $service('water', ['water_supply']), 'internet' => $service('internet', ['internet_telecom']),
                 'drainage' => $o['drainage_conditions'] ?? $o['drainage_service'] ?? $u['additional_services']['drainage'] ?? null,
             ],
+            'property_cost_market_competitiveness' => array_merge($o, $financial),
             'economic_viability' => array_merge($o, $financial),
-            'nearby_businesses' => [], // General mapped counts cannot supply benchmarked business-specific subcriteria.
+            'nearby_businesses' => $o['nearby_businesses'] ?? $financial['nearby_businesses_score'] ?? $o['nearby_businesses_score'] ?? [],
             'risk_constraints' => array_intersect_key($o, array_flip(['flood_susceptibility', 'active_fault', 'landslide_susceptibility', 'storm_surge', 'liquefaction_susceptibility', 'tsunami_exposure'])),
         ];
     }

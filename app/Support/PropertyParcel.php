@@ -141,6 +141,23 @@ final class PropertyParcel
                 }
             }
         }
+        $hazardFindingMap = [
+            'hazard_finding_flood' => 'flood_susceptibility',
+            'hazard_finding_landslide' => 'landslide_susceptibility',
+            'hazard_finding_fault' => 'active_fault',
+            'hazard_finding_surge' => 'storm_surge',
+            'hazard_finding_liquefaction' => 'liquefaction_susceptibility',
+            'hazard_finding_tsunami' => 'tsunami_exposure',
+        ];
+        foreach ($hazardFindingMap as $field => $obsKey) {
+            if (array_key_exists($field, $payload) && is_string($payload[$field]) && trim($payload[$field]) !== '') {
+                $observations[$obsKey] = self::text($payload[$field], str_replace('_', ' ', $obsKey), 3000);
+            }
+        }
+        if (array_key_exists('nearby_businesses_score', $payload) && is_numeric($payload['nearby_businesses_score'])) {
+            $observations['nearby_businesses_score'] = (float) $payload['nearby_businesses_score'];
+            $observations['nearby_businesses'] = (float) $payload['nearby_businesses_score'];
+        }
         if (array_key_exists('bir_date', $payload)) {
             $date = self::text($payload['bir_date'], 'BIR reference date', 10);
             if ($date !== '' && (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $date, $parts) || !checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1]))) {

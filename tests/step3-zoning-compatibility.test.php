@@ -124,16 +124,16 @@ $evalPermitted = ZoningRulesEngine::evaluate('C-1', 'retail_convenience');
 assertCondition($evalPermitted['status'] === 'permitted', "C-1 + retail_convenience is Permitted");
 assertCondition($evalPermitted['score'] === 100.0, "Permitted score is exactly 100.0");
 assertCondition($evalPermitted['is_eligible'] === true, "Permitted use is eligible");
-assertCondition($evalPermitted['iai_contribution'] === 15.00, "Permitted IAI contribution is exactly 15.00 pts (100 * 0.15)");
+assertCondition($evalPermitted['iai_contribution'] === null, "Permitted IAI contribution is null (0.0% MCE weight)");
 assertCondition($evalPermitted['source_priority'] === 1, "Source priority is 1 (Local Ordinance)");
 assertCondition(str_contains($evalPermitted['ordinance_section'], '2018-06'), "Cites City Ordinance 2018-06");
 
-// B. Conditional: R-1 + retail_convenience -> 70 provisional score, 10.50 IAI pts, conditions
+// B. Conditional: R-1 + retail_convenience -> 70 provisional score, conditions
 $evalConditional = ZoningRulesEngine::evaluate('R-1', 'retail_convenience');
 assertCondition($evalConditional['status'] === 'conditional', "R-1 + retail_convenience is Conditional");
 assertCondition($evalConditional['score'] === 70.0, "Conditional provisional score is exactly 70.0");
 assertCondition($evalConditional['is_eligible'] === true, "Conditional use is eligible (provisional)");
-assertCondition($evalConditional['iai_contribution'] === 10.50, "Conditional IAI contribution is exactly 10.50 pts (70 * 0.15)");
+assertCondition($evalConditional['iai_contribution'] === null, "Conditional IAI contribution is null (0.0% MCE weight)");
 assertCondition(!empty($evalConditional['restrictions']), "Conditional use provides required restrictions list");
 
 // C. Prohibited: R-1 + ind_heavy_manufacturing -> 0 score, Not Suitable, IAI = null
@@ -165,15 +165,15 @@ assertCondition($evalFEZ['score'] === 100.0, "FEZ Permitted score is 100.0");
 // ---------------------------------------------------------
 // 5. MCE COMPOSITE EVALUATION & CRITERIA WEIGHTS
 // ---------------------------------------------------------
-echo "\n--- 5. MCE Composite Integration & 15% Weight Retained ---\n";
+echo "\n--- 5. MCE Composite Integration & Screening Gate ---\n";
 $criteriaConfig = PropertyAssessmentService::getCriteriaConfig();
 assertCondition(isset($criteriaConfig['zoning_compatibility']), "Zoning compatibility exists in MCE criteria config");
-assertCondition($criteriaConfig['zoning_compatibility']['weight'] === 15.0, "Zoning compatibility weight is exactly 15.0% (found {$criteriaConfig['zoning_compatibility']['weight']}%)");
+assertCondition($criteriaConfig['zoning_compatibility']['weight'] === 0.0, "Zoning compatibility weight is exactly 0.0% (found {$criteriaConfig['zoning_compatibility']['weight']}%)");
 
-// Verify all 7 criteria sum to exactly 100%
+// Verify active criteria sum to exactly 100%
 $weights = PropertyAssessmentService::weights();
 $weightSum = array_sum($weights);
-assertCondition(abs($weightSum - 100.0) < 0.001, "All 7 MCE criteria weights sum to exactly 100.0% (sum: {$weightSum}%)");
+assertCondition(abs($weightSum - 100.0) < 0.001, "Active MCE criteria weights sum to exactly 100.0% (sum: {$weightSum}%)");
 
 // Test Composite Assessment with Permitted Zoning
 $compPermitted = PropertyAssessmentService::evaluate([
@@ -190,7 +190,7 @@ assertCondition($compPermitted['eligibility']['is_eligible'] === true, "Composit
 assertCondition($compPermitted['status'] === 'complete', "Assessment status is 'complete'");
 assertCondition($compPermitted['iaiScore'] !== null, "IAI score is calculated: {$compPermitted['iaiScore']}");
 assertCondition($critMapPermitted['zoning_compatibility']['score'] === 100.0, "Zoning criterion score in composite is 100.0");
-assertCondition($critMapPermitted['zoning_compatibility']['weighted_score'] === 15.0, "Zoning weighted score in composite is 15.0 pts (100 * 0.15)");
+assertCondition($critMapPermitted['zoning_compatibility']['weighted_score'] === null, "Zoning weighted score in composite is null (0.0% weight)");
 
 // Test Composite Assessment with Conditional Zoning
 $compConditional = PropertyAssessmentService::evaluate([
@@ -206,7 +206,7 @@ $critMapConditional = array_column($compConditional['criteria'], null, 'key');
 assertCondition($compConditional['eligibility']['is_eligible'] === true, "Composite assessment with Conditional zoning is Eligible");
 assertCondition($compConditional['status'] === 'conditional', "Assessment status is 'conditional'");
 assertCondition($critMapConditional['zoning_compatibility']['score'] === 70.0, "Zoning criterion score in composite is 70.0");
-assertCondition($critMapConditional['zoning_compatibility']['weighted_score'] === 10.5, "Zoning weighted score in composite is 10.5 pts (70 * 0.15)");
+assertCondition($critMapConditional['zoning_compatibility']['weighted_score'] === null, "Zoning weighted score in composite is null (0.0% weight)");
 
 // Test Hard Gate: Composite Assessment with Prohibited Zoning -> Not Suitable, IAI = null
 $compProhibited = PropertyAssessmentService::evaluate([

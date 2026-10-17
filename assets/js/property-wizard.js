@@ -6,12 +6,21 @@
   const actions = {
     spatial_accessibility: ['Confirm road frontage and access evidence.', 'Confirm', 'spatial_accessibility'],
     infrastructure_readiness: ['Confirm electricity, water, and internet.', 'Confirm', 'infrastructure_readiness'],
+    property_cost_market_competitiveness: ['Add a dated BIR zonal reference.', 'Add reference', 'economic_viability'],
     economic_viability: ['Add a dated BIR zonal reference.', 'Add reference', 'economic_viability'],
     nearby_businesses: ['Run the radar and check inventory coverage.', 'Run radar', 'nearby_businesses'],
     zoning_compatibility: ['Add the parcel zoning and CLUP source.', 'Add evidence', 'zoning_compatibility'],
     risk_constraints: ['Review hazard layers and parcel coverage.', 'Review', 'risk_constraints'],
   };
-  const labels = {spatial_accessibility:'Spatial accessibility',infrastructure_readiness:'Infrastructure readiness',economic_viability:'Economic viability',nearby_businesses:'Nearby businesses',zoning_compatibility:'Zoning compatibility',risk_constraints:'Risk constraints'};
+  const labels = {
+    spatial_accessibility: 'Spatial accessibility',
+    infrastructure_readiness: 'Infrastructure readiness',
+    property_cost_market_competitiveness: 'Property Cost and Market Competitiveness',
+    economic_viability: 'Property Cost and Market Competitiveness',
+    nearby_businesses: 'Nearby businesses',
+    zoning_compatibility: 'Zoning compatibility',
+    risk_constraints: 'Risk constraints'
+  };
   const businessRoles = {
     cafe: {
       direct: ['cafe','coffee_shop','coffee','bakery','pastry','tea','tea_house','bistro','ice_cream','dessert','donut','bagel'],
@@ -1567,11 +1576,16 @@
           statusNote = purpose === 'lease'
             ? 'Significantly elevated (>30% above comparable lease benchmark).'
             : 'Significantly elevated (>30% above market benchmark).';
+        } else if (compPct < -5.0 && compPct >= -20.0) {
+          totalScore = 90.0;
+          statusNote = purpose === 'lease'
+            ? 'Discounted lease rate (5% to 20% below comparable lease benchmark).'
+            : 'Discounted asking price (5% to 20% below market benchmark).';
         } else {
           totalScore = 75.0;
           statusNote = purpose === 'lease'
-            ? 'Discounted lease rate relative to comparable lease benchmark.'
-            : 'Discounted asking price relative to market benchmark.';
+            ? 'Deeply discounted lease rate (>20% below comparable lease benchmark).'
+            : 'Deeply discounted asking price (>20% below market benchmark); title & encumbrance review required.';
         }
         isComplete = true;
         iaiContribution = Math.round((totalScore * 0.20) * 100) / 100;
@@ -2836,7 +2850,7 @@
       });
 
       all('.pw-finding-input').forEach(input => {
-        input.addEventListener('input', () => {
+        const handleFindingUpdate = () => {
           const row = input.closest('tr');
           const pill = row?.querySelector('.pw-pill');
           if (pill) {
@@ -2848,7 +2862,11 @@
               pill.className = 'pw-pill pw-pill--gray';
             }
           }
-        });
+          assessHazards();
+          updateReviewStatus(point(), effectiveArea());
+        };
+        input.addEventListener('input', handleFindingUpdate);
+        input.addEventListener('change', handleFindingUpdate);
       });
 
       $('#pwRiskAddFindingBtn')?.addEventListener('click', () => {
@@ -2859,7 +2877,7 @@
         tr.innerHTML = `
           <td class="pw-hazard-col-cell">
             <div class="pw-hazard-label-group">
-              <input type="text" placeholder="Hazard name" class="pw-sc-input" style="height:28px;font-size:12px;width:120px;padding:2px 6px;">
+              <input type="text" placeholder="Hazard name" class="pw-sc-input" style="height:34px;font-size:12.5px;width:100%;max-width:160px;padding:4px 10px;border-radius:6px;border:1.5px solid #cbd5e1;">
             </div>
           </td>
           <td>
@@ -2871,7 +2889,7 @@
         `;
         const inp = tr.querySelector('.pw-finding-input');
         const pill = tr.querySelector('.pw-pill');
-        inp.addEventListener('input', () => {
+        const handleDynamicFinding = () => {
           if (inp.value.trim().length > 0) {
             pill.textContent = 'Recorded';
             pill.className = 'pw-pill pw-pill--teal';
@@ -2879,7 +2897,11 @@
             pill.textContent = 'Not recorded';
             pill.className = 'pw-pill pw-pill--gray';
           }
-        });
+          assessHazards();
+          updateReviewStatus(point(), effectiveArea());
+        };
+        inp.addEventListener('input', handleDynamicFinding);
+        inp.addEventListener('change', handleDynamicFinding);
         tbody.appendChild(tr);
       });
 
@@ -3163,6 +3185,8 @@
           )
         ),
         risk_constraints: Boolean(
+          all('.pw-finding-input').some(i => i.value.trim() !== '') ||
+          ($('[data-risk-total-score]') && $('[data-risk-total-score]').textContent !== '—') ||
           value('hazard_evidence_source') ||
           value('hazard_evidence_reference') ||
           value('readiness_notes')
@@ -3220,18 +3244,17 @@
 
     function calculateWizardCompositeMce(criteriaScores) {
       const weights = {
-        spatial_accessibility: 20,
-        infrastructure_readiness: 20,
-        economic_viability: 20,
-        nearby_businesses: 10,
-        risk_constraints: 15,
-        zoning_compatibility: 15
+        spatial_accessibility: 25,
+        infrastructure_readiness: 25,
+        property_cost_market_competitiveness: 20,
+        nearby_businesses: 15,
+        risk_constraints: 15
       };
       let total = 0;
       let completedCount = 0;
       const breakdown = {};
       for (const [key, weight] of Object.entries(weights)) {
-        const val = criteriaScores ? criteriaScores[key] : null;
+        const val = criteriaScores ? (criteriaScores[key] ?? (key === 'property_cost_market_competitiveness' ? criteriaScores.economic_viability : null)) : null;
         const isNum = typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= 100;
         if (isNum) {
           completedCount++;
@@ -3241,13 +3264,22 @@
           breakdown[key] = { score: null, weight, contribution: null };
         }
       }
+      breakdown.economic_viability = breakdown.property_cost_market_competitiveness;
+      breakdown.zoning_compatibility = {
+        score: criteriaScores?.zoning_compatibility ?? null,
+        weight: 0,
+        contribution: null,
+        isGate: true
+      };
+
       const isZoningProhibited = Boolean(criteriaScores?._zoningProhibited);
-      const allComplete = completedCount === 6 && !isZoningProhibited;
+      const isZoningComplete = criteriaScores?.zoning_compatibility !== null && criteriaScores?.zoning_compatibility !== undefined;
+      const allComplete = completedCount === 5 && isZoningComplete && !isZoningProhibited;
       return {
         isComplete: allComplete,
         isProhibited: isZoningProhibited,
         completedCount,
-        totalCount: 6,
+        totalCount: 5,
         iaiScore: allComplete ? Math.round(total * 10) / 10 : null,
         mceScore: allComplete ? Math.round(total * 10) / 10 : null,
         breakdown,
@@ -3279,9 +3311,19 @@
       const econRes = typeof evaluateEconomicViabilityClient === 'function' ? evaluateEconomicViabilityClient() : null;
       const zoningRes = typeof evaluateZoningCompatibilityClient === 'function' ? evaluateZoningCompatibilityClient() : null;
 
-      const nearbyScore = (lastAssessment?.assessmentCriteria?.nearby_businesses != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.nearby_businesses)))
+      let nearbyScore = (lastAssessment?.assessmentCriteria?.nearby_businesses != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.nearby_businesses)))
         ? Number(lastAssessment.assessmentCriteria.nearby_businesses)
         : null;
+
+      if (nearbyScore === null && typeof radarGroups !== 'undefined') {
+        const totalPlaces = (radarGroups?.competitors?.length || 0) + (radarGroups?.related?.length || 0) + (radarGroups?.complementary?.length || 0) + (radarGroups?.unclassified?.length || 0);
+        if (totalPlaces > 0) {
+          nearbyScore = totalPlaces >= 6 ? 85.0 : (totalPlaces >= 3 ? 70.0 : 60.0);
+        }
+      }
+      if (nearbyScore === null && (value('commercial_corridor') || value('nearby_analysis_origin') || all('[name="assessmentTags[]"]:checked').length || value('nearby_evidence_source'))) {
+        nearbyScore = 75.0;
+      }
 
       const riskScoreText = $('[data-risk-total-score]')?.textContent;
       const riskScore = (riskScoreText && riskScoreText !== '—' && !isNaN(Number(riskScoreText)))
@@ -3292,6 +3334,7 @@
       const criteriaScores = {
         spatial_accessibility: spatialRes?.score ?? null,
         infrastructure_readiness: infraRes?.score ?? null,
+        property_cost_market_competitiveness: econRes?.score ?? null,
         economic_viability: econRes?.score ?? null,
         nearby_businesses: nearbyScore,
         risk_constraints: riskScore,
@@ -3312,12 +3355,15 @@
         }
         if (contribEl) {
           const contrib = composite.breakdown[key]?.contribution;
-          contribEl.textContent = (contrib !== null && contrib !== undefined && Number.isFinite(Number(contrib))) ? `+${Number(contrib).toFixed(1)} pts` : '—';
+          contribEl.textContent = (contrib !== null && contrib !== undefined && Number.isFinite(Number(contrib))) ? `+${Number(contrib).toFixed(1)} pts` : (key === 'zoning_compatibility' ? 'Eligibility Gate' : '—');
         }
         if (badgeEl) {
           if (key === 'zoning_compatibility' && isZoningProhibited) {
-            badgeEl.textContent = 'Prohibited';
+            badgeEl.textContent = 'Prohibited (Disqualified)';
             badgeEl.className = 'pw-badge pw-badge-amber';
+          } else if (key === 'zoning_compatibility' && score !== null && score !== undefined && isDone) {
+            badgeEl.textContent = zoningRes?.status === 'conditional' ? 'Conditional' : 'Permitted';
+            badgeEl.className = 'pw-badge pw-badge-teal';
           } else if (score !== null && score !== undefined && isDone) {
             badgeEl.textContent = 'Input complete';
             badgeEl.className = 'pw-badge pw-badge-teal';
@@ -3342,7 +3388,7 @@
       const compositeStatusEl = $('[data-review-composite-status]');
       const compositeDescEl = $('[data-review-composite-desc]');
       setText('[data-review-scenario]', value('proposed_activity') || 'Business activity not selected');
-      setText('[data-review-model-version]', 'LOCUS-SF v3 · Provisional');
+      setText('[data-review-model-version]', 'LOCUS-SF v3.0 · Five-Criterion MCE');
 
       if (isZoningProhibited) {
         if (compositeIaiEl) compositeIaiEl.innerHTML = 'Disqualified <small>(Prohibited use)</small>';
@@ -3360,7 +3406,7 @@
           compositeStatusEl.className = 'pw-badge pw-badge-sky';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = 'All 6 criteria have complete inputs. Evidence review pending. Final IAI unavailable until all six criteria have verified evidence.';
+          compositeDescEl.textContent = 'All 5 criteria have complete inputs. Zoning compatibility verified. Evidence review pending. Final IAI unavailable until verified by authorized evaluator.';
         }
       } else {
         if (compositeIaiEl) compositeIaiEl.innerHTML = '— <small>/ 100</small>';
@@ -3369,7 +3415,7 @@
           compositeStatusEl.className = 'pw-badge pw-badge-amber';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = `${composite.completedCount} of 6 criteria have complete inputs. Evidence review pending. Final IAI unavailable until all six criteria have verified evidence.`;
+          compositeDescEl.textContent = `${composite.completedCount} of 5 criteria have complete inputs. Mandatory zoning screening gate in effect. Final IAI unavailable until all 5 criteria have verified evidence.`;
         }
       }
 
@@ -3713,21 +3759,22 @@
         });
       }
 
-      const calcAssessmentBtn = $('[data-calculate-assessment-btn]');
-      if (calcAssessmentBtn && !calcAssessmentBtn._hasListener) {
-        calcAssessmentBtn._hasListener = true;
-        calcAssessmentBtn.addEventListener('click', async (e) => {
+      all('[data-calculate-assessment-btn], [data-recalculate-assessment]').forEach(btn => {
+        if (!btn || btn._hasListener) return;
+        btn._hasListener = true;
+        btn.addEventListener('click', async (e) => {
           e.preventDefault();
-          if (calcAssessmentBtn.disabled || calcAssessmentBtn.getAttribute('aria-busy') === 'true') return;
-          calcAssessmentBtn.disabled = true;
-          calcAssessmentBtn.setAttribute('aria-busy', 'true');
-          const spinner = calcAssessmentBtn.querySelector('.pw-btn-spinner');
-          const label = calcAssessmentBtn.querySelector('[data-calc-btn-label]');
+          if (btn.disabled || btn.getAttribute('aria-busy') === 'true') return;
+          btn.disabled = true;
+          btn.setAttribute('aria-busy', 'true');
+          const spinner = btn.querySelector('.pw-btn-spinner');
+          const label = btn.querySelector('[data-calc-btn-label]') || btn;
+          const origHtml = label.innerHTML;
           if (spinner) {
             spinner.hidden = false;
             spinner.setAttribute('aria-hidden', 'false');
           }
-          if (label) label.textContent = 'Calculating assessment...';
+          label.textContent = 'Calculating assessment...';
 
           // Allow DOM to render the indeterminate spinner without artificial delay
           await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 150)));
@@ -3738,17 +3785,15 @@
             spinner.hidden = true;
             spinner.setAttribute('aria-hidden', 'true');
           }
-          if (label) {
-            label.innerHTML = '&#10003; Assessment calculated';
-          }
+          label.innerHTML = '&#10003; Assessment calculated';
 
           setTimeout(() => {
-            calcAssessmentBtn.disabled = false;
-            calcAssessmentBtn.removeAttribute('aria-busy');
-            if (label) label.textContent = 'Recalculate assessment';
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            label.innerHTML = origHtml.includes('Recalculate') ? '&#8634; Recalculate' : 'Recalculate assessment';
           }, 1200);
         });
-      }
+      });
 
       const printSummaryBtn = $('[data-assessment-print-btn]');
       if (printSummaryBtn && !printSummaryBtn._hasListener) {
@@ -4892,6 +4937,15 @@
       }
     });
     const searchInput = $('[data-location-search]');
+    const lookupBarangay = query => findExactOfficialBarangay(query);
+    searchInput?.addEventListener('change', () => {
+      const query = searchInput.value.trim();
+      const match = lookupBarangay(query);
+      if (match) {
+        navigateLocation(match, false);
+        $('[data-location-results]')?.replaceChildren();
+      }
+    });
     searchInput?.addEventListener('input', () => {
       cancelSearch();
       const query=searchInput.value.trim(), matches=barangayMatches(query);
@@ -5062,12 +5116,12 @@
       else if(event.key==='ArrowDown'){$('[data-location-results] button')?.focus();event.preventDefault();}
     });
     const HAZARD_CONFIG = [
-      { key: 'flood', label: 'Flood Susceptibility', weight: 25, agency: 'DENR-MGB', pillAttr: 'data-hazard-flood-pill', scoreAttr: 'data-hazard-flood-score', descAttr: 'data-hazard-flood-desc', ptsAttr: 'data-risk-pts-flood' },
-      { key: 'faults', label: 'Active Fault / Ground Rupture', weight: 25, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-fault-pill', scoreAttr: 'data-hazard-fault-score', descAttr: 'data-hazard-fault-desc', ptsAttr: 'data-risk-pts-fault' },
-      { key: 'landslide', label: 'Landslide Susceptibility', weight: 15, agency: 'DENR-MGB', pillAttr: 'data-hazard-landslide-pill', scoreAttr: 'data-hazard-landslide-score', descAttr: 'data-hazard-landslide-desc', ptsAttr: 'data-risk-pts-landslide' },
-      { key: 'storm_surge', label: 'Storm Surge Exposure', weight: 15, agency: 'DOST-PAGASA', pillAttr: 'data-hazard-storm-surge-pill', scoreAttr: 'data-hazard-storm-surge-score', descAttr: 'data-hazard-storm-surge-desc', ptsAttr: 'data-risk-pts-surge' },
-      { key: 'liquefaction', label: 'Liquefaction Susceptibility', weight: 10, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-liquefaction-pill', scoreAttr: 'data-hazard-liquefaction-score', descAttr: 'data-hazard-liquefaction-desc', ptsAttr: 'data-risk-pts-liquefaction' },
-      { key: 'tsunami', label: 'Tsunami Exposure', weight: 10, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-tsunami-pill', scoreAttr: 'data-hazard-tsunami-score', descAttr: 'data-hazard-tsunami-desc', ptsAttr: 'data-risk-pts-tsunami' },
+      { key: 'flood', inputName: 'hazard_finding_flood', label: 'Flood Susceptibility', weight: 25, agency: 'DENR-MGB', pillAttr: 'data-hazard-flood-pill', scoreAttr: 'data-hazard-flood-score', descAttr: 'data-hazard-flood-desc', ptsAttr: 'data-risk-pts-flood' },
+      { key: 'faults', inputName: 'hazard_finding_fault', label: 'Active Fault / Ground Rupture', weight: 25, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-fault-pill', scoreAttr: 'data-hazard-fault-score', descAttr: 'data-hazard-fault-desc', ptsAttr: 'data-risk-pts-fault' },
+      { key: 'landslide', inputName: 'hazard_finding_landslide', label: 'Landslide Susceptibility', weight: 15, agency: 'DENR-MGB', pillAttr: 'data-hazard-landslide-pill', scoreAttr: 'data-hazard-landslide-score', descAttr: 'data-hazard-landslide-desc', ptsAttr: 'data-risk-pts-landslide' },
+      { key: 'storm_surge', inputName: 'hazard_finding_surge', label: 'Storm Surge Exposure', weight: 15, agency: 'DOST-PAGASA', pillAttr: 'data-hazard-storm-surge-pill', scoreAttr: 'data-hazard-storm-surge-score', descAttr: 'data-hazard-storm-surge-desc', ptsAttr: 'data-risk-pts-surge' },
+      { key: 'liquefaction', inputName: 'hazard_finding_liquefaction', label: 'Liquefaction Susceptibility', weight: 10, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-liquefaction-pill', scoreAttr: 'data-hazard-liquefaction-score', descAttr: 'data-hazard-liquefaction-desc', ptsAttr: 'data-risk-pts-liquefaction' },
+      { key: 'tsunami', inputName: 'hazard_finding_tsunami', label: 'Tsunami Exposure', weight: 10, agency: 'DOST-PHIVOLCS', pillAttr: 'data-hazard-tsunami-pill', scoreAttr: 'data-hazard-tsunami-score', descAttr: 'data-hazard-tsunami-desc', ptsAttr: 'data-risk-pts-tsunami' },
     ];
 
     function hazardResult(key, title, layer, intersects, failure, noLocation, distKm = null) {
@@ -5125,28 +5179,15 @@
       const warningsBox = $('[data-risk-warnings-box]');
       const warningsList = $('[data-risk-warnings-list]');
 
-      if (!window.turf || !testGeom) {
-        HAZARD_CONFIG.forEach(item => {
-          const pill = $(`[${item.pillAttr}]`);
-          const scoreEl = $(`[${item.scoreAttr}]`);
-          const descEl = $(`[${item.descAttr}]`);
-          const ptsEl = $(`[${item.ptsAttr}]`);
-          if (pill) { pill.textContent = 'Not assessed'; pill.className = 'pw-pill pw-pill--gray'; }
-          if (scoreEl) scoreEl.textContent = '—';
-          if (descEl) descEl.textContent = `Provide location coordinates in Step 2 to screen against ${item.agency} layer.`;
-          if (ptsEl) ptsEl.textContent = '—';
+      // Attach real-time input listeners to finding text boxes
+      all('.pw-finding-input').forEach(input => {
+        if (input._hasRiskInputListener) return;
+        input._hasRiskInputListener = true;
+        input.addEventListener('input', () => {
+          assessHazards();
+          updateReviewStatus(point(), effectiveArea());
         });
-        if (criticalBanner) criticalBanner.hidden = true;
-        if (warningsBox) warningsBox.hidden = true;
-        setText('[data-risk-total-score]', '—');
-        setText('[data-risk-iai-pts]', '—');
-        const badge = $('[data-risk-status-badge]');
-        if (badge) { badge.textContent = 'Pending Location'; badge.className = 'pw-badge pw-badge-amber'; }
-        const bar = $('[data-risk-progress-bar]');
-        if (bar) { bar.style.width = '0%'; bar.style.background = '#64748b'; }
-        setText('[data-hazard-status]', 'NOT ASSESSED');
-        return;
-      }
+      });
 
       let allAssessed = true;
       let anyOverlap = false;
@@ -5156,14 +5197,58 @@
 
       HAZARD_CONFIG.forEach(item => {
         const layer = context?.[item.key];
+        const findingInput = $(`[data-finding-hazard="${item.key}"]`) || $(`[name="${item.inputName}"]`);
+        const manualVal = findingInput?.value?.trim().toLowerCase();
+        let manualScore = null;
+        let manualStatusText = null;
+        let manualStatusColor = null;
+        let manualDesc = null;
+
+        if (manualVal) {
+          if (['safe', 'none', 'clear', 'no_exposure', 'outside_mapped', 'outside_buffer', 'outside_fault_zone', 'confirmed_none', 'not_susceptible', 'negligible', '0'].includes(manualVal)) {
+            manualScore = 100.0;
+            manualStatusText = 'Safe: 100';
+            manualStatusColor = 'green';
+            manualDesc = `Reported finding: Confirmed no mapped ${item.label.toLowerCase()} exposure.`;
+          } else if (['low', 'low_susceptibility', 'low_exposure', 'minor', 'stable'].includes(manualVal)) {
+            manualScore = 85.0;
+            manualStatusText = 'Low: 85';
+            manualStatusColor = 'green';
+            manualDesc = `Reported finding: Low ${item.label.toLowerCase()} susceptibility.`;
+          } else if (['moderate', 'mod', 'medium', 'moderate_susceptibility'].includes(manualVal)) {
+            manualScore = 60.0;
+            manualStatusText = 'Moderate: 60';
+            manualStatusColor = 'amber';
+            manualDesc = `Reported finding: Moderate ${item.label.toLowerCase()} susceptibility.`;
+          } else if (['high', 'high_susceptibility', 'elevated'].includes(manualVal)) {
+            manualScore = 25.0;
+            manualStatusText = 'High: 25';
+            manualStatusColor = 'red';
+            manualDesc = `Reported finding: Elevated ${item.label.toLowerCase()} susceptibility.`;
+            warnings.push(`${item.label}: Elevated susceptibility reported.`);
+          } else if (['critical', 'very_high', 'conflict', 'intersects', 'trace_conflict'].includes(manualVal)) {
+            manualScore = 0.0;
+            manualStatusText = 'Critical: 0';
+            manualStatusColor = 'red';
+            manualDesc = `Reported finding: Critical ${item.label.toLowerCase()} site constraint.`;
+            if (item.key === 'faults') hasCriticalFault = true;
+            warnings.push(`${item.label}: Critical hazard reported.`);
+          } else if (!isNaN(Number(manualVal)) && Number(manualVal) >= 0 && Number(manualVal) <= 100) {
+            manualScore = Number(manualVal);
+            manualStatusText = `Score: ${manualScore.toFixed(0)}`;
+            manualStatusColor = manualScore >= 80 ? 'green' : (manualScore >= 50 ? 'amber' : 'red');
+            manualDesc = `Reported finding rated at ${manualScore.toFixed(0)}/100.`;
+          }
+        }
+
         let overlap = false;
         let minFaultDist = null;
-        let score = null;
-        let statusText = 'Not assessed';
-        let statusColor = 'gray';
-        let descText = `Authoritative ${item.agency} layer pending verification.`;
+        let score = manualScore;
+        let statusText = manualStatusText || 'Not assessed';
+        let statusColor = manualStatusColor || 'gray';
+        let descText = manualDesc || `Authoritative ${item.agency} layer pending verification.`;
 
-        if (layer?.status === 'Available') {
+        if (score === null && layer?.status === 'Available' && window.turf && testGeom) {
           for (const feature of layer.geojson?.features || []) {
             let geometry = feature;
             if (item.key === 'faults') {
@@ -5266,7 +5351,10 @@
         const descEl = $(`[${item.descAttr}]`);
         const ptsEl = $(`[${item.ptsAttr}]`);
 
-        if (pill) { pill.textContent = statusText; pill.className = `pw-pill pw-pill--${statusColor}`; }
+        if (pill) { 
+          pill.textContent = manualVal ? 'Recorded' : (statusText === 'Not assessed' ? 'Not recorded' : statusText); 
+          pill.className = `pw-pill pw-pill--${statusColor === 'green' ? 'teal' : statusColor}`; 
+        }
         if (scoreEl) scoreEl.textContent = score !== null ? `${score.toFixed(0)}` : '—';
         if (descEl) descEl.textContent = descText;
         if (ptsEl) ptsEl.textContent = score !== null ? `${((score * item.weight) / 100).toFixed(2)}` : '—';
@@ -5292,6 +5380,15 @@
 
       setText('[data-risk-total-score]', compositeScore !== null ? compositeScore.toFixed(1) : '—');
       setText('[data-risk-iai-pts]', iaiPts !== null ? iaiPts.toFixed(2) : '—');
+
+      const suppliedCount = all('.pw-finding-input').filter(i => i.value.trim() !== '').length;
+      const totalFindingInputs = all('.pw-finding-input').length || 6;
+      const footerSpan = $('.pw-table-footer-record span');
+      if (footerSpan) {
+        footerSpan.innerHTML = suppliedCount > 0 
+          ? `Record &middot; <strong>${suppliedCount} of ${totalFindingInputs}</strong> hazard classifications recorded${compositeScore !== null ? ` (Composite Score: <strong>${compositeScore.toFixed(1)} / 100</strong>)` : ''}`
+          : 'Record &middot; No hazard classifications supplied';
+      }
 
       const badge = $('[data-risk-status-badge]');
       if (badge) {
@@ -6053,7 +6150,7 @@
       const root=$('[data-assessment-readiness]');if(!root)return;
       root.innerHTML=Object.entries(actions).map(([key,[action,button,target]])=>{
         const scored=assessmentValue?.assessmentCriteria?.[key]!=null;
-        return `<article class="pw-readiness-row"><span class="pw-readiness-icon" aria-hidden="true">${{spatial_accessibility:'⌖',infrastructure_readiness:'⚙',economic_viability:'▥',nearby_businesses:'▦',zoning_compatibility:'▤',risk_constraints:'△'}[key]}</span><div><strong>${labels[key]}</strong><small>${scored?'Source evidence available.':action}</small></div><button type="button" class="pw-readiness-action ${scored?'is-ready':''}" data-readiness-target="${target}">${scored?'View':button}</button></article>`;
+        return `<article class="pw-readiness-row"><span class="pw-readiness-icon" aria-hidden="true">${{spatial_accessibility:'⌖',infrastructure_readiness:'⚙',property_cost_market_competitiveness:'▥',economic_viability:'▥',nearby_businesses:'▦',zoning_compatibility:'▤',risk_constraints:'△'}[key] || '•'}</span><div><strong>${labels[key] || key}</strong><small>${scored?'Source evidence available.':action}</small></div><button type="button" class="pw-readiness-action ${scored?'is-ready':''}" data-readiness-target="${target}">${scored?'View':button}</button></article>`;
       }).join('');
       setText('[data-readiness-title]',assessmentValue?.assessmentComplete?'Assessment ready':'IAI not ready');
       setText('[data-readiness-summary]',assessmentValue?.assessmentComplete?'All six criteria have source evidence. Review the calculated assessment.':'Record the facts and confirm source evidence with the reviewing office.');
@@ -6096,10 +6193,11 @@
       const button=event.target.closest('[data-readiness-target]');if(!button)return;
       const target=button.dataset.readinessTarget;
       if(target==='boundary')all('[data-editor-step]').find(node=>node.dataset.editorStep==='1')?.click();
-      else if(target==='radar' || actions[target] || ['spatial_accessibility','infrastructure_readiness','economic_viability','nearby_businesses','zoning_compatibility','risk_constraints'].includes(target)){
+      else if(target==='radar' || actions[target] || ['spatial_accessibility','infrastructure_readiness','property_cost_market_competitiveness','economic_viability','nearby_businesses','zoning_compatibility','risk_constraints'].includes(target)){
         all('[data-editor-step]').find(node=>node.dataset.editorStep==='2')?.click();
-        selectEvidenceCriterion(target==='radar'?'nearby_businesses':target);
-        $(`[data-evidence-tab="${target==='radar'?'nearby_businesses':target}"]`)?.focus();
+        const tabTarget = target === 'radar' ? 'nearby_businesses' : (target === 'property_cost_market_competitiveness' ? 'economic_viability' : target);
+        selectEvidenceCriterion(tabTarget);
+        $(`[data-evidence-tab="${tabTarget}"]`)?.focus();
       } else {
         selectEvidenceCriterion(target);
         $(`[data-evidence-tab="${target}"]`)?.focus();
@@ -6903,6 +7001,34 @@
           if (value('proposed_activity')) {
             data.set('proposed_activity', value('proposed_activity'));
           }
+        }
+
+        // Serialize Hazard Findings and Risk Constraints
+        const hazardInputs = {
+          hazard_finding_flood: 'flood_susceptibility',
+          hazard_finding_landslide: 'landslide_susceptibility',
+          hazard_finding_fault: 'active_fault',
+          hazard_finding_surge: 'storm_surge',
+          hazard_finding_liquefaction: 'liquefaction_susceptibility',
+          hazard_finding_tsunami: 'tsunami_exposure',
+        };
+        for (const [formKey, obsKey] of Object.entries(hazardInputs)) {
+          const val = value(formKey);
+          if (val) {
+            data.set(formKey, val);
+            data.set(obsKey, val);
+          }
+        }
+        const riskScoreText = $('[data-risk-total-score]')?.textContent?.trim();
+        if (riskScoreText && riskScoreText !== '—' && !isNaN(Number(riskScoreText))) {
+          data.set('risk_constraints_score', riskScoreText);
+          data.set('risk_constraints_complete', '1');
+        }
+
+        // Nearby Businesses Score
+        const nearbyReviewScore = $('[data-review-crit-score="nearby_businesses"]')?.textContent?.replace('/100', '')?.trim();
+        if (nearbyReviewScore && nearbyReviewScore !== '—' && !isNaN(Number(nearbyReviewScore))) {
+          data.set('nearby_businesses_score', nearbyReviewScore);
         }
 
         if (!data.get('authority_to_sell_file')?.size) data.delete('authority_to_sell_file');

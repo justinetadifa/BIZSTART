@@ -38,7 +38,7 @@ const { execFileSync } = require('node:child_process');
   const photo = brief({ ...base, imageUrl: 'assets/images/Property10.png' });
   check(photo.includes('class="brief-hero has-photo"') && photo.includes('photo-unavailable'), 'Loaded and broken image states have explicit, mutually exclusive layouts.');
   const complete = brief(fixture.complete);
-  check(complete.includes('IAI: 95.5 / 100') && complete.includes('= 95.5 / 100'), 'Complete report and calculation agree with the shared protocol.');
+  check(complete.includes('IAI: 94.8 / 100') && complete.includes('= 94.8 / 100'), 'Complete report and calculation agree with the shared protocol.');
   for (const key of ['held', 'incomplete', 'historical', 'discrepancy']) {
     check(brief(fixture[key]).includes('IAI: Withheld'), `${key}: score stays withheld.`);
   }
