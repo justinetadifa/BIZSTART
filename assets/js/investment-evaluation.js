@@ -27,8 +27,10 @@ export function setupInvestmentEvaluation(property, policy) {
   const agree = document.getElementById('complianceAgreeCheck');
   const confirm = document.getElementById('confirmGenerateReportBtn');
   let evaluated = null;
+  let requestSerial = 0;
   const activity = () => priorityActivity(policy, business.value);
   function refresh() {
+    requestSerial++;
     evaluated = null; result.hidden = true;
     const current = activity();
     const callout = document.getElementById('evalAlignmentCallout');
@@ -40,11 +42,29 @@ export function setupInvestmentEvaluation(property, policy) {
     document.getElementById('evalIncentiveCopy').textContent = incentive.copy;
   }
   business.addEventListener('change', refresh); capital.addEventListener('input', refresh);
-  form.addEventListener('submit', event => {
+  form.addEventListener('submit', async event => {
     event.preventDefault();
     if (!form.reportValidity()) return;
     const currentActivity = activity();
-    const siteIai = (property.assessmentComplete && property.assessmentStatus !== 'not_suitable') ? property.iaiScore : null;
+    const request = ++requestSerial;
+    evaluated = null;
+    document.getElementById('evalGenerateReportBtn').disabled = true;
+    let assessment;
+    try {
+      const config = window.SFC_APP_CONFIG || {};
+      const response = await fetch(`${config.apiBase || './api'}/property-assessment.php?id=${encodeURIComponent(property.id)}&activity=${encodeURIComponent(currentActivity?.id || '')}`, {credentials:'same-origin',headers:{Accept:'application/json'}});
+      const payload = await response.json();
+      if (request !== requestSerial) return;
+      if (!response.ok) throw new Error(payload.error || 'Assessment unavailable.');
+      assessment = payload.assessment;
+    } catch (error) {
+      if (request !== requestSerial) return;
+      result.hidden = false;
+      document.getElementById('evalBaseIaiVal').textContent = 'Withheld';
+      document.getElementById('evalRationaleText').textContent = error.message;
+      return;
+    }
+    const siteIai = assessment.assessmentComplete ? assessment.displayed_iai : null;
     evaluated = {
       base: siteIai,
       final: siteIai,
@@ -61,7 +81,7 @@ export function setupInvestmentEvaluation(property, policy) {
       ? `${evaluated.incentive.badge} · Subject to LEBDO evaluation (§19)`
       : 'Subject to LEBDO evaluation under City Investment Code (§19)';
     document.getElementById('evalRationaleText').textContent = siteIai == null
-      ? (property.assessmentStatus === 'not_suitable' ? 'Proposed land use is not permitted under applicable CLUP zoning classification.' : 'City assessment pending. All required criteria are needed before composite IAI is calculated.')
+      ? (assessment.reason || 'Assessment incomplete for the selected activity.')
       : 'The composite Investment Attractiveness Index (IAI) reflects physical and spatial site suitability. Potential statutory incentives are evaluated separately by LEBDO and do not alter physical site suitability.';
     document.getElementById('evalGenerateReportBtn').disabled = siteIai == null;
   });
@@ -69,7 +89,7 @@ export function setupInvestmentEvaluation(property, policy) {
   agree.addEventListener('change', () => confirm.disabled = !agree.checked);
   confirm.addEventListener('click', () => {
     if (!agree.checked || evaluated?.final == null) return;
-    const report = { propertyId: property.id, name: property.name, businessType: activity().label, sector: activity().sector || '', capitalization: Number(capital.value), mce: property.mceScore, score: evaluated, incentive: potentialIncentive(capital.value,policy), complianceAcknowledged: true, generatedAt: new Date().toISOString() };
+    const report = { propertyId: property.id, name: property.name, businessType: activity().label, activityId: activity().id, sector: activity().sector || '', capitalization: Number(capital.value), mce: property.mceScore, score: evaluated, incentive: potentialIncentive(capital.value,policy), complianceAcknowledged: true, generatedAt: new Date().toISOString() };
     const config = window.SFC_APP_CONFIG || {};
     const key = `locus.investment-report:${config.basePath || ''}:${config.user?.id || 'guest'}`;
     try { sessionStorage.setItem(key,JSON.stringify(report)); }

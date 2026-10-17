@@ -27,6 +27,9 @@ final class PropertyAssessment
     {
         if (is_array($optionsOrComplete)) {
             $options = array_merge($optionsOrComplete, $options);
+        } elseif ($optionsOrComplete === true) {
+            $options['allow_scalar_completion'] = true;
+            $options['is_complete'] = true;
         }
         return PropertyAssessmentService::evaluate($criteria, $options);
     }
@@ -37,7 +40,7 @@ final class PropertyAssessment
             $options = array_merge($optionsOrComplete, $options);
         }
         $result = PropertyAssessmentService::evaluate($criteria, $options);
-        return [
+        return array_merge($result, [
             'assessmentCriteria' => $result['assessmentCriteria'],
             'assessmentComplete' => $result['assessmentComplete'],
             'assessmentStatus' => $result['status'],
@@ -54,7 +57,7 @@ final class PropertyAssessment
             'policyAlignment' => $result['policy_alignment'],
             'reason' => $result['reason'] ?? null,
             'note' => $result['note'] ?? null,
-        ];
+        ]);
     }
 
     public static function evaluateSpatialAccessibility(mixed $input, array $options = []): array

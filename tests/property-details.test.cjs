@@ -70,7 +70,8 @@ const { resolve } = require('node:path');
     environmental_safety: { raw: { environment_status: 'further_review_required' } },
   } };
   const riskDetails = propertyDetailsMarkup(recordedRisk, options);
-  const safetySection = riskDetails.slice(riskDetails.indexOf('<section class="property-panel property-safety"'), riskDetails.indexOf('<div class="property-advanced"'));
+  const safetyStart = riskDetails.indexOf('<section class="property-panel property-safety"');
+  const safetySection = riskDetails.slice(safetyStart, riskDetails.indexOf('</section>', safetyStart));
   assert(safetySection.includes('high flood susceptibility') && safetySection.includes('Confirm parcel-wide coverage.'));
   assert(safetySection.includes('City hazard inventory') && safetySection.includes('HAZ-01'));
   assert(!safetySection.includes('data-investor-advanced'), 'Safety warnings cannot be hidden by the Basic view gate');
@@ -100,7 +101,7 @@ const { resolve } = require('node:path');
   assert(details.includes('Business opportunities to explore'), 'Title must match required feature name');
   assert(details.includes('Suggestions based on nearby establishments, property characteristics, infrastructure and available zoning information.'), 'Subtitle must match required exact text');
   assert(details.includes('straight-line screening radius'), 'Screening radius must be explicitly labeled as straight-line');
-  assert(details.indexOf('id="propertyOpportunitiesSection"') < details.indexOf('id="propertyAssessmentSection"'), 'Opportunities section precedes assessment section in advanced mode');
+  assert(details.indexOf('id="propertyAssessmentSection"') < details.indexOf('id="propertyOpportunitiesSection"'), 'Factual assessment precedes optional business suggestions');
   for (const marker of ['data-save="10"', 'data-compare="10"', 'id="cityInquiryPanel"', 'id="cityInquiryForm"', 'id="cityDocumentsPanel"']) assert(investorDetails.includes(marker), `Existing investor action ${marker} stays available`);
 
   const handlers = {};

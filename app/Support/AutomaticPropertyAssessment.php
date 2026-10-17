@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Support;
 
 use InvalidArgumentException;
+use PDO;
+use DomainException;
 use Throwable;
 
 require_once __DIR__ . '/PropertyAssessment.php';
@@ -12,14 +14,14 @@ require_once __DIR__ . '/PropertyParcel.php';
 /** Reads trusted, versioned local evidence; request data can never supply scores or layers. */
 final class AutomaticPropertyAssessment
 {
-    public const VERSION = 'locus-auto-v1';
+    public const VERSION = 'locus-observations-v3';
     private const EARTH_RADIUS = 6371008.8;
     private const METRICS = [
         'spatial_accessibility' => ['roads', 'road_distance_m', 'Distance to mapped road', 'm'],
-        'infrastructure_readiness' => ['utilities', 'utility_status', 'Verified utility service', null],
+        'infrastructure_readiness' => ['utilities', 'utility_status', 'Mapped service coverage (not a parcel connection)', null],
         'economic_viability' => ['valuation', 'bir_value_sqm', 'BIR zonal value (Economic Context)', 'PHP/m²'],
         'nearby_businesses' => ['businesses', 'business_count', 'Operating businesses within radius (Economic Activity)', 'businesses'],
-        'zoning_compatibility' => ['zoning', 'zoning_status', 'Category compatibility with zoning', null],
+        'zoning_compatibility' => ['zoning', 'zoning_status', 'Recorded zoning district', null],
         'risk_constraints' => ['hazards', 'hazard_status', 'Mapped hazard exposure', null],
     ];
     private array $config;
@@ -38,29 +40,76 @@ final class AutomaticPropertyAssessment
 
     public static function presentStored(array $criteria, array $metadata = [], array $history = []): array
     {
-        $zoningStatus = $metadata['criteriaDetails']['zoning_compatibility']['raw']['zoning_status'] ?? null;
-        $scores = PropertyAssessment::scores($criteria, [
-            'zoning_status' => $zoningStatus,
-            'criteria_details' => $metadata['criteriaDetails'] ?? [],
-        ]);
-        if (($metadata['assessmentMode'] ?? '') === 'automatic' && ($metadata['assessmentVersion'] ?? '') === self::VERSION) {
-            // Recompute totals from stored server criteria, while retaining the original evidence snapshot.
-            return array_merge($metadata, $scores, [
-                'assessmentMethod' => (string) ($scores['assessmentMethod'] ?? ($metadata['assessmentMethod'] ?? '')),
-                'automaticAssessment' => $metadata,
-                'legacyAssessment' => $history ?: null,
+        if (($metadata['protocol_version'] ?? '') !== PropertyAssessmentService::METHODOLOGY_VERSION) {
+            $safe = PropertyAssessment::scores([], ['assessed_at' => $metadata['assessed_at'] ?? $metadata['generatedAt'] ?? null]);
+            return array_merge($safe, [
+                'status' => 'historical_review_required', 'assessmentStatus' => 'historical_review_required',
+                'protocol' => $metadata['protocol'] ?? $metadata['assessmentVersion'] ?? 'legacy-unversioned',
+                'protocol_version' => $metadata['protocol_version'] ?? $metadata['assessmentVersion'] ?? 'legacy-unversioned',
+                'assessmentMode' => 'historical', 'assessmentVersion' => $metadata['assessmentVersion'] ?? null,
+                'historical_snapshot' => ['assessmentCriteria' => $criteria, 'metadata' => $metadata],
+                'legacyAssessment' => $history ?: null, 'rank_eligible' => false, 'comparison_key' => null,
+                'reason' => 'Historical snapshot retained. A new assessment under the current protocol requires explicit recalculation.',
+                'review_reasons' => ['Historical protocol or missing version; excluded from current comparable rankings.'],
+                'assessed_at' => $metadata['assessed_at'] ?? $metadata['generatedAt'] ?? null,
             ]);
         }
-        return array_merge($scores, [
-            'assessmentMode' => 'legacy_manual',
-            'assessmentVersion' => null,
-            'criteriaDetails' => [],
-            'spatialContext' => [],
-            'completedCount' => count(array_filter($scores['assessmentCriteria'], static fn ($value): bool => $value !== null)),
-            'totalCount' => count(PropertyAssessment::WEIGHTS),
-            'automaticAssessment' => null,
-            'legacyAssessment' => $history ?: null,
+        try {
+        $scores = PropertyAssessment::scores($metadata['raw_criterion_inputs'] ?? [], [
+            'property_id' => $metadata['property_id'] ?? null, 'proposed_activity' => $metadata['proposed_activity'] ?? '',
+            'zoning_district' => $metadata['eligibility']['district'] ?? '',
+            'weights' => $metadata['weight_configuration'] ?? [],
+            'criteria_details' => $metadata['criteriaDetails'] ?? [],
+            'stored_iai' => $metadata['displayed_iai'] ?? null,
+            'assessed_at' => $metadata['assessed_at'] ?? null,
         ]);
+        } catch (DomainException $error) {
+            $safe = PropertyAssessment::scores([]);
+            return array_merge($safe, ['status' => 'review_required', 'assessmentStatus' => 'review_required',
+                'weight_configuration' => $metadata['weight_configuration'] ?? [], 'weights_valid' => false,
+                'discrepancy_detected' => true, 'discrepancy_review_required' => true,
+                'discrepancy_message' => 'Stored weight configuration is invalid: ' . $error->getMessage(),
+                'review_reasons' => ['Stored weight configuration is invalid: ' . $error->getMessage()],
+                'assessed_at' => $metadata['assessed_at'] ?? null, 'automaticAssessment' => $metadata,
+                'historical_snapshot' => ['assessmentCriteria' => $criteria, 'metadata' => $metadata], 'legacyAssessment' => $history]);
+        }
+        // The persisted numeric criteria are another copy of the same snapshot, not an alternate scoring source.
+        $copiesDisagree = $criteria != ($metadata['criterion_scores'] ?? [])
+            || ($metadata['criterion_scores'] ?? []) != $scores['criterion_scores'];
+        foreach (['iaiScore', 'mceScore', 'iai', 'iai_score', 'mce_score', 'displayed_iai'] as $key) {
+            if (isset($metadata[$key]) && $scores['unrounded_total'] !== null
+                && (!is_numeric($metadata[$key]) || !is_finite((float) $metadata[$key])
+                    || abs((float) $metadata[$key] - round($scores['unrounded_total'], 1, PHP_ROUND_HALF_UP)) > PropertyAssessmentService::TOTAL_TOLERANCE)) { $copiesDisagree = true; }
+        }
+        if ($copiesDisagree) {
+            $scores = array_merge($scores, ['status' => 'review_required', 'assessmentStatus' => 'review_required',
+                'discrepancy_detected' => true, 'discrepancy_review_required' => true,
+                'discrepancy_message' => 'Persisted criterion copies disagree; review the original snapshot.',
+                'iaiScore' => null, 'mceScore' => null, 'iai' => null, 'iai_score' => null, 'mce_score' => null,
+                'displayed_iai' => null, 'assessmentComplete' => false, 'is_complete' => false, 'rank_eligible' => false]);
+        }
+        return array_merge($metadata, $scores, ['automaticAssessment' => $metadata, 'legacyAssessment' => $history ?: null]);
+    }
+
+    /** Evaluate a selected use against the same persisted observations; never save a simulation. */
+    public static function scenario(array $property, string $activity): array
+    {
+        $current = ($property['protocol_version'] ?? '') === PropertyAssessmentService::METHODOLOGY_VERSION;
+        $result = PropertyAssessment::scores($current ? ($property['raw_criterion_inputs'] ?? []) : [], [
+            'property_id' => $property['id'] ?? $property['property_id'] ?? null,
+            'proposed_activity' => $activity,
+            'zoning_district' => $property['clupProfile']['zoningClassification'] ?? $property['eligibility']['district'] ?? '',
+            'weights' => $current ? $property['weight_configuration'] : PropertyAssessment::WEIGHTS,
+            'criteria_details' => $current ? ($property['criteriaDetails'] ?? []) : [],
+        ]);
+        if (!empty($property['discrepancy_detected'])) {
+            foreach (['displayed_iai', 'iaiScore', 'mceScore', 'iai', 'iai_score', 'mce_score'] as $key) { $result[$key] = null; }
+            $result['assessmentComplete'] = $result['is_complete'] = $result['rank_eligible'] = false;
+            $result['status'] = $result['assessmentStatus'] = 'review_required';
+            $result['discrepancy_detected'] = true;
+            $result['review_reasons'][] = 'Resolve the stored assessment discrepancy before evaluating scenarios.';
+        }
+        return $result;
     }
 
     /** Hectares retain parcel JSON precision: six decimals equal 0.01 square meters. */
@@ -104,78 +153,59 @@ final class AutomaticPropertyAssessment
         return ['lat' => $lat === null ? null : round($lat, 6), 'lng' => $lng === null ? null : round($lng, 6), 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $area === null ? null : round($area, 6), 'landAreaUnit' => 'hectares'];
     }
 
-    public function evaluate(array $input): array
+    public function evaluate(array $input, ?PDO $pdo = null): array
     {
         $inputs = self::normalizeInputs($input);
         $point = [$inputs['lng'], $inputs['lat']];
-        $method = is_array($this->config['method'] ?? null) ? $this->config['method'] : [];
-        $approved = ($method['approved'] ?? false) === true && is_string($method['version'] ?? null) && trim($method['version']) !== ''
-            && is_string($method['approval_reference'] ?? null) && trim($method['approval_reference']) !== '';
-        $criteria = [];
-        $details = [];
-        $context = [];
+        $details = $context = [];
+        $observations = is_array($input['observations'] ?? null) ? $input['observations'] : [];
         foreach (self::METRICS as $key => [$layerKey, $metric, $label, $unit]) {
             $measurement = $inputs['lat'] === null
-                ? ['raw' => [], 'evidence' => [], 'missingData' => ['An exact property location is needed to assess city evidence layers.'], 'justification' => 'Area size is recorded. Spatial assessment will be available after the exact location is added.']
+                ? ['raw' => [], 'evidence' => [], 'missingData' => ['Exact location is required.'], 'justification' => 'Location unrecorded; exact location is required.']
                 : $this->measure($layerKey, $point, $inputs);
-            $missing = $measurement['missingData'];
-            $score = null;
-            $ruleText = null;
-            if (!$approved) {
-                $missing[] = 'A department-approved, versioned conversion method and approval reference are required.';
-            } elseif (!$missing) {
-                [$score, $ruleText, $ruleError] = $this->convert($measurement['raw'], $method['rules'][$key] ?? null, $metric);
-                if ($ruleError !== null) {
-                    $missing[] = $ruleError;
-                }
-            }
-            $criteria[$key] = $score;
-            $justification = $measurement['justification'];
-            if ($ruleText !== null) {
-                $justification .= ' ' . $ruleText;
-            }
-            if ($missing) {
-                $justification .= ' Pending: ' . implode(' ', $missing);
-            }
-            $details[$key] = [
-                'label' => PropertyCatalog::criteria()[$key], 'weight' => PropertyAssessment::WEIGHTS[$key],
-                'score' => $score, 'status' => $score === null ? 'missing_data' : 'ready',
-                'raw' => $measurement['raw'], 'evidence' => $measurement['evidence'],
-                'justification' => trim($justification), 'missingData' => array_values(array_unique($missing)),
-                'conversion' => $ruleText,
-            ];
+            $raw = array_merge($measurement['raw'], is_array($observations[$key] ?? null) ? $observations[$key] : []);
+            $details[$key] = ['raw' => $raw, 'evidence' => $measurement['evidence'],
+                'missingData' => $measurement['missingData'], 'justification' => $measurement['justification']];
             $context[] = ['key' => $metric, 'label' => $label, 'value' => $measurement['raw'][$metric] ?? null, 'unit' => $unit,
-                'status' => $measurement['missingData'] ? 'missing_data' : 'ready',
+                'status' => $measurement['missingData'] ? 'missing_data' : 'source_reported',
                 'justification' => $measurement['justification'], 'evidence' => $measurement['evidence']];
-            if ($layerKey === 'businesses') {
-                $context[] = ['key' => 'nearest_business_distance_m', 'label' => 'Nearest observed operating business', 'value' => $measurement['raw']['nearest_business_distance_m'] ?? null,
-                    'unit' => 'm', 'status' => isset($measurement['raw']['nearest_business_distance_m']) ? 'ready' : 'missing_data',
-                    'justification' => 'Observed mapped points only; an incomplete inventory does not establish that other businesses are absent.', 'evidence' => $measurement['evidence']];
-            }
         }
-        $zoningStatus = $details['zoning_compatibility']['raw']['zoning_status'] ?? null;
-        $scores = PropertyAssessment::scores($criteria, [
-            'zoning_status' => $zoningStatus,
+        $scores = PropertyAssessment::scores([], [
+            'pdo' => $pdo, 'property_id' => $input['property_id'] ?? null, 'proposed_activity' => $input['proposed_activity'] ?? '',
+            'zoning_district' => $input['zoning_district'] ?? $details['zoning_compatibility']['raw']['zoning_classification'] ?? '',
             'criteria_details' => $details,
         ]);
-        $methodDesc = sprintf(
-            'Automatic evidence-based assessment (LOCUS-SF MCE v1.1). Distances use WGS84 coordinates and spherical model. Criteria scores require verified coverage and approved conversion. IAI = Σ(normalized score × weight ÷ 100), range 0–100. Status: %s. Decision support only; does not issue zoning, hazard, or investment clearance.',
-            $scores['assessmentStatus'] ?? 'complete'
-        );
         return array_merge($scores, [
-            'assessmentMode' => 'automatic',
-            'assessmentVersion' => self::VERSION,
-            'assessmentMethod' => $methodDesc,
-            'completedCount' => count(array_filter($criteria, static fn ($value): bool => $value !== null)),
-            'totalCount' => 7,
-            'inputs' => $inputs,
-            'criteriaDetails' => $details,
-            'spatialContext' => $context,
-            'generatedAt' => gmdate('c'),
-            'ruleVersion' => $approved ? (string) $method['version'] : null,
-            'ruleApprovalReference' => $approved ? (string) $method['approval_reference'] : null,
-            'ruleFingerprint' => $approved ? hash('sha256', json_encode($method, JSON_THROW_ON_ERROR)) : null,
+            'assessmentMode' => 'automatic_observations', 'assessmentVersion' => self::VERSION,
+            'inputs' => $inputs, 'observation_inputs' => $observations, 'spatialContext' => $context, 'generatedAt' => $scores['assessed_at'],
+            'completedCount' => count(array_filter($scores['criterion_scores'], static fn ($v): bool => $v !== null)),
+            'totalCount' => count(PropertyAssessment::WEIGHTS),
+            'ruleVersion' => PropertyAssessmentService::METHODOLOGY_VERSION,
         ]);
+    }
+
+    /** Convert persisted observations to rubric inputs without inferring connection or verification. */
+    public static function observations(array $parcel, array $financial): array
+    {
+        $o = $parcel['observations'] ?? [];
+        $u = $parcel['utilities'] ?? [];
+        $service = static function (string $key, array $aliases) use ($o, $u): mixed {
+            foreach ($aliases as $alias) { if (isset($o[$alias]) && $o[$alias] !== '') { return $o[$alias]; } }
+            $record = $u[$key] ?? [];
+            // Broad "available" claims never establish a connected, reliable service.
+            return $record['connection_status'] ?? $o[$key] ?? null;
+        };
+        return [
+            'spatial_accessibility' => array_intersect_key($o, array_flip(['road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road'])),
+            'infrastructure_readiness' => [
+                'electricity' => $service('electricity', ['electricity_arrangement']),
+                'water' => $service('water', ['water_supply']), 'internet' => $service('internet', ['internet_telecom']),
+                'drainage' => $o['drainage_conditions'] ?? $o['drainage_service'] ?? $u['additional_services']['drainage'] ?? null,
+            ],
+            'economic_viability' => array_merge($o, $financial),
+            'nearby_businesses' => [], // General mapped counts cannot supply benchmarked business-specific subcriteria.
+            'risk_constraints' => array_intersect_key($o, array_flip(['flood_susceptibility', 'active_fault', 'landslide_susceptibility', 'storm_surge', 'liquefaction_susceptibility', 'tsunami_exposure'])),
+        ];
     }
 
     private function measure(string $key, array $point, array $input): array
@@ -188,7 +218,11 @@ final class AutomaticPropertyAssessment
         }
         $manifest = $layer['manifest'];
         $result['evidence'][] = ['layer' => $key, 'source' => $manifest['source'], 'version' => $manifest['version'],
-            'reference' => $manifest['reference'], 'verifiedAt' => $manifest['verified_at'], 'sha256' => $manifest['sha256']];
+            'reference' => $manifest['reference'], 'verifiedAt' => $manifest['verified_at'], 'sha256' => $manifest['sha256'],
+            'provenance_status' => AssessmentEvidence::status($manifest), 'authentication_record' => $manifest['authentication_record'] ?? null];
+        if (!AssessmentEvidence::authenticated($manifest)) {
+            $result['missingData'][] = 'Source provenance has no authenticated review record; measurements are descriptive only.';
+        }
         if (!self::contains($point, $manifest['coverage'])) {
             $result['missingData'][] = 'The site falls outside the verified ' . $key . ' coverage.';
             return $result;
@@ -201,7 +235,7 @@ final class AutomaticPropertyAssessment
                 return $result;
             }
             $result['raw'] = ['road_distance_m' => $nearest['distance'], 'road_feature_id' => $nearest['id']];
-            $result['justification'] = 'Nearest verified road centreline is ' . round($nearest['distance'], 2) . ' m away; straight-line proximity does not confirm a legal entrance or travel route.';
+            $result['justification'] = 'Nearest mapped road centreline is ' . round($nearest['distance'], 2) . ' m away; straight-line proximity does not confirm a legal entrance or travel route.';
         } elseif ($key === 'businesses') {
             $radius = self::number($this->config['business_radius_m'] ?? null);
             if ($radius === null || $radius <= 0 || $radius > 50000) {
@@ -217,7 +251,7 @@ final class AutomaticPropertyAssessment
             }
             $nearest = self::nearest($point, $active, ['Point']);
             $result['raw'] = ['observed_business_count' => $count, 'business_radius_m' => $radius, 'nearest_business_distance_m' => $nearest['distance'] ?? null];
-            $result['justification'] = $count . ' verified operating business points observed within ' . $radius . ' m.';
+            $result['justification'] = $count . ' source-reported operating business points observed within ' . $radius . ' m.';
             if (($manifest['complete'] ?? false) !== true || !self::bufferCovered($point, $manifest['coverage'], $radius)) {
                 $result['missingData'][] = 'A complete operating-business inventory covering the entire search circle is required; partial pins cannot measure business density.';
             } else {
@@ -230,23 +264,17 @@ final class AutomaticPropertyAssessment
                     $result['missingData'][] = 'Verified complete hazard coverage identifying all evaluated hazard types is required; an empty overlay does not mean safe.';
                     return $result;
                 }
-                $requiredTypes = $this->config['method']['rules']['risk_constraints']['required_hazard_types'] ?? [];
-                if (!is_array($requiredTypes) || !$requiredTypes || array_diff($requiredTypes, $manifest['hazard_types'])) {
-                    $result['missingData'][] = 'Complete verified coverage for every hazard type named in the approved risk rule is required.';
-                    return $result;
-                }
-                $statuses = [];
-                foreach ($matches as $feature) {
-                    $status = trim((string) ($feature['properties']['hazard_status'] ?? ''));
-                    if ($status === '' || !in_array($feature['properties']['hazard_type'] ?? null, $manifest['hazard_types'], true)) {
-                        $result['missingData'][] = 'A containing hazard polygon has no verified hazard classification.';
-                        return $result;
+                $hazards = [];
+                foreach ($manifest['hazard_types'] as $type) {
+                    $statuses = [];
+                    foreach ($matches as $feature) {
+                        if (($feature['properties']['hazard_type'] ?? '') === $type) { $statuses[] = $feature['properties']['hazard_status'] ?? null; }
                     }
-                    $statuses[] = $status;
+                    $hazards[$type] = ['status' => count($statuses) === 1 ? $statuses[0] : (count($statuses) === 0 ? 'outside_mapped_hazard' : null),
+                        'assessment_state' => count($statuses) > 1 ? 'not_assessed' : 'assessed', 'evidence' => $result['evidence']];
                 }
-                $statuses = array_values(array_unique($statuses ?: ['outside_mapped_hazards']));
-                $result['raw'] = ['hazard_status' => $statuses, 'evaluated_hazard_types' => array_values($manifest['hazard_types'])];
-                $result['justification'] = 'Within verified complete coverage for ' . implode(', ', $manifest['hazard_types']) . '; mapped classifications: ' . implode(', ', $statuses) . '. This is not a safety certification.';
+                $result['raw'] = $hazards;
+                $result['justification'] = 'Partial spatial screening for: ' . implode(', ', $manifest['hazard_types']) . '. Missing types remain unassessed.';
                 return $result;
             }
             if (count($matches) !== 1) {
@@ -261,26 +289,12 @@ final class AutomaticPropertyAssessment
                     return $result;
                 }
                 $result['raw'] = ['bir_value_sqm' => $value, 'bir_total_value' => $input['landArea'] === null ? null : round($value * $input['landArea'] * 10000, 2), 'valuation_effective_date' => $manifest['effective_date']];
-                $result['justification'] = 'Verified BIR zonal value is PHP ' . $value . '/m², effective ' . $manifest['effective_date']
+                $result['justification'] = 'Source-reported BIR zonal value is PHP ' . $value . '/m², effective ' . $manifest['effective_date']
                     . ($input['landArea'] === null ? '; total value awaits an area size.' : '; reference total = value × ' . ($input['landArea'] * 10000) . ' m².')
                     . ' This baseline is not a market appraisal or proof of viability.';
             } elseif ($key === 'zoning') {
-                $status = null;
-                foreach (['allowed_categories' => 'permitted', 'conditional_categories' => 'conditional', 'restricted_categories' => 'prohibited'] as $field => $classification) {
-                    if (self::categoryMatches($input['category'], $properties[$field] ?? [])) {
-                        if ($status !== null) {
-                            $result['missingData'][] = 'The zoning source assigns conflicting category permissions.';
-                            return $result;
-                        }
-                        $status = $classification;
-                    }
-                }
-                if ($status === null) {
-                    $result['missingData'][] = 'The verified zoning polygon has no explicit permission mapping for the selected category.';
-                    return $result;
-                }
-                $result['raw'] = ['zoning_status' => $status, 'zoning_classification' => $properties['zone'] ?? null];
-                $result['justification'] = 'Selected category is ' . $status . ' under the mapped zoning permissions; a site-specific clearance remains required.';
+                $result['raw'] = ['zoning_classification' => $properties['zone'] ?? null];
+                $result['justification'] = 'Recorded district only. Category tags do not establish permission for an investor activity.';
             } else {
                 $field = $key === 'utilities' ? 'utility_status' : 'environment_status';
                 $value = trim((string) ($properties[$field] ?? ''));
@@ -289,7 +303,7 @@ final class AutomaticPropertyAssessment
                     return $result;
                 }
                 $result['raw'] = [$field => $value];
-                $result['justification'] = 'Verified mapped classification: ' . $value . '; service connection or environmental permits require separate confirmation.';
+                $result['justification'] = 'Source-reported mapped classification: ' . $value . '; service connection or environmental permits require separate confirmation.';
             }
         }
         return $result;
@@ -302,7 +316,7 @@ final class AutomaticPropertyAssessment
         }
         $manifest = $this->config['layers'][$key] ?? null;
         $fail = fn (string $message): array => $this->loaded[$key] = [null, $message];
-        if (!is_array($manifest) || ($manifest['verified'] ?? false) !== true) {
+        if (!is_array($manifest)) {
             return $fail('A verified ' . $key . ' dataset has not been configured.');
         }
         foreach (['source', 'version', 'reference', 'verified_by', 'verified_at', 'sha256'] as $required) {
@@ -350,62 +364,6 @@ final class AutomaticPropertyAssessment
         } catch (Throwable) {
             return $fail('The verified ' . $key . ' dataset cannot be decoded; repair its local source file.');
         }
-    }
-
-    private function convert(array $raw, mixed $rule, string $defaultMetric): array
-    {
-        $error = 'A valid approved conversion rule for this criterion is required.';
-        if (!is_array($rule) || ($rule['metric'] ?? '') !== $defaultMetric) {
-            return [null, null, $error];
-        }
-        $value = $raw[$defaultMetric] ?? null;
-        if (($rule['operator'] ?? '') === 'lookup') {
-            $values = is_array($value) ? $value : [$value];
-            $scores = [];
-            $parts = [];
-            foreach ($values as $item) {
-                if (!is_string($item) || !is_array($rule['values'] ?? null) || !array_key_exists($item, $rule['values'])) {
-                    return [null, null, 'The verified classification has no explicit approved score mapping.'];
-                }
-                $score = self::number($rule['values'][$item]);
-                if ($score === null || $score < 0 || $score > 100) {
-                    return [null, null, $error];
-                }
-                $scores[] = $score;
-                $parts[] = $item . ' = ' . $score;
-            }
-            if (!$scores || (count($scores) > 1 && ($rule['aggregate'] ?? '') !== 'minimum')) {
-                return [null, null, 'Overlapping hazard classifications require an approved minimum-score aggregation rule.'];
-            }
-            return [round(min($scores), 1), 'Approved lookup: ' . implode('; ', $parts) . (count($scores) > 1 ? '; minimum governs.' : '.'), null];
-        }
-        if (($rule['operator'] ?? '') !== 'bands' || self::number($value) === null || !is_array($rule['bands'] ?? null) || !$rule['bands']) {
-            return [null, null, $error];
-        }
-        $previous = -INF;
-        $selected = null;
-        $formula = [];
-        foreach ($rule['bands'] as $band) {
-            $max = self::number($band['max'] ?? null);
-            $score = self::number($band['score'] ?? null);
-            if ($max === null || $max <= $previous || $score === null || $score < 0 || $score > 100) {
-                return [null, null, $error];
-            }
-            $formula[] = $defaultMetric . ' ≤ ' . $max . ' → ' . $score;
-            if ($selected === null && $value <= $max) {
-                $selected = $score;
-            }
-            $previous = $max;
-        }
-        if (array_key_exists('otherwise', $rule)) {
-            $otherwise = self::number($rule['otherwise']);
-            if ($otherwise === null || $otherwise < 0 || $otherwise > 100) {
-                return [null, null, $error];
-            }
-            $formula[] = 'otherwise → ' . $otherwise;
-            $selected ??= $otherwise;
-        }
-        return $selected === null ? [null, null, 'The measurement is outside the explicitly approved score bands.'] : [round($selected, 1), 'Approved bands (first matching inclusive limit): ' . implode('; ', $formula) . '.', null];
     }
 
     private static function categoryMatches(string $selectedCategory, array $allowedList): bool

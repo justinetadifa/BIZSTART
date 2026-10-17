@@ -19,6 +19,7 @@ require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/Support/PropertyParcel.php';
+require_once dirname(__DIR__) . '/Support/PropertyContact.php';
 require_once dirname(__DIR__) . '/Support/PropertyAuthorityToSellFiles.php';
 require_once dirname(__DIR__) . '/Support/PropertyHazardScreening.php';
 require_once dirname(__DIR__) . '/Support/auth.php';
@@ -658,22 +659,6 @@ final class PropertyRepository
                 $this->decodeJson($row['automatic_assessment_json'] ?? '{}'),
                 $this->decodeJson($row['legacy_assessment_json'] ?? '{}')
             );
-            if ($assessment['mceScore'] === null && isset($row['lat'], $row['lng'])) {
-                try {
-                    [$catFallback, $subcatFallback] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) ($row['type'] ?? 'Land'));
-                    $evaluated = AutomaticPropertyAssessment::configured()->evaluate([
-                        'lat' => float_or_null($row['lat'] ?? null),
-                        'lng' => float_or_null($row['lng'] ?? null),
-                        'category' => $catFallback,
-                        'subcategory' => $subcatFallback,
-                        'landArea' => $this->effectiveAreaHectares($row),
-                    ]);
-                    if ($evaluated['mceScore'] !== null) {
-                        $assessment = $evaluated;
-                    }
-                } catch (\Throwable) {
-                }
-            }
             try {
                 [$category, $subcategory] = PropertyCatalog::normalizeCategory(string_or_null($row['category'] ?? null), string_or_null($row['subcategory'] ?? null), (string) $row['type']);
             } catch (\Throwable) {
@@ -681,6 +666,8 @@ final class PropertyRepository
                 $subcategory = null;
             }
 
+            $assessment['property_id'] = $propertyId;
+            $assessment['status'] = (string) $row['status'];
             return array_merge([
                 'id' => $propertyId,
                 'name' => (string) $row['name'],
@@ -762,11 +749,7 @@ final class PropertyRepository
                     'isVerified' => string_or_null($clupVerifiedAt) !== null,
                     'statusLabel' => string_or_null($clupVerifiedAt) !== null ? 'City validated' : 'Pending city validation',
                 ],
-                'hazardScreening' => \App\Support\PropertyHazardScreening::evaluate(
-                    float_or_null($row['lat'] ?? null),
-                    float_or_null($row['lng'] ?? null),
-                    $this->decodeJson($row['parcel_json'] ?? '{}')['boundary'] ?? null
-                ),
+                'hazardScreening' => $assessment['hazardScreening'],
                 'authorityToSell' => $authorityToSell,
                 'authorityToSellVerified' => $isAuthorityValidated,
                 'propertyReviewStatus' => $propertyReviewStatus,
@@ -802,8 +785,14 @@ final class PropertyRepository
 
     private function assessmentRanks(): array
     {
-        $rows = $this->pdo->query("SELECT id, assessment_json FROM properties WHERE deleted_at IS NULL AND archived_at IS NULL AND approval_state = 'approved' AND LOWER(status) IN ('available', 'active', 'open')")->fetchAll();
-        $properties = array_map(fn (array $row): array => array_merge(['id' => (int) $row['id']], PropertyAssessment::scores($this->decodeJson($row['assessment_json'] ?? '{}'))), $rows);
+        $rows = $this->pdo->query("SELECT p.id, p.assessment_json, p.automatic_assessment_json, p.legacy_assessment_json, p.zoning_classification, p.proposed_activity FROM properties p LEFT JOIN users seller ON seller.id = p.seller_user_id WHERE p.deleted_at IS NULL AND p.archived_at IS NULL AND p.approval_state = 'approved' AND LOWER(p.status) IN ('available', 'active', 'open') AND (p.seller_user_id IS NULL OR (seller.identity_verification_status = 'verified' AND JSON_UNQUOTE(JSON_EXTRACT(p.documents_json, '$.authority_to_sell.status')) = 'validated'))")->fetchAll();
+        $properties = array_map(function (array $row): array {
+            $criteria = $this->decodeJson($row['assessment_json'] ?? '{}');
+            $autoMeta = $this->decodeJson($row['automatic_assessment_json'] ?? '{}');
+            $legacy = $this->decodeJson($row['legacy_assessment_json'] ?? '{}');
+            $presented = AutomaticPropertyAssessment::presentStored($criteria, $autoMeta, $legacy);
+            return array_merge(['id' => (int) $row['id']], $presented);
+        }, $rows);
         return PropertyAssessment::ranks($properties);
     }
 
@@ -1243,7 +1232,8 @@ final class PropertyRepository
             string_or_null($rawSubcat),
             $type
         );
-        $assessment = PropertyAssessment::normalize($this->decodeExistingValue($existing['assessment_json'] ?? null));
+        $assessment = $this->decodeJson($existing['assessment_json'] ?? '{}');
+        $assessmentJson = $existing['assessment_json'] ?? null;
         $automaticJson = $existing['automatic_assessment_json'] ?? null;
         $legacyJson = $existing['legacy_assessment_json'] ?? null;
         try {
@@ -1259,30 +1249,38 @@ final class PropertyRepository
                 [$oldCategory, $oldSubcategory] = PropertyCatalog::normalizeCategory(null, null, (string) ($existing['type'] ?? $type));
             }
         }
+        $observationInputs = AutomaticPropertyAssessment::observations($parcel, [
+            'land_area' => $assessmentArea === null ? null : $assessmentArea * 10000,
+            'asking_price' => $price, 'lease_price' => $leasePrice, 'listing_purpose' => $listingPurpose,
+            'rent_period' => $leasePeriod, 'lease_price_unit' => $leasePriceUnit,
+        ]);
+        $observationChanged = $existing !== null && (
+            json_encode($parcel) !== json_encode(PropertyParcel::fromPayload([], $this->decodeJson($existing['parcel_json'] ?? '{}')))
+            || $price !== int_or_null($existing['price'] ?? null) || $leasePrice !== int_or_null($existing['lease_price'] ?? null)
+            || $listingPurpose !== ($existing['listing_purpose'] ?? 'sale')
+            || $leasePeriod !== ($existing['lease_period'] ?? 'month') || $leasePriceUnit !== ($existing['lease_price_unit'] ?? 'total')
+            || $proposedActivity !== string_or_null($existing['proposed_activity'] ?? null)
+            || $zoningClassification !== string_or_null($existing['zoning_classification'] ?? null));
         $spatialChanged = $existing === null || $lat !== float_or_null($existing['lat'] ?? null)
             || $lng !== float_or_null($existing['lng'] ?? null)
             || $area !== float_or_null($existing['area'] ?? null)
             || $assessmentArea !== $this->effectiveAreaHectares($existing ?? [])
-            || ($automaticJson && ($this->decodeJson($automaticJson)['inputs']['landArea'] ?? null) !== ($assessmentArea === null ? null : round($assessmentArea, 6)))
             || $category !== $oldCategory || $subcategory !== $oldSubcategory;
-        if ($spatialChanged || filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            if ($existing !== null && !$automaticJson && !$legacyJson && count(array_filter($assessment, static fn ($value): bool => $value !== null)) > 0) {
-                $legacyJson = json_encode([
-                    'assessmentMode' => 'legacy_manual', 'assessmentCriteria' => $assessment,
-                    'assessmentMethod' => PropertyAssessment::scores($assessment)['assessmentMethod'],
-                    'capturedAt' => gmdate('c'), 'inputs' => ['lat' => float_or_null($existing['lat'] ?? null), 'lng' => float_or_null($existing['lng'] ?? null),
-                        'landArea' => float_or_null($existing['area'] ?? null), 'category' => $oldCategory, 'subcategory' => $oldSubcategory],
-                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        if ($spatialChanged || $observationChanged || filter_var($payload['recalculate_assessment'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            if ($existing !== null && ($automaticJson || $assessment)) {
+                $history = $this->decodeJson($legacyJson ?? '{}');
+                $history['snapshots'][] = ['assessmentCriteria' => $assessment,
+                    'metadata' => $this->decodeJson($automaticJson ?? '{}'), 'capturedAt' => gmdate('c')];
+                $legacyJson = json_encode($history, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             }
-            $automatic = AutomaticPropertyAssessment::configured()->evaluate(['lat' => $lat, 'lng' => $lng, 'category' => $category, 'subcategory' => $subcategory, 'landArea' => $assessmentArea]);
+            $automatic = AutomaticPropertyAssessment::configured()->evaluate([
+                'property_id' => $existing['id'] ?? null, 'lat' => $lat, 'lng' => $lng, 'category' => $category,
+                'subcategory' => $subcategory, 'landArea' => $assessmentArea, 'observations' => $observationInputs,
+                'zoning_district' => $zoningClassification, 'proposed_activity' => $proposedActivity,
+            ], $this->pdo);
             $assessment = $automatic['assessmentCriteria'];
-            if ($zoningScore !== null) {
-                $assessment['zoning_compatibility'] = (float) $zoningScore;
-            }
+            $assessmentJson = json_encode($assessment, JSON_UNESCAPED_UNICODE);
             $automaticJson = json_encode($automatic, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
-        }
-        if ($zoningScore !== null) {
-            $assessment['zoning_compatibility'] = (float) $zoningScore;
         }
         $nearbyProperties = PropertyNearby::normalize($payload['nearbyProperties'] ?? $this->decodeExistingValue($existing['nearby_properties_json'] ?? null));
         $assessmentTags = $this->normalizeStringList($payload['assessmentTags'] ?? $payload['assessment_tags'] ?? $this->decodeExistingValue($existing['assessment_tags_json'] ?? null), []);
@@ -1356,7 +1354,7 @@ final class PropertyRepository
             'readiness_notes' => $readinessNotes,
             'category' => $category,
             'subcategory' => $subcategory,
-            'assessment_json' => json_encode($assessment, JSON_UNESCAPED_UNICODE),
+            'assessment_json' => $assessmentJson ?? json_encode($assessment, JSON_UNESCAPED_UNICODE),
             'automatic_assessment_json' => $automaticJson,
             'legacy_assessment_json' => $legacyJson,
             'assessment_tags_json' => json_encode($assessmentTags, JSON_UNESCAPED_UNICODE),
@@ -1582,12 +1580,15 @@ final class PropertyRepository
             ?? '';
         $responseSla = string_or_null($payloadContact['responseSla'] ?? $payload['owner_response_sla'] ?? ($existingContact['responseSla'] ?? null))
             ?? '';
+        $channels = \App\Support\PropertyContact::channels($payload, $payloadContact, $existingContact);
 
         return [
             'name' => $name,
             'email' => $email,
             'phone' => $phone,
             'responseSla' => $responseSla,
+            'additionalPhones' => $channels['additionalPhones'],
+            'socialLinks' => $channels['socialLinks'],
         ];
     }
 

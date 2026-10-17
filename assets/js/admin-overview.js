@@ -74,8 +74,8 @@
         </article>`).join('')
       : '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-p-4 tw-text-center"><span class="tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700">' + icon('published') + '</span><strong class="tw-text-sm tw-font-bold tw-text-ink">All caught up.</strong><p class="tw-m-0 tw-text-xs tw-leading-relaxed tw-text-slate-500">' + (governance ? 'New submissions will appear here for review.' : 'No properties are awaiting assessment.') + '</p></div>';
 
-    const ranked = published.filter((property) => validScore(property.mceScore) && validScore(property.iaiScore))
-      .sort((left, right) => Number(right.iaiScore) - Number(left.iaiScore) || Number(right.mceScore) - Number(left.mceScore) || Number(left.id) - Number(right.id)).slice(0, 5);
+    const ranked = published.filter((property) => property.rank_eligible === true && validScore(property.iaiScore))
+      .sort((left, right) => String(left.comparison_key).localeCompare(String(right.comparison_key)) || right.unrounded_total - left.unrounded_total || left.id - right.id).slice(0, 5);
     const chart = root.querySelector('[data-assessment-ranking]');
     if (!ranked.length) {
       chart.innerHTML = '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-rounded-2xl tw-bg-slate-50 tw-p-4 tw-text-center"><strong class="tw-text-sm tw-font-semibold tw-text-ink">Scores will appear here.</strong><p class="tw-m-0 tw-max-w-xs tw-text-xs tw-leading-relaxed tw-text-slate-500">MCE and IAI appear once all criteria have source-backed scores.</p></div>';

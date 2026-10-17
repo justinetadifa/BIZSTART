@@ -298,12 +298,13 @@ export function calculateWeightedScore(property, allProperties, weights, targetS
 }
 
 export function rankProperties(properties, allProperties, weights, targetSector) {
-  return properties
-    .map((property) => ({
-      ...property,
-      score: calculateWeightedScore(property, allProperties, weights, targetSector),
-    }))
-    .sort((left, right) => left.score === null || right.score === null ? left.score === right.score ? 0 : left.score === null ? 1 : -1 : right.score - left.score);
+  // Investor comparisons consume the authoritative assessment and retain incompatible groups separately.
+  return properties.map(property => ({ ...property, score: property.rank_eligible === true ? property.displayed_iai : null }))
+    .sort((a, b) => {
+      if (a.score === null || b.score === null) return a.score === b.score ? 0 : a.score === null ? 1 : -1;
+      if (a.comparison_key !== b.comparison_key) return String(a.comparison_key).localeCompare(String(b.comparison_key));
+      return b.unrounded_total - a.unrounded_total || a.id - b.id;
+    });
 }
 
 export function filterProperties(properties, filters) {
@@ -361,10 +362,13 @@ export function saleAskingPrice(property) {
 
 export function salePricePerSqm(property) {
   const amount = saleAskingPrice(property);
+  const parcelArea = safeNumber(property?.parcel?.surveyAreaSqm);
   const area = safeNumber(property?.area ?? property?.landArea);
   const recorded = safeNumber(property?.pricePerSqm);
-  if (amount !== null && recorded !== null) return recorded;
-  return amount !== null && area > 0 ? amount / (area * 10000) : null;
+  if (amount === null) return null;
+  if (parcelArea > 0) return amount / parcelArea;
+  if (area > 0) return amount / (area * 10000);
+  return recorded;
 }
 
 export function listingPriceEntries(property, { compact = false } = {}) {

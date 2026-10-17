@@ -129,8 +129,8 @@ $legacyInput = [
     'road_connectivity' => ['status' => 'paved'],
 ];
 $legacyRes = PropertyAssessmentService::evaluateInfrastructureReadiness($legacyInput);
-assertCondition(isset($legacyRes['score']), "Legacy 4-tuple without drainage evaluated successfully");
-assertCondition($legacyRes['score'] >= 80.0, "Legacy score correctly reflects full connection");
+assertCondition($legacyRes['score'] === null, "Legacy tuple cannot replace required drainage observation");
+assertCondition($legacyRes['is_complete'] === false, "Incomplete legacy service tuple is withheld under the selected protocol");
 
 echo "\nSummary: " . ($testsRun - $failures) . "/{$testsRun} assertions passed.\n";
 if ($failures > 0) {

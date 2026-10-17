@@ -293,12 +293,6 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   display: none;
 }
 
-/* ==========================================================================
-   LOCUS-SF PROPERTY INVESTOR BRIEF - A4 PRINT & PDF DOSSIER SPECIFICATION
-   Visual reference: Elegant multi-page executive investor document
-   Typography: Newsreader serif headings, Inter sans-serif body
-   Colors: White background, #0F172A dark navy, #64748B muted slate, #8B151B burgundy
-   ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
@@ -363,834 +357,163 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
   }
 
-  /* --------------------------------------------------------------------------
-     A4 Page Layout & Pagination
-     -------------------------------------------------------------------------- */
-  .locus-brief-page {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    height: 272mm !important;
-    max-height: 275mm !important;
-    min-height: 265mm !important;
-    box-sizing: border-box !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: #ffffff !important;
-    break-after: page !important;
-    page-break-after: always !important;
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    position: relative !important;
-    overflow: hidden !important;
-  }
+}
 
-  .locus-brief-page:last-child {
-    break-after: auto !important;
-    page-break-after: auto !important;
+/* LOCUS-SF editorial print system. Local fonts keep offline exports consistent. */
+@font-face {
+  font-family: 'LOCUS Inter';
+  src: url('../fonts/inter-latin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 15mm;
+    @bottom-left { content: 'LOCUS-SF / INVESTMENT BRIEF'; font: 7pt Arial, sans-serif; color: #64748b; }
+    @bottom-right { content: counter(page) ' / ' counter(pages); font: 7pt Arial, sans-serif; color: #162b3d; }
   }
-
-  .locus-brief-content {
-    flex: 1 0 auto !important;
+  .locus-editorial {
+    --brief-ink: #172e40;
+    --brief-muted: #526473;
+    --brief-accent: #963d38;
+    font: 10pt/1.5 'LOCUS Inter', Arial, sans-serif !important;
+    color: var(--brief-ink) !important;
+    font-variant-numeric: tabular-nums;
   }
-
-  /* --------------------------------------------------------------------------
-     Running Page Header & Footer
-     -------------------------------------------------------------------------- */
-  .locus-brief-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: baseline !important;
-    border-bottom: 1.5px solid #0F172A !important;
-    padding-bottom: 4px !important;
-    margin-bottom: 14px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-brand {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 13pt !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
-    letter-spacing: 0.04em !important;
-  }
-
-  .locus-brief-meta-tag {
-    font-family: 'Inter', sans-serif !important;
-    font-size: 7.5pt !important;
-    font-weight: 600 !important;
-    color: #64748B !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-  }
-
-  .locus-brief-footer {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    border-top: 1px solid #E2E8F0 !important;
-    padding-top: 6px !important;
-    margin-top: 14px !important;
-    font-size: 7.5pt !important;
-    color: #64748B !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-footer-left {
-    color: #64748B !important;
-  }
-
-  .locus-brief-footer-right {
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    font-variant-numeric: tabular-nums !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Headings & Typography
-     -------------------------------------------------------------------------- */
-  .locus-brief-section-kicker {
-    font-family: 'Inter', sans-serif !important;
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    color: #8B151B !important;
-    letter-spacing: 0.08em !important;
-    margin-bottom: 4px !important;
-    text-transform: uppercase !important;
-  }
-
-  .locus-brief-title {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 20pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    line-height: 1.15 !important;
-    margin: 0 0 3px 0 !important;
-    letter-spacing: -0.01em !important;
-  }
-
-  .locus-brief-subtitle {
-    font-family: 'Inter', sans-serif !important;
-    font-size: 8pt !important;
-    color: #64748B !important;
-    margin: 0 0 12px 0 !important;
-  }
-
-  .locus-brief-h2 {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 11pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    margin: 0 0 4px 0 !important;
-  }
-
-  .locus-brief-sub-h2 {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 10.5pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    margin: 0 0 3px 0 !important;
-  }
-
-  .locus-brief-p {
-    font-size: 8pt !important;
-    color: #334155 !important;
-    line-height: 1.42 !important;
-    margin: 0 0 5px 0 !important;
-  }
-
-  .locus-brief-muted {
-    color: #64748B !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Status Row & Indicators
-     -------------------------------------------------------------------------- */
-  .locus-brief-status-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    margin-bottom: 10px !important;
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.05em !important;
-    text-transform: uppercase !important;
-  }
-
-  .locus-brief-status-left {
-    color: #0F172A !important;
-  }
-
-  .locus-brief-status-right {
-    font-weight: 700 !important;
-  }
-
-  .locus-brief-status-right.is-alert {
-    color: #8B151B !important;
-  }
-
-  .locus-brief-status-right.is-good {
-    color: #065F46 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 1: Photograph & Fundamentals
-     -------------------------------------------------------------------------- */
-  .locus-brief-photo-block {
-    margin: 0 0 12px 0 !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-photo {
+  .locus-editorial *, .locus-editorial *::before, .locus-editorial *::after { box-sizing: border-box; }
+  .locus-editorial .brief-page {
     display: block !important;
-    width: 100% !important;
-    height: 140px !important;
-    object-fit: cover !important;
-    border-radius: 2px !important;
-    border: 1px solid #E2E8F0 !important;
-  }
-
-  .locus-brief-photo-fallback {
-    width: 100% !important;
-    height: 110px !important;
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    color: #64748B !important;
-    font-size: 8pt !important;
-  }
-
-  .locus-brief-photo-caption {
-    font-size: 7pt !important;
-    color: #64748B !important;
-    margin-top: 4px !important;
-    font-style: italic !important;
-  }
-
-  .locus-brief-metrics-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 12px !important;
-    border-top: 1px solid #E2E8F0 !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    padding: 8px 0 !important;
-    margin-bottom: 12px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-metric-col {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  .locus-brief-metric-label {
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 2px !important;
-  }
-
-  .locus-brief-metric-val {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 14pt !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
-    line-height: 1.15 !important;
-  }
-
-  .locus-brief-metric-sub {
-    font-size: 7pt !important;
-    color: #64748B !important;
-    margin-top: 2px !important;
-  }
-
-  .locus-brief-overview-block {
-    margin-bottom: 8px !important;
-  }
-
-  .locus-brief-amenities-row {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    margin-bottom: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-amenities-label {
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    flex-shrink: 0 !important;
-  }
-
-  .locus-brief-tags-wrap {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 4px !important;
-  }
-
-  .locus-brief-tag {
-    display: inline-block !important;
-    background: #F1F5F9 !important;
-    border: 1px solid #E2E8F0 !important;
-    color: #1E293B !important;
-    font-size: 6.5pt !important;
-    font-weight: 600 !important;
-    padding: 1px 5px !important;
-    border-radius: 2px !important;
-  }
-
-  .locus-brief-record-details {
-    margin-bottom: 10px !important;
-    padding: 6px 10px !important;
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 2px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-record-kicker {
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 2px !important;
-  }
-
-  .locus-brief-record-line {
-    font-size: 7.5pt !important;
-    color: #1E293B !important;
-    margin: 0 0 2px 0 !important;
-  }
-
-  .locus-brief-record-muted {
-    color: #64748B !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Callouts (Restrained Burgundy Left Border)
-     -------------------------------------------------------------------------- */
-  .locus-brief-callout {
-    border-left: 3px solid #8B151B !important;
-    background: #FAF9F9 !important;
-    padding: 7px 10px !important;
-    margin-top: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-callout-kicker {
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    color: #8B151B !important;
-    letter-spacing: 0.07em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 2px !important;
-  }
-
-  .locus-brief-callout-text {
-    font-size: 7.5pt !important;
-    color: #334155 !important;
-    line-height: 1.35 !important;
-    margin: 0 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 2: Assessment KPI & Tables
-     -------------------------------------------------------------------------- */
-  .locus-brief-assessment-kpi-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: flex-start !important;
-    gap: 16px !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    padding-bottom: 8px !important;
-    margin-bottom: 10px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-kpi-score-col {
-    flex-shrink: 0 !important;
-  }
-
-  .locus-brief-score-display {
-    display: flex !important;
-    align-items: baseline !important;
-    gap: 3px !important;
-  }
-
-  .locus-brief-score-big {
-    font-family: 'Newsreader', Georgia, 'Times New Roman', serif !important;
-    font-size: 24pt !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
-    line-height: 1 !important;
-  }
-
-  .locus-brief-score-denom {
-    font-size: 10pt !important;
-    color: #64748B !important;
-    font-weight: 600 !important;
-  }
-
-  .locus-brief-status-tag {
-    display: inline-block !important;
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 3px !important;
-  }
-
-  .locus-brief-status-tag.is-alert {
-    color: #8B151B !important;
-  }
-
-  .locus-brief-status-tag.is-good {
-    color: #065F46 !important;
-  }
-
-  .locus-brief-kpi-desc {
-    font-size: 7.5pt !important;
-    color: #475569 !important;
-    line-height: 1.35 !important;
-    margin: 0 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 2: Status Breakdown Strip & Table
-     -------------------------------------------------------------------------- */
-  .locus-brief-status-strip {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 2px !important;
-    padding: 5px 8px !important;
-    margin-bottom: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-status-strip-col {
-    display: flex !important;
-    flex-direction: column !important;
-  }
-
-  .locus-brief-status-strip-label {
-    font-size: 6pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    margin-bottom: 1px !important;
-  }
-
-  .locus-brief-status-strip-val {
-    font-size: 7pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    line-height: 1.2 !important;
-  }
-
-  .locus-brief-score-bars {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 4px 12px !important;
-    margin-bottom: 8px !important;
-    padding: 6px 8px !important;
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 2px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-bar-item {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 1px !important;
-  }
-
-  .locus-brief-bar-header {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: baseline !important;
-    font-size: 6.5pt !important;
-  }
-
-  .locus-brief-bar-title {
-    font-weight: 600 !important;
-    color: #0F172A !important;
-  }
-
-  .locus-brief-bar-weight {
-    color: #64748B !important;
-    font-variant-numeric: tabular-nums !important;
-  }
-
-  .locus-brief-bar-track {
-    width: 100% !important;
-    height: 4px !important;
-    background: #E2E8F0 !important;
-    border-radius: 2px !important;
-    overflow: hidden !important;
-  }
-
-  .locus-brief-bar-fill {
-    height: 100% !important;
-    background: #11224D !important;
-    border-radius: 2px !important;
-  }
-
-  .locus-brief-bar-footer {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: baseline !important;
-    font-size: 6pt !important;
-    color: #64748B !important;
-  }
-
-  .locus-brief-bar-footer strong {
-    color: #0F172A !important;
-    font-weight: 600 !important;
-  }
-
-  .locus-brief-formula-box {
-    background: #FAF9F9 !important;
-    border-left: 3px solid #11224D !important;
-    padding: 4px 8px !important;
-    margin: 5px 0 6px 0 !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-formula-kicker {
-    display: block !important;
-    font-size: 6pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 1px !important;
-  }
-
-  .locus-brief-formula-math {
-    font-family: 'Newsreader', Georgia, serif !important;
-    font-size: 7.5pt !important;
-    color: #0F172A !important;
-    line-height: 1.25 !important;
-  }
-
-  .locus-brief-formula-math strong {
-    font-size: 8.5pt !important;
-    color: #8B151B !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Tables (Thin dividers, aligned numeric columns)
-     -------------------------------------------------------------------------- */
-  .locus-brief-table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    font-size: 7.5pt !important;
-    margin: 6px 0 8px 0 !important;
-    table-layout: fixed !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-table th,
-  .locus-brief-table td {
-    padding: 4px 6px !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    vertical-align: top !important;
-    color: #334155 !important;
-  }
-
-  .locus-brief-table thead th {
-    font-size: 6.5pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    border-bottom: 1.5px solid #0F172A !important;
-  }
-
-  .locus-brief-table tbody tr:last-child th,
-  .locus-brief-table tbody tr:last-child td {
-    border-bottom: 1.5px solid #0F172A !important;
-  }
-
-  .locus-brief-table tfoot th,
-  .locus-brief-table tfoot td {
-    border-top: 1.5px solid #0F172A !important;
-    border-bottom: 0 !important;
-    padding-top: 5px !important;
-  }
-
-  .locus-brief-reading-block {
-    margin: 6px 0 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 3: Zoning & Hazard Intelligence
-     -------------------------------------------------------------------------- */
-  .locus-brief-zoning-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-    margin-bottom: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-zoning-card {
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 2px !important;
-    padding: 5px 8px !important;
-  }
-
-  .locus-brief-zoning-label {
-    display: block !important;
-    font-size: 6pt !important;
-    font-weight: 700 !important;
-    color: #64748B !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 1px !important;
-  }
-
-  .locus-brief-zoning-val {
-    display: block !important;
-    font-size: 8pt !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
-  }
-
-  .locus-brief-zoning-val.is-good {
-    color: #065F46 !important;
-  }
-
-  .locus-brief-zoning-val.is-warn {
-    color: #B45309 !important;
-  }
-
-  .locus-brief-zoning-val.is-alert {
-    color: #8B151B !important;
-  }
-
-  .locus-brief-zoning-sub {
-    font-size: 6.5pt !important;
-    color: #64748B !important;
-    margin: 1px 0 3px 0 !important;
-  }
-
-  .locus-brief-zoning-meta {
-    font-size: 6.5pt !important;
-    color: #334155 !important;
-    border-top: 1px dotted #E2E8F0 !important;
-    padding-top: 3px !important;
-  }
-
-  .locus-brief-zoning-meta strong {
-    color: #0F172A !important;
-  }
-
-  .locus-brief-hazard-stat-block {
-    margin-bottom: 6px !important;
-  }
-
-  .locus-brief-item-title {
-    display: block !important;
-    font-size: 7.5pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-  }
-
-  .locus-brief-item-sub {
-    display: block !important;
-    font-size: 6.5pt !important;
-    color: #64748B !important;
-  }
-
-  .locus-brief-finding-text {
-    display: block !important;
-    font-size: 7.5pt !important;
-    color: #1E293B !important;
-    font-weight: 500 !important;
-  }
-
-  .locus-brief-agency-text {
-    display: block !important;
-    font-size: 6.5pt !important;
-    color: #64748B !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 4: Mapped Places & Checks
-     -------------------------------------------------------------------------- */
-  .locus-brief-places-header {
-    margin-bottom: 6px !important;
-  }
-
-  .locus-brief-places-list {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 2px 14px !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 4px !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-place-row {
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: baseline !important;
-    font-size: 7.5pt !important;
-    padding: 1px 0 !important;
-    border-bottom: 1px dotted #E2E8F0 !important;
-  }
-
-  .locus-brief-place-name {
-    color: #1E293B !important;
-  }
-
-  .locus-brief-place-dist {
-    color: #64748B !important;
-    font-weight: 600 !important;
-    font-variant-numeric: tabular-nums !important;
-  }
-
-  .locus-brief-wider-context-block {
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-left: 3px solid #11224D !important;
-    border-radius: 2px !important;
-    padding: 4px 8px !important;
-    margin-bottom: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-wider-kicker {
-    display: block !important;
-    font-size: 6pt !important;
-    font-weight: 700 !important;
-    color: #11224D !important;
-    letter-spacing: 0.06em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 1px !important;
-  }
-
-  .locus-brief-wider-text {
-    font-size: 7pt !important;
-    color: #334155 !important;
-    line-height: 1.35 !important;
-    margin: 0 !important;
-  }
-
-  .locus-brief-wider-text strong {
-    color: #0F172A !important;
-  }
-
-  .locus-brief-ideas-block {
-    margin-bottom: 10px !important;
-    padding-bottom: 6px !important;
-    border-bottom: 1px solid #E2E8F0 !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-idea-item {
-    margin-bottom: 4px !important;
-  }
-
-  .locus-brief-idea-title {
-    font-size: 7.5pt !important;
-    font-weight: 600 !important;
-    color: #0F172A !important;
-    margin: 0 0 1px 0 !important;
-  }
-
-  .locus-brief-idea-desc {
-    font-size: 7pt !important;
-    color: #475569 !important;
-    margin: 0 !important;
-  }
-
-  .locus-brief-checks-block {
-    margin-bottom: 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-checks-list {
-    margin: 0 !important;
-    padding-left: 14px !important;
-    font-size: 7pt !important;
-    color: #334155 !important;
-    line-height: 1.35 !important;
-  }
-
-  .locus-brief-checks-list li {
-    margin-bottom: 2px !important;
-  }
-
-  .locus-brief-disclaimer {
-    font-size: 6.5pt !important;
-    color: #94A3B8 !important;
-    font-style: italic !important;
-    margin: 6px 0 0 0 !important;
-  }
-
-  /* --------------------------------------------------------------------------
-     Page 5: Evidence Summary Grid
-     -------------------------------------------------------------------------- */
-  .locus-brief-evidence-intro {
-    margin-bottom: 8px !important;
-  }
-
-  .locus-brief-evidence-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px 10px !important;
-    margin-bottom: 10px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-evidence-criterion {
-    background: #F8FAFC !important;
-    border: 1px solid #E2E8F0 !important;
-    border-radius: 2px !important;
-    padding: 6px 8px !important;
-    break-inside: avoid !important;
-  }
-
-  .locus-brief-criterion-title {
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    color: #0F172A !important;
-    margin: 0 0 3px 0 !important;
-  }
-
-  .locus-brief-criterion-line {
-    font-size: 7pt !important;
-    color: #334155 !important;
-    line-height: 1.3 !important;
-    margin: 0 0 2px 0 !important;
-  }
-
-  .locus-brief-evidence-bottom {
-    padding: 6px 8px !important;
-    background: #FAF9F9 !important;
-    border-left: 3px solid #64748B !important;
-    margin-top: 8px !important;
-    break-inside: avoid !important;
-  }
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    break-after: page;
+    page-break-after: always;
+  }
+  .locus-editorial .brief-page:last-child { break-after: auto; page-break-after: auto; }
+  .brief-masthead { display: flex; justify-content: space-between; align-items: center; padding-bottom: 3mm; margin-bottom: 4mm; border-bottom: 1.5pt solid #172e40; }
+  .brief-brand { font: bold 19pt Georgia, serif; letter-spacing: -.7pt; }
+  .brief-brand > span { color: #963d38; padding: 0 1pt; }
+  .brief-masthead > div { font-size: 7pt; font-weight: 650; text-align: right; letter-spacing: 1pt; line-height: 1.6; }
+  .brief-masthead > div > span { font-size: 7.5pt; font-weight: 400; letter-spacing: 0; color: #526473; }
+  .brief-eyebrow { display: block; font-size: 7.5pt; line-height: 1.45; font-weight: 700; letter-spacing: 1pt; text-transform: uppercase; }
+  .brief-section-heading > .brief-eyebrow { color: #963d38; margin-bottom: 2mm; }
+  .brief-section-heading h1 { font: normal 26pt/1.1 Georgia, 'Times New Roman', serif; letter-spacing: -.7pt; margin: 0 0 2mm; color: #172e40; overflow-wrap: anywhere; }
+  .brief-section-heading > p { font-size: 9pt; color: #526473; margin: 0 0 4mm; }
+  .locus-editorial h2 { font: 600 12pt/1.3 'LOCUS Inter', Arial, sans-serif; letter-spacing: -.2pt; margin: 0 0 2mm; break-after: avoid; color: #172e40; }
+  .locus-editorial h3 { font-size: 10pt; margin: 0 0 1mm; }
+  .locus-editorial p { margin: 0 0 3mm; orphans: 3; widows: 3; overflow-wrap: anywhere; color: #334b5a !important; }
+  .locus-editorial .brief-image-context p,
+  .locus-editorial .brief-score-panel p,
+  .locus-editorial .brief-contact p { color: #f2f6f8 !important; }
+  .brief-listing-strip { display: flex; justify-content: space-between; align-items: center; gap: 4mm; margin-bottom: 3mm; font-size: 8pt; font-weight: 600; }
+  .brief-listing-strip i { font-style: normal; color: #a6afb6; padding: 0 2mm; }
+  .brief-pill { display: inline-block; padding: 1.3mm 2.5mm; background: #f4eee9; border: .5pt solid #dfcec3; border-radius: 2mm; color: #743b2b; font-size: 7.5pt; font-weight: 650; line-height: 1.4; text-transform: capitalize; }
+  .brief-hero { position: relative; margin: 0 0 5mm; break-inside: avoid; }
+  .brief-hero.has-photo { display: grid; grid-template-columns: 63% 37%; }
+  .brief-hero img { display: block; width: 100%; height: 66mm; object-fit: contain; object-position: center; background: #edf1f2; }
+  .brief-image-context { background: #172e40; color: #fff; padding: 6mm 5mm; display: flex; flex-direction: column; justify-content: center; }
+  .brief-image-context .brief-eyebrow { font-size: 7pt; color: #c6d2d9; margin-bottom: 3mm; }
+  .brief-image-context strong { font: 22pt/1.1 Georgia, serif; overflow-wrap: anywhere; }
+  .brief-image-context p { font-size: 8.5pt; margin-top: 2mm; }
+  .brief-image-context small { font-size: 7.5pt; line-height: 1.6; color: #d0dce2; }
+  .brief-image-context .brief-image-context-note { font-size: 7.5pt; margin: 3mm 0 0; color: #d0dce2; }
+  .brief-hero.photo-unavailable { display: block; }
+  .brief-hero.photo-unavailable .brief-image-context { display: none; }
+  .brief-hero-empty { display: none; min-height: 43mm; padding: 8mm; background: #f0f2f1; border: .5pt solid #d7dfdf; flex-direction: column; justify-content: center; }
+  .brief-hero-empty .brief-eyebrow { color: #526473; margin-bottom: 3mm; }
+  .brief-hero-empty strong { font: 23pt Georgia, serif; }
+  .brief-hero-empty p { margin: 2mm 0; color: #526473; }
+  .brief-hero-empty small { font-size: 8pt; }
+  .brief-hero.no-photo .brief-hero-empty, .brief-hero.photo-unavailable .brief-hero-empty { display: flex; }
+  .brief-hero figcaption { grid-column: 1 / -1; font-size: 7pt; color: #526473; padding-top: 2mm; }
+  .brief-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4mm; padding: 5mm 0; border-top: .5pt solid #cdd7db; border-bottom: .5pt solid #cdd7db; margin-bottom: 6mm; break-inside: avoid; }
+  .brief-metrics > div + div { padding-left: 4mm; border-left: .5pt solid #dbe2e5; }
+  .brief-metrics .brief-eyebrow { font-size: 6.8pt; letter-spacing: .65pt; color: #526473; }
+  .brief-metrics strong { display: block; font: bold 17pt/1.15 Georgia, serif; margin: 2mm 0; overflow-wrap: anywhere; }
+  .brief-metrics small { display: block; font-size: 7.5pt; line-height: 1.45; color: #526473; }
+  .brief-description { font-size: 9.5pt; line-height: 1.6; margin-bottom: 4mm !important; }
+  .brief-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin: 0 0 5mm; column-gap: 7mm; }
+  .brief-facts > div { padding: 2mm 0; border-bottom: .5pt solid #e0e5e7; break-inside: avoid; }
+  .brief-facts dt { font-size: 7.5pt; color: #526473; margin-bottom: 1mm; }
+  .brief-facts dd { margin: 0; font-size: 9pt; font-weight: 550; overflow-wrap: anywhere; }
+  .brief-amenities { font-size: 8pt; line-height: 1.6; }
+  .brief-amenities b { margin-right: 2mm; }
+  .brief-note { background: #faf6f2; border-left: 2pt solid #963d38; padding: 3mm 4mm; margin: 3mm 0; break-inside: avoid; }
+  .brief-note > .brief-eyebrow { color: #963d38; margin-bottom: 1.5mm; }
+  .brief-note p { margin: 0; font-size: 9pt; line-height: 1.5; }
+  .brief-note.is-neutral { background: #f2f5f5; border-left-color: #7a9096; }
+  .brief-note.is-neutral > .brief-eyebrow { color: #415d67; }
+  .brief-score-panel { display: grid; grid-template-columns: 42% 1fr; gap: 5mm; padding: 5mm; background: #172e40; color: white; break-inside: avoid; }
+  .brief-score-panel > div:first-child { border-right: .5pt solid #72818b; padding-right: 5mm; }
+  .brief-score-panel .brief-eyebrow { color: #d1dce1; }
+  .brief-score { display: block; font: 44pt/1.2 Georgia, serif; letter-spacing: -1pt; margin-top: 2mm; }
+  .brief-score small { font: 12pt Arial, sans-serif; letter-spacing: 0; margin-left: 2mm; }
+  .brief-score-panel.is-pending .brief-score { font-size: 29pt; letter-spacing: -.6pt; }
+  .brief-score-panel .brief-pill { background: #334b5b; color: white; border-color: #74848d; margin-bottom: 3mm; }
+  .brief-score-panel p { font-size: 9pt; line-height: 1.55; margin: 0; }
+  .brief-score-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .brief-coverage { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 3mm 0; margin-bottom: 4mm; border-bottom: .5pt solid #cdd7db; break-inside: avoid; }
+  .brief-coverage > div + div { border-left: .5pt solid #dbe2e5; padding-left: 5mm; }
+  .brief-coverage strong { display: block; font-size: 21pt; font-weight: 600; }
+  .brief-coverage small { font-size: 11pt; font-weight: 400; color: #526473; }
+  .brief-coverage span { display: block; font-size: 7.5pt; color: #526473; margin-top: 1mm; }
+  .brief-table { width: 100%; border-collapse: collapse; font-size: 9pt; line-height: 1.45; margin: 0 0 5mm; table-layout: fixed; }
+  .brief-table caption { text-align: left; color: #526473; font-size: 8pt; padding: 0 0 2mm; caption-side: top; }
+  .brief-table th, .brief-table td { padding: 1.7mm 2mm; vertical-align: top; border-bottom: .5pt solid #dce3e5; overflow-wrap: anywhere; }
+  .brief-table th:first-child { text-align: left; width: 48%; padding-left: 0; }
+  .brief-table td, .brief-table thead th:not(:first-child) { text-align: right; }
+  .brief-table thead th { font-size: 7pt; letter-spacing: .4pt; text-transform: uppercase; color: #526473; font-weight: 650; border-bottom: 1pt solid #172e40; }
+  .brief-table tbody th { font-weight: 550; }
+  .brief-table tr { break-inside: avoid; }
+  .brief-table thead { display: table-header-group; }
+  .brief-table tfoot { display: table-row-group; }
+  .brief-table tfoot th, .brief-table tfoot td { font-weight: 700; font-size: 10pt; border-bottom: 1pt solid #172e40; padding-top: 2.5mm; padding-bottom: 2.5mm; }
+  .brief-row-index { display: inline-block; width: 7mm; font-size: 7pt; color: #85939b; }
+  .brief-pending { color: #85573e; font-size: 8pt; }
+  .brief-formula { padding: 3mm 5mm; background: #f1f4f4; margin: 0 0 4mm; break-inside: avoid; }
+  .brief-formula .brief-eyebrow { font-size: 7pt; color: #526473; margin-bottom: 2mm; }
+  .brief-formula p { font-size: 9pt; margin: 0 0 1mm; }
+  .brief-formula strong { font-size: 9pt; font-weight: 600; overflow-wrap: anywhere; }
+  .brief-two-col { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8mm; margin-bottom: 3mm; }
+  .brief-two-col p { font-size: 8.5pt; line-height: 1.5; }
+  .brief-two-col > div { break-inside: avoid; }
+  .brief-zoning { background: #f1f4f4; padding: 4mm; gap: 6mm; }
+  .brief-zoning .brief-eyebrow { font-size: 7pt; color: #526473; margin-bottom: 3mm; }
+  .brief-zoning h2 { font-size: 13pt; }
+  .brief-zoning p { font-size: 8pt; margin: 0; }
+  .brief-heading-row { display: flex; align-items: baseline; justify-content: space-between; gap: 3mm; margin: 5mm 0 2mm; break-after: avoid; }
+  .brief-heading-row h2 { margin-bottom: 0; }
+  .brief-hazard-table th:first-child { width: 40%; }
+  .brief-hazard-table td { text-align: left; }
+  .brief-hazard-table small { display: block; font-size: 7.5pt; line-height: 1.4; font-weight: 400; color: #526473; margin-top: 1mm; }
+  .brief-hazard-table th, .brief-hazard-table td { padding-top: 1.7mm; padding-bottom: 1.7mm; }
+  .brief-map-link { display: flex; justify-content: space-between; padding: 3mm 0; font-size: 9pt; color: #365969; text-decoration: none; border-bottom: .5pt solid #cdd7db; margin-bottom: 3mm; }
+  .brief-map-link span { font-size: 8pt; }
+  .brief-small { font-size: 8pt !important; line-height: 1.6; color: #526473; }
+  .brief-places { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 7mm; margin: 3mm 0 6mm; }
+  .brief-places > div { display: flex; justify-content: space-between; gap: 3mm; border-bottom: .5pt solid #dce3e5; padding: 3mm 0; font-size: 9pt; break-inside: avoid; }
+  .brief-places strong { white-space: nowrap; font-size: 8pt; color: #526473; }
+  .brief-next-title { margin-top: 4mm !important; }
+  .brief-checklist { list-style: none; margin: 0 0 5mm; padding: 0; }
+  .brief-checklist li { display: flex; gap: 5mm; padding: 2mm 0; border-bottom: .5pt solid #dce3e5; break-inside: avoid; }
+  .brief-checklist li > span { font: 19pt Georgia, serif; color: #963d38; width: 8mm; flex: 0 0 8mm; }
+  .brief-checklist p { font-size: 8.5pt; line-height: 1.5; margin: 0; }
+  .brief-contact { background: #172e40; color: white; padding: 3mm 4mm; margin-bottom: 3mm; break-inside: avoid; }
+  .brief-contact .brief-eyebrow { color: #d1dce1; font-size: 7pt; }
+  .brief-contact strong { display: block; font-size: 12pt; font-weight: 550; margin: 2mm 0; }
+  .brief-contact p { font-size: 9pt; margin: 0; }
+  .brief-source-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 5mm; list-style: none; padding: 0; margin: 0 0 3mm; }
+  .brief-source-list li { padding: 2mm 0; font-size: 8pt; border-bottom: .5pt solid #dce3e5; break-inside: avoid; }
+  .brief-source-list strong, .brief-source-list span, .brief-source-list code { display: block; }
+  .brief-source-list span { color: #526473; }
+  .brief-source-list code, .brief-comparison code { font: 7pt/1.6 Consolas, monospace; overflow-wrap: anywhere; }
+  .brief-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 8pt/1.5 Consolas, monospace; background: #f1f4f4; padding: 4mm; }
+  .brief-evidence { margin-bottom: 6mm; }
 }
 
 
@@ -1860,3 +1183,14 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
 }
 
 
+
+/* Auditable assessment reports flow across pages; evidence must never be clipped. */
+@media print {
+  .locus-investor-brief[data-assessment-contract] .locus-brief-page {
+    display: block !important; height: auto !important; max-height: none !important; min-height: 0 !important;
+    overflow: visible !important; break-inside: auto !important; page-break-inside: auto !important;
+  }
+  .locus-investor-brief[data-assessment-contract] pre { white-space: pre-wrap !important; overflow-wrap: anywhere; font-size: 8pt; }
+  .locus-investor-brief[data-assessment-contract] tr { break-inside: avoid; }
+  .locus-investor-brief[data-assessment-contract] thead { display: table-header-group; }
+}

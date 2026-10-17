@@ -44,15 +44,15 @@ assert.ok(step2Slice.includes('data-reused-barangay-display'), 'Reused barangay 
 assert.ok(step2Slice.includes('data-bgy-conflict-alert'), 'Barangay proximity conflict alert exists');
 console.log('✅ PASS: Reused Step 1 barangay context and conflict alert present');
 
-// Check land area inputs and 5 units
+// Offer only area units accepted by the production PHP parcel model.
 assert.ok(step2Slice.includes('name="land_area"'), 'Land area input exists');
 assert.ok(step2Slice.includes('name="land_area_unit"'), 'Land area unit dropdown exists');
 assert.ok(step2Slice.includes('value="sqm"'), 'Supports sqm');
 assert.ok(step2Slice.includes('value="hectares"'), 'Supports hectares');
-assert.ok(step2Slice.includes('value="sqft"'), 'Supports sqft');
-assert.ok(step2Slice.includes('value="acres"'), 'Supports acres');
-assert.ok(step2Slice.includes('value="sqkm"'), 'Supports sqkm');
-console.log('✅ PASS: Land area input supports 5 units: m²/sqm, hectares, sq ft, acres, and km²');
+for (const unsupported of ['sqft','acres','sqkm']) {
+  assert.ok(!step2Slice.includes(`value="${unsupported}"`), `${unsupported} cannot be selected when the API cannot save it`);
+}
+console.log('✅ PASS: Land area input offers the two persisted units: square meters and hectares');
 
 // Check separate map estimate card & discrepancy banner
 assert.ok(step2Slice.includes('data-area-equiv-display'), 'Measurement equivalents display card exists');

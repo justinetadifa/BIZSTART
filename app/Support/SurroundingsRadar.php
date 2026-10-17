@@ -207,12 +207,12 @@ final class SurroundingsRadar
         );
 
         $lastError = 'Overpass mirrors unreachable';
-        $mirrors = array_slice(self::OVERPASS_MIRRORS, 0, 2);
+        $mirrors = array_slice(self::OVERPASS_MIRRORS, 0, 1);
         foreach ($mirrors as $mirror) {
             $ch = curl_init($mirror);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
             curl_setopt($ch, CURLOPT_USERAGENT, 'LOCUS-SF-Radar/1.0 (San Fernando La Union Urban Intelligence; contact@sfcelerate.local)');
             curl_setopt($ch, CURLOPT_POSTFIELDS, 'data=' . urlencode($query));
 

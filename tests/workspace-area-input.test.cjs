@@ -19,17 +19,17 @@ for (const workspace of ['admin', 'broker']) {
     addEventListener(event, handler) { handlers[`unit:${event}`] = handler; },
   };
   const areaCalc = { textContent: '' };
-  const context = vm.createContext({ areaInput, areaUnit, areaCalc, propertyWizard: {}, displayedAreaUnit: 'sqm', Event: class {} });
+  const context = vm.createContext({ areaInput, areaUnit, areaCalc, propertyWizard: null, displayedAreaUnit: 'sqm', Event: class {} });
   vm.runInContext(source.slice(start, end), context);
   const refresh = () => vm.runInContext('updateAreaCalculation()', context);
 
   refresh();
   assert.equal(areaCalc.textContent, '2,500 m\u00b2 = 0.25 ha');
-  assert.equal(areaInput.min, '0.5', 'Wizard minimum matches supported backend square-meter area.');
+  assert.equal(areaInput.min, '1', 'Legacy fallback retains its square-meter minimum.');
   areaUnit.value = 'hectares';
   handlers['unit:change']();
   assert.equal(areaInput.value, '0.25', 'Switching to hectares must preserve the physical area.');
-  assert.equal(areaInput.min, '0.00005', 'Unit changes preserve the same minimum physical area.');
+  assert.equal(areaInput.min, '0.0001', 'Legacy fallback preserves its minimum physical area.');
   assert.equal(areaCalc.textContent, '2,500 m\u00b2 = 0.25 ha');
   areaUnit.value = 'sqm';
   handlers['unit:change']();
@@ -50,5 +50,10 @@ for (const workspace of ['admin', 'broker']) {
   areaInput.value = '';
   refresh();
   assert.equal(areaCalc.textContent, 'Leave blank if the area is not known.');
+  vm.runInContext('propertyWizard = {}', context);
+  areaInput.value = '0.25'; // Already converted by the shared wizard from 2,500 m².
+  areaUnit.value = 'hectares';
+  handlers['unit:change']();
+  assert.equal(areaInput.value, '0.25', 'Workspace cannot convert the same area a second time when the shared wizard owns conversion.');
   console.log(`${workspace} workspace area input: passed`);
 }

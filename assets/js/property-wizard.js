@@ -260,8 +260,8 @@
 
     function validatePricingFields() {
       const purpose = getListingPurpose();
-      const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
-      const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+      const saleMode = value('sale_price_mode') || 'amount';
+      const leaseMode = value('lease_price_mode') || 'amount';
       const pInp = $('#pwAskingPrice');
       const lpInp = $('#pwLeasePrice');
 
@@ -314,7 +314,7 @@
       });
 
       // Sync sale price mode
-      const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
+      const saleMode = value('sale_price_mode') || 'amount';
       all('[data-sale-mode-card]').forEach(card => {
         const radio = card.querySelector('input[type="radio"]');
         card.classList.toggle('is-active', radio?.checked || radio?.value === saleMode);
@@ -327,7 +327,7 @@
       }
 
       // Sync lease price mode
-      const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+      const leaseMode = value('lease_price_mode') || 'amount';
       all('[data-lease-mode-card]').forEach(card => {
         const radio = card.querySelector('input[type="radio"]');
         card.classList.toggle('is-active', radio?.checked || radio?.value === leaseMode);
@@ -338,6 +338,14 @@
         const lpInp = $('#pwLeasePrice');
         if (lpInp) { lpInp.disabled = !leaseShown || leaseMode !== 'amount'; lpInp.required = !lpInp.disabled; }
       }
+
+      // Visibility selectors retain typed amounts but exclude them from validation and submission on inquiry.
+      const salePriceInput = field('price'), leasePriceInput = field('lease_price');
+      if (salePriceInput) { salePriceInput.disabled = !saleShown || saleMode !== 'amount'; salePriceInput.required = !salePriceInput.disabled; }
+      if (leasePriceInput) { leasePriceInput.disabled = !leaseShown || leaseMode !== 'amount'; leasePriceInput.required = !leasePriceInput.disabled; }
+      const rentAmount = Number(value('lease_price').replace(/,/g,''));
+      const rentPeriod = value('lease_period') || 'month';
+      setText('[data-lease-price-summary]',leaseMode === 'request' ? 'Rental rate available on enquiry.' : rentAmount > 0 ? `₱${number(rentAmount)}${value('lease_price_unit') === 'sqm' ? ' per m²' : ' for the offered space'} per ${rentPeriod}.` : 'Enter rent and choose how it is billed.');
 
       // Legacy zero notices
       const saleZeroNotice = $('[data-legacy-zero-sale-notice]');
@@ -370,29 +378,25 @@
       const purpose = getListingPurpose();
 
       function formatSaleSummary() {
-        const saleRadio = form.querySelector('[name="sale_price_mode"]:checked');
-        if (!saleRadio) return 'Price not provided';
-        if (saleRadio.value === 'request') return 'Price on request';
-        if (isLegacyZeroSale) return 'Ambiguous price (PHP 0)';
+        if (value('sale_price_mode') === 'request') return 'Price on inquiry';
+        if (isLegacyZeroSale) return 'Price on inquiry';
         const raw = value('price').replace(/,/g, '').trim();
         if (/^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) && Number(raw) > 0) {
           return `PHP ${number(Number(raw))}`;
         }
-        return 'Price not provided';
+        return 'Price on inquiry';
       }
 
       function formatLeaseSummary() {
-        const leaseRadio = form.querySelector('[name="lease_price_mode"]:checked');
-        if (!leaseRadio) return 'Price not provided';
-        if (leaseRadio.value === 'request') return 'Price on request';
-        if (isLegacyZeroLease) return 'Ambiguous price (PHP 0)';
+        if (value('lease_price_mode') === 'request') return 'Price on inquiry';
+        if (isLegacyZeroLease) return 'Price on inquiry';
         const raw = value('lease_price').replace(/,/g, '').trim();
         if (/^\d+$/.test(raw) && Number.isSafeInteger(Number(raw)) && Number(raw) > 0) {
           const period = value('lease_period') || 'month';
           const unit = value('lease_price_unit') === 'sqm' ? 'm² / ' : '';
           return `PHP ${number(Number(raw))} / ${unit}${period}`;
         }
-        return 'Price not provided';
+        return 'Price on inquiry';
       }
 
       if (purpose === 'sale') return formatSaleSummary();
@@ -400,8 +404,7 @@
       if (purpose === 'sale_or_lease') {
         const saleText = formatSaleSummary();
         const leaseText = formatLeaseSummary();
-        if (saleText === 'Price not provided' && leaseText === 'Price not provided') return 'Price not provided';
-        if (saleText === 'Price on request' && leaseText === 'Price on request') return 'Price on request';
+        if (saleText === 'Price on inquiry' && leaseText === 'Price on inquiry') return 'Price on inquiry';
         return `Sale: ${saleText} · Lease: ${leaseText}`;
       }
       return formatSaleSummary();
@@ -548,11 +551,49 @@
         if (preview) preview.hidden = false;
       }
     });
+
+    // Two-way sync declared_area_sqm with land_area
+    const declAreaInput = $('#pwDeclaredAreaInput');
+    const step2LandAreaInput = field('land_area');
+    if (declAreaInput && step2LandAreaInput) {
+      declAreaInput.addEventListener('input', () => {
+        const converted = declAreaInput.value === '' ? '' : formatSensibleAreaNumber(Number(declAreaInput.value) * getAreaUnitFactor(value('basics_area_unit') || 'sqm') / getAreaUnitFactor(value('land_area_unit') || 'sqm'));
+        if (step2LandAreaInput.value !== converted) {
+          step2LandAreaInput.value = converted;
+          step2LandAreaInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        preview();
+      });
+      step2LandAreaInput.addEventListener('input', () => {
+        syncBasicsArea();
+        preview();
+      });
+    }
+
+    // Price on inquiry checkbox & mode sync
+    $('#pwPriceOnInquiry')?.addEventListener('change', (e) => {
+      const modeSelect = form.querySelector('select[name="sale_price_mode"]');
+      if (modeSelect) {
+        modeSelect.value = e.target.checked ? 'request' : 'amount';
+        modeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      preview();
+    });
+    form.querySelector('select[name="sale_price_mode"]')?.addEventListener('change', (e) => {
+      const inquiryBox = $('#pwPriceOnInquiry');
+      if (inquiryBox) inquiryBox.checked = (e.target.value === 'request');
+      preview();
+    });
+
+    // Description character counter & preview
+    $('#pwDescriptionInput')?.addEventListener('input', () => {
+      preview();
+    });
     const config = window.SFC_APP_CONFIG || {};
     const emptyPhoto = $('[data-photo-preview]')?.innerHTML || '';
     let boundaryMap, radarMap, parcelLayer, locationMarker, radarMarker, radiusLayer, radarParcel;
     let concentricRings = [], hoverVectorLayer = null, radarLayerItems = new Map(), radarMapFilter = 'all', radarSearchQuery = '';
-    let boundary = null, estimatedArea = 0, history = [], context = null, nearbyEditor = null, savedAttachments = [], propertyId = null;
+    let boundary = null, estimatedArea = 0, history = [], context = null, nearbyEditor = null, savedAttachments = [], propertyId = null, savedAuthorityDoc = null;
     let hazardLayers = [], radarLayers = [], radarTab = 'competitors', step = 0;
     let placingReference = false, dirtyReference = false, imageObjectUrl = null, existingImage = '', locationMethod = 'pin';
     let locationCapture = null, searchTimer = null, searchRevision = 0, locationRevision = 0, deviceAccuracyLayer = null, deviceRequest = 0;
@@ -671,6 +712,8 @@
     }
     function validateBasics() {
       syncPricing();
+      const channelIssue = intakeControls?.validate();
+      if (channelIssue) { showFieldError(channelIssue,channelIssue.validationMessage);notify(channelIssue.validationMessage,true);focusIssue(channelIssue);return false; }
       const classification = getClassification();
       if (!classification.primary) {
         const message = `Choose a primary ${classification.category.toLowerCase()} classification.`;
@@ -678,7 +721,7 @@
       }
       const bgyVal = value('barangay');
       const bgyMatch = typeof findExactOfficialBarangay === 'function' ? findExactOfficialBarangay(bgyVal) : (typeof lookupExactBarangay === 'function' ? lookupExactBarangay(bgyVal) : null);
-      if (!bgyVal || !bgyMatch) {
+      if (bgyVal && !bgyMatch) {
         const bgyInput = $('#pwBarangayTextInput');
         const message = 'Select a valid barangay within San Fernando City.';
         showFieldError(bgyInput || field('barangay'), message);
@@ -736,8 +779,12 @@
       return payload;
     }
     const enteredAreaSqm = () => {
-      const entered = Number(value('land_area'));
-      const unit = value('land_area_unit');
+      let entered = Number(value('land_area'));
+      let unit = value('land_area_unit') || 'sqm';
+      if ((!Number.isFinite(entered) || entered <= 0) && value('declared_area_sqm')) {
+        entered = Number(value('declared_area_sqm'));
+        unit = value('basics_area_unit') || 'sqm';
+      }
       let factor = 1;
       if (unit === 'hectares') factor = 10000;
       else if (unit === 'sqft') factor = 0.09290304;
@@ -778,6 +825,21 @@
       if (!Number.isFinite(num) || num <= 0) return '';
       return Number(num.toFixed(6)).toString();
     }
+    function syncBasicsArea() {
+      if (!declAreaInput) return;
+      const basicsUnit = value('basics_area_unit') || 'sqm';
+      const sqm = field('land_area')?.value ? Number(value('land_area')) * getAreaUnitFactor(value('land_area_unit') || 'sqm') : null;
+      declAreaInput.value = sqm > 0 ? formatSensibleAreaNumber(sqm / getAreaUnitFactor(basicsUnit)) : '';
+      declAreaInput.min = basicsUnit === 'hectares' ? '0.00005' : '0.5';
+      declAreaInput.max = basicsUnit === 'hectares' ? '99999999.9999' : '999999999999';
+      setText('[data-basics-area-equivalent]',sqm > 0 ? `${areaNumber(sqm)} m² = ${Number((sqm / 10000).toFixed(8)).toLocaleString('en-PH',{maximumFractionDigits:8})} ha` : 'Choose m² or hectares. 1 ha = 10,000 m².');
+    }
+    field('basics_area_unit')?.addEventListener('change', () => {
+      if (field('land_area_unit') && value('land_area_unit') !== value('basics_area_unit')) {
+        field('land_area_unit').value = value('basics_area_unit');
+        field('land_area_unit').dispatchEvent(new Event('change',{bubbles:true}));
+      } else syncBasicsArea();
+    });
     field('land_area_unit')?.addEventListener('change', () => {
       const newUnit = value('land_area_unit');
       const inputEl = field('land_area');
@@ -788,6 +850,8 @@
         if (inputEl) inputEl.value = formatSensibleAreaNumber(newVal);
       }
       currentAreaUnit = newUnit;
+      if (field('basics_area_unit')) field('basics_area_unit').value = newUnit;
+      syncBasicsArea();
       syncAreaLimits();
       syncAreaEquivalents();
       preview();
@@ -811,7 +875,7 @@
           const sqmFormatted = sqm.toLocaleString('en-PH', { maximumFractionDigits: 2 });
           equivDisplay.textContent = `${sqmFormatted} m² = ${haFormatted} ha (${Math.round(sqft).toLocaleString('en-PH')} sq ft · ${acres.toFixed(2)} ac)`;
         } else {
-          equivDisplay.textContent = '5,900 m² = 0.59 ha';
+          equivDisplay.textContent = 'Enter an area to see its equivalent in hectares.';
         }
       }
 
@@ -971,7 +1035,7 @@
       const widthRaw = (getVal('carriageway_width') || '').trim();
       let widthScore = null;
       let widthLabel = 'Incomplete';
-      if (widthRaw !== '' && !isNaN(Number(widthRaw))) {
+      if (widthRaw !== '' && Number.isFinite(Number(widthRaw))) {
         const w = Number(widthRaw);
         if (w >= 6.0) { widthScore = 100; widthLabel = '100/100'; }
         else if (w >= 4.0) { widthScore = 80; widthLabel = '80/100'; }
@@ -983,7 +1047,7 @@
       const distRaw = (getVal('distance_to_major_road') || '').trim();
       let distScore = null;
       let distLabel = 'Incomplete';
-      if (distRaw !== '' && !isNaN(Number(distRaw))) {
+      if (distRaw !== '' && Number.isFinite(Number(distRaw)) && Number(distRaw) >= 0) {
         const d = Number(distRaw);
         if (d <= 200.0) { distScore = 100; distLabel = '100/100'; }
         else if (d <= 500.0) { distScore = 85; distLabel = '85/100'; }
@@ -1279,15 +1343,17 @@
       };
 
       const purpose = (getVal('listing_purpose') || (typeof getListingPurpose === 'function' ? getListingPurpose() : '') || 'sale').toLowerCase();
-      const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
-      const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+      const saleMode = getVal('sale_price_mode') || 'amount';
+      const leaseMode = getVal('lease_price_mode') || 'amount';
+      const leasePeriod = getVal('lease_period') || 'month';
+      const leasePriceUnit = getVal('lease_price_unit') || 'total';
 
       const rawPrice = (getVal('price') || '').replace(/,/g, '').trim();
       const rawLease = (getVal('lease_price') || '').replace(/,/g, '').trim();
-      const askingPrice = rawPrice !== '' && !isNaN(Number(rawPrice)) && Number(rawPrice) > 0 ? Number(rawPrice) : null;
-      const leasePrice = rawLease !== '' && !isNaN(Number(rawLease)) && Number(rawLease) > 0 ? Number(rawLease) : null;
+      const askingPrice = saleMode === 'amount' && rawPrice !== '' && Number.isFinite(Number(rawPrice)) && Number(rawPrice) > 0 ? Number(rawPrice) : null;
+      const leasePrice = leaseMode === 'amount' && rawLease !== '' && Number.isFinite(Number(rawLease)) && Number(rawLease) > 0 ? Number(rawLease) : null;
 
-      const rawArea = overrides?.land_area != null ? Number(overrides.land_area) : (typeof enteredAreaSqm === 'function' ? enteredAreaSqm() : null);
+      const rawArea = overrides?.land_area != null ? Number(overrides.land_area) : (typeof enteredAreaSqm === 'function' ? (enteredAreaSqm() ?? (estimatedArea > 0 ? estimatedArea : null)) : null);
       const landArea = rawArea && Number.isFinite(rawArea) && rawArea > 0 ? rawArea : null;
 
       // Section 1: Space Offered Scope & Relevant Area
@@ -1325,22 +1391,26 @@
       const rawAddCosts = (getVal('additional_purchase_costs') || '').replace(/,/g, '').trim();
       const additionalCosts = rawAddCosts !== '' && !isNaN(Number(rawAddCosts)) && Number(rawAddCosts) >= 0 ? Number(rawAddCosts) : 0;
 
-      let knownUpfrontCosts = 0;
+      // Annual terms convert exactly. A daily rate cannot establish a calendar-month rent.
+      const monthlyFactor = leasePeriod === 'month' ? 1 : leasePeriod === 'year' ? 1 / 12 : null;
+      const monthlyLeasePrice = leasePrice !== null && monthlyFactor !== null
+        ? leasePrice * monthlyFactor * (leasePriceUnit === 'sqm' ? (effectiveArea ?? NaN) : 1)
+        : null;
+      const leaseUpfrontCosts = Number.isFinite(monthlyLeasePrice) && (rawDeposit !== '' || rawAdvance !== '')
+        ? Math.round((depositMonths + advanceMonths) * monthlyLeasePrice * 100) / 100 : null;
+      const saleAdditionalCosts = rawAddCosts !== '' ? additionalCosts : null;
+      let knownUpfrontCosts = null;
       if (purpose === 'lease') {
-        if (leasePrice !== null && (depositMonths > 0 || advanceMonths > 0)) {
-          knownUpfrontCosts = Math.round((depositMonths + advanceMonths) * leasePrice);
+        if (Number.isFinite(monthlyLeasePrice) && (depositMonths > 0 || advanceMonths > 0)) {
+          knownUpfrontCosts = (depositMonths + advanceMonths) * monthlyLeasePrice;
         }
       } else if (purpose === 'sale') {
         if (additionalCosts > 0) {
           knownUpfrontCosts = Math.round(additionalCosts);
         }
-      } else if (purpose === 'sale_or_lease') {
-        let leaseUpfront = 0;
-        if (leasePrice !== null && (depositMonths > 0 || advanceMonths > 0)) {
-          leaseUpfront = Math.round((depositMonths + advanceMonths) * leasePrice);
-        }
-        knownUpfrontCosts = leaseUpfront + (additionalCosts > 0 ? Math.round(additionalCosts) : 0);
       }
+      // Sale and lease are alternatives; their upfront costs must not be added together.
+      knownUpfrontCosts = purpose === 'sale' ? saleAdditionalCosts : purpose === 'lease' ? leaseUpfrontCosts : null;
 
       // Section 3: Official References and Verified Comparables
       const rawBir = (getVal('bir_zonal_value') || '').trim();
@@ -1361,17 +1431,17 @@
       // Calculations:
       // For Sale: asking price per m² (using effective area)
       const askingPricePerSqm = (askingPrice !== null && effectiveArea !== null && effectiveArea > 0 && saleMode === 'amount')
-        ? Math.round(askingPrice / effectiveArea)
+        ? askingPrice / effectiveArea
         : null;
 
       // For Lease: monthly rent per m² (using actual leasable area, not automatically total land area)
-      const leasePricePerSqm = (leasePrice !== null && effectiveArea !== null && effectiveArea > 0 && leaseMode === 'amount')
-        ? Math.round((leasePrice / effectiveArea) * 100) / 100
+      const leasePricePerSqm = (Number.isFinite(monthlyLeasePrice) && effectiveArea !== null && effectiveArea > 0 && leaseMode === 'amount')
+        ? monthlyLeasePrice / effectiveArea
         : null;
 
       // Total BIR reference: statutory conveyance baseline (always computed against land area)
       const totalBir = (birZonal !== null && landArea !== null)
-        ? Math.round(birZonal * landArea)
+        ? Math.round(birZonal * landArea * 100) / 100
         : null;
 
       // Do not compare monthly rent directly with BIR zonal values as though they were the same economic measurement
@@ -1380,11 +1450,11 @@
         : null;
 
       const marketDiffPct = (askingPricePerSqm !== null && compMarket !== null && compMarket > 0)
-        ? Math.round(((askingPricePerSqm - compMarket) / compMarket) * 10000) / 100
+        ? ((askingPricePerSqm - compMarket) / compMarket) * 100
         : null;
 
       const leaseDiffPct = (leasePricePerSqm !== null && compLease !== null && compLease > 0)
-        ? Math.round(((leasePricePerSqm - compLease) / compLease) * 10000) / 100
+        ? ((leasePricePerSqm - compLease) / compLease) * 100
         : null;
 
       // Active comparable metric resolution
@@ -1455,9 +1525,6 @@
       } else if ((rawPrice !== '' && !isNaN(Number(rawPrice)) && Number(rawPrice) <= 0) || (rawLease !== '' && !isNaN(Number(rawLease)) && Number(rawLease) <= 0)) {
         isReasonablenessWarning = true;
         reasonablenessMessage = 'Property pricing cannot be zero or negative. Please enter a valid asking amount.';
-      } else if (landArea !== null && ((purpose === 'lease' && leasePrice !== null && leasePrice < 1000 && landArea < 5) || (purpose === 'sale' && askingPrice !== null && askingPrice < 10000 && landArea < 5))) {
-        isReasonablenessWarning = true;
-        reasonablenessMessage = `Unusually low pricing detected relative to recorded area (${landArea} m²). Please verify the entered pricing.`;
       }
 
       // Methodological score evaluation:
@@ -1515,6 +1582,9 @@
         purpose,
         saleMode,
         leaseMode,
+        leasePeriod,
+        leasePriceUnit,
+        monthlyLeasePrice,
         askingPrice,
         leasePrice,
         landArea,
@@ -1526,6 +1596,8 @@
         utilitiesIncluded,
         additionalCosts,
         knownUpfrontCosts,
+        leaseUpfrontCosts,
+        saleAdditionalCosts,
         birZonal,
         compMarket,
         compLease,
@@ -1565,11 +1637,12 @@
       setText('[data-econ-from-purpose]', purposeNames[res.purpose] || 'For Sale');
 
       let priceText = 'Price on request';
+      const leaseTerms = `${res.leasePriceUnit === 'sqm' ? 'm² / ' : ''}${res.leasePeriod}`;
       if (res.purpose === 'lease') {
-        priceText = res.leasePrice ? `₱${number(res.leasePrice)} / month` : (res.leaseMode === 'request' ? 'Rate on request' : 'Not entered');
+        priceText = res.leasePrice ? `₱${number(res.leasePrice)} / ${leaseTerms}` : (res.leaseMode === 'request' ? 'Rate on request' : 'Not entered');
       } else if (res.purpose === 'sale_or_lease') {
         const s = res.askingPrice ? `₱${number(res.askingPrice)}` : 'Sale: Request';
-        const l = res.leasePrice ? `₱${number(res.leasePrice)}/mo` : 'Lease: Request';
+        const l = res.leasePrice ? `₱${number(res.leasePrice)} / ${leaseTerms}` : 'Lease: Request';
         priceText = `${s} · ${l}`;
       } else {
         priceText = res.askingPrice ? `₱${number(res.askingPrice)}` : (res.saleMode === 'request' ? 'Price on request' : 'Not entered');
@@ -1665,8 +1738,11 @@
           }
           if (upfrontNoteEl) upfrontNoteEl.textContent = `(${noteParts.join(' + ')})`;
         } else {
-          upfrontValEl.textContent = 'None recorded';
-          if (upfrontNoteEl) upfrontNoteEl.textContent = '(deposit, advance rent, or closing expenses)';
+          const alternatives = [];
+          if (res.saleAdditionalCosts !== null) alternatives.push(`Sale: ₱${number(res.saleAdditionalCosts)}`);
+          if (res.leaseUpfrontCosts !== null) alternatives.push(`Lease: ₱${number(res.leaseUpfrontCosts)}`);
+          upfrontValEl.textContent = res.purpose === 'sale_or_lease' && alternatives.length ? alternatives.join(' · ') : res.knownUpfrontCosts === 0 ? '₱0 recorded' : 'Not established';
+          if (upfrontNoteEl) upfrontNoteEl.textContent = res.purpose === 'sale_or_lease' ? 'Alternative terms, shown separately. Sale costs exclude the purchase price.' : res.leasePeriod === 'day' && res.purpose === 'lease' ? 'A daily rate needs an agreed monthly basis for deposit calculations.' : 'Record deposit, advance rent, or additional purchase costs.';
         }
       }
 
@@ -1723,7 +1799,7 @@
       }
 
       // Known upfront outlay summary row
-      setText('[data-econ-upfront-summary]', res.knownUpfrontCosts > 0 ? `₱${number(res.knownUpfrontCosts)}` : 'None recorded');
+      setText('[data-econ-upfront-summary]', res.knownUpfrontCosts !== null ? `₱${number(res.knownUpfrontCosts)}` : res.purpose === 'sale_or_lease' ? 'See separate sale and lease terms' : 'Not established');
 
       // Dual Sale or Lease row for lease rate
       const leaseRow = $('[data-econ-lease-sqm-row]');
@@ -1785,7 +1861,7 @@
 
       // Check asking price (for sale or sale_or_lease)
       if (purpose !== 'lease') {
-        const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
+        const saleMode = value('sale_price_mode') || 'amount';
         if (saleMode === 'amount') {
           const rawPrice = (value('price') || '').replace(/,/g, '').trim();
           if (rawPrice !== '') {
@@ -1805,7 +1881,7 @@
 
       // Check monthly lease price (for lease or sale_or_lease)
       if (purpose !== 'sale') {
-        const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+        const leaseMode = value('lease_price_mode') || 'amount';
         if (leaseMode === 'amount') {
           const rawLease = (value('lease_price') || '').replace(/,/g, '').trim();
           if (rawLease !== '') {
@@ -1944,7 +2020,7 @@
 
     $('[data-econ-reset-example]')?.addEventListener('click', () => {
       all('[name="listing_purpose"]').forEach(r => { r.checked = r.value === 'sale'; });
-      all('[name="sale_price_mode"]').forEach(r => { r.checked = r.value === 'amount'; });
+      if (field('sale_price_mode')) field('sale_price_mode').value = 'amount';
       const pInp = $('#pwAskingPrice') || field('price');
       if (pInp) pInp.value = '9,000,000';
       const aInp = field('land_area');
@@ -2004,6 +2080,60 @@
         setback: Boolean($('[data-zoning-cond="setback"]')?.checked),
         pollution: Boolean($('[data-zoning-cond="pollution"]')?.checked),
       };
+
+      const useStatusControl = field('zoning_use_status')?.value || $('#pwZoningUseStatus')?.value;
+      if (useStatusControl === 'prohibited') {
+        return {
+          isComplete: true,
+          status: 'prohibited',
+          statusLabel: 'Prohibited Use',
+          score: 0,
+          isEligible: false,
+          suitability: 'unsuitable',
+          iaiContribution: 0,
+          weight: 15.0,
+          zoneCode: zoneRaw || 'Unzoned',
+          zoneName: zoneRaw || 'Unzoned',
+          useCode: activityRaw || 'commercial',
+          useLabel: activityRaw || 'Commercial',
+          ruleSource: 'San Fernando City Zoning Ordinance No. 2018-06',
+          ordinanceSection: 'City Ordinance 2018-06',
+          sourcePriority: 1,
+          isOfficialCityRule: true,
+          conditions: [],
+          unmetConditions: [],
+          restrictions: ['Strictly prohibited under CLUP zoning regulations.'],
+          reason: 'Non-conforming use strictly prohibited under San Fernando City CLUP.',
+          explanation: 'The proposed business scenario is strictly prohibited under the recorded CLUP zoning classification.',
+          rulesVersion: 'sfc-zo-2018-06-v2.1'
+        };
+      }
+      if (useStatusControl === 'not_confirmed') {
+        return {
+          isComplete: false,
+          status: 'not_confirmed',
+          statusLabel: 'Not Confirmed',
+          score: null,
+          isEligible: false,
+          suitability: 'incomplete',
+          iaiContribution: null,
+          weight: 15.0,
+          zoneCode: zoneRaw || null,
+          zoneName: zoneRaw || null,
+          useCode: activityRaw || null,
+          useLabel: activityRaw || null,
+          ruleSource: 'San Fernando City Zoning Ordinance No. 2018-06',
+          ordinanceSection: 'City Ordinance 2018-06',
+          sourcePriority: 1,
+          isOfficialCityRule: false,
+          conditions: [],
+          unmetConditions: [],
+          restrictions: [],
+          reason: 'Locational clearance confirmation required. Permission cannot be automatically inferred from broad classification.',
+          explanation: 'Zoning permission requires official CPDO locational clearance verification.',
+          rulesVersion: 'sfc-zo-2018-06-v2.1'
+        };
+      }
 
       if (!zoneRaw || !activityRaw) {
         return {
@@ -2502,6 +2632,287 @@
       existLandUseInp.addEventListener('change', () => { preview(); ready(); });
     }
 
+    function syncScreeningInterfaces() {
+      const titleVal = (value('property_name') || 'Untitled property').trim();
+      const pt = point();
+      const latStr = pt ? pt[0].toFixed(6) : (value('lat') || '');
+      const lngStr = pt ? pt[1].toFixed(6) : (value('lng') || '');
+
+      const riskProp = $('#pwRiskPropertyName');
+      if (riskProp) riskProp.value = titleVal;
+      const zoningProp = $('#pwZoningPropertyName');
+      if (zoningProp) zoningProp.value = titleVal;
+      syncReusedPropertyLocation();
+
+      const riskLat = $('#pwRiskLatitude');
+      if (riskLat) riskLat.value = latStr;
+      const riskLng = $('#pwRiskLongitude');
+      if (riskLng) riskLng.value = lngStr;
+
+      const zoningLat = $('#pwZoningLatitude');
+      if (zoningLat) zoningLat.value = latStr;
+      const zoningLng = $('#pwZoningLongitude');
+      if (zoningLng) zoningLng.value = lngStr;
+
+      const riskCrumb = $('[data-screening-property-crumb]');
+      if (riskCrumb) riskCrumb.textContent = titleVal;
+      const zoningCrumb = $('[data-screening-zoning-crumb]');
+      if (zoningCrumb) zoningCrumb.textContent = titleVal;
+
+      const zoningSelect = $('#pwZoningClassification');
+      const zoningTag = $('#pwMapZoningDistrictTag');
+      if (zoningSelect && zoningTag) {
+        const opt = zoningSelect.options[zoningSelect.selectedIndex];
+        zoningTag.textContent = 'Zoning not recorded';
+        if (opt && opt.value) {
+          zoningTag.textContent = opt.value + ' / ' + (opt.text.split('—')[1]?.trim() || opt.value);
+        }
+      }
+      initRiskAndZoningMiniMaps();
+    }
+
+    let riskMiniMap = null;
+    let zoningMiniMap = null;
+    let riskMiniMarker = null;
+    let riskMiniPolygon = null;
+    let zoningMiniMarker = null;
+    let zoningMiniPolygon = null;
+
+    function initRiskAndZoningMiniMaps() {
+      if (!window.L) return;
+
+      const riskCanvas = $('#pwRiskMiniMapCanvas');
+      if (riskCanvas && !riskMiniMap) {
+        riskMiniMap = tileMap(riskCanvas);
+      }
+
+      const zoningCanvas = $('#pwZoningMiniMapCanvas');
+      if (zoningCanvas && !zoningMiniMap) {
+        zoningMiniMap = tileMap(zoningCanvas);
+      }
+
+      syncRiskAndZoningMiniMaps();
+    }
+
+    function syncRiskAndZoningMiniMaps() {
+      const coords = point();
+      const b = boundary;
+
+      if (riskMiniMap) {
+        riskMiniMap.invalidateSize({pan:false});
+        if (!coords && riskMiniMarker) {riskMiniMarker.remove();riskMiniMarker=null;}
+        if (riskMiniPolygon) {riskMiniPolygon.remove();riskMiniPolygon=null;}
+        if (!coords && !b) riskMiniMap.setView([16.615,120.316],12,{animate:false});
+        if (coords) {
+          riskMiniMap.setView(coords, Math.max(16, riskMiniMap.getZoom()), { animate: false });
+          if (!riskMiniMarker) {
+            riskMiniMarker = L.marker(coords, { icon: referenceIcon() }).addTo(riskMiniMap);
+          } else {
+            riskMiniMarker.setLatLng(coords);
+          }
+        }
+        if (b && typeof L.geoJSON === 'function') {
+          if (riskMiniPolygon) riskMiniPolygon.remove();
+          riskMiniPolygon = L.geoJSON(b, {
+            style: { color: '#ef4444', weight: 2.5, fillColor: '#f87171', fillOpacity: 0.25 }
+          }).addTo(riskMiniMap);
+          riskMiniMap.fitBounds(riskMiniPolygon.getBounds(), { padding: [15, 15], animate: false });
+        }
+        requestAnimationFrame(() => riskMiniMap?.invalidateSize());
+      }
+
+      if (zoningMiniMap) {
+        zoningMiniMap.invalidateSize({pan:false});
+        if (!coords && zoningMiniMarker) {zoningMiniMarker.remove();zoningMiniMarker=null;}
+        if (zoningMiniPolygon) {zoningMiniPolygon.remove();zoningMiniPolygon=null;}
+        if (!coords && !b) zoningMiniMap.setView([16.615,120.316],12,{animate:false});
+        const zoningSelect = $('#pwZoningClassification');
+        const zoningTag = $('#pwMapZoningDistrictTag');
+        if (zoningSelect && zoningTag) {
+          const opt = zoningSelect.options[zoningSelect.selectedIndex];
+          if (opt && opt.value) {
+            zoningTag.textContent = opt.value + ' / ' + (opt.text.split('—')[1]?.trim() || opt.value);
+          }
+        }
+
+        if (coords) {
+          zoningMiniMap.setView(coords, Math.max(16, zoningMiniMap.getZoom()), { animate: false });
+          if (!zoningMiniMarker) {
+            zoningMiniMarker = L.marker(coords, { icon: referenceIcon() }).addTo(zoningMiniMap);
+          } else {
+            zoningMiniMarker.setLatLng(coords);
+          }
+        }
+        if (b && typeof L.geoJSON === 'function') {
+          if (zoningMiniPolygon) zoningMiniPolygon.remove();
+          zoningMiniPolygon = L.geoJSON(b, {
+            style: { color: '#0284c7', weight: 2.5, fillColor: '#38bdf8', fillOpacity: 0.25 }
+          }).addTo(zoningMiniMap);
+          zoningMiniMap.fitBounds(zoningMiniPolygon.getBounds(), { padding: [15, 15], animate: false });
+        }
+        requestAnimationFrame(() => zoningMiniMap?.invalidateSize());
+      }
+    }
+
+    let screeningInteractionsInitialized = false;
+    function initScreeningInteractions() {
+      if (screeningInteractionsInitialized) return;
+      screeningInteractionsInitialized = true;
+
+      $('#pwRiskCheckLocationBtn')?.addEventListener('click', () => {
+        const coords = point();
+        if (riskMiniMap && coords) {
+          riskMiniMap.setView(coords, 18, { animate: true });
+          riskMiniMap.invalidateSize();
+        }
+      });
+      $('#pwZoningCheckLocationBtn')?.addEventListener('click', () => {
+        const coords = point();
+        if (zoningMiniMap && coords) {
+          zoningMiniMap.setView(coords, 18, { animate: true });
+          zoningMiniMap.invalidateSize();
+        }
+      });
+
+      all('.pw-screening-subtabs .pw-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const parent = btn.closest('.pw-screening-subtabs');
+          if (parent) {
+            parent.querySelectorAll('.pw-subtab-btn').forEach(b => b.classList.remove('is-active'));
+            btn.classList.add('is-active');
+          }
+        });
+      });
+
+      const setupDropzone = (dropzoneId, inputId, nameId, statusId, chipId, removeId, defaultName) => {
+        const dropzone = $(dropzoneId);
+        const input = $(inputId);
+        const nameEl = $(nameId);
+        const statusEl = $(statusId);
+        const chip = $(chipId);
+        const removeBtn = $(removeId);
+
+        if (dropzone && input) {
+          dropzone.addEventListener('click', () => input.click());
+          input.addEventListener('change', () => {
+            if (input.files && input.files[0]) {
+              const file = input.files[0];
+              if (nameEl) nameEl.textContent = file.name;
+              if (statusEl) statusEl.textContent = Math.round(file.size / 1024) + ' KB · Subject to review';
+              if (chip) chip.style.display = 'flex';
+            }
+          });
+        }
+
+        if (removeBtn && input) {
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            input.value = '';
+            if (chip) chip.style.display = 'none';
+            if (nameEl) nameEl.textContent = '';
+            if (statusEl) statusEl.textContent = '';
+          });
+        }
+      };
+
+      setupDropzone('#pwRiskDropzone', '#pwRiskFileInput', '#pwRiskFileName', '#pwRiskFileStatus', '#pwRiskFileChip', '#pwRiskFileRemove');
+      setupDropzone('#pwZoningDropzone', '#pwZoningFileInput', '#pwZoningFileName', '#pwZoningFileStatus', '#pwZoningFileChip', '#pwZoningFileRemove');
+
+      $('#pwRiskAssessmentScope')?.addEventListener('change', (e) => {
+        const disp = $('#pwRiskScopeDisplay');
+        if (disp) disp.textContent = e.target.options[e.target.selectedIndex].text;
+      });
+      $('#pwRiskSourceSelect')?.addEventListener('change', (e) => {
+        const disp = $('#pwRiskSourceDisplay');
+        if (disp) disp.textContent = e.target.value.split('—')[0].trim();
+      });
+      $('#pwZoningAssessmentScope')?.addEventListener('change', (e) => {
+        const disp = $('#pwZoningScopeDisplay');
+        if (disp) disp.textContent = e.target.options[e.target.selectedIndex].text;
+      });
+      $('#pwZoningSourceSelect')?.addEventListener('change', (e) => {
+        const disp = $('#pwZoningSourceDisplay');
+        if (disp) disp.textContent = e.target.value.split('(')[0].trim();
+      });
+
+      all('.pw-finding-input').forEach(input => {
+        input.addEventListener('input', () => {
+          const row = input.closest('tr');
+          const pill = row?.querySelector('.pw-pill');
+          if (pill) {
+            if (input.value.trim().length > 0) {
+              pill.textContent = 'Recorded';
+              pill.className = 'pw-pill pw-pill--teal';
+            } else {
+              pill.textContent = 'Not recorded';
+              pill.className = 'pw-pill pw-pill--gray';
+            }
+          }
+        });
+      });
+
+      $('#pwRiskAddFindingBtn')?.addEventListener('click', () => {
+        const tbody = $('#pwRiskFindingsTable tbody');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.className = 'pw-hazard-row-compact';
+        tr.innerHTML = `
+          <td class="pw-hazard-col-cell">
+            <div class="pw-hazard-label-group">
+              <input type="text" placeholder="Hazard name" class="pw-sc-input" style="height:28px;font-size:12px;width:120px;padding:2px 6px;">
+            </div>
+          </td>
+          <td>
+            <input type="text" class="pw-finding-input" placeholder="Enter exact source finding">
+          </td>
+          <td class="pw-evidence-col-cell">
+            <span class="pw-pill pw-pill--gray">Not recorded</span>
+          </td>
+        `;
+        const inp = tr.querySelector('.pw-finding-input');
+        const pill = tr.querySelector('.pw-pill');
+        inp.addEventListener('input', () => {
+          if (inp.value.trim().length > 0) {
+            pill.textContent = 'Recorded';
+            pill.className = 'pw-pill pw-pill--teal';
+          } else {
+            pill.textContent = 'Not recorded';
+            pill.className = 'pw-pill pw-pill--gray';
+          }
+        });
+        tbody.appendChild(tr);
+      });
+
+      $('#pwZoningAddFindingBtn')?.addEventListener('click', () => {
+        const tbody = $('#pwZoningFindingsTable tbody');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" placeholder="Activity name" class="pw-sc-input" style="height:28px;font-size:12px;width:140px;padding:2px 6px;"></td>
+          <td>
+            <select class="pw-sc-select" style="height:28px;font-size:11.5px;padding:2px 6px;">
+              <option value="allowed">Allowed</option>
+              <option value="conditional">Conditional</option>
+              <option value="prohibited">Prohibited</option>
+            </select>
+          </td>
+          <td><input type="text" placeholder="Conditions / requirements" class="pw-finding-input"></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const handleCheckLocation = () => {
+        const pt = point();
+        if (pt) {
+          notify(`Coordinates confirmed: ${pt[0].toFixed(5)}, ${pt[1].toFixed(5)} in City of San Fernando, La Union.`, false);
+        } else {
+          notify('Please pin or enter coordinates in Step 2 to verify location.', true);
+        }
+      };
+      $('#pwRiskCheckLocationBtn')?.addEventListener('click', handleCheckLocation);
+      $('#pwZoningCheckLocationBtn')?.addEventListener('click', handleCheckLocation);
+    }
+
     function selectLocationMethod(method, sync = true) {
       locationMethod = ['area','pin','draw'].includes(method) ? method : 'pin';
       all('[data-location-method]').forEach(button => {
@@ -2547,8 +2958,121 @@
         });
       });
     }
+    let activeEvidenceCriterion = 'spatial_accessibility';
+
+    function updateFooterNextLabel() {
+      if (step !== 2) return;
+      const isBroker = (window.SFC_APP_CONFIG?.user?.role || '') === 'seller';
+      const activeTab = activeEvidenceCriterion || form.querySelector('.pw-criterion-tab.is-active')?.dataset.evidenceTab || 'spatial_accessibility';
+      let nextLabelText = 'Next: Infrastructure';
+
+      const purpose = value('listing_purpose') || 'sale';
+      const authLabel = purpose === 'lease' ? 'Authority to Lease' : (purpose === 'both' ? 'Authority to Sell / Lease' : 'Authority to Sell');
+
+      switch (activeTab) {
+        case 'spatial_accessibility':
+          nextLabelText = 'Next: Infrastructure';
+          break;
+        case 'infrastructure_readiness':
+          nextLabelText = 'Next: Economic viability';
+          break;
+        case 'economic_viability':
+          nextLabelText = 'Next: Nearby businesses';
+          break;
+        case 'nearby_businesses':
+          nextLabelText = 'Next: Risk & hazards';
+          break;
+        case 'risk_constraints':
+          nextLabelText = 'Next: Zoning compatibility';
+          break;
+        case 'zoning_compatibility':
+          nextLabelText = isBroker ? `Next: ${authLabel}` : 'Continue to Review';
+          break;
+        case 'authority_to_sell':
+          nextLabelText = 'Continue to Review';
+          break;
+        default:
+          nextLabelText = 'Continue to Review';
+      }
+
+      form.querySelectorAll('[data-editor-next]').forEach((btn) => {
+        const nextLabel = btn.querySelector('[data-editor-next-label]') || btn;
+        if (nextLabel) {
+          nextLabel.textContent = nextLabelText;
+        }
+      });
+    }
+
+    function onFooterNext() {
+      if (step !== 2) return true;
+      const isBroker = (window.SFC_APP_CONFIG?.user?.role || '') === 'seller';
+      const criteriaList = [
+        'spatial_accessibility',
+        'infrastructure_readiness',
+        'economic_viability',
+        'nearby_businesses',
+        'risk_constraints',
+        'zoning_compatibility'
+      ];
+      if (isBroker) criteriaList.push('authority_to_sell');
+
+      const current = activeEvidenceCriterion || form.querySelector('.pw-criterion-tab.is-active')?.dataset.evidenceTab || 'spatial_accessibility';
+      if (current === 'economic_viability') {
+        if (typeof validateEconomicViabilityFields === 'function' && !validateEconomicViabilityFields()) {
+          return false;
+        }
+      }
+
+      const currentIndex = criteriaList.indexOf(current);
+      if (currentIndex >= 0 && currentIndex < criteriaList.length - 1) {
+        const nextCrit = criteriaList[currentIndex + 1];
+        saveDraft(false);
+        selectEvidenceCriterion(nextCrit);
+        const panel = form.querySelector(`[data-evidence-panel="${nextCrit}"]`);
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        updateCriteriaStatus();
+        updateFooterNextLabel();
+        return false;
+      }
+
+      return true;
+    }
+
+    function onFooterBack() {
+      if (step !== 2) return true;
+      const isBroker = (window.SFC_APP_CONFIG?.user?.role || '') === 'seller';
+      const criteriaList = [
+        'spatial_accessibility',
+        'infrastructure_readiness',
+        'economic_viability',
+        'nearby_businesses',
+        'risk_constraints',
+        'zoning_compatibility'
+      ];
+      if (isBroker) criteriaList.push('authority_to_sell');
+
+      const current = activeEvidenceCriterion || form.querySelector('.pw-criterion-tab.is-active')?.dataset.evidenceTab || 'spatial_accessibility';
+      const currentIndex = criteriaList.indexOf(current);
+      if (currentIndex > 0) {
+        const prevCrit = criteriaList[currentIndex - 1];
+        selectEvidenceCriterion(prevCrit);
+        const panel = form.querySelector(`[data-evidence-panel="${prevCrit}"]`);
+        if (panel) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        updateCriteriaStatus();
+        updateFooterNextLabel();
+        return false;
+      }
+
+      return true;
+    }
+
     function selectEvidenceCriterion(selected) {
       if (step === 2) { const editor = $('[data-evidence-editor]'); if (editor) editor.open = true; }
+      activeEvidenceCriterion = selected;
       tabs('data-evidence-tab', 'data-evidence-panel', selected);
       const mobileSelect = $('[data-criteria-mobile-select]');
       if (mobileSelect && mobileSelect.value !== selected) {
@@ -2557,7 +3081,12 @@
       all('[data-criteria-pill]').forEach(pill => {
         pill.classList.toggle('is-active', pill.dataset.criteriaPill === selected);
       });
-      updateCriteriaStatus();
+      updateFooterNextLabel();
+      if (selected === 'risk_constraints' || selected === 'zoning_compatibility') {
+        syncScreeningInterfaces();
+        requestAnimationFrame(() => syncRiskAndZoningMiniMaps());
+        setTimeout(() => syncRiskAndZoningMiniMaps(), 100);
+      }
       if (selected === 'nearby_businesses') {
         if (!radarMap && $('[data-radar-map]')) {
           syncRadar();
@@ -2566,6 +3095,9 @@
             radarMap.invalidateSize();
             if (radiusLayer) radarMap.fitBounds(radiusLayer.getBounds(), { padding: [25, 25] });
           });
+          setTimeout(() => {
+            radarMap?.invalidateSize();
+          }, 100);
         }
       }
     }
@@ -2582,13 +3114,14 @@
     });
     bindTabs('data-review-tab', selected => tabs('data-review-tab','data-review-panel',selected));
     bindTabs('data-radar-tab', selected => { radarTab = selected; tabs('data-radar-tab','data-radar-unused-panel',selected); renderRadarList(); });
-    function updateCriteriaStatus() {
+    function getCriteriaStatusMap() {
       const hasObservation = name => {
         const answer = form.querySelector(`[name="${name}"]:checked`)?.value;
         return Boolean(answer && !['unknown', 'not_verified'].includes(answer));
       };
-      const statusMap = {
+      return {
         spatial_accessibility: Boolean(
+          value('road_access') || value('road_surface_passability') ||
           hasObservation('road_frontage') ||
           (value('road_surface') && !['unknown', 'not_verified'].includes(value('road_surface'))) ||
           value('carriageway_width') ||
@@ -2598,6 +3131,9 @@
           value('spatial_evidence_source')
         ),
         infrastructure_readiness: Boolean(
+          ['electricity_arrangement', 'water_supply', 'internet_telecom', 'drainage_conditions'].some(name => {
+            const answer = value(name); return answer && !['unknown', 'not_verified', 'not_assessed'].includes(answer);
+          }) ||
           hasObservation('electricity') ||
           hasObservation('water') ||
           hasObservation('internet') ||
@@ -2622,7 +3158,8 @@
           value('zoning_classification') && (
             value('existing_land_use') ||
             all('[name="clup_allowed_uses[]"]:checked').length ||
-            value('clup_conditional_uses')
+            value('clup_conditional_uses') ||
+            (value('zoning_use_status') && value('zoning_use_status') !== 'not_confirmed')
           )
         ),
         risk_constraints: Boolean(
@@ -2631,12 +3168,40 @@
           value('readiness_notes')
         ),
       };
+    }
+
+    function areCriteriaInputsComplete() {
+      const map = getCriteriaStatusMap();
+      const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'risk_constraints', 'zoning_compatibility'];
+      return keys.every(k => Boolean(map[k]));
+    }
+
+    function getCriteriaInputsSummary() {
+      const map = getCriteriaStatusMap();
+      const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'risk_constraints', 'zoning_compatibility'];
+      const completed = keys.filter(k => Boolean(map[k])).length;
+      return {
+        completedCount: completed,
+        totalCount: keys.length,
+        summary: `${completed} of ${keys.length} criteria have recorded evidence`
+      };
+    }
+
+    function updateCriteriaStatus() {
+      const statusMap = getCriteriaStatusMap();
+      const summary = getCriteriaInputsSummary();
+      setText('[data-completeness-count]', `${summary.completedCount} of ${summary.totalCount}`);
+      all('[data-completeness-badge]').forEach(compBadge => {
+        compBadge.innerHTML = `<span data-completeness-count>${summary.completedCount} of ${summary.totalCount}</span> with evidence`;
+      });
 
       Object.entries(statusMap).forEach(([critKey, isComplete]) => {
         const tabBtn = form.querySelector(`[data-evidence-tab="${critKey}"]`);
         if (tabBtn) {
-          tabBtn.classList.toggle('is-complete', isComplete);
+          tabBtn.classList.toggle('has-evidence', isComplete);
+          tabBtn.classList.remove('is-complete');
           tabBtn.classList.toggle('is-incomplete', !isComplete);
+          tabBtn.title = isComplete ? 'Evidence entered; verification is separate' : 'No evidence entered yet';
         }
       });
 
@@ -2647,7 +3212,7 @@
           if (statusMap[key] !== undefined) {
             const baseText = opt.dataset.baseText || opt.textContent.replace(/ [✓•]/g, '').trim();
             opt.dataset.baseText = baseText;
-            opt.textContent = `${baseText} ${statusMap[key] ? '✓' : '•'}`;
+            opt.textContent = `${baseText}${statusMap[key] ? ' · Evidence entered' : ''}`;
           }
         });
       }
@@ -2667,7 +3232,7 @@
       const breakdown = {};
       for (const [key, weight] of Object.entries(weights)) {
         const val = criteriaScores ? criteriaScores[key] : null;
-        const isNum = val !== null && val !== undefined && Number.isFinite(Number(val));
+        const isNum = typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= 100;
         if (isNum) {
           completedCount++;
           total += (Number(val) * weight) / 100;
@@ -2676,9 +3241,11 @@
           breakdown[key] = { score: null, weight, contribution: null };
         }
       }
-      const allComplete = completedCount === 6;
+      const isZoningProhibited = Boolean(criteriaScores?._zoningProhibited);
+      const allComplete = completedCount === 6 && !isZoningProhibited;
       return {
         isComplete: allComplete,
+        isProhibited: isZoningProhibited,
         completedCount,
         totalCount: 6,
         iaiScore: allComplete ? Math.round(total * 10) / 10 : null,
@@ -2699,20 +3266,12 @@
         submitBadge.textContent = hasBasics ? 'Ready to submit' : 'Essentials needed';
         submitBadge.className = `pw-badge ${hasBasics ? 'pw-badge-teal' : 'pw-badge-amber'}`;
       }
-      let count = 0;
-      const hasObservation = name => {const answer=form.querySelector(`[name="${name}"]:checked`)?.value;return Boolean(answer && !['unknown','not_verified'].includes(answer));};
-      if (hasObservation('road_frontage') || (value('road_surface') && !['unknown','not_verified'].includes(value('road_surface'))) || value('access_route_condition') || value('spatial_evidence_source')) count++;
-      if (hasObservation('electricity') || hasObservation('water') || hasObservation('internet') || value('utility_evidence_source')) count++;
-      if (+value('bir_zonal_value') > 0 || value('assessed_market_value') || value('economic_evidence_source')) count++;
-      if (value('nearby_analysis_origin') || value('commercial_corridor') || all('[name="assessmentTags[]"]:checked').length || value('nearby_evidence_source')) count++;
-      if (value('zoning_classification') && (value('existing_land_use') || all('[name="clup_allowed_uses[]"]:checked').length || value('clup_conditional_uses'))) count++;
-      if (value('hazard_evidence_source') || value('hazard_evidence_reference') || value('readiness_notes')) count++;
+      const count = getCriteriaInputsSummary().completedCount;
       setText('[data-completeness-count]', `${count} of 6`);
-      const compBadge = $('[data-completeness-badge]');
-      if (compBadge) {
-        compBadge.textContent = `${count}/6 criteria`;
-        compBadge.className = `pw-badge ${count >= 6 ? 'pw-badge-teal' : count >= 3 ? 'pw-badge-sky' : 'pw-badge-amber'}`;
-      }
+      all('[data-completeness-badge]').forEach(compBadge => {
+        compBadge.textContent = `${count}/6 with evidence`;
+        compBadge.className = 'pw-badge pw-badge-sky';
+      });
 
       // Update Tier 3 Assessment Readiness in Step 4 Review
       const spatialRes = typeof evaluateSpatialAccessibilityClient === 'function' ? evaluateSpatialAccessibilityClient() : null;
@@ -2720,16 +3279,16 @@
       const econRes = typeof evaluateEconomicViabilityClient === 'function' ? evaluateEconomicViabilityClient() : null;
       const zoningRes = typeof evaluateZoningCompatibilityClient === 'function' ? evaluateZoningCompatibilityClient() : null;
 
-      const nearbyTags = all('[name="assessmentTags[]"]:checked').length;
       const nearbyScore = (lastAssessment?.assessmentCriteria?.nearby_businesses != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.nearby_businesses)))
         ? Number(lastAssessment.assessmentCriteria.nearby_businesses)
-        : (nearbyTags > 0 ? Math.min(100, 50 + nearbyTags * 10) : null);
+        : null;
 
       const riskScoreText = $('[data-risk-total-score]')?.textContent;
       const riskScore = (riskScoreText && riskScoreText !== '—' && !isNaN(Number(riskScoreText)))
         ? Number(riskScoreText)
         : ((lastAssessment?.assessmentCriteria?.risk_constraints != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.risk_constraints))) ? Number(lastAssessment.assessmentCriteria.risk_constraints) : null);
 
+      const isZoningProhibited = zoningRes?.status === 'prohibited';
       const criteriaScores = {
         spatial_accessibility: spatialRes?.score ?? null,
         infrastructure_readiness: infraRes?.score ?? null,
@@ -2739,21 +3298,34 @@
         zoning_compatibility: zoningRes?.score ?? null
       };
 
+      const composite = calculateWizardCompositeMce({
+        ...criteriaScores,
+        _zoningProhibited: isZoningProhibited
+      });
+
       const updateCritRow = (key, score, isDone) => {
         const scoreEl = $(`[data-review-crit-score="${key}"]`);
         const badgeEl = $(`[data-review-crit-badge="${key}"]`);
+        const contribEl = $(`[data-review-crit-contrib="${key}"]`);
         if (scoreEl) {
           scoreEl.textContent = (score !== null && score !== undefined && Number.isFinite(Number(score))) ? `${Number(score).toFixed(1)}/100` : '—';
         }
+        if (contribEl) {
+          const contrib = composite.breakdown[key]?.contribution;
+          contribEl.textContent = (contrib !== null && contrib !== undefined && Number.isFinite(Number(contrib))) ? `+${Number(contrib).toFixed(1)} pts` : '—';
+        }
         if (badgeEl) {
-          if (score !== null && score !== undefined && isDone) {
-            badgeEl.textContent = 'Complete';
+          if (key === 'zoning_compatibility' && isZoningProhibited) {
+            badgeEl.textContent = 'Prohibited';
+            badgeEl.className = 'pw-badge pw-badge-amber';
+          } else if (score !== null && score !== undefined && isDone) {
+            badgeEl.textContent = 'Input complete';
             badgeEl.className = 'pw-badge pw-badge-teal';
           } else if (isDone) {
-            badgeEl.textContent = 'Provisional';
+            badgeEl.textContent = 'Input complete';
             badgeEl.className = 'pw-badge pw-badge-sky';
           } else {
-            badgeEl.textContent = 'Pending';
+            badgeEl.textContent = 'Input pending';
             badgeEl.className = 'pw-badge pw-badge-amber';
           }
         }
@@ -2766,29 +3338,103 @@
       updateCritRow('risk_constraints', criteriaScores.risk_constraints, Boolean(criteriaScores.risk_constraints !== null));
       updateCritRow('zoning_compatibility', criteriaScores.zoning_compatibility, Boolean(zoningRes?.isComplete));
 
-      const composite = calculateWizardCompositeMce(criteriaScores);
       const compositeIaiEl = $('[data-review-composite-iai]');
       const compositeStatusEl = $('[data-review-composite-status]');
       const compositeDescEl = $('[data-review-composite-desc]');
+      setText('[data-review-scenario]', value('proposed_activity') || 'Business activity not selected');
+      setText('[data-review-model-version]', 'LOCUS-SF v3 · Provisional');
 
-      if (composite.isComplete) {
-        if (compositeIaiEl) compositeIaiEl.innerHTML = `${composite.iaiScore.toFixed(1)} <small>/ 100</small>`;
+      if (isZoningProhibited) {
+        if (compositeIaiEl) compositeIaiEl.innerHTML = 'Disqualified <small>(Prohibited use)</small>';
         if (compositeStatusEl) {
-          compositeStatusEl.textContent = 'Assessment Ready';
-          compositeStatusEl.className = 'pw-badge pw-badge-teal';
+          compositeStatusEl.textContent = 'Zoning Ineligible';
+          compositeStatusEl.className = 'pw-badge pw-badge-amber';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = `All six criteria verified and computed. Composite IAI = Σ(score × weight ÷ 100) = ${composite.iaiScore.toFixed(1)}/100.`;
+          compositeDescEl.textContent = 'The proposed business scenario is strictly prohibited under the recorded CLUP zoning classification. Assessment score is withheld.';
+        }
+      } else if (composite.isComplete) {
+        if (compositeIaiEl) compositeIaiEl.textContent = 'Pending review';
+        if (compositeStatusEl) {
+          compositeStatusEl.textContent = 'Evidence review pending';
+          compositeStatusEl.className = 'pw-badge pw-badge-sky';
+        }
+        if (compositeDescEl) {
+          compositeDescEl.textContent = 'All 6 criteria have complete inputs. Evidence review pending. Final IAI unavailable until all six criteria have verified evidence.';
         }
       } else {
         if (compositeIaiEl) compositeIaiEl.innerHTML = '— <small>/ 100</small>';
         if (compositeStatusEl) {
-          compositeStatusEl.textContent = 'Provisional Baseline';
+          compositeStatusEl.textContent = 'Final IAI unavailable';
           compositeStatusEl.className = 'pw-badge pw-badge-amber';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = `Preliminary score based on intake facts (${composite.completedCount}/6 criteria complete). Official composite IAI requires complete validated evidence across all six criteria. Missing criteria are never defaulted.`;
+          compositeDescEl.textContent = `${composite.completedCount} of 6 criteria have complete inputs. Evidence review pending. Final IAI unavailable until all six criteria have verified evidence.`;
         }
+      }
+
+      // Populate Strengths, Constraints, and Outstanding Requirements
+      const strengths = [];
+      const constraints = [];
+      const outstanding = [];
+
+      if (value('road_access') === 'frontage' && value('road_surface_passability') === 'paved') {
+        strengths.push('Reported direct frontage with paved road access.');
+      }
+      if (parseFloat(value('carriageway_width')) >= 6) {
+        strengths.push(`Adequate carriageway width (${value('carriageway_width')}m) for commercial traffic.`);
+      }
+      if (value('electricity_arrangement') === 'grid_reliable') {
+        strengths.push('Reported grid electricity connection.');
+      }
+      if (['piped_reliable', 'piped_irregular'].includes(value('water_supply'))) {
+        strengths.push('Reported piped water connection.');
+      }
+      if (value('internet_telecom') === 'fiber_reliable') {
+        strengths.push('Reported fiber internet connection.');
+      }
+      if (zoningRes?.status === 'allowed') {
+        strengths.push(`Conforming allowable use under CLUP ${value('zoning_classification') || 'designated zone'}.`);
+      }
+      if (econRes?.score >= 70) {
+        strengths.push('Competitive property asking valuation relative to local market references.');
+      }
+
+      if (isZoningProhibited) {
+        constraints.push('Critical constraint: Proposed business scenario is PROHIBITED under city CLUP zoning.');
+      } else if (zoningRes?.status === 'conditional') {
+        constraints.push('Conditional zoning: Requires formal Locational Clearance and City Exception review.');
+      }
+      if (riskScore !== null && riskScore < 60) {
+        constraints.push('Natural hazard exposure flagged; structural mitigation and flood engineering required.');
+      }
+      if (parseFloat(value('carriageway_width')) > 0 && parseFloat(value('carriageway_width')) < 4) {
+        constraints.push(`Narrow carriageway width (${value('carriageway_width')}m) restricts heavy vehicle access.`);
+      }
+      if (value('road_access') === 'no_access') {
+        constraints.push('No direct road access on record; right-of-way easement needed.');
+      }
+
+      if (!spatialRes?.isComplete) outstanding.push('Spatial accessibility: Ground verification of road frontage & passability.');
+      if (!infraRes?.isComplete) outstanding.push('Infrastructure readiness: Verify utility connection records and site drainage.');
+      if (!econRes?.isComplete) outstanding.push('Economic viability: Provide suitable, dated market comparables for authorized verification. BIR values are a separate tax reference.');
+      if (criteriaScores.nearby_businesses === null) outstanding.push('Nearby businesses: Confirm commercial cluster density radar.');
+      if (criteriaScores.risk_constraints === null) outstanding.push('Risk constraints: Upload HazardHunterPH screening assessment report.');
+      if (!zoningRes?.isComplete) outstanding.push('Zoning compatibility: Confirm CLUP zoning certificate and allowable uses.');
+
+      const strengthsListEl = $('[data-review-strengths-list]');
+      if (strengthsListEl) {
+        strengthsListEl.innerHTML = (strengths.length > 0 ? strengths : ['Baseline property intake recorded.'])
+          .map(s => `<li>${escape(s)}</li>`).join('');
+      }
+      const constraintsListEl = $('[data-review-constraints-list]');
+      if (constraintsListEl) {
+        constraintsListEl.innerHTML = constraints.map(c => `<li>${escape(c)}</li>`).join('');
+      }
+      const outstandingListEl = $('[data-review-outstanding-list]');
+      if (outstandingListEl) {
+        outstandingListEl.innerHTML = (outstanding.length > 0 ? outstanding : ['Inputs recorded. Authorized evidence verification is still required.'])
+          .map(o => `<li>${escape(o)}</li>`).join('');
       }
     }
     form.addEventListener('click', async event => {
@@ -2896,6 +3542,52 @@
       const areaValText = entered ? `${areaNumber(entered)} m²` : estimatedArea ? `${areaNumber(estimatedArea)} m²` : '—';
       setText('[data-preview-area-val]', areaValText);
       setText('.pw-preview-area-caption', entered ? value('area_method') === 'survey' ? 'Recorded area' : 'Declared area' : estimatedArea ? 'Drawn estimate' : 'Area not added');
+
+      // Price per m² & calculated price calculation
+      const rawPriceNum = parseFloat(String(value('price') || '').replace(/,/g, ''));
+      let sqmPriceStr = '—';
+      const pricingArea = entered ?? (estimatedArea > 0 ? estimatedArea : null);
+      if (purpose !== 'lease' && value('sale_price_mode') !== 'request' && Number.isFinite(rawPriceNum) && rawPriceNum > 0 && pricingArea > 0) {
+        const pSqm = Math.round(rawPriceNum / pricingArea);
+        sqmPriceStr = `₱${number(pSqm)}`;
+        setText('[data-calc-price-val]', `Calculated price: ${sqmPriceStr}/m²`);
+      } else {
+        setText('[data-calc-price-val]', 'Calculated price: —');
+      }
+      setText('[data-preview-sqm-price]', sqmPriceStr !== '—' ? sqmPriceStr : '—');
+      setText('[data-preview-unit-price-label]','Price per m²');
+      if (purpose === 'lease') {
+        const rent = Number(value('lease_price').replace(/,/g,''));
+        const scope = value('offered_space_scope') || 'entire_land';
+        const offered = scope === 'entire_land' ? pricingArea : Number(value('offered_area_sqm'));
+        const unitRate = value('lease_price_unit') === 'sqm' ? rent : offered > 0 ? rent / offered : null;
+        setText('[data-preview-unit-price-label]',`Rent / m² / ${value('lease_period') || 'month'}`);
+        setText('[data-preview-sqm-price]',value('lease_price_mode') !== 'request' && rent > 0 && unitRate !== null ? `₱${number(unitRate)}` : '—');
+      }
+
+      // Description snippet & counter
+      const descVal = value('description') || '';
+      const charCounter = $('[data-char-count]');
+      if (charCounter) charCounter.textContent = String(descVal.length);
+      const descSnippet = $('[data-preview-desc-snippet]');
+      if (descSnippet) {
+        descSnippet.textContent = descVal.trim() || 'Vacant lot offered for sale. Access, utilities, zoning, and hazard information will be recorded separately.';
+      }
+
+      // Checklist bullets
+      const hasTitle = Boolean(value('property_name')?.trim());
+      const hasArea = Boolean(entered && entered > 0);
+      const bulletEssentials = $('[data-check-icon="essentials"]');
+      if (bulletEssentials) {
+        bulletEssentials.classList.toggle('is-checked', hasTitle && Boolean(hasArea || estimatedArea > 0 || located));
+      }
+      const inquiryBox = $('#pwPriceOnInquiry');
+      const isPriceOnInquiry = Boolean(inquiryBox?.checked) || value('sale_price_mode') === 'request';
+      const bulletPrice = $('[data-check-icon="price"]');
+      if (bulletPrice) {
+        bulletPrice.classList.toggle('is-checked', rawPriceNum > 0 || isPriceOnInquiry);
+      }
+
       setText('[data-location-summary]',entered || estimatedArea || located ? `${entered ? `${number(entered)} m² entered` : estimatedArea ? `${number(estimatedArea)} m² estimated` : 'Area not specified'} · ${located ? 'Property pin provided' : 'Location can be added later'}` : 'Add an area or a property pin to continue.');
       $('[data-location-summary]')?.classList.toggle('is-ready',Boolean(entered || estimatedArea || located));
       if ($('[data-boundary-estimate]')) $('[data-boundary-estimate]').hidden = !estimatedArea;
@@ -2951,6 +3643,8 @@
       setText('[data-review-photos-count]', `${photos.length} photo${photos.length === 1 ? '' : 's'} attached`);
 
       setText('[data-review-coords-display]', located ? `${located[0].toFixed(6)}, ${located[1].toFixed(6)}` : 'Coordinates pending');
+      setText('[data-review-location-heading]',located ? 'Property pin recorded · verification pending' : 'Area recorded · exact location pending');
+      setText('[data-review-location-note]',boundary ? 'Drawn outline recorded. Confirm against a survey or property record.' : 'No parcel boundary supplied. Pin-based screening covers that point only.');
 
       // Role-specific compliance presentation in Tier 4
       const dialogRole = dialog?.dataset.userRole || '';
@@ -2966,15 +3660,21 @@
           complianceBadge.className = 'pw-badge pw-badge-teal';
         } else {
           const authInput = $('[data-authority-file]');
-          const hasFile = (authInput?.files && authInput.files.length > 0) || Boolean(existingProperty?.authorityToSell);
-          complianceTitle.textContent = 'Broker Representation & Authority to Sell';
+          const hasFile = (authInput?.files && authInput.files.length > 0) || Boolean(savedAuthorityDoc);
+          const purpose = getListingPurpose();
+          const authWord = purpose === 'lease' ? 'Authority to Lease' : (purpose === 'sale_or_lease' ? 'Authority to Sell / Lease' : 'Authority to Sell');
+          complianceTitle.textContent = `Broker Representation & ${authWord}`;
           complianceDesc.textContent = hasFile
-            ? 'Authority to Sell (ATS) file staged and queued for city verification prior to public cataloging.'
-            : 'Broker submission. Please ensure Authority to Sell (ATS) is uploaded in Step 1 or provided to CAO.';
+            ? `${authWord} file staged and queued for city verification prior to public cataloging.`
+            : `Broker submission. Please ensure ${authWord} is uploaded before final submission or provided to CAO.`;
           complianceBadge.textContent = hasFile ? 'Staged' : 'Pending Upload';
           complianceBadge.className = `pw-badge ${hasFile ? 'pw-badge-teal' : 'pw-badge-amber'}`;
         }
       }
+
+      // Sync canonical location and ATS wording across tabs
+      syncReusedPropertyLocation();
+      updateAuthWording();
 
       // Wire Review Actions
       all('[data-jump-review-boundary], [data-review-jump-boundary]').forEach(btn => {
@@ -2985,6 +3685,17 @@
           if (mapCard) mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
           const landAreaInput = field('land_area');
           if (landAreaInput) landAreaInput.focus();
+        };
+      });
+
+      all('[data-jump-step2-location]').forEach(btn => {
+        btn.onclick = (e) => {
+          e.preventDefault();
+          all('[data-editor-step]').find(node => node.dataset.editorStep === '1')?.click();
+          const mapCard = $('[data-location-map-card]');
+          if (mapCard) mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const latInput = field('lat') || field('latitude');
+          if (latInput) latInput.focus();
         };
       });
 
@@ -2999,6 +3710,52 @@
           } else {
             form.requestSubmit();
           }
+        });
+      }
+
+      const calcAssessmentBtn = $('[data-calculate-assessment-btn]');
+      if (calcAssessmentBtn && !calcAssessmentBtn._hasListener) {
+        calcAssessmentBtn._hasListener = true;
+        calcAssessmentBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          if (calcAssessmentBtn.disabled || calcAssessmentBtn.getAttribute('aria-busy') === 'true') return;
+          calcAssessmentBtn.disabled = true;
+          calcAssessmentBtn.setAttribute('aria-busy', 'true');
+          const spinner = calcAssessmentBtn.querySelector('.pw-btn-spinner');
+          const label = calcAssessmentBtn.querySelector('[data-calc-btn-label]');
+          if (spinner) {
+            spinner.hidden = false;
+            spinner.setAttribute('aria-hidden', 'false');
+          }
+          if (label) label.textContent = 'Calculating assessment...';
+
+          // Allow DOM to render the indeterminate spinner without artificial delay
+          await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 150)));
+
+          updateReviewStatus(located, entered);
+
+          if (spinner) {
+            spinner.hidden = true;
+            spinner.setAttribute('aria-hidden', 'true');
+          }
+          if (label) {
+            label.innerHTML = '&#10003; Assessment calculated';
+          }
+
+          setTimeout(() => {
+            calcAssessmentBtn.disabled = false;
+            calcAssessmentBtn.removeAttribute('aria-busy');
+            if (label) label.textContent = 'Recalculate assessment';
+          }, 1200);
+        });
+      }
+
+      const printSummaryBtn = $('[data-assessment-print-btn]');
+      if (printSummaryBtn && !printSummaryBtn._hasListener) {
+        printSummaryBtn._hasListener = true;
+        printSummaryBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.print();
         });
       }
 
@@ -3302,8 +4059,11 @@
       if (window.L && L.control && L.control.zoom) {
         L.control.zoom({position: 'bottomright'}).addTo(map);
       }
-      const kind = canvas.matches('[data-radar-map]') ? 'radar' : 'location';
-      const feedback = $(`[data-map-feedback="${kind}"]`);
+      const kind = canvas.matches('[data-radar-map]') ? 'radar' : canvas.id === 'pwRiskMiniMapCanvas' ? 'risk' : canvas.id === 'pwZoningMiniMapCanvas' ? 'zoning' : 'location';
+      let feedback = $(`[data-map-feedback="${kind}"]`);
+      if (!feedback && ['risk','zoning'].includes(kind)) {
+        feedback=document.createElement('p');feedback.className='pw-map-feedback';feedback.dataset.mapFeedback=kind;feedback.role='status';feedback.hidden=true;canvas.parentElement.after(feedback);
+      }
       let styleSelect = $(`[data-map-style="${kind}"]`);
       const options = {maxZoom:19,detectRetina:false,pmIgnore:true};
       const streets = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -3322,7 +4082,7 @@
         ...options,maxNativeZoom:18,
         attribution:'<a href="https://www.esri.com/">Esri</a>, HERE, Garmin, USGS, Intermap, increment P, NRCan, Esri Japan, METI, Esri China, OpenStreetMap contributors, GIS User Community'
       });
-      let activeLayer, activeStyle = 'streets', failedTiles = 0, fallbackMessage = '', failureTimer;
+      let activeLayer, activeStyle = 'satellite', failedTiles = 0, fallbackMessage = '', failureTimer;
       const showFeedback = (text = '', state = 'ready') => {
         canvas.dataset.mapStatus = state;
         if (feedback) {feedback.textContent=text;feedback.hidden=!text;}
@@ -3378,8 +4138,7 @@
       styleSelect.addEventListener('change',() => useLayer(styleSelect.value==='satellite' ? satellite : streets,styleSelect.value==='satellite' ? 'satellite' : 'streets'));
       map.on('zoomend',() => {if (canvas.dataset.mapStatus!=='unavailable') updateFeedback();});
       map.on('unload',() => clearTimeout(failureTimer));
-      useLayer(streets,'streets');
-      L.control.zoom({position:'topright'}).addTo(map);
+      useLayer(satellite,'satellite');
       return map;
     }
     const referenceIcon = () => L.divIcon({className:'pw-reference-pin',iconSize:[27,35],iconAnchor:[13,34],html:'<svg viewBox="0 0 27 35" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13.5 34S1 21 1 13.5a12.5 12.5 0 0 1 25 0C26 21 13.5 34 13.5 34Z" fill="#132650" stroke="#fff" stroke-width="2"/><circle cx="13.5" cy="13" r="4.5" fill="#fff"/></svg>'});
@@ -4809,9 +5568,15 @@
     async function fetchRadar(reference,businessType,forceRetry=false) {
       radarController?.abort();radarController=new AbortController();const currentRev=++radarRevision;
       radarState='loading';radarError=null;renderRadarUI();
+      const timeoutId = setTimeout(() => {
+        if (currentRev === radarRevision && radarState === 'loading') {
+          radarController?.abort();
+        }
+      }, 3500);
       try {
         const url=`competitors.php?lat=${reference[0].toFixed(6)}&lng=${reference[1].toFixed(6)}&radius=500&type=${encodeURIComponent(businessType || 'cafe')}`;
         const payload=await get(url,radarController.signal);
+        clearTimeout(timeoutId);
         if(currentRev!==radarRevision || !dialog.open)return;
         radarData={
           features:Array.isArray(payload.features)?payload.features:[],
@@ -4829,8 +5594,31 @@
         radarData.metrics = payload.metrics || null;
         radarState='success';processRadarData(reference);
       } catch(err) {
+        clearTimeout(timeoutId);
         if(currentRev!==radarRevision)return;
-        if(err.name==='AbortError')return;
+        // Immediate graceful offline directory fallback so user is never stuck loading
+        try {
+          const fallback = await get('competitors.php');
+          if (currentRev === radarRevision && dialog.open && fallback && Array.isArray(fallback.features)) {
+            radarData = {
+              features: fallback.features,
+              roads: {type:'FeatureCollection',features:[]},
+              roadStatus: 'Available',
+              meta: {
+                source: 'Local commercial inventory (verified local)',
+                retrievalDate: new Date().toISOString().slice(0, 10),
+                cached: true,
+                stale: true,
+                coverage: 'local_only',
+                coverageNote: 'Operating status and live roads from offline dataset.'
+              }
+            };
+            radarData.metrics = fallback.metrics || null;
+            radarState = 'success';
+            processRadarData(reference);
+            return;
+          }
+        } catch { /* Fallback failed */ }
         radarState='error';radarError=err.message || 'Unable to load nearby data.';renderRadarUI();
       }
     }
@@ -5151,7 +5939,16 @@
         countEl.textContent=radarSearchQuery?`${rows.length} of ${totalInTab}`:'';
       }
       if(!rows.length){
-        list.innerHTML=radarSearchQuery?`<p class="pw-empty-state">No matching places found for "${escape(radarSearchQuery)}".</p>`:'<p class="pw-empty-state">No matching records found in this dataset.</p>';
+        if (radarSearchQuery) {
+          list.innerHTML = `<p class="pw-empty-state">No matching places found for "${escape(radarSearchQuery)}".</p>`;
+        } else if (radarTab === 'competitors') {
+          list.innerHTML = `<div class="pw-empty" style="padding: 16px 12px; text-align: left;">
+            <strong style="color: #1e293b; font-size: 13px; display: block; margin-bottom: 4px;">0 direct competitors observed in registry</strong>
+            <p class="pw-small pw-muted" style="margin: 0; line-height: 1.45;">Absence of records in this dataset reflects registry coverage limitations and does not prove that no competitors exist in the field. Verify on-ground conditions during physical site inspection.</p>
+          </div>`;
+        } else {
+          list.innerHTML = '<p class="pw-empty-state">No matching records found in this dataset.</p>';
+        }
         return;
       }
       list.innerHTML=rows.map(({feature,distance,id})=>{
@@ -5480,12 +6277,70 @@
     form.addEventListener('input',queueAutosave);form.addEventListener('change',queueAutosave);
     form.addEventListener('classificationchange',queueAutosave);
     form.addEventListener('click',event => { if(event.target.closest('[data-gallery-remove],[data-gallery-make-cover],[data-photo-remove-all],[data-boundary-action]'))queueAutosave(); });
-    window.addEventListener('resize', () => {
+    const invalidateActiveMaps = () => {
       if (dialog?.open) {
         if (boundaryMap) boundaryMap.invalidateSize({ pan: false });
         if (radarMap) radarMap.invalidateSize({ pan: false });
+        if (riskMiniMap) riskMiniMap.invalidateSize();
+        if (zoningMiniMap) zoningMiniMap.invalidateSize();
       }
+    };
+    window.addEventListener('resize', invalidateActiveMaps);
+    window.addEventListener('orientationchange', () => setTimeout(invalidateActiveMaps, 100));
+
+    function syncReusedPropertyLocation() {
+      const propTitle = value('property_name').trim() || 'Untitled Property';
+      const bgy = value('barangay').trim() || 'San Fernando';
+      const lat = value('lat') || value('latitude');
+      const lng = value('lng') || value('longitude');
+      const coordsText = (lat && lng && Number.isFinite(+lat) && Number.isFinite(+lng))
+        ? `${Number(lat).toFixed(6)}, ${Number(lng).toFixed(6)}`
+        : 'Not geocoded yet';
+
+      all('[data-reused-prop-title]').forEach(el => { el.textContent = propTitle; });
+      all('[data-reused-prop-bgy]').forEach(el => { el.textContent = bgy; });
+      all('[data-reused-prop-coords]').forEach(el => { el.textContent = coordsText; });
+      setText('[data-canonical-property-name]',propTitle);
+      setText('[data-canonical-barangay]',value('barangay') || 'Barangay not recorded');
+      setText('[data-canonical-coords]',point() ? coordsText : 'Pin not recorded');
+      const canonicalArea = enteredAreaSqm() ?? (estimatedArea > 0 ? estimatedArea : null);
+      setText('[data-canonical-area]',canonicalArea ? `${areaNumber(canonicalArea)} m²${!enteredAreaSqm() ? ' · mapped estimate' : ''}` : 'Area not recorded');
+    }
+
+    function updateAuthWording() {
+      const purpose = getListingPurpose();
+      let authLabel = 'Authority to Sell';
+      let docTypeVal = 'authority_to_sell';
+      if (purpose === 'lease') {
+        authLabel = 'Authority to Lease';
+        docTypeVal = 'authority_to_lease';
+      } else if (purpose === 'sale_or_lease') {
+        authLabel = 'Authority to Sell / Lease';
+        docTypeVal = 'authority_to_market';
+      }
+
+      all('[data-authority-tab-title]').forEach(el => { el.textContent = authLabel; });
+      all('[data-authority-pane-title]').forEach(el => { el.textContent = authLabel; });
+      const opt = form.querySelector('.pw-broker-only-option');
+      if (opt) opt.textContent = `7. ${authLabel} (Broker req.)`;
+      const authTypeSelect = field('authority_type') || $('#pwAuthorityType');
+      if (authTypeSelect && !authTypeSelect.dataset.userChanged) {
+        authTypeSelect.value = docTypeVal;
+      }
+      const complianceTitle = $('[data-review-compliance-title]');
+      if (complianceTitle) {
+        complianceTitle.textContent = `Broker Representation & ${authLabel}`;
+      }
+      updateFooterNextLabel();
+    }
+
+    all('[name="listing_purpose"]').forEach(r => r.addEventListener('change', updateAuthWording));
+    ['property_name', 'barangay', 'lat', 'lng'].forEach(name => {
+      field(name)?.addEventListener('input', syncReusedPropertyLocation);
+      field(name)?.addEventListener('change', syncReusedPropertyLocation);
     });
+
+    const intakeControls = window.SFCPropertyIntakeControls?.(form);
     ready();
     return {
       getClassification,
@@ -5496,6 +6351,14 @@
       sync:syncLocation,
       inputs:assessmentInputs,
       setNearby(editor){nearbyEditor=editor;},
+      onFooterNext,
+      onFooterBack,
+      areCriteriaInputsComplete,
+      getCriteriaInputsSummary,
+      updateFooterNextLabel,
+      invalidateActiveMaps,
+      syncReusedPropertyLocation,
+      updateAuthWording,
       validateBoundary(){
         if($('[data-coordinate-pair]')?.value.trim() && !applyCoordinates(false))return false;
         syncAreaLimits();
@@ -5527,11 +6390,12 @@
       },
       onStep(next){
         step=next;
-        const nextButton = form.querySelector('[data-editor-next]');
-        const nextLabel = nextButton?.querySelector('[data-editor-next-label]') || nextButton;
-        if (nextLabel) {
-          nextLabel.textContent = next === 0 ? 'Continue to location' : (next === 1 ? 'Continue to Site Evidence' : (next === 2 ? 'Continue to Review' : 'Save property'));
-        }
+        form.querySelectorAll('[data-editor-next]').forEach((btn) => {
+          const nextLabel = btn.querySelector('[data-editor-next-label]') || btn;
+          if (nextLabel) {
+            nextLabel.textContent = next === 0 ? 'Continue to location' : (next === 1 ? 'Continue to assessment' : (next === 2 ? 'Continue to Review' : 'Save property'));
+          }
+        });
         if(next===1 && locationMethod==='area' && (point() || boundary)){
           selectLocationMethod(boundary ? 'draw' : 'pin', false);
         }
@@ -5566,19 +6430,27 @@
           syncEconomicViability();
           syncZoningCompatibility();
           assessHazards();
+          syncScreeningInterfaces();
+          initScreeningInteractions();
           syncNearbyAssessment();
+          initRiskAndZoningMiniMaps();
           requestAnimationFrame(() => {
             if (radarMap) {
               radarMap.invalidateSize();
               if (radiusLayer) radarMap.fitBounds(radiusLayer.getBounds(), { padding: [25, 25] });
             }
+            syncRiskAndZoningMiniMaps();
           });
           setTimeout(() => {
             if (radarMap) {
               radarMap.invalidateSize();
               if (radiusLayer) radarMap.fitBounds(radiusLayer.getBounds(), { padding: [25, 25] });
             }
-          }, 100);
+            syncRiskAndZoningMiniMaps();
+          }, 150);
+          setTimeout(() => {
+            syncRiskAndZoningMiniMaps();
+          }, 350);
         }
         if(next===3){assessment?.refresh();matches();}
         if(next!==1){boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();}
@@ -5596,6 +6468,8 @@
         }
       },
       setProperty(property){
+        savedAuthorityDoc = property?.authorityToSell || null;
+        intakeControls?.restore(property?.ownerContact || {});
         clearTimeout(autosaveTimer); submitted=false; draftGeneration++; mediaRevision++;
         step=0;
         setDraftStatus('Not saved yet');
@@ -5672,15 +6546,13 @@
         isLegacyZeroSale = (property?.price === 0 || property?.salePrice === 0 || property?.price === '0') && property?.price !== null && property?.price !== '';
         isLegacyZeroLease = (property?.leasePrice === 0 || property?.lease_price === 0 || property?.leasePrice === '0') && property?.leasePrice !== null && property?.leasePrice !== '';
 
-        // Mode radios
+        // Restore price visibility selectors before synchronizing their amount fields.
         const obs = property?.parcel?.observations || {};
         const saleMode = obs.sale_price_mode || (isLegacyZeroSale ? 'amount' : ((property?.price != null && property?.price !== '') ? 'amount' : ((property?.id && property?.price == null) ? 'request' : 'amount')));
-        const sModeRadio = form.querySelector(`[name="sale_price_mode"][value="${saleMode}"]`);
-        if (sModeRadio) sModeRadio.checked = true;
+        if (field('sale_price_mode')) field('sale_price_mode').value = saleMode;
 
         const leaseMode = obs.lease_price_mode || (isLegacyZeroLease ? 'amount' : ((property?.leasePrice != null && property?.leasePrice !== '') ? 'amount' : ((property?.id && property?.leasePrice == null) ? 'request' : 'amount')));
-        const lModeRadio = form.querySelector(`[name="lease_price_mode"][value="${leaseMode}"]`);
-        if (lModeRadio) lModeRadio.checked = true;
+        if (field('lease_price_mode')) field('lease_price_mode').value = leaseMode;
 
         if (field('price') && property?.price != null && property?.price !== '') {
           field('price').value = String(property.price);
@@ -5835,12 +6707,17 @@
         if(point() && locationMethod !== 'area')syncLocation(false);
         updateCoordinateDetailsSummary();
         syncBarangayContext();
+        currentAreaUnit = value('land_area_unit') || 'sqm';
+        syncBasicsArea();
+        intakeControls?.refresh();
         syncAreaEquivalents();
         syncSpatialAccessibility();
         syncInfrastructureReadiness();
         syncEconomicViability();
         syncZoningCompatibility();
         assessHazards();
+        syncScreeningInterfaces();
+        initScreeningInteractions();
         syncNearbyAssessment();
         updateBoundary(true);preview();ready();selectEvidenceCriterion('spatial_accessibility');tabs('data-util-tab','data-util-pane','electricity');tabs('data-review-tab','data-review-panel','assessment');radarTab='competitors';tabs('data-radar-tab','data-radar-unused-panel','competitors');
         setText('[data-photo-file-name]','JPG, PNG or WEBP. Photos are optional.');
@@ -5895,8 +6772,8 @@
         const purpose = getListingPurpose();
         data.set('listing_purpose', purpose);
 
-        const saleMode = form.querySelector('[name="sale_price_mode"]:checked')?.value || 'amount';
-        const leaseMode = form.querySelector('[name="lease_price_mode"]:checked')?.value || 'amount';
+        const saleMode = value('sale_price_mode') || 'amount';
+        const leaseMode = value('lease_price_mode') || 'amount';
         data.set('sale_price_mode', saleMode);
         data.set('lease_price_mode', leaseMode);
 

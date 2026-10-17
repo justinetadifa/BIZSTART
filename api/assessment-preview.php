@@ -21,5 +21,5 @@ api_handle(function (array $container): array {
             throw new InvalidArgumentException('Assessment inputs must contain scalar values.');
         }
     }
-    return ['assessment' => \App\Support\AutomaticPropertyAssessment::configured()->evaluate($input)];
+    return ['assessment' => \App\Support\AutomaticPropertyAssessment::configured()->evaluate($input, $container['pdo'])];
 });

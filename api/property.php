@@ -8,6 +8,9 @@ require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyMediaSelection.php';
 require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
 require_once dirname(__DIR__) . '/app/Support/BusinessOpportunities.php';
+require_once dirname(__DIR__) . '/app/Support/TransportationAccessibilityService.php';
+require_once dirname(__DIR__) . '/app/Support/LocalMarketIntelligenceService.php';
+require_once dirname(__DIR__) . '/app/Support/ClimateRiskService.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -26,6 +29,9 @@ api_handle(function (array $container): array {
         $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
         $oppRadius = isset($_GET['opportunitiesRadius']) ? (float) $_GET['opportunitiesRadius'] : \App\Support\BusinessOpportunities::DEFAULT_RADIUS_METERS;
         $decorated['businessOpportunities'] = \App\Support\BusinessOpportunities::evaluate($decorated, $oppRadius);
+        $decorated['transportationAccessibility'] = \App\Support\TransportationAccessibilityService::evaluate($decorated);
+        $decorated['localMarketIntelligence'] = \App\Support\LocalMarketIntelligenceService::get($decorated);
+        $decorated['climateRisk'] = \App\Support\ClimateRiskService::evaluate($decorated);
         return ['property' => $decorated];
     }
     if (!in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {
@@ -111,6 +117,12 @@ api_handle(function (array $container): array {
         $authRecord = \App\Support\PropertyAuthorityToSellFiles::stage($_FILES['authority_to_sell_file'], (int) $user['id']);
         if ($authRecord !== null) {
             $payload['authority_to_sell'] = $authRecord;
+        }
+    } elseif (($user['role'] ?? '') === 'seller' && empty($payload['authority_to_sell'])) {
+        $existingAuth = $before['authorityToSell'] ?? [];
+        $hasAuth = !empty($existingAuth) && !empty($existingAuth['id'] ?? $existingAuth['fileId'] ?? null);
+        if (!$hasAuth && ($payload['approval_state'] ?? '') !== 'draft' && !empty($payload['approval_state'])) {
+            return [422, ['error' => 'Upload proof of Authority to Sell / Lease before submitting this property for review.']];
         }
     }
     $uploadedImages = [];

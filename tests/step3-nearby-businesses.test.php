@@ -120,9 +120,9 @@ $normScores = PropertyAssessmentService::normalize(['nearby_businesses' => $benc
 assertTest($normScores['nearby_businesses'] === 80.0, 'normalize() maps nearby_businesses to 80.0');
 
 $evalResult = PropertyAssessmentService::evaluate(['nearby_businesses' => $benchmarkedInput]);
-assertTest($evalResult['assessmentCriteria']['nearby_businesses'] === 80.0, 'evaluate() assessmentCriteria has score 80.0');
+assertTest($evalResult['assessmentCriteria']['nearby_businesses'] === null, 'Scenario-free nearby observations cannot establish an activity-specific score');
 $nearbyCriterion = array_values(array_filter($evalResult['criteria'], fn($c) => $c['key'] === 'nearby_businesses'))[0] ?? null;
-assertTest($nearbyCriterion !== null && $nearbyCriterion['score'] === 80.0, 'evaluate() criteria list includes nearby_businesses with score 80.0');
+assertTest($nearbyCriterion !== null && $nearbyCriterion['score'] === null, 'Criterion breakdown also withholds the scenario-free nearby score');
 assertTest($nearbyCriterion['weight'] === 10.0, 'evaluate() weight is 10.0%');
 
 // 7. PropertyAssessment Facade Delegation

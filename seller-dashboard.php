@@ -165,6 +165,7 @@ $brokerGreeting = ($_SESSION['sfc_account_greeting'] ?? '') === 'new' ? 'Welcome
 <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/admin-assessment.js<?= sfc_asset_version('js/admin-assessment.js') ?>" defer></script>
 <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.js" defer></script>
 <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/turf/turf.min.js" defer></script>
+<script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/property-intake-controls.js<?= sfc_asset_version('js/property-intake-controls.js') ?>" defer></script>
 <script src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/property-wizard.js<?= sfc_asset_version('js/property-wizard.js') ?>" defer></script>
 <script type="module" src="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/js/broker-workspace.js<?= htmlspecialchars(sfc_asset_version('js/broker-workspace.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php sfc_render_footer($context); ?>

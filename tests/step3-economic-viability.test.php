@@ -82,6 +82,7 @@ $compInput100 = [
     'asking_price' => 9000000.0,
     'land_area' => 1000.0,
     'bir_zonal_value' => 7000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes100 = PropertyAssessmentService::evaluateEconomicViability($compInput100, ['is_verified' => true]);
@@ -96,6 +97,7 @@ $compInput85 = [
     'asking_price' => 9900000.0, // ₱9,900/sqm vs ₱9,000/sqm = +10%
     'land_area' => 1000.0,
     'bir_zonal_value' => 7000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes85 = PropertyAssessmentService::evaluateEconomicViability($compInput85, ['is_verified' => true]);
@@ -108,6 +110,7 @@ $discInput = [
     'asking_price' => 9000000.0,
     'land_area' => 1000.0,
     'bir_zonal_value' => 7000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
     'area_discrepancy' => true,
 ];
@@ -128,9 +131,9 @@ assertCondition($highBirRes['score'] === null, "High BIR zonal value does NOT fa
 
 // 8. Backwards Compatibility with Scalar Scores
 $scalarRes = PropertyAssessmentService::evaluateEconomicViability(80.0);
-assertCondition($scalarRes['is_complete'] === true, "Scalar score evaluates complete");
-assertCondition($scalarRes['score'] === 80.0, "Scalar score returns exact value 80.0");
-assertCondition($scalarRes['iai_contribution'] === 16.00, "Scalar score returns exact IAI contribution 16.00 pts (80 * 0.20)");
+assertCondition($scalarRes['is_complete'] === false, "Scalar score requires detailed observations");
+assertCondition($scalarRes['score'] === null, "Scalar score cannot replace comparable evidence");
+assertCondition($scalarRes['iai_contribution'] === null, "Unsupported scalar contribution is withheld");
 
 // 9. Facade Integration
 $facadeRes = PropertyAssessment::evaluateEconomicViability($mockupInput);
@@ -145,6 +148,7 @@ $leasableInput = [
     'security_deposit_months' => 2.0,
     'advance_rent_months' => 1.0,
     'utilities_included' => 'included',
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2/month', 'rent_period' => 'month', 'comparable_source' => 'Synthetic suitable lease comparables',
     'comparable_lease_price' => 200.0,
 ];
 $leasableRes = PropertyAssessmentService::evaluateEconomicViability($leasableInput, ['is_verified' => true]);
@@ -182,6 +186,7 @@ $compInput70 = [
     'listing_purpose' => 'sale',
     'asking_price' => 10800000.0, // ₱10,800/sqm vs ₱9,000 = +20%
     'land_area' => 1000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes70 = PropertyAssessmentService::evaluateEconomicViability($compInput70, ['is_verified' => true]);
@@ -192,6 +197,7 @@ $compInput50 = [
     'listing_purpose' => 'sale',
     'asking_price' => 13500000.0, // ₱13,500/sqm vs ₱9,000 = +50%
     'land_area' => 1000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes50 = PropertyAssessmentService::evaluateEconomicViability($compInput50, ['is_verified' => true]);
@@ -202,6 +208,7 @@ $compInput75 = [
     'listing_purpose' => 'sale',
     'asking_price' => 7200000.0, // ₱7,200/sqm vs ₱9,000 = -20%
     'land_area' => 1000.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2', 'comparable_source' => 'Synthetic suitable sale comparables',
     'comparable_market_price' => 9000.0,
 ];
 $compRes75 = PropertyAssessmentService::evaluateEconomicViability($compInput75, ['is_verified' => true]);
@@ -218,6 +225,7 @@ $parcelPayload = [
     'advance_rent_months' => '1',
     'utilities_included' => 'included',
     'additional_purchase_costs' => '150000',
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2/month', 'rent_period' => 'month', 'comparable_source' => 'Synthetic suitable lease comparables',
     'comparable_lease_price' => '200',
 ];
 $normalizedParcel = \App\Support\PropertyParcel::fromPayload($parcelPayload);
@@ -243,6 +251,7 @@ $userAcceptanceInput = [
     'land_area' => 500.0,
     'offered_space_scope' => 'part_property',
     'offered_area_sqm' => 100.0,
+    'comparables_suitable' => true, 'comparable_unit' => 'PHP/m2/month', 'rent_period' => 'month', 'comparable_source' => 'Synthetic suitable lease comparables',
     'comparable_lease_price' => 300.0,
     'security_deposit_months' => 2.0,
     'advance_rent_months' => 1.0,

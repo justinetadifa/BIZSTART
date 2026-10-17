@@ -186,7 +186,7 @@ const { resolve } = require('node:path');
 
   const incDetails = propertyDetailsMarkup(incompleteProperty, dummyOptions);
   assert(incDetails.includes('is-pending'), 'Status badge must have is-pending class');
-  assert(incDetails.includes('<strong>Pending</strong>'), 'Hero score must display Pending');
+  assert(incDetails.includes('<strong>Withheld</strong>'), 'The headline IAI must be withheld when incomplete');
   assert(incDetails.includes('Missing: Economic Viability / Economic Context'), 'Hero description must explain what is missing');
   console.log('✅ PASS: Test 3 incomplete assessment handling verified');
 

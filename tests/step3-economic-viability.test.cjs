@@ -242,7 +242,7 @@ const clientAcceptance = evaluatorFn({
 });
 
 assert(clientAcceptance.leasePricePerSqm === 250, `User Acceptance: Monthly rent per m² is ₱250 (actual: ${clientAcceptance.leasePricePerSqm})`);
-assert(clientAcceptance.activeDiffPct === -16.67, `User Acceptance: Price difference is 16.67% below benchmark (actual: ${clientAcceptance.activeDiffPct}%)`);
+assert(clientAcceptance.activeDiffPct.toFixed(2) === '-16.67' && Math.abs(clientAcceptance.activeDiffPct + 100 / 6) < 1e-10, `User Acceptance: Price difference displays 16.67% below benchmark while calculation retains precision (actual: ${clientAcceptance.activeDiffPct}%)`);
 assert(clientAcceptance.compRatio === 0.8333, `User Acceptance: Price-competitiveness ratio is 0.8333 (actual: ${clientAcceptance.compRatio})`);
 assert(clientAcceptance.knownUpfrontCosts === 75000, `User Acceptance: Known upfront outlay is ₱75,000 (actual: ${clientAcceptance.knownUpfrontCosts})`);
 assert(clientAcceptance.isComplete === true, 'User Acceptance: Assessment is complete with verified lease benchmark');

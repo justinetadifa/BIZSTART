@@ -12,8 +12,10 @@ $check = static function (bool $condition, string $message) use (&$checks): void
     $checks++;
 };
 $keys = array_keys(PropertyAssessment::WEIGHTS);
-$ratings = array_combine($keys, [100, 80, 60, 40, 20, 0, 100]);
-$assessment = PropertyAssessment::scores($ratings) + [
+$ratings = array_combine($keys, [100, 80, 60, 40, 20, 0]);
+// Isolate profile mapping with an explicit synthetic completed-result envelope.
+// Production assessment verification is exercised by the v3 pipeline tests.
+$assessment = ['assessmentCriteria' => $ratings, 'assessmentComplete' => true] + [
     'assessmentMode' => 'automatic', 'assessmentVersion' => 'SYNTHETIC-test', 'ruleVersion' => 'SYNTHETIC-rule',
     'generatedAt' => '2026-01-01T00:00:00Z', 'inputs' => ['category' => 'Land', 'landArea' => .25],
     'criteriaDetails' => ['zoning_compatibility' => ['raw' => ['zoning_classification' => 'Synthetic zone', 'zoning_status' => 'permitted']]],
@@ -42,17 +44,17 @@ $pending = PropertyBusinessProfiles::configured()->evaluate($assessment);
 $check($pending['status'] === 'pending' && $pending['matches'] === [] && !$pending['metadata']['approved'], 'The shipped unapproved method must never return scores.');
 $check($pending['weights'] === PropertyAssessment::WEIGHTS && $pending['pendingReasons'] !== [], 'Pending preview retains weights and explains the approval requirement.');
 $missing = $assessment;
-$missing['assessmentCriteria']['environmental_safety'] = null;
+$missing['assessmentCriteria']['risk_constraints'] = null;
 $missing['assessmentComplete'] = false;
 $out = (new PropertyBusinessProfiles($config))->evaluate($missing);
-$check($out['status'] === 'pending' && $out['matches'] === [] && $out['completedCount'] === 6, 'Incomplete evidence must prevent business scores even when profiles are approved.');
-$check($out['missingCriteria'][0]['key'] === 'environmental_safety' && $out['missingCriteria'][0]['nextAction'] !== '', 'Missing evidence needs a criterion-specific action.');
+$check($out['status'] === 'pending' && $out['matches'] === [] && $out['completedCount'] === 5 && $out['totalCount'] === 6, 'Incomplete evidence must prevent business scores even when profiles are approved.');
+$check($out['missingCriteria'][0]['key'] === 'risk_constraints' && $out['missingCriteria'][0]['nextAction'] !== '', 'Missing evidence needs a criterion-specific action.');
 $legacy = $assessment; $legacy['assessmentMode'] = 'legacy_manual';
 $check((new PropertyBusinessProfiles($config))->evaluate($legacy)['matches'] === [], 'Legacy manual scores cannot drive the new business preview.');
 $out = (new PropertyBusinessProfiles($config))->evaluate($assessment);
-$check($out['status'] === 'ready' && count($out['matches']) === 1 && $out['matches'][0]['score'] === 60.0, 'Independent weighted ratings 100/80/60/40/20/0/100 must yield 60.0, not IAI 64.0.');
+$check($out['status'] === 'ready' && count($out['matches']) === 1 && $out['matches'][0]['score'] === 55.0, 'Independent six-criterion ratings 100/80/60/40/20/0 yield 55.0.');
 $check($out['matches'][0]['criteria'][5]['rating'] === 0.0 && $out['matches'][0]['criteria'][5]['contribution'] === 0.0, 'A real measured zero is a valid rating.');
-$check(count($out['matches'][0]['criteria']) === 7 && count($out['matches'][0]['reasons']) === 7 && $out['matches'][0]['concerns'] === ['Synthetic risk requires review'], 'Complete score breakdown, documented reasons and concerns are returned.');
+$check(count($out['matches'][0]['criteria']) === 6 && count($out['matches'][0]['reasons']) === 6 && $out['matches'][0]['concerns'] === ['Synthetic risk requires review'], 'Complete score breakdown, documented reasons and concerns are returned.');
 $check($out['metadata']['approvalReference'] === 'SYNTHETIC TEST ONLY' && $out['metadata']['assessmentRuleVersion'] === 'SYNTHETIC-rule', 'Method and evidence provenance must accompany matches.');
 $boundary = $assessment;
 $boundary['assessmentCriteria'] = array_fill_keys($keys, 0);
@@ -71,15 +73,15 @@ $bad = $config; $bad['approved'] = false;
 $check((new PropertyBusinessProfiles($bad))->evaluate($assessment)['matches'] === [], 'Unapproved explicit test mappings must not be used.');
 foreach (['missing_key', 'extra_key', 'changed_weight'] as $fault) {
     $bad = $config;
-    if ($fault === 'missing_key') { unset($bad['weights']['environmental_safety']); }
+    if ($fault === 'missing_key') { unset($bad['weights']['risk_constraints']); }
     elseif ($fault === 'extra_key') { $bad['weights']['eighth_criterion'] = 0; }
     else { $bad['weights']['spatial_accessibility'] = 21; }
     $check((new PropertyBusinessProfiles($bad))->evaluate($assessment)['matches'] === [], 'Incompatible comparison weights must stay pending: ' . $fault);
 }
 foreach (['missing_rule', 'uncovered_band', 'descending_band', 'invalid_rating', 'missing_reason', 'missing_eligibility', 'duplicate_id'] as $fault) {
     $bad = $config;
-    if ($fault === 'missing_rule') { unset($bad['profiles'][0]['criteria_rules']['environmental_safety']); }
-    elseif ($fault === 'uncovered_band') { $bad['profiles'][0]['criteria_rules']['environmental_safety']['bands'][0]['max'] = 99; }
+    if ($fault === 'missing_rule') { unset($bad['profiles'][0]['criteria_rules']['risk_constraints']); }
+    elseif ($fault === 'uncovered_band') { $bad['profiles'][0]['criteria_rules']['risk_constraints']['bands'][1]['max'] = 99; }
     elseif ($fault === 'descending_band') { $bad['profiles'][0]['criteria_rules']['spatial_accessibility']['bands'][] = ['max' => 90, 'rating' => 50, 'reason' => 'Synthetic', 'concern' => '']; }
     elseif ($fault === 'invalid_rating') { $bad['profiles'][0]['criteria_rules']['spatial_accessibility']['bands'][0]['rating'] = 101; }
     elseif ($fault === 'missing_reason') { $bad['profiles'][0]['criteria_rules']['spatial_accessibility']['bands'][0]['reason'] = ''; }

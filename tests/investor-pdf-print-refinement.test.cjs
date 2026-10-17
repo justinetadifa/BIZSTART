@@ -112,7 +112,7 @@ const { resolve } = require('node:path');
   const brief = investorBriefReportMarkup(zambranoProperty, options, calc);
 
   // 1. Check Lease Pricing & Area
-  assert(brief.includes('₱500 / m²'), 'Lease rate unit price must clearly show ₱500 / m²');
+  assert(brief.includes('PHP 500 / m²'), 'Lease rate unit price must clearly show PHP 500 / m²');
   assert(brief.includes('Billed per month'), 'Lease period must clearly show per month');
   assert(brief.includes('1,498 m²'), 'Land area must display 1,498 m²');
   assert(brief.includes('0.15 ha') || brief.includes('0.1498 ha'), 'Hectares must not be ambiguously rounded to 0.1 ha');
@@ -126,14 +126,14 @@ const { resolve } = require('node:path');
   assert(brief.includes('OUTLINE RECORDED'), 'Page 3 spatial callout must recognize recorded outline');
 
   // 3. Check Zoning Consistency between Page 2 and Page 3
-  assert(brief.includes('Conditional Use (70 / 100)'), 'Zoning must evaluate to Conditional Use 70 / 100 based on res_condominium');
-  assert(brief.includes('10.5 pts'), 'Zoning contribution must be 10.5 pts (70 * 15%)');
+  assert(brief.includes('Pending verification'), 'A scalar zoning score cannot establish a legal compatibility status');
+  assert(brief.includes('<td>15%</td><td>10.5</td>'), 'Recorded zoning contribution must be 10.5 points (70 * 15%)');
   assert(!brief.includes('Permitted by Right (100 / 100)'), 'Zoning on Page 3 must NOT contradict Page 2 with 100 / 100');
 
   // 4. Check Risk Constraints Audit
-  assert(brief.includes('2 of 6 indicators evaluated'), 'Hazard screening must explicitly count 2 of 6 evaluated');
+  assert(brief.includes('2 of 6 findings recorded'), 'Hazard screening must explicitly count 2 of 6 recorded findings');
   assert(brief.includes('4 indicators remain unassessed'), 'Must clearly report 4 indicators unassessed');
-  assert(brief.includes('PROVISIONAL · SCREENING INCOMPLETE'), 'Status badge must state provisional/screening incomplete');
+  assert(brief.includes('verification pending'), 'Unverified hazard findings must retain their evidence status');
 
   // 5. Check Removal of LaFinns Fallbacks
   assert(!brief.includes('Beachfront property perfect for resort development'), 'Must not contain LaFinns resort description');
@@ -146,15 +146,14 @@ const { resolve } = require('node:path');
   assert(brief.includes('id="locusBriefPage3"'), 'Must contain Page 3');
   assert(brief.includes('id="locusBriefPage4"'), 'Must contain Page 4');
   assert(!brief.includes('id="locusBriefPage5"'), 'Must NOT force Page 5 by default');
-  assert(brief.includes('Page 1 of 4'), 'Page 1 footer must show Page 1 of 4');
-  assert(brief.includes('Page 2 of 4'), 'Page 2 footer must show Page 2 of 4');
-  assert(brief.includes('Page 3 of 4'), 'Page 3 footer must show Page 3 of 4');
-  assert(brief.includes('Page 4 of 4'), 'Page 4 footer must show Page 4 of 4');
+  const printCss = readFileSync('assets/css/property-details.css', 'utf8');
+  assert(printCss.includes("counter(page) ' / ' counter(pages)"), 'PDF page numbers must follow actual pagination, including long content');
+  assert(!brief.includes('Page 1 of 4'), 'Markup must not hardcode a page count that becomes false on overflow');
 
   // 7. Check Single Authoritative Calculation Table (no duplicate bars)
   assert(!brief.includes('class="locus-brief-score-bars"'), 'Must NOT have duplicate horizontal score bars');
   assert(brief.includes('locus-brief-assessment-table'), 'Must have single authoritative calculation table');
-  assert(brief.includes('87.25 → 87.3 / 100'), 'Calculation footer must show raw 87.25 rounding half-up to 87.3 / 100');
+  assert(brief.includes('IAI = round(20 + 20 + 17 + 7 + 10.5 + 12.75, 1) = 87.3 / 100'), 'Calculation must retain unrounded contributions and round the total once');
 
   console.log('✅ TEST 3 PASSED: Zambrano Building data inconsistencies and 4-page layout verified.');
 
@@ -188,10 +187,10 @@ const { resolve } = require('node:path');
   const saleCalc = assessmentCalculation(saleProperty);
   const saleBrief = investorBriefReportMarkup(saleProperty, options, saleCalc);
 
-  assert(saleBrief.includes('FOR SALE'), 'Purpose must show FOR SALE');
+  assert(saleBrief.includes('For sale'), 'Purpose must show For sale');
   assert(saleBrief.includes('PHP 15,000,000'), 'Asking price must show PHP 15,000,000');
   assert(saleBrief.includes('PHP 5,000'), 'Asking price per m² must compute PHP 5,000 (15M / 3000 m²)');
-  assert(saleBrief.includes('Permitted by Right (100 / 100)'), 'Zoning must be Permitted by Right 100 / 100');
+  assert(saleBrief.includes('Pending verification'), 'A numeric zoning rating must not be transformed into a claim of statutory permission');
   assert(saleBrief.includes('PIN-BASED'), 'Page 3 must recognize pin-based when boundary is absent');
   assert.equal(getPropertyPdfFilename(saleProperty), 'Prime_Highway_Commercial_Lot_PropertyDetails_LOCUS-SF.pdf');
 

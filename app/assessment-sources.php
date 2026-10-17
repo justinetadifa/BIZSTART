@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 // Trusted server configuration only. See docs/automatic-assessment.md before importing layers.
 // Existing map illustrations and business locator pins do not establish verified coverage.
+// The v3 adapter supplies measurements to PropertyAssessmentService; legacy method rules do not score them.
+// Authentication records and scoped observation reviews are documented in docs/assessment-protocol-v3.md.
 return [
     'data_directory' => dirname(__DIR__) . '/data/assessment',
     'layers' => [],

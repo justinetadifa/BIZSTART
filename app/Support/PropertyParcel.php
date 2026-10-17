@@ -112,6 +112,9 @@ final class PropertyParcel
             $observations['lgu_valuation_amount'] = $value;
         }
         foreach ([
+            'electricity_arrangement', 'water_supply', 'internet_telecom', 'drainage_conditions',
+            'comparable_unit', 'rent_period', 'currency',
+            'flood_susceptibility', 'active_fault', 'landslide_susceptibility', 'storm_surge', 'liquefaction_susceptibility', 'tsunami_exposure',
             'sale_price_mode', 'lease_price_mode',
             'offered_space_scope', 'utilities_included',
             'bir_source', 'bir_date', 'evidence_reference', 'environmental_reference',
@@ -128,7 +131,15 @@ final class PropertyParcel
             'drainage_service', 'wastewater_service', 'waste_collection_service',
             'sensitive_habitats', 'protected_area_overlap', 'documented_contamination',
         ] as $key) {
-            if (array_key_exists($key, $payload)) { $observations[$key] = self::text($payload[$key], str_replace('_', ' ', $key), 3000); }
+            if (array_key_exists($key, $payload)) {
+                if (in_array($key, ['carriageway_width', 'distance_to_major_road', 'distance_to_highway'], true)) {
+                    $measurement = self::optionalNumber($payload[$key], str_replace('_', ' ', $key));
+                    if ($measurement !== null && $measurement < 0) { throw new InvalidArgumentException('Distances and widths must be non-negative.'); }
+                    $observations[$key] = $measurement;
+                } else {
+                    $observations[$key] = self::text($payload[$key], str_replace('_', ' ', $key), 3000);
+                }
+            }
         }
         if (array_key_exists('bir_date', $payload)) {
             $date = self::text($payload['bir_date'], 'BIR reference date', 10);

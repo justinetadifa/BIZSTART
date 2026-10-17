@@ -1,7 +1,8 @@
+import { comparisonMarkup } from './property-comparison-view.js';
 import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario } from './property-details-view.js';
+import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario, renderDonutSvg } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
 
 const config = window.SFC_APP_CONFIG || {};
@@ -28,12 +29,14 @@ const hasCoordinates = item => item && item.lat != null && item.lng != null
 const storageKey = `locus.compare:${config.basePath || ''}:${config.user?.id || 'guest'}`;
 let properties = [], categories = {}, criteria = {}, saved = new Set(), compare = [], filtered = [];
 let expandedCards = new Set();
+let compareOnlyDifferences = false;
 let currentRankingView = 'list';
 let map, markers, tileLayer;
 let businessLayer;
 let detailsBusinessLayer;
 let floodLayer, faultLayer;
 let toastTimer;
+let detailsTileTimer;
 try { compare = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(id => Number.isInteger(id)); } catch { compare = []; }
 
 function toast(message) {
@@ -104,10 +107,10 @@ function hazardNotice(property, isGrid = false) {
 
   const badgeClasses = (color) => {
     switch (color) {
-      case 'green': return 'tw-bg-emerald-50 tw-text-emerald-800 tw-border-emerald-200/80';
-      case 'amber': return 'tw-bg-amber-50 tw-text-amber-800 tw-border-amber-200/80';
-      case 'red': return 'tw-bg-rose-50 tw-text-rose-800 tw-border-rose-200/80';
-      default: return 'tw-bg-slate-100 tw-text-slate-600 tw-border-slate-200/80';
+      case 'green': return 'tw-bg-emerald-50 tw-text-emerald-700 tw-border-emerald-200/70';
+      case 'amber': return 'tw-bg-amber-50 tw-text-amber-800 tw-border-amber-200/70';
+      case 'red': return 'tw-bg-rose-50 tw-text-rose-800 tw-border-rose-200/70';
+      default: return 'tw-bg-slate-100/80 tw-text-slate-600 tw-border-slate-200/60';
     }
   };
 
@@ -116,11 +119,21 @@ function hazardNotice(property, isGrid = false) {
 
   const intersectNotice = flood.badge === 'HIGH' ? `<div class="tw-text-[10.5px] tw-text-rose-700 tw-mt-1.5 tw-pt-1 tw-border-t tw-border-rose-100">Property intersects a mapped high flood-susceptibility zone.</div>` : '';
 
-  const marginClass = isGrid ? 'tw-mx-2.5 sm:tw-mx-3 tw-my-2 sm:tw-my-2.5' : 'tw-my-2.5';
+  const marginClass = isGrid ? 'tw-mx-2.5 sm:tw-mx-3 tw-my-2 sm:tw-my-2.5' : 'tw-my-1.5';
+
+  const floodLabel = flood.badge === 'NOT ASSESSED' ? 'Screening pending'
+    : flood.badge === 'HIGH' ? 'High risk'
+    : flood.badge === 'MODERATE' ? 'Moderate'
+    : flood.badge === 'LOW' ? 'Low risk'
+    : esc(flood.badge);
+
+  const rawFault = fault.proximity || fault.badge || '';
+  const faultLabel = (!rawFault || rawFault === 'Distance not measured' || rawFault === 'NOT ASSESSED') ? 'Distance not measured'
+    : esc(rawFault);
 
   return `
     ${locationNote ? `<p class="${isGrid ? 'tw-mx-2.5 sm:tw-mx-3' : ''} tw-mt-2 tw-mb-0 tw-text-xs tw-text-slate-500">${esc(locationNote)}</p>` : ''}
-    <div class="${marginClass} tw-p-2 sm:tw-p-2.5 tw-rounded-xl sm:tw-rounded-2xl tw-bg-slate-50/95 tw-border tw-border-slate-200/80">
+    <div class="${marginClass} tw-py-1.5 tw-px-2.5 sm:tw-px-3 tw-rounded-xl tw-bg-slate-50/80 tw-border tw-border-slate-200/70">
       <div class="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-flex-wrap">
         <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[10.5px] sm:tw-text-[11px] tw-font-semibold tw-text-slate-600">
           <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -129,11 +142,11 @@ function hazardNotice(property, isGrid = false) {
           <span>Hazards & environment</span>
         </div>
         <div class="tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap tw-justify-end">
-          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-bold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
-            Flood: ${esc(flood.badge)}
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
+            Flood: ${floodLabel}
           </span>
-          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-bold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
-            Fault: ${esc(fault.proximity || fault.badge)}
+          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
+            Fault: ${faultLabel}
           </span>
         </div>
       </div>
@@ -172,7 +185,7 @@ function card(property, index) {
     const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
     const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
 
-    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
+    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><span class="tw-text-xs tw-text-slate-500">${esc(property.assessmentStatus || 'incomplete')} · comparison group ${esc(property.comparison_key?.slice(0, 12) || 'withheld')}</span>
       <!-- Media / Satellite Image Container -->
       <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
         <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
@@ -527,7 +540,7 @@ function priorityListCard(property, idx) {
   const sort = document.getElementById('citySort')?.value || 'iai';
   const rankKey = ['iai', 'mce'].includes(sort) ? sort : null;
   const scientificRank = rankKey ? property[`${rankKey}Rank`] : null;
-  const isTopRanked = scientificRank === 1;
+  const isTopRanked = scientificRank === 1 && property.rank_eligible === true;
   const ppsqm = salePricePerSqm(property);
 
   // Format location and eliminate duplicate city/province entries
@@ -556,119 +569,140 @@ function priorityListCard(property, idx) {
   const rawStatus = String(property.approvalState || property.status || '').toLowerCase();
   let statusBadge = '';
   if (rawStatus === 'approved' || (property.status === 'Available' && property.assessmentComplete)) {
-    statusBadge = `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200/80" title="Listing approved by city authorities"><svg class="tw-w-3 tw-h-3 tw-text-emerald-600 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span>Listing approved</span></span>`;
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200/80" title="Listing approved by city authorities"><svg class="tw-w-3 tw-h-3 tw-text-emerald-600 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span>Listing approved</span></span>`;
   } else if (rawStatus === 'archived') {
-    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80"><span>Archived</span></span>`;
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-uppercase tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80"><span>Archived</span></span>`;
   } else if (rawStatus === 'pending_review' || rawStatus === 'pending') {
-    statusBadge = `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200/80"><span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-500 tw-shrink-0"></span><span>Pending review</span></span>`;
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-amber-50 tw-text-amber-700 tw-border tw-border-amber-200/80"><span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-500 tw-shrink-0"></span><span>Pending review</span></span>`;
   } else {
-    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-bg-blue-50 tw-text-blue-700 tw-border tw-border-blue-200/80"><span>For assessment</span></span>`;
+    statusBadge = `<span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-blue-50 tw-text-blue-700 tw-border tw-border-blue-200/80"><span>For assessment</span></span>`;
   }
 
   // Compact rank badge replacing oversized red ranking strip
   let rankBadge = '';
   if (rankKey) {
     if (!property.assessmentComplete || scientificRank == null) {
-      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-500 tw-border tw-border-slate-200/60" title="Unranked: assessment incomplete">
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80" title="Unranked: assessment incomplete">
+        <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-slate-400"></span>
         <span>Unranked · Pending assessment</span>
       </span>`;
     } else if (scientificRank === 1) {
-      rankBadge = `<span class="locus-rank-badge locus-rank-top tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-bold tw-bg-[#8B1A1A] tw-text-white tw-shadow-sm" title="Rank #1 by ${esc(rankKey.toUpperCase())}">
+      rankBadge = `<span class="locus-rank-badge locus-rank-top tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-bold tw-bg-gradient-to-r tw-from-[#8B1A1A] tw-to-[#A82020] tw-text-white tw-shadow-sm" title="Rank #1 by ${esc(rankKey.toUpperCase())}">
         <svg class="tw-w-3 tw-h-3 tw-text-amber-300 tw-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
         <span>#1</span> <span class="tw-text-[10.5px] tw-font-semibold tw-text-white/90">${esc(rankKey.toUpperCase())} rank</span>
       </span>`;
     } else {
-      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200" title="Rank #${scientificRank} by ${esc(rankKey.toUpperCase())}">
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200" title="Rank #${scientificRank} by ${esc(rankKey.toUpperCase())}">
         <strong class="tw-font-bold tw-text-slate-900">#${scientificRank}</strong> <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(rankKey.toUpperCase())} rank</span>
       </span>`;
     }
   }
 
-  const metaParts = [
-    property.barangay || property.city || 'San Fernando',
-    property.subcategory || property.category || 'Commercial',
-    areaText(property)
-  ].filter(Boolean).join(' · ');
-
+  const categoryName = property.subcategory || property.category || 'Commercial';
   const areaLabel = !hasArea(property) ? 'Area not provided' : Number(property.area) < 1
     ? `${number(Number(property.area) * 10000)} m² ${property.area ? `(${number(property.area)} ha)` : ''}`
     : `${number(property.area)} ha`;
 
-  return `<article class="priority-card locus-property-card-lift tw-relative tw-bg-white tw-rounded-[24px] tw-border tw-border-slate-200/80 hover:tw-border-slate-300 tw-shadow-[0_4px_20px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.08)] tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-5 tw-transition-all tw-duration-200" data-property-id="${property.id}">
-    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
-      <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-block tw-shrink-0 tw-overflow-hidden tw-rounded-2xl tw-border tw-border-slate-200/60" aria-label="View ${esc(titleClean)}">
-        <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full sm:tw-w-44 md:tw-w-48 tw-h-36 sm:tw-h-32 tw-object-cover tw-rounded-2xl hover:tw-scale-105 tw-transition-transform tw-duration-300" loading="lazy">
+  return `<article class="priority-card locus-property-card-lift tw-group tw-relative tw-bg-white tw-rounded-2xl sm:tw-rounded-3xl tw-border tw-border-slate-200/80 hover:tw-border-slate-300 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.08)] tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-6 tw-transition-all tw-duration-200" data-property-id="${property.id}">
+    <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-start xl:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
+      
+      <!-- Media Thumbnail with Floating Badges -->
+      <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-relative tw-block tw-shrink-0 tw-w-full sm:tw-w-48 md:tw-w-56 tw-h-44 sm:tw-h-36 md:tw-h-40 tw-rounded-xl sm:tw-rounded-2xl tw-overflow-hidden tw-border tw-border-slate-200/70 tw-bg-slate-100 tw-group/thumb" aria-label="View ${esc(titleClean)}">
+        <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full tw-h-full tw-object-cover tw-rounded-xl sm:tw-rounded-2xl group-hover/thumb:tw-scale-105 tw-transition-transform tw-duration-500" loading="lazy">
+        <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-t tw-from-slate-950/60 tw-via-transparent tw-to-slate-950/20 tw-pointer-events-none"></div>
+        <span class="tw-absolute tw-left-2.5 tw-top-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-md tw-text-[10.5px] tw-font-semibold tw-tracking-wide tw-bg-slate-900/85 tw-backdrop-blur-md tw-text-white tw-shadow-sm">
+          ${esc(categoryName)}
+        </span>
+        <span class="tw-absolute tw-left-2.5 tw-bottom-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-[9.5px] tw-font-bold tw-uppercase tw-tracking-wider tw-bg-white/95 tw-backdrop-blur-md tw-text-slate-800 tw-shadow-xs">
+          ${esc(listingPurposeLabel(property))}
+        </span>
       </a>
 
+      <!-- Main Property Content -->
       <div class="tw-flex-1 tw-min-w-0">
+        <!-- Top Status Bar: Rank & Listing Verification -->
         <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
           ${rankBadge}
-          <span class="tw-inline-flex tw-items-center tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-tracking-wide tw-uppercase tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200/70">${esc(property.category || 'Land')}</span>
           ${statusBadge}
+          ${property.authorityToSellVerified ? `
+            <span class="tw-inline-flex tw-items-center tw-gap-1 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-emerald-50/80 tw-text-emerald-800 tw-border tw-border-emerald-200/70" title="Authority to sell verified by city">
+              <svg class="tw-w-3 tw-h-3 tw-text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Authority verified</span>
+            </span>
+          ` : ''}
         </div>
-        <h3 class="tw-text-base sm:tw-text-[18px] tw-font-bold tw-text-slate-900 tw-mt-2 tw-mb-0.5 tw-leading-snug" style="font-family: 'Poppins', sans-serif;">
+
+        <!-- Headline: Property Name -->
+        <h3 class="tw-text-base sm:tw-text-[19px] tw-font-bold tw-text-slate-900 tw-mt-2 tw-mb-1 tw-leading-snug tw-tracking-tight" style="font-family: 'Poppins', sans-serif;">
           <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-text-slate-900 hover:tw-text-[#9E1B22] tw-transition-colors tw-no-underline">${esc(titleClean)}</a>
         </h3>
-        <p class="tw-text-xs sm:tw-text-sm tw-text-slate-500 tw-mt-0.5 tw-mb-2">${esc(metaParts)}</p>
-        ${hazardNotice(property, false)}
 
-        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-1.5 tw-mt-2.5 tw-text-xs tw-text-slate-600">
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-            </svg>
-            <span class="tw-text-xs tw-text-slate-500">${esc(listingPurposeLabel(property))}</span><strong class="tw-font-bold tw-text-slate-900">${esc(listingPriceLabel(property))}</strong>
-            ${ppsqm !== null ? `<span class="tw-text-slate-400 tw-text-[11px]">(${money(ppsqm)}/sqm)</span>` : ''}
-          </div>
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
-            </svg>
-            <span class="tw-text-slate-700 tw-font-medium">${esc(areaLabel)}</span>
-          </div>
+        <!-- Single-source Specs Row (No Redundancy!) -->
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1 tw-text-xs sm:tw-text-[13px] tw-text-slate-600">
           <div class="tw-flex tw-items-center tw-gap-1.5">
             <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
             </svg>
-            <span class="tw-text-slate-700">${esc(locationLabel)}</span>
+            <span class="tw-text-slate-700 tw-font-medium">${esc(locationLabel)}</span>
+          </div>
+          <span class="tw-text-slate-300" aria-hidden="true">·</span>
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-400 tw-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+            </svg>
+            <span class="tw-text-slate-700 tw-font-semibold">${esc(areaLabel)}</span>
           </div>
         </div>
+
+        <!-- Prominent Financials Row -->
+        <div class="tw-flex tw-items-baseline tw-gap-2.5 tw-mt-2.5 tw-mb-2">
+          <strong class="tw-text-lg sm:tw-text-[21px] tw-font-black tw-text-slate-900 tw-tracking-tight">${esc(listingPriceLabel(property))}</strong>
+          ${ppsqm !== null ? `<span class="tw-text-xs sm:tw-text-[13px] tw-font-medium tw-text-slate-500">(${money(ppsqm)}/sqm)</span>` : ''}
+        </div>
+
+        <!-- Environmental & Hazard Due Diligence Strip -->
+        ${hazardNotice(property, false)}
       </div>
     </div>
 
-    <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap tw-items-center tw-justify-between xl:tw-justify-end tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-mt-3 xl:tw-mt-0 tw-w-full xl:tw-w-auto">
-      <div class="tw-flex tw-items-center tw-gap-2.5 tw-shrink-0">
-        <div class="tw-w-36 sm:tw-w-40 tw-py-2.5 tw-px-3 tw-rounded-2xl ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-bg-[#FFF7ED] tw-border tw-border-orange-200/80' : 'tw-bg-slate-50 tw-border tw-border-slate-200/80'} tw-text-center tw-shrink-0 tw-shadow-2xs">
-          <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
-            <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-text-[#9E1B22]' : 'tw-text-slate-400'} tw-uppercase">IAI composite</span>
-            <span class="tw-text-[10px] tw-text-slate-400">/ 100</span>
-          </div>
-          ${(property.iaiScore != null && property.assessmentComplete) ? `
-            <strong class="tw-block tw-text-xl sm:tw-text-2xl tw-font-extrabold tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">${number(property.iaiScore)}</strong>
-            <span class="tw-block tw-text-[9.5px] tw-text-slate-500 tw-font-medium tw-mt-0.5">MCE methodology (6 criteria)</span>
-          ` : `
-            <strong class="tw-block tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-400 tw-leading-tight tw-mt-0.5">—</strong>
-            <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
-          `}
+    <!-- Right Side: IAI Score & Action Controls -->
+    <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap xl:tw-flex-col tw-items-stretch sm:tw-items-center xl:tw-items-end tw-justify-between xl:tw-justify-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-pt-3 xl:tw-pt-0 tw-border-t xl:tw-border-t-0 tw-border-slate-100 tw-w-full xl:tw-w-auto">
+      
+      <!-- IAI Score Box (Authoritative when assessed, refined status when pending) -->
+      <div class="tw-w-full sm:tw-w-44 xl:tw-w-48 tw-py-2.5 tw-px-3.5 tw-rounded-2xl ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-to-[#FFF7ED] tw-border tw-border-orange-200/90 tw-shadow-[0_2px_12px_-2px_rgba(234,88,12,0.08)]' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-text-center tw-shrink-0">
+        <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
+          <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-text-[#9E1B22]' : 'tw-text-slate-500'} tw-tracking-wider tw-uppercase">IAI composite</span>
+          <span class="tw-text-[10px] tw-text-slate-400">/ 100</span>
         </div>
+        ${(property.iaiScore != null && property.assessmentComplete) ? `
+          <strong class="tw-block tw-text-2xl sm:tw-text-[26px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">${number(property.iaiScore)}</strong>
+          <span class="tw-block tw-text-[9.5px] tw-text-slate-500 tw-font-medium tw-mt-0.5">MCE methodology (6 criteria)</span>
+        ` : `
+          <div class="tw-inline-flex tw-items-center tw-gap-1.5 tw-my-1 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-bg-white tw-border tw-border-slate-200/80 tw-shadow-2xs">
+            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-400 tw-animate-pulse"></span>
+            <span class="tw-text-[11px] tw-font-semibold tw-text-slate-700">Awaiting score</span>
+          </div>
+          <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
+        `}
       </div>
 
-      <div class="tw-flex tw-flex-row sm:tw-flex-col tw-items-stretch sm:tw-items-end tw-gap-2.5 tw-shrink-0 tw-w-full sm:tw-w-auto">
-        <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-primary tw-flex-1 sm:tw-flex-none tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-5 tw-rounded-full tw-bg-[#11224D] hover:tw-bg-[#1B367A] active:tw-bg-[#0A1633] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-shadow-sm hover:tw-shadow tw-transition-all tw-cursor-pointer">
+      <!-- Action Buttons -->
+      <div class="tw-flex tw-flex-col sm:tw-flex-row xl:tw-flex-col tw-items-stretch sm:tw-items-end tw-gap-2 tw-shrink-0 tw-w-full sm:tw-w-auto">
+        <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-primary tw-w-full tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-5 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] active:tw-bg-[#0A1633] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all tw-cursor-pointer">
           <span>View details</span>
           <span aria-hidden="true">&rarr;</span>
         </a>
 
-        <div class="tw-flex tw-items-center tw-gap-2">
-          <button type="button" class="locus-compare-btn ${isCompared ? 'is-selected tw-bg-blue-50 tw-border-blue-300 tw-text-[#11224D] tw-font-semibold' : 'tw-bg-white hover:tw-bg-slate-50 tw-border-slate-200 hover:tw-border-slate-300 tw-text-slate-700 tw-font-medium'} tw-flex-1 sm:tw-flex-none tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-py-2 tw-px-3.5 tw-rounded-full tw-border tw-text-xs tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${isCompared}">
+        <div class="tw-flex tw-items-center tw-gap-2 tw-w-full sm:tw-w-auto">
+          <button type="button" class="locus-compare-btn ${isCompared ? 'is-selected tw-bg-blue-50 tw-border-blue-300 tw-text-[#11224D] tw-font-semibold' : 'tw-bg-white hover:tw-bg-slate-50 tw-border-slate-200 hover:tw-border-slate-300 tw-text-slate-700 tw-font-medium'} tw-flex-1 tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-py-2 tw-px-3.5 tw-rounded-xl tw-border tw-text-xs tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${isCompared}">
             <svg class="tw-w-3.5 tw-h-3.5 ${isCompared ? 'tw-text-[#11224D]' : 'tw-text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             <span>${isCompared ? 'In compare' : 'Add to compare'}</span>
           </button>
 
-          <button type="button" class="locus-save-btn ${isSaved ? 'is-saved tw-text-[#9E1B22] tw-bg-rose-50 tw-border-rose-200' : 'tw-text-slate-400 hover:tw-text-[#9E1B22] hover:tw-bg-rose-50/50 tw-bg-white tw-border-slate-200 hover:tw-border-slate-300'} tw-w-9 tw-h-9 tw-rounded-full tw-border tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved to favorites' : 'Save property'}">
+          <button type="button" class="locus-save-btn ${isSaved ? 'is-saved tw-text-[#9E1B22] tw-bg-rose-50 tw-border-rose-200' : 'tw-text-slate-400 hover:tw-text-[#9E1B22] hover:tw-bg-rose-50/50 tw-bg-white tw-border-slate-200 hover:tw-border-slate-300'} tw-w-9 tw-h-9 tw-rounded-xl tw-border tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved to favorites' : 'Save property'}">
             <svg class="tw-w-4 tw-h-4" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
             </svg>
@@ -754,7 +788,11 @@ function getFiltered() {
   });
 
   const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' && advancedView() ? 'iai' : 'newest');
-  if (sort === 'iai' || sort === 'mce') result.sort((a, b) => (b[`${sort}Score`] ?? -1) - (a[`${sort}Score`] ?? -1) || a.id - b.id);
+  if (sort === 'iai' || sort === 'mce') result.sort((a, b) => {
+    if (a.rank_eligible !== true || b.rank_eligible !== true) return a.rank_eligible === b.rank_eligible ? a.id - b.id : a.rank_eligible === true ? -1 : 1;
+    if (a.comparison_key !== b.comparison_key) return String(a.comparison_key).localeCompare(String(b.comparison_key));
+    return b.unrounded_total - a.unrounded_total || a.id - b.id;
+  });
   else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => compareSalePrices(a, b));
   else if (sort === 'price_desc') result.sort((a, b) => compareSalePrices(a, b, "desc"));
   else if (sort === 'area') result.sort((a, b) => b.area - a.area);
@@ -774,18 +812,25 @@ function renderRanking() {
   const sortLabel = document.getElementById('citySort')?.selectedOptions[0]?.textContent || 'Newest';
   const headerHtml = `<div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
     <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2.5 tw-text-sm">
-      <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3.5 tw-py-1 tw-rounded-full tw-bg-slate-900 tw-text-white tw-font-bold tw-text-xs tw-shadow-xs">
-        <strong class="tw-font-bold tw-text-white">${filtered.length}</strong>
+      <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3.5 tw-py-1.5 tw-rounded-xl tw-bg-[#11224D] tw-text-white tw-font-bold tw-text-xs tw-shadow-sm">
+        <strong class="tw-font-black tw-text-white">${filtered.length}</strong>
         <span class="tw-font-medium tw-text-slate-200">${filtered.length === 1 ? 'property' : 'properties'}</span>
       </span>
-      <span class="tw-text-slate-500 tw-text-xs sm:tw-text-sm" data-investor-advanced>
-        <span class="tw-font-medium tw-text-emerald-700 tw-bg-emerald-50 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-border tw-border-emerald-200/80">${assessed.length} assessed</span>
-        <span class="tw-font-medium tw-text-slate-600 tw-bg-slate-100 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-border tw-border-slate-200/80 tw-ml-1">${awaiting} awaiting assessment</span>
+      <span class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-600 tw-bg-slate-100/90 tw-px-3 tw-py-1.5 tw-rounded-xl tw-border tw-border-slate-200/80" data-investor-advanced>
+        <span class="tw-flex tw-items-center tw-gap-1.5 tw-font-semibold ${assessed.length > 0 ? 'tw-text-emerald-700' : 'tw-text-slate-500'}">
+          <span class="tw-w-2 tw-h-2 tw-rounded-full ${assessed.length > 0 ? 'tw-bg-emerald-500' : 'tw-bg-slate-400'}"></span>
+          <span>${assessed.length} assessed</span>
+        </span>
+        <span class="tw-text-slate-300" aria-hidden="true">|</span>
+        <span class="tw-flex tw-items-center tw-gap-1.5 tw-font-medium tw-text-slate-600">
+          <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400"></span>
+          <span>${awaiting} awaiting assessment</span>
+        </span>
       </span>
     </div>
-    <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-xs sm:tw-text-sm tw-text-slate-500">
-      <span class="tw-text-slate-400">Sorted by</span>
-      <span class="tw-font-semibold tw-text-slate-700 tw-bg-white tw-px-3 tw-py-1 tw-rounded-full tw-border tw-border-slate-200/80 tw-shadow-2xs">${esc(sortLabel)}</span>
+    <div class="tw-flex tw-items-center tw-gap-2 tw-text-xs sm:tw-text-sm tw-text-slate-500">
+      <span class="tw-text-slate-400 tw-font-medium">Sorted by</span>
+      <span class="tw-font-semibold tw-text-slate-800 tw-bg-white tw-px-3 tw-py-1 tw-rounded-xl tw-border tw-border-slate-200/90 tw-shadow-2xs">${esc(sortLabel)}</span>
     </div>
   </div>`;
 
@@ -799,7 +844,7 @@ function renderRanking() {
   } else {
     root.innerHTML = headerHtml + `<div class="tw-flex tw-flex-col tw-gap-3.5 sm:tw-gap-4">${filtered.map((property, idx) => priorityListCard(property, idx)).join('')}</div>`;
   }
-  if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks are the recorded scientific ranks across assessed properties; filtering may leave gaps or ties.` : 'This listing order is based on the selected sort, not an assessment rank.'} Missing scores remain pending and sort last for assessment order.</p>`);
+  if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks apply only within the same protocol, weights, dataset versions and proposed activity. Different comparison groups are ordered separately; no cross-group rank is assigned.` : 'This listing order is based on the selected sort, not an assessment rank.'} Missing scores remain pending and sort last for assessment order.</p>`);
   window.SFCInvestorView?.refresh(root);
 
   const methodNote = document.getElementById('cityAssessmentMethod');
@@ -809,27 +854,26 @@ function renderRanking() {
 function renderCompare() {
   const root = document.getElementById('cityCompareMatrix');
   if (!root) return;
-  const selected = compare.map(id => properties.find(property => property.id === id)).filter(Boolean);
-  if (!selected.length) { root.innerHTML = `<div class="city-empty"><h3>Choose properties to compare.</h3><p>Add up to three listings from the property list.</p><a class="city-button" href="${path(investor ? 'investor-dashboard.php' : 'property-explorer.php')}">Explore properties</a></div>`; return; }
-  root.innerHTML = selected.map(property => {
-    const facts = [
-      ['Category', property.subcategory || property.category], ['Location', [property.barangay, property.city].filter(Boolean).join(', ')],
-      ['Map location', hasCoordinates(property) ? propertyLocationLabel(property) : 'Not recorded'],
-      ['Listing purpose', listingPurposeLabel(property)], ['Availability', property.status],
-      ...listingPriceEntries(property).map(entry => [entry.label, entry.value]), ['Area', areaText(property)],
-      ['Sale price / m²', pricePerSqmText(property)], ['Zoning', property.clupProfile?.zoningClassification || 'Awaiting review'],
-      ['Hazards & environment', propertyHazardSummary(property)],
-    ];
-    const assessments = [
-      ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? 'Pending' : `#${property.mceRank}`],
-      ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? 'Pending' : `#${property.iaiRank}`],
-      ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]),
-      ['Assessment context', property.assessmentTags?.join(', ') || 'Not recorded'],
-    ];
-    const rows = (entries, advanced = false) => entries.map(([label, value]) => `<div${advanced ? ' data-investor-advanced' : ''}><dt>${esc(label)}</dt><dd>${esc(value ?? 'Not recorded')}</dd></div>`).join('');
-    return `<article class="city-compare-column"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}"><div><h3><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3><dl>${rows(facts)}${rows(assessments, true)}</dl><div class="city-card-actions"><a href="${path(`property-details.php?id=${property.id}#propertyLocationSection`)}">View map & contact</a><button type="button" data-compare="${property.id}">Remove</button></div></div></article>`;
-  }).join('');
-  window.SFCInvestorView?.refresh(root);
+  const selected = [...new Set(compare)].map(id => properties.find(property => property.id === id)).filter(Boolean).slice(0,3);
+  if (selected.length < 2) compareOnlyDifferences = false;
+  root.innerHTML = comparisonMarkup(selected, { path, imageUrl, differencesOnly: compareOnlyDifferences });
+  const applyDifferences = () => {
+    root.querySelectorAll('.site-same-row').forEach(row => { row.hidden = compareOnlyDifferences; });
+    root.querySelectorAll('.site-compare-group').forEach(group => {
+      let visible = false;
+      for (let row = group.nextElementSibling; row && !row.classList.contains('site-compare-group'); row = row.nextElementSibling) { if (!row.hidden) visible = true; }
+      group.hidden = !visible;
+    });
+  };
+  applyDifferences();
+  root.querySelector('[data-compare-differences]')?.addEventListener('click', event => {
+    compareOnlyDifferences = !compareOnlyDifferences;
+    event.currentTarget.setAttribute('aria-pressed', String(compareOnlyDifferences));
+    applyDifferences();
+  });
+  root.querySelector('[data-compare-clear]')?.addEventListener('click', () => {
+    compare = []; saveCompare(); renderTray(); renderCompare(); toast('Comparison cleared.');
+  });
 }
 
 function render() {
@@ -1171,7 +1215,7 @@ function setupMap() {
   }
   map.addLayer(markers);
 
-  setMapLayer('canvas');
+  setMapLayer(page === 'city-details' ? 'satellite' : 'canvas');
   renderMarkers();
   fitMap();
 
@@ -1355,6 +1399,7 @@ function setupMap() {
 }
 
 function setMapLayer(layer) {
+  clearTimeout(detailsTileTimer);
   if (tileLayer) map.removeLayer(tileLayer);
   currentMapLayer = layer;
 
@@ -1393,6 +1438,20 @@ function setMapLayer(layer) {
     ]);
   }
 
+  if (page === 'city-details') {
+    const status = document.querySelector('[data-site-map-status]');
+    if (status) status.textContent = 'Loading map imagery…';
+    const primary = typeof tileLayer.getLayers === 'function' ? tileLayer.getLayers()[0] : tileLayer;
+    let loaded = false;
+    primary.on('tileload', () => {
+      if (currentMapLayer !== layer) return;
+      loaded = true; clearTimeout(detailsTileTimer);
+      if (status) status.textContent = '';
+    });
+    detailsTileTimer = setTimeout(() => {
+      if (!loaded && currentMapLayer === layer && status) status.textContent = 'Map imagery is unavailable. Try the other map style or open the recorded coordinates below.';
+    }, 8000);
+  }
   tileLayer.addTo(map);
 }
 
@@ -1855,8 +1914,9 @@ async function renderDetails() {
       subtabs.forEach(btn => {
         const active = btn.dataset.assessmentTab === tab;
         btn.classList.toggle('is-active', active);
-        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
+      if (tab !== 'overview' && !advancedView()) window.SFCInvestorView?.set('advanced');
       if (tab === 'calculation' && calcDisclosure) {
         calcDisclosure.open = true;
         calcDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1877,6 +1937,11 @@ async function renderDetails() {
     });
   }
 
+  setupMediaDock(root, map);
+  setupTransportationInteractions(root, property, map);
+  setupDemographicsInteractions(root, property);
+  setupClimateRiskInteractions(root, property, map);
+
   function revealLinkedPanel() {
     const legacyPanels = {
       propertyMessagingSection: 'cityInquiryPanel',
@@ -1887,10 +1952,171 @@ async function renderDetails() {
     const panel = document.getElementById(legacyPanels[hash] || hash);
     if (!panel || !root.contains(panel)) return;
     if (panel.tagName === 'DETAILS') panel.open = true;
+    for (let parent = panel.parentElement; parent && parent !== root; parent = parent.parentElement) { if (parent.tagName === 'DETAILS') parent.open = true; }
     panel.scrollIntoView({ block: 'center' });
   }
   revealLinkedPanel();
   window.addEventListener('hashchange', revealLinkedPanel);
+}
+
+function setupMediaDock(root, map) {
+  const tabBtns = root.querySelectorAll('[data-media-tab]');
+  const tabPanes = root.querySelectorAll('[data-media-pane]');
+  if (!tabBtns.length) return;
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.mediaTab;
+      tabBtns.forEach(b => {
+        const active = b === btn;
+        b.classList.toggle('is-active', active);
+        b.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      tabPanes.forEach(pane => {
+        const match = pane.dataset.mediaPane === target;
+        pane.classList.toggle('is-active', match);
+        if (match) {
+          pane.removeAttribute('hidden');
+        } else {
+          pane.setAttribute('hidden', '');
+        }
+      });
+      if (target === 'map' && map) {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 120);
+      }
+    });
+  });
+}
+
+function setupTransportationInteractions(root, property, map) {
+  const termBtn = root.querySelector('[data-terminal-view-map]');
+  if (!termBtn) return;
+  termBtn.addEventListener('click', () => {
+    const term = property.transportationAccessibility?.nearest_terminal;
+    if (!term || !map) return;
+    const tabMapBtn = root.querySelector('#tabMapBtn');
+    if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
+      tabMapBtn.click();
+    }
+    const tLat = Number(term.lat);
+    const tLng = Number(term.lng);
+    if (Number.isFinite(tLat) && Number.isFinite(tLng)) {
+      map.flyTo([tLat, tLng], 17, {
+        animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+        duration: 1.2
+      });
+      if (window.L) {
+        L.popup()
+          .setLatLng([tLat, tLng])
+          .setContent(`
+            <div class="city-popup" style="font-family:sans-serif;min-width:180px;">
+              <span style="font-size:9.5px;font-weight:700;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">NEAREST PUBLIC TRANSIT</span>
+              <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(term.name)}</strong>
+              <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(term.type)} &middot; ${esc(term.distance_formatted)}</span>
+              <a href="https://www.google.com/maps/search/?api=1&query=${tLat},${tLng}" target="_blank" rel="noopener" style="font-size:10.5px;color:#2563eb;text-decoration:none;font-weight:600;">Open in Google Maps &nearr;</a>
+            </div>
+          `)
+          .openOn(map);
+      }
+      document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+}
+
+function setupDemographicsInteractions(root, property) {
+  const scopeSelect = root.querySelector('#demographicScopeSelect');
+  if (!scopeSelect) return;
+  const scopesData = property.localMarketIntelligence?.scopes || {};
+
+  scopeSelect.addEventListener('change', () => {
+    const scope = scopeSelect.value;
+    const data = scopesData[scope] || scopesData['barangay'] || scopesData['city'];
+    if (!data) return;
+
+    const popCont = root.querySelector('#chartPopulationContainer');
+    if (popCont) {
+      popCont.innerHTML = renderDonutSvg(data.population?.breakdown, data.population?.total_formatted || '0', 'Total');
+    }
+
+    const incCont = root.querySelector('#chartIncomeContainer');
+    if (incCont) {
+      incCont.innerHTML = renderDonutSvg(data.household_income?.brackets, data.household_income?.median_formatted || '0', 'Median');
+    }
+
+    const spendCont = root.querySelector('#chartSpendingContainer');
+    if (spendCont) {
+      spendCont.innerHTML = renderDonutSvg(data.consumer_spending?.categories, data.consumer_spending?.total_formatted || '0', 'Annual');
+    }
+
+    const scopeMeta = root.querySelector('#demographicScopeMeta');
+    if (scopeMeta) {
+      scopeMeta.innerHTML = `Coverage: <strong>${esc(data.name)}</strong> · Reference: ${esc(property.localMarketIntelligence?.metadata?.census_year || '2020')} PSA Census &amp; FIES · Scope level: ${esc(scope.toUpperCase())}`;
+    }
+  });
+}
+
+let floodOverlayLayer = null;
+function setupClimateRiskInteractions(root, property, map) {
+  const toggleBtn = root.querySelector('[data-toggle-flood-overlay]');
+  if (!toggleBtn) return;
+
+  toggleBtn.addEventListener('click', async () => {
+    if (!map || !window.L) return;
+    const tabMapBtn = root.querySelector('#tabMapBtn');
+    if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
+      tabMapBtn.click();
+    }
+    document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (floodOverlayLayer) {
+      if (map.hasLayer(floodOverlayLayer)) {
+        map.removeLayer(floodOverlayLayer);
+        toggleBtn.textContent = 'View Flood Overlay on Map ↗';
+      } else {
+        map.addLayer(floodOverlayLayer);
+        toggleBtn.textContent = 'Hide Flood Overlay ✕';
+      }
+      return;
+    }
+
+    try {
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = 'Loading overlay...';
+      const res = await fetch(path('data/assessment/hazards.geojson'));
+      if (!res.ok) throw new Error('Hazard geojson unavailable');
+      const geo = await res.json();
+      floodOverlayLayer = L.geoJSON(geo, {
+        filter: feat => feat.properties?.hazard_type === 'flood' || feat.properties?.type === 'flood',
+        style: {
+          color: '#0284c7',
+          weight: 2,
+          fillColor: '#38bdf8',
+          fillOpacity: 0.35,
+          dashArray: '3 3'
+        },
+        onEachFeature: (feature, layer) => {
+          const p = feature.properties || {};
+          layer.bindPopup(`
+            <div class="city-popup" style="font-family:sans-serif;min-width:200px;">
+              <span style="font-size:9.5px;font-weight:700;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">OFFICIAL MGB FLOOD OVERLAY</span>
+              <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(p.name || 'Flood Hazard Zone')}</strong>
+              <p style="font-size:11px;color:#475569;margin:4px 0;">${esc(p.description || 'Monsoon inundation risk')}</p>
+              <div style="font-size:9.5px;color:#64748b;">Source: ${esc(p.source || 'DENR-MGB Region 1')}</div>
+            </div>
+          `);
+        }
+      });
+      floodOverlayLayer.addTo(map);
+      toggleBtn.textContent = 'Hide Flood Overlay ✕';
+    } catch (err) {
+      console.warn('Could not load flood overlay:', err);
+      toggleBtn.textContent = 'Overlay unavailable';
+    } finally {
+      toggleBtn.disabled = false;
+    }
+  });
 }
 
 function investorTools(property, canArrangeVisit) {
@@ -2275,7 +2501,7 @@ async function initialize() {
   setupPrivacy();
   setupLandingFeatures();
   const bootstrap=await api.bootstrap();properties=(bootstrap.properties||[]).filter(property=>!property.isDeleted);categories=bootstrap.categories||{};criteria=bootstrap.criteria||{};
-  compare=compare.filter(id=>properties.some(property=>property.id===id)).slice(0,3);saveCompare();
+  compare=[...new Set(compare)].filter(id=>properties.some(property=>property.id===id)).slice(0,3);saveCompare();
   if(investor){const result=await api.shortlist();saved=new Set(result.propertyIds||[]);}
   if(page==='city-investor'){
     document.getElementById('cityAreaStat').textContent=number(bootstrap.stats?.availableAreaHa);

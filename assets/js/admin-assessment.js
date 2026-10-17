@@ -43,11 +43,11 @@
         bar.querySelector('span').style.width = `${available ? Math.max(0, Math.min(100, Number(value))) : 0}%`;
         const nextActions = {
           spatial_accessibility: 'Confirm road frontage and access evidence.',
-          infrastructure_readiness: 'Confirm electricity, water, and internet.',
-          economic_viability: 'Add a dated BIR zonal reference.',
+          infrastructure_readiness: 'Confirm parcel electricity, water, internet and drainage observations with applicable evidence.',
+          economic_viability: 'Add suitable market comparables with compatible currency, area basis and rent period. BIR values remain descriptive.',
           nearby_businesses: 'Run the radar and confirm inventory coverage.',
-          zoning_compatibility: 'Add the parcel zoning and CLUP source.',
-          risk_constraints: 'Review hazard sources and parcel coverage.',
+          zoning_compatibility: 'Record the district, select an explicit activity, and verify the applicable rule.',
+          risk_constraints: 'Verify applicable coverage for flood, fault, landslide, storm surge, liquefaction and tsunami.',
           environmental_safety: 'Add environmental classification evidence.',
         };
         card.querySelector('[data-score-justification]').textContent = available ? (detail?.justification || 'Source evidence available.') : (waiting ? 'Checking source evidence…' : nextActions[key]);

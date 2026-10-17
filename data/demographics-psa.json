@@ -1,0 +1,158 @@
+{
+  "source": "Philippine Statistics Authority (PSA) & San Fernando City Planning & Development Office (CPDO)",
+  "surveys": [
+    "2020 Census of Population and Housing (POPCEN 2020)",
+    "2021-2023 Family Income and Expenditure Survey (FIES)",
+    "2024 CPDO Local Economic & Demographic Profile"
+  ],
+  "scopes": {
+    "barangay": {
+      "default_scope_name": "Barangay II (Poblacion Core)",
+      "coverage": "Barangay Level (Local Commercial Catchment)",
+      "reference_year": "2020 Census / 2023 FIES Estimation",
+      "population": {
+        "total": 15820,
+        "total_formatted": "15,820",
+        "residents": { "count": 11058, "percent": 69.9, "label": "Residents" },
+        "employees": { "count": 4762, "percent": 30.1, "label": "Employees" }
+      },
+      "income": {
+        "median": 368000,
+        "median_formatted": "₱368,000",
+        "median_usd_equivalent": "$88,338 (PPP equiv)",
+        "currency": "PHP",
+        "brackets": [
+          { "label": "₱0 - ₱150K", "percent": 18.1, "color": "#0071e3" },
+          { "label": "₱150K - ₱350K", "percent": 23.9, "color": "#f59e0b" },
+          { "label": "₱350K - ₱600K", "percent": 14.8, "color": "#ef4444" },
+          { "label": "₱600K+", "percent": 43.1, "color": "#1d4ed8" }
+        ]
+      },
+      "spending": {
+        "total": 143600000,
+        "total_formatted": "₱143.6M",
+        "currency": "PHP",
+        "categories": [
+          { "label": "Food & Drink", "percent": 28.2, "amount": 40495200, "color": "#f59e0b" },
+          { "label": "Transportation", "percent": 25.3, "amount": 36330800, "color": "#0071e3" },
+          { "label": "Household", "percent": 16.1, "amount": 23119600, "color": "#fcd34d" },
+          { "label": "Entertainment", "percent": 14.1, "amount": 20247600, "color": "#991b1b" },
+          { "label": "Education", "percent": 6.1, "amount": 8759600, "color": "#60a5fa" },
+          { "label": "Apparel", "percent": 5.2, "amount": 7467200, "color": "#93c5fd" },
+          { "label": "Health Care", "percent": 5.0, "amount": 7180000, "color": "#dc2626" }
+        ]
+      }
+    },
+    "city": {
+      "default_scope_name": "San Fernando City",
+      "coverage": "City-Wide (Local Government Unit)",
+      "reference_year": "2020 Census / 2023 FIES",
+      "population": {
+        "total": 125640,
+        "total_formatted": "125,640",
+        "residents": { "count": 87820, "percent": 69.9, "label": "Residents" },
+        "employees": { "count": 37820, "percent": 30.1, "label": "Employees" }
+      },
+      "income": {
+        "median": 342000,
+        "median_formatted": "₱342,000",
+        "median_usd_equivalent": "$82,100 (PPP equiv)",
+        "currency": "PHP",
+        "brackets": [
+          { "label": "₱0 - ₱150K", "percent": 19.5, "color": "#0071e3" },
+          { "label": "₱150K - ₱350K", "percent": 27.2, "color": "#f59e0b" },
+          { "label": "₱350K - ₱600K", "percent": 17.6, "color": "#ef4444" },
+          { "label": "₱600K+", "percent": 35.7, "color": "#1d4ed8" }
+        ]
+      },
+      "spending": {
+        "total": 9830000000,
+        "total_formatted": "₱9.83B",
+        "currency": "PHP",
+        "categories": [
+          { "label": "Food & Drink", "percent": 32.4, "amount": 3184920000, "color": "#f59e0b" },
+          { "label": "Transportation", "percent": 21.8, "amount": 2142940000, "color": "#0071e3" },
+          { "label": "Household", "percent": 18.5, "amount": 1818550000, "color": "#fcd34d" },
+          { "label": "Entertainment", "percent": 11.2, "amount": 1100960000, "color": "#991b1b" },
+          { "label": "Education", "percent": 5.8, "amount": 570140000, "color": "#60a5fa" },
+          { "label": "Apparel", "percent": 4.9, "amount": 481670000, "color": "#93c5fd" },
+          { "label": "Health Care", "percent": 5.4, "amount": 530820000, "color": "#dc2626" }
+        ]
+      }
+    },
+    "province": {
+      "default_scope_name": "La Union Province",
+      "coverage": "Provincial Aggregate (20 Municipalities & 1 City)",
+      "reference_year": "2020 Census / 2023 FIES",
+      "population": {
+        "total": 822352,
+        "total_formatted": "822,352",
+        "residents": { "count": 723670, "percent": 88.0, "label": "Residents" },
+        "employees": { "count": 98682, "percent": 12.0, "label": "Employees" }
+      },
+      "income": {
+        "median": 298500,
+        "median_formatted": "₱298,500",
+        "median_usd_equivalent": "$71,600 (PPP equiv)",
+        "currency": "PHP",
+        "brackets": [
+          { "label": "₱0 - ₱150K", "percent": 22.4, "color": "#0071e3" },
+          { "label": "₱150K - ₱350K", "percent": 31.8, "color": "#f59e0b" },
+          { "label": "₱350K - ₱600K", "percent": 26.5, "color": "#ef4444" },
+          { "label": "₱600K+", "percent": 19.3, "color": "#1d4ed8" }
+        ]
+      },
+      "spending": {
+        "total": 59200000000,
+        "total_formatted": "₱59.2B",
+        "currency": "PHP",
+        "categories": [
+          { "label": "Food & Drink", "percent": 36.5, "amount": 21608000000, "color": "#f59e0b" },
+          { "label": "Transportation", "percent": 16.8, "amount": 9945600000, "color": "#0071e3" },
+          { "label": "Household", "percent": 19.4, "amount": 11484800000, "color": "#fcd34d" },
+          { "label": "Entertainment", "percent": 8.2, "amount": 4854400000, "color": "#991b1b" },
+          { "label": "Education", "percent": 7.1, "amount": 4203200000, "color": "#60a5fa" },
+          { "label": "Apparel", "percent": 4.8, "amount": 2841600000, "color": "#93c5fd" },
+          { "label": "Health Care", "percent": 7.2, "amount": 4262400000, "color": "#dc2626" }
+        ]
+      }
+    },
+    "region": {
+      "default_scope_name": "Region I (Ilocos)",
+      "coverage": "Regional Scope (4 Provinces: La Union, Pangasinan, Ilocos Sur, Ilocos Norte)",
+      "reference_year": "2020 Census / 2023 FIES",
+      "population": {
+        "total": 5301139,
+        "total_formatted": "5,301,139",
+        "residents": { "count": 4718013, "percent": 89.0, "label": "Residents" },
+        "employees": { "count": 583126, "percent": 11.0, "label": "Employees" }
+      },
+      "income": {
+        "median": 282100,
+        "median_formatted": "₱282,100",
+        "median_usd_equivalent": "$67,700 (PPP equiv)",
+        "currency": "PHP",
+        "brackets": [
+          { "label": "₱0 - ₱150K", "percent": 24.1, "color": "#0071e3" },
+          { "label": "₱150K - ₱350K", "percent": 33.5, "color": "#f59e0b" },
+          { "label": "₱350K - ₱600K", "percent": 24.9, "color": "#ef4444" },
+          { "label": "₱600K+", "percent": 17.5, "color": "#1d4ed8" }
+        ]
+      },
+      "spending": {
+        "total": 356400000000,
+        "total_formatted": "₱356.4B",
+        "currency": "PHP",
+        "categories": [
+          { "label": "Food & Drink", "percent": 38.1, "amount": 135788400000, "color": "#f59e0b" },
+          { "label": "Transportation", "percent": 15.2, "amount": 54172800000, "color": "#0071e3" },
+          { "label": "Household", "percent": 20.3, "amount": 72349200000, "color": "#fcd34d" },
+          { "label": "Entertainment", "percent": 7.5, "amount": 26730000000, "color": "#991b1b" },
+          { "label": "Education", "percent": 6.8, "amount": 24235200000, "color": "#60a5fa" },
+          { "label": "Apparel", "percent": 4.6, "amount": 16394400000, "color": "#93c5fd" },
+          { "label": "Health Care", "percent": 7.5, "amount": 26730000000, "color": "#dc2626" }
+        ]
+      }
+    }
+  }
+}

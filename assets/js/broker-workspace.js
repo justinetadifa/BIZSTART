@@ -387,26 +387,56 @@ function setEditorStep(step) {
   editorStep = step;
   form?.querySelectorAll('[data-editor-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.editorPanel) !== step; });
   form?.querySelectorAll('[data-editor-step]').forEach((button) => {
-    const active = Number(button.dataset.editorStep) === step;
+    const stepIdx = Number(button.dataset.editorStep);
+    const active = stepIdx === step;
     button.setAttribute('aria-current', active ? 'step' : 'false');
     button.classList.toggle('is-active', active);
-    button.classList.toggle('is-complete', Number(button.dataset.editorStep) < step);
+    let isComplete = false;
+    if (stepIdx === 2) {
+      isComplete = propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false;
+    } else {
+      isComplete = stepIdx < step;
+    }
+    button.classList.toggle('is-complete', isComplete);
   });
-  const backBtn = form?.querySelector('[data-editor-back]');
-  if (backBtn) {
-    backBtn.disabled = step === 0;
-    backBtn.classList.toggle('tw-opacity-40', step === 0);
-  }
-  const nextBtn = form?.querySelector('[data-editor-next]');
-  if (nextBtn) nextBtn.hidden = step === editorLastStep;
-  const submitBtn = form?.querySelector('[type="submit"]');
-  if (submitBtn) submitBtn.hidden = step !== editorLastStep;
+  form?.querySelectorAll('[data-editor-back]').forEach((btn) => {
+    btn.disabled = step === 0;
+    btn.classList.toggle('tw-opacity-40', step === 0);
+  });
+  form?.querySelectorAll('[data-editor-next]').forEach((btn) => {
+    btn.hidden = step === editorLastStep;
+  });
+  form?.querySelectorAll('[type="submit"]').forEach((btn) => {
+    btn.hidden = step !== editorLastStep;
+  });
   const progressText = form?.querySelector('[data-editor-progress]');
   if (progressText) progressText.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
-  if (propertyWizard && nextBtn) {
-    const nextLabel = nextBtn.querySelector('[data-editor-next-label]') || nextBtn;
-    nextLabel.textContent = step === 0 ? 'Continue to location' : (step === 1 ? 'Continue to Site Evidence' : (step === 2 ? 'Continue to Review' : 'Continue'));
+  if (propertyWizard) {
+    if (step === 2 && propertyWizard.updateFooterNextLabel) {
+      propertyWizard.updateFooterNextLabel();
+    } else {
+      form?.querySelectorAll('[data-editor-next]').forEach((btn) => {
+        const nextLabel = btn.querySelector('[data-editor-next-label]') || btn;
+        if (nextLabel) {
+          nextLabel.textContent = step === 0 ? 'Continue to location' : (step === 1 ? 'Continue to assessment' : (step === 2 ? 'Continue to Review' : 'Continue'));
+        }
+      });
+    }
   }
+
+  // Context-appropriate submit action label
+  const isExisting = Boolean(form?.elements?.id?.value);
+  let submitLabelText = 'Submit for review';
+  if (isExisting) {
+    const propRecord = (typeof activeListing !== 'undefined' ? activeListing : null);
+    const approvalState = (propRecord?.approvalState || propRecord?.approval_state || '').toLowerCase();
+    if (['rejected', 'requires_resubmission'].includes(approvalState)) {
+      submitLabelText = 'Resubmit for review';
+    } else if (['approved', 'active', 'published'].includes(approvalState)) {
+      submitLabelText = 'Save changes';
+    }
+  }
+  form?.querySelectorAll('[data-editor-submit-label]').forEach(el => { el.textContent = submitLabelText; });
   const skip = form?.querySelector('[data-skip-enrichment]');
   if (skip) skip.hidden = ![1,2].includes(step);
   const scrollContainer = form?.querySelector('.pw-content') || editor;
@@ -453,12 +483,22 @@ function validateBoundary() {
   return false;
 }
 
-form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
+form?.querySelectorAll('[data-editor-next]').forEach((btn) => btn.addEventListener('click', () => {
   if (!validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) return;
+  if (editorStep === 2 && propertyWizard?.onFooterNext) {
+    const shouldAdvance = propertyWizard.onFooterNext();
+    if (!shouldAdvance) return;
+  }
   if (editorStep === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
   setEditorStep(Math.min(editorLastStep, editorStep + 1));
-});
-form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+}));
+form?.querySelectorAll('[data-editor-back]').forEach((btn) => btn.addEventListener('click', () => {
+  if (editorStep === 2 && propertyWizard?.onFooterBack) {
+    const shouldGoPrev = propertyWizard.onFooterBack();
+    if (!shouldGoPrev) return;
+  }
+  setEditorStep(Math.max(0, editorStep - 1));
+}));
 form?.querySelector('[data-skip-enrichment]')?.addEventListener('click', () => {
   if (!validateEditor()) return;
   setEditorStep(editorLastStep);
@@ -524,6 +564,7 @@ function updateAreaCalculation() {
 }
 areaInput?.addEventListener('input', updateAreaCalculation);
 areaUnit?.addEventListener('change', () => {
+  if (propertyWizard) { displayedAreaUnit = areaUnit.value; return; }
   const rawVal = Number(areaInput?.value);
   if (areaInput?.value.trim() && Number.isFinite(rawVal) && rawVal > 0 && displayedAreaUnit !== areaUnit.value) {
     const converted = rawVal * (areaUnit.value === 'sqm' ? 10000 : 0.0001);
@@ -591,7 +632,7 @@ function renderSubcategoryTags(sync = true) {
     return;
   }
 
-  subcatTriggerText.textContent = list.length === 1 ? list[0] : `${list[0]}, ${list[1] || ''}${list.length > 2 ? ` (+${list.length - 2} more)` : ''}`.replace(',  ', ' ');
+  subcatTriggerText.textContent = `${list.length} additional classification${list.length === 1 ? '' : 's'} selected`;
   subcatTriggerText.className = 'tw-truncate tw-text-sm tw-font-medium tw-text-[#11224d]';
   subcatCount.textContent = `${list.length} selected`;
 
@@ -713,7 +754,7 @@ function openListing(property = null) {
   if (form.elements.contactBrokerUserId) {
     form.elements.contactBrokerUserId.innerHTML = `
       <option value="${escape(brokerId)}">Contact me (${escape(brokerName)})${brokerPhone ? ` · ${escape(brokerPhone)}` : ''}</option>
-      <option value="">Open listing · City contact</option>
+      <option value="">City listing desk</option>
     `;
   }
 
@@ -981,6 +1022,17 @@ async function revealLinkedTarget() {
     const target = byId('brokerListings').querySelector(`[data-broker-property="${propertyId}"]`);
     target?.scrollIntoView({ block: 'center' });
   }
+  if (params.has('open') || params.has('wizard') || params.has('add')) {
+    openListing();
+    const stepParam = params.get('step');
+    const targetStep = stepParam !== null ? Number(stepParam) : (params.has('criterion') || params.get('open') === 'risk' || params.get('open') === 'zoning' ? 2 : 0);
+    setEditorStep(targetStep);
+    const criterion = params.get('criterion') || (params.get('open') === 'risk' ? 'risk_constraints' : (params.get('open') === 'zoning' ? 'zoning_compatibility' : null));
+    if (criterion) {
+      const tabBtn = form?.querySelector(`[data-evidence-tab="${criterion}"]`);
+      if (tabBtn) tabBtn.click();
+    }
+  }
 }
 
 byId('brokerAddListing').addEventListener('click', () => openListing());
@@ -996,6 +1048,7 @@ document.addEventListener('click', (event) => {
   if (target.hasAttribute('data-close-dialog')) target.closest('dialog')?.close();
 });
 
+let isBrokerSubmitting = false;
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!canSubmit()) return;
@@ -1009,10 +1062,13 @@ form?.addEventListener('submit', async (event) => {
     setEditorStep(2);
     return;
   }
+  if (isBrokerSubmitting) return;
+  isBrokerSubmitting = true;
   const submit = form.querySelector('[type="submit"]');
   const originalSubmitText = submit.innerHTML;
   submit.disabled = true;
-  submit.innerHTML = '<span class="locus-spinner tw-mr-1.5"></span>Submitting…';
+  submit.setAttribute('aria-busy', 'true');
+  submit.innerHTML = '<span class="locus-spinner tw-mr-1.5" aria-hidden="true"></span>Submitting…';
   const id = form.elements.id.value;
   const payload = new FormData(form);
   nearby?.append(payload);
@@ -1041,9 +1097,12 @@ form?.addEventListener('submit', async (event) => {
     let result;
     if (id) result = await api.updateProperty(id, payload);
     else result = await api.createProperty(payload);
+    const savedPropertyId = result?.property?.id || result?.id || id;
+    if (savedPropertyId && form.elements.id) {
+      form.elements.id.value = String(savedPropertyId);
+    }
     propertyWizard?.saved();
     editor?.close();
-    const savedPropertyId = result?.property?.id || result?.id || id;
     showSubmissionSuccessModal(savedPropertyId);
     await reload();
   } catch (error) {
@@ -1058,7 +1117,9 @@ form?.addEventListener('submit', async (event) => {
       }
     }
   } finally {
+    isBrokerSubmitting = false;
     submit.disabled = false;
+    submit.removeAttribute('aria-busy');
     submit.innerHTML = originalSubmitText;
   }
 });
@@ -1078,9 +1139,9 @@ function showSubmissionSuccessModal(propertyId) {
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
-      <h3 class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-1.5 tw-m-0">Property submitted!</h3>
+      <h3 class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-1.5 tw-m-0">Submitted for review</h3>
       <p class="tw-text-xs sm:tw-text-sm tw-text-slate-600 tw-mb-5 tw-leading-relaxed">
-        Your listing has been sent for review. You can track its status in My Properties.
+        Your property has been sent for review. Track its status in My Listings.
       </p>
       <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-center tw-gap-2.5">
         ${propertyId ? `<a href="${basePath}/property-details.php?id=${encodeURIComponent(propertyId)}" class="locus-btn-primary tw-w-full sm:tw-w-auto tw-py-2 tw-px-4 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-transition-colors">View submission</a>` : ''}

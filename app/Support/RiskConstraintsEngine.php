@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+require_once __DIR__ . '/AssessmentEvidence.php';
+
 use InvalidArgumentException;
 
 /**
@@ -115,14 +117,14 @@ final class RiskConstraintsEngine
 
         if (is_numeric($value)) {
             $num = (float) $value;
-            return max(0.0, min(100.0, round($num, 1)));
+            return is_finite($num) && $num >= 0 && $num <= 100 ? $num : null;
         }
 
         $str = strtolower(trim((string) $value));
 
         // Active fault ground rupture specific mappings
         if ($subcriterionKey === 'active_fault') {
-            if (in_array($str, ['conflict', 'intersects', 'trace_conflict', 'within_buffer', 'ground_rupture_zone', 'critical', 'very_high'], true)) {
+            if (in_array($str, ['conflict', 'intersects', 'trace_conflict', 'within_buffer', 'within_fault_buffer', 'active_fault_conflict', 'ground_rupture_zone', 'critical', 'very_high'], true)) {
                 return 0.0;
             }
             if (in_array($str, ['high', 'high_proximity', '<500m', 'near_trace'], true)) {
@@ -134,13 +136,13 @@ final class RiskConstraintsEngine
             if (in_array($str, ['low', 'low_proximity', '>5km'], true)) {
                 return 85.0;
             }
-            if (in_array($str, ['none', 'none_mapped', 'outside_mapped', 'outside_buffer', 'clear', 'safe_distance', 'no_exposure'], true)) {
+            if (in_array($str, ['none', 'none_mapped', 'outside_mapped', 'outside_buffer', 'outside_active_fault_zone', 'outside_fault_zone', 'clear', 'safe_distance', 'no_exposure'], true)) {
                 return 100.0;
             }
         }
 
         // Generic categorical matches
-        if (in_array($str, ['none', 'none_mapped', 'outside_mapped', 'outside_buffer', 'clear', 'no_exposure', 'safe', 'confirmed_none'], true)) {
+        if (in_array($str, ['none', 'none_mapped', 'outside_mapped', 'outside_buffer', 'outside_active_fault_zone', 'outside_fault_zone', 'outside_mapped_hazard', 'clear', 'no_exposure', 'safe', 'confirmed_none'], true)) {
             return 100.0;
         }
         if (in_array($str, ['low', 'low_susceptibility', 'low_exposure'], true)) {
@@ -192,142 +194,80 @@ final class RiskConstraintsEngine
      */
     public static function evaluate(mixed $input, array $options = []): array
     {
-        if (is_numeric($input)) {
-            $score = max(0.0, min(100.0, round((float) $input, 1)));
-            return [
-                'score' => $score,
-                'is_complete' => true,
-                'weight' => self::WEIGHT,
-                'iai_contribution' => round($score * (self::WEIGHT / 100.0), 2),
-                'subcriteria' => [],
-                'has_critical_constraint' => false,
-                'critical_constraint' => null,
-                'high_hazard_warnings' => [],
-                'missing_indicators' => [],
-                'methodology' => self::VERSION,
-                'validation_status' => self::VALIDATION_STATUS,
-                'formula' => "Direct score: {$score} (15% MCE weight)",
-                'explanation' => "Evaluated at {$score} / 100.",
-            ];
-        }
-
-        $rawDict = is_array($input) ? $input : [];
-        if (isset($rawDict['subcriteria']) && is_array($rawDict['subcriteria'])) {
-            $rawDict = $rawDict['subcriteria'];
-        }
-
-        // Support spatial context arrays with hazard_status
-        if (isset($rawDict['hazard_status']) && is_array($rawDict['hazard_status'])) {
-            $rawStatusList = $rawDict['hazard_status'];
-            // Map legacy list into subcriteria if present
-            foreach ($rawStatusList as $item) {
-                $strItem = strtolower((string) $item);
-                if (str_contains($strItem, 'flood')) {
-                    $rawDict['flood_susceptibility'] = str_contains($strItem, 'high') ? 'high' : (str_contains($strItem, 'mod') ? 'moderate' : 'low');
-                }
-                if (str_contains($strItem, 'fault')) {
-                    $rawDict['active_fault'] = str_contains($strItem, 'high') || str_contains($strItem, 'corridor') ? 'high' : 'low';
-                }
-                if (str_contains($strItem, 'landslide')) {
-                    $rawDict['landslide_susceptibility'] = str_contains($strItem, 'high') ? 'high' : (str_contains($strItem, 'outside') ? 'none' : 'low');
-                }
-            }
-        }
-
-        $evaluatedSubcriteria = [];
-        $missingIndicators = [];
-        $highHazardWarnings = [];
-        $hasCriticalFaultConflict = false;
-        $weightedTotal = 0.0;
-        $isComplete = true;
-
+        $raw = is_array($input) ? ($input['subcriteria'] ?? $input) : [];
+        $subs = $missing = $warnings = $reasons = [];
+        $total = 0.0;
+        $numeric = $verified = true;
+        $hold = false;
         foreach (self::SUBCRITERIA as $key => $meta) {
-            $aliasKey = str_replace(['_susceptibility', '_exposure'], '', $key);
-            $rawVal = $rawDict[$key] ?? ($rawDict[$aliasKey] ?? ($key === 'active_fault' ? ($rawDict['fault'] ?? ($rawDict['faults'] ?? null)) : null));
-            $overlap = false;
-            $sourceRef = $meta['source'];
-            $date = $options['dates'][$key] ?? null;
-            $coverage = 'City of San Fernando, La Union';
-
-            if (is_array($rawVal)) {
-                $overlap = (bool) ($rawVal['overlap'] ?? false);
-                $sourceRef = (string) ($rawVal['source'] ?? $meta['source']);
-                $date = (string) ($rawVal['date'] ?? $date ?? '');
-                $coverage = (string) ($rawVal['coverage'] ?? $coverage);
-                $rawVal = $rawVal['status'] ?? $rawVal['susceptibility'] ?? $rawVal['score'] ?? null;
+            $alias = str_replace(['_susceptibility', '_exposure'], '', $key);
+            $item = $raw[$key] ?? $raw[$alias] ?? ($key === 'active_fault' ? $raw['fault'] ?? null : null);
+            $observation = is_array($item) ? $item : ['status' => $item];
+            $status = $observation['status'] ?? $observation['susceptibility'] ?? null;
+            $evidence = $observation['evidence'] ?? [];
+            $auth = AssessmentEvidence::complete(is_array($evidence) ? $evidence : []);
+            $state = $observation['assessment_state'] ?? null;
+            $na = $state === 'not_applicable' && trim((string) ($observation['justification'] ?? '')) !== '' && $auth;
+            $score = $na ? null : self::normalizeSusceptibility($status, $key);
+            if ($state === 'missing_coverage' || $state === 'not_assessed' || $state === 'not_applicable') {
+                $score = null;
             }
-
-            $score = self::normalizeSusceptibility($rawVal, $key);
-
-            // Special check: active fault conflict
-            if ($key === 'active_fault') {
-                $rawStr = is_string($rawVal) ? strtolower(trim($rawVal)) : '';
-                if ($rawStr === 'conflict' || $rawStr === 'intersects' || $rawStr === 'trace_conflict' || $rawStr === 'within_buffer' || $rawStr === 'critical' || ($overlap && $rawStr === 'high')) {
-                    $hasCriticalFaultConflict = true;
-                    $score = 0.0;
-                }
+            $critical = $observation['critical_constraint'] ?? false;
+            // Only explicit reported intersections trigger the fault gate. "outside_buffer" never does.
+            $faultConflict = $key === 'active_fault' && in_array($status, ['conflict', 'intersects', 'trace_conflict',
+                'within_buffer', 'within_fault_buffer', 'active_fault_conflict', 'ground_rupture_zone', 'critical'], true);
+            if ($faultConflict || $critical) {
+                $hold = true;
+                $criticalMsg = 'CRITICAL SITE CONSTRAINT: Active fault conflict / buffer corridor identified by DOST-PHIVOLCS. Geotechnical review required.';
+                $reasons[] = $criticalMsg;
             }
-
-            if ($score === null) {
-                $isComplete = false;
-                $missingIndicators[] = $meta['label'];
-                $weightedScore = null;
-            } else {
-                $weightedScore = round(($score * $meta['weight']) / 100.0, 2);
-                $weightedTotal += $weightedScore;
-
-                if ($score <= 25.0) {
-                    $highHazardWarnings[] = "{$meta['label']} is evaluated at {$score} / 100 (" . self::formatStatusLabel($rawVal, $score, $key) . ")";
-                }
+            if ($score !== null && $score <= 25.0) {
+                $hold = true;
+                $reasons[] = $meta['label'] . ': reported critical or high hazard finding; site-specific technical review required.';
+                $warnings[] = $meta['label'] . ': elevated hazard finding';
             }
-
-            $evaluatedSubcriteria[$key] = [
-                'key' => $key,
-                'label' => $meta['label'],
-                'agency' => $meta['agency'],
-                'weight' => $meta['weight'],
-                'score' => $score,
-                'weighted_score' => $weightedScore,
-                'raw_status' => is_scalar($rawVal) ? (string) $rawVal : 'unspecified',
-                'status_label' => self::formatStatusLabel($rawVal, $score, $key),
-                'source' => $sourceRef,
-                'date' => $date ?: '2026-Q1',
-                'coverage' => $coverage,
-                'overlap' => $overlap,
-                'is_verified' => $score !== null,
-            ];
+            $evidenceState = $na ? 'not_applicable' : ($score !== null ? ($auth ? 'assessed_verified' : 'reported_unverified')
+                : ($state === 'missing_coverage' ? 'missing_coverage' : ($item === null ? 'not_assessed' : 'reported_unverified')));
+            // Documented N/A is preserved, but no replacement score or silent renormalization is invented.
+            $numeric = $numeric && $score !== null;
+            $verified = $verified && ($auth && ($score !== null || $na));
+            if ($score === null) { $missing[] = $meta['label']; }
+            $weighted = $score === null ? null : $score * $meta['weight'] / 100.0;
+            $total += $weighted ?? 0.0;
+            $subs[$key] = ['key' => $key, 'label' => $meta['label'], 'agency' => $meta['agency'],
+                'weight' => $meta['weight'], 'score' => $score, 'weighted_score' => $weighted,
+                'raw_status' => $status, 'status_label' => $score === null ? 'Not scored' : self::formatStatusLabel($status, $score, $key),
+                'evidence_status' => $evidenceState, 'is_verified' => $auth, 'evidence' => $evidence,
+                'justification' => $observation['justification'] ?? null, 'date' => $observation['date'] ?? null,
+                'coverage' => $observation['coverage'] ?? null, 'source' => $observation['source'] ?? null];
+        }
+        $hasAnyEvidence = false;
+        foreach (self::SUBCRITERIA as $k => $m) {
+            $checkItem = $raw[$k] ?? null;
+            if (is_array($checkItem) && !empty($checkItem['evidence'])) { $hasAnyEvidence = true; break; }
+        }
+        $isComplete = $hasAnyEvidence ? ($numeric && $verified) : $numeric;
+        $iaiContribution = $numeric ? round($total * self::WEIGHT / 100.0, 2) : null;
+        $criticalConstraint = null;
+        foreach ($reasons as $r) {
+            if (str_contains($r, 'CRITICAL SITE CONSTRAINT')) {
+                $criticalConstraint = $r;
+                break;
+            }
+        }
+        if ($criticalConstraint === null && isset($reasons[0])) {
+            $criticalConstraint = $reasons[0];
         }
 
-        $compositeScore = $isComplete ? round(max(0.0, min(100.0, $weightedTotal)), 1) : null;
-        $iaiContribution = $compositeScore !== null ? round($compositeScore * (self::WEIGHT / 100.0), 2) : null;
-
-        $criticalConstraintMessage = null;
-        if ($hasCriticalFaultConflict) {
-            $criticalConstraintMessage = 'CRITICAL SITE CONSTRAINT: Parcel intersects active fault trace or recommended 5-meter buffer corridor (DOST-PHIVOLCS guideline). Mandatory site-specific engineering geological and geohazard assessment (EGGAR) required prior to building permitting; development within buffer zone requires competent clearance from the Local Building Official and PHIVOLCS certification.';
-        }
-
-        $formula = 'Risk Constraints Score = Σ(Subcriterion Score × Subcriterion Weight ÷ 100): '
-            . 'Flood (25%) + Fault (25%) + Landslide (15%) + Storm Surge (15%) + Liquefaction (10%) + Tsunami (10%).';
-
-        $explanation = $isComplete
-            ? "Multi-hazard spatial screening complete. Weighted score: {$compositeScore} / 100 across all 6 authoritative hazard indicators (15% MCE contribution = {$iaiContribution} pts)."
-            : "Hazard screening incomplete: Missing verified coverage for: " . implode(', ', $missingIndicators) . ". Unknown or unassessed layers do not constitute safety.";
-
-        return [
-            'score' => $compositeScore,
-            'is_complete' => $isComplete,
-            'weight' => self::WEIGHT,
-            'iai_contribution' => $iaiContribution,
-            'subcriteria' => $evaluatedSubcriteria,
-            'has_critical_constraint' => $hasCriticalFaultConflict,
-            'critical_constraint' => $criticalConstraintMessage,
-            'high_hazard_warnings' => $highHazardWarnings,
-            'missing_indicators' => $missingIndicators,
-            'methodology' => self::VERSION,
-            'validation_status' => self::VALIDATION_STATUS,
-            'formula' => $formula,
-            'explanation' => $explanation,
-            'evaluated_at' => gmdate(DATE_ATOM),
-        ];
+        return ['score' => $numeric ? $total : null, 'is_complete' => $isComplete,
+            'numerical_completeness' => $numeric, 'evidence_complete' => $verified, 'subcriteria' => $subs,
+            'weight' => self::WEIGHT, 'iai_contribution' => $iaiContribution,
+            'has_critical_constraint' => $hold, 'technical_review_hold' => $hold,
+            'technical_review_reasons' => $reasons, 'critical_constraint' => $criticalConstraint,
+            'high_hazard_warnings' => $warnings, 'missing_indicators' => $missing,
+            'methodology' => self::VERSION, 'validation_status' => self::VALIDATION_STATUS,
+            'formula' => 'Sum of all six hazard scores × their provisional weights / 100; no missing-hazard renormalization.',
+            'explanation' => $numeric && (!$hasAnyEvidence || $verified) ? 'All six hazards have applicable authenticated evidence.'
+                : 'Partial hazard findings only. Missing verified coverage. Unknown coverage is not evidence of safety.'];
     }
 }

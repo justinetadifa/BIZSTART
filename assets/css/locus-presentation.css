@@ -140,26 +140,27 @@ html[data-investor-view="basic"] .investor-view-control .investor-view-pill {
    LOCUS-SF Priority Board Visual Enhancements
    ========================================================================== */
 .priority-card {
-  border-radius: 24px !important;
+  border-radius: 20px !important;
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 20px -2px rgba(17, 34, 77, 0.04) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 0 2px 12px -2px rgba(17, 34, 77, 0.04), 0 1px 3px 0 rgba(0, 0, 0, 0.02) !important;
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
 }
 
 .priority-card:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 16px 36px -6px rgba(17, 34, 77, 0.08), 0 4px 12px -2px rgba(17, 34, 77, 0.03) !important;
+  box-shadow: 0 14px 32px -6px rgba(17, 34, 77, 0.08), 0 4px 12px -2px rgba(17, 34, 77, 0.03) !important;
   border-color: #cbd5e1 !important;
 }
 
 .priority-card .locus-btn-primary {
+  border-radius: 12px !important;
   transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease !important;
 }
 
 .priority-card .locus-btn-primary:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(17, 34, 77, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(17, 34, 77, 0.22) !important;
 }
 
 .priority-card .locus-btn-primary:active {
@@ -168,6 +169,7 @@ html[data-investor-view="basic"] .investor-view-control .investor-view-pill {
 
 .priority-card .locus-compare-btn,
 .priority-card .locus-save-btn {
+  border-radius: 12px !important;
   transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease !important;
 }
 

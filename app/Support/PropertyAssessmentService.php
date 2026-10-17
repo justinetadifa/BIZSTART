@@ -9,6 +9,7 @@ use PDO;
 use Throwable;
 
 require_once __DIR__ . '/PropertyCatalog.php';
+require_once __DIR__ . '/AssessmentEvidence.php';
 require_once __DIR__ . '/RiskConstraintsEngine.php';
 require_once __DIR__ . '/ZoningRulesEngine.php';
 
@@ -33,7 +34,10 @@ require_once __DIR__ . '/ZoningRulesEngine.php';
  */
 final class PropertyAssessmentService
 {
-    public const METHODOLOGY_VERSION = 'LOCUS-SF MCE v2.0 (Provisional 6-Criterion)';
+    public const METHODOLOGY_VERSION = 'locus-detailed-v3.0-provisional';
+    public const WEIGHT_TOLERANCE = 0.000001;
+    public const TOTAL_TOLERANCE = 0.000001;
+    public const DEFAULT_WEIGHTS = ['spatial_accessibility' => 20, 'infrastructure_readiness' => 20, 'economic_viability' => 20, 'nearby_businesses' => 10, 'risk_constraints' => 15, 'zoning_compatibility' => 15];
     public const LEGACY_METHODOLOGY_VERSION = 'LOCUS-SF MCE v1.1 (Legacy 7-Criterion)';
     public const WEIGHT_STATUS_PROVISIONAL = 'Provisional / Subject to LGU validation';
     public const WEIGHT_STATUS_VALIDATED = 'Expert / LGU Validated';
@@ -165,86 +169,6 @@ final class PropertyAssessmentService
         ],
     ];
 
-    /**
-     * Defined Infrastructure Readiness subcategories and their provisional weights (legacy).
-     * Weights total exactly 100.0%.
-     *
-     * State conditions:
-     * - connected: 100.0 (Fully operational / highest readiness)
-     * - solar_alternative / deepwell_local / mobile_broadband: 75.0-85.0 (Partial secondary/alternative ready)
-     * - available_unconnected: 40.0-60.0 (Service available nearby but not connected)
-     * - generator_backup / delivery_storage / satellite_basic: 40.0-50.0 (Limited partial provision)
-     * - unavailable: 0.0 (Confirmed unavailable)
-     * - unverified: null (Unknown / awaiting verification; prevents unearned points)
-     * - not_applicable: null (Re-weighted over remaining applicable subcategories)
-     */
-    public const INFRASTRUCTURE_SUBCATEGORIES = [
-        'power' => [
-            'key' => 'power',
-            'label' => 'Electricity / Power Supply',
-            'weight' => 30.0,
-            'source' => 'LUECO verified service grid & on-site renewable energy records',
-            'description' => 'Grid electricity supply (LUECO) or verified on-site solar/renewable power',
-            'rules' => [
-                'connected' => ['score' => 100.0, 'label' => 'Connected / Operational (LUECO grid connection)'],
-                'solar_alternative' => ['score' => 85.0, 'label' => 'Operational on-site solar PV / alternative renewable energy'],
-                'available_unconnected' => ['score' => 60.0, 'label' => 'Available nearby / grid accessible but not connected'],
-                'generator_backup' => ['score' => 50.0, 'label' => 'Generator / backup power only'],
-                'unavailable' => ['score' => 0.0, 'label' => 'Unavailable / no electric supply'],
-                'unverified' => ['score' => null, 'label' => 'Unknown / not yet verified'],
-                'not_applicable' => ['score' => null, 'label' => 'Not applicable (re-weighted)'],
-            ],
-        ],
-        'water' => [
-            'key' => 'water',
-            'label' => 'Water Supply',
-            'weight' => 30.0,
-            'source' => 'MSFWD / MLUWD service coverage and local waterworks records',
-            'description' => 'Piped water connection (MLUWD) or verified local waterworks/groundwater',
-            'rules' => [
-                'connected' => ['score' => 100.0, 'label' => 'Connected / Operational (MLUWD piped continuous supply)'],
-                'deepwell_local' => ['score' => 80.0, 'label' => 'Operational community system / deep well with pump'],
-                'available_unconnected' => ['score' => 50.0, 'label' => 'Water main available nearby but not connected'],
-                'delivery_storage' => ['score' => 40.0, 'label' => 'Water storage / delivery service only'],
-                'unavailable' => ['score' => 0.0, 'label' => 'Unavailable / no water service'],
-                'unverified' => ['score' => null, 'label' => 'Unknown / not yet verified'],
-                'not_applicable' => ['score' => null, 'label' => 'Not applicable (re-weighted)'],
-            ],
-        ],
-        'telecom' => [
-            'key' => 'telecom',
-            'label' => 'Telecommunications & Internet',
-            'weight' => 20.0,
-            'source' => 'National / Local Telecom broadband coverage records',
-            'description' => 'Fiber optic, fixed broadband, or verified mobile telecom connectivity',
-            'rules' => [
-                'connected' => ['score' => 100.0, 'label' => 'Connected / Operational (Fiber optic or fixed broadband)'],
-                'mobile_broadband' => ['score' => 75.0, 'label' => 'Mobile 4G/5G / wireless broadband verified'],
-                'available_unconnected' => ['score' => 50.0, 'label' => 'Broadband line available nearby but not connected'],
-                'satellite_basic' => ['score' => 40.0, 'label' => 'Satellite / basic mobile data only'],
-                'unavailable' => ['score' => 0.0, 'label' => 'Unavailable / telecom dead zone'],
-                'unverified' => ['score' => null, 'label' => 'Unknown / not yet verified'],
-                'not_applicable' => ['score' => null, 'label' => 'Not applicable (re-weighted)'],
-            ],
-        ],
-        'road_connectivity' => [
-            'key' => 'road_connectivity',
-            'label' => 'Road Accessibility & Connectivity',
-            'weight' => 20.0,
-            'source' => 'City road centerline & DPWH Atlas 2026',
-            'description' => 'Direct paved road frontage or verified legal right-of-way connectivity',
-            'rules' => [
-                'connected' => ['score' => 100.0, 'label' => 'Connected / Direct access to 2-lane paved/concrete road'],
-                'paved_access' => ['score' => 100.0, 'label' => 'Direct access to paved/concrete road'],
-                'unpaved_row' => ['score' => 60.0, 'label' => 'Legal right-of-way / unpaved gravel access'],
-                'available_unconnected' => ['score' => 40.0, 'label' => 'Planned road / right-of-way pending development'],
-                'unavailable' => ['score' => 0.0, 'label' => 'Landlocked / confirmed no road access'],
-                'unverified' => ['score' => null, 'label' => 'Unknown / not yet verified'],
-                'not_applicable' => ['score' => null, 'label' => 'Not applicable (re-weighted)'],
-            ],
-        ],
-    ];
-
     public const SPATIAL_ACCESSIBILITY_VERSION = 'LOCUS-SF Spatial Accessibility Operational Rubric v1.0 (Provisional)';
 
     /**
@@ -344,15 +268,15 @@ final class PropertyAssessmentService
         ],
         'economic_viability' => [
             'criterion_key' => 'economic_viability',
-            'display_name' => 'Land Valuation / Economic Context',
+            'display_name' => 'Economic Context / Price Competitiveness',
             'weight' => 20.0,
             'is_active' => true,
             'is_required' => true,
             'scoring_method' => 'bands',
             'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
-            'source_reference' => 'BIR District 8 Zonal Valuation DO 014-2026',
-            'description' => 'Bureau of Internal Revenue zonal valuation benchmark and economic context',
-            'missing_label' => 'Land valuation / dated BIR zonal reference',
+            'source_reference' => 'Required: suitable market comparables; BIR references are descriptive only',
+            'description' => 'Offered unit price against suitable comparable evidence; no profitability inference',
+            'missing_label' => 'Suitable market comparables with compatible price units',
             'sort_order' => 3,
         ],
         'zoning_compatibility' => [
@@ -363,7 +287,7 @@ final class PropertyAssessmentService
             'is_required' => true,
             'scoring_method' => 'lookup',
             'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
-            'source_reference' => 'City Ordinance No. 2026-004 / CPDO CLUP 2026-2035',
+            'source_reference' => 'Required: authenticated district record and applicable activity rule',
             'description' => 'CLUP 2026-2035 zoning classification and land use eligibility',
             'missing_label' => 'CLUP / zoning classification validation',
             'sort_order' => 4,
@@ -417,7 +341,7 @@ final class PropertyAssessmentService
      */
     public static function getCriteriaConfig(?PDO $pdo = null, bool $forceRefresh = false): array
     {
-        if (self::$cachedConfig !== null && !$forceRefresh) {
+        if ($pdo === null && self::$cachedConfig !== null && !$forceRefresh) {
             return self::$cachedConfig;
         }
 
@@ -467,7 +391,7 @@ final class PropertyAssessmentService
         }
         self::validateWeights($activeWeights);
 
-        self::$cachedConfig = $config;
+        if ($pdo === null) { self::$cachedConfig = $config; }
         return $config;
     }
 
@@ -481,11 +405,26 @@ final class PropertyAssessmentService
 
     /**
      * Validate that enabled criteria weights total exactly 100%.
+     * Validates finite non-negative numbers and exact sum within numerical tolerance.
      */
     public static function validateWeights(array $weights): void
     {
+        $legacyKeys = array_merge(array_keys(self::DEFAULT_WEIGHTS), ['environmental_safety']);
+        $diffA = array_diff(array_keys($weights), $legacyKeys);
+        $diffB = array_diff(array_keys(self::DEFAULT_WEIGHTS), array_keys($weights));
+        if (!empty($diffA) || (!empty($diffB) && !isset($weights['environmental_safety']))) {
+            throw new DomainException('Active weights must contain exactly the six protocol criterion keys.');
+        }
+        if (empty($weights)) {
+            throw new DomainException("MCE criteria weights configuration cannot be empty.");
+        }
+        foreach ($weights as $key => $weight) {
+            if (is_bool($weight) || !is_numeric($weight) || !is_finite((float) $weight) || (float) $weight < 0.0) {
+                throw new DomainException("Criterion weight for '{$key}' must be a finite, non-negative number.");
+            }
+        }
         $sum = array_sum(array_map('floatval', $weights));
-        if (abs($sum - 100.0) > 0.01) {
+        if (abs($sum - 100.0) > self::WEIGHT_TOLERANCE) {
             throw new DomainException("MCE criteria weights must sum to exactly 100%. Current sum: {$sum}%.");
         }
     }
@@ -518,7 +457,7 @@ final class PropertyAssessmentService
      */
     public static function calculateWeightedScore(float $score, float $weight): float
     {
-        return round(($score * $weight) / 100.0, 2);
+        return ($score * $weight) / 100.0;
     }
 
     /**
@@ -528,10 +467,11 @@ final class PropertyAssessmentService
     public static function calculateIAI(array $normalizedScores, ?array $weights = null): ?float
     {
         $weights = $weights ?? self::weights();
+        self::validateWeights($weights);
         $total = 0.0;
         foreach ($weights as $key => $weight) {
             $score = $normalizedScores[$key] ?? null;
-            if ($score === null) {
+            if (!is_numeric($score) || !is_finite((float) $score) || $score < 0 || $score > 100) {
                 return null;
             }
             $total += ((float) $score * (float) $weight) / 100.0;
@@ -553,28 +493,8 @@ final class PropertyAssessmentService
      */
     public static function evaluateSpatialAccessibility(mixed $input, array $options = []): array
     {
+        if (!is_array($input)) { $input = []; }
         // 1. If numeric score passed directly (e.g. 85 or 100 from legacy/mock)
-        if (is_numeric($input) && !is_array($input)) {
-            $num = max(0.0, min(100.0, round((float) $input, 1)));
-            $isVerified = (bool) ($options['is_verified'] ?? false);
-            return [
-                'score' => $num,
-                'is_complete' => true,
-                'iai_contribution' => round($num * 0.20, 2),
-                'verification_status' => $isVerified ? 'verified' : 'applicant_reported',
-                'missing_subcriteria' => [],
-                'subcriteria' => [
-                    'road_access' => ['label' => 'Road access', 'score' => $num, 'weight' => 30.0, 'weighted_score' => round($num * 0.30, 2), 'rule' => "Direct input {$num}"],
-                    'road_surface_passability' => ['label' => 'Road surface and passability', 'score' => $num, 'weight' => 25.0, 'weighted_score' => round($num * 0.25, 2), 'rule' => "Direct input {$num}"],
-                    'carriageway_width' => ['label' => 'Usable carriageway width', 'score' => $num, 'weight' => 25.0, 'weighted_score' => round($num * 0.25, 2), 'rule' => "Direct input {$num}"],
-                    'distance_to_major_road' => ['label' => 'Distance to major road', 'score' => $num, 'weight' => 20.0, 'weighted_score' => round($num * 0.20, 2), 'rule' => "Direct input {$num}"],
-                ],
-                'formula' => 'Spatial Accessibility = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
-                'methodology_version' => self::SPATIAL_ACCESSIBILITY_VERSION,
-                'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all seven criteria.',
-                'explanation' => "Spatial accessibility composite score: {$num}/100.",
-            ];
-        }
 
         $subcatsInput = is_array($input) ? $input : [];
 
@@ -614,7 +534,10 @@ final class PropertyAssessmentService
         $widthVal = null;
         if ($rawWidth !== null && $rawWidth !== '' && is_numeric($rawWidth)) {
             $widthVal = (float) $rawWidth;
-            if ($widthVal >= 6.0) {
+            if (!is_finite($widthVal) || $widthVal < 0.0) {
+                $widthScore = null;
+                $widthLabel = 'Invalid measurement (negative or nonfinite)';
+            } elseif ($widthVal >= 6.0) {
                 $widthScore = 100.0;
                 $widthLabel = 'At least 6 m (100)';
             } elseif ($widthVal >= 4.0) {
@@ -623,13 +546,15 @@ final class PropertyAssessmentService
             } elseif ($widthVal >= 2.0) {
                 $widthScore = 50.0;
                 $widthLabel = '2 – under 4 m (50)';
-            } elseif ($widthVal > 0.0) {
+            } else {
                 $widthScore = 20.0;
                 $widthLabel = 'Under 2 m (20)';
             }
         }
 
         // 4. Major Road Proximity (20%)
+        // Straight-line road proximity is distinguished from legal access, road width, passability, and travel time.
+        // Legal frontage is never inferred from road proximity alone.
         $rawDistance = $subcatsInput['distance_to_major_road'] ?? $subcatsInput['distance_to_major_road_m'] ?? $subcatsInput['major_road_distance'] ?? $subcatsInput['road_distance_m'] ?? $subcatsInput['distance_to_road_m'] ?? null;
         if ($rawDistance === null && isset($subcatsInput['distance_to_highway']) && is_numeric($subcatsInput['distance_to_highway'])) {
             $rawDistance = $subcatsInput['distance_to_highway'];
@@ -639,7 +564,10 @@ final class PropertyAssessmentService
         $distanceVal = null;
         if ($rawDistance !== null && $rawDistance !== '' && is_numeric($rawDistance)) {
             $distanceVal = (float) $rawDistance;
-            if ($distanceVal <= 200.0) {
+            if (!is_finite($distanceVal) || $distanceVal < 0.0) {
+                $distanceScore = null;
+                $distanceLabel = 'Invalid measurement (negative or nonfinite)';
+            } elseif ($distanceVal <= 200.0) {
                 $distanceScore = 100.0;
                 $distanceLabel = 'Up to 200 m (100)';
             } elseif ($distanceVal <= 500.0) {
@@ -665,11 +593,11 @@ final class PropertyAssessmentService
             $missingKeys[] = 'road_surface_passability';
         }
         if ($widthScore === null) {
-            $missing[] = 'Usable carriageway width';
+            $missing[] = ($widthLabel === 'Invalid measurement (negative or nonfinite)') ? 'Valid usable carriageway width (non-negative)' : 'Usable carriageway width';
             $missingKeys[] = 'carriageway_width';
         }
         if ($distanceScore === null) {
-            $missing[] = 'Distance to major road';
+            $missing[] = ($distanceLabel === 'Invalid measurement (negative or nonfinite)') ? 'Valid distance to major road (non-negative)' : 'Distance to major road';
             $missingKeys[] = 'distance_to_major_road';
         }
 
@@ -728,13 +656,13 @@ final class PropertyAssessmentService
                 'subcriteria' => $subcriteria,
                 'formula' => 'Spatial Accessibility = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
                 'methodology_version' => self::SPATIAL_ACCESSIBILITY_VERSION,
-                'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all seven criteria.',
+                'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all six criteria.',
                 'explanation' => 'Assessment incomplete: Provide all four required inputs (' . implode(', ', $missing) . ') before a provisional score can be calculated.',
             ];
         }
 
         $calculatedScore = ($accessScore * 0.30) + ($surfaceScore * 0.25) + ($widthScore * 0.25) + ($distanceScore * 0.20);
-        $finalScore = max(0.0, min(100.0, round($calculatedScore, 1)));
+        $finalScore = max(0.0, min(100.0, $calculatedScore));
         $iaiContribution = round($finalScore * 0.20, 2);
 
         return [
@@ -747,7 +675,7 @@ final class PropertyAssessmentService
             'subcriteria' => $subcriteria,
             'formula' => 'Spatial Accessibility = (Road Access × 0.30) + (Passability × 0.25) + (Width × 0.25) + (Proximity × 0.20)',
             'methodology_version' => self::SPATIAL_ACCESSIBILITY_VERSION,
-            'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all seven criteria.',
+            'disclaimer' => 'Illustrative scores from proposed rules, not verified LGU findings. The actual IAI requires city review and all six criteria.',
             'explanation' => sprintf(
                 'Spatial Accessibility Score = %s/100 (Road Access: %.1f, Passability: %.1f, Width: %.1f, Proximity: %.1f). IAI Contribution: %.2f pts (20%% weight). Verification: %s.',
                 number_format($finalScore, 1),
@@ -774,73 +702,165 @@ final class PropertyAssessmentService
      */
     public static function evaluateInfrastructureReadiness(mixed $input, array $options = []): array
     {
-        // 1. If numeric score passed directly (e.g. 100 or 80)
-        if (is_numeric($input) && !is_array($input)) {
-            $num = max(0.0, min(100.0, round((float) $input, 1)));
-            $isVerified = (bool) ($options['is_verified'] ?? true);
-            $subcats = [];
-            foreach (self::INFRASTRUCTURE_SUBCATEGORIES_V2 as $k => $meta) {
-                $subcats[$k] = [
-                    'key' => $k,
-                    'label' => $meta['label'],
-                    'status' => $num >= 100.0 ? 'connected' : ($num > 0.0 ? 'partial' : 'unavailable'),
-                    'score' => $num,
-                    'weight' => (float) $meta['weight'],
-                    'weighted_score' => round(($num * (float) $meta['weight']) / 100.0, 2),
-                    'verified' => $isVerified,
-                    'rule' => "Aggregated score {$num}/100",
-                    'source' => $meta['source'],
-                ];
-            }
-            return [
-                'score' => $num,
-                'is_complete' => true,
-                'iai_contribution' => round($num * 0.20, 2),
-                'verification_status' => $isVerified ? 'verified' : 'applicant_reported',
-                'missing_subcategories' => [],
-                'missing_keys' => [],
-                'subcategories' => $subcats,
-                'cross_criteria_considerations' => [],
-                'formula' => 'Infrastructure Readiness Score = (Electricity × 0.35) + (Water × 0.30) + (Internet × 0.20) + (Drainage × 0.15)',
-                'methodology_version' => self::INFRASTRUCTURE_READINESS_VERSION,
-                'validation_status' => self::INFRASTRUCTURE_VALIDATION_STATUS,
-                'disclaimer' => 'Provisional operational scoring demonstration awaiting technical/LGU validation. Does not establish official LGU assessment.',
-                'explanation' => "Infrastructure readiness composite score: {$num}/100.",
-            ];
-        }
-
-        // 2. If legacy string indicator passed
-        if (is_string($input)) {
-            $str = strtolower(trim($input));
-            $mapped = match ($str) {
-                'power_water_telecom', 'full_ready', 'all_ready' => [
-                    'electricity' => 'grid_reliable', 'water' => 'piped_reliable', 'internet' => 'fiber_reliable', 'drainage' => 'adequate_functional'
-                ],
-                'power_water', 'power_and_water' => [
-                    'electricity' => 'grid_reliable', 'water' => 'piped_reliable', 'internet' => 'unavailable', 'drainage' => 'adequate_functional'
-                ],
-                'partial', 'basic' => [
-                    'electricity' => 'grid_reliable', 'water' => 'available_unconnected', 'internet' => 'mobile_data_stable', 'drainage' => 'minor_improvements'
-                ],
-                'limited' => [
-                    'electricity' => 'grid_unconnected', 'water' => 'available_unconnected', 'internet' => 'unavailable', 'drainage' => 'inadequate'
-                ],
-                'off_grid', 'unavailable' => [
-                    'electricity' => 'no_supply', 'water' => 'unavailable', 'internet' => 'unavailable', 'drainage' => 'unavailable'
-                ],
-                default => null,
-            };
-            if ($mapped !== null) {
-                return self::evaluateInfrastructureReadiness($mapped, $options);
-            }
-        }
-
-        // 3. Process subcategory inputs (array)
+        if (!is_array($input)) { $input = []; }
         $subcatsInput = is_array($input) ? $input : [];
 
-        // Check if legacy 4-tuple without drainage: 'road_connectivity' passed and 'drainage' NOT passed
-        if (isset($subcatsInput['road_connectivity']) && !isset($subcatsInput['drainage']) && !isset($subcatsInput['drainage_conditions'])) {
-            return self::evaluateLegacyInfrastructureReadiness($subcatsInput, $options);
+        // Legacy 4-tuple compatibility when flat string status is supplied without drainage
+        $isLegacyFlat4Tuple = isset($subcatsInput['road_connectivity'])
+            && !isset($subcatsInput['drainage'])
+            && (is_string($subcatsInput['power'] ?? null) || is_string($subcatsInput['road_connectivity'] ?? null) || is_string($subcatsInput['water'] ?? null));
+
+        if ($isLegacyFlat4Tuple) {
+            $isVerified = (bool) ($options['is_verified'] ?? false);
+            $verificationStatus = $isVerified ? 'verified' : 'applicant_reported';
+
+            // Power (30%)
+            $normP = strtolower(trim((string) ($subcatsInput['power'] ?? '')));
+            $pKey = match ($normP) {
+                'connected', 'grid', 'grid_reliable', 'reliable' => 'connected',
+                'generator_only', 'generator' => 'generator_only',
+                'available_unconnected' => 'available_unconnected',
+                'unavailable', 'none', 'disconnected' => 'unavailable',
+                'unverified', 'unknown', '' => 'unknown',
+                default => 'unknown',
+            };
+            $pScore = match ($pKey) {
+                'connected' => 100.0,
+                'generator_only', 'available_unconnected' => 50.0,
+                'unavailable' => 0.0,
+                default => null,
+            };
+
+            // Water (30%)
+            $normW = strtolower(trim((string) ($subcatsInput['water'] ?? '')));
+            $wKey = match ($normW) {
+                'connected', 'piped', 'piped_reliable' => 'connected',
+                'available_unconnected' => 'available_unconnected',
+                'deepwell', 'deep_well' => 'deepwell',
+                'limited_intermittent', 'intermittent' => 'limited_intermittent',
+                'unavailable', 'none' => 'unavailable',
+                'unverified', 'unknown', '' => 'unknown',
+                default => 'unknown',
+            };
+            $wScore = match ($wKey) {
+                'connected' => 100.0,
+                'deepwell' => 75.0,
+                'available_unconnected' => 50.0,
+                'limited_intermittent' => 40.0,
+                'unavailable' => 0.0,
+                default => null,
+            };
+
+            // Telecom (20%)
+            $normT = strtolower(trim((string) ($subcatsInput['telecom'] ?? '')));
+            $tKey = match ($normT) {
+                'connected', 'fiber', 'fiber_reliable' => 'connected',
+                'mobile_broadband', 'mobile', '4g', '5g' => 'mobile_broadband',
+                'available_unconnected' => 'available_unconnected',
+                'unavailable', 'none' => 'unavailable',
+                'unverified', 'unknown', '' => 'unknown',
+                default => 'unknown',
+            };
+            $tScore = match ($tKey) {
+                'connected' => 100.0,
+                'mobile_broadband' => 75.0,
+                'available_unconnected' => 50.0,
+                'unavailable' => 0.0,
+                default => null,
+            };
+
+            // Road Connectivity (20%)
+            $normR = strtolower(trim((string) ($subcatsInput['road_connectivity'] ?? '')));
+            $rKey = match ($normR) {
+                'connected', 'paved', 'paved_row' => 'connected',
+                'unpaved_row', 'unpaved' => 'unpaved_row',
+                'available_unconnected' => 'available_unconnected',
+                'unavailable', 'none', 'no_access' => 'unavailable',
+                'unverified', 'unknown', '' => 'unknown',
+                default => 'unknown',
+            };
+            $rScore = match ($rKey) {
+                'connected' => 100.0,
+                'unpaved_row' => 60.0,
+                'available_unconnected' => 50.0,
+                'unavailable' => 0.0,
+                default => null,
+            };
+
+            $missing = [];
+            $missingKeys = [];
+            if ($pScore === null) { $missing[] = 'Power Supply'; $missingKeys[] = 'power'; }
+            if ($wScore === null) { $missing[] = 'Water Supply'; $missingKeys[] = 'water'; }
+            if ($tScore === null) { $missing[] = 'Telecommunications'; $missingKeys[] = 'telecom'; }
+            if ($rScore === null) { $missing[] = 'Road Connectivity'; $missingKeys[] = 'road_connectivity'; }
+
+            $subcategoriesBreakdown = [
+                'power' => [
+                    'key' => 'power',
+                    'label' => 'Power Supply',
+                    'status' => $pKey,
+                    'score' => $pScore,
+                    'weight' => 30.0,
+                    'weighted_score' => $pScore !== null ? round($pScore * 0.30, 2) : null,
+                    'rule' => 'Legacy power supply rubric',
+                ],
+                'water' => [
+                    'key' => 'water',
+                    'label' => 'Water Supply',
+                    'status' => $wKey,
+                    'score' => $wScore,
+                    'weight' => 30.0,
+                    'weighted_score' => $wScore !== null ? round($wScore * 0.30, 2) : null,
+                    'rule' => 'Legacy water supply rubric',
+                ],
+                'telecom' => [
+                    'key' => 'telecom',
+                    'label' => 'Telecommunications',
+                    'status' => $tKey,
+                    'score' => $tScore,
+                    'weight' => 20.0,
+                    'weighted_score' => $tScore !== null ? round($tScore * 0.20, 2) : null,
+                    'rule' => 'Legacy telecommunications rubric',
+                ],
+                'road_connectivity' => [
+                    'key' => 'road_connectivity',
+                    'label' => 'Road Connectivity',
+                    'status' => $rKey,
+                    'score' => $rScore,
+                    'weight' => 20.0,
+                    'weighted_score' => $rScore !== null ? round($rScore * 0.20, 2) : null,
+                    'rule' => 'Legacy road connectivity rubric',
+                ],
+            ];
+
+            if (!empty($missing)) {
+                return [
+                    'score' => null,
+                    'is_complete' => false,
+                    'iai_contribution' => null,
+                    'verification_status' => $verificationStatus,
+                    'missing_subcategories' => $missing,
+                    'missing_keys' => $missingKeys,
+                    'subcategories' => $subcategoriesBreakdown,
+                    'cross_criteria_considerations' => [],
+                    'formula' => 'Infrastructure Readiness Score = (Power × 0.30) + (Water × 0.30) + (Telecom × 0.20) + (Road × 0.20)',
+                    'subcriteria' => $subcategoriesBreakdown,
+                ];
+            }
+
+            $score = ($pScore * 0.30) + ($wScore * 0.30) + ($tScore * 0.20) + ($rScore * 0.20);
+            return [
+                'score' => round($score, 1),
+                'is_complete' => true,
+                'iai_contribution' => round($score * 0.20, 2),
+                'verification_status' => $verificationStatus,
+                'missing_subcategories' => [],
+                'missing_keys' => [],
+                'subcategories' => $subcategoriesBreakdown,
+                'cross_criteria_considerations' => [],
+                'formula' => 'Infrastructure Readiness Score = (Power × 0.30) + (Water × 0.30) + (Telecom × 0.20) + (Road × 0.20)',
+                'subcriteria' => $subcategoriesBreakdown,
+            ];
         }
 
         // 4. New Operational Rubric (Electricity 35%, Water 30%, Internet 20%, Drainage 15%)
@@ -1020,7 +1040,7 @@ final class PropertyAssessmentService
         }
 
         $calculatedScore = ($elecScore * 0.35) + ($waterScore * 0.30) + ($netScore * 0.20) + ($drainageScore * 0.15);
-        $finalScore = max(0.0, min(100.0, round($calculatedScore, 1)));
+        $finalScore = max(0.0, min(100.0, $calculatedScore));
         $iaiContribution = round($finalScore * 0.20, 2);
 
         $explanation = sprintf(
@@ -1054,135 +1074,6 @@ final class PropertyAssessmentService
     /**
      * Legacy evaluation fallback for property records or suites specifying road_connectivity without drainage.
      */
-    private static function evaluateLegacyInfrastructureReadiness(array $subcatsInput, array $options = []): array
-    {
-        $allVerified = true;
-        $anySelfReported = false;
-        $missingRequirements = [];
-        $subcategoriesBreakdown = [];
-        $applicableWeightSum = 0.0;
-        $weightedPointsSum = 0.0;
-        $hasUnverified = false;
-
-        foreach (self::INFRASTRUCTURE_SUBCATEGORIES as $key => $meta) {
-            $raw = $subcatsInput[$key] ?? null;
-            $rawStatus = null;
-            $isSubcatVerified = true;
-
-            if (is_array($raw)) {
-                $rawStatus = (string) ($raw['status'] ?? $raw['connection_status'] ?? 'unverified');
-                $isSubcatVerified = (bool) ($raw['verified'] ?? $options['is_verified'] ?? true);
-            } elseif (is_string($raw)) {
-                $rawStatus = $raw;
-                $isSubcatVerified = (bool) ($options['is_verified'] ?? true);
-            } elseif ($raw === null) {
-                $rawStatus = 'unverified';
-            }
-
-            $normalizedStatus = strtolower(trim((string) $rawStatus));
-
-            // Map aliases
-            $stateKey = match ($normalizedStatus) {
-                'connected', 'available', 'operational', 'full', 'active', 'ready' => 'connected',
-                'solar_alternative', 'solar', 'renewable' => 'solar_alternative',
-                'deepwell_local', 'deep_well', 'well', 'local_water' => 'deepwell_local',
-                'mobile_broadband', 'mobile', 'wireless', 'lte', '5g', '4g' => 'mobile_broadband',
-                'paved', 'paved_access', 'concrete' => 'connected',
-                'unpaved_row', 'unpaved', 'rough_road', 'right_of_way', 'row' => 'unpaved_row',
-                'available_unconnected', 'nearby', 'accessible_unconnected' => 'available_unconnected',
-                'generator_backup', 'generator' => 'generator_backup',
-                'delivery_storage', 'delivery', 'storage' => 'delivery_storage',
-                'satellite_basic', 'satellite' => 'satellite_basic',
-                'unavailable', 'not_connected', 'none', 'disconnected' => 'unavailable',
-                'not_applicable', 'na', 'n/a' => 'not_applicable',
-                default => 'unverified',
-            };
-
-            if ($stateKey === 'not_applicable') {
-                $subcategoriesBreakdown[] = [
-                    'key' => $key,
-                    'label' => $meta['label'],
-                    'status' => 'not_applicable',
-                    'score' => null,
-                    'weight' => 0.0,
-                    'weighted_score' => 0.0,
-                    'verified' => true,
-                    'rule' => 'Designated not applicable; weight re-normalized across applicable subcategories.',
-                    'source' => $meta['source'],
-                ];
-                continue;
-            }
-
-            $ruleMeta = $meta['rules'][$stateKey] ?? $meta['rules']['unverified'];
-            $subcatScore = $ruleMeta['score'];
-            $weight = (float) $meta['weight'];
-
-            if ($stateKey === 'unverified' || $subcatScore === null) {
-                $hasUnverified = true;
-                $missingRequirements[] = $meta['label'];
-                $allVerified = false;
-                $subcatScore = null;
-                $weightedScore = null;
-            } else {
-                $applicableWeightSum += $weight;
-                $weightedPoints = ($subcatScore * $weight) / 100.0;
-                $weightedPointsSum += $weightedPoints;
-                $weightedScore = round($weightedPoints, 2);
-            }
-
-            if (!$isSubcatVerified) {
-                $anySelfReported = true;
-                $allVerified = false;
-            }
-
-            $subcategoriesBreakdown[] = [
-                'key' => $key,
-                'label' => $meta['label'],
-                'status' => $stateKey,
-                'score' => $subcatScore,
-                'weight' => $weight,
-                'weighted_score' => $weightedScore,
-                'verified' => $isSubcatVerified,
-                'rule' => $ruleMeta['label'],
-                'source' => $meta['source'],
-            ];
-        }
-
-        $verificationStatus = 'verified';
-        if ($hasUnverified) {
-            $verificationStatus = 'unverified';
-        } elseif ($anySelfReported) {
-            $verificationStatus = 'self_reported';
-        }
-
-        if ($hasUnverified || $applicableWeightSum <= 0.0) {
-            return [
-                'score' => null,
-                'is_complete' => false,
-                'iai_contribution' => null,
-                'verification_status' => $verificationStatus,
-                'missing_subcategories' => $missingRequirements,
-                'subcategories' => $subcategoriesBreakdown,
-                'formula' => 'Infrastructure Readiness Score = Σ(Subcategory Score × Subcategory Weight) ÷ Σ(Applicable Weight)',
-                'explanation' => 'Infrastructure assessment incomplete: required subcategories (' . implode(', ', $missingRequirements) . ') are unverified.',
-            ];
-        }
-
-        $finalScore = round(($weightedPointsSum / ($applicableWeightSum / 100.0)), 1);
-        $finalScore = max(0.0, min(100.0, $finalScore));
-
-        return [
-            'score' => $finalScore,
-            'is_complete' => true,
-            'iai_contribution' => round($finalScore * 0.20, 2),
-            'verification_status' => $verificationStatus,
-            'missing_subcategories' => [],
-            'subcategories' => $subcategoriesBreakdown,
-            'formula' => 'Infrastructure Readiness Score = Σ(Subcategory Score × Subcategory Weight) ÷ Σ(Applicable Weight)',
-            'explanation' => sprintf('Infrastructure Readiness Score = %s/100 (weighted from %d subcategories, applicable weight total: %.1f%%). Verification: %s.', number_format($finalScore, 1), count($subcategoriesBreakdown), $applicableWeightSum, $verificationStatus),
-        ];
-    }
-
     /**
      * Authoritative Economic Viability & Valuation Reference evaluation engine.
      * Evaluates property pricing, statutory BIR zonal baseline, and market comparables.
@@ -1197,36 +1088,17 @@ final class PropertyAssessmentService
      */
     public static function evaluateEconomicViability(mixed $input, array $options = []): array
     {
+        if (!is_array($input)) { $input = []; }
         $isVerified = (bool) ($options['is_verified'] ?? false);
         $verificationStatus = $isVerified ? 'verified' : 'applicant_reported';
 
-        // 1. If numeric score passed directly (e.g. 78.0, 80.0, 100.0 from legacy/mock tests)
-        if (is_numeric($input) && !is_array($input)) {
-            $num = max(0.0, min(100.0, round((float) $input, 1)));
-            return [
-                'score' => $num,
-                'is_complete' => true,
-                'iai_contribution' => round($num * 0.20, 2),
-                'verification_status' => $verificationStatus,
-                'missing_requirements' => [],
-                'pricing_analysis' => [
-                    'asking_price_per_sqm' => null,
-                    'lease_price_per_sqm' => null,
-                    'bir_zonal_value' => null,
-                    'bir_total_reference' => null,
-                    'asking_vs_bir_percent' => null,
-                    'asking_vs_market_percent' => null,
-                ],
-                'formula' => 'Economic Viability (20% MCE weight) — Direct validated rating',
-                'methodology_version' => self::ECONOMIC_VIABILITY_VERSION,
-                'validation_status' => self::ECONOMIC_VALIDATION_STATUS,
-                'disclaimer' => 'Provisional operational scoring demonstration awaiting technical/LGU validation. Does not establish official LGU assessment.',
-                'explanation' => "Economic viability score: {$num}/100 (direct verified rating).",
-            ];
-        }
 
         $data = is_array($input) ? $input : [];
 
+        foreach (['land_area', 'offered_area_sqm', 'leasable_area_sqm', 'bir_zonal_value', 'asking_price', 'price', 'lease_price',
+            'security_deposit_months', 'advance_rent_months', 'additional_purchase_costs', 'comparable_market_price', 'comparable_lease_price', 'lgu_valuation_amount'] as $field) {
+            if (isset($data[$field]) && (!is_numeric($data[$field]) || !is_finite((float) $data[$field]) || $data[$field] < 0)) { $data[$field] = null; }
+        }
         // Parse financial & property parameters
         $landArea = isset($data['land_area']) && is_numeric($data['land_area']) && (float) $data['land_area'] > 0
             ? (float) $data['land_area']
@@ -1243,7 +1115,7 @@ final class PropertyAssessmentService
             $offeredArea = (float) $data['leasable_area_sqm'];
         } else {
             $offeredScope = $offeredScope ?: 'entire_land';
-            $offeredArea = $landArea;
+            $offeredArea = $offeredScope === 'entire_land' ? $landArea : null;
         }
 
         $birZonal = isset($data['bir_zonal_value']) && is_numeric($data['bir_zonal_value']) && (float) $data['bir_zonal_value'] > 0
@@ -1257,6 +1129,8 @@ final class PropertyAssessmentService
         $leasePrice = isset($data['lease_price']) && is_numeric($data['lease_price']) && (float) $data['lease_price'] > 0
             ? (float) $data['lease_price']
             : null;
+        if (($data['sale_price_mode'] ?? '') === 'request') { $askingPrice = null; }
+        if (($data['lease_price_mode'] ?? '') === 'request') { $leasePrice = null; }
 
         $purpose = strtolower(trim((string) ($data['listing_purpose'] ?? 'sale')));
         if (!in_array($purpose, ['sale', 'lease', 'sale_or_lease'], true)) {
@@ -1294,9 +1168,16 @@ final class PropertyAssessmentService
 
         // Compute metrics
         // Asking price per m² uses offered area (or recorded land area if offering entire property)
-        $askingPricePerSqm = ($askingPrice !== null && $offeredArea !== null && $offeredArea > 0) ? round($askingPrice / $offeredArea, 2) : null;
-        // Monthly rent per m² uses actual leasable area, not automatically total land area
-        $leasePricePerSqm = ($leasePrice !== null && $offeredArea !== null && $offeredArea > 0) ? round($leasePrice / $offeredArea, 2) : null;
+        $askingPricePerSqm = ($askingPrice !== null && $offeredArea !== null && $offeredArea > 0) ? ($askingPrice / $offeredArea) : null;
+        // Monthly comparisons require compatible terms. Annual rent divides by 12;
+        // daily rent needs a contractual monthly basis rather than an assumed 30 days.
+        $rentPeriod = (string) ($data['lease_period'] ?? $data['rent_period'] ?? 'month');
+        $leaseUnit = (string) ($data['lease_price_unit'] ?? 'total');
+        $monthlyFactor = $rentPeriod === 'month' ? 1.0 : ($rentPeriod === 'year' ? 1.0 / 12.0 : null);
+        $monthlyRent = $leasePrice !== null && $monthlyFactor !== null
+            ? ($leaseUnit === 'sqm' ? ($offeredArea !== null ? $leasePrice * $offeredArea * $monthlyFactor : null) : $leasePrice * $monthlyFactor)
+            : null;
+        $leasePricePerSqm = ($monthlyRent !== null && $offeredArea !== null && $offeredArea > 0) ? $monthlyRent / $offeredArea : null;
         // BIR zonal valuation is statutory tax reference on recorded land area
         $birTotalRef = ($birZonal !== null && $landArea !== null) ? round($birZonal * $landArea, 2) : null;
 
@@ -1313,14 +1194,12 @@ final class PropertyAssessmentService
             : null;
 
         // Known upfront outlay calculation
-        $knownUpfrontCosts = 0.0;
-        if ($purpose === 'lease' || $purpose === 'sale_or_lease') {
-            $months = ($depositMonths ?? 0.0) + ($advanceMonths ?? 0.0);
-            $knownUpfrontCosts += round($months * ($leasePrice ?? 0.0), 2);
-        }
-        if ($purpose === 'sale' || $purpose === 'sale_or_lease') {
-            $knownUpfrontCosts += round($additionalCosts ?? 0.0, 2);
-        }
+        $months = ($depositMonths ?? 0.0) + ($advanceMonths ?? 0.0);
+        $leaseUpfrontCosts = $monthlyRent !== null && ($depositMonths !== null || $advanceMonths !== null)
+            ? round($months * $monthlyRent, 2) : null;
+        $saleAdditionalCosts = $additionalCosts !== null ? round($additionalCosts, 2) : null;
+        // An offer for sale OR lease has two alternative outlays, never their sum.
+        $knownUpfrontCosts = $purpose === 'sale' ? $saleAdditionalCosts : ($purpose === 'lease' ? $leaseUpfrontCosts : null);
 
         // Price competitiveness ratio: Asking unit price / Comparable benchmark rate
         $competitivenessRatio = null;
@@ -1328,12 +1207,12 @@ final class PropertyAssessmentService
         if ($purpose === 'lease') {
             if ($leasePricePerSqm !== null && $comparableLease !== null && $comparableLease > 0) {
                 $competitivenessRatio = round($leasePricePerSqm / $comparableLease, 4);
-                $activeDiffPct = $leaseVsMarketPct;
+                $activeDiffPct = (($leasePricePerSqm - $comparableLease) / $comparableLease) * 100.0;
             }
         } else {
             if ($askingPricePerSqm !== null && $comparableMarket !== null && $comparableMarket > 0) {
                 $competitivenessRatio = round($askingPricePerSqm / $comparableMarket, 4);
-                $activeDiffPct = $askingVsMarketPct;
+                $activeDiffPct = (($askingPricePerSqm - $comparableMarket) / $comparableMarket) * 100.0;
             } elseif ($purpose === 'sale_or_lease' && $leasePricePerSqm !== null && $comparableLease !== null && $leasePricePerSqm > 0) {
                 $competitivenessRatio = round($leasePricePerSqm / $comparableLease, 4);
                 $activeDiffPct = $leaseVsMarketPct;
@@ -1353,7 +1232,12 @@ final class PropertyAssessmentService
             'advance_rent_months' => $advanceMonths,
             'utilities_included' => $utilitiesIncluded,
             'additional_purchase_costs' => $additionalCosts,
-            'known_upfront_costs' => $knownUpfrontCosts > 0 ? $knownUpfrontCosts : null,
+            'known_upfront_costs' => $knownUpfrontCosts,
+            'sale_additional_costs' => $saleAdditionalCosts,
+            'lease_upfront_costs' => $leaseUpfrontCosts,
+            'lease_period' => $rentPeriod,
+            'lease_price_unit' => $leaseUnit,
+            'monthly_total_rent' => $monthlyRent,
             'bir_zonal_value' => $birZonal,
             'bir_total_reference' => $birTotalRef,
             'bir_date' => $data['bir_date'] ?? null,
@@ -1375,9 +1259,18 @@ final class PropertyAssessmentService
         if ($landArea === null && $offeredArea === null) {
             $missing[] = 'Valid property land area';
         }
+        if ($purpose === 'lease' && !isset($data['offered_area_sqm']) && ($data['offered_space_scope'] ?? '') !== 'entire_land') {
+            $missing[] = 'Relevant offered lease area with explicit scope';
+        }
         $hasComparableBenchmark = ($purpose === 'lease' && $comparableLease !== null) || ($comparableMarket !== null);
-        if (!$hasComparableBenchmark) {
+        if (!$hasComparableBenchmark || $competitivenessRatio === null || $activeDiffPct === null) {
             $missing[] = 'Verified local comparable market benchmark';
+        }
+        $expectedUnit = $purpose === 'lease' ? 'PHP/m2/month' : 'PHP/m2';
+        if (($data['comparable_unit'] ?? '') !== $expectedUnit || trim((string) ($data['comparable_source'] ?? '')) === ''
+            || ($data['comparables_suitable'] ?? false) !== true || ($data['currency'] ?? 'PHP') !== 'PHP'
+            || ($purpose === 'lease' && $monthlyFactor === null)) {
+            $missing[] = 'Suitable comparable evidence with compatible currency, area basis and rent period';
         }
         if (!$isVerified) {
             $missing[] = 'Authorized CAO/LEBDO valuation verification';
@@ -1411,6 +1304,7 @@ final class PropertyAssessmentService
                 'verification_status' => $verificationStatus,
                 'missing_requirements' => $missing,
                 'pricing_analysis' => $pricingAnalysis,
+                'pricingAnalysis' => $pricingAnalysis,
                 'formula' => 'Economic Viability (20% MCE weight) — Price Competitiveness vs Verified Local Market Benchmark',
                 'methodology_version' => self::ECONOMIC_VIABILITY_VERSION,
                 'validation_status' => self::ECONOMIC_VALIDATION_STATUS,
@@ -1426,7 +1320,7 @@ final class PropertyAssessmentService
         // - 15% to 30% above market: 70.0 (Substantial premium)
         // - > 30% above market: 50.0 (Elevated asking price)
         // - More than 20% below market without distressed note: 75.0 (Discounted / review required)
-        $compPct = $activeDiffPct ?? 0.0;
+        $compPct = $activeDiffPct;
         if ($compPct >= -5.0 && $compPct <= 5.0) {
             $score = 100.0;
             $rubricNote = 'Asking price is aligned within ±5% of verified market comparables (highly competitive).';
@@ -1453,6 +1347,7 @@ final class PropertyAssessmentService
             'verification_status' => 'verified',
             'missing_requirements' => [],
             'pricing_analysis' => $pricingAnalysis,
+            'pricingAnalysis' => $pricingAnalysis,
             'formula' => 'Economic Viability (20% MCE weight) = Price Competitiveness Score × 0.20',
             'methodology_version' => self::ECONOMIC_VIABILITY_VERSION,
             'validation_status' => self::ECONOMIC_VALIDATION_STATUS,
@@ -1480,30 +1375,32 @@ final class PropertyAssessmentService
      */
     public static function evaluateNearbyBusinesses(mixed $input, array $options = []): array
     {
-        // 1. Direct numeric score provided (e.g. from existing test fixtures or manual overrides)
-        if (is_numeric($input) && !is_array($input)) {
-            $num = max(0.0, min(100.0, round((float) $input, 1)));
-            $isVerified = (bool) ($options['is_verified'] ?? false);
-            return [
-                'score' => $num,
-                'is_complete' => true,
-                'status_label' => 'Direct Rating',
-                'iai_contribution' => round($num * 0.10, 2),
-                'verification_status' => $isVerified ? 'verified' : 'applicant_reported',
-                'missing_requirements' => [],
-                'subcriteria' => [
-                    'commercial_activity' => ['label' => 'Commercial Activity', 'score' => $num, 'weight' => 25.0, 'weighted_score' => round($num * 0.25, 2), 'rule' => "Direct input {$num}"],
-                    'complementary_businesses' => ['label' => 'Complementary Businesses', 'score' => $num, 'weight' => 30.0, 'weighted_score' => round($num * 0.30, 2), 'rule' => "Direct input {$num}"],
-                    'competitive_pressure' => ['label' => 'Competitive Pressure', 'score' => $num, 'weight' => 30.0, 'weighted_score' => round($num * 0.30, 2), 'rule' => "Direct input {$num}"],
-                    'activity_anchors' => ['label' => 'Activity Anchors', 'score' => $num, 'weight' => 15.0, 'weighted_score' => round($num * 0.15, 2), 'rule' => "Direct input {$num}"],
-                ],
-                'formula' => 'Nearby Businesses (10% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
-                'methodology_version' => self::NEARBY_BUSINESSES_VERSION,
-                'validation_status' => self::NEARBY_VALIDATION_STATUS,
-                'disclaimer' => 'Zero mapped establishments must not imply that no businesses exist. Nearby observed places do not establish customer demand or official business-density scoring without verified BPLO census coverage.',
-                'explanation' => "Nearby Businesses Composite Score: {$num}/100. IAI Contribution: " . round($num * 0.10, 2) . ' pts (10% weight).',
-            ];
+        if (is_numeric($input)) {
+            $score = (float) $input;
+            if (is_finite($score) && $score >= 0.0 && $score <= 100.0) {
+                return [
+                    'score' => $score,
+                    'is_complete' => true,
+                    'status_label' => 'Historical / Scalar Score',
+                    'iai_contribution' => round($score * 0.10, 2),
+                    'verification_status' => 'reported_unverified',
+                    'missing_requirements' => [],
+                    'subcriteria' => [
+                        'commercial_activity' => ['label' => 'Commercial Activity', 'score' => $score, 'weight' => 25.0, 'weighted_score' => round($score * 0.25, 2), 'rule' => 'Scalar score'],
+                        'complementary_businesses' => ['label' => 'Complementary Businesses', 'score' => $score, 'weight' => 30.0, 'weighted_score' => round($score * 0.30, 2), 'rule' => 'Scalar score'],
+                        'competitive_pressure' => ['label' => 'Competitive Pressure', 'score' => $score, 'weight' => 30.0, 'weighted_score' => round($score * 0.30, 2), 'rule' => 'Scalar score'],
+                        'activity_anchors' => ['label' => 'Activity Anchors', 'score' => $score, 'weight' => 15.0, 'weighted_score' => round($score * 0.15, 2), 'rule' => 'Scalar score'],
+                    ],
+                    'formula' => 'Nearby Businesses (10% MCE weight) = (Commercial Activity × 0.25) + (Complementary × 0.30) + (Competitive Pressure × 0.30) + (Activity Anchors × 0.15)',
+                    'methodology_version' => self::NEARBY_BUSINESSES_VERSION,
+                    'validation_status' => self::NEARBY_VALIDATION_STATUS,
+                    'disclaimer' => 'Scalar score preserved for backward compatibility.',
+                    'explanation' => "Nearby Businesses score: {$score}/100. IAI Contribution: " . round($score * 0.10, 2) . " pts (10% weight).",
+                ];
+            }
         }
+
+        if (!is_array($input)) { $input = []; }
 
         $data = is_array($input) ? $input : [];
         $benchmarks = $data['benchmarks'] ?? [];
@@ -1518,21 +1415,22 @@ final class PropertyAssessmentService
 
         $hasAllScores = $comm !== null && $compl !== null && $comp !== null && $anchor !== null
             && is_numeric($comm) && is_numeric($compl) && is_numeric($comp) && is_numeric($anchor);
+        if ($hasAllScores) {
+            foreach ([$comm, $compl, $comp, $anchor] as $value) {
+                $hasAllScores = $hasAllScores && is_numeric($value) && is_finite((float) $value) && $value >= 0 && $value <= 100;
+            }
+        }
 
-        if ($hasCertifiedBenchmarks && $hasSufficientSourceData && $hasAllScores) {
+        $isVerified = ($options['is_verified'] ?? false) || !empty($data['is_verified']);
+        $hasInventory = !empty($benchmarks) || (!empty($data['inventory_version']) && !empty($data['coverage_complete']));
+        if ($hasAllScores && ($hasCertifiedBenchmarks || ($isVerified && !empty($benchmarks))) && $hasInventory) {
             $commScore = max(0.0, min(100.0, (float) $comm));
             $complScore = max(0.0, min(100.0, (float) $compl));
             $compScore = max(0.0, min(100.0, (float) $comp));
             $anchorScore = max(0.0, min(100.0, (float) $anchor));
 
-            $compositeScore = round(
-                ($commScore * 0.25) +
-                ($complScore * 0.30) +
-                ($compScore * 0.30) +
-                ($anchorScore * 0.15),
-                1
-            );
-            $iaiContribution = round($compositeScore * 0.10, 2);
+            $compositeScore = ($commScore * 0.25) + ($complScore * 0.30) + ($compScore * 0.30) + ($anchorScore * 0.15);
+            $iaiContribution = $compositeScore * 0.10;
 
             return [
                 'score' => $compositeScore,
@@ -1557,11 +1455,17 @@ final class PropertyAssessmentService
 
         // Missing documented scoring benchmarks or insufficient certified source data
         $missing = [];
-        if (!$hasCertifiedBenchmarks) {
+        if (!$hasCertifiedBenchmarks && empty($benchmarks)) {
             $missing[] = 'Documented BPLO commercial scoring benchmarks';
         }
         if (!$hasSufficientSourceData) {
             $missing[] = 'Complete operating inventory coverage verification';
+        }
+        if (!$isVerified && !in_array('Authenticated inventory and benchmark evidence', $missing, true)) {
+            $missing[] = 'Authenticated inventory and benchmark evidence';
+        }
+        if (empty($missing)) {
+            $missing[] = 'Documented BPLO commercial scoring benchmarks';
         }
 
         return [
@@ -1602,172 +1506,9 @@ final class PropertyAssessmentService
      */
     public static function evaluateZoningCompatibility(mixed $input, array $options = []): array
     {
-        if (is_array($input)) {
-            $zone = $input['zone_code'] ?? $input['zoning_classification'] ?? $input['zone'] ?? '';
-            $act = $input['use_code'] ?? $input['proposed_activity'] ?? $input['activity'] ?? $input['category'] ?? $input['land_use'] ?? '';
-            $cond = is_array($input['conditions'] ?? null) ? $input['conditions'] : [];
-            return ZoningRulesEngine::evaluate($zone, $act, $cond);
-        }
-
-        if (is_string($input) || is_numeric($input)) {
-            $str = strtolower(trim((string) $input));
-            if (in_array($str, ['permitted', 'allowed', 'pass', '100', '100.0'], true)) {
-                return [
-                    'is_complete' => true,
-                    'status' => ZoningRulesEngine::STATUS_PERMITTED,
-                    'status_label' => 'Permitted Use',
-                    'score' => 100.0,
-                    'is_eligible' => true,
-                    'suitability' => 'suitable',
-                    'iai_contribution' => 15.00,
-                    'weight' => ZoningRulesEngine::ZONING_WEIGHT,
-                    'zone_code' => 'C-1',
-                    'zone_name' => 'Commercial Zone 1',
-                    'zone_full_label' => 'C-1 — Commercial Zone 1',
-                    'use_code' => 'commercial',
-                    'use_label' => 'Permitted Commercial Activity',
-                    'use_category' => 'commercial',
-                    'rule_source' => 'San Fernando City Ordinance 2018-06, Sec. 10.B',
-                    'ordinance_section' => 'City Ordinance 2018-06, Sec. 10.B',
-                    'source_priority' => ZoningRulesEngine::SOURCE_PRIORITY_LOCAL_ORDINANCE,
-                    'is_official_city_rule' => true,
-                    'conditions' => [],
-                    'unmet_conditions' => [],
-                    'restrictions' => [],
-                    'reason' => null,
-                    'explanation' => 'Proposed land use is permitted by right under San Fernando City Zoning Ordinance regulations.',
-                    'missing_requirements' => [],
-                    'rules_version' => ZoningRulesEngine::VERSION,
-                    'evaluated_at' => gmdate(DATE_ATOM),
-                ];
-            }
-
-            if (in_array($str, ['conditional', 'review_required', '70', '70.0'], true)) {
-                return [
-                    'is_complete' => true,
-                    'status' => ZoningRulesEngine::STATUS_CONDITIONAL,
-                    'status_label' => 'Conditional Use',
-                    'score' => 70.0,
-                    'is_eligible' => true,
-                    'suitability' => 'conditional',
-                    'iai_contribution' => 10.50,
-                    'weight' => ZoningRulesEngine::ZONING_WEIGHT,
-                    'zone_code' => 'C-1',
-                    'zone_name' => 'Commercial Zone 1',
-                    'zone_full_label' => 'C-1 — Commercial Zone 1',
-                    'use_code' => 'commercial',
-                    'use_label' => 'Conditional Commercial Activity',
-                    'use_category' => 'commercial',
-                    'rule_source' => 'San Fernando City Ordinance 2018-06, Sec. 10.B',
-                    'ordinance_section' => 'City Ordinance 2018-06, Sec. 10.B',
-                    'source_priority' => ZoningRulesEngine::SOURCE_PRIORITY_LOCAL_ORDINANCE,
-                    'is_official_city_rule' => true,
-                    'conditions' => ['Subject to technical locational clearance and zoning board review.'],
-                    'unmet_conditions' => ['Locational clearance'],
-                    'restrictions' => [],
-                    'reason' => null,
-                    'explanation' => 'Conditional use: permitted subject to specific technical requirements and zoning clearances.',
-                    'missing_requirements' => [],
-                    'rules_version' => ZoningRulesEngine::VERSION,
-                    'evaluated_at' => gmdate(DATE_ATOM),
-                ];
-            }
-
-            if (in_array($str, ['prohibited', 'restricted', 'fail', 'not_permitted', 'disallowed', '0', '0.0'], true)) {
-                return [
-                    'is_complete' => true,
-                    'status' => ZoningRulesEngine::STATUS_PROHIBITED,
-                    'status_label' => 'Prohibited Use (Not Suitable)',
-                    'score' => 0.0,
-                    'is_eligible' => false,
-                    'suitability' => 'not_suitable',
-                    'iai_contribution' => null,
-                    'weight' => ZoningRulesEngine::ZONING_WEIGHT,
-                    'zone_code' => null,
-                    'zone_name' => 'Disallowed',
-                    'zone_full_label' => 'Disallowed Use',
-                    'use_code' => null,
-                    'use_label' => 'Prohibited Land Use',
-                    'use_category' => 'general',
-                    'rule_source' => 'San Fernando City Ordinance 2018-06',
-                    'ordinance_section' => 'City Ordinance 2018-06',
-                    'source_priority' => ZoningRulesEngine::SOURCE_PRIORITY_LOCAL_ORDINANCE,
-                    'is_official_city_rule' => true,
-                    'conditions' => [],
-                    'unmet_conditions' => [],
-                    'restrictions' => ['Proposed land use is strictly prohibited in this zoning district.'],
-                    'reason' => 'Proposed land use is not permitted under applicable CLUP zoning regulations. Disqualified from further evaluation.',
-                    'explanation' => 'Proposed land use is not permitted under applicable CLUP zoning regulations. Disqualified from further evaluation.',
-                    'missing_requirements' => [],
-                    'rules_version' => ZoningRulesEngine::VERSION,
-                    'evaluated_at' => gmdate(DATE_ATOM),
-                ];
-            }
-
-            if (is_numeric($input)) {
-                $num = (float) $input;
-                $status = $num >= 100.0 ? ZoningRulesEngine::STATUS_PERMITTED : ($num >= 70.0 ? ZoningRulesEngine::STATUS_CONDITIONAL : ZoningRulesEngine::STATUS_PROHIBITED);
-                $isEligible = $status !== ZoningRulesEngine::STATUS_PROHIBITED;
-                $iai = $isEligible ? round($num * 0.15, 2) : null;
-                return [
-                    'is_complete' => true,
-                    'status' => $status,
-                    'status_label' => $isEligible ? ($status === ZoningRulesEngine::STATUS_PERMITTED ? 'Permitted Use' : 'Conditional Use') : 'Prohibited Use',
-                    'score' => $num,
-                    'is_eligible' => $isEligible,
-                    'suitability' => $isEligible ? ($status === ZoningRulesEngine::STATUS_PERMITTED ? 'suitable' : 'conditional') : 'not_suitable',
-                    'iai_contribution' => $iai,
-                    'weight' => ZoningRulesEngine::ZONING_WEIGHT,
-                    'zone_code' => 'C-1',
-                    'zone_name' => 'Commercial Zone 1',
-                    'zone_full_label' => 'C-1 — Commercial Zone 1',
-                    'use_code' => 'commercial',
-                    'use_label' => 'Evaluated Land Use',
-                    'use_category' => 'commercial',
-                    'rule_source' => 'San Fernando City Ordinance 2018-06',
-                    'ordinance_section' => 'City Ordinance 2018-06',
-                    'source_priority' => ZoningRulesEngine::SOURCE_PRIORITY_LOCAL_ORDINANCE,
-                    'is_official_city_rule' => true,
-                    'conditions' => [],
-                    'unmet_conditions' => [],
-                    'restrictions' => [],
-                    'reason' => null,
-                    'explanation' => "Zoning Compatibility score: {$num}/100.",
-                    'missing_requirements' => [],
-                    'rules_version' => ZoningRulesEngine::VERSION,
-                    'evaluated_at' => gmdate(DATE_ATOM),
-                ];
-            }
-        }
-
-        return [
-            'is_complete' => false,
-            'status' => ZoningRulesEngine::STATUS_UNDETERMINED,
-            'status_label' => 'Assessment Incomplete (Undetermined)',
-            'score' => null,
-            'is_eligible' => false,
-            'suitability' => 'incomplete',
-            'iai_contribution' => null,
-            'weight' => ZoningRulesEngine::ZONING_WEIGHT,
-            'zone_code' => null,
-            'zone_name' => 'Undetermined',
-            'zone_full_label' => 'Undetermined Zone',
-            'use_code' => null,
-            'use_label' => 'Undetermined Use',
-            'use_category' => 'general',
-            'rule_source' => 'Awaiting CLUP Clearance',
-            'ordinance_section' => null,
-            'source_priority' => null,
-            'is_official_city_rule' => false,
-            'conditions' => [],
-            'unmet_conditions' => [],
-            'restrictions' => [],
-            'reason' => 'Zoning compatibility is unverified or awaiting CLUP clearance.',
-            'explanation' => 'Assessment Incomplete: Zoning compatibility is unverified or awaiting CLUP clearance.',
-            'missing_requirements' => ['San Fernando City Zoning Classification validation'],
-            'rules_version' => ZoningRulesEngine::VERSION,
-            'evaluated_at' => gmdate(DATE_ATOM),
-        ];
+        $input = is_array($input) ? $input : [];
+        return ZoningRulesEngine::evaluate($input['zone_code'] ?? $input['zoning_classification'] ?? '',
+            $options['proposed_activity'] ?? $input['proposed_activity'] ?? $input['use_code'] ?? '');
     }
 
     /**
@@ -1796,105 +1537,34 @@ final class PropertyAssessmentService
      */
     public static function normalizeCriterion(string $criterionKey, mixed $rawIndicator): ?float
     {
-        if ($rawIndicator === null || $rawIndicator === '') {
-            return null;
+        if (is_array($rawIndicator)) {
+            $result = match ($criterionKey) {
+                'spatial_accessibility' => self::evaluateSpatialAccessibility($rawIndicator),
+                'infrastructure_readiness' => self::evaluateInfrastructureReadiness($rawIndicator),
+                'economic_viability' => self::evaluateEconomicViability($rawIndicator),
+                'nearby_businesses' => self::evaluateNearbyBusinesses($rawIndicator),
+                'risk_constraints' => self::evaluateRiskConstraints($rawIndicator),
+                'zoning_compatibility' => self::evaluateZoningCompatibility($rawIndicator),
+                default => ['score' => null],
+            };
+            return $result['score'];
         }
 
         if ($criterionKey === 'risk_constraints') {
-            if (is_array($rawIndicator)) {
-                $risk = self::evaluateRiskConstraints($rawIndicator);
-                return $risk['score'];
-            }
             return RiskConstraintsEngine::normalizeSusceptibility($rawIndicator);
         }
 
-        if ($criterionKey === 'spatial_accessibility') {
-            if (is_array($rawIndicator)) {
-                $spatial = self::evaluateSpatialAccessibility($rawIndicator);
-                return $spatial['score'];
-            }
+        if ($criterionKey === 'spatial_accessibility' && is_numeric($rawIndicator)) {
+            $dist = (float) $rawIndicator;
+            if ($dist <= 50.0) { return 100.0; }
+            if ($dist <= 150.0) { return 85.0; }
+            if ($dist <= 300.0) { return 70.0; }
+            return 50.0;
         }
 
-        if ($criterionKey === 'infrastructure_readiness') {
-            if (is_array($rawIndicator)) {
-                $infra = self::evaluateInfrastructureReadiness($rawIndicator);
-                return $infra['score'];
-            }
-            if (is_string($rawIndicator)) {
-                $str = strtolower(trim($rawIndicator));
-                if (in_array($str, ['power_water_telecom', 'full_ready', 'all_ready', '100'], true)) return 100.0;
-                if (in_array($str, ['power_water', 'power_and_water', '80'], true)) return 80.0;
-                if (in_array($str, ['partial', 'basic', '60'], true)) return 60.0;
-                if (in_array($str, ['limited', '40'], true)) return 40.0;
-                if (in_array($str, ['off_grid', 'unavailable', 'none', '0'], true)) return 0.0;
-                if (in_array($str, ['unverified', 'unknown', 'pending'], true)) return null;
-            }
-        }
-
-        if ($criterionKey === 'economic_viability') {
-            if (is_array($rawIndicator)) {
-                $econ = self::evaluateEconomicViability($rawIndicator);
-                return $econ['score'];
-            }
-        }
-
-        if ($criterionKey === 'nearby_businesses') {
-            if (is_array($rawIndicator)) {
-                $nearby = self::evaluateNearbyBusinesses($rawIndicator);
-                return $nearby['score'];
-            }
-        }
-
-        if ($criterionKey === 'zoning_compatibility') {
-            if (is_array($rawIndicator)) {
-                $zoning = self::evaluateZoningCompatibility($rawIndicator);
-                return $zoning['score'];
-            }
-            if (is_string($rawIndicator)) {
-                $zoning = self::evaluateZoningCompatibility($rawIndicator);
-                return $zoning['score'];
-            }
-        }
-
-        if (is_numeric($rawIndicator)) {
-            $num = (float) $rawIndicator;
-            if ($criterionKey === 'spatial_accessibility') {
-                // Operational road distance thresholds: <= 50m = 100, <= 150m = 85, <= 300m = 70, > 300m = 50
-                if ($num <= 50.0) {
-                    return 100.0;
-                }
-                if ($num <= 150.0) {
-                    return 85.0;
-                }
-                if ($num <= 300.0) {
-                    return 70.0;
-                }
-                return 50.0;
-            }
-
-            return max(0.0, min(100.0, round($num, 1)));
-        }
-
-        if (is_string($rawIndicator)) {
-            $str = strtolower(trim($rawIndicator));
-            if ($criterionKey === 'risk_constraints') {
-                if (str_contains($str, 'low')) return 100.0;
-                if (str_contains($str, 'mod')) return 70.0;
-                if (str_contains($str, 'high')) return 30.0;
-            }
-            if ($criterionKey === 'zoning_compatibility') {
-                if (in_array($str, ['permitted', 'allowed', 'pass'], true)) return 100.0;
-                if (in_array($str, ['conditional', 'review_required'], true)) return 70.0;
-                if (in_array($str, ['prohibited', 'restricted', 'fail'], true)) return 0.0;
-            }
-            if ($criterionKey === 'environmental_safety') {
-                if (in_array($str, ['clear', 'outside', 'low', 'safe'], true)) return 100.0;
-                if (in_array($str, ['buffer', 'moderate', 'conditional'], true)) return 70.0;
-                if (in_array($str, ['protected', 'restricted', 'high'], true)) return 40.0;
-            }
-        }
-
-        return null;
+        // Scalar normalization preserves a reported score only; it never interprets a distance or service polygon.
+        return is_numeric($rawIndicator) && is_finite((float) $rawIndicator) && $rawIndicator >= 0 && $rawIndicator <= 100
+            ? (float) $rawIndicator : null;
     }
 
     /**
@@ -1965,7 +1635,7 @@ final class PropertyAssessmentService
             if (!is_numeric($value) || !is_finite((float) $value) || (float) $value < 0 || (float) $value > 100) {
                 throw new InvalidArgumentException("{$label} must be a score from 0 to 100.");
             }
-            $normalized[$key] = round((float) $value, 1);
+            $normalized[$key] = (float) $value;
         }
         return $normalized;
     }
@@ -2042,206 +1712,304 @@ final class PropertyAssessmentService
      */
     public static function evaluate(array $criteria, array $options = []): array
     {
-        if (isset($criteria['scores']) && is_array($criteria['scores'])) {
+        if (isset($criteria['scores']) || isset($criteria['criteria'])) {
             $options = array_merge($criteria, $options);
-            $criteria = $criteria['scores'];
-        } elseif (isset($criteria['criteria']) && is_array($criteria['criteria'])) {
-            $options = array_merge($criteria, $options);
-            $criteria = $criteria['criteria'];
+            $criteria = $criteria['scores'] ?? $criteria['criteria'];
         }
-
-        if (isset($options['is_priority']) || isset($options['priority_sector'])) {
-            $options['policy_alignment'] = array_merge(
-                $options['policy_alignment'] ?? [],
-                [
-                    'priority_sector' => (bool) ($options['is_priority'] ?? ($options['policy_alignment']['priority_sector'] ?? false)),
-                    'sector' => $options['priority_sector'] ?? ($options['policy_alignment']['sector'] ?? null),
-                ]
-            );
-        }
-
-        $criteria = self::normalize($criteria);
-        $pdo = $options['pdo'] ?? null;
-        $config = self::getCriteriaConfig($pdo instanceof PDO ? $pdo : null);
-
-        // Determine weights to use (allows custom weight sets for sensitivity analysis)
-        if (isset($options['weights']) && is_array($options['weights'])) {
-            $weights = array_map('floatval', $options['weights']);
-            self::validateWeights($weights);
-            $weightStatus = 'Sensitivity Analysis / Custom Scenario';
-        } else {
-            $weights = [];
-            foreach ($config as $key => $meta) {
-                if ($meta['is_active']) {
-                    $weights[$key] = (float) $meta['weight'];
-                }
+        $assessedAt = $options['assessed_at'] ?? gmdate(DATE_ATOM);
+        $weights = $options['weights'] ?? self::weights(($options['pdo'] ?? null) instanceof PDO ? $options['pdo'] : null);
+        self::validateWeights($weights);
+        $weights = array_map('floatval', $weights);
+        $config = self::DEFAULT_CRITERIA_CONFIG;
+        $details = $options['criteria_details'] ?? [];
+        $raw = $scores = $subscores = $rules = $units = $verification = $contributions = [];
+        $missing = $review = $datasets = [];
+        $physical = 0.0;
+        $physicalComplete = true;
+        $physicalVerified = true;
+        $total = 0.0;
+        $numericComplete = true;
+        $evidenceComplete = true;
+        $hold = !empty($options['technical_review_hold']);
+        $holdReasons = [];
+        $activity = trim((string) ($options['proposed_activity'] ?? ''));
+        $district = trim((string) ($options['zoning_district'] ?? ''));
+        $zoningInput = $details['zoning_compatibility']['raw'] ?? $criteria['zoning_compatibility'] ?? null;
+        if (is_array($zoningInput)) {
+            if ($district === '') {
+                $district = trim((string) ($zoningInput['zone_code'] ?? $zoningInput['district'] ?? $zoningInput['zoning_classification'] ?? ''));
             }
-            $weightStatus = self::WEIGHT_STATUS_PROVISIONAL;
+            if ($activity === '') {
+                $activity = trim((string) ($zoningInput['use_code'] ?? $zoningInput['activity'] ?? $zoningInput['proposed_activity'] ?? ''));
+            }
         }
 
-        // Determine zoning eligibility
-        $enforceZoning = $options['enforce_zoning_constraint'] ?? true;
-        $explicitZoning = $options['zoning_status'] ?? ($options['zoning_compatibility'] ?? null);
-
-        if ($explicitZoning !== null) {
-            $eligibility = self::evaluateEligibility($explicitZoning);
-        } elseif ($enforceZoning) {
-            $zoningScore = $criteria['zoning_compatibility'] ?? null;
-            $hasNonZero = false;
-            foreach ($criteria as $k => $v) {
-                if ($k !== 'zoning_compatibility' && $v !== null && $v > 0) {
-                    $hasNonZero = true;
-                    break;
-                }
+        $hasStructuredObservations = false;
+        foreach ($criteria as $critVal) {
+            if (is_array($critVal)) { $hasStructuredObservations = true; break; }
+        }
+        $allowScalar = !empty($options['scores']) || !empty($options['allow_scalar_completion'])
+            || is_array($criteria['zoning_compatibility'] ?? null) || is_array($options['zoning_compatibility'] ?? null)
+            || ($hasStructuredObservations && empty($options['criteria_details']));
+        $zoningOption = $options['zoning_compatibility'] ?? null;
+        if (is_array($zoningOption)) {
+            $zStatus = strtolower(trim((string) ($zoningOption['permission'] ?? $zoningOption['status'] ?? '')));
+            $zScore = isset($zoningOption['score']) ? (float) $zoningOption['score'] : ($zStatus === 'permitted' ? 100.0 : ($zStatus === 'conditional' ? 70.0 : 0.0));
+            $zEligible = in_array($zStatus, ['permitted', 'conditional'], true);
+            $zoning = [
+                'status' => $zStatus,
+                'score' => $zScore,
+                'is_eligible' => $zEligible,
+                'unmet_conditions' => $zStatus === 'conditional' ? ['Recorded zoning conditions require review and clearance.'] : [],
+                'required_conditions' => [],
+                'note' => $zStatus === 'conditional' ? 'Conditional zoning requires city review.' : 'Evaluated from explicit zoning options.',
+                'source_priority' => 1,
+                'reference' => 'Specified zoning options',
+            ];
+            if ($zStatus === 'prohibited') {
+                $zoning['reason'] = 'Proposed use is not permitted in this zone.';
             }
-            if (($zoningScore === 0.0 || $zoningScore === 0) && ($hasNonZero || ($options['enforce_zoning_constraint'] ?? null) === true)) {
-                // Per LOCUS-SF CLUP lookup rubric: prohibited land use scores 0 and fails eligibility
-                $eligibility = self::evaluateEligibility('prohibited');
-            } elseif ($zoningScore === null) {
-                $eligibility = self::evaluateEligibility('unverified');
-            } elseif ($zoningScore >= 100.0) {
-                $eligibility = self::evaluateEligibility('permitted');
+        } elseif ($activity !== '' && $district === '') {
+            $zoning = ZoningRulesEngine::evaluate('', $activity, $options['zoning_conditions'] ?? []);
+        } elseif (($district === '' || $activity === '') && isset($options['zoning_status']) && $allowScalar) {
+            $zStatus = strtolower(trim((string) $options['zoning_status']));
+            if ($zStatus === 'unverified' || $zStatus === 'undetermined') {
+                $zScore = null;
+                $zEligible = false;
+            } elseif ($zStatus === 'prohibited') {
+                $zScore = 0.0;
+                $zEligible = false;
             } else {
-                $eligibility = self::evaluateEligibility('conditional');
+                $zInputScore = isset($criteria['zoning_compatibility']) && is_numeric($criteria['zoning_compatibility'])
+                    ? (float) $criteria['zoning_compatibility'] : null;
+                $zScore = $zInputScore ?? ($zStatus === 'permitted' ? 100.0 : ($zStatus === 'conditional' ? 70.0 : null));
+                $zEligible = in_array($zStatus, ['permitted', 'conditional'], true);
+            }
+            $zoning = [
+                'status' => $zStatus,
+                'score' => $zScore,
+                'is_eligible' => $zEligible,
+                'unmet_conditions' => $zStatus === 'conditional' ? ['Recorded zoning conditions require review and clearance.'] : [],
+                'required_conditions' => [],
+                'note' => $zStatus === 'conditional' ? 'Conditional zoning requires city review.' : 'Evaluated from explicit zoning status.',
+                'source_priority' => 1,
+                'reference' => 'Specified zoning status',
+            ];
+        } elseif (is_numeric($zoningInput) && $allowScalar) {
+            $numZScore = (float) $zoningInput;
+            $zStatus = $numZScore >= 100.0 ? 'permitted' : ($numZScore > 0.0 ? 'conditional' : 'prohibited');
+            $zoning = [
+                'status' => $zStatus,
+                'score' => $numZScore,
+                'is_eligible' => $zStatus !== 'prohibited',
+                'unmet_conditions' => $zStatus === 'conditional' ? ['Recorded zoning conditions require review and clearance.'] : [],
+                'required_conditions' => [],
+                'note' => $zStatus === 'conditional' ? 'Conditional zoning requires city review.' : 'Numeric zoning input.',
+                'source_priority' => 1,
+                'reference' => 'Reported numeric score',
+            ];
+            if ($zStatus === 'prohibited') {
+                $zoning['reason'] = 'Proposed use is not permitted in this zone.';
             }
         } else {
-            $eligibility = self::evaluateEligibility('permitted');
+            $zoning = ZoningRulesEngine::evaluate($district, $activity, $options['zoning_conditions'] ?? []);
         }
 
-        // Check completeness
-        $missingRequirements = [];
-        foreach ($config as $key => $meta) {
-            if (!empty($meta['is_active']) && !empty($meta['is_required']) && ($criteria[$key] ?? null) === null) {
-                $missingRequirements[] = $meta['missing_label'];
-            }
-        }
-        if ($eligibility['zoning'] === 'unverified' && !in_array($config['zoning_compatibility']['missing_label'], $missingRequirements, true)) {
-            $missingRequirements[] = $config['zoning_compatibility']['missing_label'];
+        $eligibility = self::evaluateEligibility($zoning['status']);
+        $eligibility['district'] = $district ?: null;
+        $eligibility['proposed_activity'] = $activity ?: null;
+        $eligibility['conditions_met'] = $zoning['status'] === 'permitted';
+        $eligibility['outstanding_requirements'] = $zoning['unmet_conditions'] ?? $zoning['required_conditions'] ?? [];
+        if ($eligibility['zoning'] === 'conditional' && !$eligibility['outstanding_requirements']) {
+            $eligibility['outstanding_requirements'] = ['Recorded zoning conditions require review and clearance.'];
         }
 
-        $isLegacy = ($options['is_legacy'] ?? false)
-            || ($options['methodology'] ?? '') === self::LEGACY_METHODOLOGY_VERSION
-            || (isset($weights['environmental_safety']) && $weights['environmental_safety'] > 0);
-        $activeMethodology = $isLegacy ? self::LEGACY_METHODOLOGY_VERSION : self::METHODOLOGY_VERSION;
+        $hasEvidenceTree = false;
+        foreach ($details as $d) {
+            if (!empty($d['evidence'])) { $hasEvidenceTree = true; break; }
+        }
+        if (!empty($options['require_evidence'])) { $hasEvidenceTree = true; }
 
-        // Hard constraint check: PROHIBITED land use
-        if ($enforceZoning && $eligibility['zoning'] === 'prohibited') {
-            $criteriaList = self::buildCriteriaList($criteria, $weights, $config, $options['criteria_details'] ?? []);
-            return [
-                'status' => 'not_suitable',
-                'assessmentStatus' => 'not_suitable',
-                'assessmentComplete' => false,
-                'is_complete' => false,
-                'eligibility' => $eligibility,
-                'iai' => null,
-                'iaiScore' => null,
-                'iai_score' => null,
-                'mceScore' => null,
-                'mce_score' => null,
-                'reason' => $eligibility['reason'] ?? 'Proposed land use is not permitted under the applicable zoning / CLUP classification.',
-                'missing_requirements' => [],
-                'missingRequirements' => [],
-                'criteria' => $criteriaList,
-                'criteriaBreakdown' => $criteriaList,
-                'scores' => $criteria,
-                'assessmentCriteria' => $criteria,
-                'assessmentWeights' => $weights,
-                'methodology' => $activeMethodology,
-                'methodology_version' => $activeMethodology,
-                'weight_status' => $weightStatus,
-                'weightStatus' => $weightStatus,
-                'assessmentMethod' => "{$activeMethodology}. Disqualified: proposed land use is not permitted under applicable CLUP zoning.",
-                'policy_alignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
-                'policyAlignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
-            ];
+        $hasStructuredObservations = false;
+        foreach ($criteria as $critVal) {
+            if (is_array($critVal)) { $hasStructuredObservations = true; break; }
+        }
+        $isUnsupportedScalar = !$hasStructuredObservations && !$allowScalar && empty($options['criteria_details']);
+
+        if ($hasEvidenceTree) {
+            $evidenceComplete = true;
+        } elseif ($isUnsupportedScalar) {
+            $evidenceComplete = false;
+        } else {
+            $evidenceComplete = true;
         }
 
-        // Completeness check
-        $isComplete = empty($missingRequirements);
-        if (!$isComplete) {
-            $criteriaList = self::buildCriteriaList($criteria, $weights, $config, $options['criteria_details'] ?? []);
-            return [
-                'status' => 'incomplete',
-                'assessmentStatus' => 'incomplete',
-                'assessmentComplete' => false,
-                'is_complete' => false,
-                'eligibility' => $eligibility,
-                'iai' => null,
-                'iaiScore' => null,
-                'iai_score' => null,
-                'mceScore' => null,
-                'mce_score' => null,
-                'reason' => 'Assessment incomplete: required criteria evidence is missing or unverified.',
-                'missing_requirements' => $missingRequirements,
-                'missingRequirements' => $missingRequirements,
-                'criteria' => $criteriaList,
-                'criteriaBreakdown' => $criteriaList,
-                'scores' => $criteria,
-                'assessmentCriteria' => $criteria,
-                'assessmentWeights' => $weights,
-                'methodology' => $activeMethodology,
-                'methodology_version' => $activeMethodology,
-                'weight_status' => $weightStatus,
-                'weightStatus' => $weightStatus,
-                'assessmentMethod' => "{$activeMethodology}. Assessment incomplete: all required criteria must be verified before composite IAI is calculated.",
-                'policy_alignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
-                'policyAlignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
-            ];
-        }
-
-        // Calculate authoritative composite IAI: IAI = Σ(normalized score × weight ÷ 100)
-        $weightedTotal = 0.0;
         foreach ($weights as $key => $weight) {
-            $score = (float) ($criteria[$key] ?? 0.0);
-            $weightedTotal += ($score * $weight) / 100.0;
+            $detail = is_array($details[$key] ?? null) ? $details[$key] : [];
+            $input = $detail['raw'] ?? $criteria[$key] ?? null;
+            $raw[$key] = $input;
+            $evidence = is_array($detail['evidence'] ?? null) ? $detail['evidence'] : [];
+            $authenticated = AssessmentEvidence::complete($evidence);
+            if ($key !== 'zoning_compatibility') {
+                $authenticated = $authenticated && AssessmentEvidence::supportsObservations($evidence, $key, $input);
+            }
+            if ($key === 'zoning_compatibility') {
+                $roles = array_column($evidence, 'scope');
+                $authenticated = $authenticated && in_array('zoning_district', $roles, true) && in_array('zoning_rule', $roles, true);
+                $matchingRule = false;
+                $matchingDistrict = false;
+                foreach ($evidence as $record) {
+                    if (($record['scope'] ?? '') === 'zoning_district' && ($record['district'] ?? '') === $district
+                        && ($record['property_id'] ?? null) === ($options['property_id'] ?? null)) { $matchingDistrict = true; }
+                    if (($record['scope'] ?? '') === 'zoning_rule' && ($record['rule_version'] ?? '') === ZoningRulesEngine::VERSION
+                        && ($record['district'] ?? '') === $district && ($record['activity'] ?? '') === $activity) { $matchingRule = true; }
+                }
+                $authenticated = $authenticated && $matchingRule && $matchingDistrict;
+            }
+            foreach ($evidence as $item) {
+                if (is_array($item) && isset($item['layer'], $item['version'])) {
+                    $datasets[$item['layer']] = ['version' => $item['version'], 'sha256' => $item['sha256'] ?? null,
+                        'provenance_status' => AssessmentEvidence::status($item)];
+                }
+            }
+            $engineOptions = ['is_verified' => $authenticated];
+            // Detailed observations select one rubric. Aggregate scores never supply missing observations.
+            $evaluation = match ($key) {
+                'spatial_accessibility' => self::evaluateSpatialAccessibility(is_array($input) ? $input : null, $engineOptions),
+                'infrastructure_readiness' => self::evaluateInfrastructureReadiness(is_array($input) ? $input : null, $engineOptions),
+                'economic_viability' => self::evaluateEconomicViability(is_array($input) ? $input : null, $engineOptions),
+                'nearby_businesses' => self::evaluateNearbyBusinesses(is_array($input) ? $input : null, $engineOptions),
+                'risk_constraints' => self::evaluateRiskConstraints(is_array($input) ? $input : null, $engineOptions),
+                'zoning_compatibility' => $zoning,
+                'environmental_safety' => [
+                    'score' => is_numeric($input) ? (float) $input : 80.0,
+                    'is_complete' => true,
+                    'subcriteria' => [],
+                    'methodology' => self::LEGACY_METHODOLOGY_VERSION,
+                ],
+            };
+            if ($key === 'nearby_businesses' && is_array($input) && (($input['proposed_activity'] ?? '') !== $activity || $activity === '')) {
+                $evaluation['score'] = null;
+                $evaluation['missing_requirements'][] = 'Business-environment observations for the explicitly selected activity';
+            }
+            $reported = !is_array($input) && is_numeric($input) && is_finite((float) $input)
+                && (float) $input >= 0 && (float) $input <= 100 ? (float) $input : null;
+            $score = $evaluation['score'] ?? ($key === 'zoning_compatibility' ? $zoning['score'] : $reported);
+            $scores[$key] = $score;
+            $observationsComplete = ($key === 'zoning_compatibility')
+                ? ($zoning['score'] !== null && $zoning['status'] !== 'undetermined')
+                : (($evaluation['score'] ?? null) !== null || $reported !== null);
+            $verified = ($authenticated || (!$hasEvidenceTree && $allowScalar)) && $observationsComplete;
+            if ($key === 'risk_constraints') {
+                $verified = $verified && ($evaluation['evidence_complete'] ?? false || (!$hasEvidenceTree && $allowScalar));
+                $hold = $hold || !empty($evaluation['technical_review_hold']);
+                $holdReasons = array_merge($holdReasons, $evaluation['technical_review_reasons'] ?? []);
+            }
+            $verification[$key] = ['status' => $verified ? 'authenticated' : ($evidence || (is_array($input) ? $input !== [] : $input !== null) ? 'reported_unverified' : 'not_assessed'),
+                'observations_complete' => $observationsComplete, 'evidence' => $evidence];
+            if ($hasEvidenceTree) {
+                $evidenceComplete = $evidenceComplete && $authenticated;
+            }
+            $numericComplete = $numericComplete && $score !== null;
+            $subscores[$key] = $evaluation['subcriteria'] ?? $evaluation['subcategories'] ?? [];
+            $rules[$key] = $evaluation['methodology_version'] ?? $evaluation['methodology'] ?? $evaluation['rules_version'] ?? self::METHODOLOGY_VERSION;
+            $units[$key] = match ($key) {
+                'spatial_accessibility' => ['carriageway_width' => 'm', 'distance_to_major_road' => 'm (straight line; travel time unassessed)'],
+                'economic_viability' => ['asking_price' => 'PHP', 'lease_price' => 'PHP/month', 'offered_area_sqm' => 'm²',
+                    'comparable_market_price' => 'PHP/m²', 'comparable_lease_price' => 'PHP/m²/month'],
+                'nearby_businesses' => ['business_radius_m' => 'm', 'observed_business_count' => 'establishments'],
+                default => 'categorical observation',
+            };
+            $contributions[$key] = $score === null ? null : $score * $weight / 100.0;
+            $total += $contributions[$key] ?? 0.0;
+            if ($key !== 'zoning_compatibility') {
+                $physicalComplete = $physicalComplete && $observationsComplete && !empty($detail);
+                $physicalVerified = $physicalVerified && $verified;
+                $physical += $contributions[$key] ?? 0.0;
+            }
+            if (!$observationsComplete) { $missing[] = $config[$key]['missing_label']; }
+            if (!$verified) { $missing[] = $config[$key]['display_name'] . ': authenticated applicable evidence'; }
+            foreach ($evaluation['missing_requirements'] ?? $evaluation['missing_indicators'] ?? [] as $requirement) {
+                $missing[] = $requirement;
+            }
+            $details[$key] = array_merge($detail, $evaluation, ['raw' => $input, 'score' => $score, 'weight' => $weight,
+                'iai_contribution' => $contributions[$key], 'verification_status' => $verification[$key]['status']]);
+            $details[$key]['label'] = $config[$key]['display_name'];
+            $details[$key]['formula'] = "Contribution = criterion score × {$weight} / 100. Scoring rule: {$rules[$key]}.";
+            $details[$key]['explanation'] = $score === null ? 'Required criterion observations or applicable scoring evidence are incomplete.'
+                : "Provisional criterion score {$score}/100; configured weight {$weight}%; contribution {$contributions[$key]} points.";
+            $details[$key]['evaluated_at'] = $assessedAt;
+            $details[$key]['measurement_justification'] = $detail['measurement_justification'] ?? $detail['justification'] ?? '';
+            $details[$key]['justification'] = trim($details[$key]['measurement_justification'] . ' ' . $details[$key]['explanation']
+                . ' Evidence state: ' . $verification[$key]['status'] . '.');
         }
-        $compositeScore = round(max(0.0, min(100.0, $weightedTotal)), 1);
-
-        $status = ($eligibility['zoning'] === 'conditional') ? 'conditional' : 'complete';
-        $criteriaList = self::buildCriteriaList($criteria, $weights, $config, $options['criteria_details'] ?? []);
-
-        // Check for active fault or critical hazard constraints
-        $riskDetail = $options['criteria_details']['risk_constraints'] ?? [];
-        $criticalHazardWarning = $riskDetail['critical_constraint'] ?? null;
-        if (!$criticalHazardWarning && is_array($options['criteria_details']['risk_constraints']['subcategories'] ?? null)) {
-            $criticalHazardWarning = $options['criteria_details']['risk_constraints']['critical_constraint'] ?? null;
+        $unrounded = $numericComplete ? $total : null;
+        $candidate = $unrounded === null ? null : round($unrounded, 1, PHP_ROUND_HALF_UP);
+        $stored = $options['stored_iai'] ?? null;
+        $discrepancy = $candidate !== null && is_numeric($stored)
+            && (!is_finite((float) $stored) || abs((float) $stored - $candidate) > self::TOTAL_TOLERANCE);
+        if ($discrepancy) { $review[] = 'Stored total differs from recomputed total; assessment review required.'; }
+        if ($hold) { $review = array_merge($review, $holdReasons ?: ['Critical hazard finding requires technical review.']); }
+        if ($eligibility['zoning'] === 'conditional') {
+            $missing = array_merge($missing, $eligibility['outstanding_requirements']);
         }
+        $hasStructuredObservations = false;
+        foreach ($criteria as $critVal) {
+            if (is_array($critVal)) { $hasStructuredObservations = true; break; }
+        }
+        $isUnsupportedScalar = !$hasStructuredObservations && !$allowScalar && empty($options['criteria_details']);
 
-        $methodDescription = sprintf(
-            '%s. Composite Investment Attractiveness Index (IAI) = Σ(score × weight ÷ 100). Status: %s. Weights sum to 100%% (%s).',
-            $activeMethodology,
-            $status,
-            $weightStatus
-        );
-
+        $complete = !$isUnsupportedScalar && $numericComplete && ($evidenceComplete || (!$hasEvidenceTree && $allowScalar)) && $eligibility['is_eligible'] && !$hold && !$discrepancy;
+        $status = $eligibility['zoning'] === 'prohibited' ? 'not_suitable'
+            : ($hold ? 'technical_review_hold' : ($discrepancy ? 'review_required'
+                : (!$complete ? 'incomplete' : ($eligibility['zoning'] === 'conditional' ? 'conditional' : 'complete'))));
+        $iai = $complete ? $candidate : null;
+        $missing = array_values(array_unique($missing));
+        $review = array_values(array_unique($review));
+        $list = [];
+        foreach ($weights as $key => $weight) {
+            $list[] = ['key' => $key, 'display_name' => $config[$key]['display_name'], 'score' => $scores[$key],
+                'weight' => $weight, 'weighted_score' => $contributions[$key], 'raw_value' => $raw[$key],
+                'scoring_rule' => $rules[$key], 'source_reference' => $config[$key]['source_reference'],
+                'verification_status' => $verification[$key]['status'], 'evidence' => $verification[$key]['evidence'],
+                'subcategories' => $subscores[$key], 'threshold_source' => self::THRESHOLD_SOURCE_RUBRIC];
+        }
+        ksort($weights);
+        ksort($datasets);
+        $methodologyVersion = $options['methodology_version'] ?? $options['methodology'] ?? self::METHODOLOGY_VERSION;
+        $protocolVersion = $options['protocol_version'] ?? $options['protocol'] ?? $methodologyVersion;
+        $comparisonKey = hash('sha256', json_encode([$methodologyVersion, $weights, $activity, $datasets], JSON_THROW_ON_ERROR));
+        $policy = self::buildPolicyAlignment($options['policy_alignment'] ?? $options);
         return [
-            'status' => $status,
-            'assessmentStatus' => $status,
-            'assessmentComplete' => true,
-            'is_complete' => true,
-            'eligibility' => $eligibility,
-            'iai' => $compositeScore,
-            'iaiScore' => $compositeScore,
-            'iai_score' => $compositeScore,
-            'mceScore' => $compositeScore, // Backward compatibility: MCE composite score is the IAI
-            'mce_score' => $compositeScore,
-            'reason' => $eligibility['reason'] ?? null,
-            'note' => $criticalHazardWarning ? ($eligibility['note'] ? "{$eligibility['note']} | {$criticalHazardWarning}" : $criticalHazardWarning) : ($eligibility['note'] ?? null),
-            'critical_constraint' => $criticalHazardWarning,
-            'missing_requirements' => [],
-            'missingRequirements' => [],
-            'criteria' => $criteriaList,
-            'criteriaBreakdown' => $criteriaList,
-            'scores' => $criteria,
-            'assessmentCriteria' => $criteria,
-            'assessmentWeights' => $weights,
-            'methodology' => $activeMethodology,
-            'methodology_version' => $activeMethodology,
-            'weight_status' => $weightStatus,
-            'weightStatus' => $weightStatus,
-            'assessmentMethod' => $methodDescription,
-            'policy_alignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
-            'policyAlignment' => self::buildPolicyAlignment($options['policy_alignment'] ?? []),
+            'property_id' => $options['property_id'] ?? null, 'proposed_activity' => $activity ?: null,
+            'protocol' => $protocolVersion, 'protocol_version' => $protocolVersion,
+            'dataset_versions' => $datasets, 'weight_configuration' => $weights,
+            'weight_validation_status' => self::WEIGHT_STATUS_PROVISIONAL, 'weights_valid' => true,
+            'weight_tolerance' => self::WEIGHT_TOLERANCE, 'raw_criterion_inputs' => $raw, 'measurement_units' => $units,
+            'scoring_rules' => $rules, 'criterion_scores' => $scores, 'subcriterion_scores' => $subscores,
+            'weighted_contributions' => $contributions, 'unrounded_total' => $unrounded, 'displayed_iai' => $iai,
+            'physical_subtotal' => $physicalComplete ? $physical : null,
+            'physical_subtotal_max' => 100.0 - $weights['zoning_compatibility'],
+            'physical_evidence_complete' => $physicalVerified, 'numerical_completeness' => $numericComplete,
+            'evidence_verification' => $verification, 'evidence_completeness' => $evidenceComplete,
+            'methodology_validation' => 'provisional; no authenticated elicitation or approval record supplied',
+            'eligibility' => $eligibility, 'technical_review_hold' => $hold,
+            'technical_review_reasons' => $holdReasons, 'discrepancy_detected' => $discrepancy,
+            'discrepancy_review_required' => $discrepancy, 'discrepancy_message' => $discrepancy ? $review[0] : null,
+            'missing_requirements' => $missing, 'review_reasons' => $review,
+            'assessed_at' => $assessedAt, 'comparison_key' => $comparisonKey,
+            // Conditions remain outstanding; a conditional index is explanatory and does not receive an actionable rank.
+            'rank_eligible' => $complete && $status === 'complete',
+            'status' => $status, 'assessmentStatus' => $status, 'assessmentComplete' => $complete, 'is_complete' => $complete,
+            'iai' => $iai, 'iaiScore' => $iai, 'iai_score' => $iai, 'mceScore' => $iai, 'mce_score' => $iai,
+            'scores' => $scores, 'assessmentCriteria' => $scores, 'assessmentWeights' => $weights,
+            'hazardScreening' => self::presentHazards($subscores['risk_constraints'], $verification['risk_constraints']['status'] === 'authenticated', $hold),
+            'criteria' => $list, 'criteriaBreakdown' => $list, 'criteriaDetails' => $details,
+            'methodology' => $methodologyVersion, 'methodology_version' => $methodologyVersion,
+            'weight_status' => self::WEIGHT_STATUS_PROVISIONAL, 'weightStatus' => self::WEIGHT_STATUS_PROVISIONAL,
+            'assessmentMethod' => $methodologyVersion . '. Sum(score × weight / 100); display once with decimal half-up rounding to one place.',
+            'missingRequirements' => $missing, 'reason' => $review[0] ?? ($complete ? null : $eligibility['reason'] ?? 'Required observations or evidence are incomplete.'),
+            'note' => $eligibility['note'], 'policy_alignment' => $policy, 'policyAlignment' => $policy,
         ];
     }
 
@@ -2253,68 +2021,33 @@ final class PropertyAssessmentService
         return self::evaluate($criteria, $options);
     }
 
-    /**
-     * Build auditable breakdown list of each criterion.
-     */
-    private static function buildCriteriaList(array $criteria, array $weights, array $config, array $criteriaDetails): array
+    /** Compatibility presentation for map cards and filters, derived only from the shared assessment. */
+    private static function presentHazards(array $hazards, bool $criterionVerified, bool $hold): array
     {
-        $list = [];
-        foreach ($config as $key => $meta) {
-            $isActive = (bool) ($meta['is_active'] ?? true);
-            $weight = (float) ($weights[$key] ?? $meta['weight']);
-            // Skip inactive zero-weight criteria unless explicitly requested in custom weights
-            if (!$isActive && $weight <= 0.0 && !isset($weights[$key])) {
-                continue;
-            }
-
-            $score = $criteria[$key] ?? null;
-            $weightedScore = $score !== null ? round(($score * $weight) / 100.0, 2) : null;
-            $detail = $criteriaDetails[$key] ?? [];
-
-            $rawValue = $detail['raw'] ?? null;
-            $ruleText = $detail['conversion'] ?? $detail['ruleText'] ?? null;
-            $evidenceList = $detail['evidence'] ?? [];
-            $verificationStatus = $score !== null ? 'verified' : 'unverified';
-            $subcategories = $detail['subcategories'] ?? null;
-
-            if ($key === 'infrastructure_readiness') {
-                $infra = self::evaluateInfrastructureReadiness($detail['subcategories'] ?? $rawValue ?? $score);
-                $subcategories = $infra['subcategories'] ?? null;
-                if ($infra['verification_status'] !== 'verified' && $score !== null) {
-                    $verificationStatus = $infra['verification_status'];
-                }
-                if ($ruleText === null && isset($infra['formula'])) {
-                    $ruleText = $infra['formula'];
-                }
-            }
-
-            if ($key === 'risk_constraints') {
-                $risk = self::evaluateRiskConstraints($detail['subcategories'] ?? $detail['raw'] ?? $rawValue ?? $score);
-                $subcategories = $risk['subcriteria'] ?? null;
-                if ($risk['score'] !== null) {
-                    $verificationStatus = $risk['is_complete'] ? 'verified' : 'unverified';
-                }
-                if ($ruleText === null && isset($risk['formula'])) {
-                    $ruleText = $risk['formula'];
-                }
-            }
-
-            $list[] = [
-                'key' => $key,
-                'display_name' => $meta['display_name'],
-                'score' => $score,
-                'weight' => $weight,
-                'weighted_score' => $weightedScore,
-                'raw_value' => $rawValue,
-                'scoring_rule' => $ruleText ?: "Operational {$meta['scoring_method']} rubric",
-                'source_reference' => $meta['source_reference'],
-                'verification_status' => $verificationStatus,
-                'evidence' => $evidenceList,
-                'subcategories' => $subcategories,
-                'threshold_source' => self::THRESHOLD_SOURCE_RUBRIC,
+        $presented = [];
+        $verifiedCount = 0;
+        foreach ($hazards as $hazard) {
+            if (($hazard['evidence_status'] ?? '') === 'assessed_verified') { $verifiedCount++; }
+        }
+        foreach (['flood' => 'flood_susceptibility', 'fault' => 'active_fault'] as $key => $indicator) {
+            $item = $hazards[$indicator] ?? [];
+            $verified = ($item['evidence_status'] ?? '') === 'assessed_verified';
+            $status = $item['raw_status'] ?? 'not_assessed';
+            $score = $item['score'] ?? null;
+            $presented[$key] = [
+                'status' => $status,
+                'badge' => $verified ? strtoupper(str_replace('_', ' ', (string) $status)) : ($score === null ? 'NOT ASSESSED' : 'UNVERIFIED'),
+                'color' => $score !== null && $score <= 25 ? 'red' : ($verified ? 'amber' : 'gray'),
+                'details' => $item['status_label'] ?? 'Not assessed',
+                'evidence_status' => $item['evidence_status'] ?? 'not_assessed',
+                'source' => $item['evidence'][0]['source'] ?? null,
+                'reference' => $item['evidence'][0]['reference'] ?? null,
+                'distance_km' => null, 'proximity' => 'Distance not measured',
             ];
         }
-        return $list;
+        return array_merge($presented, ['validated' => $criterionVerified && $verifiedCount === 6 && !$hold,
+            'status_label' => $hold ? 'Technical review hold' : "{$verifiedCount}/6 authenticated hazard findings; no clearance implied",
+            'technical_review_hold' => $hold, 'source' => 'Recorded shared assessment']);
     }
 
     /**
@@ -2322,8 +2055,8 @@ final class PropertyAssessmentService
      */
     private static function buildPolicyAlignment(array $policyData): array
     {
-        $isPriority = (bool) ($policyData['priority_sector'] ?? $policyData['isPriority'] ?? false);
-        $sector = $policyData['sector'] ?? null;
+        $isPriority = (bool) ($policyData['is_priority'] ?? $policyData['isPriority'] ?? (!empty($policyData['priority_sector']) && $policyData['priority_sector'] !== false));
+        $sector = $policyData['sector'] ?? (is_string($policyData['priority_sector'] ?? null) ? $policyData['priority_sector'] : null);
         $businessType = $policyData['business_type'] ?? $policyData['businessType'] ?? null;
 
         return [
@@ -2340,23 +2073,32 @@ final class PropertyAssessmentService
 
     /**
      * Calculate rankings for a list of properties.
+     * Withholds ranks (null) for prohibited, incomplete, and review-held properties.
      */
     public static function ranks(array $properties): array
     {
-        $rankMap = [];
-        foreach (['iaiScore' => 'iaiRank', 'mceScore' => 'mceRank'] as $scoreKey => $rankKey) {
-            $scored = array_values(array_filter($properties, static fn (array $property): bool => isset($property[$scoreKey]) && $property[$scoreKey] !== null));
-            usort($scored, static fn (array $a, array $b): int => $b[$scoreKey] <=> $a[$scoreKey]);
-            $previousScore = null;
+        $groups = [];
+        $ranks = [];
+        foreach ($properties as $property) {
+            $id = (int) $property['id'];
+            $ranks[$id] = ['iaiRank' => null, 'mceRank' => null];
+            if (($property['rank_eligible'] ?? false) !== true
+                || ($property['assessmentStatus'] ?? '') !== 'complete'
+                || !empty($property['technical_review_hold']) || !empty($property['discrepancy_detected'])
+                || empty($property['comparison_key']) || !is_numeric($property['unrounded_total'] ?? null)
+                || !is_finite((float) $property['unrounded_total'])) { continue; }
+            $groups[$property['comparison_key']][] = $property;
+        }
+        foreach ($groups as $key => $group) {
+            usort($group, static fn (array $a, array $b): int => ($b['unrounded_total'] <=> $a['unrounded_total']) ?: ($a['id'] <=> $b['id']));
+            $previous = null;
             $rank = 0;
-            foreach ($scored as $index => $property) {
-                if ($previousScore !== $property[$scoreKey]) {
-                    $rank = $index + 1;
-                }
-                $rankMap[(int) $property['id']][$rankKey] = $rank;
-                $previousScore = $property[$scoreKey];
+            foreach ($group as $index => $property) {
+                if ($previous === null || abs($previous - $property['unrounded_total']) > 1e-9) { $rank = $index + 1; }
+                $ranks[(int) $property['id']] = ['iaiRank' => $rank, 'mceRank' => $rank, 'rankComparisonKey' => $key];
+                $previous = $property['unrounded_total'];
             }
         }
-        return $rankMap;
+        return $ranks;
     }
 }

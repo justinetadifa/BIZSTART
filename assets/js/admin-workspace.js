@@ -189,7 +189,7 @@
           <a class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-slate-200/90 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-800 tw-shadow-sm hover:tw-bg-slate-50 tw-transition-all tw-shrink-0 tw-no-underline" href="${escape(path(`admin-properties.php?edit=${property.id}`))}">Review &rarr;</a>
         </article>`).join('')
       : '<p class="city-empty">All caught up.</p>';
-    const ranked = approved.filter((property) => property.mceScore != null).sort((a, b) => b.mceScore - a.mceScore).slice(0, 5);
+    const ranked = approved.filter((property) => property.rank_eligible === true).sort((a, b) => String(a.comparison_key).localeCompare(String(b.comparison_key)) || b.unrounded_total - a.unrounded_total).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
       ? `<table class="city-ranking-table"><thead><tr><th>Property</th><th>MCE</th><th>IAI</th></tr></thead><tbody>${ranked.map((property) => `<tr><td><a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></td><td>${score(property.mceScore)} <small>#${property.mceRank}</small></td><td>${score(property.iaiScore)} <small>#${property.iaiRank}</small></td></tr>`).join('')}</tbody></table>`
       : '<p class="city-empty">Rankings appear after department assessment.</p>';
@@ -562,27 +562,56 @@
     editorStep = step;
     form.querySelectorAll('[data-editor-panel]').forEach((panel) => { panel.hidden = Number(panel.dataset.editorPanel) !== step; });
     form.querySelectorAll('[data-editor-step]').forEach((button) => {
-      const active = Number(button.dataset.editorStep) === step;
+      const stepIdx = Number(button.dataset.editorStep);
+      const active = stepIdx === step;
       button.setAttribute('aria-current', active ? 'step' : 'false');
       button.classList.toggle('is-active', active);
-      button.classList.toggle('is-complete', Number(button.dataset.editorStep) < step);
-      if (!propertyWizard) {
-        button.classList.toggle('tw-bg-[#11224d]', active);
-        button.classList.toggle('tw-text-white', active);
-        button.classList.toggle('tw-bg-slate-100', !active);
-        button.classList.toggle('tw-text-slate-500', !active);
+      let isComplete = false;
+      if (stepIdx === 2) {
+        isComplete = propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false;
+      } else {
+        isComplete = stepIdx < step;
       }
+      button.classList.toggle('is-complete', isComplete);
     });
-    form.querySelector('[data-editor-back]').disabled = step === 0;
-    form.querySelector('[data-editor-back]').classList.toggle('tw-opacity-40', step === 0);
-    form.querySelector('[data-editor-next]').hidden = step === editorLastStep;
-    form.querySelector('[type="submit"]').hidden = step !== editorLastStep;
-    form.querySelector('[data-editor-progress]').textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
+    form.querySelectorAll('[data-editor-back]').forEach((btn) => {
+      btn.disabled = step === 0;
+      btn.classList.toggle('tw-opacity-40', step === 0);
+    });
+    form.querySelectorAll('[data-editor-next]').forEach((btn) => {
+      btn.hidden = step === editorLastStep;
+    });
+    form.querySelectorAll('[type="submit"]').forEach((btn) => {
+      btn.hidden = step !== editorLastStep;
+    });
+    const progressEl = form.querySelector('[data-editor-progress]');
+    if (progressEl) progressEl.textContent = `Step ${step + 1} of ${editorLastStep + 1}`;
     if (propertyWizard) {
-      const nextButton = form.querySelector('[data-editor-next]');
-      const nextLabel = nextButton.querySelector('[data-editor-next-label]') || nextButton;
-      nextLabel.textContent = step === 0 ? 'Continue to location' : (step === 1 ? 'Continue to Site Evidence' : (step === 2 ? 'Continue to Review' : 'Continue'));
+      if (step === 2 && propertyWizard.updateFooterNextLabel) {
+        propertyWizard.updateFooterNextLabel();
+      } else {
+        form.querySelectorAll('[data-editor-next]').forEach((nextButton) => {
+          const nextLabel = nextButton.querySelector('[data-editor-next-label]') || nextButton;
+          if (nextLabel) {
+            nextLabel.textContent = step === 0 ? 'Continue to location' : (step === 1 ? 'Continue to assessment' : (step === 2 ? 'Continue to Review' : 'Continue'));
+          }
+        });
+      }
     }
+
+    // Context-appropriate submit action label
+    const isExisting = Boolean(form?.elements?.id?.value);
+    let submitLabelText = 'Submit for review';
+    if (isExisting) {
+      const activeProp = properties.find((item) => String(item.id) === String(form.elements.id.value));
+      const approvalState = (activeProp?.approvalState || activeProp?.approval_state || '').toLowerCase();
+      if (['rejected', 'requires_resubmission'].includes(approvalState)) {
+        submitLabelText = 'Resubmit for review';
+      } else if (['approved', 'active', 'published'].includes(approvalState)) {
+        submitLabelText = 'Save changes';
+      }
+    }
+    form.querySelectorAll('[data-editor-submit-label]').forEach(el => { el.textContent = submitLabelText; });
     const skip = form.querySelector('[data-skip-enrichment]');
     if (skip) skip.hidden = ![1,2].includes(step);
     (form.querySelector('.pw-content') || editor).scrollTop = 0;
@@ -628,12 +657,22 @@
     return false;
   }
 
-  form?.querySelector('[data-editor-next]')?.addEventListener('click', () => {
+  form?.querySelectorAll('[data-editor-next]').forEach((btn) => btn.addEventListener('click', () => {
     if (!validateEditor(form.querySelector(`[data-editor-panel="${editorStep}"]`))) return;
+    if (editorStep === 2 && propertyWizard?.onFooterNext) {
+      const shouldAdvance = propertyWizard.onFooterNext();
+      if (!shouldAdvance) return;
+    }
     if (editorStep === 3 && propertyWizard && !propertyWizard.validateSurroundings()) return;
     setEditorStep(Math.min(editorLastStep, editorStep + 1));
-  });
-  form?.querySelector('[data-editor-back]')?.addEventListener('click', () => setEditorStep(Math.max(0, editorStep - 1)));
+  }));
+  form?.querySelectorAll('[data-editor-back]').forEach((btn) => btn.addEventListener('click', () => {
+    if (editorStep === 2 && propertyWizard?.onFooterBack) {
+      const shouldGoPrev = propertyWizard.onFooterBack();
+      if (!shouldGoPrev) return;
+    }
+    setEditorStep(Math.max(0, editorStep - 1));
+  }));
   form?.querySelector('[data-skip-enrichment]')?.addEventListener('click', () => {
     if (!validateEditor()) return;
     setEditorStep(editorLastStep);
@@ -701,6 +740,7 @@
   }
   areaInput?.addEventListener('input', updateAreaCalculation);
   areaUnit?.addEventListener('change', () => {
+    if (propertyWizard) { displayedAreaUnit = areaUnit.value; return; }
     const rawVal = Number(areaInput?.value);
     if (areaInput?.value.trim() && Number.isFinite(rawVal) && rawVal > 0 && displayedAreaUnit !== areaUnit.value) {
       const converted = rawVal * (areaUnit.value === 'sqm' ? 10000 : 0.0001);
@@ -769,7 +809,7 @@
       return;
     }
 
-    subcatTriggerText.textContent = list.length === 1 ? list[0] : `${list[0]}, ${list[1] || ''}${list.length > 2 ? ` (+${list.length - 2} more)` : ''}`.replace(',  ', ' ');
+    subcatTriggerText.textContent = `${list.length} additional classification${list.length === 1 ? '' : 's'} selected`;
     subcatTriggerText.className = 'tw-truncate tw-text-sm tw-font-medium tw-text-[#11224d]';
     subcatCount.textContent = `${list.length} selected`;
 
@@ -874,10 +914,12 @@
     toggleSubcatPopover(false);
     const property = properties.find((item) => item.id === Number(propertyId));
     form.elements.id.value = property?.id || '';
-    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'New property';
+    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'Start with the essentials';
     const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
     if (breadcrumb) breadcrumb.textContent = property ? 'Edit property' : 'Add property';
-    form.elements.contactBrokerUserId.innerHTML = '<option value="">Open listing</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
+    const noteEl = editor.querySelector('.pw-header-note');
+    if (noteEl) noteEl.textContent = property ? 'Review and update property details and evidence.' : 'Add the details investors need to understand the property.';
+    form.elements.contactBrokerUserId.innerHTML = '<option value="">City listing desk</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');
     if (property) {
       let cat = property.category || 'Land';
       let sub = property.subcategory || '';
@@ -1423,6 +1465,7 @@
   form?.elements.category.addEventListener('change', () => updateSubcategories());
   form?.elements.subcategory?.addEventListener('change', () => updateSubcategories());
 
+  let isAdminSubmitting = false;
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (editorStep !== editorLastStep) {
@@ -1431,10 +1474,13 @@
     }
     if (!validateEditor()) return;
     if (propertyWizard && !propertyWizard.validateSurroundings()) { setEditorStep(2); return; }
+    if (isAdminSubmitting) return;
+    isAdminSubmitting = true;
     const submit = form.querySelector('[type="submit"]');
     const originalSubmitText = submit.innerHTML;
     submit.disabled = true;
-    submit.innerHTML = '<span class="locus-spinner tw-mr-1.5"></span>Submitting…';
+    submit.setAttribute('aria-busy', 'true');
+    submit.innerHTML = '<span class="locus-spinner tw-mr-1.5" aria-hidden="true"></span>Submitting…';
     const id = form.elements.id.value;
     const data = new FormData(form);
     nearby?.append(data);
@@ -1456,11 +1502,15 @@
     }
     if (id) data.set('_method', 'PATCH');
     try {
-      await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });
+      const res = await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });
+      const savedPropertyId = res?.property?.id || res?.id || id;
+      if (savedPropertyId && form.elements.id) {
+        form.elements.id.value = String(savedPropertyId);
+      }
       propertyWizard?.saved();
       await refresh();
       editor.close();
-      message(status, 'Property submitted for CICTO review.');
+      message(status, 'Your property has been sent for review. Track its status in My Listings.');
     } catch (error) {
       if (propertyWizard?.showSubmissionError) {
         const issue = propertyWizard.showSubmissionError(error);
@@ -1468,7 +1518,9 @@
       } else message(form.querySelector('[data-editor-message]'), error.message, true);
     }
     finally {
+      isAdminSubmitting = false;
       submit.disabled = false;
+      submit.removeAttribute('aria-busy');
       submit.innerHTML = originalSubmitText;
     }
   });
@@ -1588,7 +1640,17 @@
   refresh().then(async () => {
     if (brokerReviewer) await loadBrokerReviews();
     const params = new URLSearchParams(location.search);
-    if (editor && params.has('add')) openEditor();
+    if (editor && (params.has('add') || params.has('open') || params.has('wizard'))) {
+      openEditor();
+      const stepParam = params.get('step');
+      const targetStep = stepParam !== null ? Number(stepParam) : (params.has('criterion') || params.get('open') === 'risk' || params.get('open') === 'zoning' ? 2 : 0);
+      setEditorStep(targetStep);
+      const criterion = params.get('criterion') || (params.get('open') === 'risk' ? 'risk_constraints' : (params.get('open') === 'zoning' ? 'zoning_compatibility' : null));
+      if (criterion) {
+        const tabBtn = form?.querySelector(`[data-evidence-tab="${criterion}"]`);
+        if (tabBtn) tabBtn.click();
+      }
+    }
     if (editor && params.has('edit')) openEditor(params.get('edit'));
     if (reviewDialog && params.has('review')) openReview(params.get('review'));
   }).catch((error) => message(status, error.message, true));

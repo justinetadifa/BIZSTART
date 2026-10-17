@@ -10,6 +10,7 @@ const modes = {sale:'amount',lease:'amount'};
 let purpose = 'sale';
 const context = vm.createContext({
   getListingPurpose:()=>purpose,
+  value:name=>name==='sale_price_mode'?modes.sale:modes.lease,
   form:{querySelector:selector=>({value:selector.includes('sale_price_mode')?modes.sale:modes.lease})},
   $:selector=>selector==='#pwAskingPrice'?price:lease,
 });
@@ -27,7 +28,7 @@ purpose='sale_or_lease';modes.sale='amount';price.value='5000';lease.value='1500
 const areaStart = source.indexOf('    const enteredAreaSqm =');
 const areaEnd = source.indexOf('    function syncAreaLimits',areaStart);
 let area='2500',unit='sqm';
-const areaContext=vm.createContext({value:name=>name==='land_area'?area:unit});
+const areaContext=vm.createContext({value:name=>name==='land_area'?area:name==='land_area_unit'?unit:''});
 vm.runInContext(source.slice(areaStart,areaEnd)+';globalThis.convert=enteredAreaSqm;',areaContext);
 assert.equal(areaContext.convert(),2500);
 unit='hectares';area='0.25';assert.equal(areaContext.convert(),2500);

@@ -16,8 +16,7 @@ return [
         'economic_viability' => 20,
         'nearby_businesses' => 10,
         'zoning_compatibility' => 15,
-        'risk_constraints' => 10,
-        'environmental_safety' => 5,
+        'risk_constraints' => 15,
     ],
     'profiles' => [],
 ];

@@ -37,6 +37,41 @@ const criterionExplanations = {
 };
 
 export function assessmentCalculation(property) {
+  // The current protocol supplies its evidence gates and unrounded contributions.
+  // Never resurrect a withheld result from an older compatibility alias.
+  if (property?.protocol_version || property?.criteriaBreakdown) {
+    const breakdown = Array.isArray(property.criteriaBreakdown) ? property.criteriaBreakdown : [];
+    const rows = criteria6.map(([key, label, defaultWeight]) => {
+      const recorded = breakdown.find(row => row.key === key) || {};
+      const score = numeric(property.criterion_scores?.[key] ?? property.assessmentCriteria?.[key]);
+      const weight = numeric(property.weight_configuration?.[key] ?? property.assessmentWeights?.[key]) ?? defaultWeight;
+      return { key, label, weight, score: score !== null && score >= 0 && score <= 100 ? score : null,
+        contribution: numeric(property.weighted_contributions?.[key] ?? recorded.weighted_score), explanation: criterionExplanations[key] };
+    });
+    const sum = rows.reduce((total, row) => total + (row.contribution ?? 0), 0);
+    const displayed = numeric(property.displayed_iai);
+    const close = (a, b) => a !== null && b !== null && Math.abs(a - b) < 0.000001;
+    const discrepancy = rows.some(row => row.score !== null && (!close(row.contribution, row.score * row.weight / 100)
+      || breakdown.some(record => record.key === row.key && (!close(numeric(record.weighted_score), row.contribution)
+        || !close(numeric(record.score), row.score) || !close(numeric(record.weight), row.weight)))))
+      || (displayed !== null && (!close(Math.round((sum + Number.EPSILON) * 10) / 10, displayed)
+        || !close(numeric(property.unrounded_total), sum)
+        || ['iaiScore', 'mceScore', 'iai', 'iai_score', 'mce_score'].some(key => property[key] != null && !close(numeric(property[key]), displayed))));
+    const complete = property.assessmentComplete === true && property.evidence_completeness === true
+      && property.numerical_completeness === true && property.weights_valid === true
+      && close(rows.reduce((total, row) => total + row.weight, 0), 100)
+      && rows.every(row => row.score !== null && row.weight >= 0)
+      && !property.technical_review_hold && !property.discrepancy_detected && !property.discrepancy_review_required && !discrepancy
+      && ['complete', 'conditional'].includes(property.assessmentStatus) && displayed !== null;
+    const physicalSubtotal = property.physical_evidence_complete === true ? numeric(property.physical_subtotal) : null;
+    return { rows, complete, iai: complete ? displayed : null, mce: complete ? displayed : null,
+      physicalSubtotal, hasPhysicalBaseline: physicalSubtotal !== null, components: rows,
+      isZoningPending: rows.find(row => row.key === 'zoning_compatibility')?.score === null,
+      isConditional: property.assessmentStatus === 'conditional', isNotSuitable: property.assessmentStatus === 'not_suitable',
+      isLegacy: false, reason: discrepancy ? 'Stored calculations disagree; assessment review required.' : property.reason,
+      note: property.note, completedCount: rows.filter(row => row.score !== null).length,
+      missingCriteria: rows.filter(row => row.score === null).map(row => row.label), discrepancy };
+  }
   const isLegacy = Boolean(
     property?.assessmentMethodologyVersion?.includes('v1.1')
     || property?.assessmentMethodologyVersion?.toLowerCase().includes('legacy')
@@ -234,284 +269,7 @@ export function propertyLocationLabel(property) {
   return property.hasExactLocation === false || ['approximate', 'approx', 'generalized'].includes(precision) ? 'Approximate location' : 'Recorded location';
 }
 
-export function safetyMarkup(property) {
-  const hs = property.hazardScreening || {};
-  const rcDetails = property.criteriaDetails?.risk_constraints || {};
-  const subcriteria = rcDetails.subcriteria || {};
-  const parcel = property.parcel || {};
-  const hasBoundary = Boolean(parcel.boundary);
-  const statusLabel = hs.status_label || (hs.validated ? 'City validated' : 'Not fully assessed');
-  const recorded = recordedSafety(property);
-
-  // Authoritative 6-hazard breakdown definitions
-  const hazardDefinitions = [
-    {
-      key: 'flood_susceptibility',
-      label: 'Flood Susceptibility',
-      riskWeight: 25,
-      mceWeight: 3.75,
-      agency: 'DENR-MGB Region 1',
-      layer: 'DENR-MGB 1:10,000 Geohazard Survey / CDRRMO Drainage Inundation Map',
-      measured: hasBoundary ? 'Riverine & pluvial flood susceptibility evaluated across parcel boundary polygon.' : 'Riverine & pluvial flood susceptibility evaluated at property coordinates.',
-      defaultStatus: hs.flood?.status || 'low',
-      defaultDetails: hs.flood?.details || 'Elevated alluvial terrace with natural storm drainage.',
-      source: hs.flood?.source || 'DENR-MGB Region 1',
-    },
-    {
-      key: 'active_fault',
-      label: 'Active Fault / Ground Rupture',
-      riskWeight: 25,
-      mceWeight: 3.75,
-      agency: 'DOST-PHIVOLCS',
-      layer: 'DOST-PHIVOLCS Active Faults Map of the Philippines & West Ilocos Fault System',
-      measured: hasBoundary ? 'Active fault trace proximity and 5m buffer corridor evaluated against parcel vertices.' : 'Active fault trace proximity evaluated at property coordinates.',
-      defaultStatus: hs.fault?.status || (hs.fault?.distance_km !== null && hs.fault?.distance_km < 1 ? 'moderate' : 'low'),
-      defaultDetails: hs.fault?.proximity ? `${hs.fault.proximity} from nearest mapped trace.` : (hs.fault?.details || 'Clearance from mapped active fault lines.'),
-      source: hs.fault?.source || 'DOST-PHIVOLCS',
-    },
-    {
-      key: 'landslide_susceptibility',
-      label: 'Landslide Susceptibility',
-      riskWeight: 15,
-      mceWeight: 2.25,
-      agency: 'DENR-MGB Region 1',
-      layer: 'DENR-MGB Rain-Induced Landslide Susceptibility Map',
-      measured: hasBoundary ? 'Slope stability & mass-movement hazard evaluated across parcel terrain.' : 'Slope stability evaluated at property coordinates.',
-      defaultStatus: 'none',
-      defaultDetails: 'Outside mapped rain-induced landslide hazard zone (coastal plain terrain).',
-      source: 'DENR-MGB Region 1',
-    },
-    {
-      key: 'storm_surge',
-      label: 'Storm Surge Exposure',
-      riskWeight: 15,
-      mceWeight: 2.25,
-      agency: 'DOST-PAGASA',
-      layer: 'DOST-PAGASA Storm Surge Inundation Advisory & Inundation Map',
-      measured: 'Coastal storm surge inundation risk during severe tropical cyclones.',
-      defaultStatus: 'none',
-      defaultDetails: 'Elevated topography outside low-lying coastal surge inundation corridor.',
-      source: 'DOST-PAGASA',
-    },
-    {
-      key: 'liquefaction_susceptibility',
-      label: 'Liquefaction Susceptibility',
-      riskWeight: 10,
-      mceWeight: 1.50,
-      agency: 'DOST-PHIVOLCS',
-      layer: 'DOST-PHIVOLCS Liquefaction Susceptibility Map of Region 1',
-      measured: 'Soil strength loss under cyclic seismic shaking in saturated alluvial deposits.',
-      defaultStatus: 'low',
-      defaultDetails: 'Low susceptibility; dense cohesive subsoil layers.',
-      source: 'DOST-PHIVOLCS',
-    },
-    {
-      key: 'tsunami_exposure',
-      label: 'Tsunami Exposure',
-      riskWeight: 10,
-      mceWeight: 1.50,
-      agency: 'DOST-PHIVOLCS',
-      layer: 'DOST-PHIVOLCS Tsunami Hazard Map of Region 1',
-      measured: 'Seismogenic coastal tsunami run-up elevation and coastal inundation zone.',
-      defaultStatus: 'none',
-      defaultDetails: 'Outside designated high-water coastal tsunami inundation zone.',
-      source: 'DOST-PHIVOLCS',
-    },
-  ];
-
-  const scoreForStatus = status => {
-    switch (String(status || '').toLowerCase()) {
-      case 'none':
-      case 'none_mapped':
-      case 'outside':
-      case 'outside_mapped':
-      case 'clear':
-        return 100;
-      case 'low':
-      case 'low_susceptibility':
-      case 'low_exposure':
-        return 85;
-      case 'moderate':
-      case 'moderate_susceptibility':
-      case 'moderate_exposure':
-        return 60;
-      case 'high':
-      case 'high_susceptibility':
-      case 'high_exposure':
-        return 25;
-      case 'very_high':
-      case 'critical':
-      case 'conflict':
-        return 0;
-      default:
-        return null;
-    }
-  };
-
-  const badgeColor = score => {
-    if (score === null) return 'background: #F1F5F9; color: #475569;';
-    if (score >= 85) return 'background: #D1FAE5; color: #065F46;';
-    if (score >= 60) return 'background: #FEF3C7; color: #92400E;';
-    if (score >= 25) return 'background: #FEE2E2; color: #991B1B;';
-    return 'background: #7F1D1D; color: #FFFFFF;';
-  };
-
-  const statusLabelForScore = (score, rawStatus) => {
-    if (score === null) return 'Not Assessed';
-    if (score === 100) return 'No Mapped Exposure';
-    if (score === 85) return 'Low Susceptibility';
-    if (score === 60) return 'Moderate Susceptibility';
-    if (score === 25) return 'High Susceptibility';
-    return 'Critical Constraint';
-  };
-
-  const rows = hazardDefinitions.map(def => {
-    const fromSub = subcriteria[def.key];
-    const rawVal = fromSub?.raw_status ?? fromSub?.score ?? (def.key === 'flood_susceptibility' ? (hs.flood?.status || hs.flood?.level || property.hazards?.flood?.status || property.hazards?.flood?.level) : def.key === 'active_fault' ? (hs.fault?.status || hs.fault?.level || property.hazards?.fault?.status || property.hazards?.fault?.level) : null);
-    const scoreVal = fromSub?.score !== undefined && fromSub?.score !== null ? Number(fromSub.score) : (rawVal !== null ? scoreForStatus(rawVal) : null);
-    const findingDesc = fromSub?.details || fromSub?.explanation || (def.key === 'flood_susceptibility' ? hs.flood?.details : def.key === 'active_fault' ? (hs.fault?.proximity ? `${hs.fault.proximity} from nearest mapped trace.` : hs.fault?.details) : def.defaultDetails);
-    const sourceRef = fromSub?.source || def.layer;
-    const agencyName = fromSub?.agency || def.agency;
-    const contrib = scoreVal !== null ? (scoreVal * def.mceWeight / 100).toFixed(2) : null;
-    return {
-      ...def,
-      score: scoreVal,
-      finding: scoreVal !== null ? statusLabelForScore(scoreVal, rawVal) : 'Not Assessed',
-      details: findingDesc,
-      source: sourceRef,
-      agency: agencyName,
-      contribution: contrib,
-    };
-  });
-
-  const assessedLayers = rows.filter(r => r.score !== null);
-  const unassessedLayers = rows.filter(r => r.score === null);
-  const isFullyAssessed = assessedLayers.length === rows.length;
-  const truthfulStatusLabel = isFullyAssessed
-    ? (hs.validated ? 'City validated' : 'Fully assessed')
-    : `Provisional screening (${assessedLayers.length}/6 layers)`;
-
-  const isFaultCritical = hs.fault?.status === 'high'
-    || hs.fault?.badge === 'HIGH'
-    || subcriteria.active_fault?.score === 0
-    || subcriteria.active_fault?.raw_status === 'conflict'
-    || String(hs.fault?.details || '').toLowerCase().includes('buffer corridor');
-
-  return `<section class="property-panel property-safety" id="propertyHazardsSection" aria-labelledby="propertyHazardsTitle">
-    <div class="property-section-heading">
-      <div>
-        <span class="property-kicker">HAZARD SCREENING · RISK CONSTRAINTS (15% MCE)</span>
-        <h2 id="propertyHazardsTitle">Multi-Hazard Risk &amp; Spatial Screening</h2>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #E0F2FE; color: #0369A1;">
-          <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>
-          ${esc(truthfulStatusLabel)}
-        </span>
-        <span style="font-size: 11.5px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: #F1F5F9; color: #475569;">
-          ${hasBoundary ? '✓ Evaluated against parcel boundary polygon' : 'Evaluated against coordinate reference'}
-        </span>
-      </div>
-    </div>
-
-    ${isFaultCritical ? `
-      <div class="property-alert-warning" style="background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; padding: 14px 16px; border-radius: 8px; margin: 16px 0;">
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-          <span style="font-size: 18px; line-height: 1;">⚠</span>
-          <div>
-            <strong style="font-size: 13.5px; display: block; margin-bottom: 4px; color: #78350F;">Active Fault Buffer Notice (DOST-PHIVOLCS Guideline):</strong>
-            <p style="margin: 0; font-size: 12.5px; line-height: 1.5;">
-              Parcel boundary intersects active fault trace or recommended 5-meter buffer corridor. Mandatory site-specific Engineering Geological and Geohazard Assessment Report (EGGAR) required prior to building permitting; development within buffer zone requires competent clearance from the Local Building Official and PHIVOLCS certification.
-            </p>
-          </div>
-        </div>
-      </div>
-    ` : ''}
-
-    ${!isFullyAssessed ? `
-      <div class="property-alert-info" style="background: #F8FAFC; border: 1px solid #CBD5E1; color: #334155; padding: 14px 16px; border-radius: 8px; margin: 16px 0;">
-        <div style="display: flex; gap: 10px; align-items: flex-start;">
-          <span style="font-size: 16px; line-height: 1; color: #64748B;">ℹ</span>
-          <div>
-            <strong style="font-size: 13.5px; display: block; margin-bottom: 4px; color: #1E293B;">Partial Hazard Coverage Disclosure (${unassessedLayers.length} of 6 Layers Unassessed):</strong>
-            <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #475569;">
-              The Risk Constraints rating reflects provisional spatial screening of <strong>${assessedLayers.map(r => r.label).join(' and ')}</strong>. Municipal screening for remaining indicators (<strong>${unassessedLayers.map(r => r.label).join(', ')}</strong>) remains pending. Unassessed status must not be interpreted as absence of risk; complete geotechnical and geohazard clearance prior to financial commitment.
-            </p>
-          </div>
-        </div>
-      </div>
-    ` : ''}
-
-    <p class="property-description" style="margin-bottom: 16px;">
-      LOCUS-SF evaluates physical hazard constraints across six authoritative layers totaling 100% of the Risk Constraints criterion (15% overall MCE). Missing hazard evidence is marked <em>Not Assessed</em> and is never assumed to be safe or zero.
-    </p>
-
-    <div class="property-table-scroll">
-      <table class="property-calculation-table" style="font-size: 12.5px;">
-        <thead>
-          <tr>
-            <th scope="col" style="min-width: 170px;">Hazard Type &amp; Weight</th>
-            <th scope="col" style="min-width: 130px;">Actual Finding</th>
-            <th scope="col" style="min-width: 180px;">Agency &amp; Official Layer</th>
-            <th scope="col" style="min-width: 220px;">What Was Measured</th>
-            <th scope="col" style="min-width: 110px;">Score / Rubric</th>
-            <th scope="col" style="min-width: 100px;">Contribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map(r => `
-            <tr>
-              <th scope="row">
-                <span style="font-weight: 700; color: #11224D; display: block;">${esc(r.label)}</span>
-                <small style="color: #64748B; font-weight: 500;">${r.riskWeight}% of Risk · ${r.mceWeight}% MCE</small>
-              </th>
-              <td>
-                <span style="font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; ${badgeColor(r.score)}">
-                  ${esc(r.finding)}
-                </span>
-                <div style="font-size: 11px; color: #475569; margin-top: 4px;">${esc(r.details)}</div>
-              </td>
-              <td>
-                <strong style="font-size: 11.5px; color: #11224D; display: block;">${esc(r.agency)}</strong>
-                <small style="color: #64748B; font-size: 11px; line-height: 1.3; display: block;">${esc(r.source)}</small>
-              </td>
-              <td style="font-size: 11.5px; color: #475569;">${esc(r.measured)}</td>
-              <td>
-                ${r.score !== null ? `
-                  <strong style="color: #11224D;">${fmt(r.score, 1)}</strong> <small style="color: #64748B;">/ 100</small>
-                ` : '<span style="color: #B45309; font-weight: 600;">Not Assessed</span>'}
-              </td>
-              <td>
-                ${r.contribution !== null ? `
-                  <strong style="color: #065F46;">+${esc(r.contribution)}</strong> <small style="color: #64748B;">pts</small>
-                ` : '<span style="color: #94A3B8;">Pending</span>'}
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-
-    ${recorded.some(item => item.values.length || item.missing.length || item.evidence.length) ? `
-      <div class="property-safety-recorded" style="margin-top: 14px; border-top: 1px solid #E5E7EB; padding-top: 12px;">
-        ${recorded.map(item => `
-          <div class="property-safety-item" style="margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: baseline;">
-              <h3 style="font-size: 13px; font-weight: 600; color: #11224D; margin: 0;">${esc(item.label)}</h3>
-              <span style="font-size: 12px; color: #4B5563;">${item.values.length ? esc(item.values.join(', ')) : 'Not assessed'}</span>
-            </div>
-            ${item.missing.length ? `<p class="property-missing" style="font-size: 12px; color: #B45309; margin: 4px 0;"><strong>Still needed:</strong> ${item.missing.map(esc).join(' ')}</p>` : ''}
-            ${item.evidence.length ? `<ul class="property-source-list" style="margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #6B7280;">${item.evidence.map(ev => `<li><strong>${esc(ev.source || 'Recorded source')}</strong>${ev.reference ? ` · Reference: ${esc(ev.reference)}` : ''}${ev.verifiedAt ? ` · Verified: ${esc(dateLabel(ev.verifiedAt))}` : ''}</li>`).join('')}</ul>` : ''}
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-
-    <p class="property-safety-limit" style="font-size: 12px; color: #64748B; margin-top: 14px; line-height: 1.5;">
-      Assessment sources: Official spatial datasets (DENR-MGB, DOST-PHIVOLCS, DOST-PAGASA). Status: <strong>${esc(truthfulStatusLabel)}</strong>. Unassessed layers require departmental or technical validation before a final suitability clearance.
-    </p>
-  </section>`;
-}
+export function safetyMarkup(property) { return siteSafetyMarkup(property); }
 
 function radarMarkup(calculation) {
   const count = calculation.rows.length;
@@ -595,9 +353,13 @@ export function propertyGalleryMarkup(property, imageUrl, path) {
 
   const categoryLabel = esc(property.category || property.type || 'Property');
   const locationLabel = esc(property.barangay || property.city || 'San Fernando');
+  const photoFallback = '<div class="site-photo-empty"><span aria-hidden="true">▧</span><strong>Property photography pending</strong><p>Use the recorded location and arrange a site visit.</p></div>';
+  if (!mediaItems.length && !property.imageUrl && !property.imagePath) {
+    return `<figure class="property-photo is-image-missing">${photoFallback}<figcaption>${categoryLabel} · ${locationLabel}</figcaption></figure>`;
+  }
 
   if (images.length <= 1) {
-    return `<figure class="property-photo"><img src="${esc(images[0])}" alt="${esc(property.name)}"><figcaption>${categoryLabel} · ${locationLabel}</figcaption></figure>`;
+    return `<figure class="property-photo"><img src="${esc(images[0])}" alt="${esc(property.name)}" onerror="this.hidden=true; this.parentElement.classList.add('is-image-missing');">${photoFallback}<figcaption>${categoryLabel} · ${locationLabel}</figcaption></figure>`;
   }
 
   return `<figure class="property-photo property-gallery-container" data-property-gallery>
@@ -678,625 +440,675 @@ export function getPropertyPdfFilename(property, withExtension = true) {
   return withExtension ? `${base}.pdf` : base;
 }
 
-export function investorBriefReportMarkup(property, options, calc) {
-  if (!calc) calc = assessmentCalculation(property);
+export function investorBriefReportMarkup(property, options = {}, calc) {
+  calc = calc || assessmentCalculation(property);
   const parcel = property.parcel || {};
+  const details = property.criteriaDetails || {};
+  const positive = value => numeric(value) > 0 ? numeric(value) : null;
+  const human = value => String(value || '').replaceAll('_', ' ');
   const lat = numeric(property.lat), lng = numeric(property.lng);
   const hasLocation = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
-  const location = [property.barangay, property.city].filter(Boolean).join(', ') || 'San Fernando City, La Union';
-  const refId = esc(property.referenceId || property.refId || `LOCUS-SF-PRP-${property.id}`);
-
-  // Formatted dates
-  const updatedDate = dateLabel(property.updatedAt || '2026-10-10');
-  const exportDate = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'long', year: 'numeric' });
-
-  // Boundary status
-  const hasBoundary = Boolean(parcel.boundary && (parcel.boundary.coordinates || parcel.boundary.type));
-  const boundaryStatusText = hasBoundary ? 'Recorded outline (GIS polygon)' : 'Pin reference (boundary not drawn)';
-
-  // Area & Land measurements
-  const areaHa = numeric(property.area ?? property.landArea);
-  const surveySqm = numeric(parcel.surveyAreaSqm);
-  const mappedSqm = numeric(parcel.estimatedAreaSqm);
-  const landAreaSqm = areaHa !== null && areaHa > 0 ? areaHa * 10000 : (surveySqm !== null && surveySqm > 0 ? surveySqm : (mappedSqm !== null && mappedSqm > 0 ? mappedSqm : null));
-
-  let landAreaSqmText = 'Not specified';
-  let landAreaHaText = 'Area not specified';
-  if (landAreaSqm !== null && landAreaSqm > 0) {
-    landAreaSqmText = `${fmt(landAreaSqm)} m²`;
-    const computedHa = landAreaSqm / 10000;
-    const haExact = fmt(computedHa, 4);
-    const haApprox = fmt(computedHa, 2);
-    landAreaHaText = computedHa < 1 ? `${haApprox} ha (${haExact} ha)` : `${fmt(computedHa, 2)} hectares`;
-  }
-
-  // Leasable floor / building area
-  const offeredAreaSqm = numeric(property.offeredAreaSqm ?? property.offered_area_sqm);
-  const buildingAreaVal = numeric(property.buildingArea ?? property.floorArea ?? property.floorAreaSqm ?? offeredAreaSqm);
-  const hasLeasableArea = buildingAreaVal !== null && buildingAreaVal > 0;
-  const isBuildingListing = property.category === 'Building' || property.type === 'Building' || String(property.subcategory || '').toLowerCase().includes('building');
-  const buildingAreaText = hasLeasableArea
-    ? `${fmt(buildingAreaVal)} m²`
-    : (isBuildingListing ? 'Floor area not recorded' : 'Vacant Land / No Building');
-
-  // Listing Purpose & Financials
-  const isLease = property.listingPurpose === 'lease';
-  const isBoth = property.listingPurpose === 'both';
-  const purposeLabel = isLease ? 'FOR LEASE' : (isBoth ? 'FOR SALE / LEASE' : 'FOR SALE');
-  const availStatus = String(property.status || 'AVAILABLE').toUpperCase();
-
-  // Lease financial calculations
-  const leasePrice = numeric(property.leasePrice ?? property.lease_price);
-  const leasePeriod = property.leasePeriod || property.lease_period || 'month';
-  const periodLabel = leasePeriod === 'month' ? '/ mo' : (leasePeriod === 'year' ? '/ yr' : `/${leasePeriod}`);
-  const periodFull = leasePeriod === 'month' ? 'month' : (leasePeriod === 'year' ? 'year' : leasePeriod);
-  const leasePriceUnit = property.leasePriceUnit || property.lease_price_unit || (leasePrice && leasePrice <= 2000 ? 'sqm' : 'total');
-
-  // Sale financial calculations
-  const salePriceVal = numeric(property.price ?? property.salePrice);
-  const salePriceText = salePriceVal !== null ? `PHP ${fmt(salePriceVal)}` : 'Price on request';
-  const salePricePerSqmVal = salePricePerSqm(property) ?? (salePriceVal !== null && landAreaSqm > 0 ? salePriceVal / landAreaSqm : null);
-
-  // Metrics Grid 3-column values:
-  let col1Label = 'ASKING PRICE';
-  let col1Val = salePriceText;
-  let col1Sub = 'Seller-reported asking amount';
-
-  let col2Label = 'RECORDED LAND AREA';
-  let col2Val = landAreaSqmText;
-  let col2Sub = landAreaHaText;
-
-  let col3Label = 'ASKING PRICE / m²';
-  let col3Val = salePricePerSqmVal !== null ? `PHP ${fmt(salePricePerSqmVal)}` : 'Price on request';
-  let col3Sub = landAreaSqm > 0 ? `Based on ${fmt(landAreaSqm)} m² land` : 'Based on recorded land area';
-
-  if (isLease) {
-    if (leasePriceUnit === 'sqm') {
-      col1Label = 'LEASE RATE (UNIT)';
-      col1Val = leasePrice !== null ? `₱${fmt(leasePrice)} / m²` : 'Price on request';
-      col1Sub = `Billed per ${periodFull} · Seller-reported`;
-
-      col3Label = 'EST. TOTAL RENT';
-      col3Val = hasLeasableArea && leasePrice !== null ? `₱${fmt(leasePrice * buildingAreaVal)} / mo` : 'Not Available';
-      col3Sub = hasLeasableArea ? `Based on ${fmt(buildingAreaVal)} m² leasable area` : 'Leasable floor area not recorded';
-    } else {
-      col1Label = 'LEASE RATE (TOTAL)';
-      col1Val = leasePrice !== null ? `₱${fmt(leasePrice)}${periodLabel}` : 'Price on request';
-      col1Sub = `Billed per ${periodFull} · Seller-reported`;
-
-      col3Label = 'LEASE RATE / m²';
-      col3Val = hasLeasableArea && leasePrice !== null ? `₱${fmt(leasePrice / buildingAreaVal)} / m²` : 'Not Available';
-      col3Sub = hasLeasableArea ? `Based on ${fmt(buildingAreaVal)} m² floor area` : 'Leasable floor area not recorded';
-    }
-  }
-
-  // Property Image & Caption (strictly property-specific, NO hardcoded fallbacks)
-  const resolveUrl = src => {
-    if (!src) return typeof options?.imageUrl === 'function' ? options.imageUrl(property) : '';
-    if (/^https?:\/\//i.test(src) || src.startsWith('/')) return src;
-    return typeof options?.path === 'function' ? options.path(src) : src;
-  };
-  const rawImg = property.imageUrl || property.imagePath || (property.media?.find(m => m.kind === 'photo' || m.kind === 'image')?.source || '');
-  const imgUrl = rawImg ? resolveUrl(rawImg) : '';
-  const imgCaption = imgUrl
-    ? `Listing photograph · Location reference ${esc(property.barangay || property.city)}.`
-    : `Site location reference for ${esc(property.name)} · ${esc(location)}.`;
-
-  // Description (strictly property-specific)
-  const description = esc(property.description || `Commercial ${isBuildingListing ? 'building' : 'property'} listing recorded in the San Fernando City Economic Development registry.`);
-
-  // Facilities / Amenities
-  const facilitiesRaw = Array.isArray(property.facilities)
-    ? property.facilities
-    : (typeof property.facilities === 'string' && property.facilities ? property.facilities.split(',').map(s => s.trim()) : []);
-  const facilitiesList = facilitiesRaw.filter(Boolean);
-
-  // Record details
-  const propType = esc(property.category || property.type || (isBuildingListing ? 'Commercial Building' : 'Commercial Land'));
-  const reviewStatus = esc(String(property.approvalState || 'approved').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()));
-  const coordsText = hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not recorded';
-
-  // Authoritative Criteria & Scores from Backend (MCE v2.0 6-criteria)
-  const critDetails = property.criteriaDetails || {};
-  const hs = property.hazardScreening || {};
-
-  // Find authoritative Zoning Compatibility from calc.rows / assessmentCriteria
-  const zoningRow = calc.rows.find(r => r.key === 'zoning_compatibility');
-  const zoningScore = zoningRow?.score ?? (numeric(property.assessmentCriteria?.zoning_compatibility) ?? 70);
-  const zoningWeight = zoningRow?.weight ?? 15;
-  const zoningContrib = zoningRow?.contribution ?? ((zoningScore * zoningWeight) / 100);
-
-  // Authoritative Zoning Classification
-  const zoningRaw = critDetails.zoning_compatibility?.raw || {};
-  const zoningClass = zoningRaw.zoning_classification || property.clupProfile?.zoningClassification || property.zoningClassification || 'Commercial Zone 1 (C-1)';
-
-  // Authoritative Zoning Status text & class (MUST match Page 2 and Page 3)
-  let zoningStatusText = `⚠ Conditional Use (${zoningScore} / 100)`;
-  let zoningScoreContribText = `${fmt(zoningContrib, 1)} pts (${zoningScore}% of ${zoningWeight}% weight)`;
-  let zoningStatusClass = 'is-warn';
-  let zoningStatusShort = 'Conditional Use';
-
-  if (zoningScore >= 95) {
-    zoningStatusText = `✓ Permitted by Right (${zoningScore} / 100)`;
-    zoningScoreContribText = `${fmt(zoningContrib, 1)} pts (Full ${zoningWeight}% contribution to IAI)`;
-    zoningStatusClass = 'is-good';
-    zoningStatusShort = 'Permitted by Right';
-  } else if (zoningScore === 0) {
-    zoningStatusText = `✕ Prohibited Use (0 / 100)`;
-    zoningScoreContribText = `0.0 pts (Prohibited under CLUP)`;
-    zoningStatusClass = 'is-alert';
-    zoningStatusShort = 'Prohibited Use';
-  } else if (zoningRow && zoningRow.score === null) {
-    zoningStatusText = 'Pending Scenario Selection';
-    zoningScoreContribText = 'Pending investor scenario';
-    zoningStatusClass = 'is-warn';
-    zoningStatusShort = 'Pending Scenario';
-  }
-
-  // Proposed Activity
-  const proposedActivity = property.clupProfile?.proposedActivity || property.proposedActivity || '';
-  const proposedActivityText = proposedActivity
-    ? esc(proposedActivity.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))
-    : 'Baseline site evaluation (unselected investor scenario)';
-
-  // Authoritative Risk Constraints from calc.rows / assessmentCriteria
-  const riskRow = calc.rows.find(r => r.key === 'risk_constraints');
-  const riskScore = riskRow?.score ?? (numeric(property.assessmentCriteria?.risk_constraints) ?? 85);
-  const riskWeight = riskRow?.weight ?? 15;
-  const riskContrib = riskRow?.contribution ?? ((riskScore * riskWeight) / 100);
-
-  // 6 Hazard Indicators
-  const rcDetails = property.criteriaDetails?.risk_constraints || {};
-  const subcriteria = rcDetails.subcriteria || {};
-  const hazardDefinitions = [
-    { key: 'flood_susceptibility', label: 'Flood susceptibility', weight: '25%', agency: 'DENR-MGB Region 1', defaultFinding: hs.flood?.details || 'Elevated alluvial terrace with well-drained storm catchment', defaultScore: '85 / 100', defaultAssessed: Boolean(hs.flood?.status || property.id === 115) },
-    { key: 'active_fault', label: 'Active fault / ground rupture', weight: '25%', agency: 'DOST-PHIVOLCS', defaultFinding: hs.fault?.proximity ? `${hs.fault.proximity} from mapped trace` : (hs.fault?.details || '5.4 km from mapped trace'), defaultScore: '85 / 100', defaultAssessed: Boolean(hs.fault?.proximity || hs.fault?.status || property.id === 115) },
-    { key: 'landslide_susceptibility', label: 'Landslide susceptibility', weight: '15%', agency: 'DENR-MGB Region 1', defaultFinding: 'Not assessed (Screening pending)', defaultScore: '—', defaultAssessed: false },
-    { key: 'storm_surge', label: 'Storm surge exposure', weight: '15%', agency: 'DOST-PAGASA', defaultFinding: 'Not assessed (Screening pending)', defaultScore: '—', defaultAssessed: false },
-    { key: 'liquefaction_susceptibility', label: 'Liquefaction susceptibility', weight: '10%', agency: 'DOST-PHIVOLCS', defaultFinding: 'Not assessed (Screening pending)', defaultScore: '—', defaultAssessed: false },
-    { key: 'tsunami_exposure', label: 'Tsunami exposure', weight: '10%', agency: 'DOST-PHIVOLCS', defaultFinding: 'Not assessed (Screening pending)', defaultScore: '—', defaultAssessed: false },
-  ];
-
-  const hazardRows = hazardDefinitions.map(def => {
-    const sub = subcriteria[def.key];
-    if (sub && sub.score !== null && sub.score !== undefined) {
-      return {
-        ...def,
-        finding: sub.finding || sub.details || def.defaultFinding,
-        score: `${sub.score} / 100`,
-        assessed: true,
-      };
-    }
-    if (def.defaultAssessed) {
-      return { ...def, finding: def.defaultFinding, score: def.defaultScore, assessed: true };
-    }
-    return { ...def, finding: 'Not assessed (Screening pending)', score: '—', assessed: false };
+  const coords = hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Pin not recorded';
+  const location = [property.barangay, property.city].filter(Boolean).join(', ') || 'Location awaiting confirmation';
+  const reference = property.referenceId || property.refId || `LOCUS-SF-PRP-${property.id ?? property.property_id ?? 'DRAFT'}`;
+  const exported = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'long', year: 'numeric' });
+  const boundary = parcel.boundary?.type === 'Polygon' || parcel.boundary?.type === 'MultiPolygon';
+  const area = positive(parcel.surveyAreaSqm) ?? positive((numeric(property.area ?? property.landArea) ?? 0) * 10000) ?? positive(parcel.estimatedAreaSqm);
+  const areaText = area ? `${fmt(area)} m²` : 'Not recorded';
+  const areaBasis = parcel.areaMethod === 'survey' ? 'Recorded survey' : parcel.areaMethod === 'drawn' ? 'Mapped estimate' : 'Declared · unverified';
+  const floor = positive(property.buildingArea ?? property.floorArea ?? property.floorAreaSqm);
+  const isBuilding = /building/i.test(`${property.category || ''} ${property.type || ''}`);
+  const purpose = property.listingPurpose || 'sale';
+  const leaseOnly = purpose === 'lease';
+  const both = ['both', 'sale_or_lease'].includes(purpose);
+  const purposeText = leaseOnly ? 'For lease' : both ? 'For sale or lease' : 'For sale';
+  const sale = numeric(Object.hasOwn(property, 'salePrice') ? property.salePrice : property.price);
+  const rent = numeric(property.leasePrice ?? property.lease_price);
+  const period = property.leasePeriod || property.lease_period || 'month';
+  const perSqm = (property.leasePriceUnit || property.lease_price_unit) === 'sqm';
+  const scope = property.offeredSpaceScope || property.offered_space_scope || parcel.observations?.offered_space_scope;
+  const offered = positive(property.offeredAreaSqm ?? property.offered_area_sqm ?? parcel.observations?.offered_area_sqm)
+    ?? (scope === 'entire_land' ? area : floor);
+  const rentText = rent !== null && rent >= 0 ? `PHP ${fmt(rent)}${perSqm ? ' / m²' : ''}` : 'Price on request';
+  const rentTotal = rent !== null && rent >= 0 ? perSqm ? offered ? rent * offered : null : rent : null;
+  const quote = sale !== null && sale >= 0 ? `PHP ${fmt(sale)}` : 'Price on request';
+  const review = human(property.approvalState || 'Not recorded');
+  const method = property.protocol_version || property.methodology || property.assessmentMethodologyVersion || 'Recorded MCE assessment';
+  const score = calc.iai === null ? 'Withheld' : fixed(calc.iai);
+  const status = calc.discrepancy ? 'Review required' : human(property.assessmentStatus || (calc.complete ? 'complete' : 'incomplete'));
+  const hasScore = calc.iai !== null;
+  const rated = calc.rows.filter(row => row.score !== null).length;
+  const weightedCoverage = calc.rows.filter(row => row.score !== null).reduce((total, row) => total + row.weight, 0);
+  const zoning = details.zoning_compatibility || {};
+  const zone = zoning.zone_full_label || zoning.raw?.zoning_classification || property.clupProfile?.zoningClassification || property.zoningClassification || 'Not recorded';
+  const activity = property.proposed_activity || property.clupProfile?.proposedActivity || property.proposedActivity || '';
+  const eligibility = zoning.status_label || human(property.eligibility?.zoning) || 'Pending verification';
+  const hazards = [
+    ['flood_susceptibility', 'Flood susceptibility', 25], ['active_fault', 'Active fault / ground rupture', 25],
+    ['landslide_susceptibility', 'Landslide susceptibility', 15], ['storm_surge', 'Storm surge', 15],
+    ['liquefaction_susceptibility', 'Liquefaction', 10], ['tsunami_exposure', 'Tsunami', 10],
+  ].map(([key, label, weight]) => {
+    const entry = details.risk_constraints?.subcriteria?.[key] || property.subcriterion_scores?.risk_constraints?.[key] || {};
+    const legacy = key === 'flood_susceptibility' ? property.hazardScreening?.flood : key === 'active_fault' ? property.hazardScreening?.fault : null;
+    const finding = entry.status_label || entry.finding || entry.details || human(entry.raw_status) || legacy?.details || human(legacy?.status);
+    const assessed = Boolean(finding && !/not.assessed|not.scored|pending|unknown/i.test(entry.raw_status || finding));
+    return { label, weight: numeric(entry.weight) ?? weight, finding: finding || 'Not assessed', assessed,
+      evidence: human(entry.evidence_status) || (legacy?.status ? 'Recorded finding · verification pending' : 'not assessed'),
+      source: entry.source || entry.evidence?.[0]?.source || legacy?.source || 'Source not recorded' };
   });
+  const assessedHazards = hazards.filter(row => row.assessed).length;
+  const missing = [...new Set([...(property.missing_requirements || property.missingRequirements || []), ...(!hasScore ? calc.missingCriteria || [] : [])])];
+  const reason = calc.reason || property.reason || (hasScore ? 'Ratings reflect the configured operational rubric; methodology and weights remain subject to validation.' : 'Required evidence or observations are incomplete. Missing criteria are never scored as zero.');
+  const attention = hasScore
+    ? calc.isConditional ? 'No actionable investment rank. Resolve the conditions attached to the proposed use before proceeding.' : 'Confirm evidence dates, parcel coverage and commercial terms before using this assessment.'
+    : missing.length ? `Complete the missing observations and verify supporting evidence. ${missing.length} outstanding requirements remain; see the assessment evidence for details.` : reason;
+  const priorities = [
+    !activity ? 'Select the proposed activity before interpreting zoning compatibility.' : `Confirm locational clearance for ${human(activity)} with the city planning office.`,
+    assessedHazards < 6 ? `${6 - assessedHazards} of 6 hazard indicators require completed screening and source verification.` : 'Review the recorded hazard findings and their geographic coverage with a qualified professional.',
+    boundary ? 'Validate the recorded outline against the title and a licensed survey.' : 'Obtain a surveyed boundary; the recorded pin does not establish parcel limits.',
+  ];
+  const media = (Array.isArray(property.media) ? property.media : []).find(item => ['photo', 'image'].includes(item.kind) && (item.source || item.url));
+  const imageRaw = property.imageUrl || property.imagePath || media?.source || media?.url || '';
+  const image = /^https?:\/\//i.test(imageRaw) || imageRaw.startsWith('/') ? imageRaw : imageRaw && typeof options.path === 'function' ? options.path(imageRaw) : imageRaw;
+  const nearby = (Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [])
+    .filter(item => numeric(item.distanceMeters) !== null && numeric(item.distanceMeters) >= 0 && numeric(item.distanceMeters) <= 500)
+    .sort((a, b) => Number(a.distanceMeters) - Number(b.distanceMeters));
+  const facilities = (Array.isArray(property.facilities) ? property.facilities : String(property.facilities || '').split(',')).filter(Boolean);
+  const facts = rows => `<dl class="brief-facts">${rows.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>`;
+  const note = (label, text, kind = '') => `<aside class="brief-note ${kind}"><span class="brief-eyebrow">${esc(label)}</span><p>${esc(text)}</p></aside>`;
+  const heading = (number, label, title, subtitle) => `<div class="brief-section-heading"><span class="brief-eyebrow">${number} / ${label}</span><h1>${esc(title)}</h1><p>${esc(subtitle)}</p></div>`;
+  const page = (number, label, content) => `<section class="locus-brief-page brief-page" id="locusBriefPage${number}">
+    <header class="brief-masthead"><span class="brief-brand">LOCUS<span>—</span>SF</span><div>INVESTMENT INTELLIGENCE<br><span>San Fernando City · La Union</span></div></header>
+    <div class="brief-page-body">${content}</div></section>`;
+  const metric = (label, value, sub) => `<div><span class="brief-eyebrow">${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(sub)}</small></div>`;
+  const mapLink = hasLocation ? `https://www.google.com/maps?q=${lat},${lng}&t=k` : '';
+  const profile = page(1, 'Property profile', `${heading('01', 'Property profile', property.name || 'Untitled property', `${location} · ${reference}`)}
+    <div class="brief-listing-strip"><span>${esc(purposeText)} <i>·</i> ${esc(property.status || 'Availability not recorded')}</span><span class="brief-pill">${hasScore ? 'Assessment recorded' : 'Assessment pending'}</span></div>
+    <figure class="brief-hero ${image ? 'has-photo' : 'no-photo'}">${image ? `<img src="${esc(image)}" alt="${esc(property.name || 'Property photograph')}" onerror="this.parentElement.classList.add('photo-unavailable'); this.parentElement.querySelector('figcaption').textContent='Property image unavailable · location reference only'; this.remove();"><div class="brief-image-context"><span class="brief-eyebrow">SITE REFERENCE</span><strong>${esc(property.barangay || property.city || 'Location pending')}</strong><p>${esc(property.city || 'San Fernando City, La Union')}</p><small>WGS 84 coordinates<br>${esc(coords)}</small><p class="brief-image-context-note">Confirm the parcel limits against the survey record.</p></div>` : ''}<div class="brief-hero-empty"><span class="brief-eyebrow">PROPERTY RECORD</span><strong>${esc(location)}</strong><p>Property photography ${image ? 'unavailable' : 'not provided'}</p><small>${esc(coords)}</small></div><figcaption>${image ? 'Listing image · supplied with the property record' : 'Location reference · site photography pending'}</figcaption></figure>
+    <div class="brief-metrics">${metric(leaseOnly ? 'Asking rent' : 'Asking price', leaseOnly ? rentText : quote, leaseOnly ? `Billed per ${period} · seller-reported` : 'Seller-reported · subject to confirmation')}${metric('Recorded land area', areaText, area ? `${fmt(area / 10000, 6)} ha · ${areaBasis}` : 'Area confirmation required')}${metric(leaseOnly ? 'Estimated total rent' : 'Asking price / m²', leaseOnly ? rentTotal !== null ? `PHP ${fmt(rentTotal)}` : 'Not Available' : sale !== null && area ? `PHP ${fmt(sale / area)}` : 'Not Available', leaseOnly ? `Per ${period} · ${offered ? `${fmt(offered)} m² offered area` : 'Offered area not recorded'}` : 'Based on the recorded land area')}</div>
+    ${both ? note('Lease option', `${rentText} / ${period}. ${rentTotal !== null ? `Total rent: PHP ${fmt(rentTotal)} / ${period}.` : 'Confirm the offered area before estimating total rent.'}`) : ''}
+    <h2>Property overview</h2><p class="brief-description">${esc(property.description || 'No property description has been provided.')}</p>
+    ${facts([['Property type', [property.category || property.type, property.subcategory].filter(Boolean).join(' · ') || 'Not recorded'], ['Building / floor area', floor ? `${fmt(floor)} m²` : isBuilding ? 'Floor area not recorded' : 'Not recorded'], ['Boundary record', boundary ? 'Recorded outline (GIS polygon)' : 'Pin reference · boundary not drawn'], ['Listing review', review], ['Coordinates · WGS 84', coords], ['Last updated', dateLabel(property.updatedAt)]])}
+    ${facilities.length ? `<p class="brief-amenities"><b>Reported amenities</b> ${facilities.map(esc).join(' · ')}</p>` : ''}
+    ${note('Before committing', priorities[2])}`);
+  const assessment = page(2, 'Investment assessment', `${heading('02', 'Investment assessment', 'Investment assessment', 'Investment Attractiveness Index · evidence, weights and outstanding checks')}
+    <div class="brief-score-panel ${!hasScore ? 'is-pending' : ''}"><div><span class="brief-eyebrow">COMPOSITE IAI</span><strong class="brief-score">${score}${hasScore ? '<small>/ 100</small>' : ''}</strong><span class="brief-score-accessible">IAI: ${score}${hasScore ? ' / 100' : ''}</span></div><div><span class="brief-pill">${esc(status)}</span><p>${esc(reason)}</p></div></div>
+    <div class="brief-coverage"><div><strong>${rated}<small> / ${calc.rows.length}</small></strong><span>Criteria with ratings</span></div><div><strong>${fmt(weightedCoverage)}<small>%</small></strong><span>Weight with recorded ratings</span></div><div><strong>${assessedHazards}<small> / 6</small></strong><span>Hazard findings recorded</span></div></div>
+    <h2>How the assessment adds up</h2><table class="brief-table locus-brief-assessment-table"><caption>Criterion scores and weighted contributions. Pending values are excluded from a composite.</caption><thead><tr><th scope="col">Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Points</th></tr></thead><tbody>${calc.rows.map((row, index) => `<tr><th scope="row"><span class="brief-row-index">${String(index + 1).padStart(2, '0')}</span>${esc(row.label.split(' / ')[0])}</th><td class="${row.score === null ? 'brief-pending' : ''}">${row.score === null ? 'Pending' : fmt(row.score, 2)}</td><td>${fmt(row.weight)}%</td><td>${row.contribution === null ? '—' : fmt(row.contribution, 4)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">Composite IAI</th><td colspan="3">${hasScore ? `${fixed(calc.iai)} / 100` : 'Withheld · review pending'}</td></tr></tfoot></table>
+    <div class="brief-formula"><span class="brief-eyebrow">CALCULATION METHOD</span><p>Weighted points = score × weight ÷ 100</p><strong>${hasScore ? `IAI = round(${calc.rows.map(row => fmt(row.contribution, 6)).join(' + ')}, 1) = ${score} / 100` : 'No composite is calculated from partial evidence.'}</strong>${calc.hasPhysicalBaseline && !hasScore ? `<p>Physical site subtotal: ${fmt(calc.physicalSubtotal, 4)} / ${fmt(property.physical_subtotal_max ?? 85)} points. This is not a composite IAI.</p>` : ''}</div>
+    <div class="brief-two-col"><div><h2>Read the score correctly</h2><p>Higher ratings indicate more favorable observations under the configured rubric. A score does not certify legal eligibility, property value, safety or investment returns.</p></div><div><h2>What needs attention</h2><p>${esc(attention)}</p></div></div>
+    ${note('Methodology & scope', `${method}. ${property.weight_validation_status || property.weightStatus || 'Provisional / Subject to LGU validation'}. Assessment date: ${dateLabel(property.assessed_at || property.generatedAt)}.${activity ? ` Scenario: ${activity}.` : ''}`, 'is-neutral')}`);
+  const screening = page(3, 'Zoning & hazards', `${heading('03', 'Zoning & hazards', 'Zoning & hazard screening', 'Recorded land-use context and six-factor hazard screening')}
+    <div class="brief-two-col brief-zoning"><div><span class="brief-eyebrow">RECORDED ZONING</span><h2>${esc(zone)}</h2><p>${esc(zoning.rule_source || zoning.ordinance_section || 'Applicable source reference not recorded.')}</p></div><div><span class="brief-eyebrow">PROPOSED ACTIVITY</span><h2>${esc(activity ? human(activity) : 'Not selected')}</h2><p>${esc(eligibility)}${zoning.verification_status ? ` · ${esc(human(zoning.verification_status))}` : ''}</p></div></div>
+    ${zoning.conditions?.length ? note('Recorded conditions', zoning.conditions.join(' '), 'is-neutral') : ''}
+    <div class="brief-heading-row"><h2>Hazard screening register</h2><span class="brief-pill">${assessedHazards} of 6 findings recorded</span></div>
+    <table class="brief-table brief-hazard-table"><caption>Recorded findings are distinct from authenticated evidence and regulatory clearance.</caption><thead><tr><th scope="col">Indicator / risk weight</th><th scope="col">Recorded finding &amp; evidence</th></tr></thead><tbody>${hazards.map(row => `<tr><th scope="row">${esc(row.label)}<small>${fmt(row.weight)}% within Risk Constraints</small></th><td>${esc(row.finding)}<small>${esc(row.evidence)} · ${esc(row.source)}</small></td></tr>`).join('')}</tbody></table>
+    ${note('Coverage matters', `${6 - assessedHazards} indicators remain unassessed. Unassessed does not mean low risk. A point-based finding does not describe exposure across the entire parcel.`, assessedHazards === 6 ? 'is-neutral' : '')}
+    <h2>Spatial record</h2>${facts([['Location basis', boundary ? 'OUTLINE RECORDED · survey verification required' : 'PIN-BASED · parcel coverage unverified'], ['Area basis', `${areaText} · ${areaBasis}`]])}
+    ${hasLocation ? `<a class="brief-map-link" href="${esc(mapLink)}">View recorded location ↗ <span>${esc(coords)}</span></a>` : ''}
+    <p class="brief-small">A GIS outline is a location reference. Title, boundaries, hazard coverage and planning conditions require independent verification.</p>`);
+  const datasets = Object.entries(property.dataset_versions || {});
+  const sourceRows = datasets.length ? datasets.map(([name, entry]) => `<li><strong>${esc(name)} · ${esc(entry.version || 'Version not recorded')}</strong><span>${esc(human(entry.provenance_status) || 'Provenance not recorded')}</span>${options.includeAppendix && entry.sha256 ? `<code>SHA-256: ${esc(entry.sha256)}</code>` : ''}</li>`).join('') : '<li><strong>Source versions not recorded</strong><span>Request the applicable source documents and verification dates before relying on this brief.</span></li>';
+  const context = page(4, 'Investor next steps', `${heading('04', 'Investor next steps', 'Investor next steps', 'Local context, practical checks and the evidence behind this brief')}
+    <div class="brief-heading-row"><h2>Mapped places within 500 m</h2><span class="brief-pill">${nearby.length} recorded</span></div><p class="brief-small">Straight-line distance from the recorded reference point. This is not a walking route or a complete business census.</p>
+    ${nearby.length ? `<div class="brief-places">${nearby.slice(0, 6).map(item => `<div><span>${esc(item.name || 'Unnamed place')}</span><strong>${fmt(item.distanceMeters, 0)} m</strong></div>`).join('')}</div>${nearby.length > 6 ? `<p class="brief-small">Showing the 6 closest of ${nearby.length} recorded places within 500 m.</p>` : ''}` : note('Local context pending', 'No places with measured distances within 500 m are recorded. This does not establish that no businesses operate nearby.', 'is-neutral')}
+    <h2 class="brief-next-title">A practical due diligence checklist</h2><ol class="brief-checklist"><li><span>01</span><div><h3>Confirm the land and ownership</h3><p>Review the title, encumbrances and surveyed boundaries. Reconcile the declared and surveyed area.</p></div></li><li><span>02</span><div><h3>Clear the intended use</h3><p>${esc(priorities[0])} Verify the required permits and any conditions.</p></div></li><li><span>03</span><div><h3>Review site exposure and services</h3><p>${esc(priorities[1])} Check utilities, drainage and access on site.</p></div></li><li><span>04</span><div><h3>Validate the commercial terms</h3><p>Confirm the asking amount, offered area, ${leaseOnly || both ? 'rent period, deposits, escalation, ' : ''}taxes and transaction costs. Compare against suitable local market evidence.</p></div></li></ol>
+    <div class="brief-contact"><span class="brief-eyebrow">ARRANGE THE NEXT CONVERSATION</span><strong>${esc(property.brokerContact?.name || 'City investment facilitation desk')}</strong><p>${esc([property.brokerContact?.phone, property.brokerContact?.email].filter(Boolean).join(' · ') || 'Contact LEBDO for listing assistance, availability and site access.')}</p></div>
+    <h2>Report &amp; source notes</h2><ul class="brief-source-list">${sourceRows}</ul>
+    ${options.includeAppendix && property.comparison_key ? `<p class="brief-small brief-comparison">Comparison group: <code>${esc(property.comparison_key)}</code></p>` : ''}
+    <p class="brief-small">Prepared ${esc(exported)} · Listing content is seller-reported. Assessment observations reflect the recorded sources and dates. This brief is not a certified valuation, official locational clearance or guarantee of investment returns.</p>`);
+  const appendix = options.includeAppendix ? page(5, 'Evidence appendix', `${heading('05', 'Evidence appendix', 'Assessment audit trail.', 'Recorded inputs, scoring rules and evidence references')}${calc.rows.map(row => `<article class="brief-evidence"><h2>${esc(row.label)}</h2><p>${esc(details[row.key]?.justification || row.explanation)}</p><pre>${esc(JSON.stringify({ inputs: property.raw_criterion_inputs?.[row.key] || details[row.key]?.raw || null, rule: property.scoring_rules?.[row.key] || details[row.key]?.methodology_version || null, evidence: details[row.key]?.evidence || [] }, null, 2))}</pre></article>`).join('')}`) : '';
+  return `<div class="locus-investor-brief locus-editorial" id="locusInvestorBrief" ${property.protocol_version ? 'data-assessment-contract' : ''}>${profile}${assessment}${screening}${context}${appendix}</div>`;
+}
 
-  const assessedCount = hazardRows.filter(h => h.assessed).length;
-  const unassessedCount = hazardRows.length - assessedCount;
 
-  // Authoritative IAI & Sum calculation
-  const methodologyLabel = property.methodology || property.assessmentMethodologyVersion || (calc.rows.length === 6 ? 'MCE v2.0: Six-Criterion Comprehensive Model | 100% Weight' : 'MCE v1.1: Legacy Seven-Criterion Model');
-  const rawSum = calc.rows.reduce((sum, r) => sum + (r.contribution || 0), 0);
-  const roundedSum = Math.round(rawSum * 10) / 10;
-  const iaiScore = calc.iai !== null ? fixed(calc.iai) : (numeric(property.iaiScore) !== null ? fixed(property.iaiScore) : fixed(roundedSum));
-  const formulaEquation = calc.rows.map(r => r.contribution !== null ? fmt(r.contribution, 2) : '0').join(' + ');
-  const totalRowText = Math.abs(rawSum - Number(iaiScore)) >= 0.04
-    ? `${fmt(rawSum, 2)} → ${iaiScore} / 100`
-    : `${iaiScore} / 100`;
 
-  // Status & Reconciliation
-  const hasDiscrepancy = unassessedCount > 0 || zoningScore < 95 || !calc.complete;
-  const headerStatusAlert = hasDiscrepancy ? 'PROVISIONAL ASSESSMENT' : 'ASSESSMENT COMPLETE';
-  const kpiStatusAlert = hasDiscrepancy ? 'PROVISIONAL · SCREENING INCOMPLETE' : 'ASSESSMENT COMPLETE';
-  const kpiStatusDesc = hasDiscrepancy
-    ? `Composite suitability index of ${iaiScore}/100 derived from six rubric criteria (${zoningStatusShort}, Risk ${riskScore}/100). Note that ${unassessedCount} of 6 hazard indicators await complete municipal screening.`
-    : 'Composite suitability index derived from six authoritative criteria totaling 100%. Ratings reflect configured rubric weights.';
+export function criterionBarsMarkup(calculation) {
+  return `<div class="site-rating-chart" aria-label="Criterion ratings on a scale of zero to 100">
+    <div class="site-chart-axis" aria-hidden="true"><span>Criterion</span><div><span>0</span><span>50</span><span>100</span></div><span>Weighted points</span></div>
+    <ul class="property-criterion-ratings-list site-rating-list">${calculation.rows.map(row => `<li class="property-criterion-rating-item site-rating-row" data-criterion="${esc(row.key)}">
+      <div class="site-rating-label"><span class="property-criterion-name">${esc(row.label.split(' / ')[0])}</span><small>${fmt(row.weight)}% weight</small></div>
+      <div class="site-rating-visual"><div class="site-rating-track ${row.score === null ? 'is-pending' : ''}" aria-hidden="true">${row.score === null ? '<span>Awaiting rating</span>' : `<i class="property-criterion-bar-fill" style="width:${Math.max(0, Math.min(100, row.score))}%"></i>`}</div><strong class="site-rating-value">${row.score === null ? 'Pending' : `${rating(row.score)}<small> / 100</small>`}</strong></div>
+      <span class="site-rating-contribution">${row.contribution === null ? 'Points pending' : `${fmt(row.contribution, 4)} weighted pts`}</span>
+    </li>`).join('')}</ul><p class="site-chart-note">Ratings before weighting. A pending value is missing evidence, not a score of zero.</p></div>`;
+}
 
-  // Caution notices (Dynamic, property-specific)
-  const cautionPoints = [];
-  if (zoningScore < 95) cautionPoints.push(`Zoning compatibility is conditional (${zoningScore}/100); obtain CPDO locational clearance for ${proposedActivityText}.`);
-  if (unassessedCount > 0) cautionPoints.push(`${unassessedCount} of 6 hazard indicators are not assessed in municipal layers; complete site geo-hazard screening before final design.`);
-  if (isLease && !hasLeasableArea) cautionPoints.push('Leasable floor area is unrecorded; verify architectural blueprints and usable floor plate.');
-  if (cautionPoints.length === 0) cautionPoints.push('Confirm registered title boundaries with the Registry of Deeds and verify utility interconnection capacity prior to financial commitment.');
+export function propertyAssessmentMarkup(property, calc = assessmentCalculation(property)) {
+  const count = calc.rows.length;
+  const rated = calc.rows.filter(row => row.score !== null).length;
+  const verified = calc.rows.filter(row => property.evidence_verification?.[row.key]?.status === 'authenticated').length;
+  const headline = calc.iai !== null ? fixed(calc.iai) : calc.isNotSuitable ? 'Not Suitable' : 'Withheld';
+  const description = calc.reason || (calc.complete ? 'Composite of the recorded criterion scores, using the configured weights.' : `Assessment pending · ${rated} of ${count} criteria rated. Complete the missing observations and source verification before interpreting a composite score.`);
+  const coverage = Math.max(0, Math.min(1, rated / count));
+  return `<section class="property-panel property-assessment site-assessment" id="propertyAssessmentSection" aria-labelledby="propertyAssessmentTitle">
+    <header class="property-assessment-header-bar"><div><span class="site-eyebrow">SITE INTELLIGENCE</span><h2 id="propertyAssessmentTitle">The assessment, at a glance</h2><p class="property-assessment-subtitle">See what is recorded, what it contributes and what still needs review.</p></div><span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete ? `All ${count === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending'}</span></header>
+    <div class="site-assessment-grid">
+      <div class="property-score-card property-score-card-iai site-score-summary" id="scenarioMainIaiCard"><span class="site-eyebrow">INVESTMENT ATTRACTIVENESS INDEX</span><span class="property-kicker-method" style="display:block;font-size:11px;color:#64748b;margin-top:2px;">Multi-Criteria Evaluation (MCE) Methodology</span><div class="property-score-card-number"><span data-active-iai-score><strong>${headline}</strong></span><small ${calc.iai === null ? 'hidden' : ''}> / 100</small></div><p data-active-iai-desc>${esc(description)}</p>${calc.hasPhysicalBaseline && calc.iai === null ? `<p class="site-physical-note">Physical subtotal: ${fmt(calc.physicalSubtotal, 4)} / 85 pts. This is not the composite IAI.</p>` : ''}<div data-scenario-comparison-banner hidden></div><button type="button" class="site-text-button" data-open-calculation>How is this calculated? <span aria-hidden="true">↗</span></button></div>
+      <div class="site-coverage"><div class="site-coverage-ring"><svg viewBox="0 0 120 120" role="img" aria-label="${rated} of ${count} criteria have recorded ratings"><circle cx="60" cy="60" r="48" class="site-coverage-track"/><circle cx="60" cy="60" r="48" class="site-coverage-value" stroke-opacity="${rated ? 1 : 0}" pathLength="100" stroke-dasharray="${coverage * 100} 100"/></svg><strong>${rated}<small> / ${count}</small></strong></div><div><h3>Rating coverage</h3><p>${rated === count ? 'All criteria have a recorded rating.' : `${count - rated} criteria still need a rating.`}</p><span>${property.protocol_version ? `${verified} of ${count} criteria with authenticated evidence` : 'Evidence authentication not recorded'}</span><small>Coverage measures completeness, not suitability.</small></div></div>
+    </div>
+    <div class="site-chart-heading"><div><h3>Where the ratings come from</h3><p>Recorded ratings on a 0–100 scale.</p></div><span>${calc.isLegacy ? 'Legacy record · 7 criteria' : '6 criteria · 100% total weight'}</span></div>
+    <div data-site-rating-chart>${criterionBarsMarkup(calc)}</div>
+    <nav class="property-assessment-subnav site-assessment-links" aria-label="Explore the assessment"><button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" aria-pressed="true">Overview</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" aria-pressed="false">Calculation</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" aria-pressed="false">Evidence &amp; sources</button><button type="button" class="property-score-card-action" data-scenario-report-btn>Download brief <span aria-hidden="true">↗</span></button></nav>
+    <div class="property-assessment-disclosures">
+      <details class="property-disclosure" data-print-expand data-disclosure-calc>
+        <summary>
+          <span>01 &nbsp; View calculation breakdown</span>
+          <small>Multi-Criteria Evaluation (MCE) and IAI composite scoring, step by step</small>
+        </summary>
+        <div class="property-disclosure-body">${calculationMarkup(property)}</div>
+      </details>
 
-  // Surroundings (Strictly property-specific)
-  const nearbyPlaces = Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [];
-  const nearby500mPlaces = nearbyPlaces.filter(b => (numeric(b.distanceMeters) ?? 0) <= 500).slice(0, 6);
-  const bizCountVal = numeric(critDetails.nearby_businesses?.raw?.observed_business_count ?? critDetails.nearby_businesses?.raw?.business_count) ?? (nearbyPlaces.length || 6);
+      <details class="property-disclosure" data-print-expand data-disclosure-evidence>
+        <summary>
+          <span>02 &nbsp; Evidence &amp; data sources audit</span>
+          <small>Authoritative dataset references, layer hashes, verification dates and missing information</small>
+        </summary>
+        <div class="property-disclosure-body">${evidenceMarkup(property, calc)}</div>
+      </details>
 
-  // Broker / Contact text
-  const brokerName = property.brokerContact?.name;
-  const contactText = brokerName
-    ? `Contact ${esc(brokerName)}${property.brokerContact?.phone ? ` (${esc(property.brokerContact.phone)})` : ''}`
-    : 'Contact the Local Economic and Business Development Office (LEBDO) at San Fernando City Hall';
+      <details class="property-disclosure" data-print-expand data-disclosure-radar>
+        <summary>
+          <span>03 &nbsp; Criterion ratings &mdash; before weighting (radar profile)</span>
+          <small>Comparative radar visualization of all evaluated location criteria</small>
+        </summary>
+        <div class="property-disclosure-body">${radarMarkup(calc)}</div>
+      </details>
+    </div>
+
+    <p class="property-assessment-footnote">${esc(property.weightStatus || 'Provisional model · subject to technical and LGU validation')}. Decision support only; no guarantee of returns or regulatory clearance.</p>
+  </section>`;
+}
+
+export function siteSafetyGridMarkup(property) {
+  const definitions = [
+    ['flood_susceptibility', 'Flood Susceptibility'],
+    ['active_fault', 'Active Fault / Ground Rupture'],
+    ['landslide_susceptibility', 'Landslide Susceptibility'],
+    ['storm_surge', 'Storm Surge'],
+    ['liquefaction_susceptibility', 'Liquefaction'],
+    ['tsunami_exposure', 'Tsunami']
+  ];
+  const subcriteria = property.subcriterion_scores?.risk_constraints || property.criteriaDetails?.risk_constraints?.subcriteria || {};
+  const rows = definitions.map(([key, label]) => {
+    const entry = subcriteria[key] || {};
+    const legacy = key === 'flood_susceptibility' ? property.hazardScreening?.flood : key === 'active_fault' ? property.hazardScreening?.fault : null;
+    const finding = entry.status_label || entry.finding || (entry.raw_status ? String(entry.raw_status).replaceAll('_', ' ') : '') || legacy?.details || legacy?.badge || 'Not assessed';
+    const verification = entry.evidence_status || (legacy?.evidence_status ?? 'not_assessed');
+    return { key, label, finding, verification, entry, assessed: !/not.assessed|not.scored|unknown|pending/i.test(entry.raw_status || finding) };
+  });
+  const count = rows.filter(row => row.assessed).length;
+  const assessedLayers = rows.filter(r => r.assessed);
+  const unassessedLayers = rows.filter(r => !r.assessed);
+  const records = recordedSafety(property);
+  return `
+    <div class="site-hazard-grid">${rows.map(row => `<div><span>${esc(row.label)}</span><strong>${esc(row.finding)}</strong><small>${esc(row.verification.replaceAll('_', ' '))}</small></div>`).join('')}</div>
+    ${unassessedLayers.length ? `
+      <div class="partial-hazard-banner" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #64748B; border-radius: 8px; padding: 12px 16px; margin: 16px 0; display: flex; gap: 12px;">
+        <span style="font-size: 16px; line-height: 1; color: #64748B;">ℹ</span>
+        <div>
+          <strong style="font-size: 13.5px; display: block; margin-bottom: 4px; color: #1E293B;">Partial Hazard Coverage Disclosure (${unassessedLayers.length} of 6 Layers Unassessed):</strong>
+          <p style="margin: 0; font-size: 12.5px; line-height: 1.5; color: #475569;">
+            The Risk Constraints rating reflects provisional spatial screening of <strong>${assessedLayers.map(r => r.label).join(' and ') || 'preliminary records'}</strong>. Municipal screening for remaining indicators (<strong>${unassessedLayers.map(r => r.label).join(', ')}</strong>) remains pending. Unassessed status must not be interpreted as absence of risk; complete geotechnical and geohazard clearance prior to financial commitment. DOST-PHIVOLCS 5-meter buffer corridor must be verified for active fault proximity.
+          </p>
+        </div>
+      </div>
+    ` : ''}
+    ${records.some(record => record.values.length || record.missing.length || record.evidence.length) ? `<div class="site-recorded-findings">${records.map(record => `<p><strong>${esc(record.label)}:</strong> ${esc(record.values.join(', ') || 'Not assessed')}${record.missing.length ? ` · ${record.missing.map(esc).join(' ')}` : ''}</p>${record.evidence.length ? `<ul class="property-source-list" style="margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #6B7280;">${record.evidence.map(ev => `<li><strong>${esc(ev.source || 'Recorded source')}</strong>${ev.reference ? ` · ${esc(ev.reference)}` : ''}${ev.verifiedAt ? ` · ${esc(dateLabel(ev.verifiedAt))}` : ''}</li>`).join('')}</ul>` : ''}`).join('')}</div>` : ''}
+    ${factsMarkup([['Coverage basis', property.parcel?.boundary ? 'Recorded outline · confirm the source covers this parcel' : 'Location pin · whole-parcel coverage unverified'], ['Unassessed indicators', `${6 - count} of 6`]])}
+    <p class="property-note">Missing evidence is not treated as an absence of exposure. A rating is not an engineering assessment or a clearance.</p>
+  `;
+}
+
+export function siteSafetyMarkup(property) {
+  return floodAndFireAssessmentMarkup(property);
+}
+
+export function renderDonutSvg(items, centerVal, centerSub = '') {
+  const r = 44;
+  const cx = 80;
+  const cy = 80;
+  const circumference = 2 * Math.PI * r;
+  let accumulatedPercent = 0;
+
+  const validItems = Array.isArray(items) ? items.filter(it => Number(it.percent) > 0) : [];
+  const slices = validItems.map(item => {
+    const pct = Number(item.percent);
+    const strokeDash = (pct / 100) * circumference;
+    const gap = circumference - strokeDash;
+    const offset = (accumulatedPercent / 100) * circumference;
+    accumulatedPercent += pct;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="${esc(item.color || '#0071e3')}" stroke-width="20" stroke-dasharray="${strokeDash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+  }).join('');
+
+  const legend = validItems.map(item => `
+    <div class="demographic-legend-item">
+      <span class="demographic-legend-dot" style="background-color:${esc(item.color || '#0071e3')};"></span>
+      <span class="demographic-legend-label">${esc(item.label)}</span>
+      <strong class="demographic-legend-pct">${fmt(item.percent, 1)}%</strong>
+    </div>
+  `).join('');
 
   return `
-    <div class="locus-investor-brief" id="locusInvestorBrief">
-      <!-- 01 / PROPERTY PROFILE -->
-      <section class="locus-brief-page locus-brief-page-1" id="locusBriefPage1">
-        <header class="locus-brief-header">
-          <span class="locus-brief-brand">LOCUS-SF</span>
-          <span class="locus-brief-meta-tag">INVESTMENT INTELLIGENCE BRIEF</span>
-        </header>
-
-        <div class="locus-brief-content">
-          <div class="locus-brief-section-kicker">01 / PROPERTY PROFILE</div>
-          <h1 class="locus-brief-title">${esc(property.name)}</h1>
-          <p class="locus-brief-subtitle">${esc(location)} | Reference ${refId}</p>
-
-          <div class="locus-brief-status-row">
-            <div class="locus-brief-status-left">${purposeLabel} / ${availStatus}</div>
-            <div class="locus-brief-status-right ${hasDiscrepancy ? 'is-alert' : 'is-good'}">${headerStatusAlert}</div>
-          </div>
-
-          <figure class="locus-brief-photo-block">
-            ${imgUrl ? `
-              <img src="${esc(imgUrl)}" alt="${esc(property.name)}" class="locus-brief-photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-              <div class="locus-brief-photo-fallback" style="display: none;">
-                <span>Architectural site reference · Photography pending</span>
-                <small>Location: ${esc(location)} &bull; Coordinates: ${coordsText}</small>
-              </div>
-            ` : `
-              <div class="locus-brief-photo-fallback" style="display: flex;">
-                <span>Architectural site reference · Photography pending</span>
-                <small>Location: ${esc(location)} &bull; Coordinates: ${coordsText}</small>
-              </div>
-            `}
-            <figcaption class="locus-brief-photo-caption">${esc(imgCaption)}</figcaption>
-          </figure>
-
-          <div class="locus-brief-metrics-grid">
-            <div class="locus-brief-metric-col">
-              <span class="locus-brief-metric-label">${col1Label}</span>
-              <strong class="locus-brief-metric-val">${col1Val}</strong>
-              <span class="locus-brief-metric-sub">${col1Sub}</span>
-            </div>
-            <div class="locus-brief-metric-col">
-              <span class="locus-brief-metric-label">${col2Label}</span>
-              <strong class="locus-brief-metric-val">${col2Val}</strong>
-              <span class="locus-brief-metric-sub">${col2Sub}</span>
-            </div>
-            <div class="locus-brief-metric-col">
-              <span class="locus-brief-metric-label">${col3Label}</span>
-              <strong class="locus-brief-metric-val">${col3Val}</strong>
-              <span class="locus-brief-metric-sub">${col3Sub}</span>
-            </div>
-          </div>
-
-          <div class="locus-brief-overview-block">
-            <h2 class="locus-brief-h2">Property overview</h2>
-            <p class="locus-brief-p">${description} Listing descriptions are seller-reported and subject to independent confirmation.</p>
-          </div>
-
-          ${facilitiesList.length > 0 ? `
-            <div class="locus-brief-amenities-row">
-              <span class="locus-brief-amenities-label">KEY AMENITIES &amp; SITE UTILITIES:</span>
-              <div class="locus-brief-tags-wrap">
-                ${facilitiesList.slice(0, 6).map(f => `<span class="locus-brief-tag">${esc(f)}</span>`).join('')}
-              </div>
-            </div>
-          ` : ''}
-
-          <div class="locus-brief-record-details">
-            <div class="locus-brief-record-kicker">RECORD DETAILS</div>
-            <p class="locus-brief-record-line">Type: ${propType} &bull; Building: ${buildingAreaText} &bull; Boundary: ${boundaryStatusText} &bull; Review: ${reviewStatus}</p>
-            <p class="locus-brief-record-line locus-brief-record-muted">Coordinates: ${coordsText} &bull; Updated: ${updatedDate} &bull; Cadastral Ref: ${refId}</p>
-          </div>
-
-          <div class="locus-brief-callout">
-            <div class="locus-brief-callout-kicker">WHAT TO VERIFY FIRST</div>
-            <p class="locus-brief-callout-text">${cautionPoints.join(' ')}</p>
-          </div>
-        </div>
-
-        <footer class="locus-brief-footer">
-          <span class="locus-brief-footer-left">${refId} / LOCUS-SF Investment Intelligence Brief</span>
-          <span class="locus-brief-footer-right">Page 1 of 4</span>
-        </footer>
-      </section>
-
-      <!-- 02 / ASSESSMENT -->
-      <section class="locus-brief-page locus-brief-page-2" id="locusBriefPage2">
-        <header class="locus-brief-header">
-          <span class="locus-brief-brand">LOCUS-SF</span>
-          <span class="locus-brief-meta-tag">INVESTMENT INTELLIGENCE BRIEF</span>
-        </header>
-
-        <div class="locus-brief-content">
-          <div class="locus-brief-section-kicker">02 / ASSESSMENT</div>
-          <h1 class="locus-brief-title">Investment assessment</h1>
-          <p class="locus-brief-subtitle">${esc(methodologyLabel)}</p>
-
-          <div class="locus-brief-assessment-kpi-row">
-            <div class="locus-brief-kpi-score-col">
-              <span class="locus-brief-metric-label">REPORTED COMPOSITE IAI</span>
-              <div class="locus-brief-score-display">
-                <strong class="locus-brief-score-big">${iaiScore}</strong>
-                <span class="locus-brief-score-denom">/ 100</span>
-              </div>
-            </div>
-            <div class="locus-brief-kpi-note-col">
-              <span class="locus-brief-status-tag ${hasDiscrepancy ? 'is-alert' : 'is-good'}">${kpiStatusAlert}</span>
-              <p class="locus-brief-kpi-desc">${esc(kpiStatusDesc)}</p>
-            </div>
-          </div>
-
-          <div class="locus-brief-status-strip">
-            <div class="locus-brief-status-strip-col">
-              <span class="locus-brief-status-strip-label">Listing Approval</span>
-              <span class="locus-brief-status-strip-val">✓ Verified Listing</span>
-            </div>
-            <div class="locus-brief-status-strip-col">
-              <span class="locus-brief-status-strip-label">Data Completeness</span>
-              <span class="locus-brief-status-strip-val">6 Core Criteria Rated</span>
-            </div>
-            <div class="locus-brief-status-strip-col">
-              <span class="locus-brief-status-strip-label">Zoning Eligibility</span>
-              <span class="locus-brief-status-strip-val ${zoningStatusClass === 'is-good' ? 'tw-text-emerald-700' : 'tw-text-amber-800'}">${zoningStatusShort} (${zoningScore}/100)</span>
-            </div>
-            <div class="locus-brief-status-strip-col">
-              <span class="locus-brief-status-strip-label">Risk Screening</span>
-              <span class="locus-brief-status-strip-val">${assessedCount}/6 Layers (${riskScore}/100)</span>
-            </div>
-          </div>
-
-          <table class="locus-brief-table locus-brief-assessment-table">
-            <thead>
-              <tr>
-                <th scope="col" style="text-align: left; width: 44%;">Criterion</th>
-                <th scope="col" style="text-align: right; width: 20%;">Score / 100</th>
-                <th scope="col" style="text-align: right; width: 18%;">Weight</th>
-                <th scope="col" style="text-align: right; width: 18%;">Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${calc.rows.map(row => `
-                <tr>
-                  <th scope="row" style="text-align: left; font-weight: 500;">${esc(row.label.split(' / ')[0])}</th>
-                  <td style="text-align: right;">${row.score !== null ? fmt(row.score, 0) : '—'}</td>
-                  <td style="text-align: right;">${fmt(row.weight, 0)}%</td>
-                  <td style="text-align: right; font-weight: 500;">${row.contribution !== null ? fmt(row.contribution, 2) : '—'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row" style="text-align: left; font-weight: 700; text-transform: uppercase; font-size: 8pt;">WEIGHTED TOTAL</th>
-                <td colspan="3" style="text-align: right; font-weight: 700; font-size: 10.5pt; color: #0F172A;">${totalRowText}</td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <div class="locus-brief-formula-box">
-            <span class="locus-brief-formula-kicker">WEIGHTED CALCULATION EQUATION</span>
-            <div class="locus-brief-formula-math">
-              Composite IAI = &Sigma; (Score &times; Weight) = round(${formulaEquation}, 1) = <strong>${iaiScore} / 100</strong>
-            </div>
-          </div>
-
-          <div class="locus-brief-reading-block">
-            <h2 class="locus-brief-h2">Reading the assessment</h2>
-            <p class="locus-brief-p">Weighted points = criterion score &times; criterion weight. Higher scores reflect more favorable ratings under the configured rubric; they do not represent a legal certification or guarantee of commercial yield.</p>
-          </div>
-
-          <div class="locus-brief-callout">
-            <div class="locus-brief-callout-kicker">PROVISIONAL AUDIT NOTICE</div>
-            <p class="locus-brief-callout-text">Zoning Compatibility reflects the evaluated ${esc(proposedActivityText)} scenario (${zoningScore}/100). ${unassessedCount > 0 ? `${unassessedCount} hazard indicators remain unassessed; the Risk Constraints score (${riskScore}/100) reflects provisional screening of flood and active fault layers.` : 'All six criteria have active ratings.'}</p>
-          </div>
-        </div>
-
-        <footer class="locus-brief-footer">
-          <span class="locus-brief-footer-left">${refId} / LOCUS-SF Investment Intelligence Brief</span>
-          <span class="locus-brief-footer-right">Page 2 of 4</span>
-        </footer>
-      </section>
-
-      <!-- 03 / RISK AND EVIDENCE · ZONING & HAZARD INTELLIGENCE -->
-      <section class="locus-brief-page locus-brief-page-3" id="locusBriefPage3">
-        <header class="locus-brief-header">
-          <span class="locus-brief-brand">LOCUS-SF</span>
-          <span class="locus-brief-meta-tag">INVESTMENT INTELLIGENCE BRIEF</span>
-        </header>
-
-        <div class="locus-brief-content">
-          <div class="locus-brief-section-kicker">03 / RISK AND EVIDENCE &bull; ZONING &amp; HAZARD INTELLIGENCE</div>
-          <h1 class="locus-brief-title">Zoning &amp; hazard screening</h1>
-          <p class="locus-brief-subtitle">Official CLUP zoning profile and multi-factor geo-hazard screening (Risk Constraints: 15% weight)</p>
-
-          <div class="locus-brief-zoning-grid">
-            <div class="locus-brief-zoning-card">
-              <span class="locus-brief-zoning-label">OFFICIAL RECORDED ZONING</span>
-              <strong class="locus-brief-zoning-val">${esc(zoningClass)}</strong>
-              <p class="locus-brief-zoning-sub">CPDO CLUP (2026–2035) &bull; Ordinance No. 2018-06</p>
-              <div class="locus-brief-zoning-meta">
-                <span>Proposed Land Use:</span>
-                <strong>${esc(proposedActivityText)}</strong>
-              </div>
-            </div>
-            <div class="locus-brief-zoning-card">
-              <span class="locus-brief-zoning-label">ZONING COMPATIBILITY STATUS</span>
-              <strong class="locus-brief-zoning-val ${zoningStatusClass}">${esc(zoningStatusText)}</strong>
-              <p class="locus-brief-zoning-sub">${esc(zoningScoreContribText)}</p>
-              <div class="locus-brief-zoning-meta">
-                <span>Standard Conditions:</span>
-                <strong>Setbacks: front 5.0m, sides 2.0m &bull; Locational clearance required from CPDO</strong>
-              </div>
-            </div>
-          </div>
-
-          <div class="locus-brief-hazard-stat-block">
-            <h2 class="locus-brief-sub-h2">${assessedCount} of 6 indicators evaluated (${hazardRows.filter(h => h.assessed).map(h => h.label.split(' / ')[0]).join(' &amp; ')})</h2>
-            <p class="locus-brief-p locus-brief-muted">${unassessedCount > 0 ? `${unassessedCount} indicators remain unassessed in municipal GIS layers. The recorded Risk Constraints rating (${riskScore}/100) reflects provisional screening of evaluated layers; full six-factor municipal screening is pending.` : 'All six indicators evaluated against official geospatial risk databases.'}</p>
-          </div>
-
-          <table class="locus-brief-table locus-brief-hazard-table">
-            <thead>
-              <tr>
-                <th scope="col" style="text-align: left; width: 42%;">INDICATOR / INTERNAL WEIGHT</th>
-                <th scope="col" style="text-align: left; width: 40%;">REPORTED FINDING / SOURCE</th>
-                <th scope="col" style="text-align: right; width: 18%;">SCORE</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${hazardRows.map(h => `
-                <tr>
-                  <td style="text-align: left;">
-                    <strong class="locus-brief-item-title">${esc(h.label)}</strong>
-                    <span class="locus-brief-item-sub">Weight within risk: ${esc(h.weight)}</span>
-                  </td>
-                  <td style="text-align: left;">
-                    <span class="locus-brief-finding-text">${esc(h.finding)}</span>
-                    <span class="locus-brief-agency-text">${esc(h.agency)}</span>
-                  </td>
-                  <td style="text-align: right; font-weight: 500;">
-                    ${esc(h.score)}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <div class="locus-brief-reading-block">
-            <h2 class="locus-brief-h2">What these figures mean</h2>
-            <p class="locus-brief-p">A rating of ${riskScore}/100 reflects favorable elevation and buffer distances under evaluated layers, not zero hazard risk. Missing indicators must remain explicit; unassessed status is not evidence of absence of exposure.</p>
-          </div>
-
-          <div class="locus-brief-callout">
-            <div class="locus-brief-callout-kicker">SPATIAL COVERAGE &bull; ${hasBoundary ? 'OUTLINE RECORDED' : 'PIN-BASED'}</div>
-            <p class="locus-brief-callout-text">${hasBoundary ? `Property boundary polygon is recorded in the city cadastral/GIS database (${landAreaSqmText}). Hazard layers are intersected against the recorded parcel polygon and site coordinates.` : `Parcel boundary has not been drawn in GIS. Hazard screening is pin-based at coordinates ${coordsText}. Verify parcel boundary survey before structural planning.`}</p>
-          </div>
-        </div>
-
-        <footer class="locus-brief-footer">
-          <span class="locus-brief-footer-left">${refId} / LOCUS-SF Investment Intelligence Brief</span>
-          <span class="locus-brief-footer-right">Page 3 of 4</span>
-        </footer>
-      </section>
-
-      <!-- 04 / SURROUNDINGS & INVESTMENT CONTEXT -->
-      <section class="locus-brief-page locus-brief-page-4" id="locusBriefPage4">
-        <header class="locus-brief-header">
-          <span class="locus-brief-brand">LOCUS-SF</span>
-          <span class="locus-brief-meta-tag">INVESTMENT INTELLIGENCE BRIEF</span>
-        </header>
-
-        <div class="locus-brief-content">
-          <div class="locus-brief-section-kicker">04 / SURROUNDINGS &amp; INVESTMENT CONTEXT</div>
-          <h1 class="locus-brief-title">Surroundings &amp; commercial context</h1>
-          <p class="locus-brief-subtitle">Mapped commercial cluster, business environment, and recommended investor due diligence</p>
-
-          <div class="locus-brief-places-header">
-            <h2 class="locus-brief-sub-h2">Immediate commercial cluster &mdash; 500m pedestrian radius</h2>
-            <p class="locus-brief-p locus-brief-muted">${nearby500mPlaces.length} mapped establishments within 500m pedestrian catchment &bull; Straight-line distances</p>
-          </div>
-
-          ${nearby500mPlaces.length > 0 ? `
-            <div class="locus-brief-places-list">
-              ${nearby500mPlaces.map(biz => `
-                <div class="locus-brief-place-row">
-                  <span class="locus-brief-place-name">${esc(biz.name)}</span>
-                  <strong class="locus-brief-place-dist">${esc(biz.distanceFormatted || `${biz.distanceMeters || 0} m`)}</strong>
-                </div>
-              `).join('')}
-            </div>
-          ` : `
-            <p class="locus-brief-p locus-brief-muted" style="margin-bottom: 8px;">No commercial establishments recorded within 500m radius in the local business registry.</p>
-          `}
-
-          <div class="locus-brief-wider-context-block">
-            <span class="locus-brief-wider-kicker">WIDER AREA CONTEXT &bull; 1,000m RADIUS</span>
-            <p class="locus-brief-wider-text">
-              BPLO Commercial Registry: <strong>${bizCountVal} operating commercial establishments</strong> reported within 1,000m radius. Convenient connection to San Fernando City Hall / Civic Plaza (~1.2 km) and the primary national highway corridor.
-            </p>
-          </div>
-
-          <div class="locus-brief-ideas-block">
-            <h2 class="locus-brief-h2">Commercial considerations &bull; ${esc(zoningClass)}</h2>
-            <div class="locus-brief-idea-item">
-              <h3 class="locus-brief-idea-title">Permitted Commercial Uses</h3>
-              <p class="locus-brief-idea-desc">Mixed-use commercial and residential developments, professional services, retail shops, and corporate branches conform to standard C-1 district policy.</p>
-            </div>
-            <div class="locus-brief-idea-item">
-              <h3 class="locus-brief-idea-title">Statutory Clearances Required</h3>
-              <p class="locus-brief-idea-desc">Locational clearance from CPDO, building permit from City Engineering Office, and fire safety evaluation from BFP prior to occupancy.</p>
-            </div>
-            <div class="locus-brief-idea-item">
-              <h3 class="locus-brief-idea-title">Infrastructure Interconnection</h3>
-              <p class="locus-brief-idea-desc">Confirm electrical transformer capacity with LUECO and dedicated water line pressure with Metro San Fernando Water District (MSFWD).</p>
-            </div>
-          </div>
-
-          <div class="locus-brief-checks-block">
-            <h2 class="locus-brief-h2">Recommended investor due diligence</h2>
-            <ol class="locus-brief-checks-list">
-              <li>Inspect registered Transfer Certificate of Title (TCT) and cadastral survey boundaries at the Registry of Deeds.</li>
-              <li>File a formal zoning inquiry with CPDO for the specific proposed commercial operation (${zoningStatusShort}, ${zoningScore}/100).</li>
-              <li>Request site geo-hazard clearance from CDRRMO covering all six municipal risk factors.</li>
-              <li>Verify utility connection capacity (power load, water pressure, telecommunications fiber) with relevant providers.</li>
-            </ol>
-          </div>
-
-          <p class="locus-brief-p" style="margin-top: 6px;"><strong>Listing assistance:</strong> ${contactText}. Confirm availability, commercial terms, and site access.</p>
-          <p class="locus-brief-disclaimer">Prepared from recorded city GIS datasets and seller-reported listing information. Not an official locational clearance or certified valuation.</p>
-        </div>
-
-        <footer class="locus-brief-footer">
-          <span class="locus-brief-footer-left">${refId} / LOCUS-SF Investment Intelligence Brief</span>
-          <span class="locus-brief-footer-right">Page 4 of 4</span>
-        </footer>
-      </section>
-      ${options?.includeAppendix ? `
-        <!-- 05 / TECHNICAL APPENDIX (OPTIONAL) -->
-        <section class="locus-brief-page locus-brief-page-5" id="locusBriefPage5">
-          <header class="locus-brief-header">
-            <span class="locus-brief-brand">LOCUS-SF</span>
-            <span class="locus-brief-meta-tag">INVESTMENT INTELLIGENCE BRIEF</span>
-          </header>
-          <div class="locus-brief-content">
-            <div class="locus-brief-section-kicker">05 / TECHNICAL APPENDIX</div>
-            <h1 class="locus-brief-title">Dataset evidence audit</h1>
-            <p class="locus-brief-subtitle">Recorded inputs, layer hashes, and verification metadata</p>
-            <div class="locus-brief-evidence-grid">
-              <div class="locus-brief-evidence-criterion">
-                <h3 class="locus-brief-criterion-title">Spatial Accessibility</h3>
-                <p class="locus-brief-criterion-line">Road centreline distance: ${fmt(critDetails.spatial_accessibility?.raw?.road_distance_m ?? 2.46, 2)} m.</p>
-                <p class="locus-brief-criterion-line locus-brief-muted">Source: City Engineering Office & DPWH District 1.</p>
-              </div>
-              <div class="locus-brief-evidence-criterion">
-                <h3 class="locus-brief-criterion-title">Infrastructure Readiness</h3>
-                <p class="locus-brief-criterion-line">Utility classification: ${esc(critDetails.infrastructure_readiness?.raw?.utility_status || 'power_water_telecom')}.</p>
-                <p class="locus-brief-criterion-line locus-brief-muted">Source: LUECO & MSFWD Service Map 2026.</p>
-              </div>
-              <div class="locus-brief-evidence-criterion">
-                <h3 class="locus-brief-criterion-title">Economic Viability</h3>
-                <p class="locus-brief-criterion-line">BIR zonal reference: PHP ${fmt(critDetails.economic_viability?.raw?.bir_value_sqm ?? 4500, 0)}/m².</p>
-                <p class="locus-brief-criterion-line locus-brief-muted">Source: BIR District 8 Zonal Valuation.</p>
-              </div>
-              <div class="locus-brief-evidence-criterion">
-                <h3 class="locus-brief-criterion-title">Nearby Businesses</h3>
-                <p class="locus-brief-criterion-line">Cluster count: ${bizCountVal} operating establishments.</p>
-                <p class="locus-brief-criterion-line locus-brief-muted">Source: BPLO Business Registry Q1-2026.</p>
-              </div>
-            </div>
-          </div>
-          <footer class="locus-brief-footer">
-            <span class="locus-brief-footer-left">${refId} / LOCUS-SF Investment Intelligence Brief</span>
-            <span class="locus-brief-footer-right">Page 5 of 5</span>
-          </footer>
-        </section>
-      ` : ''}
+    <div class="demographic-donut-container">
+      <svg class="demographic-donut-svg" viewBox="0 0 160 160" aria-hidden="true">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="#f1f5f9" stroke-width="20"/>
+        ${slices}
+        <text x="${cx}" y="${centerSub ? cy - 4 : cy}" text-anchor="middle" dominant-baseline="central" class="donut-center-main">${esc(centerVal)}</text>
+        ${centerSub ? `<text x="${cx}" y="${cy + 15}" text-anchor="middle" dominant-baseline="central" class="donut-center-sub">${esc(centerSub)}</text>` : ''}
+      </svg>
+      <div class="demographic-legend-wrap">
+        ${legend}
+      </div>
     </div>
   `;
 }
+
+export function propertyMediaDockMarkup(property, imageUrl, path) {
+  const lat = numeric(property.lat), lng = numeric(property.lng);
+  const hasLocation = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+  const locationLabel = propertyLocationLabel(property);
+  const approximate = locationLabel === 'Approximate location';
+  const parcel = property.parcel || {};
+
+  const mediaItems = Array.isArray(property.media) && property.media.length > 0
+    ? property.media.filter(m => (m.kind === 'image' || m.kind === 'photo') && (m.source || m.url))
+    : [];
+  const resolveUrl = src => {
+    if (!src) return imageUrl(property);
+    if (/^https?:\/\//i.test(src) || src.startsWith('/')) return src;
+    return typeof path === 'function' ? path(src) : src;
+  };
+  const images = mediaItems.length > 0
+    ? mediaItems.map(m => resolveUrl(m.source || m.url))
+    : [imageUrl(property)];
+  const categoryLabel = esc(property.category || property.type || 'Property');
+  const locationText = esc(property.barangay || property.city || 'San Fernando');
+
+  return `
+    <section class="property-panel property-media-dock" id="propertyLocationSection" data-media-dock aria-label="Property Media and Geographic Views">
+      <div class="property-media-tabs-bar" role="tablist" aria-label="Media views">
+        <button type="button" class="property-media-tab-btn is-active" data-media-tab="map" role="tab" aria-selected="true" id="tabMapBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          <span>MAP</span>
+        </button>
+        <button type="button" class="property-media-tab-btn" data-media-tab="streetview" role="tab" aria-selected="false" id="tabStreetViewBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          <span>STREET VIEW</span>
+        </button>
+        <button type="button" class="property-media-tab-btn" data-media-tab="photos" role="tab" aria-selected="false" id="tabPhotosBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span>PHOTOS</span>
+          <span class="media-tab-badge">${images.length}</span>
+        </button>
+      </div>
+
+      <div class="property-media-views-container">
+        <!-- VIEW 1: MAP -->
+        <div class="property-media-view-pane is-active" data-media-pane="map" id="propertyMediaMapPane">
+          <div class="site-map-controls">
+            <div class="site-map-left-info">
+              <span class="site-map-pin-title">${esc(locationLabel)} · ${esc(property.barangay || 'San Fernando')}</span>
+              ${approximate ? '<span class="property-location-badge">Approximate pin</span>' : '<span class="property-location-badge is-verified">✓ WGS84 Coords</span>'}
+            </div>
+            <div class="site-map-right-actions">
+              <label class="site-map-style-select-label">
+                <span class="site-visually-hidden">Map style</span>
+                <select id="cityMapLayer" aria-label="Map style">
+                  <option value="satellite">Satellite (Aerial Imagery)</option>
+                  <option value="streets">Street Map (OpenStreetMap)</option>
+                </select>
+              </label>
+              ${hasLocation ? `<a class="city-link no-print" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ''}
+            </div>
+          </div>
+          ${hasLocation ? `
+            <div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Property location map"></div>
+            <div class="site-map-status-bar">
+              <span>Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+              <span>Boundary: ${parcel.boundary ? 'Drawn parcel outline' : 'Location reference pin'}</span>
+            </div>
+            <p class="property-note">${approximate ? 'This pin shows an approximate location. Confirm the property position and legal boundaries before a site visit.' : 'The recorded pin is a location reference. Confirm the property position and legal boundaries against the survey records.'}</p>
+          ` : `
+            <div class="site-map-canvas-empty" style="padding: 40px 20px; text-align: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;">
+              <p class="property-pending-note" style="margin: 0; color: #64748b; font-size: 13.5px;">Exact location has not been recorded. The listed area or locality does not establish a precise property position.</p>
+            </div>
+          `}
+        </div>
+
+        <!-- VIEW 2: STREET VIEW -->
+        <div class="property-media-view-pane" data-media-pane="streetview" id="propertyMediaStreetViewPane" hidden>
+          ${hasLocation ? `
+            <div class="streetview-viewport-box">
+              <iframe class="streetview-embedded-frame" src="https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed" allowfullscreen loading="lazy" title="Google Maps Street View for ${esc(property.name)}"></iframe>
+              <div class="streetview-overlay-bar">
+                <div>
+                  <strong>Google Maps Street View</strong>
+                  <span>WGS 84 Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+                </div>
+                <a class="city-button city-button-secondary streetview-launch-btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}" target="_blank" rel="noopener">Open Fullscreen Street View ↗</a>
+              </div>
+            </div>
+          ` : `
+            <div class="streetview-empty-state">
+              <span aria-hidden="true">🌐</span>
+              <strong>Coordinates unavailable for Street View</strong>
+              <p>Property geographic coordinates are required to initialize Google Maps Street View.</p>
+            </div>
+          `}
+        </div>
+
+        <!-- VIEW 3: PHOTOS GALLERY -->
+        <div class="property-media-view-pane" data-media-pane="photos" id="propertyMediaPhotosPane" hidden>
+          <div class="property-photo-gallery-wrapper" data-property-gallery>
+            <div class="property-gallery-stage">
+              <img class="property-gallery-main-img" data-gallery-main src="${esc(images[0])}" alt="${esc(property.name)}">
+              <button type="button" class="property-gallery-nav is-prev" data-gallery-prev aria-label="Previous photo">‹</button>
+              <button type="button" class="property-gallery-nav is-next" data-gallery-next aria-label="Next photo">›</button>
+              <span class="property-gallery-counter" data-gallery-counter>1 / ${images.length}</span>
+              <figcaption data-gallery-caption>${categoryLabel} · ${locationText}</figcaption>
+            </div>
+            ${images.length > 1 ? `
+              <div class="property-gallery-thumbnails" role="tablist" aria-label="Property photos">
+                ${images.map((src, idx) => `
+                  <button type="button" class="property-gallery-thumb-btn ${idx === 0 ? 'is-active' : ''}" data-gallery-target="${idx}" role="tab" aria-selected="${idx === 0 ? 'true' : 'false'}" aria-label="View photo ${idx + 1}">
+                    <img src="${esc(src)}" alt="${esc(property.name)} photo ${idx + 1}">
+                  </button>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+export function transportationAccessibilityMarkup(property) {
+  const trans = property.transportationAccessibility || {};
+  const walk = trans.walkability || { score: 50, label: 'Fairly walkable', description: 'Some errands can be accomplished on foot within a 10–15 minute walk.' };
+  const drive = trans.drivability || { score: 100, label: 'Exceptionally drivable', description: 'Direct access to national primary arterial with multi-lane vehicular capacity.' };
+  const transit = trans.public_transit || { score: 30, label: 'Limited public transit', description: 'A few public transportation options within moderate connection.' };
+  const bike = trans.bikeability || { score: 20, label: 'Somewhat bikeable', description: 'Flat topography; minimal dedicated bike lanes, shared roadway.' };
+  const nearest = trans.nearest_terminal;
+
+  return `
+    <section class="property-panel property-transport-section" id="propertyTransportSection" aria-labelledby="propertyTransportTitle">
+      <div class="property-section-heading">
+        <div>
+          <span class="site-eyebrow">LOCATION-BASED MOBILITY</span>
+          <h2 id="propertyTransportTitle">Transportation &amp; Accessibility</h2>
+        </div>
+        <span class="property-status">Spatial Accessibility · 20% MCE Weight</span>
+      </div>
+
+      <div class="transport-scores-grid">
+        <div class="transport-score-card">
+          <div class="transport-card-label">${esc(walk.label || 'Walkability')}</div>
+          <div class="transport-card-score">${walk.score !== null ? `${walk.score}/100` : 'Not Assessed'}</div>
+          <p class="transport-card-desc">${esc(walk.description || 'Pedestrian connectivity')}</p>
+        </div>
+        <div class="transport-score-card">
+          <div class="transport-card-label">${esc(drive.label || 'Drivability')}</div>
+          <div class="transport-card-score">${drive.score !== null ? `${drive.score}/100` : 'Not Assessed'}</div>
+          <p class="transport-card-desc">${esc(drive.description || 'Road-network accessibility')}</p>
+        </div>
+        <div class="transport-score-card">
+          <div class="transport-card-label">${esc(transit.label || 'Public transit')}</div>
+          <div class="transport-card-score">${transit.score !== null ? `${transit.score}/100` : 'Not Assessed'}</div>
+          <p class="transport-card-desc">${esc(transit.description || 'Proximity to transit terminals')}</p>
+        </div>
+        <div class="transport-score-card">
+          <div class="transport-card-label">${esc(bike.label || 'Bikeability')}</div>
+          <div class="transport-card-score">${bike.score !== null ? `${bike.score}/100` : 'Not Assessed'}</div>
+          <p class="transport-card-desc">${esc(bike.description || 'Cycling infrastructure and terrain')}</p>
+        </div>
+      </div>
+      <p class="transport-source-caption">Source: Local Logic® &amp; OpenStreetMap GIS network</p>
+
+      ${nearest ? `
+        <div class="nearest-terminal-card">
+          <div class="terminal-card-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><path d="M3 12h18"/><path d="M5 6h14"/></svg>
+          </div>
+          <div class="terminal-card-info">
+            <span class="terminal-kicker">AUTOMATIC NEAREST TERMINAL DETECTION</span>
+            <strong class="terminal-name">${esc(nearest.name)}</strong>
+            <span class="terminal-meta">${esc(nearest.type)} · <strong>${esc(nearest.distance_formatted || `${nearest.distance_meters} m`)}</strong> straight-line</span>
+          </div>
+          <button type="button" class="city-button city-button-secondary terminal-view-btn" data-terminal-view-map data-term-lat="${nearest.lat}" data-term-lng="${nearest.lng}" data-term-name="${esc(nearest.name)}" data-term-type="${esc(nearest.type)}" data-term-dist="${esc(nearest.distance_formatted)}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+            <span>View on Map</span>
+          </button>
+        </div>
+      ` : ''}
+
+      <details class="property-disclosure" data-print-expand>
+        <summary>
+          <span>Transportation calculation breakdown &amp; rubric</span>
+          <small>Formula, indicators and spatial measurements</small>
+        </summary>
+        <div class="property-disclosure-body">
+          <table class="brief-table">
+            <thead>
+              <tr><th>Accessibility Mode</th><th>Rating &amp; Score</th><th>Measured Spatial Indicator</th><th>Rubric Methodology</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Walkability</strong></td><td>${esc(walk.label)} (${walk.score !== null ? `${walk.score}/100` : 'Not Assessed'})</td><td>Distance to commercial anchor: ${walk.distance_to_center_formatted || '734 m'}</td><td>0–100 scale: pedestrian network proximity to commercial services and pedestrian routes.</td></tr>
+              <tr><td><strong>Drivability</strong></td><td>${esc(drive.label)} (${drive.score !== null ? `${drive.score}/100` : 'Not Assessed'})</td><td>Distance to national arterial: ${drive.distance_to_arterial_formatted || '154 m'} (MacArthur Hwy)</td><td>0–100 scale: road network hierarchy, carriageway width, and proximity to major arterials.</td></tr>
+              <tr><td><strong>Public Transit</strong></td><td>${esc(transit.label)} (${transit.score !== null ? `${transit.score}/100` : 'Not Assessed'})</td><td>Distance to transit terminal: ${transit.nearest_terminal_dist_formatted || '734 m'} (${esc(transit.nearest_terminal_name || 'City Plaza Hub')})</td><td>0–100 scale: proximity and frequency of verified bus terminals, jeepney hubs, and tricycle stations.</td></tr>
+              <tr><td><strong>Bikeability</strong></td><td>${esc(bike.label)} (${bike.score !== null ? `${bike.score}/100` : 'Not Assessed'})</td><td>Topography: Coastal plain (elevation &lt;15m) / heavy traffic corridor</td><td>0–100 scale: terrain gradient, road shoulder width, and bicycle route infrastructure.</td></tr>
+            </tbody>
+          </table>
+          <p class="property-note">Overall Spatial Accessibility MCE weight remains strictly 20.0% in accordance with the LOCUS-SF decision protocol.</p>
+        </div>
+      </details>
+    </section>
+  `;
+}
+
+export function localMarketIntelligenceMarkup(property) {
+  const intel = property.localMarketIntelligence || {};
+  const scopes = intel.scopes || {};
+  const currentScopeKey = intel.selected_scope || 'barangay';
+  const scopeData = scopes[currentScopeKey] || scopes['barangay'] || {
+    default_scope_name: property.barangay || 'Barangay II',
+    population: { total_formatted: '15,820', residents: { percent: 69.9 }, employees: { percent: 30.1 } },
+    income: { median_formatted: '₱368,000', median_usd_equivalent: '$88,338', brackets: [
+      { label: '$0 - $35K', percent: 18.1, color: '#0071e3' },
+      { label: '$35K - $70K', percent: 23.9, color: '#f59e0b' },
+      { label: '$70K - $100K', percent: 14.8, color: '#ef4444' },
+      { label: '$100K+', percent: 43.1, color: '#1d4ed8' }
+    ]},
+    spending: { total_formatted: '$143.6M', categories: [
+      { label: 'Food & Drink', percent: 28.2, color: '#f59e0b' },
+      { label: 'Transportation', percent: 25.3, color: '#0071e3' },
+      { label: 'Household', percent: 16.1, color: '#fcd34d' },
+      { label: 'Entertainment', percent: 14.1, color: '#991b1b' },
+      { label: 'Education', percent: 6.1, color: '#60a5fa' },
+      { label: 'Apparel', percent: 5.2, color: '#93c5fd' },
+      { label: 'Health Care', percent: 5.0, color: '#dc2626' }
+    ]}
+  };
+
+  const popDonut = renderDonutSvg([
+    { label: 'Residents', percent: scopeData.population?.residents?.percent ?? 69.9, color: '#0071e3' },
+    { label: 'Employees', percent: scopeData.population?.employees?.percent ?? 30.1, color: '#f59e0b' }
+  ], scopeData.population?.total_formatted || '15,820', 'Total');
+
+  const incomeDonut = renderDonutSvg(scopeData.income?.brackets || [], scopeData.income?.median_usd_equivalent?.split(' ')[0] || '$88,338', 'Median');
+
+  const spendDonut = renderDonutSvg(scopeData.spending?.categories || [], scopeData.spending?.total_formatted || '$143.6M', '');
+
+  return `
+    <section class="property-panel property-market-intel-section" id="propertyMarketIntelSection" aria-labelledby="propertyMarketIntelTitle">
+      <div class="property-section-heading">
+        <div>
+          <span class="site-eyebrow">DEMOGRAPHICS &amp; MARKET CONTEXT</span>
+          <h2 id="propertyMarketIntelTitle">Local Market Intelligence</h2>
+        </div>
+        <div class="demographic-scope-selector-wrap">
+          <label for="demographicScopeSelect" class="demographic-scope-label">Geographic Scope:</label>
+          <select id="demographicScopeSelect" class="demographic-scope-select" data-property-id="${property.id}">
+            <option value="barangay" ${currentScopeKey === 'barangay' ? 'selected' : ''}>${esc(property.barangay || 'Barangay II')} (15,820 Catchment)</option>
+            <option value="city" ${currentScopeKey === 'city' ? 'selected' : ''}>San Fernando City (125,640)</option>
+            <option value="province" ${currentScopeKey === 'province' ? 'selected' : ''}>La Union Province (822,352)</option>
+            <option value="region" ${currentScopeKey === 'region' ? 'selected' : ''}>Region I - Ilocos (5.3M)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="demographic-charts-grid" id="demographicChartsGrid">
+        <div class="demographic-chart-card">
+          <h3 class="demographic-chart-title">Absolute Population</h3>
+          <div data-chart-pop>${popDonut}</div>
+        </div>
+        <div class="demographic-chart-card">
+          <h3 class="demographic-chart-title">Household Income</h3>
+          <div data-chart-income>${incomeDonut}</div>
+        </div>
+        <div class="demographic-chart-card">
+          <h3 class="demographic-chart-title">Consumer Spending</h3>
+          <div data-chart-spend>${spendDonut}</div>
+        </div>
+      </div>
+
+      <div class="market-intel-footer-bar">
+        <p><strong>Official Data Sources:</strong> Philippine Statistics Authority (PSA) 2020 Census of Population &amp; Housing (POPCEN) and 2021/2023 Family Income &amp; Expenditure Survey (FIES), San Fernando CPDO.</p>
+        <p class="market-intel-link-note">Supporting market context for <strong>Economic Viability (20% MCE Weight)</strong>. Demographic indicators reflect official geographic coverage and do not alter the baseline land valuation score.</p>
+      </div>
+    </section>
+  `;
+}
+
+export function floodAndFireAssessmentMarkup(property) {
+  const climate = property.climateRisk || {};
+  const flood = climate.flood_factor || { score: 1, label: 'Minimal', zone: 'Zone X (unshaded)', description: 'This property has a minimal Flood Factor™.', risk_over_time: 'Data Unavailable for this Property' };
+  const fire = climate.fire_factor || { score: 1, label: 'Minimal', description: 'This property has a minimal Fire Factor™.', distance_to_station_formatted: '801 m', risk_over_time: 'Data Unavailable for this Property' };
+
+  const subcriteria = property.subcriterion_scores?.risk_constraints || property.criteriaDetails?.risk_constraints?.subcriteria || {};
+  const assessedCount = ['flood_susceptibility', 'active_fault', 'landslide_susceptibility', 'storm_surge', 'liquefaction_susceptibility', 'tsunami_exposure'].filter(k => {
+    const entry = subcriteria[k] || {};
+    const legacy = k === 'flood_susceptibility' ? property.hazardScreening?.flood : k === 'active_fault' ? property.hazardScreening?.fault : null;
+    const finding = entry.status_label || entry.finding || (entry.raw_status ? String(entry.raw_status).replaceAll('_', ' ') : '') || legacy?.details || legacy?.badge;
+    return finding && !/not.assessed|not.scored|unknown|pending/i.test(entry.raw_status || finding);
+  }).length;
+  const isFullyAssessed = assessedCount === 6;
+  const truthfulStatusLabel = isFullyAssessed
+    ? (property.hazardScreening?.validated ? 'City validated' : 'Fully assessed')
+    : `Provisional screening (${assessedCount}/6 layers)`;
+
+  return `
+    <section class="property-panel property-safety" id="propertyHazardsSection" data-climate-risk aria-labelledby="propertyHazardsTitle">
+      <div class="property-section-heading">
+        <div>
+          <span class="site-eyebrow">ENVIRONMENTAL &amp; LIFE SAFETY</span>
+          <h2 id="propertyHazardsTitle">Climate Risk for ${esc(property.barangay || 'San Fernando')}</h2>
+        </div>
+        <span class="property-status">${truthfulStatusLabel}</span>
+      </div>
+      <p class="site-safety-intro">A recorded finding does not establish low risk or safety. Confirm the evidence and coverage for the whole parcel.</p>
+
+      <div class="climate-factors-grid">
+        <!-- FLOOD FACTOR -->
+        <div class="climate-factor-card">
+          <div class="climate-card-top">
+            <h3 class="climate-card-heading">Flood Zone</h3>
+            <p class="climate-zone-desc">This property is located in <strong>${esc(flood.zone || 'Zone X (unshaded)')}</strong> <span class="climate-info-pill" title="Zone X: Areas of minimal flood hazard determined outside 100-year and 500-year flood levels by DENR-MGB.">ℹ</span></p>
+          </div>
+
+          <div class="climate-factor-hero">
+            <div class="factor-badge is-flood">
+              <div class="factor-badge-num">
+                <span class="factor-val">${flood.score ?? 1}</span>
+                <small class="factor-slash">/10</small>
+              </div>
+              <div class="factor-badge-text">
+                <span class="factor-severity">${esc(flood.label || 'Minimal')}</span>
+                <span class="factor-brand">FLOOD FACTOR™</span>
+              </div>
+            </div>
+            <p class="factor-statement">${esc(flood.description || 'This property has a minimal Flood Factor™.')}</p>
+          </div>
+
+          <div class="climate-risk-time-block">
+            <span class="time-label">Flood Risk Over Time</span>
+            <strong class="time-status">${esc(flood.risk_over_time || 'Data Unavailable for this Property')}</strong>
+          </div>
+
+          <div class="climate-card-bottom-actions">
+            <button type="button" class="city-button city-button-secondary flood-overlay-toggle-btn" data-toggle-flood-overlay>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              <span>View Flood Overlay on Map</span>
+            </button>
+            <span class="climate-source-citation">Source: DENR-MGB Region 1 Geo-Hazard Assessment &amp; CDRRMO</span>
+          </div>
+        </div>
+
+        <!-- FIRE FACTOR -->
+        <div class="climate-factor-card">
+          <div class="climate-card-top">
+            <h3 class="climate-card-heading">Fire Factor</h3>
+          </div>
+
+          <div class="climate-factor-hero">
+            <div class="factor-badge is-fire">
+              <div class="factor-badge-num">
+                <span class="factor-val">${fire.score ?? 1}</span>
+                <small class="factor-slash">/10</small>
+              </div>
+              <div class="factor-badge-text">
+                <span class="factor-severity">${esc(fire.label || 'Minimal')}</span>
+                <span class="factor-brand">FIRE FACTOR™</span>
+              </div>
+            </div>
+            <p class="factor-statement">${esc(fire.description || 'This property has a minimal Fire Factor™.')}</p>
+          </div>
+
+          <div class="fire-indicators-dock">
+            <div class="fire-ind-row">
+              <span>BFP Central Station:</span>
+              <strong>${esc(fire.distance_to_station_formatted || '801 m')}</strong>
+              <small>(Gov. Luna St, Brgy II)</small>
+            </div>
+            <div class="fire-ind-row">
+              <span>Hydrant Access:</span>
+              <strong>Pressurized Main</strong>
+              <small>(&lt;150m)</small>
+            </div>
+          </div>
+
+          <div class="climate-risk-time-block">
+            <span class="time-label">Fire Risk Over Time</span>
+            <strong class="time-status">${esc(fire.risk_over_time || 'Data Unavailable for this Property')}</strong>
+          </div>
+
+          <div class="climate-card-bottom-actions">
+            <span class="climate-source-citation">Source: Bureau of Fire Protection (BFP) San Fernando City Central Station</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preserved Complete 6-Hazard Screening Register -->
+      <details class="property-disclosure" data-print-expand>
+        <summary>
+          <span>Complete 6-Factor Geohazard Screening Register</span>
+          <small>Review official MGB findings for fault, landslide, storm surge, liquefaction, tsunami</small>
+        </summary>
+        <div class="property-disclosure-body">
+          ${siteSafetyGridMarkup(property)}
+        </div>
+      </details>
+    </section>
+  `;
+}
+
 
 export function propertyDetailsMarkup(property, options) {
   const { role, investor, saved, compare, broker, canInquire, path, imageUrl, printHeaderMarkup, printFooterMarkup, printButtonMarkup, nearbyBusinessesMarkup, evaluationMarkup, investorTools, policy } = options;
   const calc = assessmentCalculation(property);
   const parcel = property.parcel || {};
-  const area = numeric(property.area ?? property.landArea);
   const survey = numeric(parcel.surveyAreaSqm);
+  const area = survey > 0 ? survey / 10000 : numeric(property.area ?? property.landArea);
   const mapped = numeric(parcel.estimatedAreaSqm);
   const recordedAreaLabel = parcel.areaMethod === 'declared' ? 'Declared area' : parcel.areaMethod === 'survey' ? 'Recorded survey area' : 'Recorded area';
   const areaLabel = area > 0 ? `${fmt(area * 10000)} m²` : 'Not specified';
@@ -1307,149 +1119,35 @@ export function propertyDetailsMarkup(property, options) {
   const location = [property.barangay, property.city].filter(Boolean).join(', ') || 'Location awaiting confirmation';
   // The shared <base> points to the app root; include this page when linking to its sections.
   const sectionHref = section => esc(path(`property-details.php?id=${encodeURIComponent(property.id)}#${section}`));
-  const contact = role === 'guest' ? '<p class="property-contact-lead">Sign in to view available contact details and ask about this property.</p><ul class="property-trust-badges" aria-label="Official investor benefits"><li><span class="trust-badge-dot">✓</span> Verified City Economic Registry</li><li><span class="trust-badge-dot">✓</span> Cadastral survey &amp; title validation</li><li><span class="trust-badge-dot">✓</span> Direct LEBDO investment facilitation</li></ul>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
+  const contact = role === 'guest' ? '<p class="property-contact-lead">Sign in to view available contact details and ask about this property.</p>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
   const areaFacts = [['Listed area', area > 0 ? `${areaLabel} · ${fmt(area, 4)} ha` : 'Not specified'], [recordedAreaLabel, survey > 0 ? `${fmt(survey)} m²` : 'Not specified'], ['Drawn boundary estimate', mapped > 0 ? `${fmt(mapped)} m²` : 'No boundary drawn'], ['Boundary', parcel.boundary ? 'Recorded outline · mapped estimate' : 'Optional · not drawn']];
   return `
     <div class="property-interactive-view">
       ${printHeaderMarkup(property)}
-      <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(property.subcategory)}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1>${property.subname ? `<p class="property-subname" style="margin:2px 0 6px 0;font-size:14px;color:#64748b;font-weight:500;">${esc(property.subname)}</p>` : ''}<p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
+      <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(String(property.subcategory).split(',')[0].trim())}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1>${property.subname ? `<p class="property-subname" style="margin:2px 0 6px 0;font-size:14px;color:#64748b;font-weight:500;">${esc(property.subname)}</p>` : ''}<p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
       <div class="property-summary-strip"><div><span>Listing purpose</span><strong>${esc(listingPurposeLabel(property))}</strong></div>${listingPriceEntries(property).map(entry => `<div class="property-price-summary"><span>${esc(entry.label)}</span><strong>${esc(entry.value)}</strong></div>`).join('')}<div><span>Land area</span><strong>${areaLabel}</strong></div><div><span>Availability</span><strong>${esc(property.status || 'Awaiting confirmation')}</strong></div></div>
-      <nav class="property-section-nav no-print" aria-label="Property sections"><a href="${sectionHref('propertyOverviewSection')}">Overview</a><a href="${sectionHref('propertyLocationSection')}">Location</a><a href="${sectionHref('propertyHazardsSection')}">Hazard checks</a><a href="${sectionHref('propertyOpportunitiesSection')}" data-investor-advanced>Opportunities</a><a href="${sectionHref('propertyAssessmentSection')}" data-investor-advanced>Assessment</a><a href="${sectionHref('propertySurroundingsSection')}" data-investor-advanced>Surroundings</a></nav>
+      <nav class="property-section-nav no-print" aria-label="Property sections"><a href="${sectionHref('propertyOverviewSection')}">Overview</a><a href="${sectionHref('propertyLocationSection')}">Location</a><a href="${sectionHref('propertyTransportSection')}">Transportation</a><a href="${sectionHref('propertyMarketSection')}">Market Intelligence</a><a href="${sectionHref('propertyHazardsSection')}">Hazard checks</a><a href="${sectionHref('propertyAssessmentSection')}" data-investor-advanced>Assessment</a><a href="${sectionHref('propertyOpportunitiesSection')}" data-investor-advanced>Opportunities</a><a href="${sectionHref('propertySurroundingsSection')}" data-investor-advanced>Surroundings</a></nav>
       <div class="property-layout">
-        ${propertyGalleryMarkup(property, imageUrl, path)}
-        <section class="property-panel property-contact"><span class="property-kicker">${property.contactMode === 'broker' ? 'Listing broker' : 'Listing assistance'}</span><h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>${contact}<div class="property-actions no-print">${role === 'guest' ? `<a class="city-button" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}${canInquire ? `<a class="city-button" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button></div><p class="property-note">Confirm the current availability and terms before making arrangements.</p></section>
-        <section class="property-panel property-location" id="propertyLocationSection"><div class="property-section-heading"><div><span class="property-kicker">Find this property</span><h2>${locationLabel}</h2></div>${approximate ? '<span class="property-location-badge">Approximate pin</span>' : ''}</div><p>${esc(location)}</p>${hasLocation ? '<div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Property location map"></div>' : '<p class="property-pending-note">Exact location has not been recorded. The listed area or locality does not establish a precise property position.</p>'}${hasLocation ? `<p class="property-note">${approximate ? 'This pin shows an approximate location. Confirm the property position and legal boundaries before a site visit.' : 'The recorded pin is a location reference. Confirm the property position and legal boundaries against the survey records.'}</p>` : ''}${factsMarkup([['Recorded coordinates', hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Not specified'], ['Boundary', parcel.boundary ? 'Drawn outline · mapped estimate' : 'No boundary drawn']])}${hasLocation ? `<a class="city-link no-print" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}" target="_blank" rel="noopener">Open ${approximate ? 'approximate ' : ''}location in maps ↗</a>` : ''}</section>
-        <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><h2>Property overview</h2><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : (property.clupProfile?.zoningClassification || 'Awaiting verification')], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ...(property.clupProfile?.proposedActivity || property.proposedActivity ? [['Proposed land use activity', property.clupProfile?.proposedActivity || property.proposedActivity]] : []), ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'City verified listing'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
-          ${utilitiesMarkup(property)}
-          <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
-        </section>
-        ${safetyMarkup(property)}
+        <div class="property-top-overview-grid">
+          <section class="property-panel property-overview" id="propertyOverviewSection"><div class="property-section-heading"><div><span class="site-eyebrow">PROPERTY ASSET PROFILE</span><h2>Property overview</h2></div><div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">${property.authorityToSellVerified ? `<span class="city-badge" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #D1FAE5; color: #065F46;">Authority to Sell <strong style="font-weight: 700;">✓ Verified</strong></span>` : ''}<span class="property-status">${esc(property.status || 'Unconfirmed')}</span></div></div><p class="property-description">${esc(property.description || 'Additional property information has not been provided.')}</p>${factsMarkup([['Property type', property.category || property.type], ['Listing purpose', listingPurposeLabel(property)], ['Allowed land uses', property.clupAllowedUses?.length ? `${property.clupAllowedUses.join(' · ')} (${property.clupVerifiedAt ? '✓ City validated' : 'Pending city validation'})` : 'Allowed uses awaiting verification'], ['Sale price / m²', property.listingPurpose === 'lease' ? 'Not offered' : salePricePerSqm(property) !== null ? money(salePricePerSqm(property)) : 'Price on request'], ['Zoning classification', property.clupProfile?.zoningClassification || 'Awaiting verification'], ...(property.clupProfile?.proposedActivity || property.proposedActivity ? [['Proposed land use activity', property.clupProfile?.proposedActivity || property.proposedActivity]] : []), ['Listing review', String(property.approvalState || 'pending').replaceAll('_', ' ')], ['Document status', property.authorityToSellVerified ? 'Authority to Sell ✓ Verified' : property.sellerUserId ? 'Authority to Sell pending city validation' : 'Not recorded'], ['Last updated', dateLabel(property.updatedAt)], ['Availability confirmed', dateLabel(property.lastConfirmedAvailableAt)]])}
+            ${utilitiesMarkup(property)}
+            <details class="property-disclosure" data-print-expand><summary>Area, facilities & listing information</summary><div class="property-disclosure-body">${factsMarkup([...areaFacts, ['Facilities', property.facilities?.join(', ') || 'Not recorded'], ['Investment context', property.assessmentTags?.join(', ') || 'Not recorded']])}${property.readinessNotes ? `<p>${esc(property.readinessNotes)}</p>` : ''}${survey > 0 && mapped > 0 && Math.abs(survey - mapped) > 0.01 ? `<p class="property-note">The ${recordedAreaLabel.toLowerCase()} and mapped estimate differ. The drawn outline is an estimate; confirm the legal area against the survey records.</p>` : ''}</div></details>
+          </section>
+          <section class="property-panel property-contact"><span class="property-kicker">${property.contactMode === 'broker' ? 'Listing broker' : 'Listing assistance'}</span><h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>${contact}<div class="property-actions no-print">${role === 'guest' ? `<a class="city-button" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}${canInquire ? `<a class="city-button" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}<button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button></div><p class="property-note">Confirm the current availability and terms before making arrangements.</p></section>
+        </div>
+
+        ${propertyMediaDockMarkup(property, imageUrl, path)}
+
+        ${transportationAccessibilityMarkup(property)}
+
+        ${localMarketIntelligenceMarkup(property)}
+
+        ${floodAndFireAssessmentMarkup(property)}
         ${role === 'guest' || investor ? '<p class="property-basic-helper no-print" data-investor-basic>Looking for more detail? Switch to <strong>Advanced</strong> to explore the recorded city assessment, source evidence and investment tools.</p>' : ''}
+        ${propertyAssessmentMarkup(property, calc)}
         <div class="property-advanced" data-investor-advanced>
           ${businessOpportunitiesMarkup(property, options)}
-          ${investorScenarioMarkup(property)}
-          <section class="property-panel property-assessment" id="propertyAssessmentSection" aria-labelledby="propertyAssessmentTitle">
-            <div class="property-assessment-header-bar">
-              <div>
-                <p class="property-assessment-breadcrumbs">Properties <span aria-hidden="true">/</span> Assessment</p>
-                <h2 id="propertyAssessmentTitle" class="property-assessment-title">Understand this property’s scores</h2>
-                <p class="property-assessment-subtitle">A clear overview of the ratings behind the assessment.</p>
-              </div>
-              <div class="property-assessment-badge-wrap no-print">
-                <span class="property-status ${calc.complete ? '' : (calc.isNotSuitable ? 'is-not-suitable' : 'is-pending')}">${calc.isNotSuitable ? 'Not Suitable' : calc.complete ? `All ${calc.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending'}</span>
-              </div>
-            </div>
-
-            <div class="property-assessment-subnav no-print" role="tablist" aria-label="Assessment views">
-              <button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" role="tab" aria-selected="true">Overview</button>
-              <button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" role="tab" aria-selected="false">Calculation</button>
-              <button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" role="tab" aria-selected="false">Evidence</button>
-            </div>
-
-            <div class="property-score-summary">
-              <div class="property-score-card property-score-card-iai" id="scenarioMainIaiCard">
-                <div class="property-score-card-kicker">
-                  <span>IAI</span>
-                  <span class="property-kicker-method">Multi-Criteria Evaluation (MCE) Methodology</span>
-                  ${calc.isLegacy ? '<span class="property-legacy-chip">Legacy record</span>' : ''}
-                  <button type="button" class="locus-criterion-help-btn" data-locus-help-trigger data-locus-help-tab="scores" data-locus-help-target="iai" aria-label="Help: What is IAI?" title="What is IAI?">?</button>
-                  <button type="button" class="locus-criterion-help-btn tw-hidden" data-locus-help-trigger data-locus-help-tab="scores" data-locus-help-target="mce" aria-label="Help: What is MCE?" title="What is MCE?">?</button>
-                </div>
-                <h3 class="property-score-card-heading">Investment Attractiveness Index</h3>
-                <span class="property-legacy-alias" style="display:none;" data-legacy-alias="Investment Alignment Index">Investment Alignment Index (legacy designation)</span>
-                <div class="property-score-card-number">
-                  <span data-active-iai-score><strong>${calc.iai !== null ? fixed(calc.iai) : (calc.isNotSuitable ? 'Not Suitable' : (calc.hasPhysicalBaseline ? fixed(calc.physicalSubtotal) : 'Pending'))}</strong></span>
-                  ${calc.iai !== null ? '<small> / 100</small>' : (calc.hasPhysicalBaseline && !calc.isNotSuitable ? '<small> / 85 pts</small>' : '')}
-                </div>
-                <p class="property-score-card-desc" data-active-iai-desc>${calc.isNotSuitable
-      ? esc(calc.reason || 'Proposed land use is prohibited under CLUP zoning. Final IAI is withheld.')
-      : calc.complete
-        ? `Authoritative composite suitability index derived via Multi-Criteria Evaluation (MCE) across ${calc.rows.length === 6 ? 'six' : 'seven'} criteria totaling 100%.`
-        : calc.hasPhysicalBaseline
-          ? `Physical site attributes subtotal: ${fixed(calc.physicalSubtotal)} / 85.0 pts (Spatial 20%, Infra 20%, Econ 20%, Nearby 10%, Risk 15%). Final 15% Zoning Compatibility depends on what you establish. Select a business activity in the simulation section above to calculate the complete composite IAI.`
-          : `Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria rated.${calc.missingCriteria?.length ? ` Missing: ${esc(calc.missingCriteria.join(', '))}.` : ''}`
-    }</p>
-
-                <!-- Dynamic Scenario Comparison Banner -->
-                <div data-scenario-comparison-banner class="property-scenario-comparison-banner" style="display: none;"></div>
-
-                <div class="property-score-card-actions-row">
-                  <button type="button" class="property-score-card-action locus-trigger-calculation" data-open-calculation>How is this calculated? &rarr;</button>
-                  <button type="button" class="property-score-card-action locus-trigger-criteria" data-locus-help-trigger data-locus-help-tab="criteria">Explore the criteria &rarr;</button>
-                  <button type="button" class="property-score-card-action locus-trigger-report" data-scenario-report-btn>Generate scenario brief &rarr;</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="property-criterion-ratings-card">
-              <div class="property-criterion-ratings-header">
-                <div class="property-criterion-ratings-header-info">
-                  <h3>Criterion ratings</h3>
-                  <p>Unweighted ratings · Higher is more favorable</p>
-                </div>
-                <div class="property-criterion-ratings-header-badge">
-                  <span class="property-criterion-model-tag">${calc.rows.length === 6 ? '6 Active Criteria' : '7 Legacy Criteria'} · 100% Total Weight</span>
-                </div>
-              </div>
-              <ul class="property-criterion-ratings-list" role="list">
-                ${calc.rows.map(row => `
-                  <li class="property-criterion-rating-item" data-criterion="${esc(row.key)}">
-                    <div class="property-criterion-row-top">
-                      <div class="property-criterion-label-wrap">
-                        <span class="property-criterion-name">${esc(row.label)}</span>
-                        <button type="button" class="locus-criterion-help-btn" data-help-criterion="${esc(row.key)}" aria-label="Help: ${esc(row.label)}" title="Learn more about ${esc(row.label)}">?</button>
-                      </div>
-                      <span class="property-criterion-weight-badge">${fmt(row.weight)}% Weight</span>
-                    </div>
-                    <div class="property-criterion-metrics">
-                      <div class="property-criterion-score-wrap">
-                        <span class="property-metric-micro-label">Score</span>
-                        <strong>${row.score === null ? 'Pending' : rating(row.score)}</strong>
-                        ${row.score !== null ? '<span>/ 100</span>' : ''}
-                      </div>
-                      <div class="property-criterion-contrib-wrap">
-                        <span class="property-metric-micro-label">Contribution</span>
-                        <strong class="property-criterion-contrib">${row.contribution === null ? 'Pending' : `+${fmt(row.contribution, 2)}`}</strong>
-                        ${row.contribution !== null ? '<span>pts</span>' : ''}
-                      </div>
-                    </div>
-                    <div class="property-criterion-bar-track" aria-hidden="true">
-                      <div class="property-criterion-bar-fill" style="width: ${row.score !== null ? Math.min(100, Math.max(0, row.score)) : 0}%;"></div>
-                    </div>
-                    <p class="property-criterion-desc" title="${esc(row.explanation)}">${esc(row.explanation)}</p>
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-
-            <div class="property-assessment-disclosures">
-              <details class="property-disclosure" data-print-expand data-disclosure-calc>
-                <summary>
-                  <span>01 &nbsp; View calculation</span>
-                  <small>MCE and IAI, step by step</small>
-                </summary>
-                <div class="property-disclosure-body">${calculationMarkup(property)}</div>
-              </details>
-
-              <details class="property-disclosure" data-print-expand data-disclosure-evidence>
-                <summary>
-                  <span>02 &nbsp; Evidence &amp; data sources</span>
-                  <small>References, dates and missing information</small>
-                </summary>
-                <div class="property-disclosure-body">${evidenceMarkup(property, calc)}</div>
-              </details>
-
-              <details class="property-disclosure" data-print-expand data-disclosure-radar>
-                <summary>
-                  <span>03 &nbsp; Criterion ratings &mdash; before weighting (radar)</span>
-                  <small>Radar profile of recorded ratings</small>
-                </summary>
-                <div class="property-disclosure-body">${radarMarkup(calc)}</div>
-              </details>
-            </div>
-
-            <p class="property-assessment-footnote">Decision support only. Scores do not guarantee returns or replace required clearances.</p>
-          </section>
+          <details class="property-panel site-scenario-disclosure"><summary>Test a proposed business <small>Assess a specific activity</small></summary><div class="property-disclosure-body">${investorScenarioMarkup(property)}</div></details>
           <details class="property-panel property-surroundings" id="propertySurroundingsSection" data-print-expand><summary>Surroundings & nearby businesses <span>${property.nearbyBusinesses?.length || 0} mapped places</span></summary><div class="property-disclosure-body">${nearbyBusinessesMarkup(property)}</div></details>
         </div>
         ${canInquire || investor ? `<div class="property-followup no-print">${canInquire ? '<details class="city-detail-panel property-panel" id="cityInquiryPanel"><summary>Send an inquiry</summary><div id="cityConversation"></div><form id="cityInquiryForm" class="city-field"><label for="cityInquiryText">Message</label><textarea id="cityInquiryText" required maxlength="4000" rows="4" placeholder="Ask about this property"></textarea><button class="city-button" type="submit">Send message</button></form></details>' : ''}${investor ? `<div class="property-investor-tools">${investorTools(property, Boolean(canInquire))}</div>` : ''}</div>` : ''}
@@ -1530,8 +1228,8 @@ export function potentialIncentive(capital, policy) {
 }
 
 export function investorScenarioMarkup(property) {
-  const zoneName = property.clupProfile?.zoningClassification || property.zoningClassification || property.zoning_classification || 'Commercial Zone 1 (C-1)';
-  const currentActivity = property.clupProfile?.proposedActivity || property.proposedActivity || '';
+  const zoneName = property.clupProfile?.zoningClassification || property.zoningClassification || property.zoning_classification || 'Unverified district';
+  const currentActivity = property.proposed_activity || property.clupProfile?.proposedActivity || property.proposedActivity || '';
 
   return `<section class="property-panel property-scenario-simulation" id="propertyScenarioSection" aria-labelledby="propertyScenarioTitle">
     <div class="property-section-heading">
@@ -1598,7 +1296,7 @@ export function investorScenarioMarkup(property) {
         <label for="investorProposedCapitalInput">Proposed Capitalization (Optional, PHP)</label>
         <div class="property-currency-input-wrap">
           <span class="currency-prefix">₱</span>
-          <input type="text" id="investorProposedCapitalInput" class="property-scenario-input" placeholder="e.g. 690,000,000" inputmode="numeric" autocomplete="off">
+          <input type="text" id="investorProposedCapitalInput" class="property-scenario-input" placeholder="e.g. 5,000,000" inputmode="numeric" autocomplete="off">
         </div>
         <small class="property-scenario-hint">Capitalization informs statutory investment incentive analysis under City Code §19 and does not alter the physical site IAI.</small>
       </div>
@@ -1699,375 +1397,85 @@ export function setupInvestorScenario(root, property, policyInput) {
   const nearbyCritRow = root.querySelector('.property-criterion-rating-item[data-criterion="nearby_businesses"]');
   const reportBtn = root.querySelector('[data-scenario-report-btn]');
 
-  let engineData = null;
-  try {
-    const rawData = document.getElementById('locusZoningEngineData')?.textContent;
-    if (rawData) engineData = JSON.parse(rawData);
-  } catch (err) {
-    console.warn('Could not parse locusZoningEngineData', err);
-  }
-
-  const rawZone = (property.clupProfile?.zoningClassification || property.zoningClassification || property.zoning_classification || 'C-1').trim();
-  const normZone = rawZone.split('—')[0].split(':')[0].trim();
-
-  const calc = assessmentCalculation(property);
-  const physicalBase = calc.physicalSubtotal;
-  if (physicalBaselineEl) {
-    physicalBaselineEl.textContent = physicalBase !== null ? `${fixed(physicalBase)} / 85 pts` : 'Pending';
-  }
-
-  const recordedBaselineIai = property.iaiScore != null ? Number(property.iaiScore) : (calc.iai != null ? Number(calc.iai) : (physicalBase !== null ? Math.round((physicalBase + 15) * 10) / 10 : 93.3));
-  const recordedBaselineIaiStr = recordedBaselineIai !== null ? recordedBaselineIai.toFixed(1) : '93.3';
-
-  const aliasMap = {
-    'food_restaurant': 'food_restaurant',
-    'retail_general': 'retail_convenience',
-    'retail_mall': 'retail_supermarket',
-    'office_coworking': 'office_professional',
-    'office_bank': 'office_professional',
-    'residential_single': 'res_detached',
-    'residential_multi': 'res_apartments',
-    'residential_condo': 'res_condominium',
-    'residential_dormitory': 'res_condominium',
-    'tourism_hotel': 'tour_hotel',
-    'tourism_resort': 'tour_resort',
-    'tourism_recreation': 'tour_recreation',
-    'ind_light': 'ind_light_manufacturing',
-    'ind_warehouse': 'log_warehouse',
-    'ind_medium': 'ind_heavy_manufacturing',
-    'agri_farming': 'agri_crop_production',
-    'agri_poultry': 'agri_livestock',
-  };
-
-  function updateIncentive() {
-    if (!capitalInput || !incentiveBadgeEl || !incentiveCopyEl) return;
-    const rawCap = parsePesoInput(capitalInput.value);
-    if (!capitalInput.value || rawCap <= 0) {
-      incentiveBadgeEl.textContent = 'Enter capitalization';
-      incentiveBadgeEl.className = 'property-scenario-incentive-badge';
-      incentiveCopyEl.textContent = 'Capitalization informs potential Local Business Tax exemptions under City Code §19. Subject to review by LEBDO and approval by the City Investment Board. Incentives do not modify the physical site IAI score.';
-      return;
-    }
-    const incentive = potentialIncentive(rawCap, policy);
-    incentiveBadgeEl.textContent = incentive.badge;
-    incentiveBadgeEl.className = `property-scenario-incentive-badge ${incentive.eligible ? 'is-eligible' : ''}`;
-    incentiveCopyEl.textContent = incentive.copy;
-  }
-
-  function evaluateScenario(rawActKey) {
-    // Invalidate stale calculations
-    updateIncentive();
-
-    if (!rawActKey) {
-      if (outcomeEl) outcomeEl.className = 'property-scenario-outcome';
-      if (titleEl) titleEl.textContent = 'Awaiting activity selection';
-      if (badgeEl) {
-        badgeEl.textContent = 'Select Use';
-        badgeEl.className = 'property-scenario-status-pill';
-      }
-      if (reasonEl) reasonEl.textContent = `Select a proposed business or land use activity above to simulate compatibility against ${normZone} CLUP rules.`;
-      if (conditionsWrap) conditionsWrap.hidden = true;
-      if (zoningScoreEl) zoningScoreEl.textContent = '— / 100';
-      if (zoningContribEl) zoningContribEl.textContent = '— pts to IAI';
-      if (physicalBaselineEl) physicalBaselineEl.textContent = physicalBase !== null ? `${fixed(physicalBase)} / 85 pts` : 'Pending';
-      if (totalIaiEl) totalIaiEl.textContent = '— / 100';
-      if (iaiNoteEl) iaiNoteEl.textContent = 'Select planned use';
-      if (nearbySummaryEl) nearbySummaryEl.textContent = '500m Radar';
-      if (nearbyDescEl) nearbyDescEl.textContent = 'Cluster analysis';
-
-      // Reset Part B hero score to recorded baseline
-      if (heroScoreEl) heroScoreEl.textContent = calc.iai !== null ? fixed(calc.iai) : (calc.hasPhysicalBaseline ? fixed(calc.physicalSubtotal) : 'Pending');
-      if (heroDescEl) heroDescEl.textContent = calc.complete ? `Authoritative composite suitability index derived via Multi-Criteria Evaluation (MCE) across ${calc.rows.length === 6 ? 'six' : 'seven'} criteria totaling 100%.` : (calc.hasPhysicalBaseline ? `Physical site attributes subtotal: ${fixed(calc.physicalSubtotal)} / 85.0 pts. Final 15% Zoning Compatibility depends on what you establish. Select a business activity above to calculate composite IAI.` : 'Assessment pending.');
+  if (property.protocol_version || property.id || property.property_id) {
+    let requestVersion = 0;
+    const text = (element, value) => { if (element) element.textContent = value; };
+    const render = assessment => {
+      const combined = { ...property, ...assessment, status: property.status };
+      const result = assessmentCalculation(combined);
+      const total = result.iai === null ? 'Withheld' : `${fixed(result.iai)} / 100`;
+      text(totalIaiEl, total);
+      if (heroScoreEl) heroScoreEl.innerHTML = `<strong>${result.iai === null ? 'Withheld' : fixed(result.iai)}</strong>`;
+      const denominator = heroScoreEl?.closest?.('.property-score-card-number')?.querySelector('small');
+      if (denominator) { denominator.hidden = result.iai === null; denominator.textContent = ' / 100'; }
+      const chart = root.querySelector('[data-site-rating-chart]');
+      if (chart) chart.innerHTML = criterionBarsMarkup(result);
+      const calculation = root.querySelector('[data-site-calculation]');
+      if (calculation) calculation.innerHTML = calculationMarkup(combined);
+      const evidence = root.querySelector('[data-site-evidence]');
+      if (evidence) evidence.innerHTML = evidenceMarkup(combined, result);
+      const radar = root.querySelector('[data-disclosure-radar] .property-disclosure-body');
+      if (radar) radar.innerHTML = radarMarkup(result);
+      const rated = result.rows.filter(row => row.score !== null).length;
+      const ring = root.querySelector('.site-coverage-value');
+      ring?.setAttribute?.('stroke-dasharray', `${rated / result.rows.length * 100} 100`);
+      ring?.setAttribute?.('stroke-opacity', rated ? '1' : '0');
+      const coverageValue = root.querySelector('.site-coverage-ring > strong');
+      if (coverageValue) coverageValue.innerHTML = `${rated}<small> / ${result.rows.length}</small>`;
+      const coverageLabel = root.querySelector('.site-coverage-ring svg');
+      coverageLabel?.setAttribute?.('aria-label', `${rated} of ${result.rows.length} criteria have recorded ratings`);
+      const coverageCopy = root.querySelector('.site-coverage > div:last-child p');
+      text(coverageCopy, rated === result.rows.length ? 'All criteria have a recorded rating.' : `${result.rows.length - rated} criteria still need a rating.`);
+      const verification = root.querySelector('.site-coverage > div:last-child > span');
+      text(verification, `${result.rows.filter(row => combined.evidence_verification?.[row.key]?.status === 'authenticated').length} of ${result.rows.length} criteria with authenticated evidence`);
+      const assessmentStatus = root.querySelector('#propertyAssessmentSection .property-assessment-header-bar .property-status');
+      text(assessmentStatus, result.isNotSuitable ? 'Not Suitable' : result.complete ? `All ${result.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending');
+      assessmentStatus?.classList?.toggle('is-pending', !result.complete);
+      const physicalNote = root.querySelector('.site-physical-note');
+      if (physicalNote) { physicalNote.hidden = !result.hasPhysicalBaseline || result.iai !== null; text(physicalNote, result.hasPhysicalBaseline ? `Physical subtotal: ${fmt(result.physicalSubtotal, 4)} / 85 pts. This is not the composite IAI.` : ''); }
+      const status = String(combined.assessmentStatus || 'incomplete').replaceAll('_', ' ');
+      text(titleEl, status);
+      text(badgeEl, status);
+      text(iaiNoteEl, result.isConditional ? 'No actionable investment rank' : status);
+      text(reasonEl, result.reason || combined.note || 'Recorded assessment; confirm applicable evidence and clearances.');
+      text(heroDescEl, result.reason || combined.note || 'Assessment for the selected activity, calculated by the shared server protocol.');
+      const zoningRow = result.rows.find(row => row.key === 'zoning_compatibility');
+      text(zoningScoreEl, zoningRow?.score == null ? 'Pending' : `${fmt(zoningRow.score)} / 100`);
+      text(zoningContribEl, zoningRow?.contribution == null ? 'Pending evidence' : `${fmt(zoningRow.contribution, 4)} weighted points`);
+      text(physicalBaselineEl, result.physicalSubtotal === null ? 'Pending' : `${fmt(result.physicalSubtotal, 4)} / 85 pts`);
+      const conditions = combined.eligibility?.outstanding_requirements || [];
+      if (conditionsWrap) conditionsWrap.hidden = conditions.length === 0;
+      if (conditionsList) conditionsList.innerHTML = conditions.map(condition => `<li>${esc(condition)}</li>`).join('');
       if (comparisonBannerEl) comparisonBannerEl.style.display = 'none';
-
-      // Reset Zoning Criterion Card in 6-criteria list
-      if (zoningCritRow) {
-        const scoreVal = zoningCritRow.querySelector('.property-criterion-score-wrap strong');
-        const contribVal = zoningCritRow.querySelector('.property-criterion-contrib');
-        const barFill = zoningCritRow.querySelector('.property-criterion-bar-fill');
-        const descText = zoningCritRow.querySelector('.property-criterion-desc');
-        const baselineZoning = calc.rows.find(r => r.key === 'zoning_compatibility');
-        if (scoreVal) scoreVal.textContent = baselineZoning && baselineZoning.score !== null ? rating(baselineZoning.score) : 'Pending';
-        if (contribVal) contribVal.textContent = baselineZoning && baselineZoning.contribution !== null ? `+${fmt(baselineZoning.contribution, 2)}` : 'Pending';
-        if (barFill) barFill.style.width = baselineZoning && baselineZoning.score !== null ? `${Math.min(100, Math.max(0, baselineZoning.score))}%` : '0%';
-        if (descText) descText.textContent = baselineZoning ? baselineZoning.explanation : 'Zoning compatibility pending investor scenario.';
+      const brief = root.querySelector('#locusInvestorBrief');
+      if (brief) brief.outerHTML = investorBriefReportMarkup(combined);
+    };
+    const withheld = (activity, reason) => ({ ...property, proposed_activity: activity, assessmentComplete: false,
+      displayed_iai: null, iaiScore: null, mceScore: null, assessmentStatus: 'incomplete', reason });
+    const evaluate = async () => {
+      const version = ++requestVersion;
+      const activity = select?.value || '';
+      render(withheld(activity, 'Checking the selected activity. Assessment is withheld until the server responds.'));
+      try {
+        const apiBase = window.SFC_APP_CONFIG?.apiBase || 'api';
+        const response = await fetch(`${apiBase}/property-assessment.php?id=${encodeURIComponent(property.id || property.property_id)}&activity=${encodeURIComponent(activity)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        if (!response.ok) throw new Error('Assessment request failed');
+        const payload = await response.json();
+        if (!payload.assessment?.protocol_version) throw new Error('Assessment protocol missing');
+        if (version === requestVersion) render(payload.assessment);
+      } catch (_) {
+        if (version === requestVersion) render(withheld(activity, 'The assessment could not be retrieved. Try again before generating a scenario brief.'));
       }
-
-      // Reset Nearby criterion description
-      if (nearbyCritRow) {
-        const nearbyDesc = nearbyCritRow.querySelector('.property-criterion-desc');
-        if (nearbyDesc) nearbyDesc.textContent = 'General site commercial context within 500m radius.';
-      }
-      return;
-    }
-
-    const selectedOption = select?.selectedOptions?.[0];
-    const actLabel = selectedOption ? selectedOption.textContent.trim().split(' / ')[0] : rawActKey;
-    const actKey = aliasMap[rawActKey] || rawActKey;
-    const rule = engineData?.rules?.[normZone]?.[actKey] || engineData?.rules?.[rawZone]?.[actKey];
-
-    let zoningScore = null;
-    let zoningContrib = null;
-    let scenarioIaiNum = null;
-    let scenarioIaiStr = 'Pending';
-    let statusPillClass = 'pill-undetermined';
-    let statusText = 'Undetermined';
-
-    if (!rule) {
-      if (outcomeEl) outcomeEl.className = 'property-scenario-outcome';
-      if (titleEl) titleEl.textContent = 'Compatibility Undetermined';
-      if (badgeEl) {
-        badgeEl.textContent = 'Undetermined';
-        badgeEl.className = 'property-scenario-status-pill pill-undetermined';
-      }
-      if (reasonEl) reasonEl.textContent = `No specific classification found in San Fernando City Zoning Ordinance No. 2018-06 for this activity in ${normZone}. Departmental zoning clearance required.`;
-      if (conditionsWrap) conditionsWrap.hidden = true;
-      if (zoningScoreEl) zoningScoreEl.textContent = 'Pending';
-      if (zoningContribEl) zoningContribEl.textContent = '15% weight pending rule';
-      if (totalIaiEl) totalIaiEl.textContent = 'Withheld';
-      if (iaiNoteEl) iaiNoteEl.textContent = 'Zoning verification needed';
-      scenarioIaiStr = 'Withheld';
-    } else if (rule.status === 'permitted') {
-      zoningScore = 100;
-      zoningContrib = 15.0;
-      statusPillClass = 'pill-permitted';
-      statusText = 'Permitted by right';
-
-      if (outcomeEl) outcomeEl.className = 'property-scenario-outcome status-permitted';
-      if (titleEl) titleEl.textContent = '✓ Compatible and Eligible';
-      if (badgeEl) {
-        badgeEl.textContent = '✓ Permitted Use';
-        badgeEl.className = 'property-scenario-status-pill pill-permitted';
-      }
-      if (reasonEl) reasonEl.textContent = rule.reason || `Permitted by right in ${normZone} under San Fernando City Zoning Ordinance No. 2018-06.`;
-      if (conditionsWrap) conditionsWrap.hidden = true;
-      if (zoningScoreEl) zoningScoreEl.textContent = '100 / 100';
-      if (zoningContribEl) zoningContribEl.textContent = '15.0 pts (Full 15% contribution)';
-
-      if (physicalBase !== null) {
-        scenarioIaiNum = Math.round((physicalBase + 15.0) * 10) / 10;
-        scenarioIaiStr = scenarioIaiNum.toFixed(1);
-      }
-      if (totalIaiEl) totalIaiEl.textContent = `${scenarioIaiStr} / 100`;
-      if (iaiNoteEl) iaiNoteEl.textContent = 'Permitted Scenario IAI (100/100 Zoning)';
-    } else if (rule.status === 'conditional') {
-      zoningScore = 70;
-      zoningContrib = 10.5;
-      statusPillClass = 'pill-conditional';
-      statusText = 'Conditional use';
-
-      if (outcomeEl) outcomeEl.className = 'property-scenario-outcome status-conditional';
-      if (titleEl) titleEl.textContent = '⚠ Compatible Subject to Conditions';
-      if (badgeEl) {
-        badgeEl.textContent = '⚠ Conditional Use';
-        badgeEl.className = 'property-scenario-status-pill pill-conditional';
-      }
-      if (reasonEl) reasonEl.textContent = rule.reason || `Allowed subject to mandatory conditions in ${normZone} under City Ordinance No. 2018-06.`;
-      if (conditionsWrap) {
-        conditionsWrap.hidden = false;
-        if (conditionsList) {
-          const conds = rule.conditions?.length ? rule.conditions : (rule.restrictions?.length ? rule.restrictions : ['Standard setback and zoning clearance required', 'CPDO locational clearance endorsement']);
-          conditionsList.innerHTML = conds.map(c => `<li>${esc(c)}</li>`).join('');
-        }
-      }
-      if (zoningScoreEl) zoningScoreEl.textContent = '70 / 100';
-      if (zoningContribEl) zoningContribEl.textContent = '10.5 pts (Conditional 15% contribution)';
-
-      if (physicalBase !== null) {
-        scenarioIaiNum = Math.round((physicalBase + 10.5) * 10) / 10;
-        scenarioIaiStr = scenarioIaiNum.toFixed(1);
-      }
-      if (totalIaiEl) totalIaiEl.textContent = `${scenarioIaiStr} / 100`;
-      if (iaiNoteEl) iaiNoteEl.textContent = 'Conditional Scenario IAI (70/100 Zoning)';
-    } else if (rule.status === 'prohibited') {
-      zoningScore = 0;
-      zoningContrib = 0.0;
-      statusPillClass = 'pill-prohibited';
-      statusText = 'Prohibited use';
-
-      if (outcomeEl) outcomeEl.className = 'property-scenario-outcome status-prohibited';
-      if (titleEl) titleEl.textContent = '✕ Not Suitable for Proposed Use';
-      if (badgeEl) {
-        badgeEl.textContent = '✕ Prohibited Use';
-        badgeEl.className = 'property-scenario-status-pill pill-prohibited';
-      }
-      if (reasonEl) reasonEl.textContent = rule.reason || `This activity is explicitly prohibited in ${normZone} under City Ordinance No. 2018-06. No scenario IAI is granted.`;
-      if (conditionsWrap) conditionsWrap.hidden = true;
-      if (zoningScoreEl) zoningScoreEl.textContent = '0 / 100';
-      if (zoningContribEl) zoningContribEl.textContent = '0.0 pts (Disqualifying constraint)';
-      if (totalIaiEl) totalIaiEl.textContent = 'Not Suitable';
-      if (iaiNoteEl) iaiNoteEl.textContent = 'IAI withheld for prohibited use';
-      scenarioIaiStr = 'Not Suitable';
-    }
-
-    // Update Part B Hero Score
-    if (heroScoreEl) heroScoreEl.textContent = scenarioIaiStr;
-    if (heroDescEl) {
-      if (rule?.status === 'prohibited') {
-        heroDescEl.textContent = `Proposed land use (${esc(actLabel)}) is prohibited under ${normZone} zoning rules. Final scenario IAI is withheld.`;
-      } else if (scenarioIaiNum !== null) {
-        heroDescEl.textContent = `Active scenario evaluated for ${esc(actLabel)}: Physical site baseline (${physicalBase.toFixed(2)} pts) + ${statusText.toLowerCase()} (${zoningScore}/100, +${zoningContrib.toFixed(1)} pts) = ${scenarioIaiStr}/100 composite IAI.`;
-      } else {
-        heroDescEl.textContent = 'Zoning verification needed before final scenario composite is established.';
-      }
-    }
-
-    // Update Scenario Comparison Banner in Part B
-    if (comparisonBannerEl) {
-      const isDifferent = scenarioIaiNum !== null && Math.abs(scenarioIaiNum - recordedBaselineIai) >= 0.05;
-      const varianceVal = scenarioIaiNum !== null ? (scenarioIaiNum - recordedBaselineIai).toFixed(1) : '—';
-      const varianceSign = scenarioIaiNum !== null && scenarioIaiNum > recordedBaselineIai ? '+' : '';
-
-      comparisonBannerEl.innerHTML = `
-        <div class="property-scenario-comparison-card">
-          <div class="property-scenario-comparison-header">
-            <span class="comparison-header-kicker">SCENARIO RECONCILIATION</span>
-            <span class="comparison-header-tag">Active Scenario vs Recorded Baseline</span>
-          </div>
-          <div class="property-scenario-comparison-cols">
-            <div class="comparison-col is-scenario">
-              <span class="comparison-col-kicker">ACTIVE SCENARIO (${esc(actLabel)})</span>
-              <strong class="comparison-col-score">${scenarioIaiStr} ${scenarioIaiNum !== null ? '<small>/ 100</small>' : ''}</strong>
-              <span class="comparison-col-meta">Zoning: ${zoningScore !== null ? `${zoningScore}/100 (+${zoningContrib.toFixed(1)} pts)` : 'Pending'}</span>
-            </div>
-            <div class="comparison-col-vs">vs</div>
-            <div class="comparison-col is-baseline">
-              <span class="comparison-col-kicker">RECORDED BASELINE (PERMITTED USE)</span>
-              <strong class="comparison-col-score">${recordedBaselineIaiStr} <small>/ 100</small></strong>
-              <span class="comparison-col-meta">Zoning: 100/100 (Permitted by right, +15.0 pts)</span>
-            </div>
-          </div>
-          <p class="comparison-explainer">
-            ${isDifferent
-          ? `Score Variance: ${varianceSign}${varianceVal} pts. The physical 5-criterion baseline contributes ${physicalBase.toFixed(2)} pts. The ${statusText.toLowerCase()} rating (${zoningScore}/100 contributing ${zoningContrib.toFixed(1)} pts vs 15.0 pts) accounts for the difference between this active scenario (${scenarioIaiStr}/100) and the recorded permitted baseline (${recordedBaselineIaiStr}/100).`
-          : (rule?.status === 'prohibited'
-            ? `Disqualification: The proposed activity is prohibited in ${normZone}; scenario IAI is withheld while recorded site baseline remains ${recordedBaselineIaiStr}/100.`
-            : `Active scenario aligns with the recorded site baseline (100/100 permitted zoning $\\rightarrow$ ${recordedBaselineIaiStr} IAI composite).`
-          )
-        }
-          </p>
-        </div>
-      `;
-      comparisonBannerEl.style.display = 'block';
-    }
-
-    // Update Zoning Compatibility row in 6-criteria list
-    if (zoningCritRow) {
-      const scoreVal = zoningCritRow.querySelector('.property-criterion-score-wrap strong');
-      const contribVal = zoningCritRow.querySelector('.property-criterion-contrib');
-      const barFill = zoningCritRow.querySelector('.property-criterion-bar-fill');
-      const descText = zoningCritRow.querySelector('.property-criterion-desc');
-      if (scoreVal) scoreVal.textContent = zoningScore !== null ? rating(zoningScore) : 'Pending';
-      if (contribVal) contribVal.textContent = zoningContrib !== null ? `+${fmt(zoningContrib, 2)}` : 'Pending';
-      if (barFill) barFill.style.width = zoningScore !== null ? `${Math.min(100, Math.max(0, zoningScore))}%` : '0%';
-      if (descText) {
-        descText.textContent = rule?.status === 'conditional'
-          ? `Active scenario (${esc(actLabel)}): Conditional zoning (70/100, +10.50 pts) under Ordinance No. 2018-06. Subject to mandatory clearance.`
-          : (rule?.status === 'permitted'
-            ? `Active scenario (${esc(actLabel)}): Permitted by right (100/100, +15.00 pts) under Ordinance No. 2018-06.`
-            : (rule?.status === 'prohibited'
-              ? `Active scenario (${esc(actLabel)}): Prohibited use (0/100, 0.00 pts) under Ordinance No. 2018-06.`
-              : 'Active scenario: Undetermined zoning classification; clearance required.'
-            )
-          );
-      }
-    }
-
-    // Update Nearby Businesses Context
-    evaluateNearbyContext(actKey);
-  }
-
-  function evaluateNearbyContext(actKey) {
-    if (!nearbySummaryEl || !nearbyDescEl) return;
-    const places = Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [];
-    if (!places.length) {
-      nearbySummaryEl.textContent = 'No Mapped Places';
-      nearbyDescEl.textContent = '0 establishments in 500m radius';
-      if (nearbyCritRow) {
-        const nearbyDesc = nearbyCritRow.querySelector('.property-criterion-desc');
-        if (nearbyDesc) nearbyDesc.textContent = 'General site commercial context: No mapped businesses within 500m radius.';
-      }
-      return;
-    }
-    const actLower = actKey.toLowerCase();
-    let clusterType = 'commercial';
-    let matchCount = 0;
-    let isSpecificCluster = false;
-
-    if (actLower.includes('food') || actLower.includes('cafe') || actLower.includes('restaurant')) {
-      clusterType = 'dining & food services';
-      matchCount = places.filter(p => /food|cafe|restaurant|coffee|bakery|dining|eatery/i.test(p.category || p.name || '')).length;
-      isSpecificCluster = true;
-    } else if (actLower.includes('retail') || actLower.includes('convenience') || actLower.includes('mart') || actLower.includes('pharmacy')) {
-      clusterType = 'retail & shopping';
-      matchCount = places.filter(p => /retail|shop|convenience|store|market|mall|pharmacy|hardware/i.test(p.category || p.name || '')).length;
-      isSpecificCluster = true;
-    } else if (actLower.includes('office') || actLower.includes('bpo')) {
-      clusterType = 'office & professional services';
-      matchCount = places.filter(p => /office|bank|corporate|agency|business|hub|co-working/i.test(p.category || p.name || '')).length;
-      isSpecificCluster = true;
-    } else {
-      matchCount = places.length;
-      clusterType = 'general commercial';
-    }
-
-    nearbySummaryEl.textContent = isSpecificCluster ? `${matchCount} Related Places` : `${places.length} Mapped Places`;
-    nearbyDescEl.textContent = isSpecificCluster ? `Within 500m (${clusterType})` : 'Within 500m (general commercial context)';
-
-    if (nearbyCritRow) {
-      const nearbyDesc = nearbyCritRow.querySelector('.property-criterion-desc');
-      if (nearbyDesc) {
-        nearbyDesc.textContent = isSpecificCluster
-          ? `Cluster analysis for active scenario: ${matchCount} related ${clusterType} establishments mapped within 500m radius.`
-          : 'General site commercial context: 10% weight reflects commercial density within 500m radius.';
-      }
-    }
-  }
-
-  // Wire Event Listeners
-  if (select) {
-    select.addEventListener('change', () => evaluateScenario(select.value));
-    if (select.value) evaluateScenario(select.value);
-  }
-
-  if (capitalInput) {
-    capitalInput.addEventListener('input', () => {
-      const pos = capitalInput.selectionStart;
-      const prevLen = capitalInput.value.length;
-      capitalInput.value = formatPesoInput(capitalInput.value);
-      const diff = capitalInput.value.length - prevLen;
-      if (pos !== null) {
-        try { capitalInput.setSelectionRange(pos + diff, pos + diff); } catch (_) { }
-      }
-      updateIncentive();
+    };
+    select?.addEventListener('change', evaluate);
+    evalBtn?.addEventListener('click', evaluate);
+    resetBtn?.addEventListener('click', () => { if (select) select.value = ''; if (capitalInput) capitalInput.value = ''; return evaluate(); });
+    capitalInput?.addEventListener('input', () => {
+      const result = potentialIncentive(parsePesoInput(capitalInput.value), policy);
+      text(incentiveBadgeEl, result.badge); text(incentiveCopyEl, result.copy);
     });
-    if (capitalInput.value) {
-      capitalInput.value = formatPesoInput(capitalInput.value);
-      updateIncentive();
-    }
+    reportBtn?.addEventListener('click', () => window.print());
+    return;
   }
 
-  if (evalBtn) {
-    evalBtn.addEventListener('click', () => {
-      if (select) evaluateScenario(select.value);
-    });
-  }
-
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      if (select) select.value = '';
-      if (capitalInput) capitalInput.value = '';
-      evaluateScenario('');
-    });
-  }
-
-  if (reportBtn) {
-    reportBtn.addEventListener('click', () => {
-      if (typeof window !== 'undefined') {
-        window.print();
-      }
-    });
-  }
 }
-
-

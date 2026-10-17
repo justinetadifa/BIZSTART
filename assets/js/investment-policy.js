@@ -8,14 +8,7 @@ export function policyScore(base, activity, policy) {
     return { base: null, percent: 0, adjustment: null, applied: null, final: null };
   }
   const value = Math.max(0, Math.min(100, Number(base)));
-  const configured = Number(policy?.policy_priority_adjustment_percent);
-  const approved = policy?.priority_modifier_approved === true && Boolean(String(policy?.priority_modifier_approval_reference || '').trim());
-  const percent = activity?.sector && approved && Number.isFinite(configured)
-    ? Math.max(0, Math.min(100, configured)) : 0;
-  const round = number => Math.round((number + Number.EPSILON) * 10) / 10;
-  const adjustment = round(value * percent / 100);
-  const final = round(Math.min(100, value + adjustment));
-  return { base: value, percent, adjustment, applied: round(final - value), final };
+  return { base: value, percent: 0, adjustment: 0, applied: 0, final: value };
 }
 
 export function potentialIncentive(capital, policy) {

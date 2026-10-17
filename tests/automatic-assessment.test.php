@@ -51,13 +51,13 @@ try {
         'risk_constraints' => ['metric' => 'hazard_status', 'operator' => 'lookup', 'aggregate' => 'minimum', 'required_hazard_types' => ['flood', 'fault'], 'values' => ['high' => 0, 'low' => 20, 'outside_mapped_hazards' => 100]],
     ]]];
     $auto = (new Automatic($config))->evaluate($input);
-    $check($auto['assessmentComplete'] && $auto['completedCount'] === 6 && $auto['mceScore'] === 55.0 && $auto['iaiScore'] === 55.0, 'Independent weighted result 100/80/60/40/20/0 should be MCE 55 and IAI 55 without double counting.');
+    $check(!$auto['assessmentComplete'] && $auto['mceScore'] === null && $auto['iaiScore'] === null, 'Broad GIS measurements and asserted approvals cannot substitute for the detailed protocol.');
     // Test zoning prohibited constraint
     $prohibitedLayer = $writeLayer('zoning_prohibited', [$feature($coverage, ['zone' => 'Synthetic restricted zone', 'restricted_categories' => ['Land']])]);
     $prohibitedConfig = $config;
     $prohibitedConfig['layers']['zoning'] = $prohibitedLayer;
     $prohibitedAuto = (new Automatic($prohibitedConfig))->evaluate($input);
-    $check($prohibitedAuto['assessmentStatus'] === 'not_suitable' && $prohibitedAuto['iaiScore'] === null, 'Prohibited zoning in automatic assessment must yield not_suitable and null IAI.');
+    $check($prohibitedAuto['eligibility']['zoning'] === 'unverified' && $prohibitedAuto['iaiScore'] === null, 'Category restrictions do not establish district-specific permission for an unselected activity.');
     $check($auto['inputs']['landArea'] === .25 && $auto['criteriaDetails']['economic_viability']['raw']['bir_total_value'] === 8750000.0, 'Square metres normalize to hectares and BIR reference total uses actual area.');
     $preciseArea = (new Automatic($config))->evaluate(array_replace($input, ['land_area' => 1.49]));
     $check($preciseArea['inputs']['landArea'] === .000149 && $preciseArea['criteriaDetails']['economic_viability']['raw']['bir_total_value'] === 5215.0, 'BIR total value uses the exact 1.49 square meters from parcel precision, not rounded legacy hectares.');
@@ -65,10 +65,10 @@ try {
     $check($precision['lat'] === 16.61 && $precision['lng'] === 120.320001, 'Preview coordinates must use the six decimal places persisted by the property schema.');
     $check($auto['criteriaDetails']['nearby_businesses']['raw']['business_count'] === 1, 'Closed points must not count as operating businesses.');
     $check($auto['criteriaDetails']['spatial_accessibility']['raw']['road_distance_m'] < 1, 'Point on mapped road should be within a metre of its great-circle centreline.');
-    $check($auto['ruleVersion'] === 'SYNTHETIC-fixture-v1' && strlen($auto['ruleFingerprint']) === 64 && count($auto['criteriaDetails']['zoning_compatibility']['evidence']) === 1, 'Evidence and approved method need reproducible fingerprints.');
-    $check(str_contains($auto['criteriaDetails']['economic_viability']['justification'], 'Approved bands') && str_contains($auto['criteriaDetails']['zoning_compatibility']['justification'], 'conditional = 20'), 'Scoring justification must expose mathematical conversion.');
+    $check($auto['ruleVersion'] === \App\Support\PropertyAssessmentService::METHODOLOGY_VERSION && strlen($auto['dataset_versions']['roads']['sha256']) === 64 && count($auto['criteriaDetails']['zoning_compatibility']['evidence']) === 1, 'Evidence and approved method need reproducible fingerprints.');
+    $check($auto['criterion_scores']['economic_viability'] === null && $auto['criterion_scores']['zoning_compatibility'] === null, 'BIR value and category tags cannot invent an economic or zoning score.');
     $posted = (new Automatic($config))->evaluate($input + ['assessmentCriteria' => array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 100), 'price' => 1, 'bir_value_sqm' => 1]);
-    $check($posted['assessmentCriteria'] === $auto['assessmentCriteria'] && $posted['mceScore'] === 55.0, 'Client scores, price and raw valuation cannot influence automatic scores.');
+    $check($posted['assessmentCriteria'] === $auto['assessmentCriteria'] && $posted['mceScore'] === null, 'Client scores, price and raw valuation cannot influence automatic scores.');
     $check(abs(Automatic::distance([0, 0], [90, 0]) - 10007557.221) < .001, 'Haversine quarter equator distance differs from independent spherical constant.');
     $check(abs(Automatic::segmentDistance([0, 1], [-1, 0], [1, 0]) - 111195.0802) < .01, 'Point-line cross-track distance is inaccurate.');
     $check(abs(Automatic::segmentDistance([2, 0], [-1, 0], [1, 0]) - Automatic::distance([2, 0], [1, 0])) < .001, 'Point outside segment must use nearest endpoint.');
@@ -87,7 +87,7 @@ try {
     }
     $without = $config; $without['method']['approved'] = false;
     $out = (new Automatic($without))->evaluate($input);
-    $check($out['completedCount'] === 0 && $out['mceScore'] === null && $out['spatialContext'][0]['status'] === 'ready', 'Raw evidence may be ready while every unapproved conversion remains pending.');
+    $check($out['completedCount'] === 0 && $out['mceScore'] === null && isset($out['raw_criterion_inputs']['spatial_accessibility']['road_distance_m']), 'Raw evidence may be ready while every unapproved conversion remains pending.');
     foreach (['version', 'approval_reference'] as $field) {
         $without = $config; $without['method'][$field] = '';
         $pending((new Automatic($without))->evaluate($input), 'spatial_accessibility');
@@ -97,7 +97,7 @@ try {
     $check($out['completedCount'] === 0 && $out['mceScore'] === null && $out['iaiScore'] === null, 'No configured layers must never create defaults.');
     foreach (array_keys($config['layers']) as $layerKey) {
         $without = $config; unset($without['layers'][$layerKey]);
-        $criterion = array_keys(PropertyAssessment::WEIGHTS)[array_search($layerKey, array_keys($config['layers']), true)];
+        $criterion = ['roads' => 'spatial_accessibility', 'utilities' => 'infrastructure_readiness', 'valuation' => 'economic_viability', 'businesses' => 'nearby_businesses', 'zoning' => 'zoning_compatibility', 'hazards' => 'risk_constraints'][$layerKey];
         $pending((new Automatic($without))->evaluate($input), $criterion);
     }
     foreach ([['verified', false], ['sha256', str_repeat('0', 64)], ['version', ''], ['crs', 'EPSG:3857'], ['file', '../outside.geojson'], ['file', 'https://example.test/roads.geojson'], ['coverage', ['type' => 'Point', 'coordinates' => [120.32, 16.61]]]] as [$field, $value]) {
@@ -114,10 +114,10 @@ try {
     $without = $config; $without['layers']['hazards']['hazard_types'] = ['flood'];
     $pending((new Automatic($without))->evaluate($input), 'risk_constraints');
     $without = $config; $without['layers']['hazards'] = array_merge($writeLayer('hazards-empty', []), ['hazard_types' => ['flood', 'fault']]);
-    $check((new Automatic($without))->evaluate($input)['assessmentCriteria']['risk_constraints'] === 100.0, 'Only explicitly complete verified coverage with all required hazard types can classify outside mapped hazards.');
+    $check((new Automatic($without))->evaluate($input)['assessmentCriteria']['risk_constraints'] === null, 'Empty flood/fault coverage cannot supply the missing four hazards.');
     $without['layers']['hazards']['complete'] = false; $pending((new Automatic($without))->evaluate($input), 'risk_constraints');
     $without = $config; $without['layers']['hazards'] = array_merge($writeLayer('hazards-overlap', [$feature($coverage, ['hazard_type' => 'flood', 'hazard_status' => 'high']), $feature($coverage, ['hazard_type' => 'fault', 'hazard_status' => 'low'])]), ['hazard_types' => ['flood', 'fault']]);
-    $check((new Automatic($without))->evaluate($input)['assessmentCriteria']['risk_constraints'] === 0.0, 'Worst overlapping mapped hazard must govern approved minimum aggregation.');
+    $check((new Automatic($without))->evaluate($input)['technical_review_hold'] === true, 'Partial high-hazard findings propagate a hold without aggregating a full risk score.');
     unset($without['method']['rules']['risk_constraints']['aggregate']); $pending((new Automatic($without))->evaluate($input), 'risk_constraints');
     $without = $config; $without['layers']['valuation']['authority'] = 'asking price'; $pending((new Automatic($without))->evaluate($input), 'economic_viability');
     $without = $config; $without['layers']['valuation']['effective_date'] = ''; $pending((new Automatic($without))->evaluate($input), 'economic_viability');
@@ -147,25 +147,25 @@ try {
         'land_area' => 2500, 'land_area_unit' => 'sqm', 'lat' => 16.61, 'lng' => 120.32, 'contactMode' => 'open_listing', 'approval_state' => 'pending_review'];
     $row = $normalize->invoke($repository, $base + ['assessmentCriteria' => array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 100), 'automatic_assessment_json' => json_encode($auto)]);
     $storedAuto = json_decode($row['automatic_assessment_json'], true);
-    $check($row['area'] === .25 && $storedAuto['assessmentMode'] === 'automatic' && $storedAuto['inputs']['landArea'] === .25, 'Repository normalizes area exactly like preview and generates its own metadata.');
+    $check($row['area'] === .25 && $storedAuto['assessmentMode'] === 'automatic_observations' && $storedAuto['inputs']['landArea'] === .25, 'Repository normalizes area exactly like preview and generates its own metadata.');
     $check($storedAuto['criteriaDetails'] !== $auto['criteriaDetails'], 'Repository does not accept the posted synthetic automatic metadata.');
     $legacyCriteria = array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 80);
     $legacyRow = $row; $legacyRow['assessment_json'] = json_encode($legacyCriteria); $legacyRow['automatic_assessment_json'] = null; $legacyRow['legacy_assessment_json'] = null;
     $approval = $normalize->invoke($repository, ['approval_state' => 'approved', 'reviewNote' => 'Reviewed', 'assessmentCriteria' => array_fill_keys(array_keys(PropertyAssessment::WEIGHTS), 100)], $legacyRow);
-    $check($approval['assessment_json'] === json_encode(PropertyAssessment::normalize($legacyCriteria), JSON_UNESCAPED_UNICODE) && $approval['automatic_assessment_json'] === null, 'Approval-only PATCH preserves manual history and ignores forged scores.');
+    $check($approval['assessment_json'] === $legacyRow['assessment_json'] && $approval['automatic_assessment_json'] === null, 'Approval-only PATCH preserves manual history and ignores forged scores.');
     $recalculated = $normalize->invoke($repository, ['recalculate_assessment' => true], $legacyRow);
     $history = json_decode($recalculated['legacy_assessment_json'], true);
-    $check($history['assessmentMode'] === 'legacy_manual' && (float) $history['assessmentCriteria']['economic_viability'] === 80.0 && $recalculated['automatic_assessment_json'] !== null, 'Explicit recalculation stores historical manual criteria separately.');
+    $check((float) $history['snapshots'][0]['assessmentCriteria']['economic_viability'] === 80.0 && $recalculated['automatic_assessment_json'] !== null, 'Explicit recalculation stores historical manual criteria separately.');
     $changed = $normalize->invoke($repository, ['lat' => 16.62], $legacyRow);
     $check(json_decode($changed['automatic_assessment_json'], true)['inputs']['lat'] === 16.62 && $changed['legacy_assessment_json'] !== null, 'Changed coordinates recalculate from server and preserve manual history.');
     $changedAgain = $normalize->invoke($repository, ['land_area' => 5000, 'land_area_unit' => 'sqm'], $recalculated);
-    $check($changedAgain['legacy_assessment_json'] === $recalculated['legacy_assessment_json'] && json_decode($changedAgain['automatic_assessment_json'], true)['inputs']['landArea'] === .5, 'Subsequent automatic recalculations preserve immutable manual history.');
+    $check(json_decode($changedAgain['legacy_assessment_json'], true)['snapshots'][0] === $history['snapshots'][0] && json_decode($changedAgain['automatic_assessment_json'], true)['inputs']['landArea'] === .5, 'Subsequent automatic recalculations preserve immutable manual history.');
     $unitOnly = $normalize->invoke($repository, ['land_area_unit' => 'sqm'], $legacyRow);
     $check($unitOnly['area'] === .25 && $unitOnly['automatic_assessment_json'] === null, 'An area-unit-only PATCH cannot divide existing hectares a second time.');
     $present = Automatic::presentStored($legacyCriteria);
-    $check($present['assessmentMode'] === 'legacy_manual' && $present['automaticAssessment'] === null && $present['mceScore'] === 80.0, 'Historical manual score is explicitly labeled and remains available.');
+    $check($present['assessmentMode'] === 'historical' && $present['historical_snapshot']['assessmentCriteria'] === $legacyCriteria && $present['mceScore'] === null, 'Historical manual score is explicitly labeled and remains available.');
     $present = Automatic::presentStored($auto['assessmentCriteria'], $auto, $history);
-    $check($present['assessmentMode'] === 'automatic' && $present['criteriaDetails'] === $auto['criteriaDetails'] && $present['legacyAssessment'] === $history && $present['mceScore'] === 55.0, 'Hydration exposes authoritative evidence and retained manual history.');
+    $check($present['assessmentMode'] === 'automatic_observations' && $present['criteriaDetails'] === $auto['criteriaDetails'] && $present['legacyAssessment'] === $history && $present['mceScore'] === null, 'Hydration exposes authoritative evidence and retained manual history.');
     echo in_array('--json-fixture', $argv, true) ? json_encode(['assessment' => $auto], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE) : "Automatic assessment checks passed: $checks (synthetic layers; no database mutations).\n";
 } finally {
     foreach ($files as $file) { if (is_file($file)) { unlink($file); } }

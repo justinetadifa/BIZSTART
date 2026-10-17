@@ -11,7 +11,7 @@ final class PropertyBusinessProfiles
     private const NEXT_ACTIONS = [
         'spatial_accessibility' => 'Confirm road access and add the authoritative road reference.',
         'infrastructure_readiness' => 'Confirm utility services and add their source evidence.',
-        'economic_viability' => 'Add a dated BIR zonal reference applicable to this property category.',
+        'economic_viability' => 'Add suitable, dated market comparables for authorized verification; record BIR tax references separately.',
         'nearby_businesses' => 'Run the surroundings radar and confirm the operating-business inventory coverage.',
         'zoning_compatibility' => 'Add the CLUP or zoning reference and confirm permitted uses.',
         'risk_constraints' => 'Review available hazard evidence and confirm its coverage.',
@@ -44,7 +44,7 @@ final class PropertyBusinessProfiles
             'matches' => [], 'status' => 'pending',
             'message' => 'Business matches await complete source evidence and approved business-specific scoring profiles.',
             'weights' => PropertyAssessment::WEIGHTS,
-            'assessmentComplete' => $complete, 'completedCount' => 7 - count($missing), 'totalCount' => 7,
+            'assessmentComplete' => $complete, 'completedCount' => count(PropertyAssessment::WEIGHTS) - count($missing), 'totalCount' => count(PropertyAssessment::WEIGHTS),
             'missingCriteria' => $missing, 'pendingReasons' => $issues,
             'metadata' => [
                 'approved' => !$issues,
@@ -61,7 +61,7 @@ final class PropertyBusinessProfiles
             ],
         ];
         if (!$complete) {
-            $result['pendingReasons'][] = 'Complete all seven source-based assessment criteria before ranking business options.';
+            $result['pendingReasons'][] = 'Complete all six source-based assessment criteria before ranking business options.';
         }
         if ($issues || !$complete) {
             return $result;
@@ -115,7 +115,7 @@ final class PropertyBusinessProfiles
         unset($match);
         $result['status'] = $matches ? 'ready' : 'no_eligible_matches';
         $result['message'] = $matches
-            ? 'Business options meeting the approved model checks are ranked using seven weighted criteria.'
+            ? 'Business options meeting the approved model checks are ranked using six weighted criteria.'
             : 'No business option meets the documented eligibility checks for this property.';
         return $result;
     }
@@ -132,11 +132,11 @@ final class PropertyBusinessProfiles
         }
         $weights = $this->config['weights'] ?? null;
         if (!is_array($weights) || !self::sameKeys($weights, PropertyAssessment::WEIGHTS)) {
-            return ['Business profiles must retain exactly the seven documented criterion weights.'];
+            return ['Business profiles must retain exactly the six documented criterion weights.'];
         }
         foreach (PropertyAssessment::WEIGHTS as $key => $weight) {
             if (self::number($weights[$key]) !== (float) $weight) {
-                return ['Business profiles must retain exactly the seven documented criterion weights.'];
+                return ['Business profiles must retain exactly the six documented criterion weights.'];
             }
         }
         $profiles = $this->config['profiles'] ?? null;
@@ -146,7 +146,7 @@ final class PropertyBusinessProfiles
         $ids = [];
         foreach ($profiles as $profile) {
             if (!$this->validProfile($profile) || isset($ids[$profile['id']])) {
-                return ['A business profile lacks valid documented eligibility checks or complete seven-criterion score mappings.'];
+                return ['A business profile lacks valid documented eligibility checks or complete six-criterion score mappings.'];
             }
             $ids[$profile['id']] = true;
         }

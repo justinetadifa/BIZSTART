@@ -512,94 +512,14 @@ final class ZoningRulesEngine
     public static function resolveActivityCode(string $rawUse): string
     {
         $normalized = strtolower(trim($rawUse));
+        if ($normalized === '') {
+            return '';
+        }
         if (isset(self::SPECIFIC_ACTIVITIES[$normalized])) {
             return $normalized;
         }
 
-        // Direct matching by substring / alias
-        if (str_contains($normalized, 'cafe') || str_contains($normalized, 'coffee') || str_contains($normalized, 'pastry')) {
-            return 'food_cafe';
-        }
-        if (str_contains($normalized, 'restaurant') || str_contains($normalized, 'dining') || str_contains($normalized, 'fast_food') || str_contains($normalized, 'eatery')) {
-            return 'food_restaurant';
-        }
-        if (str_contains($normalized, 'bakery') || str_contains($normalized, 'bakeshop')) {
-            return 'food_bakery';
-        }
-        if (str_contains($normalized, 'food_processing') || str_contains($normalized, 'canning') || str_contains($normalized, 'bottling')) {
-            return 'food_processing';
-        }
-        if (str_contains($normalized, 'convenience') || str_contains($normalized, 'sari') || str_contains($normalized, 'mini_mart')) {
-            return 'retail_convenience';
-        }
-        if (str_contains($normalized, 'supermarket') || str_contains($normalized, 'grocery') || str_contains($normalized, 'department_store') || str_contains($normalized, 'mall')) {
-            return 'retail_supermarket';
-        }
-        if (str_contains($normalized, 'pharmacy') || str_contains($normalized, 'drugstore')) {
-            return 'retail_pharmacy';
-        }
-        if (str_contains($normalized, 'hardware') || str_contains($normalized, 'construction_supply')) {
-            return 'retail_hardware';
-        }
-        if (str_contains($normalized, 'bpo') || str_contains($normalized, 'call_center') || str_contains($normalized, 'it-bpm')) {
-            return 'office_bpo';
-        }
-        if (str_contains($normalized, 'hotel') || str_contains($normalized, 'inn') || str_contains($normalized, 'motel')) {
-            return 'tour_hotel';
-        }
-        if (str_contains($normalized, 'resort') || str_contains($normalized, 'beach') || str_contains($normalized, 'eco-lodge')) {
-            return 'tour_resort';
-        }
-        if (str_contains($normalized, 'condo')) {
-            return 'res_condominium';
-        }
-        if (str_contains($normalized, 'apartment') || str_contains($normalized, 'townhouse') || str_contains($normalized, 'multifamily')) {
-            return 'res_apartments';
-        }
-        if (str_contains($normalized, 'residential') || str_contains($normalized, 'house') || str_contains($normalized, 'housing')) {
-            return 'res_detached';
-        }
-        if (str_contains($normalized, 'heavy_manu') || str_contains($normalized, 'chemical') || str_contains($normalized, 'metallurgy')) {
-            return 'ind_heavy_manufacturing';
-        }
-        if (str_contains($normalized, 'manufacturing') || str_contains($normalized, 'factory') || str_contains($normalized, 'industrial')) {
-            return 'ind_light_manufacturing';
-        }
-        if (str_contains($normalized, 'warehouse') || str_contains($normalized, 'storage')) {
-            return 'log_warehouse';
-        }
-        if (str_contains($normalized, 'distribution') || str_contains($normalized, 'cold_chain')) {
-            return 'log_distribution_center';
-        }
-        if (str_contains($normalized, 'terminal') || str_contains($normalized, 'depot')) {
-            return 'log_transport_terminal';
-        }
-        if (str_contains($normalized, 'hospital') || str_contains($normalized, 'clinic') || str_contains($normalized, 'medical')) {
-            return 'inst_hospital';
-        }
-        if (str_contains($normalized, 'school') || str_contains($normalized, 'university') || str_contains($normalized, 'college')) {
-            return 'inst_school';
-        }
-        if (str_contains($normalized, 'livestock') || str_contains($normalized, 'piggery') || str_contains($normalized, 'poultry')) {
-            return 'agri_livestock';
-        }
-        if (str_contains($normalized, 'aquaculture') || str_contains($normalized, 'fishpond')) {
-            return 'agri_aquaculture';
-        }
-        if (str_contains($normalized, 'agri_processing') || str_contains($normalized, 'mill')) {
-            return 'agri_processing';
-        }
-        if (str_contains($normalized, 'agri') || str_contains($normalized, 'farm') || str_contains($normalized, 'crop')) {
-            return 'agri_crop_production';
-        }
-        if (str_contains($normalized, 'commercial') || str_contains($normalized, 'retail')) {
-            return 'retail_convenience';
-        }
-        if (str_contains($normalized, 'office')) {
-            return 'office_professional';
-        }
-
-        return 'retail_convenience'; // Default fallback
+        return '';
     }
 
     /**
@@ -617,26 +537,6 @@ final class ZoningRulesEngine
                 return $code;
             }
         }
-
-        // Fuzzy pattern matching for San Fernando zoning codes
-        if (preg_match('/C-?1\b|COMMERCIAL\s*(ZONE)?\s*1\b/i', $rawZone)) return 'C-1';
-        if (preg_match('/C-?2\b|COMMERCIAL\s*(ZONE)?\s*2\b/i', $rawZone)) return 'C-2';
-        if (preg_match('/C-?3\b|COMMERCIAL\s*(ZONE)?\s*3\b/i', $rawZone)) return 'C-3';
-        if (preg_match('/R-?1\b|RESIDENTIAL\s*(ZONE)?\s*1\b/i', $rawZone)) return 'R-1';
-        if (preg_match('/R-?2\b|RESIDENTIAL\s*(ZONE)?\s*2\b/i', $rawZone)) return 'R-2';
-        if (preg_match('/R-?3\b|RESIDENTIAL\s*(ZONE)?\s*3\b/i', $rawZone)) return 'R-3';
-        if (preg_match('/I-?1\b|LIGHT\s*IND/i', $rawZone)) return 'I-1';
-        if (preg_match('/I-?2\b|MEDIUM\s*IND/i', $rawZone)) return 'I-2';
-        if (preg_match('/AGR-?S\b|STRATEGIC\s*AGRI/i', $rawZone)) return 'AGR-S';
-        if (preg_match('/AGR-?NS\b|NON-?STRATEGIC\s*AGRI|AGRICULTURAL\s*ZONE/i', $rawZone)) return 'AGR-NS';
-        if (preg_match('/AIZ\b|AGRO-?IND/i', $rawZone)) return 'AIZ';
-        if (preg_match('/GI\b|GENERAL\s*INST/i', $rawZone)) return 'GI';
-        if (preg_match('/SI\b|SPECIAL\s*INST/i', $rawZone)) return 'SI';
-        if (preg_match('/TZ\b|TOURISM/i', $rawZone)) return 'TZ';
-        if (preg_match('/FEZ\b|FREEPORT|PORO/i', $rawZone)) return 'FEZ';
-        if (preg_match('/MRZ\b|MANGROVE|MARINE/i', $rawZone)) return 'MRZ';
-        if (preg_match('/FRZ\b|FOREST|WATERSHED/i', $rawZone)) return 'FRZ';
-        if (preg_match('/PDZ\b|PLANNED\s*UNIT|MIXED/i', $rawZone)) return 'PDZ';
 
         return null;
     }
@@ -740,7 +640,7 @@ final class ZoningRulesEngine
                     ['Temporary interim use only']
                 );
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.B', ['Compatible commercial use.'], []);
+            return self::undetermined();
         }
 
         // --- C-2: Medium Density Commercial ---
@@ -760,7 +660,7 @@ final class ZoningRulesEngine
             if ($act === 'ind_light_manufacturing') {
                 return self::conditional('City Ordinance 2018-06, Sec. 10.B', ['Cottage and artisan light manufacturing allowed with zero toxic effluent.'], ['Non-pollutive DENR-EMB Category D']);
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.B', ['Compatible commercial activity.'], []);
+            return self::undetermined();
         }
 
         // --- C-3: High Density Commercial Corridor ---
@@ -774,7 +674,7 @@ final class ZoningRulesEngine
             if ($act === 'ind_heavy_manufacturing' || $act === 'agri_livestock') {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.B', 'Heavy manufacturing and livestock prohibited along high-density metropolitan commercial corridor.');
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.B', ['Metropolitan commercial use.'], []);
+            return self::undetermined();
         }
 
         // --- R-1: Low Density Residential ---
@@ -833,7 +733,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['ind_heavy_manufacturing', 'ind_light_manufacturing', 'agri_livestock', 'food_processing', 'log_distribution_center'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.A', 'Industrial, heavy storage, and livestock activities prohibited in residential zones.');
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.A', ['Subject to residential zoning board review.'], []);
+            return self::undetermined();
         }
 
         // --- I-1: Light Industrial Zone ---
@@ -863,7 +763,7 @@ final class ZoningRulesEngine
             if ($act === 'inst_hospital' || $act === 'inst_school') {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.D', 'Schools and hospitals are incompatible with industrial zones.');
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.D', ['Industrial use.'], []);
+            return self::undetermined();
         }
 
         // --- I-2: Medium Industrial Zone ---
@@ -874,7 +774,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['res_detached', 'res_apartments', 'res_condominium', 'inst_school', 'inst_hospital', 'tour_hotel', 'tour_resort'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.D', 'Sensitive residential, tourism, and institutional activities are strictly prohibited in I-2 Medium Industrial.');
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.D', ['Industrial operations permitted.'], []);
+            return self::undetermined();
         }
 
         // --- AGR-S: Strategic Agricultural Zone (SAFDFZ) ---
@@ -922,7 +822,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['res_detached', 'res_apartments'], true)) {
                 return self::conditional('City Ordinance 2018-06, Sec. 10.E', ['Housing allowed subject to DAR Land Conversion approval and City Reclassification (e.g. City Ordinance 2020-21).'], ['DAR Conversion Order', 'LGU Reclassification']);
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.E', ['Requires LGU agricultural zoning evaluation and conversion clearance.'], []);
+            return self::undetermined();
         }
 
         // --- AIZ: Agro-Industrial Zone ---
@@ -933,7 +833,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['res_condominium', 'inst_school', 'inst_hospital'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.E', 'Institutional and high-density residential uses prohibited in Agro-Industrial zone.');
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.E', ['Agro-industrial support use.'], []);
+            return self::undetermined();
         }
 
         // --- GI: General Institutional Zone ---
@@ -947,7 +847,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['ind_heavy_manufacturing', 'ind_light_manufacturing', 'agri_livestock'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.C', 'Industrial manufacturing and commercial livestock strictly prohibited in General Institutional Zone.');
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.C', ['Institutional compatibility clearance required.'], []);
+            return self::undetermined();
         }
 
         // --- SI: Special Institutional Zone ---
@@ -958,7 +858,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['res_detached', 'res_apartments', 'res_condominium', 'ind_heavy_manufacturing'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.C', 'Private residential and manufacturing prohibited in Special Institutional Zone.');
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.C', ['Special authority clearance required.'], []);
+            return self::undetermined();
         }
 
         // --- TZ: Tourism Zone ---
@@ -983,7 +883,7 @@ final class ZoningRulesEngine
                     'Industrial manufacturing, freight logistics, and commercial livestock are strictly prohibited in Tourism Zones to protect the marine and scenic coastal environment.'
                 );
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.F', ['Tourism compatibility check required.'], []);
+            return self::undetermined();
         }
 
         // --- FEZ: Freeport & Special Economic Zone (Poro Point) ---
@@ -998,7 +898,7 @@ final class ZoningRulesEngine
             if ($act === 'ind_heavy_manufacturing') {
                 return self::conditional('City Ordinance 2018-06, Sec. 10.G', ['Heavy manufacturing requires special BCDA/PPMC Board approval.'], ['PPMC Board Approval']);
             }
-            return self::permitted('City Ordinance 2018-06, Sec. 10.G', ['Freeport economic zone use.'], []);
+            return self::undetermined();
         }
 
         // --- MRZ: Mangrove & Marine Protected Zone ---
@@ -1045,7 +945,7 @@ final class ZoningRulesEngine
             if (in_array($act, ['ind_heavy_manufacturing', 'agri_livestock'], true)) {
                 return self::prohibited('City Ordinance 2018-06, Sec. 10.I', 'Heavy manufacturing and livestock raising prohibited in Planned Unit Development zones.');
             }
-            return self::conditional('City Ordinance 2018-06, Sec. 10.I', ['Requires Master Plan review.'], []);
+            return self::undetermined();
         }
 
         // Default Undetermined if combination not covered above
@@ -1061,13 +961,21 @@ final class ZoningRulesEngine
         ];
     }
 
+    private static function undetermined(): array
+    {
+        return ['status' => self::STATUS_UNDETERMINED, 'source_priority' => null, 'ordinance_section' => null,
+            'is_official_city_rule' => false, 'conditions' => [], 'restrictions' => [],
+            'explanation' => 'No explicit applicable activity rule is recorded; CPDO rule verification is required.',
+            'missing_source' => 'Authenticated district-specific rule for the selected activity'];
+    }
+
     private static function permitted(string $section, array $notes = [], array $restrictions = []): array
     {
         return [
             'status' => self::STATUS_PERMITTED,
             'source_priority' => self::SOURCE_PRIORITY_LOCAL_ORDINANCE,
             'ordinance_section' => $section,
-            'is_official_city_rule' => true,
+            'is_official_city_rule' => false,
             'conditions' => $notes,
             'restrictions' => $restrictions,
             'explanation' => 'Permitted by right under San Fernando City Zoning Ordinance regulations.',
@@ -1081,7 +989,7 @@ final class ZoningRulesEngine
             'status' => self::STATUS_CONDITIONAL,
             'source_priority' => self::SOURCE_PRIORITY_LOCAL_ORDINANCE,
             'ordinance_section' => $section,
-            'is_official_city_rule' => true,
+            'is_official_city_rule' => false,
             'conditions' => $conditions,
             'restrictions' => $restrictions,
             'explanation' => 'Conditional use: permitted subject to specific technical requirements, clearances, and development standards.',
@@ -1095,7 +1003,7 @@ final class ZoningRulesEngine
             'status' => self::STATUS_PROHIBITED,
             'source_priority' => self::SOURCE_PRIORITY_LOCAL_ORDINANCE,
             'ordinance_section' => $section,
-            'is_official_city_rule' => true,
+            'is_official_city_rule' => false,
             'conditions' => [],
             'restrictions' => [$reason],
             'explanation' => $reason,
@@ -1145,6 +1053,39 @@ final class ZoningRulesEngine
             ];
         }
 
+        if (!$activityCode || !isset(self::SPECIFIC_ACTIVITIES[$activityCode])) {
+            $zone = self::ZONING_DISTRICTS[$zoneCode];
+            return [
+                'is_complete' => false,
+                'status' => self::STATUS_UNDETERMINED,
+                'status_label' => 'Assessment Incomplete (Activity Unselected)',
+                'score' => null,
+                'is_eligible' => false,
+                'suitability' => 'incomplete',
+                'iai_contribution' => null,
+                'weight' => self::ZONING_WEIGHT,
+                'zone_code' => $zoneCode,
+                'zone_name' => $zone['name'],
+                'zone_full_label' => $zone['full_label'],
+                'use_code' => null,
+                'use_label' => 'Unselected Business Activity',
+                'use_category' => 'general',
+                'rule_source' => 'Awaiting investor activity selection',
+                'ordinance_section' => null,
+                'source_priority' => null,
+                'is_official_city_rule' => false,
+                'conditions' => [],
+                'unmet_conditions' => [],
+                'outstanding_requirements' => ['Proposed business activity selection'],
+                'restrictions' => ['Select a specific business or land-use activity to evaluate zoning compatibility.'],
+                'reason' => 'Proposed business activity is unselected or unrecognized.',
+                'explanation' => "Zoning district is {$zone['full_label']}. Select an intended business or land-use activity to evaluate compatibility with this zoning district.",
+                'missing_requirements' => ['Proposed business activity selection'],
+                'rules_version' => self::VERSION,
+                'evaluated_at' => gmdate(DATE_ATOM),
+            ];
+        }
+
         $zone = self::ZONING_DISTRICTS[$zoneCode];
         $activity = self::SPECIFIC_ACTIVITIES[$activityCode];
         $lookup = self::lookupRule($zoneCode, $activityCode, $conditions);
@@ -1188,6 +1129,10 @@ final class ZoningRulesEngine
             $iaiContrib = null;
         }
 
+        $outstandingRequirements = $status === self::STATUS_CONDITIONAL
+            ? (!empty($lookup['conditions']) ? $lookup['conditions'] : (!empty($lookup['restrictions']) ? $lookup['restrictions'] : ['Subject to technical locational clearance and zoning board review.']))
+            : [];
+
         return [
             'is_complete' => $isComplete,
             'status' => $status,
@@ -1206,9 +1151,12 @@ final class ZoningRulesEngine
             'rule_source' => $lookup['ordinance_section'] ?? 'City Ordinance 2018-06',
             'ordinance_section' => $lookup['ordinance_section'],
             'source_priority' => $lookup['source_priority'],
-            'is_official_city_rule' => (bool) $lookup['is_official_city_rule'],
+            'is_official_city_rule' => false,
+            'rule_provenance' => 'unverified_coded_transcription',
             'conditions' => $lookup['conditions'],
-            'unmet_conditions' => $lookup['conditions'],
+            'unmet_conditions' => $outstandingRequirements,
+            'outstanding_requirements' => $outstandingRequirements,
+            'conditions_met' => $status === self::STATUS_PERMITTED,
             'restrictions' => $lookup['restrictions'],
             'reason' => $status === self::STATUS_PROHIBITED ? ($lookup['restrictions'][0] ?? 'Use is prohibited in this zone.') : null,
             'explanation' => $lookup['explanation'],
