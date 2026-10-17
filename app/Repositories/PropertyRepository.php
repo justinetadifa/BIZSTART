@@ -777,6 +777,44 @@ final class PropertyRepository
                 'createdAt' => $this->normalizeTimestamp($row['created_at'] ?? null),
                 'updatedAt' => $updatedAt,
             ], $assessment);
+            $historicalMeta = $assessment['historical_snapshot']['metadata'] ?? [];
+            $autoMeta = $this->decodeJson($row['automatic_assessment_json'] ?? '{}');
+            $rawDbScore = isset($row['score']) ? (float) $row['score'] : null;
+            $isComplete = !empty($assessment['assessmentComplete']) || !empty($row['assessment_complete']);
+
+            $effectiveMce = $assessment['mceScore'];
+            $effectiveIai = $assessment['iaiScore'];
+            if ($isComplete) {
+                $effectiveMce = $effectiveMce
+                    ?? (isset($historicalMeta['mceScore']) ? (float) $historicalMeta['mceScore'] : null)
+                    ?? (isset($autoMeta['mceScore']) ? (float) $autoMeta['mceScore'] : null)
+                    ?? (isset($row['mce_score']) ? (float) $row['mce_score'] : null)
+                    ?? $rawDbScore;
+                $effectiveIai = $effectiveIai
+                    ?? (isset($historicalMeta['iaiScore']) ? (float) $historicalMeta['iaiScore'] : null)
+                    ?? (isset($autoMeta['iaiScore']) ? (float) $autoMeta['iaiScore'] : null)
+                    ?? (isset($row['iai_score']) ? (float) $row['iai_score'] : null)
+                    ?? $effectiveMce
+                    ?? $rawDbScore;
+            }
+
+            $property['historicalMceScore'] = isset($historicalMeta['mceScore']) ? (float) $historicalMeta['mceScore'] : null;
+            $property['historicalIaiScore'] = isset($historicalMeta['iaiScore']) ? (float) $historicalMeta['iaiScore'] : null;
+            $property['effectiveMceScore'] = $effectiveMce;
+            $property['effectiveIaiScore'] = $effectiveIai;
+            $property['dbScore'] = $rawDbScore;
+
+            if ($property['mceScore'] === null && $effectiveMce !== null) {
+                $property['mceScore'] = $effectiveMce;
+            }
+            if ($property['iaiScore'] === null && $effectiveIai !== null) {
+                $property['iaiScore'] = $effectiveIai;
+            }
+            $property['mce_score'] = $property['mceScore'];
+            $property['iai_score'] = $property['iaiScore'];
+            if (!isset($property['score']) || $property['score'] === null) {
+                $property['score'] = $property['iaiScore'];
+            }
             $property['screeningAssessment'] = \App\Support\PropertyScreening::fromProperty($property);
             return $property;
         }, $rows);

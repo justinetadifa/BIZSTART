@@ -527,7 +527,7 @@ function updatePriorityStats() {
   const total = properties.length;
   const review = properties.filter(p => p.approvalState === 'pending_review' || String(p.status).toLowerCase() === 'pending').length;
   const published = properties.filter(p => p.approvalState === 'approved' || String(p.status).toLowerCase() === 'available').length;
-  const needsAssessment = properties.filter(p => !p.assessmentComplete && p.approvalState !== 'archived').length;
+  const needsAssessment = properties.filter(p => (!p.assessmentComplete || (p.iaiScore == null && p.mceScore == null && p.score == null)) && p.approvalState !== 'archived').length;
 
   statTotal.textContent = String(total);
   statReview.textContent = String(review);
@@ -541,6 +541,10 @@ function priorityListCard(property, idx) {
   const scientificRank = rankKey ? property[`${rankKey}Rank`] : null;
   const isTopRanked = scientificRank === 1 && property.rank_eligible === true;
   const ppsqm = salePricePerSqm(property);
+
+  const effectiveMce = property.mceScore ?? property.mce_score ?? property.effectiveMceScore ?? property.historicalMceScore ?? null;
+  const effectiveIai = property.iaiScore ?? property.iai_score ?? property.effectiveIaiScore ?? property.historicalIaiScore ?? property.score ?? null;
+  const isAssessed = Boolean(property.assessmentComplete && (effectiveIai !== null || effectiveMce !== null));
 
   // Format location and eliminate duplicate city/province entries
   const locationRaw = [
@@ -580,19 +584,24 @@ function priorityListCard(property, idx) {
   // Compact rank badge replacing oversized red ranking strip
   let rankBadge = '';
   if (rankKey) {
-    if (!property.assessmentComplete || scientificRank == null) {
-      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80" title="Unranked: assessment incomplete">
-        <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-slate-400"></span>
-        <span>Unranked · Pending assessment</span>
-      </span>`;
-    } else if (scientificRank === 1) {
+    if (scientificRank === 1 && property.rank_eligible === true) {
       rankBadge = `<span class="locus-rank-badge locus-rank-top tw-inline-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-bold tw-bg-gradient-to-r tw-from-[#8B1A1A] tw-to-[#A82020] tw-text-white tw-shadow-sm" title="Rank #1 by ${esc(rankKey.toUpperCase())}">
         <svg class="tw-w-3 tw-h-3 tw-text-amber-300 tw-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
         <span>#1</span> <span class="tw-text-[10.5px] tw-font-semibold tw-text-white/90">${esc(rankKey.toUpperCase())} rank</span>
       </span>`;
-    } else {
+    } else if (scientificRank != null) {
       rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-slate-100 tw-text-slate-700 tw-border tw-border-slate-200" title="Rank #${scientificRank} by ${esc(rankKey.toUpperCase())}">
         <strong class="tw-font-bold tw-text-slate-900">#${scientificRank}</strong> <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(rankKey.toUpperCase())} rank</span>
+      </span>`;
+    } else if (isAssessed) {
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-emerald-50 tw-text-emerald-700 tw-border tw-border-emerald-200/80" title="Assessed property">
+        <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-emerald-500"></span>
+        <span>Assessed</span>
+      </span>`;
+    } else {
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80" title="Unranked: assessment incomplete">
+        <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-slate-400"></span>
+        <span>Unranked · Pending assessment</span>
       </span>`;
     }
   }
@@ -668,21 +677,50 @@ function priorityListCard(property, idx) {
     <!-- Right Side: IAI Score & Action Controls -->
     <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap xl:tw-flex-col tw-items-stretch sm:tw-items-center xl:tw-items-end tw-justify-between xl:tw-justify-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-pt-3 xl:tw-pt-0 tw-border-t xl:tw-border-t-0 tw-border-slate-100 tw-w-full xl:tw-w-auto">
       
-      <!-- IAI Score Box (Authoritative when assessed, refined status when pending) -->
-      <div class="tw-w-full sm:tw-w-44 xl:tw-w-48 tw-py-2.5 tw-px-3.5 tw-rounded-2xl ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-to-[#FFF7ED] tw-border tw-border-orange-200/90 tw-shadow-[0_2px_12px_-2px_rgba(234,88,12,0.08)]' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-text-center tw-shrink-0">
-        <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
-          <span class="tw-block tw-text-[10px] sm:tw-text-[11px] tw-font-bold ${(property.iaiScore != null && property.assessmentComplete) ? 'tw-text-[#9E1B22]' : 'tw-text-slate-500'} tw-tracking-wider tw-uppercase">IAI composite</span>
-          <span class="tw-text-[10px] tw-text-slate-400">/ 100</span>
-        </div>
-        ${(property.iaiScore != null && property.assessmentComplete) ? `
-          <strong class="tw-block tw-text-2xl sm:tw-text-[26px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">${number(property.iaiScore)}</strong>
-          <span class="tw-block tw-text-[9.5px] tw-text-slate-500 tw-font-medium tw-mt-0.5">MCE methodology (6 criteria)</span>
-        ` : `
-          <div class="tw-inline-flex tw-items-center tw-gap-1.5 tw-my-1 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-bg-white tw-border tw-border-slate-200/80 tw-shadow-2xs">
-            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-400 tw-animate-pulse"></span>
-            <span class="tw-text-[11px] tw-font-semibold tw-text-slate-700">Awaiting score</span>
+      <!-- Dual Score Box: MCE & IAI Side by Side (Authoritative when assessed, refined status when pending) -->
+      <div class="tw-w-full sm:tw-w-52 xl:tw-w-56 tw-py-2.5 tw-px-3 tw-rounded-[22px] ${isAssessed ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-via-white tw-to-[#FFF7ED] tw-border tw-border-orange-200/90 tw-shadow-[0_4px_16px_-4px_rgba(234,88,12,0.08)]' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-shrink-0">
+        ${isAssessed ? `
+          <div class="tw-grid tw-grid-cols-2 tw-gap-2 tw-divide-x tw-divide-orange-200/70">
+            <!-- MCE Baseline -->
+            <div class="tw-text-center tw-px-1">
+              <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
+                <span class="tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-slate-600 tw-tracking-wider tw-uppercase">MCE baseline</span>
+                <span class="tw-text-[9px] tw-text-slate-400">/ 100</span>
+              </div>
+              <strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-800 tw-leading-tight tw-mt-0.5 tw-tabular-nums">
+                ${effectiveMce !== null ? number(effectiveMce) : '—'}
+              </strong>
+              <span class="tw-block tw-text-[9px] tw-text-slate-500 tw-font-medium tw-mt-0.5 tw-truncate" title="Multi-Criteria Evaluation baseline">Site baseline</span>
+            </div>
+
+            <!-- IAI Composite -->
+            <div class="tw-text-center tw-px-1">
+              <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
+                <span class="tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-[#9E1B22] tw-tracking-wider tw-uppercase">IAI composite</span>
+                <span class="tw-text-[9px] tw-text-slate-400">/ 100</span>
+              </div>
+              <strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">
+                ${effectiveIai !== null ? number(effectiveIai) : '—'}
+              </strong>
+              <span class="tw-block tw-text-[9px] tw-text-amber-800 tw-font-semibold tw-mt-0.5 tw-truncate" title="Investment Attractiveness Index">Investment index</span>
+            </div>
           </div>
-          <span class="tw-block tw-text-[9px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
+          <div class="tw-mt-2 tw-pt-1.5 tw-border-t tw-border-orange-100/80 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-text-[9px] tw-text-slate-500 tw-font-medium">
+            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-emerald-500"></span>
+            <span>MCE methodology</span>
+          </div>
+        ` : `
+          <div class="tw-text-center tw-py-1">
+            <div class="tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-mb-1">
+              <span class="tw-text-[10.5px] tw-font-bold tw-text-slate-500 tw-tracking-wider tw-uppercase">MCE &bull; IAI</span>
+              <span class="tw-text-[9.5px] tw-text-slate-400">/ 100</span>
+            </div>
+            <div class="tw-inline-flex tw-items-center tw-gap-1.5 tw-my-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-bg-white tw-border tw-border-slate-200/80 tw-shadow-2xs">
+              <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-400 tw-animate-pulse"></span>
+              <span class="tw-text-[11px] tw-font-semibold tw-text-slate-700">Awaiting score</span>
+            </div>
+            <span class="tw-block tw-text-[9.5px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
+          </div>
         `}
       </div>
 
@@ -788,9 +826,18 @@ function getFiltered() {
 
   const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' && advancedView() ? 'iai' : 'newest');
   if (sort === 'iai' || sort === 'mce') result.sort((a, b) => {
-    if (a.rank_eligible !== true || b.rank_eligible !== true) return a.rank_eligible === b.rank_eligible ? a.id - b.id : a.rank_eligible === true ? -1 : 1;
-    if (a.comparison_key !== b.comparison_key) return String(a.comparison_key).localeCompare(String(b.comparison_key));
-    return b.unrounded_total - a.unrounded_total || a.id - b.id;
+    if (a.rank_eligible === true && b.rank_eligible === true) {
+      if (a.comparison_key !== b.comparison_key) return String(a.comparison_key).localeCompare(String(b.comparison_key));
+      return (b.unrounded_total ?? 0) - (a.unrounded_total ?? 0) || a.id - b.id;
+    }
+    const scoreA = sort === 'mce'
+      ? Number(a.mceScore ?? a.mce_score ?? a.effectiveMceScore ?? a.historicalMceScore ?? -1)
+      : Number(a.iaiScore ?? a.iai_score ?? a.effectiveIaiScore ?? a.historicalIaiScore ?? a.score ?? -1);
+    const scoreB = sort === 'mce'
+      ? Number(b.mceScore ?? b.mce_score ?? b.effectiveMceScore ?? b.historicalMceScore ?? -1)
+      : Number(b.iaiScore ?? b.iai_score ?? b.effectiveIaiScore ?? b.historicalIaiScore ?? b.score ?? -1);
+    if (scoreA !== scoreB) return scoreB - scoreA;
+    return a.id - b.id;
   });
   else if (sort === 'price' || sort === 'price_asc') result.sort((a, b) => compareSalePrices(a, b));
   else if (sort === 'price_desc') result.sort((a, b) => compareSalePrices(a, b, "desc"));
@@ -803,7 +850,7 @@ function renderRanking() {
   const root = document.getElementById('cityRankingTable');
   if (!root) return;
   updatePriorityStats();
-  const assessed = filtered.filter(p => p.assessmentComplete || p.iaiScore != null);
+  const assessed = filtered.filter(p => Boolean(p.assessmentComplete && (p.iaiScore != null || p.mceScore != null || p.score != null)));
   const awaiting = filtered.length - assessed.length;
 
   const sort = document.getElementById('citySort')?.value || 'newest';
