@@ -23,5 +23,5 @@ assert.deepEqual(normalize('Building','Commercial Lot','Industrial Lot'),{catego
 assert.deepEqual(normalize('Commercial','Commercial Lot, Restaurant'),{category:'Building',primary:'Commercial',additional:[]});
 assert.deepEqual(normalize('Vacant Land','Commercial'),{category:'Land',primary:'Commercial Lot',additional:[]});
 assert.deepEqual(normalize(' building ','warehouse, office','Warehouse, Corporate Office, commercial lot'),{category:'Building',primary:'Warehouse / Storage',additional:['Office','Corporate Office']});
-assert.deepEqual(normalize('Land','Raw Land','Commercial, Retail / Storefront, Agricultural'),{category:'Land',primary:'Raw Land',additional:['Commercial','Agricultural']});
+assert.deepEqual(normalize('Land','Raw Land','Commercial, Retail / Storefront, Agricultural'),{category:'Land',primary:'Raw Land',additional:['Commercial Lot','Agricultural']});
 console.log('Property wizard classification: all server choices, legacy aliases, restore order and stale tags passed.');

@@ -21,7 +21,7 @@ $reject = static function (callable $operation, string $message) use ($check): v
 $catalog = PropertyCatalog::classificationCatalog();
 $check($catalog['categories'] === PropertyCatalog::categories(), 'The client catalog must use the authoritative server classifications.');
 $check(array_keys($catalog['categories']) === ['Land', 'Building'], 'The shared catalog must not introduce new categories.');
-$check(count($catalog['categories']['Land']) === 10 && count($catalog['categories']['Building']) === 11, 'The shared catalog must expose every available canonical classification.');
+$check(count($catalog['categories']['Land']) === 5 && count($catalog['categories']['Building']) === 11, 'The shared catalog must expose every available canonical classification.');
 
 foreach ($catalog['categories'] as $category => $classifications) {
     foreach ($classifications as $classification) {
@@ -52,7 +52,7 @@ $check(PropertyCatalog::normalizeCategory('Land', 'Commercial Lot, Agricultural,
 $check(PropertyCatalog::normalizeCategory(null, 'Commercial Lot, Raw Land', 'commercial') === ['Land', 'Commercial Lot, Raw Land'], 'Missing legacy category must infer Land from unambiguous valid land choices.');
 $check(PropertyCatalog::normalizeCategory('', 'Office, Commercial', 'agricultural') === ['Building', 'Office, Commercial'], 'Missing category must infer Building when every supplied tag is compatible.');
 $check(PropertyCatalog::normalizeCategory(null, 'Commercial', 'commercial') === ['Building', 'Commercial'], 'Ambiguous classification must retain the established legacy-type fallback.');
-$check(PropertyCatalog::normalizeCategory(null, 'Commercial', 'agricultural') === ['Land', 'Commercial'], 'Ambiguous classification must not arbitrarily choose Building.');
+$check(PropertyCatalog::normalizeCategory(null, 'Commercial', 'agricultural') === ['Land', 'Commercial Lot'], 'Ambiguous classification must not arbitrarily choose Building.');
 $check(PropertyCatalog::normalizeCategory(null, null, 'commercial') === ['Building', null], 'Absent classification must retain legacy type compatibility.');
 $check(PropertyCatalog::normalizeCategory(null, null, 'agricultural') === ['Land', null], 'Absent agricultural classification must retain land compatibility.');
 

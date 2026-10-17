@@ -16,11 +16,6 @@ final class PropertyCatalog
                 'Industrial Lot',
                 'Agricultural',
                 'Raw Land',
-                'Farm / Agribusiness',
-                'Commercial',
-                'Industrial',
-                'Residential',
-                'Logistics',
             ],
             'Building' => [
                 'Commercial',
@@ -100,8 +95,13 @@ final class PropertyCatalog
 
         $legacySubcategoryMap = [
             'Land' => [
-                'Farm' => 'Farm / Agribusiness',
-                'Ranch' => 'Farm / Agribusiness',
+                'Farm' => 'Agricultural',
+                'Ranch' => 'Agricultural',
+                'Farm / Agribusiness' => 'Agricultural',
+                'Commercial' => 'Commercial Lot',
+                'Residential' => 'Residential Lot',
+                'Industrial' => 'Industrial Lot',
+                'Logistics' => 'Industrial Lot',
                 'Islands' => 'Raw Land',
                 'Timber' => 'Raw Land',
                 'Hunting/Recreational' => 'Raw Land',

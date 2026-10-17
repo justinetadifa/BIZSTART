@@ -14636,6 +14636,12 @@ async function initAdminProperties() {
         if (!propertyId) return;
 
         try {
+          window.LocusHUD?.show({
+            title: 'Approving property...',
+            subtitle: 'Publishing listing with municipal certification...',
+            step: 'Verifying listing status',
+            mode: 'loading'
+          });
           await api.updateProperty(propertyId, {
             approval_state: "approved",
           });
@@ -14643,8 +14649,14 @@ async function initAdminProperties() {
             window.LocusSound?.markApprovalHandled(propertyId);
             window.LocusSound?.play("approved");
           }
+          window.LocusHUD?.setApproved({
+            title: 'Property Approved!',
+            subtitle: 'Listing certified and published to the live priority board.'
+          });
+          await window.LocusHUD?.hide(1100);
           await reload();
         } catch (error) {
+          window.LocusHUD?.hide();
           window.LocusSound?.play("error");
           window.alert(error.message || "Unable to approve this listing right now.");
         }

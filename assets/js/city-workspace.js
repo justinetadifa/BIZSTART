@@ -132,7 +132,7 @@ function hazardNotice(property, isGrid = false) {
 
   return `
     ${locationNote ? `<p class="${isGrid ? 'tw-mx-2.5 sm:tw-mx-3' : ''} tw-mt-2 tw-mb-0 tw-text-xs tw-text-slate-500">${esc(locationNote)}</p>` : ''}
-    <div class="${marginClass} tw-py-1.5 tw-px-2.5 sm:tw-px-3 tw-rounded-xl tw-bg-slate-50/80 tw-border tw-border-slate-200/70">
+    <div class="${marginClass} tw-py-2 tw-px-3 sm:tw-px-3.5 tw-rounded-2xl tw-bg-slate-50/90 tw-border tw-border-slate-200/70 tw-shadow-[0_1px_3px_rgba(17,34,77,0.02)]">
       <div class="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-flex-wrap">
         <div class="tw-flex tw-items-center tw-gap-1.5 tw-text-[10.5px] sm:tw-text-[11px] tw-font-semibold tw-text-slate-600">
           <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500 tw-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -141,10 +141,10 @@ function hazardNotice(property, isGrid = false) {
           <span>Hazards & environment</span>
         </div>
         <div class="tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap tw-justify-end">
-          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
+          <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(flood.color)}" title="Flood: ${esc(flood.badge)}">
             Flood: ${floodLabel}
           </span>
-          <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
+          <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[9.5px] sm:tw-text-[10px] tw-font-semibold tw-border ${badgeClasses(fault.color)}" title="Fault: ${esc(fault.proximity || fault.badge)}">
             Fault: ${faultLabel}
           </span>
         </div>
@@ -184,7 +184,7 @@ function card(property, index) {
     const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
     const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
 
-    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><span class="tw-text-xs tw-text-slate-500">${esc(property.assessmentStatus || 'incomplete')} · comparison group ${esc(property.comparison_key?.slice(0, 12) || 'withheld')}</span>
+    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><span class="tw-text-xs tw-text-slate-500">${esc(property.assessmentStatus || 'incomplete')} · comparison group ${esc(property.comparison_key?.slice(0, 12) || 'withheld')}</span>
       <!-- Media / Satellite Image Container -->
       <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
         <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
@@ -211,7 +211,7 @@ function card(property, index) {
         <!-- Floating Frosted Glass Panel -->
         <div class="locus-card-glass tw-absolute tw-inset-x-2.5 tw-bottom-2.5 tw-z-10 tw-p-3">
           <div>
-            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[11px] tw-font-semibold tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-100/60">
+            <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-semibold tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-100/60">
               ${esc(property.subcategory || property.category || property.type || 'Commercial')}
             </span>
             <h3 class="tw-mt-1 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
@@ -300,14 +300,14 @@ function card(property, index) {
       ${hazardNotice(property)}
       <!-- Secondary Action Row (Compare / On map / Shortlist) -->
       <div class="tw-p-3 ${isExpanded ? 'tw-pt-0' : 'tw-pt-3'} tw-bg-white tw-flex tw-items-center tw-gap-2">
-        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-3.5 tw-rounded-full tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer tw-shadow-2xs" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">
           <svg class="tw-w-3.5 tw-h-3.5 tw-text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
           </svg>
           <span>${compare.includes(property.id) ? 'Compared' : 'Compare'}</span>
         </button>
 
-        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-locate="${property.id}">
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-3.5 tw-rounded-full tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer tw-shadow-2xs" data-locate="${property.id}">
           <svg class="tw-w-3.5 tw-h-3.5 tw-text-[#9E1B22]" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -316,14 +316,14 @@ function card(property, index) {
         </button>
 
         ${isExpanded ? `
-        <button type="button" class="tw-flex-1 tw-py-2 tw-px-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">
+        <button type="button" class="tw-flex-1 tw-py-2 tw-px-3.5 tw-rounded-full tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-transition-all tw-cursor-pointer tw-shadow-2xs" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">
           <svg class="tw-w-3.5 tw-h-3.5 ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
           <span>${saved.has(property.id) ? 'Saved' : 'Shortlist'}</span>
         </button>
         ` : `
-        <button type="button" class="tw-px-3.5 tw-py-2 tw-rounded-xl tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-transition-all tw-cursor-pointer" data-save="${property.id}" aria-pressed="${saved.has(property.id)}" title="${saved.has(property.id) ? 'Saved' : 'Shortlist'}">
+        <button type="button" class="tw-w-9 tw-h-9 tw-rounded-full tw-border tw-border-slate-200 hover:tw-border-slate-300 tw-bg-white hover:tw-bg-slate-50 tw-text-xs tw-font-semibold ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-border-rose-300 tw-bg-rose-50/50' : 'tw-text-slate-700'} tw-flex tw-items-center tw-justify-center tw-transition-all tw-cursor-pointer tw-shadow-2xs" data-save="${property.id}" aria-pressed="${saved.has(property.id)}" title="${saved.has(property.id) ? 'Saved' : 'Shortlist'}">
           <svg class="tw-w-3.5 tw-h-3.5 ${saved.has(property.id) ? 'tw-text-[#9E1B22] tw-fill-current' : 'tw-text-slate-500'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
@@ -347,7 +347,7 @@ function card(property, index) {
   const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
   const descText = property.description || property.thesis || `A ${hasArea(property) ? `${number(property.area)}-hectare ` : ''}${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
 
-  return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[22px] tw-border tw-border-slate-200/80 tw-shadow-sm hover:tw-shadow-xl tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
+  return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
     <!-- Media / Satellite Image Container -->
     <div class="tw-relative tw-h-[230px] sm:tw-h-[250px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
       <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
@@ -368,7 +368,7 @@ function card(property, index) {
       <div class="locus-card-glass tw-absolute tw-inset-x-2 sm:tw-inset-x-2.5 tw-bottom-2 sm:tw-bottom-2.5 tw-z-10 tw-p-2.5 sm:tw-p-3">
         <div class="tw-flex tw-items-start tw-justify-between tw-gap-2">
           <div class="tw-min-w-0 tw-flex-1">
-            <span class="tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-md tw-text-[10px] sm:tw-text-[10.5px] tw-font-semibold tw-border ${accent}">
+            <span class="tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[10px] sm:tw-text-[10.5px] tw-font-semibold tw-border ${accent}">
               ${esc(property.subcategory || property.category || property.type || 'Commercial')}
             </span>
             <h3 class="tw-mt-1 tw-mb-0.5 tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-slate-900 tw-leading-tight tw-truncate">
@@ -602,17 +602,17 @@ function priorityListCard(property, idx) {
     ? `${number(Number(property.area) * 10000)} m² ${property.area ? `(${number(property.area)} ha)` : ''}`
     : `${number(property.area)} ha`;
 
-  return `<article class="priority-card locus-property-card-lift tw-group tw-relative tw-bg-white tw-rounded-2xl sm:tw-rounded-3xl tw-border tw-border-slate-200/80 hover:tw-border-slate-300 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.08)] tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-6 tw-transition-all tw-duration-200" data-property-id="${property.id}">
+  return `<article class="priority-card locus-property-card-lift tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 hover:tw-border-slate-300 tw-shadow-[0_4px_20px_-4px_rgba(17,34,77,0.05)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.09)] tw-overflow-hidden tw-p-4 sm:tw-p-5 tw-flex tw-flex-col xl:tw-flex-row xl:tw-items-center tw-justify-between tw-gap-4 sm:tw-gap-6 tw-transition-all tw-duration-200" data-property-id="${property.id}">
     <div class="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-start xl:tw-items-center tw-gap-4 sm:tw-gap-5 tw-flex-1 tw-min-w-0">
       
       <!-- Media Thumbnail with Floating Badges -->
-      <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-relative tw-block tw-shrink-0 tw-w-full sm:tw-w-48 md:tw-w-56 tw-h-44 sm:tw-h-36 md:tw-h-40 tw-rounded-xl sm:tw-rounded-2xl tw-overflow-hidden tw-border tw-border-slate-200/70 tw-bg-slate-100 tw-group/thumb" aria-label="View ${esc(titleClean)}">
-        <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full tw-h-full tw-object-cover tw-rounded-xl sm:tw-rounded-2xl group-hover/thumb:tw-scale-105 tw-transition-transform tw-duration-500" loading="lazy">
+      <a href="${path(`property-details.php?id=${property.id}`)}" class="tw-relative tw-block tw-shrink-0 tw-w-full sm:tw-w-48 md:tw-w-56 tw-h-44 sm:tw-h-36 md:tw-h-40 tw-rounded-2xl sm:tw-rounded-[22px] tw-overflow-hidden tw-border tw-border-slate-200/70 tw-bg-slate-100 tw-group/thumb tw-shadow-2xs" aria-label="View ${esc(titleClean)}">
+        <img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" class="tw-w-full tw-h-full tw-object-cover tw-rounded-2xl sm:tw-rounded-[22px] group-hover/thumb:tw-scale-105 tw-transition-transform tw-duration-500" loading="lazy">
         <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-t tw-from-slate-950/60 tw-via-transparent tw-to-slate-950/20 tw-pointer-events-none"></div>
-        <span class="tw-absolute tw-left-2.5 tw-top-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-md tw-text-[10.5px] tw-font-semibold tw-tracking-wide tw-bg-slate-900/85 tw-backdrop-blur-md tw-text-white tw-shadow-sm">
+        <span class="tw-absolute tw-left-2.5 tw-top-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-3 tw-py-0.5 tw-rounded-full tw-text-[10.5px] tw-font-semibold tw-tracking-wide tw-bg-slate-900/85 tw-backdrop-blur-md tw-text-white tw-shadow-sm">
           ${esc(categoryName)}
         </span>
-        <span class="tw-absolute tw-left-2.5 tw-bottom-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded tw-text-[9.5px] tw-font-bold tw-uppercase tw-tracking-wider tw-bg-white/95 tw-backdrop-blur-md tw-text-slate-800 tw-shadow-xs">
+        <span class="tw-absolute tw-left-2.5 tw-bottom-2.5 tw-z-10 tw-inline-flex tw-items-center tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[9.5px] tw-font-bold tw-uppercase tw-tracking-wider tw-bg-white/95 tw-backdrop-blur-md tw-text-slate-800 tw-shadow-xs">
           ${esc(listingPurposeLabel(property))}
         </span>
       </a>
@@ -688,20 +688,20 @@ function priorityListCard(property, idx) {
 
       <!-- Action Buttons -->
       <div class="tw-flex tw-flex-col sm:tw-flex-row xl:tw-flex-col tw-items-stretch sm:tw-items-end tw-gap-2 tw-shrink-0 tw-w-full sm:tw-w-auto">
-        <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-primary tw-w-full tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-5 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] active:tw-bg-[#0A1633] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all tw-cursor-pointer">
+        <a href="${path(`property-details.php?id=${property.id}`)}" class="locus-btn-primary tw-w-full tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-py-2.5 tw-px-6 tw-rounded-full tw-bg-[#11224D] hover:tw-bg-[#1B367A] active:tw-bg-[#0A1633] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-shadow-sm hover:tw-shadow-md hover:tw--translate-y-0.5 tw-transition-all tw-cursor-pointer">
           <span>View details</span>
           <span aria-hidden="true">&rarr;</span>
         </a>
 
         <div class="tw-flex tw-items-center tw-gap-2 tw-w-full sm:tw-w-auto">
-          <button type="button" class="locus-compare-btn ${isCompared ? 'is-selected tw-bg-blue-50 tw-border-blue-300 tw-text-[#11224D] tw-font-semibold' : 'tw-bg-white hover:tw-bg-slate-50 tw-border-slate-200 hover:tw-border-slate-300 tw-text-slate-700 tw-font-medium'} tw-flex-1 tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-py-2 tw-px-3.5 tw-rounded-xl tw-border tw-text-xs tw-transition-all tw-cursor-pointer" data-compare="${property.id}" aria-pressed="${isCompared}">
+          <button type="button" class="locus-compare-btn ${isCompared ? 'is-selected tw-bg-blue-50 tw-border-blue-300 tw-text-[#11224D] tw-font-semibold' : 'tw-bg-white hover:tw-bg-slate-50 tw-border-slate-200 hover:tw-border-slate-300 tw-text-slate-700 tw-font-medium'} tw-flex-1 tw-inline-flex tw-items-center tw-justify-center tw-gap-1.5 tw-py-2 tw-px-4 tw-rounded-full tw-border tw-text-xs tw-transition-all tw-cursor-pointer tw-shadow-2xs" data-compare="${property.id}" aria-pressed="${isCompared}">
             <svg class="tw-w-3.5 tw-h-3.5 ${isCompared ? 'tw-text-[#11224D]' : 'tw-text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
             <span>${isCompared ? 'In compare' : 'Add to compare'}</span>
           </button>
 
-          <button type="button" class="locus-save-btn ${isSaved ? 'is-saved tw-text-[#9E1B22] tw-bg-rose-50 tw-border-rose-200' : 'tw-text-slate-400 hover:tw-text-[#9E1B22] hover:tw-bg-rose-50/50 tw-bg-white tw-border-slate-200 hover:tw-border-slate-300'} tw-w-9 tw-h-9 tw-rounded-xl tw-border tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved to favorites' : 'Save property'}">
+          <button type="button" class="locus-save-btn ${isSaved ? 'is-saved tw-text-[#9E1B22] tw-bg-rose-50 tw-border-rose-200' : 'tw-text-slate-400 hover:tw-text-[#9E1B22] hover:tw-bg-rose-50/50 tw-bg-white tw-border-slate-200 hover:tw-border-slate-300'} tw-w-9 tw-h-9 tw-rounded-full tw-border tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all tw-shadow-2xs" data-save="${property.id}" aria-pressed="${isSaved}" title="${isSaved ? 'Saved to favorites' : 'Save property'}">
             <svg class="tw-w-4 tw-h-4" fill="${isSaved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
             </svg>

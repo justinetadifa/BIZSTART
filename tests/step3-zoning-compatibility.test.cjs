@@ -75,9 +75,10 @@ check('Embeds #pwZoningEngineData JSON script tag with zoning rules',
   viewContent.includes('application/json')
 );
 
-check('Admin registration does not force a proposed business activity on property entry',
-  !viewContent.includes('id="pwZoningActivity"') &&
-  !viewContent.includes('id="pwZoningCategory"')
+check('Optional proposed activity screening is available without blocking property entry',
+  viewContent.includes('id="pwZoningActivity" name="proposed_activity"') &&
+  viewContent.includes('id="pwZoningCategory" name="zoning_category"') &&
+  !viewContent.includes('name="proposed_activity" required')
 );
 
 // -------------------------------------------------------------

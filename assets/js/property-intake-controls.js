@@ -5,55 +5,41 @@
     const field = name => form.elements[name];
     const native = $('[data-property-subtype-select]');
     const make = (tag, className, text) => { const el=document.createElement(tag); if(className)el.className=className; if(text)el.textContent=text; return el; };
-    const subtypeDescriptions = {
-      'Commercial Lot':'Land described for commercial purposes', 'Residential Lot':'Land described for residential purposes',
-      'Industrial Lot':'Land described for industrial purposes', 'Agricultural':'Land used or described for agriculture',
-      'Raw Land':'Undeveloped land', 'Farm / Agribusiness':'Farm or agricultural business property',
-      'Office':'Office premises', 'Industrial / Warehouse':'Industrial premises or warehouse',
-      'Hospitality / Tourism':'Accommodation or visitor facilities', 'Mixed-Use':'More than one recorded use',
-    };
-    let picker, trigger, search, list;
-    function closePicker(focus=false) { if(!picker)return; picker.hidden=true;trigger.setAttribute('aria-expanded','false');if(focus)trigger.focus(); }
+    let classificationRoot;
     function renderSubtype() {
-      if(!native || !list)return;
-      const selected=native.value, query=search.value.trim().toLowerCase();
-      trigger.querySelector('span').textContent=selected || `Choose ${field('category')?.value === 'Land' ? 'land' : 'building'} subtype`;
-      trigger.classList.toggle('has-value',Boolean(selected));
-      list.replaceChildren();
-      for(const option of native.options) {
-        if(!option.value || !option.text.toLowerCase().includes(query))continue;
-        const row=make('button','pw-subtype-option');row.type='button';row.role='option';
-        row.setAttribute('aria-selected',String(option.value===selected));row.dataset.subtypeValue=option.value;
-        row.append(make('strong','',option.text));
-        if(subtypeDescriptions[option.value])row.append(make('small','',subtypeDescriptions[option.value]));
-        row.addEventListener('click',()=>{native.value=option.value;native.dispatchEvent(new Event('change',{bubbles:true}));renderSubtype();closePicker(true);});
-        list.append(row);
+      if (!native || !classificationRoot) return;
+      const extra = (field('additional_subcategories')?.value || '').split(',').map(v => v.trim()).filter(Boolean);
+      const chosen = new Set([native.value, ...extra].filter(Boolean));
+      classificationRoot.replaceChildren();
+      for (const option of native.options) {
+        if (!option.value) continue;
+        const row = make('label', 'pw-classification-choice');
+        const checkbox = make('input'); checkbox.type = 'checkbox'; checkbox.value = option.value;
+        checkbox.checked = chosen.has(option.value); checkbox.dataset.classificationChoice = '';
+        const label = make('span', '', option.text);
+        row.append(checkbox, label);
+        checkbox.addEventListener('change', () => {
+          const selected = [...classificationRoot.querySelectorAll('input:checked')].map(n => n.value);
+          // Retain the existing primary while it remains checked, for API compatibility.
+          const primary = selected.includes(native.value) ? native.value : selected[0] || '';
+          native.value = primary;
+          field('additional_subcategories').value = selected.filter(v => v !== primary).join(', ');
+          native.dispatchEvent(new Event('change', {bubbles:true}));
+        });
+        classificationRoot.append(row);
       }
-      if(!list.children.length)list.append(make('p','pw-muted','No matching subtype. Try another word.'));
     }
-    if(native) {
-      const root=make('div','pw-subtype-picker');native.after(root);
-      trigger=make('button','pw-subtype-trigger');trigger.type='button';trigger.setAttribute('aria-haspopup','listbox');trigger.setAttribute('aria-expanded','false');trigger.setAttribute('aria-labelledby','pwSubtypeLabel pwSubtypeValue');
-      const title=make('span');title.id='pwSubtypeValue';trigger.append(title,make('span','pw-picker-chevron','⌄'));
-      picker=make('div','pw-subtype-menu');picker.hidden=true;
-      search=make('input','pw-subtype-search');search.type='search';search.placeholder='Find a subtype…';search.setAttribute('aria-label','Find a primary subtype');
-      list=make('div','pw-subtype-options');list.id='pwSubtypeOptions';list.role='listbox';list.setAttribute('aria-labelledby','pwSubtypeLabel');trigger.setAttribute('aria-controls',list.id);
-      picker.append(search,list,make('p','pw-subtype-note','Describes the listing. Official zoning is assessed separately.'));root.append(trigger,picker);
-      native.classList.add('pw-native-subtype');native.tabIndex=-1;native.setAttribute('aria-hidden','true');
-      native.addEventListener('focus',()=>trigger.focus());
-      trigger.addEventListener('click',()=>{if(!picker.hidden){closePicker();return;}picker.hidden=false;trigger.setAttribute('aria-expanded','true');search.value='';renderSubtype();search.focus({preventScroll:true});requestAnimationFrame(()=>picker.scrollIntoView({block:'nearest',inline:'nearest'}));});
-      trigger.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){event.preventDefault();trigger.click();}});
-      search.addEventListener('input',renderSubtype);
-      root.addEventListener('keydown',event=>{
-        if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closePicker(true);return;}
-        const rows=[...list.querySelectorAll('button')];const i=rows.indexOf(document.activeElement);
-        if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();const next=i<0?(event.key==='ArrowDown'?0:rows.length-1):(i+(event.key==='ArrowDown'?1:-1)+rows.length)%rows.length;rows[next]?.focus();}
-        if(event.key==='Home'||event.key==='End'){event.preventDefault();rows[event.key==='Home'?0:rows.length-1]?.focus();}
-        if(event.key==='Tab')closePicker();
-      });
-      document.addEventListener('click',event=>{if(!root.contains(event.target))closePicker();});
-      native.addEventListener('change',renderSubtype);
-      form.addEventListener('classificationchange',()=>queueMicrotask(renderSubtype));
+    if (native) {
+      const root = make('div', 'pw-classification-picker');
+      classificationRoot = make('div', 'pw-classification-choices');
+      classificationRoot.setAttribute('role', 'group'); classificationRoot.setAttribute('aria-labelledby', 'pwSubtypeLabel');
+      root.append(classificationRoot, make('p', 'pw-muted pw-small', 'Choose all that apply. Agricultural includes farms and agribusiness. These describe the property; zoning permission is checked separately.'));
+      native.after(root); native.classList.add('pw-native-subtype'); native.tabIndex = -1;
+      native.setAttribute('aria-hidden','true');
+      native.addEventListener('focus', () => classificationRoot.querySelector('input')?.focus());
+      native.addEventListener('change', () => queueMicrotask(renderSubtype));
+      form.addEventListener('classificationchange', () => queueMicrotask(renderSubtype));
+      const additional = $('[data-subcategory-wrapper]'); if (additional) additional.hidden = true;
       renderSubtype();
     }
     const filter=$('[data-classification-search]');
@@ -88,7 +74,7 @@
     $('[data-add-contact-social]')?.addEventListener('click',()=>{addRow('social');storeChannels();});
     const parse = name => {try{const v=JSON.parse(field(name)?.value||'[]');return Array.isArray(v)?v:[];}catch{return [];}};
     function refresh() {
-      renderSubtype();closePicker();
+      renderSubtype();
       if(filter){filter.value='';filterAdditional();}
       if(!phoneRoot||!socialRoot)return;
       phoneRoot.replaceChildren();socialRoot.replaceChildren();

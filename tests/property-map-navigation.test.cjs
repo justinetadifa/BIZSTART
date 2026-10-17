@@ -36,6 +36,7 @@ const context = vm.createContext({
   selectLocationMethod(method){context.locationMethod=method;},cancelSearch(){},
   assessHazards(){},preview(){},ready(){},updateCoordinateDetailsSummary(){},
   locationStatus(text){context.status=text;},notify(){},
+  queueMicrotask(fn){fn();},recordEditorHistory(){},
   requestAnimationFrame(fn){callbacks.push(fn);},setTimeout(fn){callbacks.push(fn);},
   matchMedia:()=>({matches:true}),
 });

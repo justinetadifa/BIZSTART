@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use Throwable;
 
 require_once __DIR__ . '/PropertyEvidenceFiles.php';
+require_once __DIR__ . '/NearbyBusinessScreening.php';
 
 /** Parcel geometry and staff observations are context, never submitted assessment scores. */
 final class PropertyParcel
@@ -92,6 +93,30 @@ final class PropertyParcel
             $reference['label'] = self::text($payload['reference_label'], 'Reference point label', 120);
         }
         $observations = is_array($existing['observations'] ?? null) ? $existing['observations'] : [];
+        if (array_key_exists('nearby_screening', $payload)) {
+            $raw = $payload['nearby_screening'];
+            if ($raw === '' || $raw === null) { unset($observations['nearby_screening']); }
+            else {
+                if (is_string($raw)) {
+                    try { $raw = json_decode($raw, true, 32, JSON_THROW_ON_ERROR); }
+                    catch (\JsonException) { throw new InvalidArgumentException('Nearby screening data could not be read. Run the nearby search again.'); }
+                }
+                if (!is_array($raw)) { throw new InvalidArgumentException('Nearby screening requires recorded observations.'); }
+                $screening = NearbyBusinessScreening::evaluate($raw);
+                $record = $screening['observations'];
+                $businessType = $payload['radar_business_type'] ?? $payload['radarBusinessType'] ?? $record['business_type'];
+                if ($businessType !== $record['business_type']) {
+                    throw new InvalidArgumentException('Nearby observations use another business type. Run the search again for this scenario.');
+                }
+                if ($reference === null || abs((float) $record['reference_lat'] - $reference['lat']) > .0000005
+                    || abs((float) $record['reference_lng'] - $reference['lng']) > .0000005) {
+                    throw new InvalidArgumentException('Nearby observations refer to another point. Run the search again for this location.');
+                }
+                $observations['nearby_screening'] = $screening;
+            }
+        } elseif (isset($observations['nearby_screening']) && $reference !== ($existing['referencePoint'] ?? null)) {
+            unset($observations['nearby_screening']);
+        }
         foreach (self::OBSERVATIONS as $key => $allowed) {
             if (!array_key_exists($key, $payload)) { continue; }
             if (!is_string($payload[$key]) || !in_array($payload[$key], $allowed, true)) {
@@ -182,7 +207,7 @@ final class PropertyParcel
             'hazard_finding_tsunami' => 'tsunami_exposure',
         ];
         foreach ($hazardFindingMap as $field => $obsKey) {
-            if (array_key_exists($field, $payload) && is_string($payload[$field]) && trim($payload[$field]) !== '') {
+            if (array_key_exists($field, $payload) && is_string($payload[$field])) {
                 $observations[$obsKey] = self::text($payload[$field], str_replace('_', ' ', $obsKey), 3000);
             }
         }

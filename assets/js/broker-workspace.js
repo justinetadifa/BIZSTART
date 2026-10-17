@@ -1094,6 +1094,12 @@ form?.addEventListener('submit', async (event) => {
   if (id) payload.set('_method', 'PATCH');
 
   try {
+    window.LocusHUD?.show({
+      title: id ? 'Updating property...' : 'Submitting property...',
+      subtitle: 'Auditing parcel coordinates & computing multi-criteria weights...',
+      step: 'Uploading listing data',
+      mode: 'loading'
+    });
     let result;
     if (id) result = await api.updateProperty(id, payload);
     else result = await api.createProperty(payload);
@@ -1103,9 +1109,15 @@ form?.addEventListener('submit', async (event) => {
     }
     propertyWizard?.saved();
     editor?.close();
+    window.LocusHUD?.setSubmitted({
+      title: id ? 'Property Updated!' : 'Property Submitted for Review!',
+      subtitle: 'Your property has been submitted for municipal review.'
+    });
+    await window.LocusHUD?.hide(900);
     showSubmissionSuccessModal(savedPropertyId);
     await reload();
   } catch (error) {
+    window.LocusHUD?.hide();
     if (propertyWizard?.showSubmissionError) {
       const issue = propertyWizard.showSubmissionError(error);
       if (issue) setEditorStep(issue.step);

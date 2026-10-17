@@ -17,6 +17,7 @@ use Throwable;
 require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
 require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
+require_once dirname(__DIR__) . '/Support/PropertyScreening.php';
 require_once dirname(__DIR__) . '/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/Support/PropertyParcel.php';
 require_once dirname(__DIR__) . '/Support/PropertyContact.php';
@@ -664,7 +665,7 @@ final class PropertyRepository
 
             $assessment['property_id'] = $propertyId;
             $assessment['status'] = (string) $row['status'];
-            return array_merge([
+            $property = array_merge([
                 'id' => $propertyId,
                 'name' => (string) $row['name'],
                 'subname' => string_or_null($row['subname'] ?? null),
@@ -776,6 +777,8 @@ final class PropertyRepository
                 'createdAt' => $this->normalizeTimestamp($row['created_at'] ?? null),
                 'updatedAt' => $updatedAt,
             ], $assessment);
+            $property['screeningAssessment'] = \App\Support\PropertyScreening::fromProperty($property);
+            return $property;
         }, $rows);
     }
 

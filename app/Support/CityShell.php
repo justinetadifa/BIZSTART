@@ -67,7 +67,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/help-center.css<?= sfc_asset_version('css/help-center.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/sound-system.css<?= sfc_asset_version('css/sound-system.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-hud.css<?= sfc_asset_version('css/locus-hud.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/help-center.js<?= sfc_asset_version('js/help-center.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>

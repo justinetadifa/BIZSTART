@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+require_once __DIR__ . '/NearbyBusinessScreening.php';
+
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -68,9 +70,10 @@ final class SurroundingsRadar
         }
 
         $radiusMeters = max(100, min(1500, $radiusMeters));
+        $localOnly = ($options['local_only'] ?? false) === true;
         $cacheDir = $options['cache_directory'] ?? dirname(__DIR__, 2) . '/data/cache/radar';
         $dataDir = $options['data_directory'] ?? dirname(__DIR__, 2) . '/data';
-        if (!is_dir($cacheDir)) {
+        if (!$localOnly && !is_dir($cacheDir)) {
             @mkdir($cacheDir, 0775, true);
         }
 
@@ -81,7 +84,7 @@ final class SurroundingsRadar
         $now = time();
 
         // 1. Check fresh cache (valid for 24 hours)
-        if (is_file($cachePath)) {
+        if (!$localOnly && is_file($cachePath)) {
             $mtime = filemtime($cachePath) ?: 0;
             $raw = @file_get_contents($cachePath);
             if ($raw !== false) {
@@ -99,7 +102,7 @@ final class SurroundingsRadar
         // 2. Fetch from Overpass
         $osmData = null;
         try {
-            $osmData = isset($options['fetcher']) ? ($options['fetcher'])($lat, $lng, $radiusMeters) : self::queryOverpass($lat, $lng, $radiusMeters);
+            $osmData = $localOnly ? null : (isset($options['fetcher']) ? ($options['fetcher'])($lat, $lng, $radiusMeters) : self::queryOverpass($lat, $lng, $radiusMeters));
             if (!is_array($osmData) || !is_array($osmData['elements'] ?? null)) {
                 $osmData = null;
             }
@@ -111,7 +114,7 @@ final class SurroundingsRadar
         $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir, $businessType);
 
         // 4. Stale cache fallback if live Overpass failed
-        if ($osmData === null) {
+        if ($osmData === null && !$localOnly) {
             $fallbackFile = is_file($cachePath) ? $cachePath : null;
             if ($fallbackFile !== null) {
                 $raw = @file_get_contents($fallbackFile);
@@ -150,7 +153,7 @@ final class SurroundingsRadar
                 'cached' => false,
                 'stale' => false,
                 'coverage' => 'local_only',
-                'warning' => 'Live nearby data is unavailable and the local inventory has no matches. This does not establish zero businesses in the area.',
+                'warning' => $localOnly ? 'The local inventory has no matches. Live mapping is checked separately; this is not proof of zero businesses.' : 'Live nearby data is unavailable and the local inventory has no matches. This does not establish zero businesses in the area.',
             ], $lat, $lng, $radiusMeters, $businessType);
         }
 
@@ -179,13 +182,15 @@ final class SurroundingsRadar
             'cached' => false,
             'stale' => false,
             'coverage' => $osmData !== null ? 'mapped_only' : 'local_only',
-            'warning' => $osmData === null ? 'Live nearby data is unavailable. Showing matches from the local inventory; coverage is incomplete.'
-                : (!empty($osmData['remark']) ? 'The map provider returned partial results. Nearby inventory and operating status remain unverified.' : null),
+            'warning' => $localOnly ? 'Showing local inventory records. Live mapping is checked separately; coverage is incomplete.' : ($osmData === null ? 'Live nearby data is unavailable. Showing matches from the local inventory; coverage is incomplete.'
+                : (!empty($osmData['remark']) ? 'The map provider returned partial results. Nearby inventory and operating status remain unverified.' : null)),
         ];
         $result = self::frameResult($result, $lat, $lng, $radiusMeters, $businessType);
 
         // Save to cache
-        @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        if (!$localOnly) {
+            @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
 
         return $result;
     }
@@ -558,6 +563,7 @@ final class SurroundingsRadar
             'completeInventory' => false,
         ];
         $result['coverageNote'] = 'These are observed mapped places in a straight-line circle, not a complete operating-business inventory. Zero matches do not prove that no businesses exist.';
+        $result['screening'] = NearbyBusinessScreening::fromRadar($result, $lat, $lng, $radiusMeters, $businessType);
         return $result;
     }
 

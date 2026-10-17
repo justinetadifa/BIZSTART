@@ -1,5 +1,6 @@
 <?php
 /** Shared property submission form for city staff and brokers. */
+require_once __DIR__ . '/PropertyParcel.php';
 $pwEscape = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $pwIcon = static function (string $name, string $class = '') use ($pwEscape): string {
     $paths = [
@@ -17,6 +18,7 @@ $pwIcon = static function (string $name, string $class = '') use ($pwEscape): st
         'layers' => '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>',
         'edit' => '<path d="m4 3 14 10-7 1-3 7L4 3Z"/>',
         'undo' => '<path d="m8 5-5 5 5 5M3 10h11a6 6 0 0 1 0 12"/>',
+        'redo' => '<path d="m16 5 5 5-5 5m5-5H10a6 6 0 0 0 0 12"/>',
         'reset' => '<path d="M19 7a9 9 0 1 1-7-4m7 0v5h-5"/>',
         'road' => '<path d="m7 3-3 18m13-18 3 18M12 3v3m0 4v4m0 4v3"/>',
         'utilities' => '<path d="m13 2-8 12h6l-1 8 9-13h-7l1-7Z"/>',
@@ -62,6 +64,10 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
           <p class="pw-header-note">Add the details investors need to understand the property.</p>
         </div>
         <div class="pw-header-actions">
+          <div class="pw-history-actions" role="group" aria-label="Edit history">
+            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-undo disabled title="Undo last change (Ctrl+Z)"><?= $pwIcon('undo') ?> <span>Undo</span></button>
+            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-redo disabled title="Redo last change (Ctrl+Shift+Z)"><?= $pwIcon('redo') ?> <span>Redo</span></button>
+          </div>
           <span class="pw-device-draft-status" data-device-draft-status><svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg> <span data-device-draft-text>Draft not saved</span></span>
           <button class="pw-button pw-button-light pw-button-small" type="button" data-save-exit title="Save this draft on this device"><?= $pwIcon('save') ?> Save draft</button>
           <button class="pw-close" type="button" data-close-dialog aria-label="Close property editor"><?= $pwIcon('close') ?></button>
@@ -73,11 +79,13 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
         <?php endforeach; ?>
       </nav>
     </header>
+    <script type="application/json" data-city-coverage><?= json_encode(\App\Support\PropertyParcel::SAN_FERNANDO_EXTENT) ?></script>
     <input type="hidden" name="id">
     <input type="hidden" name="boundary">
     <input type="hidden" name="calculated_area_sqm">
     <input type="hidden" name="reference_lat">
     <input type="hidden" name="reference_lng">
+    <input type="hidden" name="nearby_screening">
     <script type="application/json" data-classification-catalog><?= json_encode(\App\Support\PropertyCatalog::classificationCatalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
     <div class="pw-content">
       <div class="pw-feedback-region"><p class="pw-form-message" data-editor-message role="status" tabindex="-1"></p></div>
@@ -338,15 +346,15 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                     </select>
                   </label>
 
-                  <label class="pw-field" data-property-subtype-field>
-                    <span class="pw-field-label" id="pwSubtypeLabel">Primary subtype <span class="pw-required-indicator" aria-hidden="true">*</span></span>
+                  <div class="pw-field" data-property-subtype-field>
+                    <span class="pw-field-label" id="pwSubtypeLabel">Property classifications <span class="pw-required-indicator" aria-hidden="true">*</span></span>
                     <select name="subcategory" required data-property-subtype-select>
                       <option value="">Select classification...</option>
                       <?php foreach (\App\Support\PropertyCatalog::categories()['Land'] as $pwSubtype): ?>
                       <option value="<?= $pwEscape($pwSubtype) ?>"><?= $pwEscape($pwSubtype) ?></option>
                       <?php endforeach; ?>
                     </select>
-                  </label>
+                  </div>
 
                   <label class="pw-field">
                     <span class="pw-field-label">Availability status <span class="pw-required-indicator" aria-hidden="true">*</span></span>
@@ -483,6 +491,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
         </div>
       </section>
       <section class="pw-panel pw-step2-panel" data-editor-panel="1" hidden>
+        <div class="pw-coordinate-warning" data-city-coverage-warning role="alert" hidden><strong>This pin is outside San Fernando's supported map coverage.</strong><p>Check the coordinates or search for the correct barangay. You can clear the pin and continue with a declared area; local hazard, zoning, and nearby results stay unavailable for this location.</p><button type="button" class="pw-button pw-button-light pw-button-small" data-clear-location>Clear incorrect pin</button></div>
         <div class="pw-step2-card">
           <!-- Step 2 Header -->
           <div class="pw-step2-header">
@@ -525,6 +534,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             </div>
 
             <!-- Coordinate Validation Banner -->
+            <button type="button" class="pw-button pw-button-light pw-button-small" data-coordinate-apply>Apply coordinates to map</button>
             <p class="pw-coord-error-banner" data-coordinate-error role="alert" hidden></p>
 
             <!-- Geographic Extent Warning Banner -->
@@ -686,8 +696,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <span class="pw-eyebrow">STEP 3 OF 4 &middot; MULTI-CRITERIA EVALUATION (LOCUS-SF)</span>
                 <span class="pw-badge pw-badge-weight">5 numerical criteria &middot; 100% total weight + Mandatory Zoning Gate</span>
               </div>
-              <h3>Site evidence &amp; assessment</h3>
-              <p>Record what is known about the site, one criterion at a time. You can submit with missing evidence; the overall score stays pending until the required evidence is verified. Weights and scoring rules are provisional.</p>
+              <h3>Property assessment</h3>
+              <p>Enter site facts to see live results. Add supporting records when available.</p>
             </div>
             <div class="pw-evidence-intro-actions">
               <button type="button" class="pw-button pw-button-light pw-button-small pw-evidence-fast-forward-btn" data-skip-enrichment title="Skip site evidence and proceed directly to Review">
@@ -1274,15 +1284,21 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
           <!-- 3. PROPERTY COST & MARKET COMPETITIVENESS PANE -->
           <div id="pwCriterionEconomic" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="economic_viability" hidden>
-            <div class="pw-econ-card">
+            <div class="pw-econ-card pw-econ-simple">
+              <div class="pw-live-result" data-economic-live-result aria-live="polite">
+                <div><span class="pw-result-eyebrow">YOUR RESULT · PROVISIONAL</span><h4 data-economic-live-title>Add a comparison</h4><p data-economic-live-equation>We compare both properties using the same price per m².</p></div>
+                <div class="pw-live-result-value"><strong data-economic-live-score>—</strong><span data-economic-live-contribution>20% of the assessment</span></div>
+                <p class="pw-result-next" data-economic-live-next>Add the missing inputs below to see the comparison.</p>
+                <button type="button" class="pw-button pw-button-light pw-button-small" data-economic-fix hidden>Review inputs</button>
+              </div>
               <!-- Card Header -->
               <div class="pw-econ-header">
                 <div class="pw-econ-heading-group">
-                  <h3 class="pw-econ-title">Property Cost &amp; Market Competitiveness</h3>
-                  <p class="pw-econ-subtitle">Investor-grade property pricing assessment, space utilization, and market competitiveness</p>
+                  <h3 class="pw-econ-title">Cost &amp; Market</h3>
+                  <p class="pw-econ-subtitle">Compare your asking rate with a similar property.</p>
                 </div>
                 <div class="pw-econ-header-badges">
-                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">Up to 20 points</span>
                 </div>
               </div>
 
@@ -1300,107 +1316,45 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <div class="pw-econ-section-header">
                   <div class="pw-econ-section-number">1</div>
                   <div class="pw-econ-section-title-wrap">
-                    <h4 class="pw-econ-section-title">Property Pricing</h4>
-                    <p class="pw-econ-section-desc">What is being offered, and at what price?</p>
+                    <h4 class="pw-econ-section-title">Your property</h4>
                   </div>
                 </div>
 
                 <div class="pw-econ-section-body">
-                  <!-- AUTO-RETRIEVED PROPERTY DETAILS CARD (Steps 1–2 Context) -->
-                  <div class="pw-econ-from-details">
-                    <div class="pw-econ-from-header">
-                      <div class="pw-econ-from-title-wrap">
-                        <span class="pw-econ-from-kicker">
-                          <svg class="pw-econ-kicker-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                          From basic information
-                        </span>
-                        <span class="pw-econ-synced-pill">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                          Auto-synced
-                        </span>
-                      </div>
-                      <button type="button" class="pw-econ-edit-link" data-review-edit="0">
-                        <?= $pwIcon('edit') ?> <span>Edit basic information</span>
-                      </button>
-                    </div>
-                    <div class="pw-econ-from-grid">
-                      <div class="pw-econ-from-row pw-econ-from-col">
-                        <span class="pw-econ-from-label">Listing purpose</span>
-                        <strong class="pw-econ-from-val" data-econ-from-purpose data-reused-purpose>For Sale</strong>
-                      </div>
-                      <div class="pw-econ-from-row pw-econ-from-col">
-                        <span class="pw-econ-from-label">Asking price / rent</span>
-                        <strong class="pw-econ-from-val" data-econ-from-price data-reused-price>&#8369;9,000,000</strong>
-                      </div>
-                      <div class="pw-econ-from-row pw-econ-from-col">
-                        <span class="pw-econ-from-label">Property type</span>
-                        <strong class="pw-econ-from-val" data-econ-from-type data-reused-category>Commercial Space</strong>
-                      </div>
-                      <div class="pw-econ-from-row pw-econ-from-col">
-                        <span class="pw-econ-from-label">Recorded parcel land area</span>
-                        <strong class="pw-econ-from-val" data-econ-from-area data-reused-area-econ>1,000 m&sup2;</strong>
-                      </div>
-                    </div>
-                    <div class="pw-econ-from-footer">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                      <span>Update shared fields once; all views use the same values.</span>
-                    </div>
+                  <div class="pw-econ-from-details pw-econ-asking-line">
+                    <div><span class="pw-econ-from-label" data-econ-from-purpose>For sale</span><strong data-econ-from-price>Asking price not entered</strong><small>From Basic information</small></div>
+                    <button type="button" class="pw-econ-edit-link" data-review-edit="0">Change price <?= $pwIcon('edit') ?></button>
                   </div>
 
                   <!-- Space Offered Scope and Relevant Floor / Land Area -->
                   <div class="pw-fields-two-col pw-econ-scope-grid">
                     <div class="pw-econ-field-group">
-                      <label for="pwOfferedSpaceScope" class="pw-econ-label">Space offered <span class="pw-required">*</span></label>
+                      <label for="pwOfferedSpaceScope" class="pw-econ-label">What space is offered?</label>
                       <div class="pw-select-wrapper">
                         <select id="pwOfferedSpaceScope" name="offered_space_scope" class="pw-econ-select" data-econ-input="offered_space_scope">
-                          <option value="entire_land">Entire Land Parcel</option>
-                          <option value="entire_building">Entire Building</option>
-                          <option value="part_property">Part of the Property / Leasable Unit</option>
+                          <option value="entire_land">Whole land parcel</option>
+                          <option value="entire_building">Whole building</option>
+                          <option value="part_property">A unit or part of the property</option>
                         </select>
                       </div>
-                      <span class="pw-econ-field-hint">Defines whether terms apply to the whole land parcel or dedicated floor/leasable space.</span>
+                      <span class="pw-econ-field-hint">For building space, use its floor area.</span>
                     </div>
 
                     <div class="pw-econ-field-group" data-econ-offered-area-wrap>
-                      <label for="pwOfferedAreaSqm" class="pw-econ-label" data-econ-offered-area-label>Offered floor / space area (m&sup2;)</label>
+                      <label for="pwOfferedAreaSqm" class="pw-econ-label" data-econ-offered-area-label>Area offered (m&sup2;)</label>
                       <div class="pw-econ-area-slot">
-                        <input id="pwOfferedAreaSqm" name="offered_area_sqm" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 100 (actual leasable floor space)" data-econ-input="offered_area_sqm">
+                        <input id="pwOfferedAreaSqm" name="offered_area_sqm" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 100" data-econ-input="offered_area_sqm">
                         <div class="pw-econ-auto-area-note" data-econ-auto-area-note hidden>
-                          <div class="pw-econ-auto-area-main">
-                            <span class="pw-econ-auto-area-icon" aria-hidden="true">✓</span>
-                            <span>Auto-using recorded parcel land area (<strong data-econ-auto-land-area>1,000 m&sup2;</strong>)</span>
-                          </div>
-                          <span class="pw-econ-auto-area-badge">No re-entry required</span>
+                          <strong data-econ-auto-land-area>—</strong><span>From Location</span>
                         </div>
                       </div>
-                      <span class="pw-econ-field-hint" data-econ-offered-area-hint>Applies to the entire parcel. Automatically using recorded parcel land area.</span>
+                      <span class="pw-econ-field-hint" data-econ-offered-area-hint>Recorded land area is used automatically.</span>
                     </div>
                   </div>
 
-                  <!-- Live Unit Rates in Section 1 -->
                   <div class="pw-econ-rates-strip" data-econ-rates-strip>
-                    <div class="pw-econ-rate-card" data-econ-sale-rate-card>
-                      <div class="pw-econ-rate-header">
-                        <span class="pw-econ-rate-kicker">
-                          <span class="pw-econ-rate-pulse" aria-hidden="true"></span>
-                          Calculated Sale Rate
-                        </span>
-                        <span class="pw-econ-rate-tag">Unit Rate</span>
-                      </div>
-                      <strong class="pw-econ-rate-val" data-econ-asking-sqm>&#8369;9,000</strong>
-                      <span class="pw-econ-rate-sub" data-econ-sale-basis>based on recorded parcel land area</span>
-                    </div>
-                    <div class="pw-econ-rate-card" data-econ-lease-rate-card hidden>
-                      <div class="pw-econ-rate-header">
-                        <span class="pw-econ-rate-kicker">
-                          <span class="pw-econ-rate-pulse" aria-hidden="true"></span>
-                          Calculated Monthly Rent
-                        </span>
-                        <span class="pw-econ-rate-tag">Unit Rate</span>
-                      </div>
-                      <strong class="pw-econ-rate-val" data-econ-lease-sqm>&mdash;</strong>
-                      <span class="pw-econ-rate-sub" data-econ-lease-basis>based on leasable floor area</span>
-                    </div>
+                    <div class="pw-econ-rate-line" data-econ-sale-rate-card><span>Your sale rate</span><strong data-econ-asking-sqm>—</strong></div>
+                    <div class="pw-econ-rate-line" data-econ-lease-rate-card hidden><span>Your rent per m² / month</span><strong data-econ-lease-sqm>—</strong><span class="pw-econ-total-rent" data-econ-monthly-total>Monthly total needs an offered area.</span></div>
                   </div>
                 </div>
               </div>
@@ -1410,7 +1364,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <div class="pw-econ-section-header">
                   <div class="pw-econ-section-number">2</div>
                   <div class="pw-econ-section-title-wrap">
-                    <h4 class="pw-econ-section-title">Additional Costs</h4>
+                    <h4 class="pw-econ-section-title">Upfront costs &amp; terms</h4>
                     <p class="pw-econ-section-desc">What additional expenses are known?</p>
                   </div>
                 </div>
@@ -1467,36 +1421,30 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <div class="pw-econ-section-header">
                   <div class="pw-econ-section-number">3</div>
                   <div class="pw-econ-section-title-wrap">
-                    <h4 class="pw-econ-section-title">Local Price Comparison</h4>
-                    <p class="pw-econ-section-desc">How does the price compare with similar properties?</p>
+                    <h4 class="pw-econ-section-title">Similar property</h4>
                   </div>
                 </div>
 
                 <div class="pw-econ-section-body">
-                  <div class="pw-econ-guidance-callout">
-                    <span class="pw-info-icon" aria-hidden="true">&#9432;</span>
-                    <p class="pw-econ-callout-text">
-                      <strong>Comparison Standards:</strong> Benchmarks must share the same listing purpose (sale vs. lease), property classification, area basis, San Fernando City location, and recent time period.
-                    </p>
-                  </div>
+                  <p class="pw-econ-comparable-hint">Use a recent property with a similar location, type and condition.</p>
 
                   <div class="pw-fields-two-col">
                     <div class="pw-econ-field-group" data-econ-sale-comp-wrap>
-                      <label for="pwComparableMarketPrice" class="pw-econ-label">Comparable sale price (&#8369;/m&sup2;)</label>
-                      <input id="pwComparableMarketPrice" name="comparable_market_price" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 8500 (verified nearby sale benchmark)" data-econ-input="comparable_market_price">
-                      <span class="pw-econ-field-hint">Documented transaction or listing in same corridor.</span>
+                      <label for="pwComparableMarketPrice" class="pw-econ-label">Its sale price per m² (₱)</label>
+                      <input id="pwComparableMarketPrice" name="comparable_market_price" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 8500 per m²" data-econ-input="comparable_market_price">
+                      <span class="pw-econ-field-hint">Example: ₱1,000,000 ÷ 100 m² = ₱10,000/m².</span>
                     </div>
 
                     <div class="pw-econ-field-group" data-econ-lease-comp-wrap>
-                      <label for="pwComparableLeasePrice" class="pw-econ-label">Comparable monthly lease rate (&#8369;/m&sup2;/month)</label>
-                      <input id="pwComparableLeasePrice" name="comparable_lease_price" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 300 (verified local lease benchmark)" data-econ-input="comparable_lease_price">
-                      <span class="pw-econ-field-hint">Documented rental rate for similar commercial space.</span>
+                      <label for="pwComparableLeasePrice" class="pw-econ-label">Its rent per m² / month (₱)</label>
+                      <input id="pwComparableLeasePrice" name="comparable_lease_price" type="number" min="0.01" step="0.01" class="pw-econ-input" placeholder="e.g. 300 per m² per month" data-econ-input="comparable_lease_price">
+                      <span class="pw-econ-field-hint">Example: ₱40,000/month ÷ 100 m² = ₱400/m²/month.</span>
                     </div>
 
                     <div class="pw-econ-field-group">
-                      <label for="pwComparableSource" class="pw-econ-label">Comparable data source &amp; date</label>
-                      <input id="pwComparableSource" name="comparable_source" maxlength="250" class="pw-econ-input" placeholder="e.g. PRC Licensed Appraiser, Local MLS 2026-Q1, Registry" data-econ-input="comparable_source">
-                      <span class="pw-econ-field-hint">Identify source (appraisal, MLS, broker listing, city register).</span>
+                      <label for="pwComparableSource" class="pw-econ-label">Listing link or reference and date</label>
+                      <input id="pwComparableSource" name="comparable_source" maxlength="250" class="pw-econ-input" placeholder="e.g. Listing URL or broker quotation, October 2026" data-econ-input="comparable_source">
+                      <span class="pw-econ-field-hint">Record where the comparison came from so the city can verify it.</span>
                     </div>
                   </div>
 
@@ -1512,6 +1460,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <em>These are tax valuation references, not actual market rental rates or proof of profitability. City administrators and applicants are not required to invent amounts, reference numbers, or valuation dates just to complete the form.</em>
                       </p>
 
+                      <dl class="pw-econ-detail-values"><div><dt>Recorded land area</dt><dd data-econ-from-area>—</dd></div><div><dt>BIR reference per m²</dt><dd data-econ-bir-sqm>—</dd></div><div><dt>Total BIR reference</dt><dd data-econ-total-bir>—</dd></div><div><dt>Sale rate compared with BIR reference</dt><dd data-econ-bir-diff>—</dd></div></dl>
+                      <p class="pw-calculation-help">A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability.</p>
                       <!-- 1. BIR Zonal Valuation -->
                       <div class="pw-econ-item" style="border-top: none; padding-top: 0;">
                         <h4 class="pw-econ-section-title">1. BIR Zonal Valuation</h4>
@@ -1566,92 +1516,16 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 </div>
               </div>
 
-              <!-- 4. PRICING SUMMARY -->
               <div class="pw-econ-section pw-econ-summary-section" data-econ-section="4">
-                <div class="pw-econ-section-header">
-                  <div class="pw-econ-section-number">4</div>
-                  <div class="pw-econ-section-title-wrap">
-                    <h4 class="pw-econ-section-title">Pricing Summary</h4>
-                    <p class="pw-econ-section-desc">What do the calculations mean?</p>
-                  </div>
-                </div>
-
-                <div class="pw-econ-section-body">
-                  <!-- LIVE PRICING & MARKET COMPETITIVENESS SUMMARY CARD -->
-                  <div class="pw-econ-preview-card" data-econ-preview-card>
-                    <div class="pw-econ-preview-header">
-                      <span class="pw-econ-preview-kicker">Investor Pricing &amp; Market Competitiveness Summary</span>
-                    </div>
-
-                    <!-- Top Metrics Grid -->
-                    <div class="pw-econ-grid-2col">
-                      <div class="pw-econ-metric-col">
-                        <span class="pw-econ-metric-label" data-econ-rate-type-label>Asking price per m&sup2;</span>
-                        <strong class="pw-econ-metric-val" data-econ-asking-sqm>&#8369;9,000</strong>
-                      </div>
-                      <div class="pw-econ-metric-col">
-                        <span class="pw-econ-metric-label" data-econ-benchmark-label>Local market benchmark</span>
-                        <strong class="pw-econ-metric-val" data-econ-benchmark-sqm>&mdash;</strong>
-                      </div>
-                    </div>
-
-                    <!-- Breakdown Comparison Rows -->
-                    <div class="pw-econ-breakdown-list">
-                      <div class="pw-econ-breakdown-row" data-econ-market-diff-row>
-                        <span class="pw-econ-breakdown-title">Price difference vs. local benchmark</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-market-diff>&mdash;</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row" data-econ-competitiveness-row>
-                        <span class="pw-econ-breakdown-title">Price-competitiveness ratio</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-competitiveness-ratio>&mdash;</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row" data-econ-upfront-row>
-                        <span class="pw-econ-breakdown-title">Known upfront outlay</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-upfront-summary>&mdash;</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row" data-econ-lease-sqm-row hidden>
-                        <span class="pw-econ-breakdown-title">Monthly rent per m&sup2;</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-lease-sqm>&mdash;</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row">
-                        <span class="pw-econ-breakdown-title">Total BIR zonal reference value</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-total-bir>&#8369;7,000,000</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row">
-                        <span class="pw-econ-breakdown-title">Asking price relative to BIR reference</span>
-                        <strong class="pw-econ-breakdown-pts" data-econ-bir-diff>28.6% higher</strong>
-                      </div>
-                      <div class="pw-econ-breakdown-row" style="display:none;">
-                        <!-- Hidden element to preserve test compatibility for data-econ-bir-sqm -->
-                        <span data-econ-bir-sqm>&#8369;7,000/m&sup2;</span>
-                      </div>
-                    </div>
-
-                    <!-- Area Discrepancy Alert -->
-                    <div class="pw-econ-warning" data-econ-area-discrepancy hidden>
-                      <strong>&#9888; Area Discrepancy Flagged:</strong> Recorded property area differs significantly from mapped plot boundary (>25%). Economic metrics are provisional and withheld from official evaluation until parcel survey verification.
-                    </div>
-
-                    <!-- Bottom Notice Callout with info circle -->
-                    <div class="pw-econ-callout">
-                      <span class="pw-info-icon" aria-hidden="true">&#9432;</span>
-                      <p class="pw-econ-callout-text">
-                        A difference from BIR zonal valuation does not by itself establish overpricing, profitability, or investment suitability. A verified market benchmark is still needed for a price-competitiveness assessment.
-                      </p>
-                    </div>
-
-                    <!-- Methodological Assessment Status -->
-                    <div class="pw-econ-status-row">
-                      <div class="pw-econ-status-left">
-                        <span class="pw-badge pw-badge-provisional" data-econ-status-badge>Market comparison unavailable</span>
-                        <small class="pw-econ-status-note" data-econ-status-note>Methodological Baseline &middot; Awaiting Verified Market Comparables</small>
-                      </div>
-                      <div class="pw-econ-status-score-wrap">
-                        <span class="pw-econ-score-caption">Cost &amp; Market (20% MCE)</span>
-                        <strong class="pw-econ-iai-val" data-econ-iai-val>&mdash;</strong>
-                      </div>
-                    </div>
-                  </div>
+                <div data-econ-preview-card>
+                  <p class="pw-calculation-help">Difference = (your rate ÷ similar property’s rate − 1) × 100. Both rates use the same area and time basis. The score contributes up to 20 points.</p>
+                  <table class="pw-econ-score-table">
+                    <thead><tr><th>Your rate compared with the similar property</th><th>Score / 100</th></tr></thead>
+                    <tbody><tr><td>Within 5% above or below</td><td>100</td></tr><tr><td>More than 5%, up to 15% above</td><td>85</td></tr><tr><td>More than 15%, up to 30% above</td><td>70</td></tr><tr><td>More than 30% above</td><td>50</td></tr><tr><td>More than 5%, up to 20% below</td><td>90</td></tr><tr><td>More than 20% below</td><td>75</td></tr></tbody>
+                  </table>
+                  <p class="pw-calculation-help">These are the current provisional scoring rules. A deep discount needs further checking. This comparison measures property pricing, not business profit.</p>
+                  <dl class="pw-econ-detail-values"><div><dt>Comparable rate</dt><dd data-econ-benchmark-sqm>—</dd></div><div><dt>Rate difference</dt><dd data-econ-market-diff>—</dd></div><div><dt>Calculated score and contribution</dt><dd data-econ-iai-val>—</dd></div></dl>
+                  <div class="pw-econ-warning" data-econ-area-discrepancy hidden>Recorded and drawn land areas differ by more than 25%. Confirm the area before using the calculation.</div>
                 </div>
               </div>
 
@@ -1770,11 +1644,11 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span class="pw-small pw-muted" data-radar-road-badge><?= $pwIcon('road') ?> <span data-radar-count="roads">—</span></span>
                       </div>
                       <div class="pw-tabs pw-radar-tabs" role="tablist" aria-label="Nearby results">
-                        <button type="button" role="tab" aria-selected="true" class="is-active" data-radar-tab="competitors">Competitors</button>
+                        <button type="button" role="tab" aria-selected="true" class="is-active" data-radar-tab="all">All places</button>
+                        <button type="button" role="tab" aria-selected="false" data-radar-tab="competitors">Competitors</button>
                         <button type="button" role="tab" aria-selected="false" data-radar-tab="related">Related</button>
                         <button type="button" role="tab" aria-selected="false" data-radar-tab="complementary">Complementary</button>
                         <button type="button" role="tab" aria-selected="false" data-radar-tab="roads">Roads</button>
-                        <button type="button" role="tab" aria-selected="false" data-radar-tab="all">All</button>
                       </div>
                       <div class="pw-radar-search-shell">
                         <input type="search" class="pw-radar-search" data-radar-search placeholder="Filter places or roads…" aria-label="Filter nearby places">
@@ -1804,14 +1678,24 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <div class="pw-nearby-assessment-header">
                     <div>
                       <h5>Business Environment Assessment</h5>
-                      <span class="pw-small pw-muted">Subcriteria evaluation based on verified commercial benchmarks</span>
+                      <span class="pw-small pw-muted">500 m screening · 15% of the assessment</span>
                     </div>
                     <span class="pw-badge pw-badge-amber" data-nearby-assessment-badge data-nearby-assessment-status data-nearby-assessment-score>Assessment Incomplete</span>
                   </div>
                   <p class="pw-nearby-assessment-explanation" data-nearby-assessment-explanation data-nearby-assessment-desc>
-                    Score and explanation appear after the required inventory coverage, classifications, and scoring benchmarks are verified.
+                    Scan nearby places to calculate a provisional score for the proposed business type.
                   </p>
 
+                  <div class="pw-observed-metrics" aria-live="polite">
+                    <div><span>Mapped businesses</span><strong data-nearby-observed-count>—</strong></div>
+                    <div><span>Businesses / km²</span><strong data-nearby-observed-density>—</strong></div>
+                    <div><span>Direct competitors</span><strong data-nearby-observed-competitors>—</strong></div>
+                    <div><span>Complementary + anchors</span><strong data-nearby-observed-complements>—</strong></div>
+                  </div>
+                  <p class="pw-calculation-help" data-nearby-observed-formula>Density = unique mapped businesses ÷ 0.7854 km². Civic amenities and roads are excluded.</p>
+                  <details class="pw-benchmark-details"><summary>How this score is calculated</summary>
+                  <p class="pw-calculation-help">Provisional defaults for a 500 m radius: <?= \App\Support\NearbyBusinessScreening::BUSINESS_REFERENCE_COUNT ?> mapped businesses, <?= \App\Support\NearbyBusinessScreening::COMPLEMENTARY_REFERENCE_COUNT ?> complementary places and <?= \App\Support\NearbyBusinessScreening::ANCHOR_REFERENCE_COUNT ?> activity anchors correspond to full marks in those subcriteria. Each subcriterion is capped at 100. Direct competition is the share of mapped businesses competing with the selected business type. Anchors are counted separately from other complementary places.</p>
+                  <p class="pw-calculation-help">Nearby score = activity &times; 25% + complementary &times; 30% + competition &times; 30% + anchors &times; 15%. <?= $pwEscape(\App\Support\NearbyBusinessScreening::DISCLAIMER) ?></p>
                   <div class="pw-nearby-subcriteria-grid" data-nearby-subcriteria-grid>
                     <div class="pw-nearby-subcrit-card" data-subcrit-card="commercial_activity" data-nearby-subcriterion="commercial_activity">
                       <div class="pw-subcrit-card-top">
@@ -1819,10 +1703,10 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span class="pw-badge pw-badge-weight">25%</span>
                       </div>
                       <div class="pw-subcrit-score-row">
-                        <strong data-subcrit-score="commercial_activity">Awaiting benchmarks</strong>
+                        <strong data-subcrit-score="commercial_activity">Scan needed</strong>
                       </div>
                       <div class="pw-criterion-bar"><span style="width: 0%" data-subcrit-bar="commercial_activity" data-nearby-score-bar></span></div>
-                      <small class="pw-muted">Operating density in 500m radius</small>
+                      <small class="pw-muted" data-subcrit-rule="commercial_activity">Calculated from the 500 m inventory</small>
                     </div>
 
                     <div class="pw-nearby-subcrit-card" data-subcrit-card="complementary_businesses" data-nearby-subcriterion="complementary_businesses">
@@ -1831,10 +1715,10 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span class="pw-badge pw-badge-weight">30%</span>
                       </div>
                       <div class="pw-subcrit-score-row">
-                        <strong data-subcrit-score="complementary_businesses">Awaiting benchmarks</strong>
+                        <strong data-subcrit-score="complementary_businesses">Scan needed</strong>
                       </div>
                       <div class="pw-criterion-bar"><span style="width: 0%" data-subcrit-bar="complementary_businesses"></span></div>
-                      <small class="pw-muted">Foot-traffic &amp; civic anchor support</small>
+                      <small class="pw-muted" data-subcrit-rule="complementary_businesses">Calculated from the 500 m inventory</small>
                     </div>
 
                     <div class="pw-nearby-subcrit-card" data-subcrit-card="competitive_pressure" data-nearby-subcriterion="competitive_pressure">
@@ -1843,10 +1727,10 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span class="pw-badge pw-badge-weight">30%</span>
                       </div>
                       <div class="pw-subcrit-score-row">
-                        <strong data-subcrit-score="competitive_pressure">Awaiting benchmarks</strong>
+                        <strong data-subcrit-score="competitive_pressure">Scan needed</strong>
                       </div>
                       <div class="pw-criterion-bar"><span style="width: 0%" data-subcrit-bar="competitive_pressure"></span></div>
-                      <small class="pw-muted">Direct competitor density ratio</small>
+                      <small class="pw-muted" data-subcrit-rule="competitive_pressure">Calculated from the 500 m inventory</small>
                     </div>
 
                     <div class="pw-nearby-subcrit-card" data-subcrit-card="activity_anchors" data-nearby-subcriterion="activity_anchors">
@@ -1855,17 +1739,18 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span class="pw-badge pw-badge-weight">15%</span>
                       </div>
                       <div class="pw-subcrit-score-row">
-                        <strong data-subcrit-score="activity_anchors">Awaiting benchmarks</strong>
+                        <strong data-subcrit-score="activity_anchors">Scan needed</strong>
                       </div>
                       <div class="pw-criterion-bar"><span style="width: 0%" data-subcrit-bar="activity_anchors"></span></div>
-                      <small class="pw-muted">Malls, terminals &amp; commercial centers</small>
+                      <small class="pw-muted" data-subcrit-rule="activity_anchors">Calculated from the 500 m inventory</small>
                     </div>
                   </div>
 
+                  </details>
                   <div class="pw-nearby-mce-summary">
                     <div>
                       <span class="pw-nearby-mce-title">MCE Contribution:</span>
-                      <strong data-nearby-mce-contrib data-nearby-iai-contrib>Pending verified benchmarks</strong>
+                      <strong data-nearby-mce-contrib data-nearby-iai-contrib>Run nearby search</strong>
                       <span class="pw-muted">&middot; 15% of overall MCE weight</span>
                     </div>
                     <small class="pw-muted" data-nearby-mce-formula>Formula: Business Environment Score &times; 0.15. Missing source data is never defaulted.</small>
@@ -2136,6 +2021,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         </div>
                       </div>
 
+                      <p class="pw-calculation-help">Choose the classification stated in your source for each hazard. The result updates immediately. Unknown findings stay pending; a higher suitability score means less recorded exposure.</p>
                       <div class="pw-hazard-grid-6 pw-findings-table-responsive">
                         <table class="pw-findings-table" id="pwRiskFindingsTable">
                           <thead>
@@ -2159,7 +2045,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-flood style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_flood" class="pw-finding-input" placeholder="Enter exact source finding" data-finding-hazard="flood" value="<?= $pwEscape($property['hazard_finding_flood'] ?? '') ?>">
+                                <select name="hazard_finding_flood" class="pw-finding-input" data-finding-hazard="flood" aria-label="flood source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-flood-pill>Not recorded</span>
@@ -2179,7 +2065,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-landslide style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_landslide" class="pw-finding-input" placeholder="Enter exact source finding" data-finding-hazard="landslide" value="<?= $pwEscape($property['hazard_finding_landslide'] ?? '') ?>">
+                                <select name="hazard_finding_landslide" class="pw-finding-input" data-finding-hazard="landslide" aria-label="landslide source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-landslide-pill>Not recorded</span>
@@ -2199,7 +2085,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-fault style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_fault" class="pw-finding-input" placeholder="Record reported distance or wording" data-finding-hazard="faults" value="<?= $pwEscape($property['hazard_finding_fault'] ?? '') ?>">
+                                <select name="hazard_finding_fault" class="pw-finding-input" data-finding-hazard="faults" aria-label="faults source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="critical">Active fault corridor conflict</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-fault-pill>Not recorded</span>
@@ -2219,7 +2105,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-surge style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_surge" class="pw-finding-input" placeholder="Enter exact source finding" data-finding-hazard="storm_surge" value="<?= $pwEscape($property['hazard_finding_surge'] ?? '') ?>">
+                                <select name="hazard_finding_surge" class="pw-finding-input" data-finding-hazard="storm_surge" aria-label="storm surge source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-storm-surge-pill>Not recorded</span>
@@ -2239,7 +2125,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-liquefaction style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_liquefaction" class="pw-finding-input" placeholder="Enter exact source finding" data-finding-hazard="liquefaction" value="<?= $pwEscape($property['hazard_finding_liquefaction'] ?? '') ?>">
+                                <select name="hazard_finding_liquefaction" class="pw-finding-input" data-finding-hazard="liquefaction" aria-label="liquefaction source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-liquefaction-pill>Not recorded</span>
@@ -2259,7 +2145,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                                 <span data-risk-pts-tsunami style="display:none;">—</span>
                               </td>
                               <td>
-                                <input type="text" name="hazard_finding_tsunami" class="pw-finding-input" placeholder="Enter exact source finding" data-finding-hazard="tsunami" value="<?= $pwEscape($property['hazard_finding_tsunami'] ?? '') ?>">
+                                <select name="hazard_finding_tsunami" class="pw-finding-input" data-finding-hazard="tsunami" aria-label="tsunami source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <span class="pw-pill pw-pill--gray" data-hazard-tsunami-pill>Not recorded</span>
@@ -2294,6 +2180,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                           <div class="pw-infra-progress-bar" data-risk-progress-bar style="width: 0%; background: #DC2626;"></div>
                         </div>
 
+                        <p class="pw-calculation-help" data-risk-next-action aria-live="polite">Choose all six hazard findings to calculate a weighted score.</p>
                         <!-- High Hazard Warnings Container -->
                         <div class="pw-risk-warnings-box" data-risk-warnings-box hidden style="margin-top: 10px; padding: 10px 14px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
                           <div style="font-size: 11.5px; font-weight: 700; color: #9f1239; margin-bottom: 4px;">Identified Elevated Hazards:</div>
@@ -2655,6 +2542,15 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         </label>
                       </div>
 
+                      <div class="pw-zoning-scenario">
+                        <h4>Check a proposed activity</h4>
+                        <p class="pw-calculation-help">Select the exact activity to test against the recorded district. The result is a preliminary rule check; locational clearance requires city verification.</p>
+                        <div class="pw-fields-two-col" style="margin-top:12px;">
+                          <label class="pw-field">Activity group<select id="pwZoningCategory" name="zoning_category"><option value="">All activity groups</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><option value="<?= $pwEscape($key) ?>"><?= $pwEscape($group['label']) ?></option><?php endforeach; ?></select></label>
+                          <label class="pw-field">Specific proposed activity<select id="pwZoningActivity" name="proposed_activity"><option value="">Choose an activity</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><optgroup label="<?= $pwEscape($group['label']) ?>" data-category-group="<?= $pwEscape($key) ?>"><?php foreach ($group['activities'] as $code => $activity): ?><option value="<?= $pwEscape($code) ?>" data-category="<?= $pwEscape($key) ?>"><?= $pwEscape($activity['label']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select></label>
+                        </div>
+                        <div class="pw-zoning-live-result" aria-live="polite"><strong data-zoning-live-status>Choose district and activity</strong><p data-zoning-live-explanation>CLUP is an eligibility gate. It does not add points to the five-criterion assessment.</p></div>
+                      </div>
                       <!-- Allowed Land Uses Checklist (Searchable Multi-Select) -->
                       <div class="pw-zoning-allowed-section" style="margin-top: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
@@ -3041,14 +2937,14 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
           <div class="pw-review-composite-card">
             <div class="pw-composite-score-row">
               <div class="pw-composite-main-stat">
-                <span class="pw-composite-label">Investment Attractiveness Index (IAI)</span>
+                <span class="pw-composite-label">Assessment result · provisional</span>
                 <div class="pw-composite-val" data-review-composite-iai>&mdash; <small>/ 100</small></div>
                 <div class="pw-composite-meta" style="font-size:0.8rem;color:#64748b;margin-top:4px;">
                   Scenario: <strong data-review-scenario>Commercial Use</strong> &middot; Model: <strong data-review-model-version>LOCUS-SF MCE v3.0</strong>
                 </div>
               </div>
               <div class="pw-composite-badge-group">
-                <span class="pw-badge pw-badge-amber" data-review-composite-status>Final IAI unavailable</span>
+                <span class="pw-badge pw-badge-amber" data-review-composite-status>Complete the remaining criteria</span>
                 <small class="pw-muted" data-review-composite-weights>5 Criteria &middot; 100% Weight</small>
                 <button type="button" class="pw-button pw-button-primary pw-button-small" data-calculate-assessment-btn style="margin-top: 6px;">
                   <span class="pw-btn-spinner locus-spinner" hidden aria-hidden="true" style="margin-right: 6px;"></span>
@@ -3098,7 +2994,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <div class="pw-review-crit-row" data-review-crit="economic_viability">
               <div class="pw-crit-col-name">
                 <strong>3. Property Cost &amp; Market Competitiveness</strong>
-                <span class="pw-muted">20% weight &middot; Unit price vs verified market comparables</span>
+                <span class="pw-muted">20% weight &middot; Your rate compared with a similar property</span>
+                <p class="pw-review-input-issue" data-review-crit-issue="economic_viability" hidden></p>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="economic_viability">&mdash;</span>
@@ -3109,7 +3006,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <div class="pw-crit-col-status">
                 <span class="pw-badge pw-badge-sky" data-review-crit-badge="economic_viability">Pending</span>
               </div>
-              <button type="button" class="pw-readiness-action" data-readiness-target="economic_viability">Edit</button>
+              <button type="button" class="pw-readiness-action" data-economic-fix>Edit</button>
             </div>
 
             <div class="pw-review-crit-row" data-review-crit="nearby_businesses">

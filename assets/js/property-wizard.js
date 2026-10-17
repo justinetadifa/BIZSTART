@@ -603,7 +603,7 @@
     let boundaryMap, radarMap, parcelLayer, locationMarker, radarMarker, radiusLayer, radarParcel;
     let concentricRings = [], hoverVectorLayer = null, radarLayerItems = new Map(), radarMapFilter = 'all', radarSearchQuery = '';
     let boundary = null, estimatedArea = 0, history = [], context = null, nearbyEditor = null, savedAttachments = [], propertyId = null, savedAuthorityDoc = null;
-    let hazardLayers = [], radarLayers = [], radarTab = 'competitors', step = 0;
+    let hazardLayers = [], radarLayers = [], radarTab = 'all', step = 0;
     let placingReference = false, dirtyReference = false, imageObjectUrl = null, existingImage = '', locationMethod = 'pin';
     let locationCapture = null, searchTimer = null, searchRevision = 0, locationRevision = 0, deviceAccuracyLayer = null, deviceRequest = 0;
     let selectedPhotoFiles = [], existingPhotoMedia = [], coverPhoto = null, photoDisplayOrder = [];
@@ -612,11 +612,20 @@
     let mediaDirty = false;
     const submittedGenerations = new Set();
     let radarState = 'idle', radarError = null, radarData = null, radarController = null, radarRevision = 0, radarDebounceTimer = null;
+    let radarPendingKey = '', radarRefreshing = false;
     let radarGroups = {competitors:[],related:[],complementary:[],unclassified:[],roads:[]};
     const point = (latName = 'lat', lngName = 'lng') => {
       const lat = value(latName), lng = value(lngName);
       return lat !== '' && lng !== '' && Number.isFinite(+lat) && Number.isFinite(+lng) && Math.abs(+lat) <= 90 && Math.abs(+lng) <= 180 ? [+lat,+lng] : null;
     };
+    const coverageExtent = JSON.parse($('[data-city-coverage]')?.textContent || 'null') || undefined;
+    const withinCityCoverage = p => window.SFCPropertyEditorTools?.inCoverage(p, coverageExtent) ?? true;
+    function syncCityCoverage() {
+      const p = point(), outside = Boolean(p && !withinCityCoverage(p));
+      const banner = $('[data-city-coverage-warning]'); if (banner) banner.hidden = !outside;
+      if (outside) setText('[data-location-precision]', 'Outside San Fernando map coverage. Check the pin, or clear it and keep the declared area.');
+      return !outside;
+    }
     const parseCoordinates = (str) => {
       if (typeof str !== 'string') return null;
       const clean = str.trim().replace(/^\((.*)\)$|^\[(.*)\]$/, (_, round, square) => round ?? square).trim();
@@ -655,6 +664,7 @@
     const coordinateLabel = p => `${Math.abs(p[0]).toFixed(6)}° ${p[0] < 0 ? 'S' : 'N'}, ${Math.abs(p[1]).toFixed(6)}° ${p[1] < 0 ? 'W' : 'E'}`;
     function updateCoordinateDetailsSummary() {
       const p = point();
+      syncCityCoverage();
       const textEl = $('[data-coordinate-summary-text]') || $('.pw-coordinate-details summary span');
       if (textEl) {
         textEl.textContent = p ? coordinateLabel(p) : 'Enter property coordinates';
@@ -664,6 +674,7 @@
         accuracy.textContent = !p ? 'No property pin yet. Search an area, then click the property on the map or enter its coordinates.' : locationCapture?.kind === 'device' ? `Device location · estimated accuracy ±${Math.round(locationCapture.accuracy)} m. Check the pin against the property and adjust if needed.` : 'Property pin provided. Check its position against your survey or property records.';
         accuracy.parentElement.classList.toggle('is-confirmed', Boolean(p));
       }
+      if (p && !withinCityCoverage(p)) setText('[data-location-precision]', 'Outside San Fernando map coverage. Correct the pin, or clear it and retain the declared area.');
       const recenter = $('[data-recenter-location]'); if (recenter) recenter.disabled = !p;
       const clear = $('[data-clear-location]'); if (clear) clear.disabled = value('lat') === '' && value('lng') === '';
     }
@@ -1368,7 +1379,7 @@
       // Section 1: Space Offered Scope & Relevant Area
       const rawOfferedScope = (getVal('offered_space_scope') || '').trim();
       const rawOfferedArea = (getVal('offered_area_sqm') || '').replace(/,/g, '').trim();
-      const hasOfferedArea = rawOfferedArea !== '' && !isNaN(Number(rawOfferedArea)) && Number(rawOfferedArea) > 0;
+      const hasOfferedArea = rawOfferedArea !== '' && Number.isFinite(Number(rawOfferedArea)) && Number(rawOfferedArea) > 0;
       const offeredArea = hasOfferedArea ? Number(rawOfferedArea) : null;
 
       let offeredScope = 'entire_land';
@@ -1390,15 +1401,15 @@
 
       // Section 2: Additional Costs & Terms
       const rawDeposit = (getVal('security_deposit_months') || '').trim();
-      const depositMonths = rawDeposit !== '' && !isNaN(Number(rawDeposit)) && Number(rawDeposit) >= 0 ? Number(rawDeposit) : 0;
+      const depositMonths = rawDeposit !== '' && Number.isFinite(Number(rawDeposit)) && Number(rawDeposit) >= 0 ? Number(rawDeposit) : 0;
 
       const rawAdvance = (getVal('advance_rent_months') || '').trim();
-      const advanceMonths = rawAdvance !== '' && !isNaN(Number(rawAdvance)) && Number(rawAdvance) >= 0 ? Number(rawAdvance) : 0;
+      const advanceMonths = rawAdvance !== '' && Number.isFinite(Number(rawAdvance)) && Number(rawAdvance) >= 0 ? Number(rawAdvance) : 0;
 
       const utilitiesIncluded = (getVal('utilities_included') || '').trim() === 'included';
 
       const rawAddCosts = (getVal('additional_purchase_costs') || '').replace(/,/g, '').trim();
-      const additionalCosts = rawAddCosts !== '' && !isNaN(Number(rawAddCosts)) && Number(rawAddCosts) >= 0 ? Number(rawAddCosts) : 0;
+      const additionalCosts = rawAddCosts !== '' && Number.isFinite(Number(rawAddCosts)) && Number(rawAddCosts) >= 0 ? Number(rawAddCosts) : 0;
 
       // Annual terms convert exactly. A daily rate cannot establish a calendar-month rent.
       const monthlyFactor = leasePeriod === 'month' ? 1 : leasePeriod === 'year' ? 1 / 12 : null;
@@ -1422,20 +1433,20 @@
       knownUpfrontCosts = purpose === 'sale' ? saleAdditionalCosts : purpose === 'lease' ? leaseUpfrontCosts : null;
 
       // Section 3: Official References and Verified Comparables
-      const rawBir = (getVal('bir_zonal_value') || '').trim();
-      const birZonal = rawBir !== '' && !isNaN(Number(rawBir)) && Number(rawBir) > 0 ? Number(rawBir) : null;
+      const rawBir = (getVal('bir_zonal_value') || '').replace(/,/g, '').trim();
+      const birZonal = rawBir !== '' && Number.isFinite(Number(rawBir)) && Number(rawBir) > 0 ? Number(rawBir) : null;
 
-      const rawComp = (getVal('comparable_market_price') || '').trim();
-      const compMarket = rawComp !== '' && !isNaN(Number(rawComp)) && Number(rawComp) > 0 ? Number(rawComp) : null;
+      const rawComp = (getVal('comparable_market_price') || '').replace(/,/g, '').trim();
+      const compMarket = rawComp !== '' && Number.isFinite(Number(rawComp)) && Number(rawComp) > 0 ? Number(rawComp) : null;
 
-      const rawCompLease = (getVal('comparable_lease_price') || '').trim();
-      const compLease = rawCompLease !== '' && !isNaN(Number(rawCompLease)) && Number(rawCompLease) > 0 ? Number(rawCompLease) : null;
+      const rawCompLease = (getVal('comparable_lease_price') || '').replace(/,/g, '').trim();
+      const compLease = rawCompLease !== '' && Number.isFinite(Number(rawCompLease)) && Number(rawCompLease) > 0 ? Number(rawCompLease) : null;
 
       const compSource = (getVal('comparable_source') || '').trim();
 
       const lguType = getVal('lgu_valuation_type') || '';
-      const rawLguAmt = (getVal('lgu_valuation_amount') || '').trim();
-      const lguAmount = rawLguAmt !== '' && !isNaN(Number(rawLguAmt)) && Number(rawLguAmt) > 0 ? Number(rawLguAmt) : null;
+      const rawLguAmt = (getVal('lgu_valuation_amount') || '').replace(/,/g, '').trim();
+      const lguAmount = rawLguAmt !== '' && Number.isFinite(Number(rawLguAmt)) && Number(rawLguAmt) > 0 ? Number(rawLguAmt) : null;
 
       // Calculations:
       // For Sale: asking price per m² (using effective area)
@@ -1483,7 +1494,7 @@
           }
         }
       } else {
-        if (compMarket !== null) {
+        if (compMarket !== null && askingPricePerSqm !== null) {
           activeBenchmark = compMarket;
           activeBenchmarkType = 'market';
           activeDiffPct = marketDiffPct;
@@ -1531,7 +1542,7 @@
       } else if (offeredScope === 'part_property' && landArea !== null && offeredArea !== null && offeredArea > landArea) {
         isReasonablenessWarning = true;
         reasonablenessMessage = `Leasable floor unit area (${fmtNum(offeredArea)} m²) exceeds total recorded land area (${fmtNum(landArea)} m²). If the building has multiple floors, select 'Entire Building' or adjust leasable space.`;
-      } else if ((rawPrice !== '' && !isNaN(Number(rawPrice)) && Number(rawPrice) <= 0) || (rawLease !== '' && !isNaN(Number(rawLease)) && Number(rawLease) <= 0)) {
+      } else if ((purpose !== 'lease' && saleMode === 'amount' && rawPrice !== '' && (!Number.isFinite(Number(rawPrice)) || Number(rawPrice) <= 0)) || (purpose !== 'sale' && leaseMode === 'amount' && rawLease !== '' && (!Number.isFinite(Number(rawLease)) || Number(rawLease) <= 0))) {
         isReasonablenessWarning = true;
         reasonablenessMessage = 'Property pricing cannot be zero or negative. Please enter a valid asking amount.';
       }
@@ -1546,8 +1557,7 @@
         ? 'Reasonableness Verification Needed · Property area or pricing requires confirmation.'
         : 'Methodological Baseline · Awaiting Verified Market Comparables';
 
-      const hasComparableBenchmark = (purpose === 'lease' && compLease !== null && leasePricePerSqm !== null) ||
-        (purpose !== 'lease' && compMarket !== null && askingPricePerSqm !== null);
+      const hasComparableBenchmark = activeBenchmark !== null && activeDiffPct !== null;
 
       if (!hasComparableBenchmark) {
         statusLabel = 'Market comparison unavailable';
@@ -1592,6 +1602,33 @@
         statusLabel = 'Preliminary Calculated';
       }
 
+      const blockers = [];
+      const areaText = n => Number(n).toLocaleString('en-PH', {maximumFractionDigits:2});
+      const addBlocker = (code, label, message, focus, action) => blockers.push({code,label,message,focus,action});
+      if (isDiscrepancy) {
+        const percent = Math.abs(landArea - estimatedArea) / Math.max(landArea, estimatedArea) * 100;
+        addBlocker('area_discrepancy', 'Check area', `Recorded land area is ${areaText(landArea)} m²; the drawn boundary is ${areaText(estimatedArea)} m² (${percent.toFixed(1)}% difference). The limit is 25%. Confirm the correct measurement or boundary in Location & boundary.`, 'land_area', 'Review area & boundary');
+      }
+      if (isReasonablenessWarning) {
+        const input = landArea !== null && landArea < .5 ? 'land_area'
+          : offeredScope !== 'entire_land' && offeredArea !== null ? 'offered_area_sqm'
+          : purpose === 'lease' ? 'lease_price' : 'price';
+        addBlocker('invalid_measurement', 'Check input', reasonablenessMessage, input, 'Check the measurement');
+      }
+      if (!isComplete) {
+        const leaseComparison = activeBenchmarkType === 'lease' || purpose === 'lease'
+          || (purpose === 'sale_or_lease' && askingPricePerSqm === null && leasePricePerSqm !== null);
+        if (effectiveArea === null) addBlocker('missing_area', 'Area needed', offeredScope === 'entire_land'
+          ? 'Enter the land area in Location & boundary.' : 'Enter the actual floor area being offered.', offeredScope === 'entire_land' ? 'land_area' : 'offered_area_sqm', 'Add offered area');
+        if (leaseComparison && leasePeriod === 'day') addBlocker('rent_period', 'Rent period', 'Daily rent has no agreed monthly basis. Enter a supported monthly or annual rent in Basic information to compare monthly rates.', 'lease_period', 'Review rent period');
+        else if ((leaseComparison ? leasePrice : askingPrice) === null) addBlocker('missing_price', leaseComparison ? 'Rent needed' : 'Price needed', (leaseComparison ? leaseMode : saleMode) === 'request'
+          ? 'Price on request has no numeric asking rate. Enter an amount in Basic information before comparing prices.'
+          : `Enter the asking ${leaseComparison ? 'rent' : 'price'} in Basic information.`, leaseComparison ? 'lease_price_mode' : 'sale_price_mode', leaseComparison ? 'Add asking rent' : 'Add asking price');
+        if (activeBenchmark === null) addBlocker('missing_comparable', 'Comparable needed', leaseComparison
+          ? 'Enter a similar property’s monthly rent per m² in Cost & Market.'
+          : 'Enter a similar property’s sale price per m² in Cost & Market.', leaseComparison ? 'comparable_lease_price' : 'comparable_market_price', 'Add comparable rate');
+      }
+
       return {
         purpose,
         saleMode,
@@ -1633,6 +1670,7 @@
         isReasonablenessWarning,
         reasonablenessMessage,
         isComplete,
+        blockers,
         is_complete: isComplete,
         totalScore,
         score: totalScore,
@@ -1677,6 +1715,7 @@
       const offAreaHint = $('[data-econ-offered-area-hint]');
 
       if (res.offeredScope === 'entire_land') {
+        if (offAreaLabel) offAreaLabel.textContent = 'Land area (m²)';
         if (autoAreaNote) {
           autoAreaNote.hidden = false;
           setText('[data-econ-auto-land-area]', res.landArea ? `${number(res.landArea)} m²` : 'recorded parcel land area');
@@ -1685,7 +1724,8 @@
           offAreaInp.style.display = 'none';
         }
         if (offAreaHint) {
-          offAreaHint.textContent = 'Applies to the entire parcel. Automatically using recorded parcel land area.';
+          offAreaHint.textContent = value('category') === 'Building'
+            ? 'For building rent, choose Whole building or a unit to use floor area.' : 'Recorded land area is used automatically.';
         }
       } else {
         if (autoAreaNote) {
@@ -1696,11 +1736,11 @@
         }
         if (offAreaLabel) {
           offAreaLabel.textContent = res.offeredScope === 'entire_building'
-            ? 'Building floor / leasable area (m²)'
-            : 'Offered leasable / unit floor area (m²)';
+            ? 'Building floor area (m²)'
+            : 'Unit / offered floor area (m²)';
         }
         if (offAreaHint) {
-          offAreaHint.textContent = 'Actual usable floor/space area. Clearly separate from total parcel land area.';
+          offAreaHint.textContent = 'Enter only the floor space being offered.';
         }
       }
 
@@ -1724,6 +1764,9 @@
           ? 'based on recorded parcel land area'
           : (res.offeredArea ? `based on actual leasable area (${number(res.offeredArea)} m²)` : 'leasable area needed'));
       }
+      setText('[data-econ-monthly-total]', Number.isFinite(res.monthlyLeasePrice)
+        ? `Monthly total: ₱${number(res.monthlyLeasePrice)}${res.effectiveArea ? ` for ${number(res.effectiveArea)} m²` : ''}`
+        : res.leasePeriod === 'day' ? 'Daily rent needs an agreed monthly basis.' : 'Add the offered area to calculate total monthly rent.');
 
       // 3. Section 2 Additional Costs Wrappers
       const leaseCostsWrap = $('[data-econ-lease-costs-wrap]');
@@ -1773,15 +1816,15 @@
       // 5. Section 4 LIVE PRICING & MARKET COMPETITIVENESS SUMMARY
       const rateLabelEl = $('[data-econ-rate-type-label]');
       if (rateLabelEl) {
-        rateLabelEl.textContent = res.purpose === 'lease'
+        rateLabelEl.textContent = res.activeBenchmarkType === 'lease' || res.purpose === 'lease'
           ? 'Monthly rent per m²'
           : (res.purpose === 'sale_or_lease' ? 'Sale rate per m²' : 'Asking price per m²');
       }
       const benchLabelEl = $('[data-econ-benchmark-label]');
       if (benchLabelEl) {
-        benchLabelEl.textContent = res.purpose === 'lease' ? 'Comparable lease benchmark' : 'Local market benchmark';
+        benchLabelEl.textContent = res.activeBenchmarkType === 'lease' || res.purpose === 'lease' ? 'Comparable lease benchmark' : 'Local market benchmark';
       }
-      setText('[data-econ-benchmark-sqm]', res.activeBenchmark !== null ? `₱${number(res.activeBenchmark)}/m²${res.purpose === 'lease' ? '/mo' : ''}` : '—');
+      setText('[data-econ-benchmark-sqm]', res.activeBenchmark !== null ? `₱${number(res.activeBenchmark)}/m²${(res.activeBenchmarkType === 'lease' || res.purpose === 'lease') ? '/mo' : ''}` : '—');
 
       // Price difference row
       const marketRow = $('[data-econ-market-diff-row]');
@@ -1839,6 +1882,22 @@
         else birDiffText = 'Equal to BIR reference';
       }
       setText('[data-econ-bir-diff]', birDiffText);
+
+      // Keep the actual arithmetic and its missing inputs visible above the form.
+      const activeRateIsLease = res.activeBenchmarkType === 'lease' || res.purpose === 'lease'
+        || (res.purpose === 'sale_or_lease' && res.askingPricePerSqm === null && res.leasePricePerSqm !== null);
+      const activeRate = activeRateIsLease ? res.leasePricePerSqm : res.askingPricePerSqm;
+      const currency = n => `₱${number(n)}`;
+      const blocker = res.blockers[0];
+      setText('[data-economic-live-title]', res.isComplete ? res.activeDiffPct === 0 ? 'Same rate as the similar property' : `${Math.abs(res.activeDiffPct).toFixed(2)}% ${res.activeDiffPct < 0 ? 'below' : 'above'} the similar property` : blocker?.label || 'Add a comparison');
+      setText('[data-economic-live-equation]', activeRate !== null && res.activeBenchmark !== null
+        ? `(${currency(activeRate)} ÷ ${currency(res.activeBenchmark)} − 1) × 100 = ${res.activeDiffPct.toFixed(2)}%`
+        : activeRate !== null ? `Your rate is ${currency(activeRate)}/m²${activeRateIsLease ? '/month' : ''}.` : 'Your rate and a similar property’s rate are needed.');
+      setText('[data-economic-live-score]', res.score !== null ? `${number(res.score)}/100` : '—');
+      setText('[data-economic-live-contribution]', res.iaiContribution !== null ? `+${res.iaiContribution.toFixed(2)} of 20 points` : 'Up to 20 points');
+      setText('[data-economic-live-next]', blocker?.message || 'Included in your provisional assessment. City verification is separate.');
+      const fix = $('[data-economic-live-result] [data-economic-fix]');
+      if (fix) { fix.hidden = !blocker; fix.textContent = blocker?.action || 'Review inputs'; }
 
       // Area discrepancy banner
       const discAlert = $('[data-econ-area-discrepancy]');
@@ -2096,59 +2155,6 @@
       };
 
       const useStatusControl = field('zoning_use_status')?.value || $('#pwZoningUseStatus')?.value;
-      if (useStatusControl === 'prohibited') {
-        return {
-          isComplete: true,
-          status: 'prohibited',
-          statusLabel: 'Prohibited Use',
-          score: 0,
-          isEligible: false,
-          suitability: 'unsuitable',
-          iaiContribution: 0,
-          weight: 15.0,
-          zoneCode: zoneRaw || 'Unzoned',
-          zoneName: zoneRaw || 'Unzoned',
-          useCode: activityRaw || 'commercial',
-          useLabel: activityRaw || 'Commercial',
-          ruleSource: 'San Fernando City Zoning Ordinance No. 2018-06',
-          ordinanceSection: 'City Ordinance 2018-06',
-          sourcePriority: 1,
-          isOfficialCityRule: true,
-          conditions: [],
-          unmetConditions: [],
-          restrictions: ['Strictly prohibited under CLUP zoning regulations.'],
-          reason: 'Non-conforming use strictly prohibited under San Fernando City CLUP.',
-          explanation: 'The proposed business scenario is strictly prohibited under the recorded CLUP zoning classification.',
-          rulesVersion: 'sfc-zo-2018-06-v2.1'
-        };
-      }
-      if (useStatusControl === 'not_confirmed') {
-        return {
-          isComplete: false,
-          status: 'not_confirmed',
-          statusLabel: 'Not Confirmed',
-          score: null,
-          isEligible: false,
-          suitability: 'incomplete',
-          iaiContribution: null,
-          weight: 15.0,
-          zoneCode: zoneRaw || null,
-          zoneName: zoneRaw || null,
-          useCode: activityRaw || null,
-          useLabel: activityRaw || null,
-          ruleSource: 'San Fernando City Zoning Ordinance No. 2018-06',
-          ordinanceSection: 'City Ordinance 2018-06',
-          sourcePriority: 1,
-          isOfficialCityRule: false,
-          conditions: [],
-          unmetConditions: [],
-          restrictions: [],
-          reason: 'Locational clearance confirmation required. Permission cannot be automatically inferred from broad classification.',
-          explanation: 'Zoning permission requires official CPDO locational clearance verification.',
-          rulesVersion: 'sfc-zo-2018-06-v2.1'
-        };
-      }
-
       if (!zoneRaw || !activityRaw) {
         return {
           isComplete: false,
@@ -2158,7 +2164,7 @@
           isEligible: false,
           suitability: 'incomplete',
           iaiContribution: null,
-          weight: 15.0,
+          weight: 0,
           zoneCode: zoneRaw || null,
           useCode: activityRaw || null,
           ruleSource: 'San Fernando City Zoning Ordinance No. 2018-06',
@@ -2185,10 +2191,11 @@
 
       if (rule) {
         let status = rule.status;
-        let score = rule.score;
-        let isEligible = rule.is_eligible;
-        let suitability = rule.suitability;
-        let iaiContribution = rule.iai_contribution;
+        // Embedded lookup rules contain the status; PHP derives these gate values during evaluation.
+        let score = ({permitted:100, conditional:70, prohibited:0})[status] ?? null;
+        let isEligible = status === 'permitted' || status === 'conditional';
+        let suitability = ({permitted:'suitable', conditional:'conditional', prohibited:'not_suitable'})[status] || 'incomplete';
+        let iaiContribution = null;
         const unmetConditions = [];
 
         // Check if conditional use has unmet client conditions
@@ -2208,14 +2215,14 @@
         }
 
         return {
-          isComplete: true,
+          isComplete: ['permitted','conditional','prohibited'].includes(status) && typeof score === 'number' && Number.isFinite(score),
           status,
           statusLabel: rule.status_label || (status === 'permitted' ? 'Permitted Use' : status === 'conditional' ? 'Conditional Use' : 'Prohibited Use'),
           score,
           isEligible,
           suitability,
           iaiContribution,
-          weight: 15.0,
+          weight: 0,
           zoneCode: rule.zone_code || zoneRaw,
           zoneName: rule.zone_name || zoneRaw,
           useCode: activityRaw,
@@ -2238,161 +2245,13 @@
     }
 
     function fallbackZoningEvaluation(zone, act, cond) {
-      const z = zone.toUpperCase();
-      let status = 'undetermined';
-      let score = null;
-      let isEligible = false;
-      let suitability = 'incomplete';
-      let iaiContrib = null;
-      let label = 'Assessment Incomplete';
-      let section = 'City Ordinance 2018-06';
-      let conditionsList = [];
-      let restrictionsList = [];
-      let expl = 'Zoning evaluation pending official ordinance rules ingestion.';
-
-      if (z.startsWith('C-') || z.includes('COMMERCIAL')) {
-        section = 'City Ordinance 2018-06, Sec. 10.B';
-        if (act.startsWith('retail') || act.startsWith('food') || act.startsWith('office') || act.startsWith('tour')) {
-          status = 'permitted';
-          score = 100.0;
-          isEligible = true;
-          suitability = 'suitable';
-          iaiContrib = 15.00;
-          label = 'Permitted Use';
-          expl = 'Proposed activity is permitted by right under San Fernando Commercial Zone regulations.';
-        } else if (act.startsWith('res') || act.startsWith('log') || act.startsWith('inst')) {
-          status = 'conditional';
-          score = 70.0;
-          isEligible = true;
-          suitability = 'conditional';
-          iaiContrib = 10.50;
-          label = 'Conditional Use';
-          conditionsList = ['Locational clearance from CPDO required', 'Traffic impact assessment for large footprints'];
-          expl = 'Conditional use: allowable subject to locational clearance and development controls.';
-        } else if (act === 'ind_heavy_manufacturing' || act.startsWith('agri_livestock')) {
-          status = 'prohibited';
-          score = 0.0;
-          isEligible = false;
-          suitability = 'not_suitable';
-          label = 'Prohibited Use (Not Suitable)';
-          expl = 'Heavy manufacturing and livestock are strictly prohibited in Commercial Districts.';
-        }
-      } else if (z.startsWith('R-') || z.includes('RESIDENTIAL')) {
-        section = 'City Ordinance 2018-06, Sec. 10.A';
-        if (act.startsWith('res')) {
-          status = 'permitted';
-          score = 100.0;
-          isEligible = true;
-          suitability = 'suitable';
-          iaiContrib = 15.00;
-          label = 'Permitted Use';
-          expl = 'Residential use is permitted by right in Residential Districts.';
-        } else if (act === 'retail_convenience' || act === 'food_cafe' || act === 'office_professional') {
-          status = 'conditional';
-          score = 70.0;
-          isEligible = true;
-          suitability = 'conditional';
-          iaiContrib = 10.50;
-          label = 'Conditional Use';
-          restrictionsList = ['Floor area <= 50m²', 'Barangay clearance required', 'No outdoor flashing signage'];
-          expl = 'Neighborhood commercial services allowed as conditional home occupations.';
-        } else if (act.startsWith('ind') || act.startsWith('agri_livestock') || act.startsWith('log')) {
-          status = 'prohibited';
-          score = 0.0;
-          isEligible = false;
-          suitability = 'not_suitable';
-          label = 'Prohibited Use (Not Suitable)';
-          expl = 'Industrial, logistics, and livestock uses are prohibited in Residential Districts.';
-        }
-      } else if (z.startsWith('I-') || z.includes('INDUSTRIAL')) {
-        section = 'City Ordinance 2018-06, Sec. 10.D';
-        if (act.startsWith('ind') || act.startsWith('log')) {
-          status = (act === 'ind_heavy_manufacturing' && z.startsWith('I-1')) ? 'conditional' : 'permitted';
-          score = status === 'permitted' ? 100.0 : 70.0;
-          isEligible = true;
-          suitability = status === 'permitted' ? 'suitable' : 'conditional';
-          iaiContrib = status === 'permitted' ? 15.00 : 10.50;
-          label = status === 'permitted' ? 'Permitted Use' : 'Conditional Use';
-          expl = status === 'permitted' ? 'Industrial and logistics operations are permitted by right.' : 'Heavy operations in Light Industrial require DENR ECC and specialized treatment.';
-        } else if (act.startsWith('res_detached') || act.startsWith('res_apartments')) {
-          status = 'prohibited';
-          score = 0.0;
-          isEligible = false;
-          suitability = 'not_suitable';
-          label = 'Prohibited Use (Not Suitable)';
-          expl = 'Residential subdivisions are prohibited within industrial zones for health and safety.';
-        }
-      } else if (z.startsWith('AGR-') || z === 'AIZ' || z.includes('AGRICULTURAL')) {
-        section = 'City Ordinance 2018-06, Sec. 10.E';
-        if (act.startsWith('agri')) {
-          status = 'permitted';
-          score = 100.0;
-          isEligible = true;
-          suitability = 'suitable';
-          iaiContrib = 15.00;
-          label = 'Permitted Use';
-          expl = 'Agricultural production and processing are permitted by right.';
-        }
-      } else if (z === 'TZ' || z.includes('TOURISM')) {
-        section = 'City Ordinance 2018-06, Sec. 10.F';
-        if (act.startsWith('tour') || act === 'retail_convenience' || act === 'food_restaurant' || act === 'food_cafe') {
-          status = 'permitted';
-          score = 100.0;
-          isEligible = true;
-          suitability = 'suitable';
-          iaiContrib = 15.00;
-          label = 'Permitted Use';
-          expl = 'Tourism, hospitality, and dining establishments are permitted by right in Tourism Zones.';
-        }
-      } else if (z === 'MRZ' || z === 'FRZ') {
-        section = 'City Ordinance 2018-06, Sec. 10.G';
-        status = 'prohibited';
-        score = 0.0;
-        isEligible = false;
-        suitability = 'not_suitable';
-        label = 'Prohibited Use (Not Suitable)';
-        expl = 'Strict environmental conservation and sanctuary zone: urban development is prohibited.';
-      } else if (z === 'FEZ') {
-        section = 'Poro Point Special Economic Zone Masterplan';
-        if (act.startsWith('tour') || act.startsWith('office') || act.startsWith('log') || act.startsWith('retail')) {
-          status = 'permitted';
-          score = 100.0;
-          isEligible = true;
-          suitability = 'suitable';
-          iaiContrib = 15.00;
-          label = 'Permitted Use';
-          expl = 'Commercial, tourism, and IT/logistics activities are permitted under Freeport Masterplan.';
-        }
-      }
-
-      return {
-        isComplete: status !== 'undetermined',
-        status,
-        statusLabel: label,
-        score,
-        isEligible,
-        suitability,
-        iaiContribution: iaiContrib,
-        weight: 15.0,
-        zoneCode: zone,
-        zoneName: zone,
-        useCode: act,
-        useLabel: act,
-        ruleSource: section,
-        ordinanceSection: section,
-        sourcePriority: 1,
-        isOfficialCityRule: true,
-        conditions: conditionsList,
-        unmetConditions: [],
-        restrictions: restrictionsList,
-        reason: status === 'prohibited' ? expl : null,
-        explanation: expl,
-        rulesVersion: 'sfc-zo-2018-06-v2.1',
-      };
+      return {isComplete:false, status:'undetermined', statusLabel:'Rule unavailable', score:null, isEligible:false, suitability:'incomplete', iaiContribution:null, weight:0, zoneCode:zone, useCode:act, conditions:[], unmetConditions:[], restrictions:[], isOfficialCityRule:false, explanation:'No exact district–activity rule is available. Confirm the zoning district and proposed use with CPDO.'};
     }
 
     function syncZoningCompatibility() {
       const res = evaluateZoningCompatibilityClient();
+      setText('[data-zoning-live-status]', res.statusLabel || 'Selection needed');
+      setText('[data-zoning-live-explanation]', (res.explanation || res.reason || 'Choose an official district and a specific activity.') + ' Preliminary screening only. CLUP is an eligibility gate and adds no points.');
 
       // 1. Status badge
       const badge = $('[data-zoning-status-badge]');
@@ -2416,17 +2275,7 @@
       }
 
       const mceContrib = $('[data-zoning-mce-contrib]');
-      if (mceContrib) {
-        if (res.status === 'permitted') {
-          mceContrib.textContent = '15.00 pts';
-        } else if (res.status === 'conditional') {
-          mceContrib.textContent = '10.50 pts';
-        } else if (res.status === 'prohibited') {
-          mceContrib.textContent = 'Withheld (0 pts)';
-        } else {
-          mceContrib.textContent = '—';
-        }
-      }
+      if (mceContrib) mceContrib.textContent = 'Eligibility gate · no numerical weight';
 
       const gateDisplay = $('[data-zoning-gate-display]');
       if (gateDisplay) {
@@ -2863,7 +2712,7 @@
             }
           }
           assessHazards();
-          updateReviewStatus(point(), effectiveArea());
+          updateReviewStatus(point(), enteredAreaSqm() || estimatedArea);
         };
         input.addEventListener('input', handleFindingUpdate);
         input.addEventListener('change', handleFindingUpdate);
@@ -2898,7 +2747,7 @@
             pill.className = 'pw-pill pw-pill--gray';
           }
           assessHazards();
-          updateReviewStatus(point(), effectiveArea());
+          updateReviewStatus(point(), enteredAreaSqm() || estimatedArea);
         };
         inp.addEventListener('input', handleDynamicFinding);
         inp.addEventListener('change', handleDynamicFinding);
@@ -2926,7 +2775,7 @@
       const handleCheckLocation = () => {
         const pt = point();
         if (pt) {
-          notify(`Coordinates confirmed: ${pt[0].toFixed(5)}, ${pt[1].toFixed(5)} in City of San Fernando, La Union.`, false);
+          notify(withinCityCoverage(pt) ? 'Coordinates are within the supported San Fernando map extent. Confirm the parcel against property records.' : 'These coordinates are outside the supported San Fernando map extent. Correct or clear the property pin in Location & boundary.', !withinCityCoverage(pt));
         } else {
           notify('Please pin or enter coordinates in Step 2 to verify location.', true);
         }
@@ -3111,9 +2960,10 @@
       }
       if (selected === 'nearby_businesses') {
         if (!radarMap && $('[data-radar-map]')) {
-          syncRadar();
+          requestAnimationFrame(() => { syncRadar(); setTimeout(() => radarMap?.invalidateSize({pan:false}), 150); });
         } else if (radarMap) {
           requestAnimationFrame(() => {
+            syncRadar();
             radarMap.invalidateSize();
             if (radiusLayer) radarMap.fitBounds(radiusLayer.getBounds(), { padding: [25, 25] });
           });
@@ -3171,6 +3021,8 @@
           value('economic_evidence_source')
         ),
         nearby_businesses: Boolean(
+          currentNearbyEvaluation()?.observations ||
+          (radarState === 'success' && radarContextIsCurrent()) ||
           value('nearby_analysis_origin') ||
           value('commercial_corridor') ||
           all('[name="assessmentTags[]"]:checked').length ||
@@ -3273,13 +3125,17 @@
       };
 
       const isZoningProhibited = Boolean(criteriaScores?._zoningProhibited);
-      const isZoningComplete = criteriaScores?.zoning_compatibility !== null && criteriaScores?.zoning_compatibility !== undefined;
-      const allComplete = completedCount === 5 && isZoningComplete && !isZoningProhibited;
+      const zoneScore = criteriaScores?.zoning_compatibility;
+      const isZoningComplete = typeof zoneScore === 'number' && Number.isFinite(zoneScore) && zoneScore > 0 && zoneScore <= 100;
+      const criticalRisk = criteriaScores?._riskCritical === true;
+      const allComplete = completedCount === 5 && isZoningComplete && !isZoningProhibited && !criticalRisk;
       return {
         isComplete: allComplete,
         isProhibited: isZoningProhibited,
         completedCount,
         totalCount: 5,
+        provisionalScore: completedCount === 5 && !isZoningProhibited && !criticalRisk ? Math.round(total * 10) / 10 : null,
+        technicalReviewHold: criticalRisk,
         iaiScore: allComplete ? Math.round(total * 10) / 10 : null,
         mceScore: allComplete ? Math.round(total * 10) / 10 : null,
         breakdown,
@@ -3311,24 +3167,13 @@
       const econRes = typeof evaluateEconomicViabilityClient === 'function' ? evaluateEconomicViabilityClient() : null;
       const zoningRes = typeof evaluateZoningCompatibilityClient === 'function' ? evaluateZoningCompatibilityClient() : null;
 
-      let nearbyScore = (lastAssessment?.assessmentCriteria?.nearby_businesses != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.nearby_businesses)))
-        ? Number(lastAssessment.assessmentCriteria.nearby_businesses)
-        : null;
+      const nearbyEvaluation = currentNearbyEvaluation();
+      const nearbyScore = nearbyEvaluation?.score ?? null;
 
-      if (nearbyScore === null && typeof radarGroups !== 'undefined') {
-        const totalPlaces = (radarGroups?.competitors?.length || 0) + (radarGroups?.related?.length || 0) + (radarGroups?.complementary?.length || 0) + (radarGroups?.unclassified?.length || 0);
-        if (totalPlaces > 0) {
-          nearbyScore = totalPlaces >= 6 ? 85.0 : (totalPlaces >= 3 ? 70.0 : 60.0);
-        }
-      }
-      if (nearbyScore === null && (value('commercial_corridor') || value('nearby_analysis_origin') || all('[name="assessmentTags[]"]:checked').length || value('nearby_evidence_source'))) {
-        nearbyScore = 75.0;
-      }
-
-      const riskScoreText = $('[data-risk-total-score]')?.textContent;
+      const riskScoreText = $('[data-risk-preview-card]')?.dataset.unroundedScore || $('[data-risk-total-score]')?.textContent;
       const riskScore = (riskScoreText && riskScoreText !== '—' && !isNaN(Number(riskScoreText)))
         ? Number(riskScoreText)
-        : ((lastAssessment?.assessmentCriteria?.risk_constraints != null && Number.isFinite(Number(lastAssessment.assessmentCriteria.risk_constraints))) ? Number(lastAssessment.assessmentCriteria.risk_constraints) : null);
+        : null;
 
       const isZoningProhibited = zoningRes?.status === 'prohibited';
       const criteriaScores = {
@@ -3343,7 +3188,8 @@
 
       const composite = calculateWizardCompositeMce({
         ...criteriaScores,
-        _zoningProhibited: isZoningProhibited
+        _zoningProhibited: isZoningProhibited,
+        _riskCritical: $('[data-risk-preview-card]')?.dataset.technicalReviewHold === 'true'
       });
 
       const updateCritRow = (key, score, isDone) => {
@@ -3355,15 +3201,20 @@
         }
         if (contribEl) {
           const contrib = composite.breakdown[key]?.contribution;
-          contribEl.textContent = (contrib !== null && contrib !== undefined && Number.isFinite(Number(contrib))) ? `+${Number(contrib).toFixed(1)} pts` : (key === 'zoning_compatibility' ? 'Eligibility Gate' : '—');
+          contribEl.textContent = (contrib !== null && contrib !== undefined && Number.isFinite(Number(contrib))) ? `+${Number(contrib).toFixed(key === 'nearby_businesses' ? 2 : 1)} pts` : (key === 'zoning_compatibility' ? 'Eligibility Gate' : '—');
         }
         if (badgeEl) {
+          badgeEl.removeAttribute('title');
           if (key === 'zoning_compatibility' && isZoningProhibited) {
             badgeEl.textContent = 'Prohibited (Disqualified)';
             badgeEl.className = 'pw-badge pw-badge-amber';
           } else if (key === 'zoning_compatibility' && score !== null && score !== undefined && isDone) {
             badgeEl.textContent = zoningRes?.status === 'conditional' ? 'Conditional' : 'Permitted';
             badgeEl.className = 'pw-badge pw-badge-teal';
+          } else if (key === 'nearby_businesses' && score !== null && nearbyEvaluation?.provisional) {
+            badgeEl.textContent = 'Provisional';
+            badgeEl.className = 'pw-badge pw-badge-sky';
+            badgeEl.title = nearbyEvaluation.record.disclaimer;
           } else if (score !== null && score !== undefined && isDone) {
             badgeEl.textContent = 'Input complete';
             badgeEl.className = 'pw-badge pw-badge-teal';
@@ -3380,6 +3231,15 @@
       updateCritRow('spatial_accessibility', criteriaScores.spatial_accessibility, Boolean(spatialRes?.isComplete));
       updateCritRow('infrastructure_readiness', criteriaScores.infrastructure_readiness, Boolean(infraRes?.isComplete));
       updateCritRow('economic_viability', criteriaScores.economic_viability, Boolean(econRes?.isComplete));
+      const economicBlocker = econRes?.blockers?.[0];
+      $('[data-review-crit="economic_viability"]')?.classList.toggle('has-input-blocker', Boolean(economicBlocker));
+      const economicIssue = $('[data-review-crit-issue="economic_viability"]');
+      if (economicIssue) { economicIssue.hidden = !economicBlocker; economicIssue.textContent = economicBlocker?.message || ''; }
+      if (economicBlocker) {
+        setText('[data-review-crit-badge="economic_viability"]', economicBlocker.label);
+        $('[data-review-crit-badge="economic_viability"]')?.setAttribute('title', economicBlocker.message);
+      }
+      setText('[data-review-crit="economic_viability"] [data-economic-fix]', economicBlocker?.action || 'Edit');
       updateCritRow('nearby_businesses', criteriaScores.nearby_businesses, Boolean(criteriaScores.nearby_businesses !== null));
       updateCritRow('risk_constraints', criteriaScores.risk_constraints, Boolean(criteriaScores.risk_constraints !== null));
       updateCritRow('zoning_compatibility', criteriaScores.zoning_compatibility, Boolean(zoningRes?.isComplete));
@@ -3399,14 +3259,22 @@
         if (compositeDescEl) {
           compositeDescEl.textContent = 'The proposed business scenario is strictly prohibited under the recorded CLUP zoning classification. Assessment score is withheld.';
         }
-      } else if (composite.isComplete) {
-        if (compositeIaiEl) compositeIaiEl.textContent = 'Pending review';
+      } else if (composite.technicalReviewHold) {
+        if (compositeIaiEl) compositeIaiEl.textContent = 'Technical review';
+        if (compositeStatusEl) { compositeStatusEl.textContent = 'Hazard review required'; compositeStatusEl.className = 'pw-badge pw-badge-amber'; }
+        if (compositeDescEl) compositeDescEl.textContent = 'High or critical hazard findings require technical review before an overall result can be used. Individual criterion calculations remain visible below.';
+      } else if (!withinCityCoverage(point())) {
+        if (compositeIaiEl) compositeIaiEl.textContent = 'Location needed';
+        if (compositeStatusEl) { compositeStatusEl.textContent = 'Confirm city coverage'; compositeStatusEl.className = 'pw-badge pw-badge-amber'; }
+        if (compositeDescEl) compositeDescEl.textContent = 'Confirm coordinates within San Fernando City to calculate a location-specific assessment.';
+      } else if (composite.provisionalScore !== null) {
+        if (compositeIaiEl) compositeIaiEl.innerHTML = `${composite.provisionalScore.toFixed(1)} <small>/ 100</small>`;
         if (compositeStatusEl) {
-          compositeStatusEl.textContent = 'Evidence review pending';
+          compositeStatusEl.textContent = composite.isComplete ? 'Evidence review pending' : 'Zoning check needed';
           compositeStatusEl.className = 'pw-badge pw-badge-sky';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = 'All 5 criteria have complete inputs. Zoning compatibility verified. Evidence review pending. Final IAI unavailable until verified by authorized evaluator.';
+          compositeDescEl.textContent = `All five criteria are calculated using the 25% + 25% + 20% + 15% + 15% weights.${composite.isComplete ? '' : ' Confirm the CLUP zone and proposed activity.'} This provisional result will appear on the listing after saving. Final IAI and ranking require city evidence verification.`;
         }
       } else {
         if (compositeIaiEl) compositeIaiEl.innerHTML = '— <small>/ 100</small>';
@@ -3415,7 +3283,7 @@
           compositeStatusEl.className = 'pw-badge pw-badge-amber';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = `${composite.completedCount} of 5 criteria have complete inputs. Mandatory zoning screening gate in effect. Final IAI unavailable until all 5 criteria have verified evidence.`;
+          compositeDescEl.textContent = `${composite.completedCount} of 5 criteria calculated. Complete the missing inputs below to calculate the provisional total. Missing criteria are never treated as zero.`;
         }
       }
 
@@ -3454,6 +3322,9 @@
       if (riskScore !== null && riskScore < 60) {
         constraints.push('Natural hazard exposure flagged; structural mitigation and flood engineering required.');
       }
+      if ($('[data-risk-preview-card]')?.dataset.technicalReviewHold === 'true') {
+        constraints.push('High or critical hazard findings require technical review regardless of the average suitability score.');
+      }
       if (parseFloat(value('carriageway_width')) > 0 && parseFloat(value('carriageway_width')) < 4) {
         constraints.push(`Narrow carriageway width (${value('carriageway_width')}m) restricts heavy vehicle access.`);
       }
@@ -3463,8 +3334,9 @@
 
       if (!spatialRes?.isComplete) outstanding.push('Spatial accessibility: Ground verification of road frontage & passability.');
       if (!infraRes?.isComplete) outstanding.push('Infrastructure readiness: Verify utility connection records and site drainage.');
-      if (!econRes?.isComplete) outstanding.push('Economic viability: Provide suitable, dated market comparables for authorized verification. BIR values are a separate tax reference.');
-      if (criteriaScores.nearby_businesses === null) outstanding.push('Nearby businesses: Confirm commercial cluster density radar.');
+      if (!econRes?.isComplete) outstanding.push(`Cost & Market: ${economicBlocker?.message || 'Complete the price comparison inputs.'}`);
+      if (criteriaScores.nearby_businesses === null) outstanding.push(radarState === 'success' ? 'Nearby businesses: No usable business inventory for this point. Check mapping coverage before scoring.' : 'Nearby businesses: Select the proposed business type and run the 500 m search from the property pin.');
+      else if (nearbyEvaluation?.provisional) outstanding.push('Nearby businesses: Provisional screening from mapped observations. City calibration and inventory verification remain required.');
       if (criteriaScores.risk_constraints === null) outstanding.push('Risk constraints: Upload HazardHunterPH screening assessment report.');
       if (!zoningRes?.isComplete) outstanding.push('Zoning compatibility: Confirm CLUP zoning certificate and allowable uses.');
 
@@ -4112,7 +3984,7 @@
       const transfer=new DataTransfer();for(const file of event.dataTransfer.files)transfer.items.add(file);evidenceFiles.files=transfer.files;checkEvidenceFiles();
     });
     function tileMap(canvas) {
-      const map = L.map(canvas, {scrollWheelZoom:false,zoomControl:false,maxZoom:19}).setView(point() || [16.615,120.316],15);
+      const map = L.map(canvas, {scrollWheelZoom:false,zoomControl:false,maxZoom:19,zoomAnimation:false,markerZoomAnimation:false,fadeAnimation:false}).setView(point() || [16.615,120.316],15);
       if (window.L && L.control && L.control.zoom) {
         L.control.zoom({position: 'bottomright'}).addTo(map);
       }
@@ -4139,7 +4011,21 @@
         ...options,maxNativeZoom:18,
         attribution:'<a href="https://www.esri.com/">Esri</a>, HERE, Garmin, USGS, Intermap, increment P, NRCan, Esri Japan, METI, Esri China, OpenStreetMap contributors, GIS User Community'
       });
-      let activeLayer, activeStyle = 'satellite', failedTiles = 0, fallbackMessage = '', failureTimer;
+      const coordinateGrid=L.gridLayer({maxZoom:19,pmIgnore:true,attribution:'Coordinate view · not a street map'});
+      coordinateGrid.createTile=coords=>{
+        const tile=document.createElement('canvas');tile.width=tile.height=256;
+        const ctx=tile.getContext('2d');
+        ctx.fillStyle='#f3f6fa';ctx.fillRect(0,0,256,256);ctx.strokeStyle='#dbe4ee';ctx.lineWidth=1;
+        for(let at=0;at<256;at+=64){ctx.beginPath();ctx.moveTo(at,0);ctx.lineTo(at,256);ctx.moveTo(0,at);ctx.lineTo(256,at);ctx.stroke();}
+        const corner=map.unproject(L.point(coords.x*256,coords.y*256),coords.z);
+        ctx.fillStyle='#6b7f98';ctx.font='11px sans-serif';ctx.fillText(corner.lat.toFixed(4)+'°, '+corner.lng.toFixed(4)+'°',8,18);
+        return tile;
+      };
+      let activeLayer, activeStyle = 'satellite', failedTiles = 0, loadedTiles = 0, fallbackMessage = '', failureTimer, tileWatchdog;
+      const watchTiles=layer=>{
+        clearTimeout(tileWatchdog);
+        tileWatchdog=setTimeout(()=>{if(layer===activeLayer && !loadedTiles){failedTiles++;recover(layer);}},4500);
+      };
       const showFeedback = (text = '', state = 'ready') => {
         canvas.dataset.mapStatus = state;
         if (feedback) {feedback.textContent=text;feedback.hidden=!text;}
@@ -4147,19 +4033,21 @@
       const updateFeedback = () => showFeedback(fallbackMessage || (activeStyle === 'satellite' && map.getZoom() > 18 ? 'Satellite imagery is enlarged from the closest available detail.' : ''));
       function useLayer(layer, style, message = '') {
         clearTimeout(failureTimer);
-        activeLayer=layer;activeStyle=style;failedTiles=0;fallbackMessage=message;
-        for (const candidate of [streets,satellite,alternateStreets]) if (candidate !== layer && map.hasLayer(candidate)) map.removeLayer(candidate);
+        clearTimeout(tileWatchdog);
+        activeLayer=layer;activeStyle=style;failedTiles=0;loadedTiles=0;fallbackMessage=message;
+        for (const candidate of [streets,satellite,alternateStreets,coordinateGrid]) if (candidate !== layer && map.hasLayer(candidate)) map.removeLayer(candidate);
         canvas.dataset.mapStyle=style;
-        canvas.dataset.mapProvider=layer===streets ? 'openstreetmap' : layer===satellite ? 'esri-imagery' : 'esri-streets';
+        canvas.dataset.mapProvider=layer===coordinateGrid ? 'local-coordinate-grid' : layer===streets ? 'openstreetmap' : layer===satellite ? 'esri-imagery' : 'esri-streets';
         if (styleSelect) styleSelect.value=style;
         updateFeedback();
         if (!map.hasLayer(layer)) layer.addTo(map);
+        if(layer!==coordinateGrid)watchTiles(layer);
       }
       function recover(layer) {
         if (layer !== activeLayer || !failedTiles) return;
         if (layer === satellite) useLayer(streets,'streets','Satellite imagery is unavailable here. Showing the street map instead.');
         else if (layer === streets) useLayer(alternateStreets,'streets','Showing an alternate street map while the usual map is unavailable.');
-        else showFeedback('The map background is unavailable. You can still enter coordinates or an area size. Choose a map view to retry.','unavailable');
+        else useLayer(coordinateGrid,'coordinates','Street and satellite maps are unavailable. Showing a coordinate grid with the property pin and nearby places. Choose a map view to retry.');
       }
       function queueRecovery(layer, delay = 0) {
         clearTimeout(failureTimer);
@@ -4167,7 +4055,8 @@
         failureTimer=setTimeout(() => recover(layer),delay);
       }
       for (const layer of [streets,satellite,alternateStreets]) {
-        layer.on('loading',() => {if (layer===activeLayer) failedTiles=0;});
+        layer.on('loading',() => {if (layer===activeLayer){failedTiles=0;loadedTiles=0;watchTiles(layer);}});
+        layer.on('tileload',()=>{if(layer===activeLayer){loadedTiles++;clearTimeout(tileWatchdog);}});
         layer.on('tileerror',() => {
           if (layer!==activeLayer) return;
           failedTiles++;
@@ -4192,9 +4081,13 @@
         };
         control.addTo(map);
       }
-      styleSelect.addEventListener('change',() => useLayer(styleSelect.value==='satellite' ? satellite : streets,styleSelect.value==='satellite' ? 'satellite' : 'streets'));
+      if(!styleSelect.querySelector('[value="coordinates"]'))styleSelect.add(new Option('Coordinate view','coordinates'));
+      styleSelect.addEventListener('change',()=>{
+        const style=styleSelect.value;
+        useLayer(style==='coordinates'?coordinateGrid:style==='satellite'?satellite:streets,style,style==='coordinates'?'Coordinate grid with property and nearby locations. Streets and satellite imagery are not displayed.':'');
+      });
       map.on('zoomend',() => {if (canvas.dataset.mapStatus!=='unavailable') updateFeedback();});
-      map.on('unload',() => clearTimeout(failureTimer));
+      map.on('unload',() => {clearTimeout(failureTimer);clearTimeout(tileWatchdog);});
       useLayer(satellite,'satellite');
       return map;
     }
@@ -4219,6 +4112,7 @@
       syncLocation(move, 'pin');
       if (typeof syncBarangayConflict === 'function') syncBarangayConflict();
       if (typeof syncSpatialAccessibility === 'function') syncSpatialAccessibility();
+      queueMicrotask(recordEditorHistory);
       assessHazards();
       preview();
       ready();
@@ -4986,7 +4880,7 @@
       syncLocation(false);updateCoordinateDetailsSummary();assessHazards();preview();ready();
       locationStatus('Property pin cleared. You can still continue with a recorded area or drawn plot.');
     }
-    $('[data-clear-location]')?.addEventListener('click',clearLocation);
+    all('[data-clear-location]').forEach(button => button.addEventListener('click',clearLocation));
     function applyCoordinates(revealMap = true) {
       const pair=$('[data-coordinate-pair]');
       const raw=pair?.value.trim();
@@ -5197,13 +5091,14 @@
         input._hasRiskInputListener = true;
         input.addEventListener('input', () => {
           assessHazards();
-          updateReviewStatus(point(), effectiveArea());
+          updateReviewStatus(point(), enteredAreaSqm() || estimatedArea);
         });
       });
 
       let allAssessed = true;
       let anyOverlap = false;
       let hasCriticalFault = false;
+      let technicalReviewHold = false;
       let weightedSum = 0;
       const warnings = [];
 
@@ -5217,7 +5112,7 @@
         let manualDesc = null;
 
         if (manualVal) {
-          if (['safe', 'none', 'clear', 'no_exposure', 'outside_mapped', 'outside_buffer', 'outside_fault_zone', 'confirmed_none', 'not_susceptible', 'negligible', '0'].includes(manualVal)) {
+          if (['safe', 'none', 'clear', 'no_exposure', 'outside_mapped', 'outside_buffer', 'outside_fault_zone', 'confirmed_none', 'not_susceptible', 'negligible'].includes(manualVal)) {
             manualScore = 100.0;
             manualStatusText = 'Safe: 100';
             manualStatusColor = 'green';
@@ -5260,7 +5155,7 @@
         let statusColor = manualStatusColor || 'gray';
         let descText = manualDesc || `Authoritative ${item.agency} layer pending verification.`;
 
-        if (score === null && layer?.status === 'Available' && window.turf && testGeom) {
+        if (score === null && !manualVal && withinCityCoverage(pt) && layer?.status === 'Available' && window.turf && testGeom) {
           for (const feature of layer.geojson?.features || []) {
             let geometry = feature;
             if (item.key === 'faults') {
@@ -5351,6 +5246,8 @@
           }
         }
 
+        if (score === 0 && item.key === 'faults') hasCriticalFault = true;
+        if (score !== null && score <= 25) technicalReviewHold = true;
         if (score === null) {
           allAssessed = false;
         } else {
@@ -5363,9 +5260,9 @@
         const descEl = $(`[${item.descAttr}]`);
         const ptsEl = $(`[${item.ptsAttr}]`);
 
-        if (pill) { 
-          pill.textContent = manualVal ? 'Recorded' : (statusText === 'Not assessed' ? 'Not recorded' : statusText); 
-          pill.className = `pw-pill pw-pill--${statusColor === 'green' ? 'teal' : statusColor}`; 
+        if (pill) {
+          pill.textContent = score !== null ? statusText : manualVal ? 'Not assessed' : 'Choose finding';
+          pill.className = `pw-pill pw-pill--${statusColor === 'green' ? 'teal' : statusColor}`;
         }
         if (scoreEl) scoreEl.textContent = score !== null ? `${score.toFixed(0)}` : '—';
         if (descEl) descEl.textContent = descText;
@@ -5374,6 +5271,8 @@
 
       // Update Critical Banner
       if (criticalBanner) criticalBanner.hidden = !hasCriticalFault;
+      const riskPreview=$('[data-risk-preview-card]');
+      if(riskPreview)riskPreview.dataset.technicalReviewHold=String(technicalReviewHold);
 
       // Update Warnings Box
       if (warningsBox && warningsList) {
@@ -5387,17 +5286,20 @@
       }
 
       // Live Assessment Card
-      const compositeScore = allAssessed ? Math.max(0, Math.min(100, Math.round(weightedSum * 10) / 10)) : null;
+      const compositeScore = allAssessed ? Math.max(0, Math.min(100, weightedSum)) : null;
+      if(riskPreview)riskPreview.dataset.unroundedScore=compositeScore === null ? '' : String(compositeScore);
       const iaiPts = compositeScore !== null ? Math.round(compositeScore * 0.15 * 100) / 100 : null;
 
+      const missingHazards = HAZARD_CONFIG.filter(item => !Number.isFinite(Number($('['+item.scoreAttr+']')?.textContent)) || $('['+item.scoreAttr+']')?.textContent === '—').map(item => item.label);
+      setText('[data-risk-next-action]', missingHazards.length ? 'Still needed: '+missingHazards.join(', ')+'. Unknown findings are not treated as no exposure.' : 'Weighted suitability = flood × 25% + active fault × 25% + landslide × 15% + storm surge × 15% + liquefaction × 10% + tsunami × 10%. '+(hasCriticalFault ? 'Active fault conflict requires specialist review regardless of the total.' : 'Preliminary source findings; city verification is separate.'));
       setText('[data-risk-total-score]', compositeScore !== null ? compositeScore.toFixed(1) : '—');
       setText('[data-risk-iai-pts]', iaiPts !== null ? iaiPts.toFixed(2) : '—');
 
-      const suppliedCount = all('.pw-finding-input').filter(i => i.value.trim() !== '').length;
-      const totalFindingInputs = all('.pw-finding-input').length || 6;
+      const suppliedCount = all('[data-finding-hazard]').filter(i => i.value.trim() !== '' && i.value !== 'unknown').length;
+      const totalFindingInputs = 6;
       const footerSpan = $('.pw-table-footer-record span');
       if (footerSpan) {
-        footerSpan.innerHTML = suppliedCount > 0 
+        footerSpan.innerHTML = suppliedCount > 0
           ? `Record &middot; <strong>${suppliedCount} of ${totalFindingInputs}</strong> hazard classifications recorded${compositeScore !== null ? ` (Composite Score: <strong>${compositeScore.toFixed(1)} / 100</strong>)` : ''}`
           : 'Record &middot; No hazard classifications supplied';
       }
@@ -5407,8 +5309,11 @@
         if (hasCriticalFault) {
           badge.textContent = 'Critical Site Constraint';
           badge.className = 'pw-badge pw-badge-rose';
+        } else if (technicalReviewHold) {
+          badge.textContent = 'Technical review needed';
+          badge.className = 'pw-badge pw-badge-amber';
         } else if (allAssessed) {
-          badge.textContent = 'Calculated';
+          badge.textContent = 'Preliminary calculated';
           badge.className = 'pw-badge pw-badge-teal';
         } else {
           badge.textContent = 'Screening Incomplete';
@@ -5461,13 +5366,35 @@
       context=results[0].status==='fulfilled' ? results[0].value.context : null;
       const details=$('[data-map-layers]');
       if(details){const body=details.querySelector('[data-layer-sources]');if(body)body.innerHTML=['flood','faults','roads'].map(key=>{const layer=context?.[key];return `<p><strong>${key==='faults'?'Active faults':key==='flood'?'Flood zones':'Road inventory'}</strong><br>${escape(layer?.source || 'No authoritative source configured')}${layer?.date?` · ${escape(layer.date)}`:''}<br><span>${escape(layer?.status || 'Not assessed')}</span></p>`;}).join('');}
-      assessHazards();renderLayers();if(step===2)syncRadar();ready();
+      assessHazards();renderLayers();if(step===2 && activeEvidenceCriterion==='nearby_businesses')syncRadar();ready();
     }
     function setReference(coordinates) {
       if(value('reference_label')==='center' && boundary && window.turf){const center=turf.centerOfMass(boundary).geometry.coordinates;coordinates=[center[1],center[0]];}
       if(!coordinates)return;
       field('reference_lat').value=coordinates[0].toFixed(6);field('reference_lng').value=coordinates[1].toFixed(6);
       if(radarMarker)radarMarker.setLatLng(coordinates);
+    }
+    function nearbyReferencePoint() {
+      let reference=value('reference_label')==='location' ? point() : point('reference_lat','reference_lng');
+      if(value('reference_label')==='center' && boundary && window.turf) {
+        const center=turf.centerOfMass(boundary).geometry.coordinates;reference=[center[1],center[0]];
+      }
+      return reference;
+    }
+    function radarContextIsCurrent() {
+      const reference=nearbyReferencePoint();
+      return Boolean(reference && radarData?.referenceCoordinates?.every((n,index)=>Math.abs(n-reference[index])<0.0000005)
+        && radarData?.businessType===(value('radar_business_type')||'cafe'));
+    }
+    function currentNearbyEvaluation() {
+      const current = radarContextIsCurrent();
+      const benchmark = current ? window.SFCPropertyEditorTools?.nearbyBenchmark(radarData?.benchmarks) : null;
+      if (benchmark) return {...benchmark, provisional:false};
+      let snapshot = current ? radarData?.screening : null;
+      if (!current) {
+        try { snapshot = JSON.parse(value('nearby_screening') || 'null'); } catch { return null; }
+      }
+      return window.SFCPropertyEditorTools?.nearbyScreening(snapshot, nearbyReferencePoint(), value('radar_business_type') || 'cafe') ?? null;
     }
     function classify(feature) {
       const properties = feature.properties || {};
@@ -5489,14 +5416,14 @@
 
       // Regional commercial anchors (SM City, Robinsons, Manna Mall, etc.) should not be treated as direct competitors for standard cafes/retail unless proposing a mall
       const name = String(properties.name || '').toLowerCase();
-      const rawCat = String(properties.category || properties.businessType || '').toLowerCase();
+      const rawCat = String(properties.categoryKey || properties.category || properties.businessType || '').toLowerCase();
       const isRegionalMall = /sm\s*(city|la union|prime)|manna\s*mall|robinsons|csi\s*city/i.test(name)
         || rawCat.includes('mall') || rawCat.includes('commercial complex');
       if (isRegionalMall && selected !== 'mall' && selected !== 'shopping_mall') {
         return 'complementary';
       }
 
-      let tags = [properties.businessType, properties.category, properties.type, properties.amenity, properties.shop, properties.tourism, properties.office, properties.commercial, properties.industrial, ...(Array.isArray(properties.tags) ? properties.tags : [])].filter(Boolean).map(tag => String(tag).toLowerCase().replace(/[ -]/g, '_'));
+      let tags = [properties.categoryKey, properties.businessType, properties.category, properties.type, properties.amenity, properties.shop, properties.tourism, properties.office, properties.commercial, properties.industrial, ...(Array.isArray(properties.tags) ? properties.tags : [])].filter(Boolean).map(tag => String(tag).toLowerCase().replace(/[ -]/g, '_'));
       if (!tags.length && /^(jollibee|mcdonald|kfc|pizza hut|mister donut|chowking|mang inasal|greenwich)/i.test(properties.name || '')) tags = ['fast_food'];
       const profile = businessRoles[selected] || businessRoles.cafe;
       const directTags = profile.direct || profile.competitors || [];
@@ -5514,9 +5441,16 @@
       if (!point('reference_lat','reference_lng') && point() && !placingReference) {
         field('reference_label').value = boundary ? 'center' : 'location';setReference(point());
       }
-      if(!window.L || !window.turf){setText('[data-radar-coverage]','The map tools are unavailable. Reload to run geographic distance checks.');return;}
+      if (point() && !withinCityCoverage(point())) { radarController?.abort(); radarRevision++; radarPendingKey='';radarRefreshing=false;radarData=null; radarState='error'; radarError='Property pin is outside San Fernando map coverage. Correct it in Location & boundary.'; renderRadarUI(); return; }
+      const withoutMap=()=>{
+        const message=$('[data-map-feedback="radar"]');if(message){message.hidden=false;message.textContent='The interactive map could not load. Nearby records and straight-line distances are still available below.';}
+        const reference=point('reference_lat','reference_lng');
+        if(reference && $('[data-radar-toggle]')?.checked)fetchRadar(reference,value('radar_business_type')||'cafe');
+        else {radarController?.abort();radarRevision++;radarPendingKey='';radarRefreshing=false;radarState=reference?'disabled':'idle';renderRadarUI();}
+      };
+      if(!window.L){withoutMap();return;}
       if(!radarMap){
-        radarMap=tileMap($('[data-radar-map]'));
+        try {radarMap=tileMap($('[data-radar-map]'));} catch(error) {withoutMap();return;}
         radarMap.on('click',event=>{
           if(placingReference || !point('reference_lat','reference_lng')){
             dirtyReference=true;placingReference=false;$('[data-place-reference]')?.classList.remove('is-active');
@@ -5540,6 +5474,7 @@
       };
 
       if(!reference){
+        radarController?.abort();radarRevision++;radarPendingKey='';radarRefreshing=false;
         radarState='idle';
         clearRings();
         if(radarMarker){radarMarker.remove();radarMarker=null;}
@@ -5550,6 +5485,7 @@
       }
 
       if(!$('[data-radar-toggle]')?.checked){
+        radarController?.abort();radarRevision++;radarPendingKey='';radarRefreshing=false;
         radarState='disabled';
         clearRings();
         if(!radarMarker){
@@ -5674,67 +5610,66 @@
         row.scrollIntoView({behavior:'smooth',block:'nearest'});
       }
     }
+    function applyRadarPayload(payload, reference, businessType) {
+      if (!payload || !Array.isArray(payload.features)) throw new Error('The nearby service returned an invalid response.');
+      radarData={
+        referenceCoordinates:[...reference],businessType,
+        features:payload.features.filter(feature=>feature && feature.type==='Feature' && feature.geometry && typeof feature.properties==='object'),
+        roads:Array.isArray(payload.roads?.geojson?.features) ? payload.roads.geojson : {type:'FeatureCollection',features:[]},
+        roadStatus:payload.roads?.status || 'Unavailable',
+        meta:{source:payload.source || 'Local commercial inventory',retrievalDate:payload.retrievalDate || payload.date || new Date().toISOString().slice(0,10),
+          cached:payload.cached===true,stale:payload.stale===true,coverage:payload.coverage || 'unknown',coverageNote:payload.coverageNote || '',warning:payload.warning || ''},
+        metrics:payload.metrics || null,benchmarks:payload.benchmarks || null,screening:payload.screening || null
+      };
+      if (field('nearby_screening')) field('nearby_screening').value = payload.screening ? JSON.stringify(payload.screening) : '';
+      radarState='success';radarError=null;processRadarData(reference);ready();queueAutosave();
+    }
     async function fetchRadar(reference,businessType,forceRetry=false) {
-      radarController?.abort();radarController=new AbortController();const currentRev=++radarRevision;
-      radarState='loading';radarError=null;renderRadarUI();
-      const timeoutId = setTimeout(() => {
-        if (currentRev === radarRevision && radarState === 'loading') {
-          radarController?.abort();
-        }
-      }, 3500);
+      const key=reference.map(n=>n.toFixed(6)).join(',')+':'+businessType;
+      if(!forceRetry && radarPendingKey===key && !radarController?.signal.aborted) {
+        if(radarContextIsCurrent())processRadarData(reference);
+        return;
+      }
+      if(!forceRetry && radarState==='success' && radarContextIsCurrent() && !radarData?.meta.liveUnavailable) {
+        processRadarData(reference);return;
+      }
+      const hasCurrentResults=radarState==='success' && radarContextIsCurrent();
+      radarController?.abort();radarController=new AbortController();
+      const currentRev=++radarRevision,signal=radarController.signal;
+      const current=()=>currentRev===radarRevision && dialog.open && !signal.aborted;
+      const url='competitors.php?lat='+reference[0].toFixed(6)+'&lng='+reference[1].toFixed(6)+'&radius=500&type='+encodeURIComponent(businessType || 'cafe');
+      const request=(source,timeout)=>window.SFCPropertyEditorTools.boundedRequest(childSignal=>get(url+'&source='+source,childSignal),signal,timeout);
+      radarPendingKey=key;radarRefreshing=true;radarState=hasCurrentResults?'success':'loading';radarError=null;
+      if(hasCurrentResults)processRadarData(reference);else renderRadarUI();
+      let hasResults=hasCurrentResults;
       try {
-        const url=`competitors.php?lat=${reference[0].toFixed(6)}&lng=${reference[1].toFixed(6)}&radius=500&type=${encodeURIComponent(businessType || 'cafe')}`;
-        const payload=await get(url,radarController.signal);
-        clearTimeout(timeoutId);
-        if(currentRev!==radarRevision || !dialog.open)return;
-        radarData={
-          features:Array.isArray(payload.features)?payload.features:[],
-          roads:payload.roads && Array.isArray(payload.roads.geojson?.features)?payload.roads.geojson:{type:'FeatureCollection',features:[]},
-          roadStatus:payload.roads?.status || 'Available',
-          meta:{
-            source:payload.source || 'OpenStreetMap & local repository',
-            retrievalDate:payload.retrievalDate || payload.date || new Date().toISOString().slice(0,10),
-            cached:Boolean(payload.cached),
-            stale:Boolean(payload.stale),
-            coverage:payload.coverage || 'unknown',
-            coverageNote:payload.coverageNote || '',
-          }
-        };
-        radarData.metrics = payload.metrics || null;
-        radarState='success';processRadarData(reference);
-      } catch(err) {
-        clearTimeout(timeoutId);
-        if(currentRev!==radarRevision)return;
-        // Immediate graceful offline directory fallback so user is never stuck loading
+        // Local inventory renders first; the live provider enriches an already usable list.
         try {
-          const fallback = await get('competitors.php');
-          if (currentRev === radarRevision && dialog.open && fallback && Array.isArray(fallback.features)) {
-            radarData = {
-              features: fallback.features,
-              roads: {type:'FeatureCollection',features:[]},
-              roadStatus: 'Available',
-              meta: {
-                source: 'Local commercial inventory (verified local)',
-                retrievalDate: new Date().toISOString().slice(0, 10),
-                cached: true,
-                stale: true,
-                coverage: 'local_only',
-                coverageNote: 'Operating status and live roads from offline dataset.'
-              }
-            };
-            radarData.metrics = fallback.metrics || null;
-            radarState = 'success';
-            processRadarData(reference);
-            return;
-          }
-        } catch { /* Fallback failed */ }
-        radarState='error';radarError=err.message || 'Unable to load nearby data.';renderRadarUI();
+          const local=await request('local',4000);
+          if(!current())return;
+          applyRadarPayload(local,reference,businessType);hasResults=true;
+        } catch(error) { if(!current())return; }
+        try {
+          const live=await request('live',9000);
+          if(!current())return;
+          applyRadarPayload(live,reference,businessType);hasResults=true;
+          if(live.coverage==='local_only')radarData.meta.liveUnavailable=true;
+        } catch(error) {
+          if(!current())return;
+          if(hasResults)radarData.meta.liveUnavailable=true;
+          else {radarState='error';radarError='Nearby records could not be loaded. Retry the search or check your connection.';}
+        }
+      } finally {
+        if(currentRev===radarRevision) {
+          radarPendingKey='';radarRefreshing=false;
+          if(dialog.open){renderRadarUI();ready();}
+        }
       }
     }
     function processRadarData(reference) {
-      if(!window.turf || !radarMap)return;
-      const center=turf.point([reference[1],reference[0]]);
-      const searchArea=turf.circle(center,.5,{steps:64,units:'kilometers'});
+      const canDraw=Boolean(window.L && radarMap);
+      const center=window.turf ? turf.point([reference[1],reference[0]]) : null;
+      const searchArea=center ? turf.circle(center,.5,{steps:64,units:'kilometers'}) : null;
       radarLayers.forEach(l=>l.remove());radarLayers=[];
       if(hoverVectorLayer){hoverVectorLayer.remove();hoverVectorLayer=null;}
       radarLayerItems=new Map();
@@ -5763,9 +5698,8 @@
         }
         if (!pt) continue;
 
-        const distance = Number.isFinite(Number(p.distanceMeters))
-          ? Number(p.distanceMeters)
-          : turf.distance(center, turf.point(pt), {units:'kilometers'}) * 1000;
+        const distance = typeof p.distanceMeters==='number' && Number.isFinite(p.distanceMeters) && p.distanceMeters>=0
+          ? p.distanceMeters : haversineDistanceKm(reference[0],reference[1],pt[1],pt[0])*1000;
         if(distance > 500 + 1e-6) continue;
         const role = classify(feature);
         const featId = `est_${i}_${String(id).replace(/[^a-zA-Z0-9_-]/g,'')}`;
@@ -5777,7 +5711,7 @@
         const fillColor = isComp ? '#ef4444' : (isAnchor ? '#8b5cf6' : (isRelated ? '#f59e0b' : (isCompl ? '#0d9488' : '#64748b')));
         const radius = isAnchor ? 8 : (role === 'unclassified' ? 5 : (isRelated ? 6 : 7));
 
-        if (footprintGeom && typeof L.geoJSON === 'function') {
+        if (canDraw && footprintGeom && typeof L.geoJSON === 'function') {
           const polyLayer = L.geoJSON(footprintGeom, {
             style: {
               color: isAnchor ? '#7c3aed' : fillColor,
@@ -5791,27 +5725,29 @@
           radarLayers.push(polyLayer);
         }
 
-        const marker=L.circleMarker([pt[1],pt[0]],{radius,color:isAnchor ? '#7c3aed' : '#ffffff',weight:isAnchor ? 2.5 : 2,fillColor,fillOpacity:.95}).addTo(radarMap);
-        const distM=Math.round(distance);
-        const roleLabel=isAnchor ? 'Commercial Activity Anchor' : (isComp ? 'Direct Competitor' : isRelated ? 'Related Business' : isCompl ? 'Complementary Place' : 'Mapped Establishment');
-        const catLabel=p.category || p.businessType || p.amenity || p.shop || 'Place';
-        const srcText=p.source?`${escape(p.source)}${p.checkedOn?` · ${escape(p.checkedOn)}`:''}`:'OpenStreetMap';
-        marker.bindTooltip(`<strong>${escape(p.name || 'Mapped establishment')}</strong><br><small>${escape(roleLabel)} (${escape(catLabel)}) · ${distM} m</small><br><small>Operating status: ${escape(p.status || 'Unknown / unverified')}</small><br><small>Source: ${srcText}</small>`);
-        marker.bindPopup(createRadarPopup(p,role,distM,false,featId),{className:'pw-map-popup',maxWidth:260});
-        marker.on('click',()=>{
-          const targetTab=role==='unclassified'?'all':role;
-          if(radarTab!==targetTab){
-            radarTab=targetTab;
-            tabs('data-radar-tab','data-radar-unused-panel',targetTab);
-            renderRadarList();
-          }
-          focusRadarRow(featId);
-        });
-        radarLayerItems.set(featId,{layer:marker,feature,role,distance,coords:[pt[1],pt[0]],isRoad:false,origRadius:radius,origColor:fillColor});
-        radarLayers.push(marker);
+        if(canDraw) {
+          const marker=L.circleMarker([pt[1],pt[0]],{radius,color:isAnchor ? '#7c3aed' : '#ffffff',weight:isAnchor ? 2.5 : 2,fillColor,fillOpacity:.95}).addTo(radarMap);
+          const distM=Math.round(distance);
+          const roleLabel=isAnchor ? 'Commercial Activity Anchor' : (isComp ? 'Direct Competitor' : isRelated ? 'Related Business' : isCompl ? 'Complementary Place' : 'Mapped Establishment');
+          const catLabel=p.category || p.businessType || p.amenity || p.shop || 'Place';
+          const srcText=p.source?`${escape(p.source)}${p.checkedOn?` · ${escape(p.checkedOn)}`:''}`:'OpenStreetMap';
+          marker.bindTooltip(`<strong>${escape(p.name || 'Mapped establishment')}</strong><br><small>${escape(roleLabel)} (${escape(catLabel)}) · ${distM} m</small><br><small>Operating status: ${escape(p.status || 'Unknown / unverified')}</small><br><small>Source: ${srcText}</small>`);
+          marker.bindPopup(createRadarPopup(p,role,distM,false,featId),{className:'pw-map-popup',maxWidth:260});
+          marker.on('click',()=>{
+            const targetTab=role==='unclassified'?'all':role;
+            if(radarTab!==targetTab){
+              radarTab=targetTab;
+              tabs('data-radar-tab','data-radar-unused-panel',targetTab);
+              renderRadarList();
+            }
+            focusRadarRow(featId);
+          });
+          radarLayerItems.set(featId,{layer:marker,feature,role,distance,coords:[pt[1],pt[0]],isRoad:false,origRadius:radius,origColor:fillColor});
+          radarLayers.push(marker);
+        }
       }
 
-      const roadFeatures=radarData?.roads?.features || [];
+      const roadFeatures=window.turf ? radarData?.roads?.features || [] : [];
       const seenRoads=new Set();
       for(let i=0; i<roadFeatures.length; i++){
         const road=roadFeatures[i];
@@ -5832,22 +5768,24 @@
           if(turf.booleanIntersects(road,searchArea) || minDist<=500){
             const roadId=`road_${i}_${String(rid).replace(/[^a-zA-Z0-9_-]/g,'')}`;
             radarGroups.roads.push({feature:road,distance:minDist,id:roadId});
-            const roadLayer=L.geoJSON(road,{style:{color:'#64748b',weight:3,opacity:.8},interactive:true}).addTo(radarMap);
-            const rName=road.properties?.name || 'Unnamed road segment';
-            const rType=road.properties?.highway?`Highway (${road.properties.highway})`:'Road segment';
-            const distM=Math.round(minDist);
-            roadLayer.bindTooltip(`<strong>${escape(rName)}</strong><br><small>${escape(rType)} · ${distM} m away</small>`);
-            roadLayer.bindPopup(createRadarPopup(road.properties || {},'roads',distM,true,roadId),{className:'pw-map-popup',maxWidth:260});
-            roadLayer.on('click',()=>{
-              if(radarTab!=='roads'){
-                radarTab='roads';
-                tabs('data-radar-tab','data-radar-unused-panel','roads');
-                renderRadarList();
-              }
-              focusRadarRow(roadId);
-            });
-            radarLayerItems.set(roadId,{layer:roadLayer,feature:road,role:'roads',distance:minDist,coords:closestPt || [reference[0],reference[1]],isRoad:true,origWeight:3,origColor:'#64748b'});
-            radarLayers.push(roadLayer);
+            if(canDraw) {
+              const roadLayer=L.geoJSON(road,{style:{color:'#64748b',weight:3,opacity:.8},interactive:true}).addTo(radarMap);
+              const rName=road.properties?.name || 'Unnamed road segment';
+              const rType=road.properties?.highway?`Highway (${road.properties.highway})`:'Road segment';
+              const distM=Math.round(minDist);
+              roadLayer.bindTooltip(`<strong>${escape(rName)}</strong><br><small>${escape(rType)} · ${distM} m away</small>`);
+              roadLayer.bindPopup(createRadarPopup(road.properties || {},'roads',distM,true,roadId),{className:'pw-map-popup',maxWidth:260});
+              roadLayer.on('click',()=>{
+                if(radarTab!=='roads'){
+                  radarTab='roads';
+                  tabs('data-radar-tab','data-radar-unused-panel','roads');
+                  renderRadarList();
+                }
+                focusRadarRow(roadId);
+              });
+              radarLayerItems.set(roadId,{layer:roadLayer,feature:road,role:'roads',distance:minDist,coords:closestPt || [reference[0],reference[1]],isRoad:true,origWeight:3,origColor:'#64748b'});
+              radarLayers.push(roadLayer);
+            }
           }
         }catch{/* Exclude invalid geometry */}
       }
@@ -5927,6 +5865,10 @@
           notices.innerHTML = `<div class="pw-notice pw-notice-neutral"><strong>Radar is off.</strong> Turn on 500 m radar to assess nearby establishments and road access.</div>`;
         } else if (radarState === 'idle') {
           notices.innerHTML = `<div class="pw-notice pw-notice-neutral"><strong>Review proximity in context.</strong> Nearby places do not establish customer demand. Mapped roads do not confirm legal road access.</div>`;
+        } else if (radarData?.meta.liveUnavailable) {
+          notices.innerHTML='<div class="pw-notice pw-notice-amber"><strong>Local records displayed.</strong> Live map data is unavailable. The list and distances still work. <button type="button" class="pw-button pw-button-light pw-button-small" data-radar-retry>Retry live search</button></div>';
+        } else if (radarRefreshing && radarState==='success') {
+          notices.innerHTML='<div class="pw-notice pw-notice-neutral"><strong>Local records ready.</strong> Checking the live map provider for additional places and roads…</div>';
         } else if (totalPlaces === 0) {
           notices.innerHTML = `<div class="pw-notice pw-notice-amber"><strong>No mapped establishments in official registry for this 500m radius.</strong> Missing mapped coverage does not imply an absence of commercial activity. Field survey or BPLO records may be required.</div>`;
         } else {
@@ -5950,59 +5892,63 @@
       syncNearbyAssessment();
     }
     function syncNearbyAssessment() {
-      const hasVerifiedBenchmarks = Boolean(radarData?.benchmarks?.isComplete);
+      const evaluation = currentNearbyEvaluation();
+      const counts = evaluation?.observations?.counts;
+      const available = Boolean(counts) || (radarState === 'success' && radarContextIsCurrent());
+      const observed = radarData?.metrics?.observedBusinessCount;
+      const civic = ['school','college','university','townhall','courthouse','police','fire_station','place_of_worship','community_centre','library','toilets','parking','motorcycle_parking','bicycle_parking','bench','waste_basket','drinking_water','fountain','grave_yard','viewpoint','recycling','atm'];
+      const count = counts?.businesses ?? (typeof observed === 'number' ? observed : ['competitors','related','complementary','unclassified'].flatMap(key => radarGroups[key] || []).filter(({feature}) => { const p=feature.properties || {}; const category=String(p.categoryKey || p.businessType || p.category || p.amenity || '').toLowerCase(); return category && !civic.includes(category); }).length);
+      setText('[data-nearby-observed-count]', available ? number(count) : '—');
+      setText('[data-nearby-observed-density]', available ? number(count / (Math.PI * .5 ** 2)) : '—');
+      setText('[data-nearby-observed-competitors]', available ? number(counts?.competitors ?? radarGroups.competitors.length) : '—');
+      setText('[data-nearby-observed-complements]', available ? number(counts ? counts.complementary + counts.anchors : radarGroups.complementary.length) : '—');
+      setText('[data-nearby-observed-formula]', available ? `${number(count)} unique mapped businesses ÷ 0.7854 km² = ${number(count / (Math.PI * .5 ** 2))} businesses/km². Mapping coverage is incomplete; zero records does not prove zero businesses.` : 'Run the 500 m search to calculate observed business density. Roads and civic amenities do not count as businesses.');
       const badge = $('[data-nearby-assessment-badge]');
       const expl = $('[data-nearby-assessment-explanation]');
       const contrib = $('[data-nearby-mce-contrib]');
       const formula = $('[data-nearby-mce-formula]');
 
-      if (hasVerifiedBenchmarks && radarData?.benchmarks?.scores) {
-        const scores = radarData.benchmarks.scores;
-        const commScore = Number(scores.commercial_activity ?? 0);
-        const complScore = Number(scores.complementary_businesses ?? 0);
-        const compPScore = Number(scores.competitive_pressure ?? 0);
-        const anchorScore = Number(scores.activity_anchors ?? 0);
-        const total = Math.round((commScore * 0.25 + complScore * 0.30 + compPScore * 0.30 + anchorScore * 0.15) * 100) / 100;
-        const iaiContrib = Math.round((total * 0.10) * 100) / 100;
-
+      if (evaluation?.score !== null && evaluation?.score !== undefined) {
+        const total = evaluation.score;
+        const iaiContrib = evaluation.contribution;
+        const scores = evaluation.provisional
+          ? Object.fromEntries(Object.entries(evaluation.record.subcriteria).map(([key, sub]) => [key, sub.score]))
+          : radarData.benchmarks.scores;
         if (badge) {
-          badge.textContent = `${total.toFixed(1)} / 100 pts`;
-          badge.className = 'pw-badge pw-badge-teal';
+          badge.textContent = `${total.toFixed(1)} / 100${evaluation.provisional ? ' · Provisional' : ''}`;
+          badge.className = `pw-badge ${evaluation.provisional ? 'pw-badge-sky' : 'pw-badge-teal'}`;
         }
         if (expl) {
-          expl.textContent = `Commercial environment score evaluated against certified BPLO benchmarks for ${value('radar_business_type') || 'the selected business'}.`;
+          expl.textContent = evaluation.provisional
+            ? `${counts.businesses} mapped businesses, ${counts.competitors} direct competitors, ${counts.complementary} other complementary places and ${counts.anchors} activity anchors within 500 m. Provisional screening from incomplete mapping; reference counts await city calibration.`
+            : `Commercial environment score evaluated against configured BPLO benchmarks for ${value('radar_business_type') || 'the selected business'}.`;
         }
-        setText('[data-subcrit-score="commercial_activity"]', `${commScore.toFixed(1)} pts`);
-        $('[data-subcrit-bar="commercial_activity"]')?.style.setProperty('width', `${Math.min(100, commScore)}%`);
+        for (const key of ['commercial_activity', 'complementary_businesses', 'competitive_pressure', 'activity_anchors']) {
+          const score = scores[key];
+          setText(`[data-subcrit-score="${key}"]`, `${score.toFixed(1)} / 100`);
+          $(`[data-subcrit-bar="${key}"]`)?.style.setProperty('width', `${score}%`);
+          setText(`[data-subcrit-rule="${key}"]`, evaluation.provisional ? evaluation.record.subcriteria[key].rule : 'Configured BPLO reference score');
+        }
 
-        setText('[data-subcrit-score="complementary_businesses"]', `${complScore.toFixed(1)} pts`);
-        $('[data-subcrit-bar="complementary_businesses"]')?.style.setProperty('width', `${Math.min(100, complScore)}%`);
-
-        setText('[data-subcrit-score="competitive_pressure"]', `${compPScore.toFixed(1)} pts`);
-        $('[data-subcrit-bar="competitive_pressure"]')?.style.setProperty('width', `${Math.min(100, compPScore)}%`);
-
-        setText('[data-subcrit-score="activity_anchors"]', `${anchorScore.toFixed(1)} pts`);
-        $('[data-subcrit-bar="activity_anchors"]')?.style.setProperty('width', `${Math.min(100, anchorScore)}%`);
-
-        if (contrib) contrib.textContent = `${iaiContrib.toFixed(2)} pts (10% of MCE)`;
-        if (formula) formula.textContent = `Formula: ${total.toFixed(2)} × 0.10 = ${iaiContrib.toFixed(2)} pts toward overall MCE.`;
+        if (contrib) contrib.textContent = `${iaiContrib.toFixed(2)} pts (15% of MCE)`;
+        if (formula) formula.textContent = `${total.toFixed(2)} × 0.15 = ${iaiContrib.toFixed(2)} pts${evaluation.provisional ? ' · Provisional contribution; final IAI requires verified evidence.' : ' toward overall MCE.'}`;
       } else {
         if (badge) {
-          badge.textContent = 'Assessment Incomplete';
+          badge.textContent = available ? 'More observations needed' : 'Run nearby search';
           badge.className = 'pw-badge pw-badge-amber';
         }
-        const mappedCount = (radarGroups.competitors?.length || 0) + (radarGroups.related?.length || 0) + (radarGroups.complementary?.length || 0) + (radarGroups.unclassified?.length || 0);
         if (expl) {
-          expl.textContent = mappedCount > 0
-            ? `${mappedCount} establishments mapped in 500m radius (${radarGroups.competitors?.length || 0} competitors, ${radarGroups.related?.length || 0} related, ${radarGroups.complementary?.length || 0} complementary). Score is pending certified BPLO benchmarks for ${value('radar_business_type') || 'selected business'}.`
-            : 'Scan 500m perimeter from entrance or pin to check commercial density, competitors, and complementary clusters.';
+          expl.textContent = available
+            ? 'No usable mapped business inventory for scoring this point. Check local coverage and the proposed business type, then retry. Missing records do not prove that there are no businesses.'
+            : 'Choose the proposed business type, then scan the 500 m perimeter to calculate a provisional score and its 15% contribution.';
         }
         ['commercial_activity', 'complementary_businesses', 'competitive_pressure', 'activity_anchors'].forEach(k => {
-          setText(`[data-subcrit-score="${k}"]`, mappedCount > 0 ? 'Pending BPLO benchmarks' : 'Scan needed');
+          setText(`[data-subcrit-score="${k}"]`, available ? 'Inventory needed' : 'Scan needed');
           $(`[data-subcrit-bar="${k}"]`)?.style.setProperty('width', '0%');
+          setText(`[data-subcrit-rule="${k}"]`, 'Calculated from the 500 m inventory');
         });
-        if (contrib) contrib.textContent = 'Pending verified benchmarks (10% weight)';
-        if (formula) formula.textContent = 'Formula: Nearby Businesses Score × 0.10. Missing source data is never defaulted.';
+        if (contrib) contrib.textContent = 'Pending nearby observations (15% weight)';
+        if (formula) formula.textContent = 'Nearby score × 0.15. A scan with no usable business records stays pending.';
       }
     }
     function renderRadarList() {
@@ -6176,6 +6122,11 @@
     }
     form.addEventListener('sfc:assessment',event=>ready(event.detail));
     form.addEventListener('click',event=>{
+      if (event.target.closest('[data-economic-fix]')) {
+        const result = evaluateEconomicViabilityClient();
+        const control = field(result.blockers[0]?.focus || (result.purpose === 'lease' ? 'comparable_lease_price' : 'comparable_market_price'));
+        focusIssue(control);return;
+      }
       if(event.target.closest('[data-radar-retry]')){
         const ref=point('reference_lat','reference_lng');
         if(ref)fetchRadar(ref,value('radar_business_type') || 'cafe',true);
@@ -6363,7 +6314,7 @@
       cancelSearch();locationRevision++;deviceRequest++;
       if(deviceButton){deviceButton.disabled=false;deviceButton.removeAttribute('aria-busy');}
       controller?.abort();
-      radarController?.abort();
+      radarController?.abort();radarPendingKey='';radarRefreshing=false;
       searchController?.abort();
       matchController?.abort();
       revision++;
@@ -6450,7 +6401,146 @@
       field(name)?.addEventListener('change', syncReusedPropertyLocation);
     });
 
+    // Present the inputs in the order needed to understand each calculation.
+    const economicCard = $('#pwCriterionEconomic .pw-econ-card');
+    if (economicCard) {
+      const live = economicCard.querySelector('[data-economic-live-result]');
+      const pricing = $('[data-econ-section="1"]'), comparable = $('[data-econ-section="3"]');
+      const optional = document.createElement('div'); optional.className='pw-econ-optional';
+      economicCard.querySelector('.pw-criterion-nav-footer').before(optional);
+      const disclose = (title, content) => {
+        if (!content) return;
+        const details=document.createElement('details');details.className='pw-disclosure pw-cost-details';
+        const summary=document.createElement('summary');summary.textContent=title;
+        details.append(summary,content);optional.append(details);
+      };
+      disclose('Comparison source · for city review', field('comparable_source')?.closest('.pw-econ-field-group'));
+      disclose('Upfront costs & terms · optional', $('[data-econ-section="2"]'));
+      const tax=economicCard.querySelector('[data-econ-details]');
+      if (tax) {
+        tax.className='pw-disclosure pw-cost-details pw-econ-details';
+        tax.querySelector('summary').textContent='Tax references · optional';optional.append(tax);
+      }
+      disclose('How the score works', $('[data-econ-section="4"]'));
+      if (pricing && comparable && live) {
+        const workspace=document.createElement('div');workspace.className='pw-econ-workspace';pricing.before(workspace);
+        const inputs=document.createElement('div');inputs.className='pw-econ-main-inputs';inputs.append(pricing,comparable);
+        workspace.append(inputs,live);
+      }
+      [pricing,comparable].forEach((section,index)=>{const n=section?.querySelector('.pw-econ-section-number');if(n)n.textContent=index+1;});
+    }
+    const nearbyMapWrapper = $('#pwCriterionNearby .pw-nearby-map-wrapper');
+    const nearbyResults = $('[data-nearby-assessment-card]');
+    if(nearbyMapWrapper && nearbyResults)nearbyMapWrapper.before(nearbyResults);
+    // Show the calculation before report metadata in the risk section.
+    const riskMain = $('#pwCriterionRisks .pw-screening-col-main');
+    const riskTableCard = $('#pwRiskFindingsTable')?.closest('.pw-screening-card');
+    if (riskMain && riskTableCard) riskMain.prepend(riskTableCard);
+    if (riskTableCard) {
+      const result = riskTableCard.querySelector('[data-risk-preview-card]');
+      const body = riskTableCard.querySelector('.pw-card-body');
+      if (body && result) body.prepend(result);
+    }
+    for (const tier of ['checks','readiness']) {
+      const card = $(`[data-review-tier="${tier}"]`);
+      const title = card?.querySelector('.pw-review-card-title')?.textContent?.trim();
+      if (card) {
+        const details=document.createElement('details'); details.className='pw-disclosure pw-review-disclosure';
+        const summary=document.createElement('summary'); summary.textContent=title || (tier==='checks'?'Location & property checks':'Assessment breakdown');
+        card.before(details); details.append(summary,card);
+      }
+    }
+    const zoningMain = $('#pwCriterionZoning .pw-screening-col-main');
+    const zoningRules = $('#pwZoningOrdinanceSection');
+    if (zoningMain && zoningRules) zoningMain.prepend(zoningRules);
+    for (const [main, primary] of [[riskMain,riskTableCard],[zoningMain,zoningRules]]) {
+      if (!main) continue;
+      const secondary = [...main.children].filter(node=>node.classList.contains('pw-screening-card') && node!==primary);
+      if (secondary.length) {
+        const details=document.createElement('details'); details.className='pw-disclosure pw-source-disclosure';
+        const summary=document.createElement('summary'); summary.textContent='Source document, date & location';
+        details.append(summary,...secondary);main.append(details);
+        details.addEventListener('toggle',()=>{if(details.open)requestAnimationFrame(syncRiskAndZoningMiniMaps);});
+      }
+    }
     const intakeControls = window.SFCPropertyIntakeControls?.(form);
+    const editHistory = window.SFCPropertyEditorTools?.history(60);
+    let historyTimer = null, restoringHistory = false;
+    function historyState() {
+      return {
+        values: draft().values, locationMethod, locationCapture, boundary,
+        photos: selectedPhotoFiles.map(file=>({file,name:file.name,size:file.size,key:file._wizardKey})),
+        existingPhotos: existingPhotoMedia.map(item=>({...item})),
+        cover: coverPhoto?.kind==='new' ? {kind:'new',index:selectedPhotoFiles.indexOf(coverPhoto.file)} : coverPhoto?.kind==='existing' ? {kind:'existing',index:existingPhotoMedia.indexOf(coverPhoto.media)} : null,
+        order: [...photoDisplayOrder]
+      };
+    }
+    function syncHistoryButtons() {
+      const undo=$('[data-editor-undo]'),redo=$('[data-editor-redo]');
+      if(undo)undo.disabled=!editHistory?.canUndo;
+      if(redo)redo.disabled=!editHistory?.canRedo;
+    }
+    function resetEditorHistory() { clearTimeout(historyTimer);editHistory?.reset(historyState());syncHistoryButtons(); }
+    function recordEditorHistory() {
+      clearTimeout(historyTimer);
+      if(!editHistory || restoringHistory || !dialog.open || submitted)return;
+      editHistory.push(historyState()); syncHistoryButtons();
+    }
+    function restoreEditorHistory(direction) {
+      recordEditorHistory();
+      const state=direction==='undo'?editHistory?.undo():editHistory?.redo();
+      if(!state)return;
+      restoringHistory=true;
+      try {
+        radarController?.abort();radarRevision++;radarData=null;radarState='idle';
+        for(const control of form.elements) {
+          if(!control.name || control.type==='file' || !Object.prototype.hasOwnProperty.call(state.values,control.name))continue;
+          const val=state.values[control.name];
+          if(control.type==='checkbox')control.checked=Array.isArray(val)&&val.includes(control.value);
+          else if(control.type==='radio')control.checked=control.value===val;
+          else control.value=val;
+        }
+        restoreClassification(state.values.category,state.values.subcategory,state.values.additional_subcategories);
+        selectedPhotoFiles.forEach(file=>{if(file._objectUrl)URL.revokeObjectURL(file._objectUrl);});
+        selectedPhotoFiles=state.photos.map(item=>{item.file._wizardKey=item.key;return item.file;});
+        existingPhotoMedia=state.existingPhotos;
+        coverPhoto=state.cover?.kind==='new'?{kind:'new',file:selectedPhotoFiles[state.cover.index]}:state.cover?.kind==='existing'?{kind:'existing',media:existingPhotoMedia[state.cover.index]}:null;
+        photoDisplayOrder=state.order;
+        mediaRevision++;mediaDirty=true;
+        boundaryMap?.pm?.disableDraw();parcelLayer?.pm?.disable();parcelLayer?.remove();parcelLayer=null;
+        boundary=state.boundary;locationCapture=state.locationCapture;
+        if(boundary && boundaryMap)loadBoundary(boundary);
+        if(!point()){locationMarker?.remove();locationMarker=null;}
+        updateBoundary(true);selectLocationMethod(state.locationMethod,false);
+        currentAreaUnit=value('land_area_unit')||'sqm';syncBasicsArea();
+        syncBarangayFromHidden();intakeControls?.refresh();syncPhotoUI();
+        syncPricing();syncUtilities();syncSpatialAccessibility();syncInfrastructureReadiness();
+        syncEconomicViability();syncZoningCompatibility();assessHazards();syncScreeningInterfaces();
+        updateCoordinateDetailsSummary();preview();ready();
+        if(step===1)syncLocation(false);
+        if(step===2 && activeEvidenceCriterion==='nearby_businesses')syncRadar();
+        queueAutosave();notify(direction==='undo'?'Change undone.':'Change restored.');
+        editHistory.replaceCurrent(historyState());
+      } finally { restoringHistory=false;syncHistoryButtons(); }
+    }
+    for(const type of ['input','change'])form.addEventListener(type,event=>{
+      if(restoringHistory || event.target.type==='file')return;
+      clearTimeout(historyTimer);
+      historyTimer=setTimeout(recordEditorHistory,type==='change'?0:450);
+    });
+    form.addEventListener('classificationchange',()=>{if(!restoringHistory){clearTimeout(historyTimer);historyTimer=setTimeout(recordEditorHistory,0);}});
+    form.addEventListener('click',event=>{
+      if(event.target.closest('[data-gallery-remove],[data-gallery-make-cover],[data-gallery-move-left],[data-gallery-move-right],[data-photo-remove-all],[data-boundary-action],[data-clear-location],[data-coordinate-apply]'))queueMicrotask(recordEditorHistory);
+    },true);
+    photoInput?.addEventListener('change',()=>queueMicrotask(recordEditorHistory));
+    $('[data-editor-undo]')?.addEventListener('click',()=>restoreEditorHistory('undo'));
+    $('[data-editor-redo]')?.addEventListener('click',()=>restoreEditorHistory('redo'));
+    form.addEventListener('keydown',event=>{
+      if(!(event.ctrlKey||event.metaKey)||event.altKey)return;
+      if(event.key.toLowerCase()==='z'||event.key.toLowerCase()==='y') {
+        event.preventDefault();restoreEditorHistory(event.key.toLowerCase()==='y'||event.shiftKey?'redo':'undo');
+      }
+    });
     ready();
     return {
       getClassification,
@@ -6500,6 +6590,8 @@
       },
       onStep(next){
         step=next;
+        const message=$('[data-editor-message]');
+        if(message && !message.classList.contains('is-error'))message.textContent='';
         form.querySelectorAll('[data-editor-next]').forEach((btn) => {
           const nextLabel = btn.querySelector('[data-editor-next-label]') || btn;
           if (nextLabel) {
@@ -6589,12 +6681,16 @@
         deviceAccuracyLayer?.remove();deviceAccuracyLayer=null;
         if(deviceButton){deviceButton.disabled=false;deviceButton.removeAttribute('aria-busy');}
         const coordinatePair=$('[data-coordinate-pair]');if(coordinatePair){coordinatePair.value='';coordinatePair.removeAttribute('aria-invalid');}
-        all('.pw-coordinate-details,.pw-readiness-disclosure,.pw-hazard-disclosure,.pw-details,.pw-evidence-editor,.pw-assessment-details,[data-map-layers]').forEach(details => {details.open=false;});
+        all('.pw-coordinate-details,.pw-readiness-disclosure,.pw-hazard-disclosure,.pw-details,.pw-evidence-editor,.pw-assessment-details,.pw-cost-details,[data-map-layers]').forEach(details => {details.open=false;});
         const historicalStatus = field('status')?.querySelector('[value="Availed"]');
         if (historicalStatus) { historicalStatus.hidden = property?.status !== 'Availed'; historicalStatus.disabled = property?.status !== 'Availed'; }
         controller?.abort();radarController?.abort();searchController?.abort();matchController?.abort();revision++;radarRevision++;matchRevision++;lastAssessment=null;clearMatchDetails();
+        [boundaryMap,radarMap,riskMiniMap,zoningMiniMap].forEach(map=>map?.stop());
         parcelLayer?.remove();parcelLayer=null;locationMarker?.remove();locationMarker=null;
-        radarMarker?.remove();radarMarker=null;radarLayers.forEach(layer=>layer.remove());radarLayers=[];radiusLayer?.remove();radarParcel?.remove();
+        radarMarker?.remove();radarMarker=null;radarLayers.forEach(layer=>layer.remove());radarLayers=[];
+        concentricRings.forEach(layer=>layer.remove());concentricRings=[];radiusLayer=null;
+        radarParcel?.remove();radarParcel=null;hoverVectorLayer?.remove();hoverVectorLayer=null;
+        radarGroups={competitors:[],related:[],complementary:[],unclassified:[],roads:[]};
         history=[];boundary=property?.parcel?.boundary || null;estimatedArea=0;context=null;radarData=null;radarState='idle';radarError=null;selectedMatches=[];dirtyReference=Boolean(property?.parcel?.referencePoint?.lat!=null);placingReference=false;
         if(imageObjectUrl)URL.revokeObjectURL(imageObjectUrl);imageObjectUrl=null;
         selectedPhotoFiles.forEach(f => { if (f._objectUrl) URL.revokeObjectURL(f._objectUrl); });
@@ -6616,7 +6712,16 @@
         propertyId=property?.id || null;savedAttachments=parcel?.attachments || [];showEvidenceFiles();
         if(field('property_subname')) field('property_subname').value = property?.subname || property?.propertySubname || '';
         if(parcel?.boundary || parcel?.surveyAreaSqm>0){field('land_area').value=parcel.surveyAreaSqm>0?parcel.surveyAreaSqm:'';field('land_area_unit').value='sqm';}
-        for(const [name,val] of Object.entries(parcel?.observations || {})){if(field(name))field(name).value=val ?? '';}
+        for(const [name,val] of Object.entries(parcel?.observations || {})){if(field(name))field(name).value=name==='nearby_screening' ? JSON.stringify(val) : val ?? '';}
+        const savedNearbyType = parcel?.observations?.nearby_screening?.observations?.business_type;
+        if (savedNearbyType && field('radar_business_type')) field('radar_business_type').value = savedNearbyType;
+        for (const [controlName, observation] of Object.entries({hazard_finding_flood:'flood_susceptibility', hazard_finding_fault:'active_fault', hazard_finding_landslide:'landslide_susceptibility', hazard_finding_surge:'storm_surge', hazard_finding_liquefaction:'liquefaction_susceptibility', hazard_finding_tsunami:'tsunami_exposure'})) {
+          const control = field(controlName), saved = parcel?.observations?.[observation];
+          if (control && saved != null) {
+            if (![...control.options].some(option => option.value === String(saved))) control.add(new Option(`Recorded finding: ${saved}`, String(saved)));
+            control.value = String(saved);
+          }
+        }
         const restoredZoning = property?.clupProfile?.zoningClassification || property?.zoningClassification || property?.zoning_classification || '';
         const restoredActivity = property?.clupProfile?.proposedActivity || property?.proposedActivity || property?.proposed_activity || '';
         const restoredExistingLandUse = property?.clupProfile?.existingLandUse || property?.existingLandUse || property?.existing_land_use || '';
@@ -6633,6 +6738,9 @@
           if (field('lng')) field('lng').value = '';
         }
         restoreClassification(property?.category || 'Land', property?.subcategory || '');
+        if (!parcel?.observations?.offered_space_scope && field('offered_space_scope')) {
+          field('offered_space_scope').value = value('category') === 'Building' ? 'entire_building' : 'entire_land';
+        }
 
         propertyApprovalState = property?.approvalState || property?.approval_state || 'draft';
         const removeInput = $('[data-remove-image]');
@@ -6809,6 +6917,7 @@
             const totalPhotos = selectedPhotoFiles.length + existingPhotoMedia.filter(m => !m.isRemoved).length;
             notify(`Draft restored with ${totalPhotos} photo${totalPhotos === 1 ? '' : 's'}. You can continue editing where you left off.`, false);
           }
+          if (!editHistory?.canUndo) resetEditorHistory();
         }).catch(() => {});
         if(boundary && window.turf)estimatedArea=turf.area(boundary);
         locationCapture=point() ? (restored?.locationCapture || {kind:'record'}) : null;
@@ -6829,12 +6938,13 @@
         syncScreeningInterfaces();
         initScreeningInteractions();
         syncNearbyAssessment();
-        updateBoundary(true);preview();ready();selectEvidenceCriterion('spatial_accessibility');tabs('data-util-tab','data-util-pane','electricity');tabs('data-review-tab','data-review-panel','assessment');radarTab='competitors';tabs('data-radar-tab','data-radar-unused-panel','competitors');
+        updateBoundary(true);preview();ready();selectEvidenceCriterion('spatial_accessibility');tabs('data-util-tab','data-util-pane','electricity');tabs('data-review-tab','data-review-panel','assessment');radarTab='all';tabs('data-radar-tab','data-radar-unused-panel','all');
         setText('[data-photo-file-name]','JPG, PNG or WEBP. Photos are optional.');
         setText('[data-location-status]','Pin the exact property location, enter coordinates, or draw an optional boundary.');
         const searchResults=$('[data-location-results]');if(searchResults)searchResults.innerHTML='';
         const searchInput=$('[data-location-search]');if(searchInput)searchInput.value='';
         setTimeout(loadContext,0);
+        resetEditorHistory();
         return restored;
       },
       append(data){
@@ -7026,10 +7136,8 @@
         };
         for (const [formKey, obsKey] of Object.entries(hazardInputs)) {
           const val = value(formKey);
-          if (val) {
-            data.set(formKey, val);
-            data.set(obsKey, val);
-          }
+          data.set(formKey, val);
+          data.set(obsKey, val);
         }
         const riskScoreText = $('[data-risk-total-score]')?.textContent?.trim();
         if (riskScoreText && riskScoreText !== '—' && !isNaN(Number(riskScoreText))) {
@@ -7037,11 +7145,10 @@
           data.set('risk_constraints_complete', '1');
         }
 
-        // Nearby Businesses Score
-        const nearbyReviewScore = $('[data-review-crit-score="nearby_businesses"]')?.textContent?.replace('/100', '')?.trim();
-        if (nearbyReviewScore && nearbyReviewScore !== '—' && !isNaN(Number(nearbyReviewScore))) {
-          data.set('nearby_businesses_score', nearbyReviewScore);
-        }
+        // Persist observations separately; the server recomputes this provisional model.
+        const nearby = currentNearbyEvaluation();
+        data.set('nearby_screening', nearby?.record ? JSON.stringify(nearby.record) : '');
+        data.delete('nearby_businesses_score');
 
         if (!data.get('authority_to_sell_file')?.size) data.delete('authority_to_sell_file');
         return data;

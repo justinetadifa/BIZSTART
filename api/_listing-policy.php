@@ -20,7 +20,7 @@ function sfc_listing_payload(array $payload, array $user, bool $creating, ?array
             'internet_status', 'internet_technology',
             'drainage_service', 'wastewater_service', 'waste_collection_service',
             'road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road',
-            'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin',
+            'access_route_condition', 'distance_to_highway', 'assessed_market_value', 'commercial_corridor', 'nearby_analysis_origin', 'nearby_screening',
             'spatial_evidence_source', 'spatial_evidence_date', 'spatial_evidence_reference',
             'utility_evidence_source', 'utility_evidence_date', 'utility_evidence_reference',
             'economic_evidence_source', 'economic_evidence_date', 'economic_evidence_reference',

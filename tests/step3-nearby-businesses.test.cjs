@@ -40,7 +40,7 @@ assert(viewHtml.includes('data-nearby-assessment-card'), 'View contains Business
 assert(viewHtml.includes('data-nearby-assessment-status'), 'View contains assessment status element');
 assert(viewHtml.includes('data-nearby-assessment-score'), 'View contains assessment score element');
 assert(viewHtml.includes('data-nearby-score-bar'), 'View contains assessment score progress bar');
-assert(viewHtml.includes('data-nearby-iai-contrib'), 'View contains 10% IAI contribution element');
+assert(viewHtml.includes('data-nearby-iai-contrib'), 'View contains 15% IAI contribution element');
 assert(viewHtml.includes('data-nearby-subcriterion="commercial_activity"'), 'View contains Commercial Activity (25%) subcriterion card');
 assert(viewHtml.includes('data-nearby-subcriterion="complementary_businesses"'), 'View contains Complementary Businesses (30%) subcriterion card');
 assert(viewHtml.includes('data-nearby-subcriterion="competitive_pressure"'), 'View contains Competitive Pressure (30%) subcriterion card');
@@ -153,8 +153,9 @@ assert(jsContent.includes('missing registry coverage does not imply') || jsConte
 
 // Assessment Sync Functionality
 assert(jsContent.includes('function syncNearbyAssessment'), 'JS contains syncNearbyAssessment function');
-assert(jsContent.includes('Assessment Incomplete'), 'JS defaults unbenchmarked assessment to Assessment Incomplete');
-assert(jsContent.includes('0.10') || jsContent.includes('10%'), 'JS factors 10% MCE weight contribution');
+assert(jsContent.includes('A scan with no usable business records stays pending.'), 'JS leaves missing nearby observations pending');
+assert(jsContent.includes('15% of MCE') && jsContent.includes('evaluation.contribution'), 'JS uses the shared 15% MCE contribution');
+assert(jsContent.includes("badgeEl.textContent = 'Provisional'") && jsContent.includes('currentNearbyEvaluation()'), 'Review labels the observation-based score as provisional');
 
 // Check 4-Step navigation in JS
 assert(

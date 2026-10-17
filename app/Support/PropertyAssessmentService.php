@@ -1145,6 +1145,7 @@ final class PropertyAssessmentService
     {
         if (!is_array($input)) { $input = []; }
         $isVerified = (bool) ($options['is_verified'] ?? false);
+        $previewOnly = ($options['preview_only'] ?? false) === true;
         $verificationStatus = $isVerified ? 'verified' : 'applicant_reported';
 
         $data = is_array($input) ? $input : [];
@@ -1269,7 +1270,7 @@ final class PropertyAssessmentService
                 $activeDiffPct = (($askingPricePerSqm - $comparableMarket) / $comparableMarket) * 100.0;
             } elseif ($purpose === 'sale_or_lease' && $leasePricePerSqm !== null && $comparableLease !== null && $leasePricePerSqm > 0) {
                 $competitivenessRatio = round($leasePricePerSqm / $comparableLease, 4);
-                $activeDiffPct = $leaseVsMarketPct;
+                $activeDiffPct = (($leasePricePerSqm - $comparableLease) / $comparableLease) * 100.0;
             }
         }
 
@@ -1310,23 +1311,31 @@ final class PropertyAssessmentService
 
         // Missing requirements tracking
         $missing = [];
+        if ($areaDiscrepancy) {
+            $missing[] = 'Reconcile recorded land area and drawn boundary: difference exceeds 25%.';
+        }
         if ($landArea === null && $offeredArea === null) {
             $missing[] = 'Valid property land area';
         }
         if ($purpose === 'lease' && !isset($data['offered_area_sqm']) && ($data['offered_space_scope'] ?? '') !== 'entire_land') {
             $missing[] = 'Relevant offered lease area with explicit scope';
         }
-        $hasComparableBenchmark = ($purpose === 'lease' && $comparableLease !== null) || ($comparableMarket !== null);
+        $activeComparableIsLease = $purpose === 'lease' || ($purpose === 'sale_or_lease'
+            && !($askingPricePerSqm !== null && $comparableMarket !== null)
+            && $leasePricePerSqm !== null && $comparableLease !== null);
+        $hasComparableBenchmark = $activeComparableIsLease ? $comparableLease !== null : $comparableMarket !== null;
         if (!$hasComparableBenchmark || $competitivenessRatio === null || $activeDiffPct === null) {
             $missing[] = 'Verified local comparable market benchmark';
         }
-        $expectedUnit = $purpose === 'lease' ? 'PHP/m2/month' : 'PHP/m2';
-        if (($data['comparable_unit'] ?? '') !== $expectedUnit || trim((string) ($data['comparable_source'] ?? '')) === ''
-            || ($data['comparables_suitable'] ?? false) !== true || ($data['currency'] ?? 'PHP') !== 'PHP'
-            || ($purpose === 'lease' && $monthlyFactor === null)) {
+        $expectedUnit = $activeComparableIsLease ? 'PHP/m2/month' : 'PHP/m2';
+        if ((!$previewOnly && (($data['comparable_unit'] ?? '') !== $expectedUnit || trim((string) ($data['comparable_source'] ?? '')) === ''
+            || ($data['comparables_suitable'] ?? false) !== true))
+            || (isset($data['comparable_unit']) && $data['comparable_unit'] !== '' && $data['comparable_unit'] !== $expectedUnit)
+            || ($data['currency'] ?? 'PHP') !== 'PHP'
+            || ($activeComparableIsLease && $monthlyFactor === null)) {
             $missing[] = 'Suitable comparable evidence with compatible currency, area basis and rent period';
         }
-        if (!$isVerified) {
+        if (!$isVerified && !$previewOnly) {
             $missing[] = 'Authorized CAO/LEBDO valuation verification';
         }
 
@@ -1398,11 +1407,14 @@ final class PropertyAssessmentService
 
         $iaiContribution = round($score * 0.20, 2);
 
+        if ($previewOnly) { $rubricNote = str_replace('verified', 'reported', $rubricNote); }
+
         return [
             'score' => $score,
             'is_complete' => true,
             'iai_contribution' => $iaiContribution,
-            'verification_status' => 'verified',
+            'verification_status' => $verificationStatus,
+            'is_provisional' => $previewOnly || !$isVerified,
             'missing_requirements' => [],
             'pricing_analysis' => $pricingAnalysis,
             'pricingAnalysis' => $pricingAnalysis,

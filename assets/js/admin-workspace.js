@@ -148,7 +148,7 @@
     categories = data.categories || {};
     brokers = data.approvedBrokers || [];
     document.querySelectorAll('[data-assessment-method]').forEach((element) => {
-      element.textContent = properties[0]?.assessmentMethod || 'Provisional weights: spatial 20%, infrastructure 20%, economic 20%, nearby businesses 10%, zoning 15%, risk 15%. IAI = 100% composite MCE. All six scores are required; ranks cover assessed, approved listings.';
+      element.textContent = properties[0]?.assessmentMethod || 'Spatial 25%, infrastructure 25%, cost & market 20%, nearby businesses 15%, risk 15%. CLUP zoning is an eligibility gate. Final IAI and ranking require verified evidence.';
     });
     if (root.dataset.cityWorkspace === 'overview') renderOverview();
     else renderProperties();
@@ -247,72 +247,81 @@
     if (countPill) countPill.textContent = `${filtered.length} ${filtered.length === 1 ? 'listing' : 'listings'}`;
     root.querySelector('[data-property-list]').innerHTML = filtered.length ? filtered.map((property) => {
       const statusInfo = propertyOperationalStatus(property);
+      const assessment = window.SFCPropertyEditorTools.listingAssessment(property);
+      const assessmentCriteria = [
+        ['spatial_accessibility', 'Spatial access'],
+        ['infrastructure_readiness', 'Infrastructure'],
+        ['property_cost_market_competitiveness', 'Cost & market'],
+        ['nearby_businesses', 'Nearby businesses'],
+        ['risk_constraints', 'Risk & hazards']
+      ];
+      const assessmentProgress = assessmentCriteria.map(([key, label]) => {
+        const rating = property.screeningAssessment?.criteria?.[key]?.score;
+        const ready = assessment.kind === 'verified' || (typeof rating === 'number' && Number.isFinite(rating) && rating >= 0 && rating <= 100);
+        return `<span class="${ready ? 'is-ready' : ''}" title="${escape(label)}: ${ready ? 'calculated' : 'input needed'}"></span>`;
+      }).join('');
+      const assessmentAction = assessment.kind === 'incomplete' ? 'Continue assessment' : assessment.kind === 'hold' ? 'Review assessment' : 'View assessment';
+      const nextCriterion = assessment.kind === 'incomplete' ? assessmentCriteria.find(([key]) => property.screeningAssessment?.criteria?.[key]?.score == null)?.[0] : '';
+      const priceText = askingPrice(property);
       return `
-      <article class="city-card-item tw-flex tw-flex-col tw-gap-4 sm:tw-gap-5 tw-rounded-[24px] tw-border tw-border-slate-200/90 tw-bg-white tw-p-5 sm:tw-flex-row sm:tw-items-center sm:tw-p-6 tw-shadow-[0_4px_20px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_12px_32px_-4px_rgba(17,34,77,0.1)] hover:tw-border-slate-300 hover:tw--translate-y-0.5 tw-transition-all tw-duration-200">
-        <div class="city-card-thumb-wrap sm:tw-shrink-0">
-          <div class="city-card-thumb-inner tw-relative tw-h-40 sm:tw-h-32 sm:tw-w-44 tw-rounded-2xl tw-overflow-hidden tw-bg-gradient-to-br tw-from-slate-100 tw-to-slate-200/90 tw-border tw-border-slate-200/80 tw-shadow-sm">
-            <img class="city-card-thumb tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-300 hover:tw-scale-105" src="${escape(imageUrl(property.imageUrl))}" alt="${escape(property.name)}" loading="lazy" onerror="this.onerror=null; this.src='${escape(path('assets/images/sfcView.png'))}';">
-            <span class="city-thumb-tag">${escape(property.category || 'Property')}</span>
-          </div>
-        </div>
-        <div class="tw-min-w-0 tw-flex-1">
-          <div class="tw-mb-1.5 tw-flex tw-items-center tw-gap-2">
+      <article class="city-listing-card" data-listing-id="${property.id}">
+        <a class="city-listing-photo" href="${escape(propertyUrl(property.id))}" tabindex="-1" aria-hidden="true">
+          <img src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy" onerror="this.onerror=null; this.src='${escape(path('assets/images/sfcView.png'))}';">
+          <span>${escape(property.category || 'Property')}</span>
+        </a>
+        <div class="city-listing-main">
+          <div class="city-listing-eyebrow">
             <span class="city-status-chip city-status-${escape(statusInfo.tone)}">
               <span class="city-status-dot" aria-hidden="true"></span>
               <span>${escape(statusInfo.label)}</span>
             </span>
+            <span class="city-listing-purpose">${escape(purposeLabel(property))}</span>
           </div>
-          <h2 class="tw-m-0 tw-text-base sm:tw-text-lg tw-font-bold tw-tracking-tight">
-            <a class="tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-transition-colors tw-no-underline" href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a>
-          </h2>
-          <p class="tw-mb-0 tw-mt-1.5 tw-text-xs tw-font-medium tw-text-slate-500 tw-flex tw-items-center tw-gap-1.5 tw-flex-wrap">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tw-text-slate-400" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-            <span class="tw-font-semibold tw-text-slate-700">${escape(property.barangay || property.city || 'Location pending')}</span>
-            ${property.subcategory ? `<span class="tw-text-slate-300">·</span><span class="tw-text-slate-500">${escape(property.subcategory)}</span>` : ''}
+          <h3 class="city-listing-title">
+            <a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a>
+          </h3>
+          <p class="city-listing-location">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <span>${escape(property.barangay || property.city || 'Location pending')}</span>
+            ${property.subcategory ? `<span aria-hidden="true">·</span><span>${escape(property.subcategory)}</span>` : ''}
           </p>
-          <div class="tw-mt-3 tw-flex tw-flex-wrap tw-items-baseline tw-gap-2.5">
-            <span class="city-purpose-kicker">${escape(purposeLabel(property))}</span>
-            <span class="city-card-price"><strong class="tw-text-sm sm:tw-text-[15px] tw-font-bold tw-text-[#11224d]">${escape(askingPrice(property))}</strong></span>
-            <div class="city-spec-chip" title="Total footprint area">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="tw-text-slate-400" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M3 9h18M9 21V9"/></svg>
-              <span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}${property.area >= 1 ? ` <span class="city-spec-sub">(${number(property.area)} ha)</span>` : ''}</span>
-            </div>
+          <div class="city-listing-facts">
+            <strong class="${priceText.startsWith('Price on request') ? 'is-price-request' : ''}">${escape(priceText)}</strong>
+            <span class="city-listing-area"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}${property.area >= 1 ? ` <small>(${number(property.area)} ha)</small>` : ''}</span>
           </div>
-          <p class="city-listing-dates tw-mt-3 tw-text-[11px] tw-text-slate-400 tw-flex tw-flex-wrap tw-items-center tw-gap-x-3 tw-gap-y-1">
+        </div>
+        <button type="button" class="city-listing-assessment is-${assessment.kind}" data-listing-assessment="${property.id}" data-assessment-next="${nextCriterion || ''}" aria-label="${assessmentAction} for ${escape(property.name)}. ${assessment.score === null ? `${assessment.count} of 5 criteria calculated` : `${assessment.score.toFixed(1)} out of 100`}. ${escape(assessment.status)}.">
+          <span class="city-listing-assessment-heading"><span class="city-listing-score-label">${assessment.label}</span><span class="city-listing-score-status">${escape(assessment.status)}</span></span>
+          <span class="city-listing-score-value">${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}<small>${assessment.score === null ? '/ 5 criteria' : '/ 100'}</small></span>
+          <span class="city-listing-progress" aria-hidden="true">${assessmentProgress}</span>
+          <span class="city-listing-score-note">${assessment.score === null ? escape(assessment.reason) : '5 of 5 criteria calculated'}</span>
+          <span class="city-listing-score-link">${assessmentAction}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></span>
+        </button>
+        <div class="city-listing-footer">
+          <p class="city-listing-created">
             <span>Created ${escape(listingDate(property.createdAt))}</span>
             ${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}
             ${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}
           </p>
-        </div>
-        <div class="city-card-scores tw-flex tw-items-center tw-gap-2.5 sm:tw-px-1">
-          <div class="city-score-bubble city-score-mce" title="Municipal Commercial Evaluation (MCE) · 6-Criteria Site Suitability: ${score(property.mceScore)}/100">
-            <span class="city-score-kicker">MCE</span>
-            <strong class="city-score-num">${score(property.mceScore)}</strong>
-          </div>
-          <div class="city-score-bubble city-score-iai" title="Investment Attractiveness Index (IAI) · Composite Investment Rating: ${score(property.iaiScore)}/100">
-            <span class="city-score-kicker">IAI</span>
-            <strong class="city-score-num">${score(property.iaiScore)}</strong>
-          </div>
-        </div>
-        <div class="city-listing-controls sm:tw-shrink-0">
+          <div class="city-listing-actions">
           ${property.isDeleted ? `
-            <button class="city-button city-btn-pill city-btn-pill-restore" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">
+            <button class="city-listing-action" type="button" data-property-lifecycle="restore" data-property-id="${property.id}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
               <span>Restore property</span>
             </button>
           ` : `
             ${isReviewer && !isArchived(property) ? `
-              <button class="city-button city-button-review city-btn-pill city-btn-pill-primary" type="button" data-review-property="${property.id}">
+              <button class="city-listing-action is-primary" type="button" data-review-property="${property.id}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                 <span>Review</span>
               </button>
             ` : ''}
-            <button class="city-button city-button-secondary city-btn-pill city-btn-pill-secondary" type="button" data-edit-property="${property.id}">
+            <button class="city-listing-action" type="button" data-edit-property="${property.id}">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               <span>Edit details</span>
             </button>
-            <details class="city-property-menu">
-              <summary aria-label="Manage ${escape(property.name)}" class="city-btn-pill city-btn-pill-manage">
+            <details class="city-property-menu city-listing-menu">
+              <summary aria-label="Manage ${escape(property.name)}">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 <span>Manage</span>
                 <svg class="city-menu-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
@@ -342,6 +351,7 @@
               </div>
             </details>
           `}
+          </div>
         </div>
       </article>`;
     }).join('') : '<div class="city-empty-state tw-rounded-[24px] tw-border tw-border-dashed tw-border-slate-300 tw-bg-white tw-p-12 tw-text-center"><p class="tw-m-0 tw-text-base tw-font-semibold tw-text-[#11224d]">No properties found</p><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-text-slate-500">Try adjusting your search terms or selecting a different listing view.</p></div>';
@@ -972,6 +982,7 @@
   function openReview(propertyId) {
     const property = properties.find((item) => item.id === Number(propertyId));
     if (!property || !reviewForm) return;
+    const assessmentResult = window.SFCPropertyEditorTools.listingAssessment(property);
     reviewForm.reset();
     reviewForm.elements.id.value = property.id;
     reviewForm.elements.documents_reviewed.checked = Boolean(property.documentsReviewedAt);
@@ -1022,9 +1033,6 @@
 
       const classificationBadge = `<span class="city-badge tw-bg-slate-100 tw-text-slate-700">${escape(property.category || 'Commercial')}${property.subcategory ? ' · ' + escape(property.subcategory) : ''}</span>`;
 
-      const mceDisplay = score(property.mceScore);
-      const iaiDisplay = property.iaiScore != null ? score(property.iaiScore) : 'Pending investor activity';
-
       summaryContainer.innerHTML = `
         ${isSuspiciousArea ? `
           <div style="background: #FEF3C7; border: 1.5px solid #F59E0B; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; color: #92400E; display: flex; align-items: flex-start; gap: 10px;">
@@ -1061,8 +1069,8 @@
             <span class="city-dossier-card-val" style="color: #047857;">${escape(askingPrice(property))}</span>
           </div>
           <div class="city-dossier-card">
-            <span class="city-dossier-card-label">Ratings (MCE · IAI)</span>
-            <span class="city-dossier-card-val" style="color: #11224D;">MCE ${mceDisplay} · IAI ${iaiDisplay}</span>
+            <span class="city-dossier-card-label">${assessmentResult.label}</span>
+            <span class="city-dossier-card-val" data-review-listing-result>${assessmentResult.score === null ? `${assessmentResult.count} / 5 criteria` : `${assessmentResult.score.toFixed(1)} / 100`} · ${escape(assessmentResult.status)}</span>
           </div>
         </div>
 
@@ -1274,7 +1282,7 @@
     const zoningRiskContainer = reviewForm.querySelector('[data-review-zoning-risk-content]');
     if (zoningRiskContainer) {
       const officialZone = property.zoningClassification || property.clupProfile?.zoningClassification || 'Not assigned';
-      const existingUse = property.existingLandUse || 'Not recorded';
+      const existingUse = property.clupProfile?.existingLandUse || property.existingLandUse || 'Not recorded';
       let allowedCount = 0;
       if (Array.isArray(property.clupAllowedUses)) {
         allowedCount = property.clupAllowedUses.length;
@@ -1282,66 +1290,20 @@
         try { allowedCount = JSON.parse(property.clupAllowedUses).length; } catch { allowedCount = 0; }
       }
 
-      const criteria = property.assessmentCriteria || property.criteriaDetails || {};
-      const physicalCriteriaConfig = [
-        { key: 'spatial_accessibility', altKeys: [], weight: 20.0 },
-        { key: 'infrastructure_readiness', altKeys: [], weight: 20.0 },
-        { key: 'economic_viability', altKeys: ['economic_dynamism'], weight: 20.0 },
-        { key: 'nearby_businesses', altKeys: ['nearby_attractors'], weight: 10.0 },
-        { key: 'risk_constraints', altKeys: ['environmental_risk'], weight: 15.0 },
-      ];
-
-      let physicalSubtotal = 0;
-      let physicalAvailable = 0;
-
-      physicalCriteriaConfig.forEach(cfg => {
-        let item = criteria[cfg.key];
-        if (item === undefined) {
-          for (const alt of cfg.altKeys) {
-            if (criteria[alt] !== undefined) {
-              item = criteria[alt];
-              break;
-            }
-          }
-        }
-
-        let scoreVal = null;
-        if (typeof item === 'number') {
-          scoreVal = item;
-        } else if (typeof item === 'string' && item.trim() !== '' && !isNaN(Number(item))) {
-          scoreVal = Number(item);
-        } else if (item && typeof item === 'object') {
-          if (item.score != null) scoreVal = Number(item.score);
-          else if (item.rating != null) scoreVal = Number(item.rating);
-          else if (item.value != null) scoreVal = Number(item.value);
-        }
-
-        if (scoreVal != null && !isNaN(scoreVal)) {
-          physicalSubtotal += (scoreVal / 100) * cfg.weight;
-          physicalAvailable += cfg.weight;
-        }
-      });
-
-      // Fallback: If individual criteria breakdown is missing or 0 but property.mceScore exists (> 0),
-      // the physical site baseline is intrinsically the 85% physical portion of the MCE rating
-      if (physicalSubtotal === 0 && Number(property.mceScore) > 0) {
-        physicalSubtotal = Math.round(Number(property.mceScore) * 0.85 * 10) / 10;
-        physicalAvailable = 85.0;
-      }
-
-      const baselinePct = physicalAvailable > 0
-        ? Math.min(100, Math.round((physicalSubtotal / physicalAvailable) * 100))
-        : 0;
-
-      const riskDetail = criteria.risk_constraints || {};
-      const hazardIndicators = riskDetail.indicators || riskDetail.hazards || {};
-      const faultNear = hazardIndicators.fault || hazardIndicators.active_fault || {};
-      const hasFaultConcern = faultNear.warning || (faultNear.distanceMeters != null && faultNear.distanceMeters <= 500);
+      const screening = property.screeningAssessment;
+      const criteria = Object.values(screening?.criteria || {});
+      const validScore = value => typeof value === 'number' && Number.isFinite(value);
+      const risk = screening?.criteria?.risk_constraints;
+      const riskMessage = screening?.technical_review_hold
+        ? 'High or critical hazard findings require technical review. The overall result is withheld.'
+        : validScore(risk?.score)
+          ? 'Hazard observations are recorded. Source verification and site clearance remain separate.'
+          : 'Complete the hazard observations. Missing layers do not establish that the site is safe.';
 
       zoningRiskContainer.innerHTML = `
         <div class="city-dossier-grid" style="margin-bottom: 14px;">
           <div class="city-dossier-card">
-            <span class="city-dossier-card-label">Official Zoning District</span>
+            <span class="city-dossier-card-label">Recorded zoning district</span>
             <span class="city-dossier-card-val"><span class="city-badge tw-bg-indigo-50 tw-text-indigo-900" style="font-size: 11.5px; font-weight: 700;">${escape(officialZone)}</span></span>
           </div>
           <div class="city-dossier-card">
@@ -1350,48 +1312,23 @@
           </div>
           <div class="city-dossier-card">
             <span class="city-dossier-card-label">Permitted Land Uses</span>
-            <span class="city-dossier-card-val">${allowedCount > 0 ? `${allowedCount} registered uses` : 'Ordinance defaults apply'}</span>
+            <span class="city-dossier-card-val">${allowedCount > 0 ? `${allowedCount} recorded uses` : 'Confirm the district–activity rule'}</span>
           </div>
           <div class="city-dossier-card">
-            <span class="city-dossier-card-label">Physical Site Baseline</span>
-            <span class="city-dossier-card-val" style="color: #11224D;">${physicalSubtotal.toFixed(1)} / ${physicalAvailable > 0 ? physicalAvailable.toFixed(0) : '85'} pts <span style="font-size: 11px; font-weight: 500; color: #64748B;">(85% max)</span></span>
+            <span class="city-dossier-card-label">Assessment inputs</span>
+            <span class="city-dossier-card-val">${assessmentResult.count} / 5 criteria calculated</span>
           </div>
         </div>
 
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-size: 11.5px; font-weight: 650; color: #475569; text-transform: uppercase; letter-spacing: 0.04em;">Physical Site Baseline Progress</span>
-            <span style="font-size: 12px; font-weight: 750; color: #11224D;">${physicalSubtotal.toFixed(1)} / ${physicalAvailable > 0 ? physicalAvailable.toFixed(0) : '85'} pts (${baselinePct}%)</span>
-          </div>
-          <div class="city-baseline-bar-container" style="margin-top: 0;">
-            <div class="city-baseline-bar-track">
-              <div class="city-baseline-bar-fill" style="width: ${baselinePct}%;"></div>
-            </div>
-          </div>
+        <div class="city-dossier-screening">
+          <table aria-label="Provisional assessment calculation">
+            <caption>Calculated from saved observations · provisional</caption>
+            <thead><tr><th>Criterion</th><th>Score</th><th>Weight</th><th>Points</th></tr></thead>
+            <tbody>${criteria.map(criterion => `<tr><th scope="row">${escape(criterion.label)}</th><td>${validScore(criterion.score) ? criterion.score.toFixed(1) : 'Pending'}</td><td>${number(criterion.weight)}%</td><td>${validScore(criterion.contribution) ? criterion.contribution.toFixed(2) : '—'}</td></tr>`).join('')}</tbody>
+          </table>
+          <p>CLUP zoning is a mandatory eligibility check and adds no points. Final IAI and ranking require authorized evidence verification.</p>
+          <p class="${screening?.technical_review_hold ? 'is-hold' : ''}">${escape(riskMessage)}</p>
         </div>
-
-        <div style="font-size: 12px; color: #475569; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
-          <span style="font-size: 15px; line-height: 1; flex-shrink: 0;">ℹ️</span>
-          <div>
-            <strong style="color: #1E293B;">Zoning Compatibility (15%):</strong> Evaluated interactively by prospective investors based on proposed activity. Physical baseline reflects intrinsic infrastructure, connectivity, and environmental risk constraints.
-          </div>
-        </div>
-
-        ${hasFaultConcern ? `
-          <div style="background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; padding: 12px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.5;">
-            <span style="font-size: 16px; line-height: 1; flex-shrink: 0;">⚠️</span>
-            <div>
-              <strong style="color: #7F1D1D;">Active Fault Setback Notice:</strong> DOST-PHIVOLCS guidelines recommend a 5-meter buffer corridor from active fault traces. A site-specific geotechnical Engineering Geological and Geohazard Assessment Report (EGGAR) is required for development clearances.
-            </div>
-          </div>
-        ` : `
-          <div style="font-size: 12px; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;">
-            <span style="font-size: 15px; line-height: 1; flex-shrink: 0;">✓</span>
-            <div>
-              <strong style="color: #065F46;">Hazard Screening Passed:</strong> Multi-hazard layers evaluated (DOST-PHIVOLCS / MGB / NOAH). Unassessed layers default to "Not Assessed" without penalizing property scores.
-            </div>
-          </div>
-        `}
       `;
     }
 
@@ -1456,6 +1393,19 @@
     const target = event.target.closest('button');
     if (!target) return;
     if (target.hasAttribute('data-add-listing')) openEditor();
+    if (target.dataset.listingAssessment) {
+      openEditor(target.dataset.listingAssessment);
+      const nextCriterion = target.dataset.assessmentNext === 'property_cost_market_competitiveness' ? 'economic_viability' : target.dataset.assessmentNext;
+      const criterionTab = nextCriterion && form.querySelector(`[data-evidence-tab="${nextCriterion}"]`);
+      if (criterionTab) {
+        setEditorStep(2);
+        criterionTab.click();
+      } else {
+        setEditorStep(3);
+        const readiness = form.querySelector('[data-review-tier="readiness"]')?.closest('details');
+        if (readiness) { readiness.open = true; readiness.scrollIntoView({block:'start'}); }
+      }
+    }
     if (target.dataset.editProperty) openEditor(target.dataset.editProperty);
     if (target.dataset.reviewProperty) openReview(target.dataset.reviewProperty);
     if (target.hasAttribute('data-close-dialog')) target.closest('dialog')?.close();
@@ -1502,6 +1452,12 @@
     }
     if (id) data.set('_method', 'PATCH');
     try {
+      window.LocusHUD?.show({
+        title: id ? 'Updating property...' : 'Submitting property...',
+        subtitle: 'Auditing parcel coordinates & computing multi-criteria weights...',
+        step: 'Uploading listing data',
+        mode: 'loading'
+      });
       const res = await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });
       const savedPropertyId = res?.property?.id || res?.id || id;
       if (savedPropertyId && form.elements.id) {
@@ -1510,8 +1466,14 @@
       propertyWizard?.saved();
       await refresh();
       editor.close();
+      window.LocusHUD?.setSubmitted({
+        title: id ? 'Property Updated!' : 'Property Submitted!',
+        subtitle: 'Your property listing has been recorded and submitted for municipal review.'
+      });
+      await window.LocusHUD?.hide(1000);
       message(status, 'Your property has been sent for review. Track its status in My Listings.');
     } catch (error) {
+      window.LocusHUD?.hide();
       if (propertyWizard?.showSubmissionError) {
         const issue = propertyWizard.showSubmissionError(error);
         if (issue) setEditorStep(issue.step);
@@ -1555,6 +1517,13 @@
     const submit = reviewForm.querySelector('[type="submit"]');
     submit.disabled = true;
     try {
+      const isApproved = reviewForm.elements.approval_state.value === 'approved';
+      window.LocusHUD?.show({
+        title: isApproved ? 'Approving property...' : 'Saving review decision...',
+        subtitle: isApproved ? 'Verifying zoning, site clearance, and municipal authority...' : 'Recording departmental review notes...',
+        step: isApproved ? 'Publishing certified listing' : 'Updating approval status',
+        mode: 'loading'
+      });
       const payload = {
         approval_state: reviewForm.elements.approval_state.value,
         reviewNote: reviewForm.elements.reviewNote.value,
@@ -1574,6 +1543,16 @@
           window.LocusSound?.markApprovalHandled(reviewedId);
           window.LocusSound?.play('approved');
         }
+        window.LocusHUD?.setApproved({
+          title: 'Property Approved!',
+          subtitle: 'Listing certified and published to the live priority board.'
+        });
+        const card = document.querySelector(`[data-property="${reviewedId}"], [data-property-card="${reviewedId}"]`);
+        if (card) {
+          card.classList.add('locus-approved-highlight');
+          setTimeout(() => card.classList.remove('locus-approved-highlight'), 3500);
+        }
+        await window.LocusHUD?.hide(1200);
         const nextPending = properties.find((p) => p.approvalState === 'pending_review' && p.id !== reviewedId);
         if (nextPending) {
           status.innerHTML = `<span>Listing approved.</span> <button type="button" class="city-next-review-btn tw-ml-2 tw-underline tw-font-semibold tw-text-[#11224d] hover:tw-text-[#9e1b22] tw-cursor-pointer" data-review-property="${nextPending.id}">Review next: ${escape(nextPending.name)} &rarr;</button>`;
@@ -1581,11 +1560,22 @@
           message(status, 'Listing approved. All pending reviews complete.');
         }
       } else if (!governance) {
+        window.LocusHUD?.setSubmitted({
+          title: 'Review Endorsed',
+          subtitle: 'Departmental verification and endorsement saved.'
+        });
+        await window.LocusHUD?.hide(900);
         message(status, 'Departmental verification and endorsement saved.');
       } else {
+        window.LocusHUD?.setSubmitted({
+          title: 'Decision Saved',
+          subtitle: 'Listing decision and Authority to Sell validation saved.'
+        });
+        await window.LocusHUD?.hide(900);
         message(status, 'Listing decision and Authority to Sell validation saved.');
       }
     } catch (error) {
+      window.LocusHUD?.hide();
       window.LocusSound?.play('error');
       message(reviewForm.querySelector('[data-review-message]'), error.message, true);
     }

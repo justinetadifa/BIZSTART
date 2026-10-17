@@ -98,6 +98,23 @@ try {
     $check($fresh['center'] === [$lat, $lng] && $fresh['radius'] === 500, 'Stored cache center and radius never replace requested reference.');
     $check(abs($fresh['features'][0]['properties']['distanceMeters'] - 50) < 0.1, 'Cached distances are recomputed against actual reference point.');
     $check($fresh['coverage'] === 'mapped_only' && !$fresh['metrics']['completeInventory'], 'Legacy complete cache label cannot bypass inventory completeness.');
+    $cacheBeforeLocal = file_get_contents($cachePath);
+    file_put_contents($cacheOptions['data_directory'] . '/commercial-directory.json', json_encode(['type' => 'FeatureCollection', 'features' => [
+        $point('local-fast', 'Immediate Local Cafe', $north(80)), $point('local-far', 'Outside Local Cafe', $north(600)),
+    ]]));
+    $localFetches = 0;
+    $localOnly = SurroundingsRadar::search($lat, $lng, 500, 'cafe', array_replace($cacheOptions, [
+        'local_only' => true,
+        'fetcher' => static function () use (&$localFetches): array { $localFetches++; return ['elements' => []]; },
+    ]));
+    $check($localFetches === 0, 'Immediate local search never waits for the live provider.');
+    $check(array_column(array_column($localOnly['features'], 'properties'), 'name') === ['Immediate Local Cafe'], 'Immediate search filters the local directory to the exact radius instead of returning another provider cache.');
+    $check($localOnly['metrics']['observedBusinessCount'] === 1 && $localOnly['coverage'] === 'local_only', 'Immediate inventory supplies truthful calculated metrics.');
+    $check($localOnly['screening']['is_complete'] && !$localOnly['screening']['is_verified'], 'Local inventory supplies a separate provisional screening score.');
+    $check($localOnly['screening']['observations']['counts']['businesses'] === 1 && $localOnly['screening']['observations']['business_type'] === 'cafe', 'Screening uses the filtered inventory and selected business profile.');
+    $check($localOnly['roads']['status'] === 'Unavailable', 'Local directory cannot claim live road coverage.');
+    $check(file_get_contents($cachePath) === $cacheBeforeLocal, 'Immediate local lookup never overwrites a live-provider cache.');
+    unlink($cacheOptions['data_directory'] . '/commercial-directory.json');
     touch($cachePath, time() - 90000);
     clearstatcache(true, $cachePath);
     $stale = SurroundingsRadar::search($lat, $lng, 500, 'cafe', $cacheOptions);
@@ -115,6 +132,7 @@ try {
     $check($fetches === 2, 'Sub-four-decimal reference movements produce independent searches.');
     $liveEmpty = SurroundingsRadar::search($lat, $lng, 1000, 'cafe', $precisionOptions);
     $check($liveEmpty['metrics']['observedBusinessesPerSqKm'] === 0.0 && $liveEmpty['metrics']['businessesPerSqKm'] === null, 'Empty successful map query distinguishes observed zero from unknown complete density.');
+    $check($liveEmpty['screening']['score'] === null, 'Empty observations cannot produce a screening rating.');
     $check(abs($liveEmpty['metrics']['searchAreaSqKm'] - M_PI) < 0.00000001, 'A 1000m search circle covers pi square kilometers.');
     $partial = SurroundingsRadar::search($lat, $lng, 500, 'cafe', $options('partial', static fn (): array => ['elements' => [], 'remark' => 'runtime error: timeout']));
     $check(str_contains((string) $partial['warning'], 'partial'), 'Provider partial response is disclosed.');

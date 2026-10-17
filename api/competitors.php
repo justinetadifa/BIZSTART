@@ -11,8 +11,12 @@ use App\Support\NearbyBusinesses;
 api_handle(function (array $container): array {
     $parameters = SurroundingsRadar::queryParameters($_GET);
     if ($parameters !== null) {
+        $source = $_GET['source'] ?? 'live';
+        if (!is_string($source) || !in_array($source, ['live', 'local'], true)) {
+            throw new InvalidArgumentException('Nearby source must be local or live.');
+        }
         try {
-            return SurroundingsRadar::search($parameters['lat'], $parameters['lng'], $parameters['radius'], $parameters['type']);
+            return SurroundingsRadar::search($parameters['lat'], $parameters['lng'], $parameters['radius'], $parameters['type'], ['local_only' => $source === 'local']);
         } catch (Throwable $e) {
             return [
                 503,
