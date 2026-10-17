@@ -1973,7 +1973,7 @@ final class PropertyAssessmentService
                 ],
                 default => ['score' => null],
             };
-            if ($key === 'nearby_businesses' && is_array($input) && isset($input['proposed_activity']) && (($input['proposed_activity'] ?? '') !== $activity || $activity === '')) {
+            if ($key === 'nearby_businesses' && is_array($input) && ($activity === '' || (isset($input['proposed_activity']) && ($input['proposed_activity'] ?? '') !== $activity))) {
                 $evaluation['score'] = null;
                 $evaluation['missing_requirements'][] = 'Business-environment observations for the explicitly selected activity';
             }

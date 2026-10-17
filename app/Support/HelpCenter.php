@@ -116,9 +116,9 @@ class HelpCenter
                                         </span>
                                     </button>
                                     <div class="locus-accordion-body" id="locusFaqIaiBody" hidden>
-                                        <p>IAI is the overall investment index displayed for the property. The current version labels it Investment Alignment Index.</p>
-                                        <p>In the displayed model, IAI combines 60% of the rounded MCE score, 20% of the economic viability rating and 20% of the infrastructure readiness rating. This gives economic viability and infrastructure readiness additional influence beyond their existing contributions to MCE.</p>
-                                        <p>The result summarizes the property under that model. It is not a percentage probability of business success or a forecast of investment returns.</p>
+                                        <p>IAI is the overall Investment Attractiveness Index produced by Multi-Criteria Evaluation (MCE).</p>
+                                        <p>In the LOCUS-SF MCE v3.0 model, IAI combines five numerical criteria summing to 100%: Spatial Accessibility (25%), Infrastructure Readiness (25%), Property Cost &amp; Market Competitiveness (20%), Nearby Businesses (15%), and Risk Constraints (15%). Zoning Compatibility (CLUP Ordinance No. 2018-06) operates as a mandatory, non-compensatory eligibility screening gate rather than a numerical weight.</p>
+                                        <p>The result summarizes physical site attractiveness under that model. It is not a percentage probability of business success or a forecast of investment returns.</p>
                                         <a href="#" class="locus-accordion-link locus-view-property-evidence">View the calculation &rarr;</a>
                                     </div>
                                 </div>
@@ -135,8 +135,8 @@ class HelpCenter
                                         </span>
                                     </button>
                                     <div class="locus-accordion-body" id="locusFaqCritOverviewBody" hidden>
-                                        <p>Each of the six criteria evaluates a distinct condition: spatial accessibility, infrastructure readiness, economic viability, nearby businesses, zoning compatibility, and risk constraints.</p>
-                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the six criteria &rarr;</a>
+                                        <p>The evaluation structure consists of five numerical criteria summing to 100% (Spatial Accessibility 25%, Infrastructure Readiness 25%, Property Cost &amp; Market Competitiveness 20%, Nearby Businesses 15%, and Risk Constraints 15%) plus one mandatory non-compensatory screening gate (CLUP Zoning Compatibility).</p>
+                                        <a href="#" class="locus-accordion-link locus-to-criteria-view">Explore the criteria &rarr;</a>
                                     </div>
                                 </div>
 
@@ -154,7 +154,7 @@ class HelpCenter
                                     <div class="locus-accordion-body" id="locusFaqWeightsBody" hidden>
                                         <p>A rating is the result assigned to one criterion, on a scale of 0 to 100.</p>
                                         <p>A weight is the percentage assigned to that criterion in the MCE calculation.</p>
-                                        <p>A contribution is the number of points that criterion adds to MCE. For example, a rating of 70 with a weight of 20% contributes 14 points: 70 &times; 20 &divide; 100 = 14.</p>
+                                        <p>A contribution is the number of points that criterion adds to MCE. For example, a rating of 80 with a weight of 25% contributes 20 points: 80 &times; 25 &divide; 100 = 20.</p>
                                         <p>A weight describes the model's assigned emphasis; it is not a measured probability.</p>
                                     </div>
                                 </div>
@@ -188,7 +188,7 @@ class HelpCenter
                                         </span>
                                     </button>
                                     <div class="locus-accordion-body" id="locusFaqUnavailableBody" hidden>
-                                        <p>A score may be unavailable when a required rating, supporting record or scoring rule is missing or still needs review. The current displayed MCE method requires all seven ratings.</p>
+                                        <p>A score may be unavailable when a required rating, supporting record or scoring rule is missing or still needs review. The authoritative MCE v3.0 method requires all five numerical ratings to be complete before computing a composite IAI, and zoning must pass eligibility screening.</p>
                                         <p>Check the assessment status to see what information is needed. An unavailable score should be shown as Not calculated or Awaiting review, with a specific reason. It should not appear as zero or as a completed assessment.</p>
                                     </div>
                                 </div>
@@ -221,7 +221,7 @@ class HelpCenter
                         <div id="locusHelpSevenCriteria" hidden>
                             <div class="locus-help-header-wrap">
                                 <button type="button" class="locus-help-back-link locus-to-common-view">&larr; Back to common questions</button>
-                                <h2 class="locus-help-title">Understand the six criteria</h2>
+                                <h2 class="locus-help-title">Understand the criteria &amp; zoning gate</h2>
                                 <p class="locus-help-subtitle">What each rating describes, in plain language.</p>
                                 <div class="locus-help-notice-banner">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
@@ -270,20 +270,20 @@ class HelpCenter
                                         </div>
                                     </div>
 
-                                    <!-- 03: Economic viability -->
+                                    <!-- 03: Property Cost & Market Competitiveness -->
                                     <div class="locus-accordion-item" data-criterion-key="economic_viability">
                                         <button type="button" class="locus-accordion-header" aria-expanded="false" aria-controls="locusCritEconBody">
                                             <div class="locus-accordion-header-left">
                                                 <span class="locus-accordion-num">03</span>
-                                                <span class="locus-accordion-title">Economic viability</span>
+                                                <span class="locus-accordion-title">Property Cost &amp; Market Competitiveness <span class="pw-muted" style="font-size:12px;font-weight:normal;">(Economic viability)</span></span>
                                             </div>
                                             <span class="locus-accordion-toggle-icon" aria-hidden="true">
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                             </span>
                                         </button>
                                         <div class="locus-accordion-body" id="locusCritEconBody" hidden>
-                                            <p><strong>Short tooltip:</strong> Economic conditions represented by the model's documented indicators.</p>
-                                            <p>Economic viability describes how the economic indicators included in the assessment support the proposed investment. The meaning of its rating depends on the actual inputs and conversion rule used.</p>
+                                            <p><strong>Short tooltip:</strong> Unit price per m² evaluated against verified local market benchmarks (20% weight).</p>
+                                            <p>Property Cost &amp; Market Competitiveness (formerly referenced as Economic viability) describes how the property's pricing compares against verified local market transactions and comparables within San Fernando City. The meaning of its rating depends on the actual valuation benchmarks and conversion rules used.</p>
                                             <p>For example, information about land cost can support a cost comparison, but it cannot by itself establish business profitability. This rating should not be presented as projected income, return on investment or a financial feasibility study.</p>
                                             <a href="#" class="locus-accordion-link locus-view-property-evidence">View this property's evidence &rarr;</a>
                                         </div>
@@ -313,16 +313,16 @@ class HelpCenter
                                         <button type="button" class="locus-accordion-header" aria-expanded="false" aria-controls="locusCritZoningBody">
                                             <div class="locus-accordion-header-left">
                                                 <span class="locus-accordion-num">05</span>
-                                                <span class="locus-accordion-title">Zoning compatibility</span>
+                                                <span class="locus-accordion-title">Zoning compatibility (CLUP Eligibility Gate)</span>
                                             </div>
                                             <span class="locus-accordion-toggle-icon" aria-hidden="true">
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                             </span>
                                         </button>
                                         <div class="locus-accordion-body" id="locusCritZoningBody" hidden>
-                                            <p><strong>Short tooltip:</strong> How the proposed use relates to the land-use classification and rules recorded for the site.</p>
-                                            <p>Zoning compatibility describes whether the proposed activity aligns with the applicable land-use information used in the assessment. Read the result together with its source, date, coverage and review status.</p>
-                                            <p>A system rating is not a zoning certificate or a permit. Where the adopted model treats an incompatible use as ineligible, a high score in another criterion must not be presented as permission to proceed.</p>
+                                            <p><strong>Short tooltip:</strong> Mandatory non-compensatory screening under San Fernando City CLUP &amp; Zoning Ordinance No. 2018-06 (0% weight, non-compensatory gate).</p>
+                                            <p>Zoning compatibility serves as a non-compensatory regulatory gate. A property must be permitted or conditional under the official Comprehensive Land Use Plan for the designated business activity. Where an activity is prohibited, composite IAI is withheld regardless of other scores.</p>
+                                            <p>A system rating is not an official locational clearance certificate or permit. It reflects alignment with San Fernando City Zoning Ordinance No. 2018-06.</p>
                                             <a href="#" class="locus-accordion-link locus-view-property-evidence">View this property's evidence &rarr;</a>
                                         </div>
                                     </div>

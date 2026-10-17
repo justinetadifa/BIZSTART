@@ -261,7 +261,7 @@ final class LocalMarketIntelligenceService
             'selected_scope' => 'barangay',
             'available_scopes' => array_keys($scopes),
             'scopes' => $scopes,
-            'connection_note' => 'Supporting market intelligence for Economic Viability (20% MCE weight). Informs commercial catchment size, purchasing power, and consumer spending without altering the physical site score.',
+            'connection_note' => 'Supporting market intelligence for Property Cost & Market Competitiveness (20% MCE weight). Informs commercial catchment size, purchasing power, and consumer spending without altering the physical site score.',
         ];
     }
 

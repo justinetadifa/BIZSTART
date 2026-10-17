@@ -349,7 +349,7 @@ export function calculationMarkup(property) {
   const value = value => value === null ? 'Pending' : rating(value);
   const total = value => value === null ? 'Pending' : fixed(value);
   const totalWeight = Math.round(calc.rows.reduce((sum, r) => sum + r.weight, 0));
-  const methodologyLabel = property.methodology || property.assessmentMethodologyVersion || property.ruleVersion || (calc.rows.length === 6 ? 'LOCUS-SF MCE v2.0 (Provisional 6-Criterion)' : 'LOCUS-SF MCE v1.1 (Legacy 7-Criterion)');
+  const methodologyLabel = property.methodology || property.assessmentMethodologyVersion || property.ruleVersion || (calc.rows.length === 5 ? 'LOCUS-SF MCE v3.0 (Five-Criterion with Mandatory Zoning Eligibility)' : (calc.rows.length === 6 ? 'LOCUS-SF MCE v2.0 (Provisional 6-Criterion)' : 'LOCUS-SF MCE v1.1 (Legacy 7-Criterion)'));
   return `<section class="property-calculation" aria-labelledby="propertyCalculationTitle">
     <div class="property-calc-header-block">
       <div>
@@ -362,9 +362,9 @@ export function calculationMarkup(property) {
     </div>
     ${calc.isNotSuitable ? `<div class="property-alert-danger" style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;padding:12px 16px;border-radius:12px;margin-bottom:16px;"><strong>Site Not Eligible:</strong> ${esc(calc.reason || 'Proposed land use is not permitted under the applicable zoning / CLUP classification.')} Composite IAI is withheld.</div>` : ''}
     ${calc.isConditional ? `<div class="property-alert-warning" style="background:#FFFBEB;border:1px solid #FCD34D;color:#92400E;padding:12px 16px;border-radius:12px;margin-bottom:16px;"><strong>Conditional Compatibility:</strong> ${esc(calc.note)}</div>` : ''}
-    <div class="property-table-scroll"><table class="property-calculation-table"><caption>${calc.rows.length === 7 ? 'Seven' : 'Six'} criteria and their weighted contributions to the composite IAI score</caption><thead><tr><th scope="col">MCE Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${row.key === 'zoning_compatibility' && row.score === null ? '<span style="color:#B45309;font-weight:600;">Pending investor activity</span>' : value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${row.key === 'zoning_compatibility' && row.contribution === null ? '<span style="color:#94A3B8;">Pending use (15%)</span>' : contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">${calc.iai === null && calc.hasPhysicalBaseline ? 'Physical Site Attributes Subtotal (85%)' : 'Composite IAI · rounded to 1 decimal'}</th><td>${calc.iai !== null ? total(calc.iai) : (calc.hasPhysicalBaseline ? `${fixed(calc.physicalSubtotal)} / 85 pts` : 'Pending')}</td><td>${totalWeight}%</td><td>${calc.iai !== null ? fixed(calc.iai) : (calc.hasPhysicalBaseline ? `${fixed(calc.physicalSubtotal)} / 85 pts` : 'Pending')}</td></tr></tfoot></table></div>
-    <p class="property-formula">${calc.iai !== null ? `IAI = round(Σ(score × weight ÷ 100), 1) = round(${calc.rows.map(row => fmt(row.contribution, 2)).join(' + ')}, 1) = ${fixed(calc.iai)}` : (calc.hasPhysicalBaseline ? `Physical Site Baseline = Σ(Physical Attribute Scores × Weight ÷ 100) = ${fixed(calc.physicalSubtotal)} / 85.0 pts (Spatial 20%, Infra 20%, Econ 20%, Nearby 10%, Risk 15%). The remaining 15% Zoning Compatibility is added once an investor establishes a business activity.` : 'IAI = round(Σ(score × weight ÷ 100), 1)')}</p>
-    ${calc.iai === null && !calc.isNotSuitable ? `<p class="property-pending-note">${calc.hasPhysicalBaseline ? `Physical site baseline is complete (${fixed(calc.physicalSubtotal)} / 85.0 pts). Composite 6-criterion IAI score is withheld until an investment business or land use activity is selected.` : `Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria have ratings.${calc.missingCriteria?.length ? ` Missing: ${esc(calc.missingCriteria.join(', '))}.` : ''} Missing evidence is not treated as zero; a composite score or rank is withheld until all required criteria are complete.`}</p>` : ''}
+    <div class="property-table-scroll"><table class="property-calculation-table"><caption>${calc.rows.length === 7 ? 'Seven' : (calc.rows.length === 5 ? 'Five' : 'Six')} criteria and their weighted contributions to the composite IAI score</caption><thead><tr><th scope="col">MCE Criterion</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Contribution</th></tr></thead><tbody>${calc.rows.map(row => `<tr><th scope="row">${esc(row.label)}</th><td>${row.key === 'zoning_compatibility' && row.score === null ? '<span style="color:#B45309;font-weight:600;">Pending investor activity</span>' : value(row.score)}</td><td>${fmt(row.weight)}%</td><td>${row.key === 'zoning_compatibility' && row.contribution === null ? '<span style="color:#94A3B8;">Pending use (15%)</span>' : contribution(row.contribution)}</td></tr>`).join('')}</tbody><tfoot><tr><th scope="row">${calc.iai === null && calc.hasPhysicalBaseline ? (calc.rows.length === 5 ? 'Five-Criterion MCE Baseline (100%)' : 'Physical Site Attributes Subtotal (85%)') : 'Composite IAI · rounded to 1 decimal'}</th><td>${calc.iai !== null ? total(calc.iai) : (calc.hasPhysicalBaseline ? (calc.rows.length === 5 ? `${fixed(calc.physicalSubtotal)} / 100 pts` : `${fixed(calc.physicalSubtotal)} / 85 pts`) : 'Pending')}</td><td>${totalWeight}%</td><td>${calc.iai !== null ? fixed(calc.iai) : (calc.hasPhysicalBaseline ? (calc.rows.length === 5 ? `${fixed(calc.physicalSubtotal)} / 100 pts` : `${fixed(calc.physicalSubtotal)} / 85 pts`) : 'Pending')}</td></tr></tfoot></table></div>
+    <p class="property-formula">${calc.iai !== null ? `IAI = round(Σ(score × weight ÷ 100), 1) = round(${calc.rows.map(row => fmt(row.contribution, 2)).join(' + ')}, 1) = ${fixed(calc.iai)}` : (calc.hasPhysicalBaseline ? (calc.rows.length === 5 ? `Physical Site Baseline = Σ(Physical Attribute Scores × Weight ÷ 100) = ${fixed(calc.physicalSubtotal)} / 100.0 pts (Spatial 25%, Infra 25%, Cost & Market 20%, Nearby 15%, Risk 15%). CLUP Zoning serves as a mandatory non-compensatory eligibility gate.` : `Physical Site Baseline = Σ(Physical Attribute Scores × Weight ÷ 100) = ${fixed(calc.physicalSubtotal)} / 85.0 pts (Spatial 20%, Infra 20%, Econ 20%, Nearby 10%, Risk 15%). The remaining 15% Zoning Compatibility is added once an investor establishes a business activity.`) : 'IAI = round(Σ(score × weight ÷ 100), 1)')}</p>
+    ${calc.iai === null && !calc.isNotSuitable ? `<p class="property-pending-note">${calc.hasPhysicalBaseline ? (calc.rows.length === 5 ? `Five-criterion physical site baseline is complete (${fixed(calc.physicalSubtotal)} / 100.0 pts). Official certification requires CLUP zoning clearance.` : `Physical site baseline is complete (${fixed(calc.physicalSubtotal)} / 85.0 pts). Composite 6-criterion IAI score is withheld until an investment business or land use activity is selected.`) : `Assessment pending · ${calc.completedCount} of ${calc.rows.length} criteria have ratings.${calc.missingCriteria?.length ? ` Missing: ${esc(calc.missingCriteria.join(', '))}.` : ''} Missing evidence is not treated as zero; a composite score or rank is withheld until all required criteria are complete.`}</p>` : ''}
     <p class="property-note">This breakdown records the physical site IAI. Statutory policy incentives for proposed investments are evaluated separately by LEBDO and do not modify physical site suitability.</p>
     ${property.assessmentMethod ? `<p class="property-note"><strong>Recorded method:</strong> ${esc(property.assessmentMethod)}</p>` : ''}
     ${factsMarkup([['Assessment mode', property.assessmentMode === 'automatic' ? 'Automatic · source evidence' : 'Recorded departmental assessment'], ['Evidence generated', dateLabel(property.generatedAt || property.automaticAssessment?.generatedAt)], ['Methodology version', methodologyLabel], ['Weight status', property.weightStatus || 'Provisional / Subject to LGU validation'], ['Approval reference', property.ruleApprovalReference || 'Not recorded']])}
@@ -889,7 +889,7 @@ export function transportationAccessibilityMarkup(property) {
           <span class="site-eyebrow">LOCATION-BASED MOBILITY</span>
           <h2 id="propertyTransportTitle">Transportation &amp; Accessibility</h2>
         </div>
-        <span class="property-status">Spatial Accessibility · 20% MCE Weight</span>
+        <span class="property-status">Spatial Accessibility · 25% MCE Weight</span>
       </div>
 
       <div class="transport-scores-grid">
@@ -1403,7 +1403,7 @@ export function investorScenarioMarkup(property) {
       <span class="property-scenario-badge">Interactive Simulation</span>
     </div>
     <p class="property-description">
-      Select your planned business or land use activity and specify optional capitalization. LOCUS-SF evaluates zoning compatibility against San Fernando City CLUP &amp; Zoning Ordinance No. 2018-06 regulations for <strong>${esc(zoneName)}</strong>. Physical site attributes (Spatial 20%, Infra 20%, Econ 20%, Nearby 10%, Risk 15% totaling 85%) provide the objective physical baseline; the final 15% Zoning Compatibility is determined by what you establish here.
+      Select your planned business or land use activity and specify optional capitalization. LOCUS-SF evaluates zoning compatibility against San Fernando City CLUP &amp; Zoning Ordinance No. 2018-06 regulations for <strong>${esc(zoneName)}</strong>. Physical site attributes (Spatial 25%, Infra 25%, Cost &amp; Market 20%, Nearby 15%, Risk 15% totaling 100%) evaluate site attractiveness; CLUP Zoning serves as a mandatory non-compensatory eligibility gate.
     </p>
 
     <div class="property-scenario-controls">
@@ -1474,7 +1474,7 @@ export function investorScenarioMarkup(property) {
     <div data-scenario-outcome class="property-scenario-outcome">
       <div class="property-scenario-outcome-header">
         <div>
-          <span class="property-scenario-status-kicker">Zoning Compatibility Evaluation (15% Weight)</span>
+          <span class="property-scenario-status-kicker">Zoning Eligibility Screening (Mandatory Gate)</span>
           <h3 data-scenario-status-title class="property-scenario-status-title">Awaiting activity selection</h3>
           <p data-scenario-reason class="property-scenario-reason">Select a proposed business or land use above to determine whether it is permitted, conditional, or prohibited in ${esc(zoneName)}.</p>
         </div>
@@ -1503,14 +1503,14 @@ export function investorScenarioMarkup(property) {
       <!-- Live Scenario Scores Breakdown -->
       <div class="property-scenario-kpi-grid">
         <div class="property-scenario-kpi-card">
-          <span class="property-scenario-kpi-label">Scenario Zoning Score (15%)</span>
-          <strong data-scenario-zoning-score class="property-scenario-kpi-val">— / 100</strong>
-          <small data-scenario-zoning-contrib class="property-scenario-kpi-caption">— pts to IAI</small>
+          <span class="property-scenario-kpi-label">CLUP Zoning Clearance</span>
+          <strong data-scenario-zoning-score class="property-scenario-kpi-val">—</strong>
+          <small data-scenario-zoning-contrib class="property-scenario-kpi-caption">Mandatory Gate (0%)</small>
         </div>
         <div class="property-scenario-kpi-card">
-          <span class="property-scenario-kpi-label">Physical Site Baseline (85%)</span>
-          <strong data-scenario-physical-baseline class="property-scenario-kpi-val">— / 85 pts</strong>
-          <small class="property-scenario-kpi-caption">Spatial, Infra, Econ, Nearby, Risk</small>
+          <span class="property-scenario-kpi-label">Five-Criterion MCE (100%)</span>
+          <strong data-scenario-physical-baseline class="property-scenario-kpi-val">— / 100 pts</strong>
+          <small class="property-scenario-kpi-caption">Spatial, Infra, Cost/Market, Nearby, Risk</small>
         </div>
         <div class="property-scenario-kpi-card">
           <span class="property-scenario-kpi-label">Simulated Scenario IAI (100%)</span>
@@ -1592,10 +1592,10 @@ export function setupInvestorScenario(root, property, policyInput) {
       const verification = root.querySelector('.site-coverage > div:last-child > span');
       text(verification, `${result.rows.filter(row => combined.evidence_verification?.[row.key]?.status === 'authenticated').length} of ${result.rows.length} criteria with authenticated evidence`);
       const assessmentStatus = root.querySelector('#propertyAssessmentSection .property-assessment-header-bar .property-status');
-      text(assessmentStatus, result.isNotSuitable ? 'Not Suitable' : result.complete ? `All ${result.rows.length === 6 ? 'six' : 'seven'} criteria rated` : 'Evidence pending');
+      text(assessmentStatus, result.isNotSuitable ? 'Not Suitable' : result.complete ? `All ${result.rows.length === 5 ? 'five' : (result.rows.length === 6 ? 'six' : 'seven')} criteria rated` : 'Evidence pending');
       assessmentStatus?.classList?.toggle('is-pending', !result.complete);
       const physicalNote = root.querySelector('.site-physical-note');
-      if (physicalNote) { physicalNote.hidden = !result.hasPhysicalBaseline || result.iai !== null; text(physicalNote, result.hasPhysicalBaseline ? `Physical subtotal: ${fmt(result.physicalSubtotal, 4)} / 85 pts. This is not the composite IAI.` : ''); }
+      if (physicalNote) { physicalNote.hidden = !result.hasPhysicalBaseline || result.iai !== null; text(physicalNote, result.hasPhysicalBaseline ? (result.rows.length === 5 ? `Physical MCE total: ${fmt(result.physicalSubtotal, 4)} / 100 pts. Zoning clearance required.` : `Physical subtotal: ${fmt(result.physicalSubtotal, 4)} / 85 pts. This is not the composite IAI.`) : ''); }
       const status = String(combined.assessmentStatus || 'incomplete').replaceAll('_', ' ');
       text(titleEl, status);
       text(badgeEl, status);
@@ -1603,9 +1603,9 @@ export function setupInvestorScenario(root, property, policyInput) {
       text(reasonEl, result.reason || combined.note || 'Recorded assessment; confirm applicable evidence and clearances.');
       text(heroDescEl, result.reason || combined.note || 'Assessment for the selected activity, calculated by the shared server protocol.');
       const zoningRow = result.rows.find(row => row.key === 'zoning_compatibility');
-      text(zoningScoreEl, zoningRow?.score == null ? 'Pending' : `${fmt(zoningRow.score)} / 100`);
-      text(zoningContribEl, zoningRow?.contribution == null ? 'Pending evidence' : `${fmt(zoningRow.contribution, 4)} weighted points`);
-      text(physicalBaselineEl, result.physicalSubtotal === null ? 'Pending' : `${fmt(result.physicalSubtotal, 4)} / 85 pts`);
+      text(zoningScoreEl, zoningRow?.score == null ? (result.rows.length === 5 ? (combined.eligibility?.zoning_status || 'Eligibility Gate') : 'Pending') : `${fmt(zoningRow.score)} / 100`);
+      text(zoningContribEl, zoningRow?.contribution == null ? (result.rows.length === 5 ? 'Mandatory Gate (0%)' : 'Pending evidence') : `${fmt(zoningRow.contribution, 4)} weighted points`);
+      text(physicalBaselineEl, result.physicalSubtotal === null ? 'Pending' : (result.rows.length === 5 ? `${fmt(result.physicalSubtotal, 4)} / 100 pts` : `${fmt(result.physicalSubtotal, 4)} / 85 pts`));
       const conditions = combined.eligibility?.outstanding_requirements || [];
       if (conditionsWrap) conditionsWrap.hidden = conditions.length === 0;
       if (conditionsList) conditionsList.innerHTML = conditions.map(condition => `<li>${esc(condition)}</li>`).join('');

@@ -12,7 +12,39 @@ require_once __DIR__ . '/PropertyEvidenceFiles.php';
 final class PropertyParcel
 {
     public const MAX_AREA_HECTARES = 99999999.9999; // properties.area DECIMAL(12, 4)
+    public const SAN_FERNANDO_EXTENT = [
+        'min_lat' => 16.540000,
+        'max_lat' => 16.720000,
+        'min_lng' => 120.260000,
+        'max_lng' => 120.450000,
+    ];
     private const EARTH_RADIUS = 6371008.8;
+
+    public static function isInSanFernandoExtent(?float $lat, ?float $lng): bool
+    {
+        if ($lat === null || $lng === null) {
+            return false;
+        }
+        return $lat >= self::SAN_FERNANDO_EXTENT['min_lat']
+            && $lat <= self::SAN_FERNANDO_EXTENT['max_lat']
+            && $lng >= self::SAN_FERNANDO_EXTENT['min_lng']
+            && $lng <= self::SAN_FERNANDO_EXTENT['max_lng'];
+    }
+
+    public static function extentValidationWarning(?float $lat, ?float $lng): ?string
+    {
+        if ($lat === null || $lng === null) {
+            return null;
+        }
+        if (!self::isInSanFernandoExtent($lat, $lng)) {
+            return sprintf(
+                'Geographic extent warning: Recorded coordinates (%.6f, %.6f) lie outside the San Fernando City municipal coverage extent (16.54°N–16.72°N, 120.26°E–120.45°E). Local GIS hazard layers, business registry radius queries, and official CLUP zoning clearance cannot be evaluated and are withheld for locations outside city coverage.',
+                $lat,
+                $lng
+            );
+        }
+        return null;
+    }
     private const OBSERVATIONS = [
         'road_frontage' => ['yes', 'no', 'not_verified', 'unknown'],
         'road_surface' => ['paved', 'unpaved', 'gravel', 'other', 'not_verified', 'unknown'],
@@ -177,9 +209,14 @@ final class PropertyParcel
             $observations['internet'] = $utilities['internet']['status'];
         }
 
+        $refLat = $reference['lat'] ?? null;
+        $refLng = $reference['lng'] ?? null;
+        $extentWarning = self::extentValidationWarning($refLat, $refLng);
+
         $result = ['boundary' => $boundary, 'estimatedAreaSqm' => $estimated,
             'surveyAreaSqm' => $survey === null ? null : round((float) $survey, 2), 'areaMethod' => $areaMethod,
             'referencePoint' => $reference, 'observations' => $observations,
+            'extent_warning' => $extentWarning,
             'attachments' => PropertyEvidenceFiles::normalizeAttachments($payload['evidence_attachments'] ?? $existing['attachments'] ?? [])];
         if ($utilities !== null) {
             $result['utilities'] = $utilities;

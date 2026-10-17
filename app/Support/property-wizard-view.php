@@ -527,6 +527,12 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <!-- Coordinate Validation Banner -->
             <p class="pw-coord-error-banner" data-coordinate-error role="alert" hidden></p>
 
+            <!-- Geographic Extent Warning Banner -->
+            <div class="pw-extent-warning-box" data-extent-warning role="alert" style="margin-top: 10px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; color: #92400e; font-size: 12px; display: none;">
+              <strong>Geographic Extent Warning:</strong>
+              <span data-extent-warning-text>Coordinates lie outside San Fernando City municipal coverage extent (16.54°N–16.72°N, 120.26°E–120.45°E). Local GIS hazard layers, business radar, and official CLUP zoning clearance cannot be evaluated and are withheld for locations outside city coverage.</span>
+            </div>
+
             <!-- Reused Barangay from Step 1 & Proximity Conflict Warning -->
             <div class="pw-bgy-context-row">
               <div class="pw-reused-bgy-chip">
@@ -678,7 +684,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <div class="pw-evidence-intro-text">
               <div class="pw-evidence-eyebrow-row">
                 <span class="pw-eyebrow">STEP 3 OF 4 &middot; MULTI-CRITERIA EVALUATION (LOCUS-SF)</span>
-                <span class="pw-badge pw-badge-weight">6 criteria &middot; 100% total weight</span>
+                <span class="pw-badge pw-badge-weight">5 numerical criteria &middot; 100% total weight + Mandatory Zoning Gate</span>
               </div>
               <h3>Site evidence &amp; assessment</h3>
               <p>Record what is known about the site, one criterion at a time. You can submit with missing evidence; the overall score stays pending until the required evidence is verified. Weights and scoring rules are provisional.</p>
@@ -688,7 +694,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <span>Skip to Review</span> <?= $pwIcon('arrow') ?>
               </button>
               <div class="pw-evidence-status-pill">
-                <span class="pw-badge pw-badge-sky" data-completeness-badge><span data-completeness-count>0 of 6</span> criteria</span>
+                <span class="pw-badge pw-badge-sky" data-completeness-badge><span data-completeness-count>0 of 5</span> criteria</span>
                 <small class="pw-muted">Evidence entered &middot; verification separate</small>
               </div>
             </div>
@@ -783,7 +789,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 </div>
                 <div class="pw-spatial-header-badges">
                   <span class="pw-badge pw-badge-provisional">Provisional model</span>
-                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">25% of MCE</span>
                 </div>
               </div>
 
@@ -891,7 +897,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <div class="pw-spatial-score-num"><span data-spatial-total-score>92.5</span><small>/ 100</small></div>
                       </div>
                       <div class="pw-spatial-iai-box">
-                        <span class="pw-spatial-iai-label">IAI Contribution (20% Weight)</span>
+                        <span class="pw-spatial-iai-label">IAI Contribution (25% Weight)</span>
                         <strong class="pw-spatial-iai-val">+<span data-spatial-iai-contrib>18.5</span> <small>pts</small></strong>
                       </div>
                     </div>
@@ -966,7 +972,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 </div>
                 <div class="pw-infra-header-badges">
                   <span class="pw-badge pw-badge-provisional">Provisional model</span>
-                  <span class="pw-badge pw-badge-weight">20% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">25% of MCE</span>
                 </div>
               </div>
 
@@ -997,7 +1003,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                       <strong>Cross-Criteria Consideration &middot; Generator-Only Supply</strong>
                     </div>
                     <p class="pw-callout-text">
-                      Generator-only supply implies recurring fuel and maintenance expenditures (recorded for <em>Economic Viability</em> OPEX context), as well as exhaust emissions, acoustic noise, and fuel storage considerations (recorded for <em>Environmental Safety</em> context). No arbitrary deduction or double-counting is applied to Infrastructure Readiness.
+                      Generator-only supply implies recurring fuel and maintenance expenditures (recorded for <em>Property Cost and Market Competitiveness</em> OPEX context), as well as exhaust emissions, acoustic noise, and fuel storage considerations (recorded for <em>Environmental Safety</em> context). No arbitrary deduction or double-counting is applied to Infrastructure Readiness.
                     </p>
                     <div class="pw-fields-two-col" style="margin-top: 10px;">
                       <label class="pw-field">Generator fuel type
@@ -1203,7 +1209,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                     </div>
 
                     <div class="pw-infra-iai-row">
-                      <span class="pw-infra-iai-title">Contribution to final IAI (20%)</span>
+                      <span class="pw-infra-iai-title">Contribution to final IAI (25%)</span>
                       <strong class="pw-infra-iai-val"><span data-infra-iai-contrib>15.80</span> pts</strong>
                     </div>
 
@@ -1259,20 +1265,20 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   </button>
                   <span class="pw-criterion-nav-hint"><?= $pwIcon('save') ?> Auto-saves on navigation</span>
                   <button type="button" class="pw-button pw-button-primary pw-button-small" data-criterion-next="economic_viability">
-                    <span>Next Criterion: Economic Viability</span> <?= $pwIcon('arrow') ?>
+                    <span>Next Criterion: Cost &amp; Market</span> <?= $pwIcon('arrow') ?>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 3. ECONOMIC VIABILITY PANE -->
+          <!-- 3. PROPERTY COST & MARKET COMPETITIVENESS PANE -->
           <div id="pwCriterionEconomic" class="pw-criterion-pane" role="tabpanel" data-evidence-panel="economic_viability" hidden>
             <div class="pw-econ-card">
               <!-- Card Header -->
               <div class="pw-econ-header">
                 <div class="pw-econ-heading-group">
-                  <h3 class="pw-econ-title">Economic Viability</h3>
+                  <h3 class="pw-econ-title">Property Cost &amp; Market Competitiveness</h3>
                   <p class="pw-econ-subtitle">Investor-grade property pricing assessment, space utilization, and market competitiveness</p>
                 </div>
                 <div class="pw-econ-header-badges">
@@ -1641,7 +1647,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <small class="pw-econ-status-note" data-econ-status-note>Methodological Baseline &middot; Awaiting Verified Market Comparables</small>
                       </div>
                       <div class="pw-econ-status-score-wrap">
-                        <span class="pw-econ-score-caption">Economic Viability (20% MCE)</span>
+                        <span class="pw-econ-score-caption">Cost &amp; Market (20% MCE)</span>
                         <strong class="pw-econ-iai-val" data-econ-iai-val>&mdash;</strong>
                       </div>
                     </div>
@@ -1671,7 +1677,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                     <h4>Nearby Businesses</h4>
                     <p class="pw-small pw-muted">Interactive 500-meter straight-line radar &amp; commercial environment context.</p>
                   </div>
-                  <span class="pw-badge pw-badge-weight">10% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">15% of MCE</span>
                 </div>
 
                 <!-- Proposed Business Type Card (Matching User Mockup) -->
@@ -1860,9 +1866,9 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                     <div>
                       <span class="pw-nearby-mce-title">MCE Contribution:</span>
                       <strong data-nearby-mce-contrib data-nearby-iai-contrib>Pending verified benchmarks</strong>
-                      <span class="pw-muted">&middot; 10% of overall MCE weight</span>
+                      <span class="pw-muted">&middot; 15% of overall MCE weight</span>
                     </div>
-                    <small class="pw-muted" data-nearby-mce-formula>Formula: Business Environment Score &times; 0.10. Missing source data is never defaulted.</small>
+                    <small class="pw-muted" data-nearby-mce-formula>Formula: Business Environment Score &times; 0.15. Missing source data is never defaulted.</small>
                   </div>
                 </div>
 
@@ -1927,7 +1933,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <!-- Criterion Navigation Footer -->
             <div class="pw-criterion-nav-footer">
               <button type="button" class="pw-button pw-button-light pw-button-small" data-criterion-prev="economic_viability">
-                <?= $pwIcon('arrow', 'pw-icon-prev') ?> <span>Previous Criterion: Economic Viability</span>
+                <?= $pwIcon('arrow', 'pw-icon-prev') ?> <span>Previous Criterion: Cost &amp; Market</span>
               </button>
               <span class="pw-criterion-nav-hint"><?= $pwIcon('save') ?> Auto-saves on navigation</span>
               <button type="button" class="pw-button pw-button-primary pw-button-small" data-criterion-next="risk_constraints">
@@ -2424,7 +2430,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 </div>
                 <div class="pw-findings-header-badges">
                   <span class="pw-badge pw-badge-sky">Priority 1 Source</span>
-                  <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">Mandatory Eligibility Gate (0% Weight)</span>
                 </div>
               </div>
 
@@ -2577,7 +2583,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                       </div>
                       <div class="pw-findings-header-badges">
                         <span class="pw-badge pw-badge-sky">Priority 1 Source</span>
-                        <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                        <span class="pw-badge pw-badge-weight">Mandatory Eligibility Gate (0% Weight)</span>
                       </div>
                     </div>
                     <div class="pw-card-body">
@@ -3000,6 +3006,12 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             </div>
           </div>
 
+          <!-- Geographic Extent Warning Banner in Review Step -->
+          <div class="pw-extent-warning-box pw-review-extent-warning" data-review-extent-warning role="alert" style="margin-bottom: 12px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; color: #92400e; font-size: 12px; display: none;">
+            <strong>Geographic Extent Warning:</strong>
+            <span data-review-extent-warning-text>Coordinates lie outside San Fernando City municipal coverage extent (16.54°N–16.72°N, 120.26°E–120.45°E). Local GIS hazard layers, business radar, and official CLUP zoning clearance cannot be evaluated and are withheld for locations outside city coverage.</span>
+          </div>
+
           <!-- All Checks Clean Banner -->
           <div class="pw-checks-clean" data-review-checks-clean>
             <?= $pwIcon('check') ?>
@@ -3017,7 +3029,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <span class="pw-tier-badge">Tier 3</span>
               <div>
                 <h4 class="pw-review-card-title">Assessment Readiness (LOCUS-SF MCE)</h4>
-                <p class="pw-review-card-subtitle">Multi-Criteria Evaluation status across 6 official criteria (100% total weight)</p>
+                <p class="pw-review-card-subtitle">Multi-Criteria Evaluation status across 5 official criteria (100% total weight) + Mandatory Zoning Eligibility Gate</p>
               </div>
             </div>
             <button type="button" class="pw-button pw-button-light pw-button-small" data-review-edit="2">
@@ -3032,12 +3044,12 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <span class="pw-composite-label">Investment Attractiveness Index (IAI)</span>
                 <div class="pw-composite-val" data-review-composite-iai>&mdash; <small>/ 100</small></div>
                 <div class="pw-composite-meta" style="font-size:0.8rem;color:#64748b;margin-top:4px;">
-                  Scenario: <strong data-review-scenario>Commercial Use</strong> &middot; Model: <strong data-review-model-version>LOCUS-SF MCE v2.0</strong>
+                  Scenario: <strong data-review-scenario>Commercial Use</strong> &middot; Model: <strong data-review-model-version>LOCUS-SF MCE v3.0</strong>
                 </div>
               </div>
               <div class="pw-composite-badge-group">
                 <span class="pw-badge pw-badge-amber" data-review-composite-status>Final IAI unavailable</span>
-                <small class="pw-muted" data-review-composite-weights>6 Criteria &middot; 100% Weight</small>
+                <small class="pw-muted" data-review-composite-weights>5 Criteria &middot; 100% Weight</small>
                 <button type="button" class="pw-button pw-button-primary pw-button-small" data-calculate-assessment-btn style="margin-top: 6px;">
                   <span class="pw-btn-spinner locus-spinner" hidden aria-hidden="true" style="margin-right: 6px;"></span>
                   <span data-calc-btn-label>Calculate assessment</span>
@@ -3136,7 +3148,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
             <div class="pw-review-crit-row" data-review-crit="zoning_compatibility">
               <div class="pw-crit-col-name">
-                <strong>6. CLUP &amp; Land-Use Screening</strong>
+                <strong>CLUP &amp; Land-Use Regulations — Eligibility Screening Gate</strong>
                 <span class="pw-muted">Mandatory Eligibility Gate &middot; Ordinance No. 2018-06</span>
               </div>
               <div class="pw-crit-col-score">
@@ -3301,7 +3313,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <?php endforeach; ?>
               </div>
               <details class="pw-disclosure" data-spatial-context hidden><summary><?= $pwIcon('pin') ?><span>Location evidence</span><?= $pwIcon('chevron') ?></summary><dl></dl></details>
-              <details class="pw-disclosure"><summary><?= $pwIcon('document') ?><span>How scores are calculated</span><?= $pwIcon('chevron') ?></summary><p class="pw-small pw-muted" data-assessment-method>Scores depend on approved source conversion rules and the six displayed criterion weights.</p></details>
+              <details class="pw-disclosure"><summary><?= $pwIcon('document') ?><span>How scores are calculated</span><?= $pwIcon('chevron') ?></summary><p class="pw-small pw-muted" data-assessment-method>Scores depend on approved source conversion rules, the five numerical criterion weights, and mandatory zoning screening.</p></details>
             </article>
           </div>
           <div data-review-panel="investor" hidden>

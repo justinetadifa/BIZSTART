@@ -3692,6 +3692,18 @@
       setText('[data-review-location-heading]',located ? 'Property pin recorded · verification pending' : 'Area recorded · exact location pending');
       setText('[data-review-location-note]',boundary ? 'Drawn outline recorded. Confirm against a survey or property record.' : 'No parcel boundary supplied. Pin-based screening covers that point only.');
 
+      // Extent warning check across Step 2 and Step 4 Review
+      const extentWarningBox = $('[data-extent-warning]');
+      const reviewExtentBox = $('[data-review-extent-warning]');
+      if (located) {
+        const inExtent = located[0] >= 16.54 && located[0] <= 16.72 && located[1] >= 120.26 && located[1] <= 120.45;
+        if (extentWarningBox) extentWarningBox.style.display = inExtent ? 'none' : 'block';
+        if (reviewExtentBox) reviewExtentBox.style.display = inExtent ? 'none' : 'block';
+      } else {
+        if (extentWarningBox) extentWarningBox.style.display = 'none';
+        if (reviewExtentBox) reviewExtentBox.style.display = 'none';
+      }
+
       // Role-specific compliance presentation in Tier 4
       const dialogRole = dialog?.dataset.userRole || '';
       const isBrokerUser = dialogRole === 'seller' || dialogRole === 'broker';
@@ -6196,7 +6208,7 @@
       else if(target==='radar' || actions[target] || ['spatial_accessibility','infrastructure_readiness','property_cost_market_competitiveness','economic_viability','nearby_businesses','zoning_compatibility','risk_constraints'].includes(target)){
         all('[data-editor-step]').find(node=>node.dataset.editorStep==='2')?.click();
         const tabTarget = target === 'radar' ? 'nearby_businesses' : (target === 'property_cost_market_competitiveness' ? 'economic_viability' : target);
-        selectEvidenceCriterion(tabTarget);
+        selectEvidenceCriterion(target==='radar'?'nearby_businesses':target);
         $(`[data-evidence-tab="${tabTarget}"]`)?.focus();
       } else {
         selectEvidenceCriterion(target);
