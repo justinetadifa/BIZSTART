@@ -42,6 +42,7 @@ $profile = $deptProfiles[$department] ?? $deptProfiles['CICTO'];
 $governance = sfc_can_review_listings($context['user']);
 $brokerReviewer = sfc_can_review_brokers($context['user']);
 $technicalAdmin = sfc_can_administer_city($context['user']);
+$mceConfigurator = sfc_can_configure_mce_weights($context['user']);
 if ($brokerReviewer) {
     $profile['responsibilities']['Broker applications'] = 'Review PRC credentials and document application decisions.';
 }
@@ -112,6 +113,12 @@ sfc_render_header($context, 'admin');
         </div>
 
         <!-- Dark, fully-rounded capsule buttons directly overlaying the image -->
+        <?php if ($mceConfigurator): ?>
+        <button type="button" onclick="document.getElementById('openMceConfigModalBtn')?.click()" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all cursor-pointer">
+          <svg class="tw-h-3.5 tw-w-3.5 tw-text-amber-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          MCE weight config
+        </button>
+        <?php endif; ?>
         <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
           Technical administration
         </a>
@@ -143,7 +150,15 @@ sfc_render_header($context, 'admin');
           <h2 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">MCE &amp; IAI</h2>
           <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Top scored, properties charts.</p>
         </div>
-        <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">Priority board &rarr;</a>
+        <div class="tw-flex tw-items-center tw-gap-2">
+          <?php if ($mceConfigurator): ?>
+          <button type="button" id="openMceConfigModalBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-slate-50 tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-100 hover:tw-border-slate-300 tw-transition-colors cursor-pointer" title="Adjust multi-criteria weights and review model governance">
+            <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+            <span>Weight config</span>
+          </button>
+          <?php endif; ?>
+          <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">Priority board &rarr;</a>
+        </div>
       </div>
       <div data-assessment-ranking></div>
       <details class="tw-mt-4 tw-border-t tw-border-slate-100 tw-pt-3 tw-text-xs tw-leading-relaxed tw-text-slate-500">
@@ -465,9 +480,110 @@ sfc_render_header($context, 'admin');
     </details>
   </section>
   <?php endif; ?>
+  <?php if ($mceConfigurator): ?>
+  <!-- MCE Weight Configuration Dialog -->
+  <dialog id="mceWeightConfigDialog" class="city-dialog tw-w-full tw-max-w-3xl tw-rounded-3xl tw-p-0 tw-border-0 tw-shadow-2xl tw-bg-white" aria-labelledby="mceConfigModalTitle">
+    <div class="tw-flex tw-items-center tw-justify-between tw-border-b tw-border-slate-100 tw-px-6 tw-py-4">
+      <div>
+        <h2 id="mceConfigModalTitle" class="tw-m-0 tw-text-lg tw-font-bold tw-text-slate-900">MCE Weight Configuration</h2>
+        <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Adjust multi-criteria evaluation weights with validation, simulations, and audit logging.</p>
+      </div>
+      <button type="button" id="closeMceConfigBtn" class="tw-rounded-full tw-p-1.5 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700 tw-transition-colors" aria-label="Close dialog">
+        <svg class="tw-h-5 tw-w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>
+
+    <div class="tw-max-h-[75vh] tw-overflow-y-auto tw-p-6 tw-space-y-5">
+      <!-- Status message -->
+      <div id="mceConfigStatusMessage" class="tw-hidden tw-text-xs tw-font-medium" role="status"></div>
+
+      <!-- Discrepancy Note Banner -->
+      <div id="mceDiscrepancyBanner"></div>
+
+      <!-- Active Version & Overview -->
+      <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-rounded-2xl tw-bg-slate-50 tw-p-3.5 tw-border tw-border-slate-200/80">
+        <div>
+          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500">Active Model Version</span>
+          <strong id="mceCurrentVersionBadge" class="tw-text-sm tw-font-black tw-text-slate-900">Loading...</strong>
+        </div>
+        <div class="tw-text-right">
+          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500">Weights Balance</span>
+          <div class="tw-flex tw-items-center tw-gap-2">
+            <span id="mceTotalDisplay" class="tw-text-base tw-font-black tw-text-slate-900">100.0%</span>
+            <span id="mceTotalStatusBadge" class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50 tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-bold tw-text-emerald-700">Balanced</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Criteria Adjusters List -->
+      <div class="tw-space-y-3">
+        <div class="tw-flex tw-items-center tw-justify-between">
+          <h3 class="tw-m-0 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-600">Active Criteria Weights (Permitted 5% – 60%)</h3>
+          <span class="tw-text-[11px] tw-text-slate-400">Sum must equal exactly 100.0%</span>
+        </div>
+        <div id="mceCriteriaInputs" class="tw-space-y-2.5">
+          <p class="tw-text-xs tw-text-slate-400">Loading criteria...</p>
+        </div>
+      </div>
+
+      <!-- Reason & Reference Inputs -->
+      <div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-p-4 tw-space-y-3 tw-bg-slate-50/50">
+        <h3 class="tw-m-0 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Change Justification &amp; Authority</h3>
+        <div>
+          <label for="mceReasonInput" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-700">Documented Reason for Adjustment <span class="tw-text-rose-600">*</span></label>
+          <input type="text" id="mceReasonInput" placeholder="e.g., CICTO Technical Committee revision for commercial corridor weighting"
+            class="tw-mt-1 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-text-slate-900 focus:tw-border-[#11224d] focus:tw-outline-none">
+        </div>
+        <div>
+          <label for="mceReferenceInput" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-700">Source / Consultation Reference (Optional)</label>
+          <input type="text" id="mceReferenceInput" placeholder="e.g., CSFP CLUP 2017-2027 Sec. 4.2 / LEBDO Resolution 2026-03"
+            class="tw-mt-1 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-text-slate-900 focus:tw-border-[#11224d] focus:tw-outline-none">
+          <span class="tw-text-[10px] tw-text-slate-400 tw-mt-0.5 tw-block">Note: Do not label references as 'officially validated' unless authenticated executive orders or ordinance numbers are provided.</span>
+        </div>
+      </div>
+
+      <!-- Preview Container -->
+      <div id="mcePreviewContainer" class="tw-hidden tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4">
+        <h3 class="tw-m-0 tw-mb-3 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Simulation &amp; Comparative Preview</h3>
+        <div id="mcePreviewContent"></div>
+      </div>
+
+      <!-- Audit History Accordion -->
+      <details class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-slate-50/50 tw-p-3.5">
+        <summary class="tw-cursor-pointer tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-text-[#9e1b22] tw-transition-colors">
+          View MCE Weight Audit History
+        </summary>
+        <div id="mceHistoryContainer" class="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-2"></div>
+      </details>
+    </div>
+
+    <!-- Modal Actions Footer -->
+    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-100 tw-bg-slate-50/80 tw-px-6 tw-py-4 tw-rounded-b-3xl">
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <button type="button" id="restoreMceBaselineBtn" class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-text-[#9e1b22] tw-transition-colors cursor-pointer">
+          Restore Approved Baseline
+        </button>
+        <button type="button" id="cancelMceConfigBtn" class="tw-rounded-xl tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-500 hover:tw-text-slate-800 tw-transition-colors cursor-pointer">
+          Cancel
+        </button>
+      </div>
+      <div class="tw-flex tw-items-center tw-gap-2">
+        <button type="button" id="previewMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-800 hover:tw-bg-slate-100 tw-transition-colors cursor-pointer">
+          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+          Simulate Impact
+        </button>
+        <button type="button" id="applyMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border-0 tw-bg-[#11224d] tw-px-4 tw-py-2 tw-text-xs tw-font-bold tw-text-white hover:tw-bg-[#0c1836] tw-transition-colors cursor-pointer">
+          Apply Weights
+        </button>
+      </div>
+    </div>
+  </dialog>
+  <?php endif; ?>
 </main>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-overview.js<?= sfc_asset_version('js/admin-overview.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-workspace.js<?= sfc_asset_version('js/admin-workspace.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-investors.js<?= sfc_asset_version('js/admin-investors.js') ?>" defer></script>
+<?php if ($mceConfigurator): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/admin-mce-weights.js<?= sfc_asset_version('js/admin-mce-weights.js') ?>"></script><?php endif; ?>
 <?php if ($technicalAdmin): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/city-staff.js<?= sfc_asset_version('js/city-staff.js') ?>"></script><?php endif; ?>
 <?php sfc_render_footer($context); ?>
+

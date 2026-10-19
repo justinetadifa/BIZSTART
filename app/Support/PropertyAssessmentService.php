@@ -436,6 +436,24 @@ final class PropertyAssessmentService
             }
         }
 
+        if ($pdo === null) {
+            $cacheFile = dirname(__DIR__, 2) . '/data/cache/mce_active_weights.json';
+            if (is_file($cacheFile)) {
+                try {
+                    $cachedData = json_decode((string) file_get_contents($cacheFile), true);
+                    if (is_array($cachedData) && !empty($cachedData['weights'])) {
+                        foreach ($cachedData['weights'] as $cKey => $cWeight) {
+                            if (isset($config[$cKey])) {
+                                $config[$cKey]['weight'] = (float) $cWeight;
+                            }
+                        }
+                    }
+                } catch (Throwable) {
+                    // Fall back to default criteria configuration
+                }
+            }
+        }
+
         $activeWeights = [];
         foreach ($config as $key => $item) {
             if ($item['is_active']) {
@@ -530,6 +548,557 @@ final class PropertyAssessmentService
     public static function getCriteriaWeights(?PDO $pdo = null): array
     {
         return self::weights($pdo);
+    }
+
+    /**
+     * Official defended 5-criterion baseline weights.
+     */
+    public static function baselineWeights(): array
+    {
+        return self::DEFAULT_WEIGHTS;
+    }
+
+    /**
+     * Documented preliminary 6-criterion model from early manuscript/thesis draft.
+     */
+    public static function documentedSixCriterionWeights(): array
+    {
+        return [
+            'spatial_accessibility' => 20.0,
+            'infrastructure_readiness' => 20.0,
+            'economic_viability' => 20.0,
+            'nearby_businesses' => 15.0,
+            'zoning_compatibility' => 15.0,
+            'risk_constraints' => 10.0,
+        ];
+    }
+
+    /**
+     * Documented discrepancy between implemented v3.0 baseline and earlier manuscript draft.
+     */
+    public static function discrepancyNote(): array
+    {
+        return [
+            'has_discrepancy' => true,
+            'baseline_model' => [
+                'name' => 'LOCUS-SF v3.0 Defended 5-Criterion Baseline',
+                'weights' => self::DEFAULT_WEIGHTS,
+                'total_weight' => 100.0,
+                'zoning_role' => 'Mandatory non-compensatory eligibility gate (weight 0.0%)',
+                'environmental_safety_role' => 'Consolidated into Risk Constraints multi-hazard rubric',
+            ],
+            'documented_model' => [
+                'name' => 'Documented Manuscript / Preliminary 6-Criterion Model',
+                'weights' => self::documentedSixCriterionWeights(),
+                'total_weight' => 100.0,
+                'zoning_role' => 'Compensatory criterion (weight 15.0%)',
+                'environmental_safety_role' => 'Treated as separate 7th criterion or combined loosely',
+            ],
+            'rationale' => 'In LOCUS-SF v3.0, Zoning Compatibility functions as a strict, non-compensatory eligibility gate rather than a weighted score contributor. Scoring zoning at 15% would allow a prohibited land use (e.g., hazardous industrial in a low-density residential zone) to attain a passing or high IAI score if physical road and utility scores were favorable, which contradicts Philippine urban planning law and CLUP locational clearance rules. The 15% weight from zoning was reallocated proportionally to Spatial Accessibility (+5%) and Infrastructure Readiness (+5%), and Environmental Safety was consolidated with Risk Constraints (+5%).',
+        ];
+    }
+
+    /**
+     * Validate adjustable MCE weights with strict boundary rules.
+     * Enforces: numeric, finite, range [5.0%, 60.0%], required criteria cannot be disabled, exact 100.00% sum.
+     */
+    public static function validateAdjustableWeights(array $weights, ?array $activeFlags = null): array
+    {
+        if (empty($weights)) {
+            throw new DomainException('MCE criteria weights configuration cannot be empty.');
+        }
+
+        $sanitized = [];
+        $requiredKeys = ['spatial_accessibility', 'infrastructure_readiness', 'property_cost_market_competitiveness', 'nearby_businesses', 'risk_constraints'];
+
+        if (isset($weights['economic_viability']) && !isset($weights['property_cost_market_competitiveness'])) {
+            $weights['property_cost_market_competitiveness'] = $weights['economic_viability'];
+            unset($weights['economic_viability']);
+        }
+
+        foreach ($requiredKeys as $reqKey) {
+            if (!array_key_exists($reqKey, $weights)) {
+                $label = self::DEFAULT_CRITERIA_CONFIG[$reqKey]['display_name'] ?? $reqKey;
+                throw new DomainException("Required criterion '{$label}' ({$reqKey}) cannot be omitted or disabled.");
+            }
+            if ($activeFlags !== null && isset($activeFlags[$reqKey]) && !$activeFlags[$reqKey]) {
+                $label = self::DEFAULT_CRITERIA_CONFIG[$reqKey]['display_name'] ?? $reqKey;
+                throw new DomainException("Required criterion '{$label}' cannot be deactivated.");
+            }
+        }
+
+        foreach ($weights as $key => $val) {
+            if ($key === 'zoning_compatibility') {
+                if ((float) $val !== 0.0) {
+                    throw new DomainException("CLUP Zoning Compatibility is a non-compensatory eligibility gate and must remain at 0.0% weight in the 5-criterion MCE model.");
+                }
+                continue;
+            }
+            if ($key === 'environmental_safety' || $key === 'economic_viability') {
+                continue;
+            }
+
+            if (is_bool($val) || !is_numeric($val) || !is_finite((float) $val)) {
+                throw new DomainException("Weight for '{$key}' must be a finite, numeric value.");
+            }
+            $floatVal = round((float) $val, 2);
+            if ($floatVal < 5.0) {
+                throw new DomainException("Criterion '{$key}' weight ({$floatVal}%) is below the minimum permitted threshold of 5.0%.");
+            }
+            if ($floatVal > 60.0) {
+                throw new DomainException("Criterion '{$key}' weight ({$floatVal}%) exceeds the maximum permitted threshold of 60.0%.");
+            }
+            $sanitized[$key] = $floatVal;
+        }
+
+        $sum = array_sum($sanitized);
+        if (abs($sum - 100.0) > 0.01) {
+            throw new DomainException(sprintf("Active MCE criteria weights must sum to exactly 100.00%%. Current total: %.2f%%.", $sum));
+        }
+
+        return $sanitized;
+    }
+
+    /**
+     * Preview proposed weights against a standard reference evaluation without mutating storage.
+     */
+    public static function previewWeights(array $weights, ?array $sampleScores = null): array
+    {
+        $validWeights = self::validateAdjustableWeights($weights);
+        $baseline = self::baselineWeights();
+
+        $benchmarkScores = $sampleScores ?? [
+            'spatial_accessibility' => 90.0,
+            'infrastructure_readiness' => 80.0,
+            'property_cost_market_competitiveness' => 75.0,
+            'nearby_businesses' => 70.0,
+            'risk_constraints' => 85.0,
+        ];
+
+        $rows = [];
+        $baselineTotal = 0.0;
+        $proposedTotal = 0.0;
+
+        foreach ($validWeights as $key => $proposedWeight) {
+            $meta = self::DEFAULT_CRITERIA_CONFIG[$key] ?? [];
+            $score = (float) ($benchmarkScores[$key] ?? 75.0);
+            $baseWeight = (float) ($baseline[$key] ?? 0.0);
+            $baseContrib = round($score * $baseWeight / 100.0, 4);
+            $propContrib = round($score * $proposedWeight / 100.0, 4);
+
+            $baselineTotal += $baseContrib;
+            $proposedTotal += $propContrib;
+
+            $rows[] = [
+                'criterion_key' => $key,
+                'label' => $meta['display_name'] ?? $key,
+                'sample_score' => $score,
+                'baseline_weight' => $baseWeight,
+                'proposed_weight' => $proposedWeight,
+                'weight_delta' => round($proposedWeight - $baseWeight, 2),
+                'baseline_contribution' => $baseContrib,
+                'proposed_contribution' => $propContrib,
+                'contribution_delta' => round($propContrib - $baseContrib, 4),
+            ];
+        }
+
+        return [
+            'is_valid' => true,
+            'active_weights' => $validWeights,
+            'total_weight' => array_sum($validWeights),
+            'benchmark_scores' => $benchmarkScores,
+            'criteria_rows' => $rows,
+            'baseline_unrounded_total' => round($baselineTotal, 4),
+            'baseline_displayed_iai' => round($baselineTotal, 1),
+            'proposed_unrounded_total' => round($proposedTotal, 4),
+            'proposed_displayed_iai' => round($proposedTotal, 1),
+            'total_iai_delta' => round(round($proposedTotal, 1) - round($baselineTotal, 1), 1),
+            'preview_timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+        ];
+    }
+
+    /**
+     * Apply and persist an authorized MCE weight configuration.
+     */
+    public static function applyWeights(array $weights, string $reason, string $sourceReference, ?array $actor = null, ?PDO $pdo = null): array
+    {
+        $sanitizedWeights = self::validateAdjustableWeights($weights);
+
+        $cleanReason = trim($reason);
+        if (strlen($cleanReason) < 8) {
+            throw new DomainException('A documented reason for adjusting MCE weights is required (minimum 8 characters).');
+        }
+
+        $cleanSource = trim($sourceReference);
+        if (strlen($cleanSource) < 5) {
+            throw new DomainException('A valid source or consultation reference is required (minimum 5 characters).');
+        }
+
+        $previousWeights = self::weights($pdo);
+        $versionId = 'MCE-CFG-' . gmdate('Ymd-His') . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
+        $validationStatus = self::WEIGHT_STATUS_PROVISIONAL;
+        $timestamp = gmdate(DATE_ATOM);
+
+        if ($pdo instanceof PDO) {
+            try {
+                $stmt = $pdo->prepare(
+                    'UPDATE criteria_config
+                     SET weight = :weight, source_reference = :source_reference, validation_status = :validation_status
+                     WHERE criterion_key = :key'
+                );
+                foreach ($sanitizedWeights as $key => $weight) {
+                    $stmt->execute([
+                        'weight' => $weight,
+                        'source_reference' => $cleanSource,
+                        'validation_status' => $validationStatus,
+                        'key' => $key,
+                    ]);
+                }
+            } catch (Throwable) {}
+        }
+
+        $cacheDir = dirname(__DIR__, 2) . '/data/cache';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+        $cacheFile = $cacheDir . '/mce_active_weights.json';
+        $payload = [
+            'version' => $versionId,
+            'applied_at' => $timestamp,
+            'weights' => $sanitizedWeights,
+            'reason' => $cleanReason,
+            'source_reference' => $cleanSource,
+            'validation_status' => $validationStatus,
+            'actor' => $actor ? ($actor['name'] ?? "User #{$actor['id']}") : 'CICTO Administrator',
+        ];
+        @file_put_contents($cacheFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        $historyFile = $cacheDir . '/mce_weights_history.json';
+        $history = [];
+        if (is_file($historyFile)) {
+            $history = json_decode((string) file_get_contents($historyFile), true) ?: [];
+        }
+        array_unshift($history, [
+            'id' => time(),
+            'timestamp' => $timestamp,
+            'actor_name' => $actor['name'] ?? 'CICTO Administrator',
+            'version' => $versionId,
+            'reason' => $cleanReason,
+            'source_reference' => $cleanSource,
+            'is_baseline' => false,
+            'weights' => $sanitizedWeights,
+        ]);
+        @file_put_contents($historyFile, json_encode(array_slice($history, 0, 30), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        if ($pdo instanceof PDO) {
+            try {
+                $auditStmt = $pdo->prepare(
+                    "INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata)
+                     VALUES (:actor_id, 'EDIT', 'MCE_CONFIG', 0, :metadata)"
+                );
+                $auditStmt->execute([
+                    'actor_id' => $actor['id'] ?? null,
+                    'metadata' => json_encode([
+                        'eventType' => 'MCE_WEIGHT_ADJUSTMENT',
+                        'versionId' => $versionId,
+                        'reason' => $cleanReason,
+                        'sourceReference' => $cleanSource,
+                        'validationStatus' => $validationStatus,
+                        'previousWeights' => $previousWeights,
+                        'newWeights' => $sanitizedWeights,
+                        'actorName' => $actor['name'] ?? 'CICTO Administrator',
+                        'timestamp' => $timestamp,
+                        'isBaseline' => false,
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ]);
+            } catch (Throwable) {}
+        }
+
+        self::clearConfigCache();
+
+        return [
+            'ok' => true,
+            'version' => $versionId,
+            'applied_at' => $timestamp,
+            'weights' => $sanitizedWeights,
+            'previous_weights' => $previousWeights,
+            'reason' => $cleanReason,
+            'source_reference' => $cleanSource,
+            'validation_status' => $validationStatus,
+        ];
+    }
+
+    /**
+     * Restore the official baseline configuration.
+     */
+    public static function restoreBaseline(string $reason = 'Restored approved LOCUS-SF v3.0 baseline weights', ?array $actor = null, ?PDO $pdo = null): array
+    {
+        $baseline = self::baselineWeights();
+        $cleanReason = trim($reason) ?: 'Restored approved LOCUS-SF v3.0 baseline weights';
+        $sourceReference = 'San Fernando City LOCUS-SF MCE v3.0 Methodological Baseline Specification';
+
+        $versionId = 'MCE-CFG-BASELINE-' . gmdate('Ymd-His');
+        $timestamp = gmdate(DATE_ATOM);
+
+        if ($pdo instanceof PDO) {
+            try {
+                $stmt = $pdo->prepare(
+                    'UPDATE criteria_config
+                     SET weight = :weight, source_reference = :source_reference, validation_status = :validation_status
+                     WHERE criterion_key = :key'
+                );
+                foreach ($baseline as $key => $weight) {
+                    $defaultMeta = self::DEFAULT_CRITERIA_CONFIG[$key] ?? [];
+                    $stmt->execute([
+                        'weight' => $weight,
+                        'source_reference' => $defaultMeta['source_reference'] ?? $sourceReference,
+                        'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
+                        'key' => $key,
+                    ]);
+                }
+            } catch (Throwable) {}
+        }
+
+        $cacheDir = dirname(__DIR__, 2) . '/data/cache';
+        $cacheFile = $cacheDir . '/mce_active_weights.json';
+        if (is_file($cacheFile)) {
+            @unlink($cacheFile);
+        }
+
+        $historyFile = $cacheDir . '/mce_weights_history.json';
+        $history = [];
+        if (is_file($historyFile)) {
+            $history = json_decode((string) file_get_contents($historyFile), true) ?: [];
+        }
+        array_unshift($history, [
+            'id' => time(),
+            'timestamp' => $timestamp,
+            'actor_name' => $actor['name'] ?? 'CICTO Administrator',
+            'version' => $versionId,
+            'reason' => $cleanReason,
+            'source_reference' => $sourceReference,
+            'is_baseline' => true,
+            'weights' => $baseline,
+        ]);
+        @file_put_contents($historyFile, json_encode(array_slice($history, 0, 30), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        if ($pdo instanceof PDO) {
+            try {
+                $auditStmt = $pdo->prepare(
+                    "INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata)
+                     VALUES (:actor_id, 'EDIT', 'MCE_CONFIG', 0, :metadata)"
+                );
+                $auditStmt->execute([
+                    'actor_id' => $actor['id'] ?? null,
+                    'metadata' => json_encode([
+                        'eventType' => 'MCE_WEIGHT_ADJUSTMENT',
+                        'versionId' => $versionId,
+                        'reason' => $cleanReason,
+                        'sourceReference' => $sourceReference,
+                        'validationStatus' => self::WEIGHT_STATUS_PROVISIONAL,
+                        'newWeights' => $baseline,
+                        'actorName' => $actor['name'] ?? 'CICTO Administrator',
+                        'timestamp' => $timestamp,
+                        'isBaseline' => true,
+                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ]);
+            } catch (Throwable) {}
+        }
+
+        self::clearConfigCache();
+
+        return [
+            'ok' => true,
+            'version' => $versionId,
+            'applied_at' => $timestamp,
+            'weights' => $baseline,
+            'reason' => $cleanReason,
+            'is_baseline' => true,
+        ];
+    }
+
+    /**
+     * Retrieve full weight configuration state, discrepancy details, and audit history.
+     */
+    public static function getWeightConfigurationDetails(?PDO $pdo = null): array
+    {
+        $config = self::getCriteriaConfig($pdo);
+        $activeWeights = [];
+        $criteriaMeta = [];
+        foreach ($config as $key => $item) {
+            $criteriaMeta[$key] = [
+                'key' => $key,
+                'name' => $item['display_name'],
+                'weight' => (float) $item['weight'],
+                'is_active' => (bool) $item['is_active'],
+                'is_required' => (bool) ($item['is_required'] ?? false),
+                'validation_status' => $item['validation_status'] ?? self::WEIGHT_STATUS_PROVISIONAL,
+                'source_reference' => $item['source_reference'] ?? '',
+                'description' => $item['description'] ?? '',
+            ];
+            if ($item['is_active']) {
+                $activeWeights[$key] = (float) $item['weight'];
+            }
+        }
+
+        $version = 'LOCUS-SF-MCE-v3.0-Baseline';
+        $cacheFile = dirname(__DIR__, 2) . '/data/cache/mce_active_weights.json';
+        $historyFile = dirname(__DIR__, 2) . '/data/cache/mce_weights_history.json';
+        $cachedHistory = [];
+
+        if (is_file($cacheFile)) {
+            try {
+                $cached = json_decode((string) file_get_contents($cacheFile), true);
+                if (!empty($cached['version'])) {
+                    $version = (string) $cached['version'];
+                }
+            } catch (Throwable) {}
+        }
+
+        if (is_file($historyFile)) {
+            try {
+                $cachedHistory = json_decode((string) file_get_contents($historyFile), true) ?: [];
+            } catch (Throwable) {}
+        }
+
+        $dbHistory = [];
+        if ($pdo instanceof PDO) {
+            try {
+                $stmt = $pdo->prepare(
+                    "SELECT l.id, l.actor_id, l.created_at, l.metadata, u.name AS actor_name, u.email AS actor_email
+                     FROM audit_logs l
+                     LEFT JOIN users u ON u.id = l.actor_id
+                     WHERE l.entity_type = 'MCE_CONFIG' OR JSON_UNQUOTE(JSON_EXTRACT(l.metadata, '$.eventType')) = 'MCE_WEIGHT_ADJUSTMENT'
+                     ORDER BY l.id DESC LIMIT 10"
+                );
+                $stmt->execute();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $meta = json_decode((string) $row['metadata'], true) ?: [];
+                    $dbHistory[] = [
+                        'id' => (int) $row['id'],
+                        'timestamp' => $row['created_at'],
+                        'actor_name' => $row['actor_name'] ?? ($meta['actorName'] ?? 'CICTO Administrator'),
+                        'version' => $meta['versionId'] ?? ($meta['version'] ?? 'MCE-CFG'),
+                        'reason' => $meta['reason'] ?? 'Routine configuration update',
+                        'source_reference' => $meta['sourceReference'] ?? 'Local administrative review',
+                        'is_baseline' => !empty($meta['isBaseline']),
+                        'weights' => $meta['newWeights'] ?? [],
+                    ];
+                }
+            } catch (Throwable) {}
+        }
+
+        $history = !empty($dbHistory) ? $dbHistory : $cachedHistory;
+
+        return [
+            'current_version' => $version,
+            'active_weights' => $activeWeights,
+            'total_weight' => array_sum($activeWeights),
+            'criteria' => $criteriaMeta,
+            'baseline_weights' => self::baselineWeights(),
+            'documented_six_criterion_weights' => self::documentedSixCriterionWeights(),
+            'discrepancy' => self::discrepancyNote(),
+            'history' => $history,
+            'permitted_weight_range' => ['min' => 5.0, 'max' => 60.0],
+            'rounding_tolerance' => 0.01,
+        ];
+    }
+
+    /**
+     * Recalculate an assessment under the active weight configuration, preserving prior snapshots.
+     */
+    public static function recalculatePropertyAssessment(int $propertyId, ?array $actor = null, ?PDO $pdo = null): array
+    {
+        if ($propertyId <= 0) {
+            throw new InvalidArgumentException('A valid property ID is required for assessment recalculation.');
+        }
+
+        $container = function_exists('sfc_app_container') ? sfc_app_container() : null;
+        $repo = $container['properties'] ?? null;
+        $pdoInstance = $pdo ?? ($container['pdo'] ?? null);
+
+        $property = null;
+        if ($repo !== null) {
+            $property = $repo->find($propertyId, $actor);
+        } elseif ($pdoInstance instanceof PDO) {
+            $stmt = $pdoInstance->prepare('SELECT * FROM properties WHERE id = :id');
+            $stmt->execute(['id' => $propertyId]);
+            $property = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
+
+        if (!$property) {
+            throw new DomainException("Property #{$propertyId} not found.");
+        }
+
+        $previousAssessment = $property['assessment'] ?? $property['assessment_json'] ?? null;
+        if (is_string($previousAssessment)) {
+            $previousAssessment = json_decode($previousAssessment, true) ?: null;
+        }
+
+        $criteria = $previousAssessment['assessmentCriteria'] ?? $previousAssessment['criteria'] ?? $property['criteria'] ?? [];
+        if (empty($criteria) && !empty($property['criteriaDetails'])) {
+            foreach ($property['criteriaDetails'] as $k => $det) {
+                if (isset($det['score']) && is_numeric($det['score'])) {
+                    $criteria[$k] = (float) $det['score'];
+                }
+            }
+        }
+
+        $activeWeights = self::weights($pdoInstance);
+        $configDetails = self::getWeightConfigurationDetails($pdoInstance);
+        $configVersion = $configDetails['current_version'] ?? 'LOCUS-SF-MCE-v3.0';
+
+        $recalcResult = self::evaluate($criteria, [
+            'weights' => $activeWeights,
+            'pdo' => $pdoInstance,
+            'property_id' => $propertyId,
+            'allow_scalar_completion' => true,
+        ]);
+
+        $snapshot = [
+            'recalculated_at' => gmdate(DATE_ATOM),
+            'recalculated_by' => $actor ? ($actor['name'] ?? "User #{$actor['id']}") : 'System Administrator',
+            'configuration_version' => $configVersion,
+            'weights_applied' => $activeWeights,
+            'recalculated_assessment' => $recalcResult,
+            'historical_snapshot' => $previousAssessment ? [
+                'archived_at' => gmdate(DATE_ATOM),
+                'assessment' => $previousAssessment,
+            ] : null,
+        ];
+
+        if ($pdoInstance instanceof PDO) {
+            try {
+                $updStmt = $pdoInstance->prepare('UPDATE properties SET assessment_json = :json WHERE id = :id');
+                $updStmt->execute([
+                    'json' => json_encode($snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                    'id' => $propertyId,
+                ]);
+
+                if (isset($container['auditLogs'])) {
+                    $container['auditLogs']->record($actor['id'] ?? null, 'CALCULATE', 'PROPERTY', $propertyId, [
+                        'eventType' => 'MCE_RECALCULATION',
+                        'configVersion' => $configVersion,
+                        'weightsApplied' => $activeWeights,
+                        'newIai' => $recalcResult['displayed_iai'] ?? null,
+                    ]);
+                }
+            } catch (Throwable) {}
+        }
+
+        return [
+            'ok' => true,
+            'property_id' => $propertyId,
+            'recalculated_at' => $snapshot['recalculated_at'],
+            'recalculated_by' => $snapshot['recalculated_by'],
+            'configuration_version' => $configVersion,
+            'weights_applied' => $activeWeights,
+            'displayed_iai' => $recalcResult['displayed_iai'] ?? null,
+            'unrounded_total' => $recalcResult['unrounded_total'] ?? null,
+            'previous_snapshot_preserved' => $snapshot['historical_snapshot'] !== null,
+            'result' => $recalcResult,
+        ];
     }
 
     /**

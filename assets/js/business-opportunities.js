@@ -1311,8 +1311,16 @@ export function formatOpportunityDisplayItem(m, index = 0) {
     supportingPlaces: m.supportingPlaces || [],
     areaGuideline: m.areaGuideline,
     areaStatus: m.areaStatus,
+    zoningOutcome: m.zoningOutcome,
+    zoningOutcomeLabel: m.zoningOutcomeLabel,
+    zoningConditions: m.zoningConditions || [],
+    zoningCitation: m.zoningCitation,
     zoningStatus: m.zoningStatus,
     zoningClassification: m.zoningClassification,
+    businessFitScore: m.businessFitScore,
+    businessFitExplanation: m.businessFitExplanation,
+    supportingConditions: m.supportingConditions,
+    nearbyContext: m.nearbyContext,
     roadAccessRequirement: m.roadAccessRequirement,
     missingEvidence: m.missingEvidence || [],
     competitorsNotice: m.competitorsNotice,
@@ -1342,7 +1350,13 @@ export function renderOpportunityCard(item, property = null) {
         <!-- Center information block (iOS Refined & Scannable) -->
         <div class="opportunity-blue-content">
           <div class="opportunity-card-kicker-row">
-            <span class="opportunity-preliminary-tag">${esc(item.statusLabel || 'Preliminary')}</span>
+            <span class="opportunity-preliminary-tag">${esc(item.statusLabel || 'Screening suggestion')}</span>
+            ${item.zoningOutcome === 'permitted' 
+              ? '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50 tw-text-emerald-700 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-border tw-border-emerald-200">Permitted by Right</span>' 
+              : (item.zoningOutcome === 'conditional'
+                ? '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-text-amber-800 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-border tw-border-amber-200">Conditional Use</span>'
+                : (item.zoningOutcome === 'unverified' ? '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold">Unverified Zoning</span>' : ''))}
+            ${item.businessFitScore ? `<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-blue-50 tw-text-blue-800 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-border tw-border-blue-200" title="Screening fit score (separate from property MCE/IAI)">Fit: ${item.businessFitScore}/100</span>` : ''}
           </div>
 
           <h3 class="opportunity-blue-title">${esc(item.label)}</h3>
@@ -1381,14 +1395,14 @@ export function renderOpportunityCard(item, property = null) {
               <span class="opportunity-sector-badge">${esc(item.sectorLabel || 'Commercial Sector')}</span>
               <h4 class="opportunity-drawer-heading">Traceable Assessment Evidence</h4>
             </div>
-            <span class="opportunity-drawer-status">Recorded map context · Operating status unverified</span>
+            <span class="opportunity-drawer-status">Recorded map context · Straight-line screening</span>
           </div>
 
           <!-- 1. Supporting Activity Centers -->
           <div class="opportunity-evidence-group">
             <div class="opportunity-evidence-label">
               <span>Supporting activity centers within radius</span>
-              <small>Direct walking &amp; commute anchors</small>
+              <small>Straight-line radial proximity anchors</small>
             </div>
             <ul class="opportunity-places-list">
               ${supportingList.map(sp => {
@@ -1437,6 +1451,39 @@ export function renderOpportunityCard(item, property = null) {
                 <span class="opportunity-spec-label">Missing Records</span>
                 <strong class="opportunity-spec-val">${item.missingEvidence && item.missingEvidence.length ? esc(item.missingEvidence.join(' · ')) : 'None recorded'}</strong>
                 <span class="opportunity-spec-state">Ready for site evaluation</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Zoning Findings & Business-Fit Calculation (Distinct from MCE/IAI) -->
+          <div class="opportunity-evidence-group">
+            <div class="opportunity-evidence-label">
+              <span>Zoning Finding &amp; Separate Business-Fit Screening</span>
+              <small>City Ordinance 2018-06 &middot; Kept distinct from property MCE/IAI</small>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-weight: 600; color: #475569;">Permitted Status:</span>
+                <strong style="color: ${item.zoningOutcome === 'permitted' ? '#047857' : (item.zoningOutcome === 'conditional' ? '#b45309' : '#334155')};">
+                  ${esc(item.zoningOutcomeLabel || (item.zoningOutcome === 'permitted' ? 'Permitted by Right' : (item.zoningOutcome === 'conditional' ? 'Conditional Use' : 'Unverified Clearance')))}
+                </strong>
+              </div>
+              ${item.zoningConditions && item.zoningConditions.length ? `
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px; color: #92400e;">
+                  <span style="font-weight: 600; display: block; margin-bottom: 2px;">Zoning Conditions (City Ordinance 2018-06):</span>
+                  <ul style="margin: 0; padding-left: 18px; font-size: 11px;">
+                    ${item.zoningConditions.map(c => `<li>${esc(c)}</li>`).join('')}
+                  </ul>
+                </div>
+              ` : ''}
+              ${item.businessFitExplanation ? `
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px; color: #334155; line-height: 1.45; font-size: 11px;">
+                  <strong style="color: #0f172a; display: block; margin-bottom: 2px;">Business Fit Index (${item.businessFitScore || 'N/A'}/100):</strong>
+                  ${esc(item.businessFitExplanation)}
+                </div>
+              ` : ''}
+              <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; margin-top: 6px; color: #64748b; font-size: 10px;">
+                Note: Radial screening measures 500m straight-line proximity (not walking or driving travel distance). Recommendations are screening suggestions only, not guarantees of demand, profit, or official development approval.
               </div>
             </div>
           </div>

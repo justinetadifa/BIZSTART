@@ -528,8 +528,46 @@ final class ZoningRulesEngine
     public static function resolveZoneCode(string $rawZone): ?string
     {
         $normalized = strtoupper(trim($rawZone));
+        if ($normalized === '') {
+            return null;
+        }
         if (isset(self::ZONING_DISTRICTS[$normalized])) {
             return $normalized;
+        }
+
+        $aliases = [
+            'GENERAL COMMERCIAL' => 'C-1',
+            'COMMERCIAL 1' => 'C-1',
+            'COMMERCIAL' => 'C-1',
+            'COMMERCIAL 2' => 'C-2',
+            'MEDIUM DENSITY COMMERCIAL' => 'C-2',
+            'COMMERCIAL 3' => 'C-3',
+            'HIGH DENSITY COMMERCIAL' => 'C-3',
+            'RESIDENTIAL 1' => 'R-1',
+            'LOW DENSITY RESIDENTIAL' => 'R-1',
+            'RESIDENTIAL' => 'R-1',
+            'RESIDENTIAL 2' => 'R-2',
+            'MEDIUM DENSITY RESIDENTIAL' => 'R-2',
+            'RESIDENTIAL 3' => 'R-3',
+            'HIGH DENSITY RESIDENTIAL' => 'R-3',
+            'LIGHT INDUSTRIAL' => 'I-1',
+            'LIGHT INDUSTRIAL ZONE' => 'I-1',
+            'MEDIUM INDUSTRIAL' => 'I-2',
+            'MEDIUM INDUSTRIAL ZONE' => 'I-2',
+            'HEAVY INDUSTRIAL' => 'I-2',
+            'HEAVY INDUSTRIAL ZONE' => 'I-2',
+            'HAZARDOUS INDUSTRIAL' => 'I-2',
+            'TOURISM' => 'TZ',
+            'TOURISM ZONE' => 'TZ',
+            'AGRO-INDUSTRIAL' => 'AIZ',
+            'AGRO INDUSTRIAL' => 'AIZ',
+            'INSTITUTIONAL' => 'GI',
+            'GENERAL INSTITUTIONAL' => 'GI',
+            'MIXED USE' => 'PDZ',
+            'PLANNED UNIT DEVELOPMENT' => 'PDZ',
+        ];
+        if (isset($aliases[$normalized])) {
+            return $aliases[$normalized];
         }
 
         foreach (self::ZONING_DISTRICTS as $code => $data) {

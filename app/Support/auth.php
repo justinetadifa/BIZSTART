@@ -583,6 +583,16 @@ function sfc_can_administer_city(?array $user = null): bool
     return sfc_admin_department($user) === 'CICTO';
 }
 
+function sfc_can_configure_mce_weights(?array $user = null): bool
+{
+    $user ??= sfc_current_user();
+    if ($user === null || ($user['role'] ?? '') !== 'admin' || !sfc_account_can_authenticate($user)) {
+        return false;
+    }
+    return sfc_can_administer_city($user)
+        || filter_var($user['mceConfigAuthorized'] ?? $user['mce_config_authorized'] ?? false, FILTER_VALIDATE_BOOLEAN);
+}
+
 function sfc_can_review_listings(?array $user = null): bool
 {
     return sfc_can_administer_city($user);
