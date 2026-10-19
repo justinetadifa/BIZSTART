@@ -73,8 +73,8 @@ const vm = require('node:vm');
   surface.setCompare([1]);
   surface.setCriteria({ risk_constraints: 'Risk constraints' });
   surface.renderCompare();
-  assert.match(compare.innerHTML, /<div><dt>Hazards &amp; environment<\/dt>/, 'Hazards are never an Advanced-only comparison row');
-  assert.match(compare.innerHTML, /<div data-investor-advanced><dt>IAI<\/dt>/);
+  assert.match(compare.innerHTML, /<div class="city-compare-hazard-row"><dt>Hazards &amp; environment<\/dt>/, 'Hazards are never an Advanced-only comparison row');
+  assert.match(compare.innerHTML, /<div data-investor-advanced><dt>IAI calculation<\/dt><dd>Pending<\/dd>/);
   assert(compare.innerHTML.includes('Price on request') && compare.innerHTML.includes('View map & contact'));
 
   const approximate = { ...base, hasExactLocation: false };

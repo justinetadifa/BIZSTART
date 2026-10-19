@@ -16,7 +16,7 @@ const { execFileSync } = require('node:child_process');
   let checks = 0;
   const check = (condition, message) => { assert.ok(condition, message); checks++; };
   const partial = brief(base);
-  check(partial.includes('IAI: Withheld') && !partial.includes('40.0 / 100'), 'Two rated criteria must never produce a composite 40/100.');
+  check(partial.includes('data-brief-iai-score>Pending') && !partial.includes('40.0 / 100'), 'Two rated criteria must never produce a composite 40/100.');
   check(partial.includes('2,699 m²') && partial.includes('0.2699 ha') && partial.includes('PHP 14,820.3'), 'Exact parcel square metres drive the sale unit price, despite rounded legacy hectares.');
   check(!partial.includes('Verified Listing') && !partial.includes('Commercial Zone 1'), 'No invented approval or zoning.');
   check(!partial.includes('5.4 km') && !partial.includes('alluvial terrace') && partial.includes('6 indicators remain unassessed'), 'Missing hazard evidence produces no invented exposure finding.');
@@ -40,10 +40,10 @@ const { execFileSync } = require('node:child_process');
   const complete = brief(fixture.complete);
   check(complete.includes('IAI: 94.8 / 100') && complete.includes('= 94.8 / 100'), 'Complete report and calculation agree with the shared protocol.');
   for (const key of ['held', 'incomplete', 'historical', 'discrepancy']) {
-    check(brief(fixture[key]).includes('IAI: Withheld'), `${key}: score stays withheld.`);
+    check(brief(fixture[key]).includes('data-brief-released-iai>Pending review'), `${key}: official release stays pending.`);
   }
   const changed = structuredClone(fixture.complete); changed.criteriaBreakdown[0].weighted_score = 99;
-  check(assessmentCalculation(changed).iai === null && brief(changed).includes('IAI: Withheld'), 'Conflicting contributions prevent a numeric headline.');
+  check(assessmentCalculation(changed).iai === null && brief(changed).includes('data-brief-iai-score>Pending'), 'Conflicting contributions prevent a numeric headline.');
   const appendix = brief(fixture.complete, { includeAppendix: true });
   check(appendix.includes('locusBriefPage5') && appendix.includes('SHA-256:') && appendix.includes(fixture.complete.comparison_key), 'Optional evidence appendix retains source hashes and comparison cohort.');
   const css = readFileSync('assets/css/property-details.css', 'utf8');

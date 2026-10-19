@@ -75,15 +75,15 @@ console.log('✅ PASS: Compact read-only canonical location summaries with edit 
 
 // 4. SIMPLIFY ASSESSMENT SCREENS
 console.log('\n--- Check 4: Simplified Assessment Screens ---');
-assert(viewContent.includes('id="pwZoningUseStatus"'), 'Zoning contains simple use-status selector');
-assert(viewContent.includes('value="not_confirmed"'), 'Zoning contains not_confirmed option');
+assert(!viewContent.includes('id="pwZoningUseStatus"'), 'An intake user cannot self-confirm a use permission');
+assert(viewContent.includes('Parcel compliance: Unverified'), 'Zoning shows parcel verification separately from the reference rule');
 assert(viewContent.includes('value="permitted"'), 'Zoning contains permitted option');
 assert(viewContent.includes('value="conditional"'), 'Zoning contains conditional option');
 assert(viewContent.includes('value="prohibited"'), 'Zoning contains prohibited option');
 assert(!viewContent.includes('pw-sc-reviewer-card'), 'Disabled reviewer cards removed from encoding flow');
-assert(jsContent.includes('0 direct competitors observed in registry'), 'Competitors empty state contains explicit coverage limitation note');
+assert(jsContent.includes('0 direct competitors in the available records'), 'Competitors empty state identifies its observed mapped inventory');
 assert(jsContent.includes('Absence of records in this dataset reflects registry coverage limitations'), 'Empty response is NOT treated as proof no competitors exist');
-console.log('✅ PASS: Simple zone use-status controls, reviewer workspaces removed from intake, competitor empty state correctly contextualized');
+console.log('✅ PASS: Read-only zoning reference, separate parcel verification, reviewer workspaces removed from intake, competitor empty state correctly contextualized');
 
 // 5. REMOVE PROTOTYPE CONTENT
 console.log('\n--- Check 5: Removal of Prototype Content ---');

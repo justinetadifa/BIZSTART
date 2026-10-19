@@ -146,6 +146,12 @@ $$\text{Total Weight} = 0.25 + 0.25 + 0.20 + 0.15 + 0.15 = 1.00 \quad (100.0\%)$
 
 $$\text{Displayed IAI} = \text{round}(\text{unrounded\_total}, 1, \text{PHP\_ROUND\_HALF\_UP})$$
 
+#### Provisional display and official release
+
+The interface may show a **provisional IAI** from all five consistent recorded ratings while evidence, zoning eligibility or technical review remains pending. For LA Finn's recorded ratings, the calculation is `round(25 + 25 + 10 + 11.85 + 10.125, 1) = 82.0`. The property summary, calculation breakdown, comparison and PDF identify this as provisional and show **Official IAI release: Pending review**, with the recorded review reasons visible.
+
+This display does not change the release contract: `iai` remains `null` and the property stays excluded from actionable rankings until the required checks pass. Missing ratings, inconsistent calculations, prohibited uses and historical records cannot supply a provisional index. Detailed evidence and eligibility records must agree with completion flags before the interface labels a result released. A saved property's preview is distinct from a fresh selected-activity result; it cannot fill missing current activity ratings.
+
 ### 4.2 Weight Allocation Rationale & Sensitivity Sensitivity Justification
 
 ```
@@ -167,7 +173,7 @@ $$\text{Displayed IAI} = \text{round}(\text{unrounded\_total}, 1, \text{PHP\_ROU
 
 1. **Spatial Accessibility (25%):** The primary physical driver of commercial enterprise success in San Fernando. Given the city's topography—bounded by the Lingayen Gulf / South China Sea to the west and the Cordillera foothills to the east—transportation connectivity is concentrated along linear corridors (MacArthur Highway and the San Fernando City By-Pass Road). Site access, right-of-way width, and passability govern customer footfall and logistics velocity.
 2. **Infrastructure Readiness (25%):** Fundamental prerequisite for business commissioning. Lack of immediate 3-phase commercial power, potable water pipelines, or fiber internet connectivity imposes massive capital expenditure (CapEx) delays on investors. Co-equal with accessibility at 25%.
-3. **Property Cost & Market Competitiveness (20%):** Evaluates economic feasibility by comparing the asking price per square meter against the prevailing Bureau of Internal Revenue (BIR) zonal valuation benchmarks and neighborhood comparables. Weighted at 20% to reflect commercial pricing prudence without penalizing prime highway real estate that naturally commands market premiums.
+3. **Property Cost & Market Competitiveness (20%):** Compares the offered sale price or monthly rent per square metre with documented, suitable local market comparables. The rating contributes up to 20 points to the total. BIR valuation is separate reference data; this criterion does not estimate profitability.
 4. **Nearby Businesses & Commercial Synergy (15%):** Captures agglomeration economics and business ecosystem maturity. A high concentration of complementary businesses, anchor department stores, and service establishments creates organic foot traffic and customer retention.
 5. **Risk Constraints & Hazard Resilience (15%):** Evaluates disaster vulnerability across six natural hazard vectors. A property with high physical hazards faces severe structural mitigation expenses and insurance costs.
 
@@ -202,36 +208,34 @@ $$\text{IR} = (S_{\text{power}} \times 0.35) + (S_{\text{water}} \times 0.30) + 
 ---
 
 ### 5.3 Criterion 3: Property Cost & Market Competitiveness (PCMC) — Weight: 20.0%
-*(Implemented with dual-aliasing to `economic_viability` for continuous API and legacy database compatibility).*
+*(Implemented with dual-aliasing to `economic_viability` for API and database compatibility.)*
 
-The PCMC criterion evaluates price fairness and commercial viability by computing the percentage variance ($\Delta P$) between the property's asking price per square meter ($P_{\text{ask}}$) and the official municipal/BIR benchmark zonal valuation ($P_{\text{bench}}$):
+PCMC compares the **offered unit price** with a **documented, suitable comparable market rate**. It measures price alignment under the app's provisional rubric. It does not estimate profit, revenue, ROI or a certified property value. BIR values are separate reference data in the implementation; they cannot establish a PCMC score by themselves.
 
-$$\Delta P = \frac{P_{\text{ask}} - P_{\text{bench}}}{P_{\text{bench}}} \times 100\%$$
+For a sale, use asking price divided by the offered area in square metres. For a lease, compare monthly rent per square metre of the offered space with a comparable monthly rental rate. Annual rent is divided by 12; daily rent requires a documented monthly basis. A dual sale/lease listing identifies which comparison is used. Do not compare a sale rate with a rental rate or use the entire land area for a smaller leased unit.
 
-$$\text{PCMC Score} = f(\Delta P)$$
+$$P_{\text{ask}} = \frac{\text{asking price}}{\text{offered area in m}^2}$$
 
-```
-                                  PCMC SCORING FUNCTION
-     100 ┌───────────────────┐
-         │                   │   Fair Market Range (-5% to +5%): 100.0
-      90 │             ┌─────┴─────┐ Optimal Value (-20% to -5%): 90.0
-      80 │             │           └─────┐ Moderate Premium (+5% to +20%): 80.0
-      75 ├─────────────┘                 │ High Discount (<-20%): 75.0 (Due Diligence Flag)
-      60 │                               └─────┐ High Premium (+20% to +50%): 60.0
-      40 │                                     └────────── Severe Overprice (>+50%): 40.0
-         └────────────────────────────────────────────────────────
-           <-20%     -20% to -5%  -5% to +5%  +5% to +20%  +20% to +50%  >+50%
-                                Price Variance (ΔP)
-```
+$$\Delta P = \frac{P_{\text{ask}} - P_{\text{comparable}}}{P_{\text{comparable}}} \times 100\%$$
 
-| Variance Tier ($\Delta P$) | PCMC Score | Economic Interpretation & Analytical Rationale |
-| :--- | :---: | :--- |
-| **$-5.0\% \le \Delta P \le +5.0\%$** | **`100.0`** | **Fair Market Value:** Price is perfectly aligned with established city valuations, facilitating rapid bank appraisal, title financing, and predictable tax capitalization. |
-| **$-20.0\% \le \Delta P < -5.0\%$** | **`90.0`** | **Optimal Commercial Discount:** Attractive investment acquisition value offering immediate equity margin without triggering distressed-asset warnings. |
-| **$+5.0\% < \Delta P \le +20.0\%$** | **`80.0`** | **Manageable Market Premium:** Acceptable premium for prime highway frontage, corner lot status, or immediate commercial development readiness. |
-| **$\Delta P < -20.0\%$** | **`75.0`** | **Substantial Discount / Due Diligence Alert:** While financially economical, extreme undervaluation triggers mandatory review for clouded titles, estate disputes, or hidden physical defects. |
-| **$+20.0\% < \Delta P \le +50.0\%$** | **`60.0`** | **Elevated Premium:** High entry acquisition cost requiring substantial operational profitability to achieve standard commercial payback periods. |
-| **$\Delta P > +50.0\%$** | **`40.0`** | **Severely Overpriced:** Highly speculative asking price that significantly impairs project Return on Investment (ROI). |
+The following bands match `PropertyAssessmentService::evaluatePropertyCostMarketCompetitiveness()` and its shared scoring metadata. The **unrounded** difference selects the band; values are rounded only for display.
+
+| Difference from comparable | PCMC rating / 100 | Contribution at 20% | Interpretation within the app |
+| --- | ---: | ---: | --- |
+| More than 20% below: $\Delta P < -20\%$ | 75 | 15 points | Deep discount; closer review |
+| $-20\% \le \Delta P < -5\%$ | 90 | 18 points | Competitive discount |
+| $-5\% \le \Delta P \le +5\%$ | 100 | 20 points | Aligned with the comparable |
+| $+5\% < \Delta P \le +15\%$ | 85 | 17 points | Moderate premium |
+| $+15\% < \Delta P \le +30\%$ | 70 | 14 points | Substantial premium |
+| More than 30% above: $\Delta P > +30\%$ | 50 | 10 points | Large premium |
+
+$$\text{PCMC contribution} = \text{PCMC rating} \times 0.20$$
+
+For example, the LA Finn's listing's entered sale figures are ₱350,000,000 for 5,950 m² and a comparable rate of ₱15,000/m². The asking unit price is ₱58,823.5294/m². Its difference from the entered comparable is +292.1569%, placing it in the above-30% band: **50 / 100**, contributing **10 of the available 20 points**.
+
+This example explains the recorded preview, not an authenticated appraisal. The comparable source was not documented in the reviewed snapshot. A documented suitable comparable, compatible units, and authorized evidence verification are required before the criterion is authoritative. Missing inputs remain pending rather than scoring zero. A preview does not clear zoning, evidence or hazard holds or release an IAI.
+
+The rubric is banded rather than linear: +31% and +292% both receive 50. A deep discount receives 75 rather than the maximum because the model calls for additional review. These are app design choices under a provisional model, not proof that a particular property is overpriced or defective.
 
 ---
 
@@ -335,7 +339,7 @@ To verify that the implementation adheres rigorously to the theoretical specific
   $$\text{SA} = (100.0 \times 0.30) + (100.0 \times 0.25) + (100.0 \times 0.25) + (100.0 \times 0.20) = 30.0 + 25.0 + 25.0 + 20.0 = 100.0$$
 - **Infrastructure Readiness (IR):** 3-phase power, direct MSFWD line, fiber broadband, covered concrete drainage.  
   $$\text{IR} = (100.0 \times 0.35) + (100.0 \times 0.30) + (100.0 \times 0.20) + (100.0 \times 0.15) = 35.0 + 30.0 + 20.0 + 15.0 = 100.0$$
-- **Property Cost & Market Competitiveness (PCMC):** Asking price is 3.5% below prevailing zonal benchmark.  
+- **Property Cost & Market Competitiveness (PCMC):** In this illustrative case, asking price is 3.5% below a documented comparable market benchmark.
   $$\Delta P = -3.5\% \implies \text{PCMC Score} = 100.0$$
 - **Nearby Businesses (NB):** High-density retail node, 350m to CSI Mall, high foot-traffic synergy, moderate competition.  
   $$\text{NB} = (100.0 \times 0.35) + (85.0 \times 0.30) + (100.0 \times 0.20) + (70.0 \times 0.15) = 35.0 + 25.5 + 20.0 + 10.5 = 91.0$$

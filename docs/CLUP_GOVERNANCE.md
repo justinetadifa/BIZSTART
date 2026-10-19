@@ -16,6 +16,20 @@ The governing notice for every result and export is:
 
 ## Current Evidence Baseline
 
+### Intake reference behavior — 18 October 2026
+
+The property wizard distinguishes **reference rule status** from **parcel compliance**. Selecting a district and an exact activity checks the configured matrix; the intake screen keeps parcel compliance `UNVERIFIED`. Existing property use does not select or authorize a proposed activity. The direct district/activity API also identifies its result as an unverified preliminary screen.
+
+The activity browser is read-only and includes allowed, conditional, restricted and unmapped combinations. Its buttons select an activity to check; they do not edit the rule matrix or mark activities as legally allowed. Changing activity groups clears an incompatible selection rather than choosing the first alternative. Missing district/activity pairs and absent rules remain undetermined. For example, the current matrix has no `C-2 / inst_school` rule; an existing school does not turn that missing rule into permission or prohibition.
+
+Conditional requirements are presented for verification. An unchecked or absent control does not establish that a height limit was exceeded, setbacks were violated or pollution standards were breached. A conditional reference does not promise a variance or exception. The screen exposes the source inventory's review date, direct ordinance link, elapsed-horizon caveat and outstanding parcel/map/amendment checks. This interface update does not certify current law or amend the reference matrix.
+
+`ZoningRulesEngine::getScreeningData()` supplies results from the PHP evaluator to the browser. The compatibility codes retained for older integrations do not add MCE points and do not authenticate evidence. Save normalization recomputes the compatibility rating from the exact district/activity pair; clearing or invalidating either input clears a stale rating. The reference browser does not submit `clup_allowed_uses`, so unrelated edits preserve previously reported entries without treating them as official rules. Existing database records are not migrated by this change.
+
+Verification uses `php tests/zoning-intake-logic.test.php` and `node tests/zoning-intake-logic.test.cjs` without a database connection. Together they check 522 configured pairs across backend export, browser evaluation, provenance, group filtering and actual save normalization. Additional browser checks run the production wizard/template at 1440, 390 and 320 pixels, including activity selection, empty results, submission serialization and reopening another property. Local captures and the browser harness are under the ignored `.ui-audit/zoning-logic/` directory.
+
+### Source inventory
+
 The following official documents were located and inspected:
 
 | Evidence | Verified source | Current limitation |

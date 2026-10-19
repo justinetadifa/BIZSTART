@@ -149,7 +149,7 @@ assert(testClassify(unknownPlace) === 'unclassified', 'Unknown service classifie
 
 // Road and Registry missing-data phrasing checks
 assert(jsContent.includes("'Road data unavailable'") || jsContent.includes('"Road data unavailable"'), 'JS contains "Road data unavailable" handling');
-assert(jsContent.includes('missing registry coverage does not imply') || jsContent.includes('commercial activity'), 'JS explains that missing registry coverage does not imply an absence of commercial activity');
+assert(jsContent.includes('This does not prove that no businesses exist within 500 m'), 'JS distinguishes missing mapped records from an absence of businesses');
 
 // Assessment Sync Functionality
 assert(jsContent.includes('function syncNearbyAssessment'), 'JS contains syncNearbyAssessment function');

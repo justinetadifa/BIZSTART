@@ -1358,6 +1358,528 @@
         "verified": true,
         "source": "San Fernando City Commercial Registry"
       }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sunset-bay-resort",
+      "geometry": { "type": "Point", "coordinates": [120.3132, 16.6328] },
+      "properties": {
+        "id": "biz-sunset-bay-resort",
+        "name": "Sunset Bay Beach Resort & Restaurant",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "Beachfront, Carlatan, San Fernando City",
+        "note": "Beachfront resort, restaurant & bar, sunset lounge & ocean accommodations.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-carlatan-beach-resort",
+      "geometry": { "type": "Point", "coordinates": [120.3135, 16.6342] },
+      "properties": {
+        "id": "biz-carlatan-beach-resort",
+        "name": "Carlatan Beach Resort & Dining",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "Carlatan Beachfront, San Fernando City",
+        "note": "Coastal resort, swimming pool, dining pavilion & events venue.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-seaside-grill-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3138, 16.6330] },
+      "properties": {
+        "id": "biz-seaside-grill-carlatan",
+        "name": "Seaside Seafood Grill & Restaurant",
+        "category": "restaurant",
+        "businessType": "restaurant",
+        "categoryKey": "restaurant",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "Beachfront Access Road, Carlatan, San Fernando City",
+        "note": "Fresh seafood dining, grilled specialties, and ocean-view dining.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-alfamart-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3148, 16.6335] },
+      "properties": {
+        "id": "biz-alfamart-carlatan",
+        "name": "Alfamart Carlatan",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Convenience supermarket, grocery, dairy, fresh foods, and daily retail necessities.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-midtown-bakeshop-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3149, 16.6329] },
+      "properties": {
+        "id": "biz-midtown-bakeshop-carlatan",
+        "name": "Mid-Town Bakeshop & Cafe Carlatan",
+        "category": "bakery",
+        "businessType": "bakery",
+        "categoryKey": "bakery",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Neighborhood bakery, freshly baked bread, pastries, and beverage counter.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-petron-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3150, 16.6320] },
+      "properties": {
+        "id": "biz-petron-carlatan",
+        "name": "Petron Station Carlatan",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Highway service station, Treats convenience store, and automotive lubrication bay.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mercury-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3152, 16.6345] },
+      "properties": {
+        "id": "biz-mercury-carlatan",
+        "name": "Mercury Drug Carlatan",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Leading pharmacy chain, prescription medicine, medical supplies, and personal care.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-carlatan-hardware",
+      "geometry": { "type": "Point", "coordinates": [120.3155, 16.6338] },
+      "properties": {
+        "id": "biz-carlatan-hardware",
+        "name": "Carlatan Hardware & Construction Supply",
+        "category": "hardware",
+        "businessType": "hardware",
+        "categoryKey": "hardware",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Hardware retail, electrical fixtures, plumbing supplies, and building materials.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-sf-north-coast-center",
+      "geometry": { "type": "Point", "coordinates": [120.3153, 16.6326] },
+      "properties": {
+        "id": "biz-sf-north-coast-center",
+        "name": "San Fernando North Coast Commercial Center",
+        "category": "commercial_complex",
+        "businessType": "commercial_complex",
+        "categoryKey": "commercial_complex",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Commercial plaza featuring professional service offices, commercial stalls, and retail units.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-motortrade-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3156, 16.6318] },
+      "properties": {
+        "id": "biz-motortrade-carlatan",
+        "name": "Motortrade Carlatan",
+        "category": "car_repair",
+        "businessType": "motorcycle_repair",
+        "categoryKey": "motorcycle_repair",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Motorcycle sales showroom, certified spare parts, and vehicle service center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-generika-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3151, 16.6315] },
+      "properties": {
+        "id": "biz-generika-carlatan",
+        "name": "Generika Drugstore Carlatan",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Affordable quality generic medicines, vitamins, and healthcare essentials.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-caltex-carlatan",
+      "geometry": { "type": "Point", "coordinates": [120.3158, 16.6355] },
+      "properties": {
+        "id": "biz-caltex-carlatan",
+        "name": "Caltex Carlatan Station",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "North National Highway, Carlatan, San Fernando City",
+        "note": "Highway service station with Star Mart convenience store and Techron fuels.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-carlatan-health-center",
+      "geometry": { "type": "Point", "coordinates": [120.3154, 16.6350] },
+      "properties": {
+        "id": "biz-carlatan-health-center",
+        "name": "Carlatan Barangay Hall & Health Center",
+        "category": "clinic",
+        "businessType": "clinic",
+        "categoryKey": "clinic",
+        "status": "operating",
+        "barangay": "Carlatan",
+        "address": "Carlatan, San Fernando City",
+        "note": "Barangay government center, community hall, and primary public health clinic.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-lingsat-market",
+      "geometry": { "type": "Point", "coordinates": [120.3162, 16.6298] },
+      "properties": {
+        "id": "biz-lingsat-market",
+        "name": "Lingsat Public Market & Commercial Stalls",
+        "category": "marketplace",
+        "businessType": "marketplace",
+        "categoryKey": "marketplace",
+        "status": "operating",
+        "barangay": "Lingsat",
+        "address": "North National Highway, Lingsat, San Fernando City",
+        "note": "Community marketplace, local food stalls, dry goods, and commercial retail.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-shell-lingsat",
+      "geometry": { "type": "Point", "coordinates": [120.3160, 16.6292] },
+      "properties": {
+        "id": "biz-shell-lingsat",
+        "name": "Shell Station Lingsat",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Lingsat",
+        "address": "North National Highway, Lingsat, San Fernando City",
+        "note": "Highway service station featuring Shell Select 24/7 convenience mart.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-oasis-country-resort",
+      "geometry": { "type": "Point", "coordinates": [120.3212, 16.5815] },
+      "properties": {
+        "id": "biz-oasis-country-resort",
+        "name": "Oasis Country Resort & Restaurant",
+        "category": "hotel",
+        "businessType": "hotel",
+        "categoryKey": "hotel",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Full-service resort hotel, Grand Ballroom events venue, and restaurant dining.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-pimentel-complex",
+      "geometry": { "type": "Point", "coordinates": [120.3222, 16.5806] },
+      "properties": {
+        "id": "biz-pimentel-complex",
+        "name": "Pimentel Commercial Complex",
+        "category": "commercial_complex",
+        "businessType": "commercial_complex",
+        "categoryKey": "commercial_complex",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "Pimentel Compound, MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Commercial retail units, business service offices, and retail stalls.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-seven-eleven-pagdalagan",
+      "geometry": { "type": "Point", "coordinates": [120.3221, 16.5798] },
+      "properties": {
+        "id": "biz-seven-eleven-pagdalagan",
+        "name": "7-Eleven Pagdalagan",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "24/7 convenience store, quick dining, CLIQQ kiosk, and retail necessities.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-southside-cafe",
+      "geometry": { "type": "Point", "coordinates": [120.3215, 16.5794] },
+      "properties": {
+        "id": "biz-southside-cafe",
+        "name": "Southside Cafe & Bakery",
+        "category": "cafe",
+        "businessType": "cafe",
+        "categoryKey": "cafe",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Artisan coffee, espresso bar, freshly baked bread and pastries.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-asis-auto-repair",
+      "geometry": { "type": "Point", "coordinates": [120.3223, 16.5785] },
+      "properties": {
+        "id": "biz-asis-auto-repair",
+        "name": "Asis Auto Repair & Vulcanizing Shop",
+        "category": "car_repair",
+        "businessType": "car_repair",
+        "categoryKey": "car_repair",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Automotive mechanical repair, maintenance, tire change, and vulcanizing services.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-petron-pagdalagan",
+      "geometry": { "type": "Point", "coordinates": [120.3226, 16.5778] },
+      "properties": {
+        "id": "biz-petron-pagdalagan",
+        "name": "Petron Station Pagdalagan",
+        "category": "fuel",
+        "businessType": "fuel",
+        "categoryKey": "fuel",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Highway service station with Treats convenience store and lubrication service.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-mercury-drug-pagdalagan",
+      "geometry": { "type": "Point", "coordinates": [120.3224, 16.5802] },
+      "properties": {
+        "id": "biz-mercury-drug-pagdalagan",
+        "name": "Mercury Drug Pagdalagan",
+        "category": "pharmacy",
+        "businessType": "pharmacy",
+        "categoryKey": "pharmacy",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Prescription pharmaceuticals, medical supplies, vitamins, and personal care.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-bdo-network-bank-pagdalagan",
+      "geometry": { "type": "Point", "coordinates": [120.3223, 16.5808] },
+      "properties": {
+        "id": "biz-bdo-network-bank-pagdalagan",
+        "name": "BDO Network Bank Kiosk Pagdalagan",
+        "category": "bank",
+        "businessType": "bank",
+        "categoryKey": "bank",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "ATM cash withdrawals, money remittance, deposit and micro-financial services.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-ca-hardware-pagdalagan",
+      "geometry": { "type": "Point", "coordinates": [120.3227, 16.5772] },
+      "properties": {
+        "id": "biz-ca-hardware-pagdalagan",
+        "name": "C&A Hardware and Construction Supply",
+        "category": "hardware",
+        "businessType": "hardware",
+        "categoryKey": "hardware",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City",
+        "note": "Hardware supplies, electrical fittings, construction steel, and building materials.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-pagdalagan-brgy-hall",
+      "geometry": { "type": "Point", "coordinates": [120.3211, 16.5782] },
+      "properties": {
+        "id": "biz-pagdalagan-brgy-hall",
+        "name": "Pagdalagan Norte Barangay Hall & Community Center",
+        "category": "townhall",
+        "businessType": "townhall",
+        "categoryKey": "townhall",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "Barangay Road, Pagdalagan Norte, San Fernando City",
+        "note": "Barangay government center, community peace and order, and public assistance desk.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-pagdalagan-elementary",
+      "geometry": { "type": "Point", "coordinates": [120.3202, 16.5786] },
+      "properties": {
+        "id": "biz-pagdalagan-elementary",
+        "name": "Pagdalagan Elementary School",
+        "category": "school",
+        "businessType": "school",
+        "categoryKey": "school",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "School Road, Pagdalagan Norte, San Fernando City",
+        "note": "Public elementary school and basic academic learning center.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-re-sari-sari",
+      "geometry": { "type": "Point", "coordinates": [120.3220, 16.5781] },
+      "properties": {
+        "id": "biz-re-sari-sari",
+        "name": "R&E Sari-Sari & General Merchandise",
+        "category": "convenience",
+        "businessType": "convenience",
+        "categoryKey": "convenience",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "Pagdalagan Coastal Road, Pagdalagan Norte, San Fernando City",
+        "note": "Neighborhood retail grocery, daily consumer items, beverages, and household goods.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-northlink-logistics",
+      "geometry": { "type": "Point", "coordinates": [120.3232, 16.5792] },
+      "properties": {
+        "id": "biz-northlink-logistics",
+        "name": "Northlink Logistics Depot & Industrial Yard",
+        "category": "industrial",
+        "businessType": "industrial",
+        "categoryKey": "industrial",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "Industrial Access Road, Pagdalagan Norte, San Fernando City",
+        "note": "Logistics hub, distribution warehousing, freight staging, and secure storage yard.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "biz-pagdalagan-beach-grill",
+      "geometry": { "type": "Point", "coordinates": [120.3188, 16.5795] },
+      "properties": {
+        "id": "biz-pagdalagan-beach-grill",
+        "name": "Pagdalagan Beach Sunset Grill & Cottages",
+        "category": "restaurant",
+        "businessType": "restaurant",
+        "categoryKey": "restaurant",
+        "status": "operating",
+        "barangay": "Pagdalagan",
+        "address": "Coastal Beachfront, Pagdalagan Norte, San Fernando City",
+        "note": "Beachfront dining, fresh grilled seafood, sunset view lounge, and rental cottages.",
+        "verified": true,
+        "source": "San Fernando City Commercial Registry"
+      }
     }
   ]
 }

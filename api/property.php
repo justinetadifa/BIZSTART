@@ -32,6 +32,7 @@ api_handle(function (array $container): array {
         $decorated['transportationAccessibility'] = \App\Support\TransportationAccessibilityService::evaluate($decorated);
         $decorated['localMarketIntelligence'] = \App\Support\LocalMarketIntelligenceService::get($decorated);
         $decorated['climateRisk'] = \App\Support\ClimateRiskService::evaluate($decorated);
+        $decorated['propertyCostScoring'] = \App\Support\PropertyAssessmentService::propertyCostScoringMetadata();
         return ['property' => $decorated];
     }
     if (!in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {

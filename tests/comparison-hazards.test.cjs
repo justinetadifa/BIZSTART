@@ -1,0 +1,72 @@
+const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const { execFileSync } = require('node:child_process');
+const { pathToFileURL } = require('node:url');
+const { resolve } = require('node:path');
+const vm = require('node:vm');
+
+(async () => {
+  const view = await import(pathToFileURL(resolve('assets/js/property-details-view.js')).href);
+  const comparison = await import(pathToFileURL(resolve('assets/js/property-comparison-view.js')).href);
+  const utils = await import(pathToFileURL(resolve('assets/js/utils.js')).href);
+  const property = JSON.parse(execFileSync(process.env.PHP_BINARY || 'C:/xampp/php/php.exe', ['tests/property-context-consistency.test.php', '--json'], {encoding:'utf8'}));
+  // Reproduce the old field: missing legacy summary text alongside six modern findings.
+  property.criteriaDetails = {risk_constraints:{raw:{},missingData:['Evidence authentication pending.']}};
+  let checks=0;
+  const check=(ok,message)=>{assert.ok(ok,message);checks++;};
+  const before=JSON.stringify(property);
+  const model=view.propertyHazardAssessment(property);
+  const summary=view.propertyHazardSummary(property);
+  check(model.recorded===6 && model.authenticated===0,'Six reported findings remain recorded when evidence authentication is pending.');
+  check(summary.includes('6 of 6 hazard findings recorded') && summary.includes('0 of 6 authenticated') && !summary.includes('Not assessed'),'A missing legacy hazard_status cannot hide modern findings.');
+  check(summary.includes('Flood: High') && summary.includes('Tsunami: High') && summary.includes('Technical review required'),'Essential high findings and the review hold remain visible.');
+  const canonical=structuredClone(property);canonical.criteriaDetails.risk_constraints.subcriteria=canonical.subcriterion_scores.risk_constraints;delete canonical.subcriterion_scores;
+  check(view.propertyHazardSummary(canonical)===summary,'Both supported subcriterion payload locations agree.');
+  const raw=Object.fromEntries(Object.entries(property.subcriterion_scores.risk_constraints).map(([key,value])=>[key,value.raw_status]));
+  check(view.propertyHazardAssessment({criteriaDetails:{risk_constraints:{raw}}}).recorded===6,'Exact raw findings remain usable without evaluated subcriteria.');
+  check(view.propertyHazardAssessment({parcel:{observations:raw}}).recorded===6,'Reported parcel observations are findings, not authenticated evidence.');
+  const none=Object.fromEntries(Object.keys(raw).map(key=>[key,{raw_status:'none',evidence_status:'reported_unverified'}]));
+  const zeroExposure={assessmentCriteria:{risk_constraints:100},subcriterion_scores:{risk_constraints:none}};
+  check(view.propertyHazardAssessment(zeroExposure).recorded===6 && view.propertyHazardSummary(zeroExposure).includes('No exposure reported'),'Explicit none findings count as recorded while remaining qualified as reports.');
+  const ratingOnly={assessmentCriteria:{risk_constraints:100}};
+  check(view.propertyHazardAssessment(ratingOnly).recorded===0 && view.propertyHazardSummary(ratingOnly).includes('Risk rating recorded; individual findings not recorded'),'A numerical rating alone cannot establish six findings or low risk.');
+  const partial={subcriterion_scores:{risk_constraints:{flood_susceptibility:{raw_status:'moderate'},active_fault:{raw_status:'none'}}}};
+  check(view.propertyHazardSummary(partial).includes('2 of 6 hazard findings recorded'),'Partial coverage does not become complete.');
+  const legacy={hazardScreening:{validated:true,flood:{status:'low',badge:'UNVERIFIED'},fault:{status:'none',badge:'UNVERIFIED'}}};
+  check(view.propertyHazardAssessment(legacy).recorded===2 && view.propertyHazardAssessment(legacy).authenticated===0,'Two older spatial findings cannot become six or authenticate themselves with an aggregate flag.');
+  const placeholders=Object.fromEntries(Object.keys(raw).map(key=>[key,{raw_status:null,status_label:'Not scored',score:100}]));
+  check(view.propertyHazardAssessment({...legacy,subcriterion_scores:{risk_constraints:placeholders}}).recorded===0,'Explicit missing current findings take precedence over stale legacy classifications.');
+  check(view.propertyHazardAssessment({subcriterion_scores:{risk_constraints:{flood_susceptibility:{raw_status:null,status_label:'Low susceptibility',score:85}}}}).recorded===0,'A stale descriptive label cannot override an explicitly missing raw finding.');
+  check(view.propertyHazardAssessment({subcriterion_scores:{risk_constraints:{flood_susceptibility:{raw_status:100,status_label:'Numeric score (100)',score:100}}}}).recorded===0,'A numeric subcriterion score does not invent a hazard classification.');
+  const staleAuth=structuredClone(property);staleAuth.hazardScreening={flood:{status:'low',evidence_status:'authenticated'}};
+  check(view.propertyHazardAssessment(staleAuth).authenticated===0,'A newer reported finding cannot borrow authentication from an older different finding.');
+  const verified=structuredClone(property);verified.subcriterion_scores.risk_constraints.flood_susceptibility.evidence_status='authenticated';
+  check(view.propertyHazardAssessment(verified).authenticated===1,'Authentication is counted for the matching individual finding.');
+  const forged=structuredClone(property);Object.values(forged.subcriterion_scores.risk_constraints).forEach(item=>item.is_verified=true);
+  check(view.propertyHazardAssessment(forged).authenticated===0,'Legacy verification booleans do not replace explicit evidence authentication.');
+  const extra=structuredClone(property);extra.subcriterion_scores.risk_constraints.extra={raw_status:'low'};
+  check(view.propertyHazardAssessment(extra).recorded===6,'Coverage counts only the six defined hazards.');
+  const freeform={criteriaDetails:{risk_constraints:{raw:{hazard_status:['high_flood_susceptibility']}}}};
+  check(view.propertyHazardSummary(freeform).includes('high flood susceptibility'),'Historical text findings remain readable without inventing six-indicator coverage.');
+  check(view.propertyHazardSummary({...zeroExposure,criteriaDetails:{environmental_safety:{raw:{environment_status:'further_review_required'}}}}).includes('Environmental screening: further review required'),'Modern hazard coverage retains separately recorded historical environmental findings.');
+  check(view.propertyHazardSummary({criteriaDetails:{risk_constraints:{missingData:['Review source']}}}).includes('0 of 6 hazard findings recorded'),'Missing requirements alone do not become hazard findings.');
+  const fact=comparison.comparisonModel([property]).facts.find(item=>item.label==='Hazard screening');
+  check(fact.values[0]===summary,'The comparison table uses the same finding and authentication logic as the details page.');
+
+  const root={innerHTML:''};
+  const sandbox={...view,...utils,URLSearchParams,location:{search:''},console,Intl,Set,Map,
+    localStorage:{getItem:()=>null,setItem(){}},document:{body:{dataset:{page:'city-compare'}},documentElement:{dataset:{investorView:'advanced'}},getElementById:id=>id==='cityCompareMatrix'?root:null,querySelectorAll:()=>[],addEventListener(){}},
+    window:{SFC_APP_CONFIG:{basePath:'/sfcelerate-bizstart',role:'guest'},SFCInvestorView:{refresh(){}},addEventListener(){}}};
+  const source=readFileSync('assets/js/city-workspace.js','utf8').replace(/^import .*;\r?\n/gm,'').split('initialize().catch(error => {')[0];
+  vm.createContext(sandbox);vm.runInContext(source+'\nglobalThis.drawHazardFixture=list=>{properties=list;compare=list.map(p=>p.id);renderCompare();};',sandbox);
+  sandbox.drawHazardFixture([property,{...zeroExposure,id:115,name:'Zambrano fixture'}]);
+  check(root.innerHTML.includes('6 of 6 hazard findings recorded') && root.innerHTML.includes('0 of 6 authenticated') && !root.innerHTML.includes('Hazard screening: Not assessed'),'The actual comparison-card renderer displays recorded findings, not the absent legacy summary.');
+  check(root.innerHTML.includes('Flood: High') && root.innerHTML.includes('Tsunami: High'),'High-hazard warnings stay visible in comparison cards.');
+  check(root.innerHTML.includes('<dt>Provisional IAI</dt><dd>82.0 / 100</dd>') && root.innerHTML.includes('Pending review · Technical review required'),'The card exposes the calculated IAI while retaining official review status.');
+  check(!root.innerHTML.match(/data-investor-advanced><dt>Hazards/),'Essential hazard findings are visible in the basic view.');
+  const hostile={id:999,name:'Hazard text fixture',criteriaDetails:{risk_constraints:{raw:{hazard_status:'<script>alert(1)</script>'}}}};sandbox.drawHazardFixture([hostile]);
+  check(root.innerHTML.includes('&lt;script&gt;') && !root.innerHTML.includes('<script>'),'Recorded review text is escaped in comparison cards.');
+  check(view.floodAndFireAssessmentMarkup(property).includes('6 / 6 findings recorded') && view.floodAndFireAssessmentMarkup(property).includes('0 of 6 findings have authenticated evidence'),'Comparison and the details hazard panel agree on both counts.');
+  check(JSON.stringify(property)===before,'Reading a hazard summary changes neither ratings nor release eligibility.');
+  console.log(`Comparison hazards: ${checks} payload, evidence, legacy and real-renderer checks passed.`);
+})().catch(error=>{console.error(error.stack);process.exit(1);});

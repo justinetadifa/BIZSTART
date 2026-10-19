@@ -22,9 +22,9 @@ const { resolve } = require('node:path');
     const calculation = view.assessmentCalculation(property);
     check(calculation.iai === null, `${label}: browser withholds IAI.`);
     const report = view.investorBriefReportMarkup(property);
-    check(report.includes('IAI: Withheld'), `${label}: PDF content withholds IAI.`);
+    check(report.includes('data-brief-released-iai>Pending review'), `${label}: PDF keeps official IAI release pending.`);
     check(!report.includes('5.4 km') && !report.includes('alluvial terrace'), `${label}: PDF invents no hazard findings.`);
-    check(report.includes(property.assessmentStatus.replaceAll('_', ' ')), `${label}: PDF names assessment status.`);
+    check(report.includes(view.assessmentPresentation(property, calculation).state), `${label}: PDF names the effective release status.`);
   }
   const report = view.investorBriefReportMarkup(complete);
   check(report.includes('IAI: 94.8 / 100') && report.includes('94.8 / 100'), 'PDF and server use the same displayed IAI.');
@@ -34,7 +34,7 @@ const { resolve } = require('node:path');
   check(view.investorBriefReportMarkup(fixture.conditional).includes('No actionable investment rank'), 'Conditional PDF does not imply clearance.');
   const bad = structuredClone(complete); bad.displayed_iai = 80; bad.iaiScore = 80;
   check(view.assessmentCalculation(bad).iai === null, 'Browser independently detects mismatched stored total.');
-  check(view.investorBriefReportMarkup(bad).includes('IAI: Withheld'), 'Discrepant PDF has no numeric fallback total.');
+  check(view.investorBriefReportMarkup(bad).includes('data-brief-iai-score>Pending'), 'Discrepant PDF has no numeric fallback total.');
   const badContribution = structuredClone(complete); badContribution.criteriaBreakdown[0].weighted_score = 99;
   // Contribution discrepancies must also be detected rather than printing conflicting tables.
   check(view.assessmentCalculation(badContribution).iai === null, 'Flagged contribution discrepancy withholds browser total.');
@@ -54,7 +54,7 @@ const { resolve } = require('node:path');
   const page = view.propertyDetailsMarkup({ ...complete, facilities: [], area: .01 }, options);
   check(page.includes('94.8') && page.includes('locusInvestorBrief'), 'Full details page renders the authoritative score and printable report.');
   const subtotalOnly = view.propertyDetailsMarkup({ ...complete, facilities: [], assessmentComplete: false, displayed_iai: null, iaiScore: null, assessmentStatus: 'incomplete' }, options);
-  check(subtotalOnly.includes('data-active-iai-score><strong>Withheld</strong>'), 'A physical subtotal never appears as the headline IAI.');
+  check(subtotalOnly.includes('PROVISIONAL INVESTMENT ATTRACTIVENESS INDEX') && subtotalOnly.includes('data-active-iai-composite-pill>Pending review</strong>'), 'A provisional calculation is distinguished from an official release.');
 
   // Exercise the asynchronous scenario consumer without a live server or browser dependency.
   const elements = new Map();
@@ -76,11 +76,13 @@ const { resolve } = require('node:path');
   check(element('#locusInvestorBrief').outerHTML.includes('IAI: 94.8 / 100'), 'Scenario and PDF share the returned result.');
   global.fetch = async () => ({ ok: true, json: async () => ({ assessment: fixture.held }) });
   await element('#investorProposedActivitySelect').listeners.change();
-  check(element('[data-scenario-total-iai]').textContent === 'Withheld', 'Held scenario stays withheld.');
-  check(element('#locusInvestorBrief').outerHTML.includes('technical review hold'), 'Scenario hold propagates to PDF.');
+  check(element('[data-scenario-total-iai]').textContent === view.assessmentPresentation(fixture.held).indexValue, 'A complete held scenario shows only a provisional calculation.');
+  check(element('#locusInvestorBrief').outerHTML.includes('data-brief-released-iai>Pending review'), 'A provisional scenario cannot release the printed IAI.');
+  check(element('#locusInvestorBrief').outerHTML.includes('Technical review required'), 'Scenario hold propagates to PDF.');
   global.fetch = async () => { throw new Error('Synthetic transport failure'); };
   await element('#investorProposedActivitySelect').listeners.change();
-  check(element('[data-scenario-total-iai]').textContent === 'Withheld', 'Transport failure cannot leave a previous numeric scenario total.');
-  check(element('#locusInvestorBrief').outerHTML.includes('IAI: Withheld'), 'Transport failure also withholds PDF total.');
+  check(element('[data-scenario-total-iai]').textContent === 'Pending', 'Transport failure cannot leave a previous numeric scenario total.');
+  check(element('#scenarioMainIaiCard [data-active-assessment-score]').innerHTML === '<strong>Pending</strong>', 'Transport failure cannot leave a previous scenario rating total in the headline.');
+  check(element('#locusInvestorBrief').outerHTML.includes('data-brief-released-iai>Pending review'), 'Transport failure also keeps official PDF release pending.');
   console.log(`LOCUS v3 presentation: ${checks} executable server/scenario/comparison/print checks passed.`);
 })().catch(error => { console.error(error.stack?.split('\n').slice(0, 5).join('\n') || error); process.exit(1); });

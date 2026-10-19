@@ -17,6 +17,47 @@ body[data-page="city-details"] .investor-view-intro p{font-size:11.5px!important
 body[data-page="city-details"] .investor-view-control{border-radius:9999px!important;background:#0f172a!important;padding:3px!important;box-shadow:0 2px 8px rgba(15,23,42,0.18)!important}
 body[data-page="city-details"] .investor-view-control button{font-size:11.5px!important;font-weight:700!important;padding:5px 14px!important;border-radius:9999px!important}
 
+@media screen {
+  html[data-investor-view-enabled="true"][data-investor-view="basic"] body[data-page="city-details"] .property-contact.property-executive-hub {
+    min-height: 0 !important;
+    align-self: start !important;
+    height: auto !important;
+    justify-content: flex-start !important;
+  }
+}
+
+@media screen and (max-width: 840px) {
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div:nth-child(2n) {
+    border-right: 0 !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div:nth-last-child(-n+2) {
+    border-bottom: 0 !important;
+  }
+}
+
+@media screen and (max-width: 840px) {
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div {
+    padding: 14px 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div:nth-child(2n) {
+    border-right: 0 !important;
+  }
+  body[data-page="city-details"] .property-interactive-view .property-summary-strip > div:nth-last-child(-n+2) {
+    border-bottom: 0 !important;
+  }
+}
+
 /* Grand Executive Property Header */
 .property-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:16px 0 22px}
 .property-kicker{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;line-height:1.5}
@@ -325,9 +366,20 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
     line-height: 1.45 !important;
   }
 
-  body[data-page="city-details"] .city-workspace {
+  /* Screen overflow-x rules create scroll containers and clip printed columns. */
+  html:has(body:is([data-page="city-details"], [data-page="city-investment-report"])),
+  body:is([data-page="city-details"], [data-page="city-investment-report"]),
+  body:is([data-page="city-details"], [data-page="city-investment-report"]) .city-workspace,
+  #cityPropertyDetails,
+  #investmentReportRoot {
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
   }
@@ -464,6 +516,10 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   .brief-score-panel.is-pending .brief-score { font-size: 29pt; letter-spacing: -.6pt; }
   .brief-score-panel .brief-pill { background: #334b5b; color: white; border-color: #74848d; margin-bottom: 3mm; }
   .brief-score-panel p { font-size: 9pt; line-height: 1.55; margin: 0; }
+  .brief-iai-value { display: block; font: bold 18pt/1.25 Georgia, serif; margin: 1.5mm 0 2mm; }
+  .brief-release-line { font-size: 7.5pt; line-height: 1.4; margin-bottom: 2mm; color: #d1dce1; }
+  .brief-scenario-snapshot { font-size: 8pt !important; line-height: 1.5; margin-bottom: 3mm; }
+  .brief-methodology { margin-top: 2mm !important; padding-top: 2mm; border-top: .5pt solid #cdd7db; }
   .brief-score-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .brief-coverage { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 3mm 0; margin-bottom: 4mm; border-bottom: .5pt solid #cdd7db; break-inside: avoid; }
   .brief-coverage > div + div { border-left: .5pt solid #dbe2e5; padding-left: 5mm; }
@@ -503,6 +559,15 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   .brief-map-link { display: flex; justify-content: space-between; padding: 3mm 0; font-size: 9pt; color: #365969; text-decoration: none; border-bottom: .5pt solid #cdd7db; margin-bottom: 3mm; }
   .brief-map-link span { font-size: 8pt; }
   .brief-small { font-size: 8pt !important; line-height: 1.6; color: #526473; }
+  #locusBriefPage2 .brief-score-panel { padding: 3.5mm; gap: 4mm; }
+  #locusBriefPage2 .brief-score-panel p { font-size: 8.5pt; }
+  #locusBriefPage2 .brief-score-panel .brief-pill { margin-bottom: 2mm; }
+  #locusBriefPage2 .brief-coverage { padding: 2mm 0; margin-bottom: 2mm; }
+  #locusBriefPage2 .locus-brief-assessment-table { margin-bottom: 3mm; font-size: 8.5pt; }
+  #locusBriefPage2 .locus-brief-assessment-table th, #locusBriefPage2 .locus-brief-assessment-table td { padding-top: 1.5mm; padding-bottom: 1.5mm; }
+  #locusBriefPage2 .brief-formula { padding: 2.5mm 4mm; margin-bottom: 2mm; }
+  #locusBriefPage2 .brief-scenario-snapshot { line-height: 1.4; margin-bottom: 2mm; }
+  #locusBriefPage2 .brief-methodology { font-size: 7.5pt !important; line-height: 1.4; margin-top: 1mm !important; padding-top: 1mm; }
   .brief-places { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 7mm; margin: 3mm 0 6mm; }
   .brief-places > div { display: flex; justify-content: space-between; gap: 3mm; border-bottom: .5pt solid #dce3e5; padding: 3mm 0; font-size: 9pt; break-inside: avoid; }
   .brief-places strong { white-space: nowrap; font-size: 8pt; color: #526473; }
@@ -522,6 +587,19 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   .brief-source-list code, .brief-comparison code { font: 7pt/1.6 Consolas, monospace; overflow-wrap: anywhere; }
   .brief-evidence pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 8pt/1.5 Consolas, monospace; background: #f1f4f4; padding: 4mm; }
   .brief-evidence { margin-bottom: 6mm; }
+  #locusBriefPage3 .brief-heading-row { margin-top: 3mm; }
+  #locusBriefPage3 .brief-note { padding: 2.5mm 3mm; margin: 2mm 0; }
+  #locusBriefPage3 .brief-table, #locusBriefPage3 .brief-facts { margin-bottom: 3mm; }
+  #locusBriefPage3 .brief-map-link { padding: 2mm 0; margin-bottom: 2mm; }
+  #locusBriefPage4 .brief-note { padding: 2.5mm 3mm; }
+  #locusBriefPage4 .brief-heading-row { margin-top: 3mm; }
+  #locusBriefPage4 .brief-places { margin: 2mm 0 3mm; }
+  #locusBriefPage4 .brief-places > div { padding: 2mm 0; }
+  #locusBriefPage4 .brief-next-title { margin-top: 2mm !important; }
+  #locusBriefPage4 .brief-checklist { margin-bottom: 3mm; }
+  #locusBriefPage4 .brief-checklist li { padding: 1.5mm 0; }
+  #locusBriefPage4 .brief-contact { padding: 2.5mm 4mm; }
+  #locusBriefPage4 .brief-source-list li { padding: 1.3mm 0; }
 }
 
 
@@ -600,60 +678,94 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   margin: 0 0 18px 0;
 }
 
-.property-scenario-controls {
+/* Framework Strip and Pills */
+.property-scenario-header-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.property-scenario-district-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: #0f766e;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+}
+
+.property-scenario-framework-strip {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  align-items: end;
+  margin-top: 14px;
   margin-bottom: 20px;
-}
-
-.property-scenario-controls label {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 650;
-  color: #0f172a;
-  margin-bottom: 6px;
-}
-
-.property-scenario-select {
-  width: 100%;
-  min-height: 44px;
-  padding: 9px 14px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #1e293b;
-  background-color: #ffffff;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: all 0.18s ease;
-  cursor: pointer;
-}
-
-.property-scenario-select:focus {
-  outline: none;
-  border-color: #0071e3 !important;
-  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15) !important;
-}
-
-.property-scenario-reset-btn {
-  min-height: 44px;
-  padding: 9px 18px;
-  font-size: 13px;
-  font-weight: 650;
-  border-radius: 10px;
-  border: 1.5px solid #cbd5e1;
-  background: #ffffff;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.property-scenario-reset-btn:hover {
+  padding: 12px 16px;
   background: #f8fafc;
-  border-color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.framework-strip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.framework-strip-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.framework-strip-icon.is-gate {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.framework-strip-icon.is-mce {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.framework-strip-icon.is-incentive {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.framework-strip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.framework-strip-text strong {
+  font-size: 12px;
   color: #0f172a;
+  font-weight: 700;
+}
+
+.framework-strip-text span {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.property-scenario-field-hint {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+  line-height: 1.35;
 }
 
 /* Outcome Box */
@@ -840,47 +952,69 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
 
 /* PART A, B, C UNIFIED INVESTOR SUITE */
 .property-scenario-controls {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  align-items: flex-end;
   margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.property-scenario-controls-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .property-scenario-field-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 
 .property-scenario-field-group label {
-  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #334155;
 }
 
+.property-scenario-field-group label svg {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
 .property-scenario-select,
 .property-scenario-input {
   width: 100%;
+  min-height: 44px;
   padding: 10px 14px;
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid #cbd5e1;
   border-radius: 10px;
   font-size: 13.5px;
   font-family: inherit;
+  font-weight: 500;
   color: #0f172a;
   background: #ffffff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.18s ease;
   box-sizing: border-box;
+}
+
+.property-scenario-select {
+  cursor: pointer;
+  appearance: auto;
 }
 
 .property-scenario-select:focus,
 .property-scenario-input:focus {
   outline: none;
-  border-color: #11224d;
-  box-shadow: 0 0 0 3px rgba(17, 34, 77, 0.12);
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .property-currency-input-wrap,
@@ -888,68 +1022,142 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .property-currency-input-wrap .currency-prefix {
   position: absolute;
-  left: 12px;
-  font-size: 14px;
+  left: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #64748b;
   pointer-events: none;
+  z-index: 2;
+  user-select: none;
 }
 
-.property-currency-input-wrap .property-scenario-input {
-  padding-left: 28px;
+.property-currency-input-wrap .property-scenario-input,
+.property-currency-input-wrap input.property-scenario-input,
+#investorProposedCapitalInput {
+  padding-left: 36px !important;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.property-capital-presets {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.property-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 650;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.property-preset-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+.property-preset-btn.is-active {
+  background: #11224d;
+  color: #ffffff;
+  border-color: #11224d;
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.2);
 }
 
 .property-scenario-hint {
   font-size: 11px;
   color: #64748b;
-  line-height: 1.35;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.property-scenario-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.property-scenario-action-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
 }
 
 .property-scenario-btn-group {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .property-scenario-eval-btn {
-  padding: 11px 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
   background: #11224d;
   color: #ffffff;
   border: 1px solid #11224d;
   border-radius: 10px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.15);
 }
 
 .property-scenario-eval-btn:hover {
   background: #1e3a8a;
   border-color: #1e3a8a;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(17, 34, 77, 0.2);
+  box-shadow: 0 4px 14px rgba(17, 34, 77, 0.25);
+}
+
+.property-scenario-eval-btn:active {
+  transform: translateY(0);
 }
 
 .property-scenario-reset-btn {
-  padding: 11px 16px;
-  background: #f1f5f9;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #ffffff;
   color: #475569;
-  border: 1px solid #cbd5e1;
+  border: 1.5px solid #cbd5e1;
   border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 650;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
 }
 
 .property-scenario-reset-btn:hover {
-  background: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #94a3b8;
   color: #0f172a;
 }
 
@@ -1126,6 +1334,12 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
 /* Responsive Viewports: 360px, 390px, 768px, 1440px */
 @media (max-width: 768px) {
   .property-scenario-controls {
+    grid-template-columns: 1fr;
+  }
+  .property-scenario-controls-grid {
+    grid-template-columns: 1fr;
+  }
+  .property-scenario-framework-strip {
     grid-template-columns: 1fr;
   }
   .property-scenario-btn-group {

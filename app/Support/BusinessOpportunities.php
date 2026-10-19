@@ -437,9 +437,12 @@ final class BusinessOpportunities
             $rawNearby = $property['nearbyBusinesses'] ?? null;
             if (!is_array($rawNearby) || empty($rawNearby)) {
                 // Discover from verified directory
-                $rawNearby = NearbyBusinesses::find($lat, $lng, 50, $radiusMeters);
+                $rawNearby = NearbyBusinesses::find($property, null, 50, $radiusMeters);
             }
             foreach ($rawNearby as $p) {
+                if (NearbyBusinesses::isSubjectEstablishment($property, $p)) {
+                    continue;
+                }
                 $pLat = (float) ($p['lat'] ?? 0.0);
                 $pLng = (float) ($p['lng'] ?? 0.0);
                 if (!is_finite($pLat) || !is_finite($pLng) || ($pLat === 0.0 && $pLng === 0.0)) {

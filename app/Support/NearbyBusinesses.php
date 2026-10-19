@@ -338,7 +338,52 @@ final class NearbyBusinesses
 
     private static function normalizedName(string $name): string
     {
-        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', strtolower($name)));
+        $name = preg_replace("/['’`]/u", '', strtolower($name));
+        return trim((string) preg_replace('/[^a-z0-9]+/', ' ', (string) $name));
+    }
+
+    /** Match the subject by establishment identity, or a nearby matching name. */
+    public static function isSubjectEstablishment(array $property, array $entry): bool
+    {
+        // A listing id and a business id belong to different namespaces.
+        foreach (['osm_id', 'bplo_no', 'establishment_id'] as $key) {
+            $subjectId = trim((string) ($property[$key] ?? ''));
+            $placeId = trim((string) ($entry[$key] ?? ($key === 'establishment_id' ? ($entry['id'] ?? '') : '')));
+            if ($subjectId !== '' && $subjectId === $placeId) {
+                return true;
+            }
+        }
+        foreach (['lat', 'lng'] as $key) {
+            if (!is_numeric($property[$key] ?? null) || !is_numeric($entry[$key] ?? null)
+                || !is_finite((float) $property[$key]) || !is_finite((float) $entry[$key])
+                || abs((float) $property[$key]) > ($key === 'lat' ? 90 : 180)
+                || abs((float) $entry[$key]) > ($key === 'lat' ? 90 : 180)) {
+                return false;
+            }
+        }
+        $distance = self::distance((float) $property['lat'], (float) $property['lng'], (float) $entry['lat'], (float) $entry['lng']);
+        $withinFootprint = !empty($entry['footprint']['coordinates'])
+            && SurroundingsRadar::polygonDistance($entry['footprint']['coordinates'], (float) $property['lat'], (float) $property['lng']) <= 5.0;
+        if ($distance > 120.0 && !$withinFootprint) {
+            return false;
+        }
+        $canonical = static function (string $name): string {
+            $name = self::normalizedName($name);
+            $name = preg_replace('/(?:\s+(?:land|lot|property|site|building|college|school|inc|corporation|corp|campus))+$/', '', $name);
+            return str_replace(' ', '', (string) $name);
+        };
+        $placeName = $canonical((string) ($entry['name'] ?? ''));
+        $genericNames = ['commercial', 'residential', 'industrial', 'property', 'building', 'school', 'college', 'business', 'vacantland', 'commercialspace', 'warehouse', 'office', 'untitled'];
+        if (strlen($placeName) < 6 || in_array($placeName, $genericNames, true)) {
+            return false;
+        }
+        foreach (['name', 'subname', 'propertySubname', 'establishment_name', 'business_name'] as $key) {
+            $name = $canonical((string) ($property[$key] ?? ''));
+            if (strlen($name) >= 6 && $name === $placeName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static function representativePoint(array $feature): ?array
@@ -446,17 +491,16 @@ final class NearbyBusinesses
             ];
         }
 
-        $isCompetitor = ($proposedActivity !== '' && $proposedActivity !== 'general' && (
-            $categoryKey === $proposedActivity
-            || str_contains($category, $proposedActivity)
-            || str_contains($proposedActivity, $categoryKey)
-        ));
+        if (in_array($proposedActivity, ['', 'general', 'commercial', 'land', 'unspecified'], true)) {
+            return ['classification' => 'nearby_place', 'classificationLabel' => 'Nearby place', 'isAnchor' => false];
+        }
 
-        return [
-            'classification' => $isCompetitor ? 'competitor' : 'complementary',
-            'classificationLabel' => $isCompetitor ? 'Direct Competitor' : 'Complementary Business',
-            'isAnchor' => false,
-        ];
+        $classified = SurroundingsRadar::classifyEstablishment(
+            array_merge($properties, ['businessType' => $categoryKey]), $proposedActivity
+        );
+        return $classified['classification'] === 'other'
+            ? ['classification' => 'nearby_place', 'classificationLabel' => 'Nearby place', 'isAnchor' => false]
+            : $classified;
     }
 
     /**
@@ -519,7 +563,7 @@ final class NearbyBusinesses
      * @param string|null $proposedActivity
      * @return array
      */
-    public static function find(array|float $propertyOrLat, ?float $lng = null, int $limit = 8, float $radiusMeters = 2000.0, ?string $proposedActivity = null): array
+    public static function find(array|float $propertyOrLat, ?float $lng = null, int $limit = 8, float $radiusMeters = 2000.0, ?string $proposedActivity = null, ?string $dataDirectory = null): array
     {
         if (is_array($propertyOrLat)) {
             $lat = (float) ($propertyOrLat['lat'] ?? 0);
@@ -531,14 +575,17 @@ final class NearbyBusinesses
             $proposedActivity = $proposedActivity ?? 'general';
         }
 
-        if ($lat === 0.0 || $lng === 0.0 || !is_finite($lat) || !is_finite($lng)) {
+        if ($lat === 0.0 || $lng === 0.0 || !is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
             return [];
         }
 
-        $directory = self::directory();
+        $directory = self::directory($dataDirectory);
         $matches = [];
 
         foreach ($directory as $entry) {
+            if (is_array($propertyOrLat) && self::isSubjectEstablishment($propertyOrLat, $entry)) {
+                continue;
+            }
             $dist = self::distance($lat, $lng, $entry['lat'], $entry['lng']);
             if (!empty($entry['footprint']['coordinates'])) {
                 $polyDist = SurroundingsRadar::polygonDistance($entry['footprint']['coordinates'], $lat, $lng);

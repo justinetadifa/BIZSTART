@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 require_once __DIR__ . '/NearbyBusinessScreening.php';
+require_once __DIR__ . '/NearbyBusinesses.php';
 
 use InvalidArgumentException;
 use RuntimeException;
@@ -15,11 +16,10 @@ final class SurroundingsRadar
 
     private const OVERPASS_MIRRORS = [
         'https://overpass-api.de/api/interpreter',
-        'https://lz4.overpass-api.de/api/interpreter',
-        'https://z.overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter',
         'https://overpass.private.coffee/api/interpreter',
     ];
+    private const LIVE_TIMEOUT_MS = 3500;
 
     /**
      * Compute Haversine distance in meters between two lat/lng coordinates.
@@ -82,6 +82,11 @@ final class SurroundingsRadar
         $cacheKey = sprintf('radar_v2_%.6f_%.6f_%d.json', $lat, $lng, $radiusMeters);
         $cachePath = $cacheDir . '/' . $cacheKey;
         $now = time();
+        $inventory = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir, $businessType);
+        $saved = self::loadSavedRecords($cacheDir, $lat, $lng, $radiusMeters);
+        $localRoads = self::loadLocalRoads($dataDir, $lat, $lng, $radiusMeters);
+        $localFeatures = self::mergeEstablishments($inventory, $saved['features']);
+        $savedRoads = self::mergeRoads($localRoads, $saved['roads']);
 
         // 1. Check fresh cache (valid for 24 hours)
         if (!$localOnly && is_file($cachePath)) {
@@ -89,8 +94,12 @@ final class SurroundingsRadar
             $raw = @file_get_contents($cachePath);
             if ($raw !== false) {
                 $cached = json_decode($raw, true);
-                if (is_array($cached) && isset($cached['features'])) {
-                    if (($now - $mtime) < 86400) {
+                if (is_array($cached) && is_array($cached['features'] ?? null)) {
+                    // An earlier failed refresh is not a successful 24-hour live cache.
+                    if (empty($options['force_refresh']) && ($now - $mtime) < 86400 && ($cached['coverage'] ?? '') !== 'local_only'
+                        && empty($cached['liveUnavailable'])) {
+                        $cached['features'] = self::mergeEstablishments($inventory, self::mergeEstablishments($cached['features'], $saved['features']));
+                        $cached['roads']['geojson']['features'] = self::mergeRoads($cached['roads']['geojson']['features'] ?? [], $savedRoads);
                         $cached['cached'] = true;
                         $cached['stale'] = false;
                         return self::frameResult($cached, $lat, $lng, $radiusMeters, $businessType);
@@ -110,9 +119,6 @@ final class SurroundingsRadar
             $osmData = null;
         }
 
-        // 3. Load local verified records
-        $localFeatures = self::loadLocalRecords($lat, $lng, $radiusMeters, $dataDir, $businessType);
-
         // 4. Stale cache fallback if live Overpass failed
         if ($osmData === null && !$localOnly) {
             $fallbackFile = is_file($cachePath) ? $cachePath : null;
@@ -120,11 +126,13 @@ final class SurroundingsRadar
                 $raw = @file_get_contents($fallbackFile);
                 if ($raw !== false) {
                     $cached = json_decode($raw, true);
-                    if (is_array($cached) && isset($cached['features'])) {
+                    if (is_array($cached) && is_array($cached['features'] ?? null)) {
                         // Merge local inventory features with cached records
                         $cached['features'] = self::mergeEstablishments($localFeatures, $cached['features']);
+                        $cached['roads']['geojson']['features'] = self::mergeRoads($cached['roads']['geojson']['features'] ?? [], $savedRoads);
                         $cached['cached'] = true;
                         $cached['stale'] = true;
+                        $cached['liveUnavailable'] = true;
                         $cached['warning'] = 'Showing older mapped records. Live nearby data is unavailable; operating status and inventory completeness are unverified.';
                         return self::frameResult($cached, $lat, $lng, $radiusMeters, $businessType);
                     }
@@ -133,7 +141,7 @@ final class SurroundingsRadar
         }
 
         // If Overpass failed and we have no cache and no local records, return clean empty result
-        if ($osmData === null && empty($localFeatures)) {
+        if ($osmData === null && empty($localFeatures) && empty($savedRoads)) {
             return self::frameResult([
                 'type' => 'FeatureCollection',
                 'features' => [],
@@ -153,6 +161,7 @@ final class SurroundingsRadar
                 'cached' => false,
                 'stale' => false,
                 'coverage' => 'local_only',
+                'liveUnavailable' => !$localOnly,
                 'warning' => $localOnly ? 'The local inventory has no matches. Live mapping is checked separately; this is not proof of zero businesses.' : 'Live nearby data is unavailable and the local inventory has no matches. This does not establish zero businesses in the area.',
             ], $lat, $lng, $radiusMeters, $businessType);
         }
@@ -161,35 +170,40 @@ final class SurroundingsRadar
         $parsed = self::parseOsmElements($osmData['elements'] ?? [], $lat, $lng, $radiusMeters);
 
         // 6. Merge local verified records with OSM establishments (deduplicate)
-        $allEstablishments = self::mergeEstablishments($localFeatures, $parsed['establishments']);
+        // Current local inventory and new live observations take precedence over older map records.
+        $allEstablishments = self::mergeEstablishments(self::mergeEstablishments($inventory, $parsed['establishments']), $saved['features']);
+        $allRoads = self::mergeRoads($parsed['roads'], $savedRoads);
+        $hasSaved = $saved['features'] !== [] || $savedRoads !== [];
 
         $result = [
             'type' => 'FeatureCollection',
             'features' => $allEstablishments,
             'roads' => [
-                'status' => !empty($parsed['roads']) ? 'Available' : ($osmData !== null ? 'None nearby' : 'Unavailable'),
+                'status' => !empty($allRoads) ? 'Available' : ($osmData !== null ? 'None nearby' : 'Unavailable'),
                 'geojson' => [
                     'type' => 'FeatureCollection',
-                    'features' => $parsed['roads'],
+                    'features' => $allRoads,
                 ],
-                'source' => $osmData !== null ? 'OpenStreetMap contributors (via Overpass API)' : 'Local commercial inventory',
-                'date' => gmdate('Y-m-d'),
+                'source' => $osmData !== null && !empty($parsed['roads']) ? 'OpenStreetMap contributors (via Overpass API)' : (!empty($allRoads) ? 'DPWH Region 1 / San Fernando City Road Network' : ($hasSaved ? 'Saved map records' : 'Local commercial inventory')),
+                'date' => $osmData === null && $hasSaved ? $saved['date'] : gmdate('Y-m-d'),
             ],
             'center' => [$lat, $lng],
             'radius' => $radiusMeters,
-            'source' => $osmData !== null ? 'OpenStreetMap & local commercial inventory' : 'Local commercial inventory',
-            'retrievalDate' => gmdate('Y-m-d'),
-            'cached' => false,
-            'stale' => false,
+            'source' => $osmData !== null ? 'OpenStreetMap & local commercial inventory' : ($hasSaved ? 'Local inventory & saved map records' : 'Local commercial inventory'),
+            'retrievalDate' => $osmData === null && $hasSaved ? $saved['date'] : gmdate('Y-m-d'),
+            'cached' => $hasSaved,
+            'stale' => $osmData === null && $saved['stale'],
+            'liveUnavailable' => !$localOnly && ($osmData === null || !empty($osmData['remark'])),
             'coverage' => $osmData !== null ? 'mapped_only' : 'local_only',
-            'warning' => $localOnly ? 'Showing local inventory records. Live mapping is checked separately; coverage is incomplete.' : ($osmData === null ? 'Live nearby data is unavailable. Showing matches from the local inventory; coverage is incomplete.'
+            'warning' => $localOnly ? 'Showing available local and saved map records. Live mapping is checked separately; coverage is incomplete.' : ($osmData === null ? 'Live nearby data is unavailable. Showing local and saved map records with their original dates; coverage is incomplete.'
                 : (!empty($osmData['remark']) ? 'The map provider returned partial results. Nearby inventory and operating status remain unverified.' : null)),
         ];
         $result = self::frameResult($result, $lat, $lng, $radiusMeters, $businessType);
 
         // Save to cache
-        if (!$localOnly) {
-            @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        // Provider outages, partial responses, or empty responses must never replace the last successful map snapshot.
+        if (!$localOnly && $osmData !== null && empty($osmData['remark']) && (!empty($result['features']) || !empty($result['roads']['geojson']['features'] ?? []))) {
+            @file_put_contents($cachePath, json_encode($result, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), LOCK_EX);
         }
 
         return $result;
@@ -211,32 +225,100 @@ final class SurroundingsRadar
             $buffer, $lat, $lng
         );
 
-        $lastError = 'Overpass mirrors unreachable';
-        $mirrors = array_slice(self::OVERPASS_MIRRORS, 0, 1);
-        foreach ($mirrors as $mirror) {
-            $ch = curl_init($mirror);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 2);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 1);
-            curl_setopt($ch, CURLOPT_USERAGENT, 'LOCUS-SF-Radar/1.0 (San Fernando La Union Urban Intelligence; contact@sfcelerate.local)');
-            curl_setopt($ch, CURLOPT_POSTFIELDS, 'data=' . urlencode($query));
-
-            $response = curl_exec($ch);
-            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-            curl_close($ch);
-
-            if ($statusCode === 200 && is_string($response) && $response !== '') {
-                $decoded = json_decode($response, true);
-                if (is_array($decoded) && is_array($decoded['elements'] ?? null)) {
-                    return $decoded;
-                }
+        if (!function_exists('curl_multi_init')) { throw new RuntimeException('Live mapping is unavailable.'); }
+        $multi = curl_multi_init();
+        $handles = [];
+        $partial = null;
+        try {
+            // Race independent providers under one deadline instead of a two-second single-provider cutoff.
+            foreach (self::OVERPASS_MIRRORS as $mirror) {
+                $handle = curl_init($mirror);
+                curl_setopt_array($handle, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT_MS => self::LIVE_TIMEOUT_MS,
+                    CURLOPT_CONNECTTIMEOUT_MS => 2500, CURLOPT_USERAGENT => 'LOCUS-SF-Radar/1.0 (San Fernando La Union Urban Intelligence; contact@sfcelerate.local)',
+                    CURLOPT_POSTFIELDS => 'data=' . urlencode($query)]);
+                curl_multi_add_handle($multi, $handle);
+                $handles[] = $handle;
             }
-
-            $lastError = "Overpass error ($mirror HTTP $statusCode" . ($curlError ? ": $curlError" : '') . ")";
+            $deadline = microtime(true) + self::LIVE_TIMEOUT_MS / 1000;
+            do {
+                $status = curl_multi_exec($multi, $running);
+                if ($status !== CURLM_OK) { break; }
+                while ($info = curl_multi_info_read($multi)) {
+                    $handle = $info['handle'];
+                    if ($info['result'] !== CURLE_OK || curl_getinfo($handle, CURLINFO_HTTP_CODE) !== 200) { continue; }
+                    $decoded = json_decode((string) curl_multi_getcontent($handle), true);
+                    if (!is_array($decoded) || !is_array($decoded['elements'] ?? null)) { continue; }
+                    if (empty($decoded['remark'])) { return $decoded; }
+                    $partial ??= $decoded;
+                }
+                if ($running && microtime(true) < $deadline && curl_multi_select($multi, .1) === -1) { usleep(20000); }
+            } while ($running && microtime(true) < $deadline);
+            if ($partial !== null) { return $partial; }
+            throw new RuntimeException('Live map providers did not return usable records within the search deadline.');
+        } finally {
+            foreach ($handles as $handle) { curl_multi_remove_handle($multi, $handle); curl_close($handle); }
+            curl_multi_close($multi);
         }
+    }
 
-        throw new RuntimeException($lastError);
+    /** Reuse saved geometry across nearby search points, always recalculating distances and roles. */
+    private static function loadSavedRecords(string $cacheDir, float $lat, float $lng, int $radiusMeters): array
+    {
+        $files = glob($cacheDir . '/*.json') ?: [];
+        usort($files, static fn (string $a, string $b): int => (filemtime($b) ?: 0) <=> (filemtime($a) ?: 0));
+        $features = $roads = [];
+        $date = null;
+        $stale = false;
+        foreach ($files as $file) {
+            $saved = json_decode((string) @file_get_contents($file), true);
+            if (!is_array($saved) || !is_array($saved['features'] ?? null)) { continue; }
+            if (empty($saved['features']) && empty($saved['roads']['geojson']['features'] ?? [])) { continue; }
+            $origin = $saved['center'] ?? null;
+            $extent = $saved['radius'] ?? $saved['radiusMeters'] ?? null;
+            if (is_array($origin) && count($origin) === 2 && is_numeric($origin[0]) && is_numeric($origin[1]) && is_numeric($extent)
+                && self::distance($lat, $lng, (float) $origin[0], (float) $origin[1]) > $radiusMeters + (float) $extent + 30) { continue; }
+            $savedDate = is_string($saved['retrievalDate'] ?? null) ? $saved['retrievalDate'] : gmdate('Y-m-d', filemtime($file) ?: time());
+            $used = false;
+            foreach ($saved['features'] as $feature) {
+                if (!is_array($feature) || ($feature['type'] ?? '') !== 'Feature' || !is_array($feature['properties'] ?? null)
+                    || self::featureRepresentativePoint($feature) === null || self::isClosed($feature['properties'])
+                    || self::featureDistance($feature, $lat, $lng) > $radiusMeters + .000001) { continue; }
+                $feature['properties']['distanceMeters'] = round(self::featureDistance($feature, $lat, $lng), 1);
+                $feature['properties']['source'] ??= 'Saved mapped place record';
+                $feature['properties']['checkedOn'] ??= $savedDate;
+                $feature['properties']['cached'] = true;
+                $feature['properties']['verified'] = false;
+                $features[] = $feature;
+                $used = true;
+            }
+            foreach ($saved['roads']['geojson']['features'] ?? [] as $road) {
+                if (!is_array($road) || !is_array($road['properties'] ?? []) || ($distance = self::roadDistance($road, $lat, $lng)) === null || $distance > $radiusMeters + .000001) { continue; }
+                $road['properties']['distanceMeters'] = round($distance, 1);
+                $road['properties']['source'] ??= 'Saved mapped road record';
+                $road['properties']['checkedOn'] ??= $savedDate;
+                $road['properties']['cached'] = true;
+                $roads[] = $road;
+                $used = true;
+            }
+            if ($used) {
+                $date = $date === null || strcmp($savedDate, $date) < 0 ? $savedDate : $date;
+                $stale = $stale || !empty($saved['stale']) || (strtotime($savedDate) ?: 0) < time() - 86400;
+            }
+        }
+        return ['features' => self::mergeEstablishments($features, []), 'roads' => self::mergeRoads($roads, []), 'date' => $date, 'stale' => $stale];
+    }
+
+    private static function mergeRoads(array $primary, array $fallback): array
+    {
+        $seen = $roads = [];
+        foreach (array_merge($primary, $fallback) as $road) {
+            if (!is_array($road) || !is_array($road['geometry'] ?? null)) { continue; }
+            $key = (string) ($road['id'] ?? $road['properties']['id'] ?? hash('sha256', json_encode($road['geometry'])));
+            if (isset($seen[$key])) { continue; }
+            $seen[$key] = true;
+            $roads[] = $road;
+        }
+        return $roads;
     }
 
     private static function loadLocalRecords(float $lat, float $lng, int $radiusMeters, ?string $dataDir = null, string $businessType = 'cafe'): array
@@ -332,7 +414,62 @@ final class SurroundingsRadar
             }
         }
 
+        // 4. Check NearbyBusinesses::directory() as robust local foundation
+        if (class_exists(NearbyBusinesses::class)) {
+            $dir = NearbyBusinesses::directory($dataDir);
+            foreach ($dir as $biz) {
+                $f = [
+                    'type' => 'Feature',
+                    'id' => $biz['id'] ?? null,
+                    'geometry' => [
+                        'type' => 'Point',
+                        'coordinates' => [(float) $biz['lng'], (float) $biz['lat']],
+                    ],
+                    'properties' => array_merge($biz, [
+                        'source' => $biz['source'] ?? 'Verified Commercial Directory',
+                        'verified' => true,
+                        'operating_status' => $biz['status'] ?? 'operating',
+                        'businessType' => $biz['categoryKey'] ?? $biz['category'] ?? 'commercial',
+                    ]),
+                ];
+                $addFeature($f, $biz['source'] ?? 'Verified Commercial Directory', $biz['categoryKey'] ?? 'commercial');
+            }
+        }
+
         return $results;
+    }
+
+    public static function loadLocalRoads(?string $dataDir, float $lat, float $lng, int $radiusMeters): array
+    {
+        $dataDir ??= dirname(__DIR__, 2) . '/data';
+        $roadFile = $dataDir . '/assessment/roads.geojson';
+        if (!is_file($roadFile)) {
+            return [];
+        }
+        $raw = @file_get_contents($roadFile);
+        if ($raw === false) {
+            return [];
+        }
+        $data = json_decode($raw, true);
+        if (!is_array($data) || !isset($data['features']) || !is_array($data['features'])) {
+            return [];
+        }
+        $roads = [];
+        foreach ($data['features'] as $road) {
+            if (!is_array($road) || !is_array($road['properties'] ?? [])) {
+                continue;
+            }
+            $distance = self::roadDistance($road, $lat, $lng);
+            if ($distance === null || $distance > ($radiusMeters + 50.0)) {
+                continue;
+            }
+            $road['properties']['distanceMeters'] = round($distance, 1);
+            $road['properties']['status'] = 'Available';
+            $road['properties']['source'] = $road['properties']['source'] ?? 'DPWH Region 1 / San Fernando City Road Network';
+            $road['properties']['verified'] = true;
+            $roads[] = $road;
+        }
+        return $roads;
     }
 
     private static function parseOsmElements(array $elements, float $centerLat, float $centerLng, int $radiusMeters): array

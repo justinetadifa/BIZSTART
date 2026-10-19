@@ -73,6 +73,7 @@ final class AutomaticPropertyAssessment
             'criteria_details' => $metadata['criteriaDetails'] ?? [],
             'stored_iai' => $metadata['displayed_iai'] ?? null,
             'assessed_at' => $metadata['assessed_at'] ?? null,
+            'preview_only' => true,
         ]);
         } catch (DomainException $error) {
             $safe = PropertyAssessment::scores([]);
@@ -112,6 +113,7 @@ final class AutomaticPropertyAssessment
             'zoning_district' => $property['clupProfile']['zoningClassification'] ?? $property['eligibility']['district'] ?? '',
             'weights' => $current ? $property['weight_configuration'] : PropertyAssessment::WEIGHTS,
             'criteria_details' => $current ? ($property['criteriaDetails'] ?? []) : [],
+            'preview_only' => true,
         ]);
         if (!empty($property['discrepancy_detected'])) {
             foreach (['displayed_iai', 'iaiScore', 'mceScore', 'iai', 'iai_score', 'mce_score'] as $key) { $result[$key] = null; }

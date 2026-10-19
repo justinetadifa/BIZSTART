@@ -162,6 +162,114 @@
                     16.612
                 ]
             }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Oasis Country Resort",
+                "category": "Hotel",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1180",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3212,
+                    16.5815
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Southside Cafe & Bakery",
+                "category": "Restaurant",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1181",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3215,
+                    16.5794
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "7-Eleven Pagdalagan",
+                "category": "Convenience Store",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1182",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3221,
+                    16.5798
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Asis Auto Repair & Vulcanizing Shop",
+                "category": "Auto Supply & Parts",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1183",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3223,
+                    16.5785
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Petron Station Pagdalagan",
+                "category": "Fuel Station",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1184",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3226,
+                    16.5778
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pimentel Commercial Complex",
+                "category": "Commercial Mall & Plaza",
+                "operating_status": "operating",
+                "bplo_no": "BPLO-2026-1185",
+                "barangay": "Pagdalagan",
+                "address": "MacArthur Highway, Pagdalagan Norte, San Fernando City"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    120.3222,
+                    16.5806
+                ]
+            }
         }
     ]
 }

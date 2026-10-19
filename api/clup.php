@@ -13,6 +13,8 @@ api_handle(function (array $container): array {
         $conditions = is_array($_GET['conditions'] ?? null) ? $_GET['conditions'] : [];
         return [
             'evaluation' => \App\Support\ZoningRulesEngine::evaluate($zone, $act, $conditions),
+            'screeningOnly' => true,
+            'evidenceStatus' => 'UNVERIFIED',
             'engineVersion' => \App\Support\ZoningRulesEngine::VERSION,
             'sourcePriority' => 1,
             'generatedAt' => gmdate(DATE_ATOM),
@@ -34,6 +36,8 @@ api_handle(function (array $container): array {
         $conditions = is_array($input['conditions'] ?? null) ? $input['conditions'] : [];
         return [
             'evaluation' => \App\Support\ZoningRulesEngine::evaluate($zone, $act, $conditions),
+            'screeningOnly' => true,
+            'evidenceStatus' => 'UNVERIFIED',
             'engineVersion' => \App\Support\ZoningRulesEngine::VERSION,
             'sourcePriority' => 1,
             'generatedAt' => gmdate(DATE_ATOM),

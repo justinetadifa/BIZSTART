@@ -41,7 +41,7 @@
     "Narra Este": { "psgc": "013314036", "psgc10": "0103314036", "lat": 16.586982, "lng": 120.343877, "district": "Southeast Rural" },
     "Narra Oeste": { "psgc": "013314037", "psgc10": "0103314037", "lat": 16.590241, "lng": 120.338802, "district": "South Rural" },
     "Pacpaco": { "psgc": "013314038", "psgc10": "0103314038", "lat": 16.614559, "lng": 120.416951, "district": "Eastern Highlands" },
-    "Pagdalagan": { "psgc": "013314039", "psgc10": "0103314039", "lat": 16.578966, "lng": 120.321938, "district": "South Highway" },
+    "Pagdalagan": { "psgc": "013314039", "psgc10": "0103314039", "lat": 16.578966, "lng": 120.321938, "district": "South Highway", "aliases": ["Pagdalagan Norte"] },
     "Pagdaraoan": { "psgc": "013314040", "psgc10": "0103314040", "lat": 16.6232, "lng": 120.3198, "district": "North Urban" },
     "Pagudpud": { "psgc": "013314041", "psgc10": "0103314041", "lat": 16.609, "lng": 120.3305, "district": "East Urban" },
     "Pao Norte": { "psgc": "013314042", "psgc10": "0103314042", "lat": 16.603691, "lng": 120.392275, "district": "Eastern Highlands" },

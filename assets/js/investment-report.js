@@ -1,4 +1,4 @@
-import { investorBriefReportMarkup } from './property-details-view.js';
+import { investorBriefReportMarkup, setupPropertyDetailsPrint } from './property-details-view.js';
 import { potentialIncentive } from './investment-policy.js';
 
 const config = window.SFC_APP_CONFIG || {};
@@ -25,9 +25,11 @@ async function render() {
   const assessment = (await read(`${config.apiBase}/property-assessment.php?id=${id}&activity=${encodeURIComponent(draft.activityId)}`)).assessment;
   const incentive = potentialIncentive(draft.capitalization, config.policy || {});
   // Re-read the authorized server result. A saved draft never supplies scores or permissions.
-  root.innerHTML = `<p>Proposed capitalization: PHP ${new Intl.NumberFormat('en-PH').format(draft.capitalization)}.
-    Potential incentive: ${esc(incentive.badge)}. ${esc(incentive.copy)} Policy incentives do not modify IAI.</p>`
-    + investorBriefReportMarkup({ ...property, ...assessment });
+  root.innerHTML = investorBriefReportMarkup(property, {
+    scenarioAssessment: assessment,
+    investmentContext: `Proposed capitalization: PHP ${new Intl.NumberFormat('en-PH').format(draft.capitalization)}. Potential incentive: ${incentive.badge}. ${incentive.copy} Policy incentives do not modify IAI.`,
+  });
+  setupPropertyDetailsPrint(root, property);
   printButton.disabled = false;
   printButton.addEventListener('click', () => window.print());
 }

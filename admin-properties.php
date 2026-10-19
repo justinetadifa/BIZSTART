@@ -32,12 +32,17 @@ sfc_render_header($context, 'admin-properties');
 
     <!-- Live Glassmorphic Today & Live Clock Capsule -->
     <div class="city-desk-today-capsule" id="propertyDeskTodayCapsule">
-      <svg class="city-capsule-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-        <rect x="3" y="5" width="18" height="16" rx="3"/>
-        <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
-      </svg>
-      <div>
-        <span class="city-capsule-label">CITY DESK · TODAY</span>
+      <div class="city-capsule-icon-wrap" aria-hidden="true">
+        <svg class="city-capsule-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="3"/>
+          <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
+        </svg>
+      </div>
+      <div class="city-capsule-meta">
+        <div class="city-capsule-top">
+          <span class="city-capsule-dot" aria-hidden="true"></span>
+          <span class="city-capsule-label">CITY DESK · TODAY</span>
+        </div>
         <time class="city-capsule-date" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
           <?= $today->format('M j, Y') ?>
         </time>
@@ -56,7 +61,12 @@ sfc_render_header($context, 'admin-properties');
       </div>
       <div class="city-desk-action-wrap">
         <button class="city-btn-pill-add" type="button" data-add-listing>
-          <span class="city-btn-add-plus" aria-hidden="true">+</span>
+          <span class="city-btn-add-plus" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </span>
           <span>Add property</span>
         </button>
       </div>

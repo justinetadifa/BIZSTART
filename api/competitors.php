@@ -9,14 +9,18 @@ use App\Support\SurroundingsRadar;
 use App\Support\NearbyBusinesses;
 
 api_handle(function (array $container): array {
+    // This read-only search must not lock autosave or another reference-point request during provider waits.
+    if (session_status() === PHP_SESSION_ACTIVE) { session_write_close(); }
     $parameters = SurroundingsRadar::queryParameters($_GET);
     if ($parameters !== null) {
         $source = $_GET['source'] ?? 'live';
         if (!is_string($source) || !in_array($source, ['live', 'local'], true)) {
             throw new InvalidArgumentException('Nearby source must be local or live.');
         }
+        $refresh = $_GET['refresh'] ?? '0';
+        if (!is_string($refresh) || !in_array($refresh, ['0', '1'], true)) { throw new InvalidArgumentException('Nearby refresh must be 0 or 1.'); }
         try {
-            return SurroundingsRadar::search($parameters['lat'], $parameters['lng'], $parameters['radius'], $parameters['type'], ['local_only' => $source === 'local']);
+            return SurroundingsRadar::search($parameters['lat'], $parameters['lng'], $parameters['radius'], $parameters['type'], ['local_only' => $source === 'local', 'force_refresh' => $refresh === '1']);
         } catch (Throwable $e) {
             return [
                 503,

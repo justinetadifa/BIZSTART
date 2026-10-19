@@ -13,8 +13,24 @@
                 "type": "LineString",
                 "coordinates": [
                     [
-                        120.316,
+                        120.3235,
+                        16.573
+                    ],
+                    [
+                        120.3228,
+                        16.576
+                    ],
+                    [
+                        120.3225,
+                        16.578
+                    ],
+                    [
+                        120.322,
                         16.58
+                    ],
+                    [
+                        120.321,
+                        16.582
                     ],
                     [
                         120.318,
@@ -144,6 +160,82 @@
                         120.325,
                         16.615
                     ]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Manila North Road (North National Highway - Carlatan Corridor)",
+                "highway": "primary",
+                "surface": "asphalt",
+                "source": "DPWH Region 1 Road Inventory",
+                "reference": "DPWH-MNR-CARLATAN"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [120.3165, 16.6200],
+                    [120.3160, 16.6260],
+                    [120.3155, 16.6300],
+                    [120.3148, 16.6335],
+                    [120.3155, 16.6370],
+                    [120.3160, 16.6400],
+                    [120.3170, 16.6500]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Carlatan Beach Access Road",
+                "highway": "residential",
+                "surface": "concrete",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-CARLATAN-BEACH"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [120.3148, 16.6335],
+                    [120.3138, 16.6330],
+                    [120.3132, 16.6328]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pagdalagan Beach Access Road",
+                "highway": "residential",
+                "surface": "concrete",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-PAGDALAGAN-BEACH"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [120.3220, 16.5789],
+                    [120.3205, 16.5788],
+                    [120.3188, 16.5795]
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "name": "Pagdalagan Industrial Access Road",
+                "highway": "residential",
+                "surface": "concrete",
+                "source": "City Engineering Office",
+                "reference": "CEO-SFC-PAGDALAGAN-IND"
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [120.3225, 16.5785],
+                    [120.3232, 16.5792],
+                    [120.3235, 16.5795]
                 ]
             }
         }

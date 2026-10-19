@@ -93,8 +93,8 @@ check('property-wizard.js contains renderZoningAllowedAndConditionalUses',
 check('property-wizard.js contains applyAllowedUsesFilter for quick search',
   wizardJsContent.includes('applyAllowedUsesFilter')
 );
-check('property-wizard.js serializes clup_allowed_uses and clup_conditional_uses',
-  wizardJsContent.includes('clup_allowed_uses') && wizardJsContent.includes('clup_conditional_uses')
+check('Read-only zoning reference preserves reported uses and separately saves clearance notes',
+  !wizardJsContent.includes("data.set('clup_allowed_uses'") && wizardJsContent.includes('clup_conditional_uses')
 );
 check('property-wizard.js flags suspicious area <= 0.5 m²',
   wizardJsContent.includes('data-suspicious-area-banner') && wizardJsContent.includes('0.5')

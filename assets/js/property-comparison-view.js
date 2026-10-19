@@ -1,4 +1,4 @@
-import { assessmentCalculation } from './property-details-view.js';
+import { assessmentCalculation, assessmentPresentation, propertyHazardSummary } from './property-details-view.js';
 import { listingPriceEntries, listingPurposeLabel } from './utils.js';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -21,13 +21,7 @@ export function comparisonModel(properties) {
     ['Location', property => [property.barangay, property.city].filter(Boolean).join(', ') || 'Not recorded'],
     ['Recorded zoning', property => property.criteriaDetails?.zoning_compatibility?.zone_full_label || property.clupProfile?.zoningClassification || 'Awaiting verification'],
     ['Boundary', property => property.parcel?.boundary ? 'Outline recorded · verify survey' : 'No outline recorded'],
-    ['Hazard screening', property => {
-      if (property.technical_review_hold) return property.reason || 'Technical review hold · specialist review required';
-      const hazards = property.subcriterion_scores?.risk_constraints || property.criteriaDetails?.risk_constraints?.subcriteria;
-      if (!hazards) return property.hazardScreening?.status_label || 'No authenticated screening recorded';
-      const observed = Object.values(hazards).filter(hazard => hazard && !/not.assessed|not.scored|unknown|pending/i.test(hazard.raw_status || hazard.status_label || 'not assessed')).length;
-      return `${observed} of 6 findings recorded · confirm coverage and verification`;
-    }],
+    ['Hazard screening', propertyHazardSummary],
   ].map(([label, get]) => { const values = sites.map(({ property }) => get(property)); return { label, values, same: sites.length > 1 && values.every(value => value === values[0]) }; });
   return { sites, comparable, facts };
 }
@@ -78,12 +72,17 @@ export function comparisonMarkup(properties, { path = value => value, imageUrl =
       <thead><tr><td><span class="site-eyebrow">EVALUATION<br>METRICS</span><p>Side-by-side property metrics and recorded assessments.</p></td>${sites.map(({ property }, index) => `<th scope="col"><div class="site-compare-photo"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" onerror="this.hidden=true; this.parentElement.classList.add('is-missing');"><span>0${index + 1}</span><button type="button" data-compare="${Number(property.id)}" aria-label="Remove ${esc(property.name)} from comparison">×</button></div><div class="site-compare-property"><small>${esc(property.category || 'Property')}</small><h2><a href="${esc(path(`property-details.php?id=${property.id}`))}">${esc(property.name)}</a></h2><p>${esc(property.barangay || property.city || 'Location pending')}</p><a class="site-compare-open" href="${esc(path(`property-details.php?id=${property.id}`))}">View property <span aria-hidden="true">↗</span></a></div></th>`).join('')}</tr></thead>
       <tbody><tr class="site-compare-group"><th colspan="${sites.length + 1}">Property &amp; commercial terms</th></tr>${facts.map(fact => row(fact.label, fact.values.map(esc), fact.same)).join('')}
       <tr class="site-compare-group"><th colspan="${sites.length + 1}">Recorded assessment <small>Ratings / 100 · higher is more favorable under the configured rubric</small></th></tr>
-      ${row('Composite IAI', sites.map(({ calc }) => calc.iai === null ? '<span class="site-compare-withheld">Withheld</span><small>Evidence or review pending</small>' : `<strong class="site-compare-total">${calc.iai.toFixed(1)}<small> / 100</small></strong>${!comparable ? '<small>Not a comparative rank</small>' : ''}`))}
+      ${row('Calculated IAI', sites.map(({ property, calc }) => {
+        const presentation = assessmentPresentation(property, calc);
+        return presentation.index === null ? `<span class="site-compare-withheld">Pending</span><small>${esc(presentation.state)}</small>`
+          : `<strong class="site-compare-total">${presentation.index.toFixed(1)}<small> / 100</small></strong><small>${presentation.provisional ? 'Provisional · review pending' : !comparable ? 'Not a comparative rank' : 'Released assessment'}</small>`;
+      }))}
+      ${row('Official IAI release', sites.map(({ property, calc }) => { const presentation = assessmentPresentation(property, calc); return `${esc(presentation.releaseStatus)}<small>${esc(presentation.state)}</small>`; }))}
       ${row('Rating coverage', sites.map(({ calc }) => `${calc.completedCount} of ${calc.rows.length} criteria rated`))}
       ${keys.map(key => { const items = sites.map(({ calc }) => calc.rows.find(item => item.key === key)); return row(items.find(Boolean).label.split(' / ')[0], items.map(rating)); }).join('')}
       ${row('Proposed activity', sites.map(({ property }) => esc(String(property.proposed_activity || property.clupProfile?.proposedActivity || 'Not selected').replaceAll('_', ' '))))}
-      ${row('Evidence status', sites.map(({ property }) => property.evidence_completeness === true ? 'Complete under the recorded protocol' : 'Verification incomplete'))}
+      ${row('Evidence status', sites.map(({ property, calc }) => property.evidence_verification ? `${calc.rows.filter(item => property.evidence_verification[item.key]?.status === 'authenticated').length} of ${calc.rows.length} criteria authenticated` : property.evidence_completeness === true ? 'Complete under the recorded protocol' : 'Verification incomplete'))}
       </tbody></table></div>
-    <details class="site-compare-method"><summary>How to read this comparison</summary><p>Price, area and location are listing facts. Criterion bars show recorded ratings before weighting. Pending evidence is not drawn as a zero. A composite IAI is shown only when the shared calculation and evidence gates permit it. Eligibility and comparable-group checks remain separate.</p><dl>${sites.map(({ property }) => `<div><dt>${esc(property.name)}</dt><dd>${esc(property.protocol_version || property.assessmentMethodologyVersion || 'Protocol not recorded')} · ${esc(String(property.assessmentStatus || 'Pending').replaceAll('_', ' '))}</dd></div>`).join('')}</dl></details>
+    <details class="site-compare-method"><summary>How to read this comparison</summary><p>Price, area and location are listing facts. Criterion bars show recorded ratings before weighting. A provisional IAI uses all five consistent ratings and keeps review warnings visible. Official release and investment ranking require the evidence and eligibility checks. Missing ratings remain pending.</p><dl>${sites.map(({ property, calc }) => `<div><dt>${esc(property.name)}</dt><dd>${esc(property.protocol_version || property.assessmentMethodologyVersion || 'Protocol not recorded')} · ${esc(assessmentPresentation(property, calc).state)}</dd></div>`).join('')}</dl></details>
   </div>`;
 }

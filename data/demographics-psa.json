@@ -1,158 +1,87 @@
 {
-  "source": "Philippine Statistics Authority (PSA) & San Fernando City Planning & Development Office (CPDO)",
-  "surveys": [
-    "2020 Census of Population and Housing (POPCEN 2020)",
-    "2021-2023 Family Income and Expenditure Survey (FIES)",
-    "2024 CPDO Local Economic & Demographic Profile"
-  ],
-  "scopes": {
-    "barangay": {
-      "default_scope_name": "Barangay II (Poblacion Core)",
-      "coverage": "Barangay Level (Local Commercial Catchment)",
-      "reference_year": "2020 Census / 2023 FIES Estimation",
-      "population": {
-        "total": 15820,
-        "total_formatted": "15,820",
-        "residents": { "count": 11058, "percent": 69.9, "label": "Residents" },
-        "employees": { "count": 4762, "percent": 30.1, "label": "Employees" }
-      },
-      "income": {
-        "median": 368000,
-        "median_formatted": "₱368,000",
-        "median_usd_equivalent": "$88,338 (PPP equiv)",
-        "currency": "PHP",
-        "brackets": [
-          { "label": "₱0 - ₱150K", "percent": 18.1, "color": "#0071e3" },
-          { "label": "₱150K - ₱350K", "percent": 23.9, "color": "#f59e0b" },
-          { "label": "₱350K - ₱600K", "percent": 14.8, "color": "#ef4444" },
-          { "label": "₱600K+", "percent": 43.1, "color": "#1d4ed8" }
-        ]
-      },
-      "spending": {
-        "total": 143600000,
-        "total_formatted": "₱143.6M",
-        "currency": "PHP",
-        "categories": [
-          { "label": "Food & Drink", "percent": 28.2, "amount": 40495200, "color": "#f59e0b" },
-          { "label": "Transportation", "percent": 25.3, "amount": 36330800, "color": "#0071e3" },
-          { "label": "Household", "percent": 16.1, "amount": 23119600, "color": "#fcd34d" },
-          { "label": "Entertainment", "percent": 14.1, "amount": 20247600, "color": "#991b1b" },
-          { "label": "Education", "percent": 6.1, "amount": 8759600, "color": "#60a5fa" },
-          { "label": "Apparel", "percent": 5.2, "amount": 7467200, "color": "#93c5fd" },
-          { "label": "Health Care", "percent": 5.0, "amount": 7180000, "color": "#dc2626" }
-        ]
-      }
+  "schema_version": 2,
+  "verified_on": "2026-10-18",
+  "sources": {
+    "census_barangays": {
+      "title": "PSA 2020 Census of Population and Housing, Report No. 4",
+      "url": "https://psa.gov.ph/system/files/main-publication/1_2020%2520CPH%2520Report%2520No.%25204_26April2023_RRDH_CRD-signed.pdf",
+      "reference": "Table 3, San Fernando (La Union), printed pages 79–80",
+      "publisher": "Philippine Statistics Authority"
     },
+    "census_aggregates": {
+      "title": "PSA Ilocos Region's 2021 Core Regional Indicators",
+      "url": "https://rsso01.psa.gov.ph/sites/default/files/kmcd/2021%20Core%20Regional%20Indicators%20of%20Ilocos%20Region.pdf",
+      "reference": "Table 1.55, 2020 census column, printed pages 56–58",
+      "publisher": "Philippine Statistics Authority, RSSO I"
+    },
+    "fies_reference": {
+      "title": "La Union Ecological Profile 2024 — PSA FIES table",
+      "url": "https://launion.gov.ph/wp-content/uploads/2025/11/1-La-Union-Ecological-Profile-2024-Final.pdf#page=201",
+      "reference": "Table 111, printed page 163 (PDF page 201); 2023 preliminary, published in thousands of pesos",
+      "publisher": "Provincial Government of La Union; underlying data: PSA FIES"
+    },
+    "fies_methodology": {
+      "title": "PSA 2023 FIES geographic coverage and methodology",
+      "url": "https://psada.psa.gov.ph/catalog/318",
+      "reference": "Geographic coverage: national, regional, provincial and selected highly urbanized cities",
+      "publisher": "Philippine Statistics Authority"
+    }
+  },
+  "barangay_aliases": {
+    "madaydegdeg": "madayegdeg"
+  },
+  "barangays": {
+    "Barangay IV": { "total": 611, "source_id": "census_barangays" },
+    "Biday": { "total": 4421, "source_id": "census_barangays" },
+    "Canaoay": { "total": 1722, "source_id": "census_barangays" },
+    "Carlatan": { "total": 2346, "source_id": "census_barangays" },
+    "Catbangen": { "total": 9638, "source_id": "census_barangays" },
+    "Ilocanos Sur": { "total": 2665, "source_id": "census_barangays" },
+    "Lingsat": { "total": 7528, "source_id": "census_barangays" },
+    "Madayegdeg": { "total": 1729, "source_id": "census_barangays" },
+    "Pagdalagan": { "total": 3544, "source_id": "census_barangays" },
+    "Pagdaraoan": { "total": 2975, "source_id": "census_barangays" },
+    "Parian": { "total": 3561, "source_id": "census_barangays" },
+    "Poro": { "total": 6797, "source_id": "census_barangays" },
+    "Sevilla": { "total": 11316, "source_id": "census_barangays" },
+    "Tanqui": { "total": 5281, "source_id": "census_barangays" }
+  },
+  "scopes": {
     "city": {
-      "default_scope_name": "San Fernando City",
-      "coverage": "City-Wide (Local Government Unit)",
-      "reference_year": "2020 Census / 2023 FIES",
-      "population": {
-        "total": 125640,
-        "total_formatted": "125,640",
-        "residents": { "count": 87820, "percent": 69.9, "label": "Residents" },
-        "employees": { "count": 37820, "percent": 30.1, "label": "Employees" }
-      },
-      "income": {
-        "median": 342000,
-        "median_formatted": "₱342,000",
-        "median_usd_equivalent": "$82,100 (PPP equiv)",
-        "currency": "PHP",
-        "brackets": [
-          { "label": "₱0 - ₱150K", "percent": 19.5, "color": "#0071e3" },
-          { "label": "₱150K - ₱350K", "percent": 27.2, "color": "#f59e0b" },
-          { "label": "₱350K - ₱600K", "percent": 17.6, "color": "#ef4444" },
-          { "label": "₱600K+", "percent": 35.7, "color": "#1d4ed8" }
-        ]
-      },
-      "spending": {
-        "total": 9830000000,
-        "total_formatted": "₱9.83B",
-        "currency": "PHP",
-        "categories": [
-          { "label": "Food & Drink", "percent": 32.4, "amount": 3184920000, "color": "#f59e0b" },
-          { "label": "Transportation", "percent": 21.8, "amount": 2142940000, "color": "#0071e3" },
-          { "label": "Household", "percent": 18.5, "amount": 1818550000, "color": "#fcd34d" },
-          { "label": "Entertainment", "percent": 11.2, "amount": 1100960000, "color": "#991b1b" },
-          { "label": "Education", "percent": 5.8, "amount": 570140000, "color": "#60a5fa" },
-          { "label": "Apparel", "percent": 4.9, "amount": 481670000, "color": "#93c5fd" },
-          { "label": "Health Care", "percent": 5.4, "amount": 530820000, "color": "#dc2626" }
-        ]
-      }
+      "default_scope_name": "San Fernando City, La Union",
+      "coverage": "Administrative city boundary",
+      "population": { "total": 125640, "source_id": "census_aggregates" },
+      "financial_reference": "province"
     },
     "province": {
       "default_scope_name": "La Union Province",
-      "coverage": "Provincial Aggregate (20 Municipalities & 1 City)",
-      "reference_year": "2020 Census / 2023 FIES",
-      "population": {
-        "total": 822352,
-        "total_formatted": "822,352",
-        "residents": { "count": 723670, "percent": 88.0, "label": "Residents" },
-        "employees": { "count": 98682, "percent": 12.0, "label": "Employees" }
-      },
-      "income": {
-        "median": 298500,
-        "median_formatted": "₱298,500",
-        "median_usd_equivalent": "$71,600 (PPP equiv)",
-        "currency": "PHP",
-        "brackets": [
-          { "label": "₱0 - ₱150K", "percent": 22.4, "color": "#0071e3" },
-          { "label": "₱150K - ₱350K", "percent": 31.8, "color": "#f59e0b" },
-          { "label": "₱350K - ₱600K", "percent": 26.5, "color": "#ef4444" },
-          { "label": "₱600K+", "percent": 19.3, "color": "#1d4ed8" }
-        ]
-      },
-      "spending": {
-        "total": 59200000000,
-        "total_formatted": "₱59.2B",
-        "currency": "PHP",
-        "categories": [
-          { "label": "Food & Drink", "percent": 36.5, "amount": 21608000000, "color": "#f59e0b" },
-          { "label": "Transportation", "percent": 16.8, "amount": 9945600000, "color": "#0071e3" },
-          { "label": "Household", "percent": 19.4, "amount": 11484800000, "color": "#fcd34d" },
-          { "label": "Entertainment", "percent": 8.2, "amount": 4854400000, "color": "#991b1b" },
-          { "label": "Education", "percent": 7.1, "amount": 4203200000, "color": "#60a5fa" },
-          { "label": "Apparel", "percent": 4.8, "amount": 2841600000, "color": "#93c5fd" },
-          { "label": "Health Care", "percent": 7.2, "amount": 4262400000, "color": "#dc2626" }
-        ]
-      }
+      "coverage": "Administrative provincial boundary: 19 municipalities and 1 city",
+      "population": { "total": 822352, "source_id": "census_aggregates" },
+      "financial_reference": "province"
     },
     "region": {
       "default_scope_name": "Region I (Ilocos)",
-      "coverage": "Regional Scope (4 Provinces: La Union, Pangasinan, Ilocos Sur, Ilocos Norte)",
-      "reference_year": "2020 Census / 2023 FIES",
-      "population": {
-        "total": 5301139,
-        "total_formatted": "5,301,139",
-        "residents": { "count": 4718013, "percent": 89.0, "label": "Residents" },
-        "employees": { "count": 583126, "percent": 11.0, "label": "Employees" }
-      },
-      "income": {
-        "median": 282100,
-        "median_formatted": "₱282,100",
-        "median_usd_equivalent": "$67,700 (PPP equiv)",
-        "currency": "PHP",
-        "brackets": [
-          { "label": "₱0 - ₱150K", "percent": 24.1, "color": "#0071e3" },
-          { "label": "₱150K - ₱350K", "percent": 33.5, "color": "#f59e0b" },
-          { "label": "₱350K - ₱600K", "percent": 24.9, "color": "#ef4444" },
-          { "label": "₱600K+", "percent": 17.5, "color": "#1d4ed8" }
-        ]
-      },
-      "spending": {
-        "total": 356400000000,
-        "total_formatted": "₱356.4B",
-        "currency": "PHP",
-        "categories": [
-          { "label": "Food & Drink", "percent": 38.1, "amount": 135788400000, "color": "#f59e0b" },
-          { "label": "Transportation", "percent": 15.2, "amount": 54172800000, "color": "#0071e3" },
-          { "label": "Household", "percent": 20.3, "amount": 72349200000, "color": "#fcd34d" },
-          { "label": "Entertainment", "percent": 7.5, "amount": 26730000000, "color": "#991b1b" },
-          { "label": "Education", "percent": 6.8, "amount": 24235200000, "color": "#60a5fa" },
-          { "label": "Apparel", "percent": 4.6, "amount": 16394400000, "color": "#93c5fd" },
-          { "label": "Health Care", "percent": 7.5, "amount": 26730000000, "color": "#dc2626" }
-        ]
-      }
+      "coverage": "Administrative region: Ilocos Norte, Ilocos Sur, La Union and Pangasinan",
+      "population": { "total": 5301139, "source_id": "census_aggregates" },
+      "financial_reference": "region"
+    }
+  },
+  "financial_references": {
+    "province": {
+      "geography": "La Union Province",
+      "reference_year": 2023,
+      "preliminary": true,
+      "annual_average_income": 393220,
+      "annual_average_expenditure": 259350,
+      "source_id": "fies_reference"
+    },
+    "region": {
+      "geography": "Region I (Ilocos)",
+      "reference_year": 2023,
+      "preliminary": true,
+      "annual_average_income": 339690,
+      "annual_average_expenditure": 232440,
+      "source_id": "fies_reference"
     }
   }
 }

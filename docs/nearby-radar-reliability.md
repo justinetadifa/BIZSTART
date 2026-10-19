@@ -1,0 +1,18 @@
+# Nearby radar reliability
+
+The property editor previously used only the small local directory for its first response. It ignored saved map records that the property-details service already used. Live enrichment queried one Overpass provider with a two-second cutoff. A failed live request could then be cached for a day as a local-only result. Repeated editor synchronization restarted an unsuccessful refresh, leaving the screen looking busy without usable results.
+
+The radar now reads local inventory and previously saved map snapshots before contacting the live provider. Places and road segments from overlapping snapshots are merged and deduplicated. Their actual geometry is filtered to the current 500 m circle, and distances, business roles and provisional observations are recalculated for the current reference point and business profile. Old distances and scores are never reused. Saved records retain their dates; they do not become authenticated or establish complete inventory coverage.
+
+Live searches race three independent providers under a shared ten-second deadline. The browser allows twelve seconds for the API response. This read-only endpoint releases its PHP session lock before waiting, so autosave and another location search are not queued behind it. Successful current snapshots are reusable for a day. Provider failures and partial responses never overwrite the last successful snapshot; local-only failure caches cannot suppress a new live search. An explicit retry uses `refresh=1` to bypass the successful-cache shortcut.
+
+The editor keeps its useful records visible while updating. A settled provider failure does not restart on every visit to the tab. Retry and restored network connectivity start a new refresh. Requests for an earlier reference point cannot replace the current result. The place and road lists work even when Leaflet or Turf cannot load. If there are no saved or live records, the UI gives a clear coverage message and a retry action, with the score pending. Availability of mapped observations still depends on actual source coverage.
+
+At the checked coastal reference point (16.622, 120.312), the previous local-only response contained zero places and zero roads. Saved-map reuse initially returned 17 places and 15 road segments; a successful live refresh increased the retained inventory to 18 places and 17 road segments. Browser checks loaded those saved records in approximately 1.3–1.6 seconds. The stalled-provider case retained them throughout the twelve-second client deadline, then showed a terminal refresh warning instead of an indefinite loading message. These counts describe that audit snapshot, not a complete business census.
+
+Validation:
+
+- `php tests/nearby-reliability.test.php`: cache merging, radius filtering, duplicate suppression, recalculated distances and roles, original dates, corrupt records, provider failures, partial responses and forced refresh.
+- `node tests/nearby-loading.test.cjs`: loading, stalled requests, cancellation, stale responses, retry preservation, repeat synchronization and list rendering without mapping libraries.
+- Existing surroundings, nearby-directory integrity, nearby-screening, step-3 nearby-businesses and wizard-refinement checks passed.
+- The actual admin editor was checked on desktop and mobile with the live API, inaccessible live service, missing map libraries and a stalled provider. Retry and reconnection recovery were exercised; no runtime errors or horizontal overflow occurred. These checks intercepted property writes. Results and images are in the ignored `.ui-audit/nearby-reliability/` directory.

@@ -7,7 +7,7 @@ const { resolve } = require('node:path');
   const source = readFileSync('assets/js/property-details-view.js', 'utf8')
     .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
     .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-  const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, floodAndFireAssessmentMarkup } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'zoning_compatibility', 'risk_constraints'];
   const property = {
     id: 10, name: 'A <sample> property', area: .25, price: 5000000, lat: 16.6, lng: 120.3,
@@ -70,20 +70,27 @@ const { resolve } = require('node:path');
     environmental_safety: { raw: { environment_status: 'further_review_required' } },
   } };
   const riskDetails = propertyDetailsMarkup(recordedRisk, options);
-  const safetyStart = riskDetails.indexOf('<section class="property-panel property-safety"');
-  const safetySection = riskDetails.slice(safetyStart, riskDetails.indexOf('</section>', safetyStart));
+  const safetySection = floodAndFireAssessmentMarkup(recordedRisk);
+  assert(riskDetails.includes(safetySection), 'The details page includes the same recorded hazard panel.');
   assert(safetySection.includes('high flood susceptibility') && safetySection.includes('Confirm parcel-wide coverage.'));
   assert(safetySection.includes('City hazard inventory') && safetySection.includes('HAZ-01'));
-  assert(!safetySection.includes('data-investor-advanced'), 'Safety warnings cannot be hidden by the Basic view gate');
+  assert(!safetySection.match(/<section[^>]*data-investor-advanced/), 'The safety section remains visible in Basic');
+  assert(safetySection.includes(`<p class="property-hazard-summary">${propertyHazardSummary(recordedRisk)}</p>`), 'Basic retains recorded hazard warnings in a concise summary');
+  assert(safetySection.includes('class="climate-factors-grid" data-investor-advanced'), 'Detailed hazard sources and emergency access context belong to Advanced');
   assert.equal(propertyHazardSummary(recordedRisk), 'Hazard screening: high flood susceptibility, outside mapped landslide hazards (review incomplete) · Environmental screening: further review required');
-  assert(propertyHazardSummary(property).includes('Hazard screening: Not assessed'), 'A high risk rating without factual classifications must not imply safety');
+  assert(propertyHazardSummary(property).includes('0 of 6 hazard findings recorded') && propertyHazardSummary(property).includes('individual findings not recorded'), 'A high risk rating without factual classifications must not imply safety');
   const spatialRisk = { ...property, spatialContext: [{ key: 'hazard_status', value: ['moderate_flood_susceptibility'] }] };
   assert(propertyHazardSummary(spatialRisk).includes('moderate flood susceptibility'), 'Recorded spatial evidence remains visible when criterion details are absent');
   const escapedRisk = propertyDetailsMarkup({ ...recordedRisk, criteriaDetails: { risk_constraints: { raw: { hazard_status: '<script>alert(1)</script>' }, missingData: ['<img onerror=alert(1)>'] } } }, options);
   assert(escapedRisk.includes('&lt;script&gt;alert(1)&lt;/script&gt;') && !escapedRisk.includes('<script>'), 'Safety findings are escaped as recorded text');
   assert(details.includes('<div class="property-advanced" data-investor-advanced>'));
   assert(details.indexOf('id="propertyHazardsSection"') < details.indexOf('<div class="property-advanced"'), 'Essential safety information precedes the advanced assessment');
-  assert(details.indexOf('class="property-panel property-contact"') < details.indexOf('id="propertyAssessmentSection"'), 'The main contact action remains ahead of the advanced assessment');
+  assert(details.indexOf('id="propertyExecutiveHub"') < details.indexOf('id="propertyAssessmentSection"'), 'The main contact action remains ahead of the advanced assessment');
+  for (const section of ['propertyTransportSection', 'propertyMarketIntelSection', 'propertyAssessmentSection']) {
+    assert(details.includes(`id="${section}" data-investor-advanced`), `${section} is limited to Advanced`);
+    assert(details.includes(`#${section}" data-investor-advanced>`), `Navigation to ${section} follows its visibility`);
+  }
+  assert(details.includes('class="property-overview-details" data-investor-advanced'), 'Basic keeps the description while Advanced adds listing records, utilities and detailed measurements');
   assert(details.includes('class="property-radar-result"') && (details.includes('<dt>Land Valuation / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic Viability / Economic Context</dt><dd>85 <span>/ 100</span>') || details.includes('<dt>Economic viability</dt><dd>85 <span>/ 100</span>')), 'Radar shows recorded criterion ratings with a text equivalent');
   assert(!propertyDetailsMarkup(partial, options).includes('class="property-radar-result"'), 'An incomplete radar must not plot missing scores as zero');
   assert(propertyDetailsMarkup(partial, options).includes('Missing evidence is not plotted as zero.'));

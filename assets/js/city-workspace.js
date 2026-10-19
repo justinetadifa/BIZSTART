@@ -1,7 +1,7 @@
 import { listingPurposeLabel, listingPriceLabel, listingPriceEntries, salePricePerSqm, compareSalePrices } from './utils.js';
 import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
-import { propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario, renderDonutSvg } from './property-details-view.js';
+import { propertyDetailsMarkup, assessmentCalculation, assessmentPresentation, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario, setupLocalMarketIntelligence, nearbyBusinessesPanelMarkup, setupPriceScoreExplanation } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
 
 const config = window.SFC_APP_CONFIG || {};
@@ -920,6 +920,9 @@ function renderCompare() {
     return;
   }
   const cardsHtml = selected.map(property => {
+    const calculation = assessmentCalculation(property);
+    const presentation = assessmentPresentation(property, calculation);
+    const canRank = calculation.iai !== null && property.rank_eligible === true;
     const facts = [
       ['Category', property.subcategory || property.category], ['Location', [property.barangay, property.city].filter(Boolean).join(', ')],
       ['Map location', hasCoordinates(property) ? propertyLocationLabel(property) : 'Not recorded'],
@@ -929,12 +932,19 @@ function renderCompare() {
       ['Hazards & environment', propertyHazardSummary(property)],
     ];
     const assessments = [
-      ['MCE', score(property.mceScore)], ['MCE rank', property.mceRank == null ? 'Pending' : `#${property.mceRank}`],
-      ['IAI', score(property.iaiScore)], ['IAI rank', property.iaiRank == null ? 'Pending' : `#${property.iaiRank}`],
+      ['Recorded MCE', presentation.recorded], ['MCE rank', !canRank || property.mceRank == null ? 'Pending' : `#${property.mceRank}`],
+      [presentation.indexLabel, presentation.indexValue], ['Official IAI release', `${presentation.releaseStatus} · ${presentation.state}`],
+      ['IAI rank', !canRank || property.iaiRank == null ? 'Pending' : `#${property.iaiRank}`],
       ...Object.entries(criteria).map(([key, label]) => [label, score(property.assessmentCriteria?.[key])]),
       ['Assessment context', property.assessmentTags?.join(', ') || 'Not recorded'],
     ];
-    const rows = (entries, advanced = false) => entries.map(([label, value]) => `<div${advanced ? ' data-investor-advanced' : ''}><dt>${esc(label)}</dt><dd>${esc(value ?? 'Not recorded')}</dd></div>`).join('');
+    const rows = (entries, advanced = false) => entries.map(([label, value]) => {
+      if (label === 'Hazards & environment') {
+        const [coverage, ...details] = String(value || 'Hazard findings not recorded').split(' · ');
+        return `<div class="city-compare-hazard-row"><dt>${esc(label)}</dt><dd><strong>${esc(coverage)}</strong> ${details.map(detail => detail.startsWith('Technical review required') ? '<span class="city-compare-hazard-hold">Technical review required</span>' : `<span>${esc(detail)}</span>`).join(' ')} <a href="${path(`property-details.php?id=${property.id}#propertyHazardsSection`)}">View hazard findings ↗</a></dd></div>`;
+      }
+      return `<div${advanced ? ' data-investor-advanced' : ''}><dt>${esc(label)}</dt><dd>${esc(value ?? 'Not recorded')}</dd></div>`;
+    }).join('');
 
     const purposeLabel = property.listingPurpose === 'lease' ? 'FOR LEASE' : 'FOR SALE';
     const brokerName = property.brokerContact?.name || property.sellerName || 'City Investment Desk';
@@ -1759,106 +1769,7 @@ function printButtonMarkup(id = '') {
 }
 
 function nearbyBusinessesMarkup(property) {
-  const businesses = Array.isArray(property.nearbyBusinesses) ? property.nearbyBusinesses : [];
-  if (!businesses.length && !property.nearbyProperties?.length) {
-    return `
-      <section class="city-detail-panel nearby-businesses-section" style="margin-top:20px" id="propertyNearbyBusinessesSection">
-        <div class="city-panel-head tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-mb-3">
-          <div>
-            <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
-            <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
-          </div>
-          <span class="tw-text-xs tw-text-slate-400 print:tw-hidden">Search radius: 2.5 km</span>
-        </div>
-        <p class="tw-text-sm tw-text-slate-500 tw-m-0">No nearby places are available in this listing's mapped directory. This does not establish that businesses are absent.</p>
-      </section>
-    `;
-  }
-
-  const closest = businesses[0];
-  const count = businesses.length;
-
-  return `
-    <section class="city-detail-panel nearby-businesses-section" style="margin-top:20px" id="propertyNearbyBusinessesSection">
-      <div class="city-panel-head tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3 tw-mb-4">
-        <div>
-          <div class="city-eyebrow tw-text-amber" style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Commercial Proximity &middot; San Fernando GIS</div>
-          <h2 style="margin:0;font-size:20px;font-weight:750;letter-spacing:-0.02em;color:#0f172a;">Nearby Businesses &amp; Commercial Anchors</h2>
-          <p class="tw-m-0 tw-mt-1 tw-text-xs tw-text-slate-500">
-            Up to 12 mapped places within 2.5 km. Distances are straight-line estimates; walking times do not establish a usable route.
-          </p>
-        </div>
-        ${count ? `
-          <div class="tw-flex tw-items-center tw-gap-2 print:tw-hidden">
-            <span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-3 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-slate-700">
-              <span class="tw-h-2 tw-w-2 tw-rounded-full tw-bg-emerald-500"></span>
-              ${count} Mapped Anchors
-            </span>
-            ${closest ? `
-              <span class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-3 tw-py-1 tw-text-[11px] tw-font-semibold tw-text-amber-800">
-                Nearest: ${esc(closest.distanceFormatted)}
-              </span>
-            ` : ''}
-          </div>
-        ` : ''}
-      </div>
-
-      ${count ? `
-        <div class="nearby-biz-grid tw-grid tw-gap-3 sm:tw-grid-cols-2">
-          ${businesses.map((biz, idx) => {
-            const iconSvg = getCategoryIconSvg(biz.icon || 'store');
-            return `
-              <article class="nearby-biz-card tw-flex tw-items-start tw-gap-3.5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200/80 tw-bg-slate-50/70 tw-p-3.5 tw-transition-all hover:tw-border-slate-300 hover:tw-bg-white hover:tw-shadow-sm"${hasCoordinates(biz) ? ` data-biz-lat="${Number(biz.lat)}" data-biz-lng="${Number(biz.lng)}"` : ''}>
-                <div class="nearby-biz-icon-box tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-lg ${getCategoryColorClass(biz.categoryColor)}">
-                  ${iconSvg}
-                </div>
-                <div class="tw-min-w-0 tw-flex-1">
-                  <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
-                    <h4 class="tw-m-0 tw-truncate tw-text-xs tw-font-bold tw-text-slate-900" title="${esc(biz.name)}">${esc(biz.name)}</h4>
-                    <span class="nearby-biz-dist-pill tw-shrink-0 tw-rounded-md tw-bg-white tw-border tw-border-solid tw-border-slate-200 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-800">${esc(biz.distanceFormatted)}</span>
-                  </div>
-                  <div class="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
-                    <span class="tw-text-[11px] tw-font-medium tw-text-slate-600">${esc(biz.category)}</span>
-                    <span class="tw-text-[10px] tw-text-slate-400">&middot;</span>
-                    <span class="tw-text-[10px] tw-font-medium tw-text-slate-500">${esc(biz.walkingFormatted || '')}</span>
-                    ${biz.classification === 'commercial_anchor' || biz.isAnchor ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-purple-100 tw-border tw-border-solid tw-border-purple-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-purple-800">Commercial Activity Anchor</span>` : (biz.classification === 'competitor' ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-rose-100 tw-border tw-border-solid tw-border-rose-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-rose-800">Direct Competitor</span>` : (biz.classification === 'complementary' ? `<span class="tw-inline-flex tw-items-center tw-rounded tw-bg-blue-100 tw-border tw-border-solid tw-border-blue-200 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-bold tw-text-blue-800">Complementary</span>` : ''))}
-                    ${biz.footprint ? `<span class="tw-inline-flex tw-items-center tw-gap-0.5 tw-rounded tw-bg-slate-200/80 tw-px-1.5 tw-py-0.5 tw-text-[9px] tw-font-medium tw-text-slate-700" title="Polygon Footprint Mapped">Footprint</span>` : ''}
-                  </div>
-                  <div class="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2">
-                    <span class="nearby-biz-status-badge tw-inline-flex tw-items-center tw-gap-1 tw-text-[9.5px] tw-font-semibold tw-text-emerald-700">
-                      <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500"></span>
-                      ${biz.status === 'operating' ? 'Recorded as operating' : biz.status === 'under_development' ? 'Under development' : 'Operating status unknown'}
-                    </span>
-                    <span class="tw-text-[9px] tw-text-slate-400 tw-truncate tw-max-w-[140px]" title="${esc(biz.source || '')}">${esc(biz.source || 'Commercial Directory')}</span>
-                    ${hasCoordinates(property) && property.hasExactLocation !== false && hasCoordinates(biz) ? `<button type="button" class="nearby-biz-locate-btn print:tw-hidden tw-text-[10.5px] tw-font-semibold tw-text-blue-700 hover:tw-underline" data-locate-biz="${idx}" title="Center on map">
-                      Locate on map &rarr;
-                    </button>` : ''}
-                  </div>
-                </div>
-              </article>
-            `;
-          }).join('')}
-        </div>
-      ` : ''}
-
-      ${property.nearbyProperties?.length ? `
-        <div class="lister-nearby-places tw-mt-5 tw-border-t tw-border-solid tw-border-slate-200/80 tw-pt-4">
-          <h4 class="tw-mb-3 tw-text-xs tw-font-bold tw-text-slate-700 tw-uppercase tw-tracking-wider">Lister Recorded Surroundings &amp; Landmarks</h4>
-          <div class="tw-grid tw-gap-3 sm:tw-grid-cols-2">
-            ${property.nearbyProperties.map(item => `
-              <article class="tw-flex tw-items-center tw-gap-3 tw-rounded-lg tw-bg-white tw-border tw-border-solid tw-border-slate-200 tw-p-2.5">
-                ${item.imageUrl ? `<img class="tw-h-12 tw-w-12 tw-shrink-0 tw-rounded-md tw-object-cover" src="${esc(imageUrl(item))}" alt="${esc(item.name)}" loading="lazy">` : ''}
-                <div class="tw-min-w-0">
-                  <strong class="tw-text-xs tw-text-slate-900">${esc(item.name)}</strong>
-                  <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] tw-text-slate-500">${esc(item.type || 'Surrounding place')}${item.distanceKm == null ? '' : ` &middot; ${number(item.distanceKm)} km`}</p>
-                </div>
-              </article>
-            `).join('')}
-          </div>
-        </div>
-      ` : ''}
-    </section>
-  `;
+  return nearbyBusinessesPanelMarkup(property, { categoryIcon: getCategoryIconSvg });
 }
 
 function nearbyMarkup(property) {
@@ -2033,7 +1944,8 @@ async function renderDetails() {
 
   setupMediaDock(root, map, property);
   setupTransportationInteractions(root, property, map);
-  setupDemographicsInteractions(root, property);
+  setupLocalMarketIntelligence(root, property);
+  setupPriceScoreExplanation(root);
   setupClimateRiskInteractions(root, property, map);
 
   function revealLinkedPanel() {
@@ -2132,38 +2044,6 @@ function setupTransportationInteractions(root, property, map) {
   });
 }
 
-function setupDemographicsInteractions(root, property) {
-  const scopeSelect = root.querySelector('#demographicScopeSelect');
-  if (!scopeSelect) return;
-  const scopesData = property.localMarketIntelligence?.scopes || {};
-
-  scopeSelect.addEventListener('change', () => {
-    const scope = scopeSelect.value;
-    const data = scopesData[scope] || scopesData['barangay'] || scopesData['city'];
-    if (!data) return;
-
-    const popCont = root.querySelector('#chartPopulationContainer');
-    if (popCont) {
-      popCont.innerHTML = renderDonutSvg(data.population?.breakdown, data.population?.total_formatted || '0', 'Total');
-    }
-
-    const incCont = root.querySelector('#chartIncomeContainer');
-    if (incCont) {
-      incCont.innerHTML = renderDonutSvg(data.household_income?.brackets, data.household_income?.median_formatted || '0', 'Median');
-    }
-
-    const spendCont = root.querySelector('#chartSpendingContainer');
-    if (spendCont) {
-      spendCont.innerHTML = renderDonutSvg(data.consumer_spending?.categories, data.consumer_spending?.total_formatted || '0', 'Annual');
-    }
-
-    const scopeMeta = root.querySelector('#demographicScopeMeta');
-    if (scopeMeta) {
-      scopeMeta.innerHTML = `Coverage: <strong>${esc(data.name)}</strong> · Reference: ${esc(property.localMarketIntelligence?.metadata?.census_year || '2020')} PSA Census &amp; FIES · Scope level: ${esc(scope.toUpperCase())}`;
-    }
-  });
-}
-
 let floodOverlayLayer = null;
 function setupClimateRiskInteractions(root, property, map) {
   const toggleBtn = root.querySelector('[data-toggle-flood-overlay]');
@@ -2180,10 +2060,10 @@ function setupClimateRiskInteractions(root, property, map) {
     if (floodOverlayLayer) {
       if (map.hasLayer(floodOverlayLayer)) {
         map.removeLayer(floodOverlayLayer);
-        toggleBtn.textContent = 'View Flood Overlay on Map ↗';
+        toggleBtn.textContent = 'View recorded flood layer ↗';
       } else {
         map.addLayer(floodOverlayLayer);
-        toggleBtn.textContent = 'Hide Flood Overlay ✕';
+        toggleBtn.textContent = 'Hide flood layer ✕';
       }
       return;
     }
@@ -2207,16 +2087,16 @@ function setupClimateRiskInteractions(root, property, map) {
           const p = feature.properties || {};
           layer.bindPopup(`
             <div class="city-popup" style="font-family:sans-serif;min-width:200px;">
-              <span style="font-size:9.5px;font-weight:700;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">OFFICIAL MGB FLOOD OVERLAY</span>
+              <span style="font-size:9.5px;font-weight:700;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">RECORDED FLOOD LAYER</span>
               <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(p.name || 'Flood Hazard Zone')}</strong>
               <p style="font-size:11px;color:#475569;margin:4px 0;">${esc(p.description || 'Monsoon inundation risk')}</p>
-              <div style="font-size:9.5px;color:#64748b;">Source: ${esc(p.source || 'DENR-MGB Region 1')}</div>
+              <div style="font-size:9.5px;color:#64748b;">Source: ${esc(p.source || 'Source not recorded')}</div>
             </div>
           `);
         }
       });
       floodOverlayLayer.addTo(map);
-      toggleBtn.textContent = 'Hide Flood Overlay ✕';
+      toggleBtn.textContent = 'Hide flood layer ✕';
     } catch (err) {
       console.warn('Could not load flood overlay:', err);
       toggleBtn.textContent = 'Overlay unavailable';

@@ -1290,22 +1290,14 @@ final class PropertyRepository
         $utilityStatus = $this->normalizeUtilityStatus(
             $payload['utility_status'] ?? $payload['utilityStatus'] ?? ($existing['utility_status'] ?? null)
         );
-        $zoningScore = $this->normalizeNullableScore(
-            $payload['zoning_score'] ?? $payload['zoningScore'] ?? ($existing['zoning_score'] ?? null)
-        );
+        // A compatibility rating belongs to an exact district/activity pair, never a submitted or stale score.
+        $zoningScore = null;
         $existingLandUse = string_or_null($payload['existing_land_use'] ?? $payload['existingLandUse'] ?? ($existing['existing_land_use'] ?? null));
         $zoningClassification = string_or_null($payload['zoning_classification'] ?? $payload['zoningClassification'] ?? ($existing['zoning_classification'] ?? null));
         $proposedActivity = string_or_null($payload['proposed_activity'] ?? $payload['proposedActivity'] ?? ($existing['proposed_activity'] ?? null));
-        if ($zoningClassification !== null) {
-            $act = $proposedActivity ?? string_or_null($payload['category'] ?? ($existing['category'] ?? null));
-            if ($act !== null) {
-                $eval = \App\Support\ZoningRulesEngine::evaluate($zoningClassification, $act);
-                if ($eval['score'] !== null) {
-                    $zoningScore = (int) round($eval['score']);
-                } elseif ($eval['status'] === \App\Support\ZoningRulesEngine::STATUS_PROHIBITED) {
-                    $zoningScore = 0;
-                }
-            }
+        if ($zoningClassification !== null && $proposedActivity !== null) {
+            $eval = \App\Support\ZoningRulesEngine::evaluate($zoningClassification, $proposedActivity);
+            $zoningScore = $eval['score'] !== null ? (int) round($eval['score']) : null;
         }
         $clupAllowedUses = $this->normalizeStringList(
             $payload['clup_allowed_uses'] ?? $payload['clupAllowedUses'] ?? $this->decodeExistingValue($existing['clup_allowed_uses_json'] ?? null),

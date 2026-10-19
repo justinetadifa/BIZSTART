@@ -563,8 +563,10 @@ final class ZoningRulesEngine
             ];
         }
 
-        // Rule Matrix evaluation based on City Ordinance 2018-06 & amendments
+        // Coded reference matrix. A citation does not authenticate its transcription or parcel scope.
         $rule = self::evaluateMatrixRule($zoneCode, $activityCode, $conditions);
+        $rule['is_official_city_rule'] = false;
+        $rule['rule_provenance'] = 'unverified_coded_transcription';
         return $rule;
     }
 
@@ -625,6 +627,12 @@ final class ZoningRulesEngine
                     'City Ordinance 2018-06, Sec. 10.B',
                     ['Allowed only for storage auxiliary to on-site commercial retail; not standalone logistics distribution depot.'],
                     ['Floor area <= 300m²', 'No 40-foot container truck loading on minor roads']
+                );
+            }
+            if (in_array($act, ['log_distribution_center', 'log_transport_terminal'], true)) {
+                return self::prohibited(
+                    'City Ordinance 2018-06, Sec. 10.B',
+                    'Freight depots, distribution centers, and regional transport terminals are prohibited in Commercial Zone 1 (C-1) due to road network constraints and neighborhood commercial density.'
                 );
             }
             if (in_array($act, ['ind_light_manufacturing', 'ind_heavy_manufacturing', 'food_processing', 'agri_livestock'], true)) {
@@ -1028,6 +1036,9 @@ final class ZoningRulesEngine
                 'is_complete' => false,
                 'status' => self::STATUS_UNDETERMINED,
                 'status_label' => 'Assessment Incomplete (Zoning Undetermined)',
+                'screening_only' => true,
+                'evidence_status' => 'UNVERIFIED',
+                'rank_eligible' => false,
                 'score' => null,
                 'is_eligible' => false,
                 'suitability' => 'incomplete',
@@ -1059,6 +1070,9 @@ final class ZoningRulesEngine
                 'is_complete' => false,
                 'status' => self::STATUS_UNDETERMINED,
                 'status_label' => 'Assessment Incomplete (Activity Unselected)',
+                'screening_only' => true,
+                'evidence_status' => 'UNVERIFIED',
+                'rank_eligible' => false,
                 'score' => null,
                 'is_eligible' => false,
                 'suitability' => 'incomplete',
@@ -1137,6 +1151,9 @@ final class ZoningRulesEngine
             'is_complete' => $isComplete,
             'status' => $status,
             'status_label' => $statusLabel,
+            'screening_only' => true,
+            'evidence_status' => 'UNVERIFIED',
+            'rank_eligible' => false,
             'score' => $score,
             'is_eligible' => $isEligible,
             'suitability' => $suitability,
@@ -1310,5 +1327,45 @@ final class ZoningRulesEngine
             }
         }
         return $all;
+    }
+
+    /** Read-only intake reference, derived from the evaluator rather than a second browser rule engine. */
+    public static function getScreeningData(): array
+    {
+        $rules = [];
+        $fields = array_flip(['status', 'score', 'is_complete', 'zone_code', 'zone_name', 'use_code', 'use_label',
+            'ordinance_section', 'conditions', 'restrictions', 'outstanding_requirements']);
+        foreach (array_keys(self::ZONING_DISTRICTS) as $zone) {
+            foreach (array_keys(self::SPECIFIC_ACTIVITIES) as $activity) {
+                $rules[$zone][$activity] = array_intersect_key(self::evaluate($zone, $activity), $fields);
+            }
+        }
+        $path = dirname(__DIR__, 2) . '/data/clup-source-registry.json';
+        $registry = is_readable($path) ? json_decode((string) file_get_contents($path), true) : [];
+        $registry = is_array($registry) ? $registry : [];
+        $source = null;
+        foreach ($registry['sources'] ?? [] as $item) {
+            if (($item['source_id'] ?? '') === 'city-ordinance-2018-06') { $source = $item; break; }
+        }
+        return [
+            'districts' => self::getOfficialDistricts(),
+            'catalog' => self::getHierarchicalUseCatalog(),
+            'rules' => $rules,
+            'version' => self::VERSION,
+            'weight' => self::ZONING_WEIGHT,
+            'screening_only' => true,
+            'is_official_city_rule' => false,
+            'rule_provenance' => 'unverified_coded_transcription',
+            'evidence_status' => 'UNVERIFIED',
+            'source_review_date' => $registry['research_cutoff_date'] ?? null,
+            'source_url' => $source['url'] ?? null,
+            'notice' => $registry['legal_position']['required_notice'] ?? 'Preliminary reference only. Obtain an authorized city zoning determination.',
+            'evidence_gaps' => [
+                'Confirm the current ordinance and all applicable amendments.',
+                'Match the parcel to an authenticated zoning map and check split zones or overlays.',
+                'Verify the exact proposed use and its development requirements with CPDO.',
+            ],
+            'plan_horizon_note' => $registry['plan_horizon']['caveat'] ?? 'Current plan applicability requires city confirmation.',
+        ];
     }
 }

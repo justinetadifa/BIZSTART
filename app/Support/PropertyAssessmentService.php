@@ -62,6 +62,39 @@ final class PropertyAssessmentService
     public const ECONOMIC_VIABILITY_VERSION = self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION;
     public const ECONOMIC_VALIDATION_STATUS = 'Provisional / Awaiting Market Comparables & LGU Validation';
 
+    /** One definition for calculation, explanation and displayed scoring bands. */
+    public static function propertyCostScoringMetadata(): array
+    {
+        return [
+            'methodology_version' => self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION,
+            'bands' => [
+                ['key' => 'deep_discount', 'min' => null, 'max' => -20.0, 'min_inclusive' => false, 'max_inclusive' => false, 'score' => 75.0,
+                    'range_label' => 'More than 20% below', 'label' => 'Deep discount', 'explanation' => 'Asking price is deeply discounted (>20% below verified market benchmark); requires title, encumbrance, and physical condition review.'],
+                ['key' => 'discount', 'min' => -20.0, 'max' => -5.0, 'min_inclusive' => true, 'max_inclusive' => false, 'score' => 90.0,
+                    'range_label' => '5% to 20% below (excluding 5%)', 'label' => 'Competitive discount', 'explanation' => 'Asking price reflects a competitive discount of 5% to 20% below verified market comparables.'],
+                ['key' => 'aligned', 'min' => -5.0, 'max' => 5.0, 'min_inclusive' => true, 'max_inclusive' => true, 'score' => 100.0,
+                    'range_label' => 'Within 5% below or above', 'label' => 'Aligned with comparable', 'explanation' => 'Asking price is aligned within ±5% of verified market comparables (highly competitive).'],
+                ['key' => 'moderate_premium', 'min' => 5.0, 'max' => 15.0, 'min_inclusive' => false, 'max_inclusive' => true, 'score' => 85.0,
+                    'range_label' => 'More than 5%, up to 15% above', 'label' => 'Moderate premium', 'explanation' => 'Asking price reflects a moderate 5% to 15% premium over local market comparables.'],
+                ['key' => 'substantial_premium', 'min' => 15.0, 'max' => 30.0, 'min_inclusive' => false, 'max_inclusive' => true, 'score' => 70.0,
+                    'range_label' => 'More than 15%, up to 30% above', 'label' => 'Substantial premium', 'explanation' => 'Asking price reflects a substantial 15% to 30% premium over local market comparables.'],
+                ['key' => 'large_premium', 'min' => 30.0, 'max' => null, 'min_inclusive' => false, 'max_inclusive' => false, 'score' => 50.0,
+                    'range_label' => 'More than 30% above', 'label' => 'Large premium', 'explanation' => 'Asking price is significantly elevated (>30% above verified market comparables).'],
+            ],
+        ];
+    }
+
+    private static function propertyCostBand(?float $difference): ?array
+    {
+        if ($difference === null || !is_finite($difference)) { return null; }
+        foreach (self::propertyCostScoringMetadata()['bands'] as $band) {
+            $above = $band['min'] === null || ($band['min_inclusive'] ? $difference >= $band['min'] : $difference > $band['min']);
+            $below = $band['max'] === null || ($band['max_inclusive'] ? $difference <= $band['max'] : $difference < $band['max']);
+            if ($above && $below) { return $band; }
+        }
+        return null;
+    }
+
     public const NEARBY_BUSINESSES_VERSION = 'LOCUS-SF Nearby Businesses & Commercial Environment Rubric v3.0 (Provisional)';
     public const NEARBY_VALIDATION_STATUS = 'Provisional / Awaiting BPLO Commercial Census Benchmarks';
 
@@ -1274,7 +1307,21 @@ final class PropertyAssessmentService
             }
         }
 
+        $activeComparableIsLease = $purpose === 'lease' || ($purpose === 'sale_or_lease'
+            && !($askingPricePerSqm !== null && $comparableMarket !== null)
+            && $leasePricePerSqm !== null && $comparableLease !== null);
+        $matchedBand = self::propertyCostBand($activeDiffPct);
         $pricingAnalysis = [
+            'comparison_basis' => $activeComparableIsLease ? 'lease' : 'sale',
+            'comparison_unit' => $activeComparableIsLease ? 'PHP/m2/month' : 'PHP/m2',
+            'comparable_unit' => $data['comparable_unit'] ?? null,
+            'currency' => $data['currency'] ?? 'PHP',
+            'active_unit_price' => $activeComparableIsLease ? $leasePricePerSqm : $askingPricePerSqm,
+            'active_benchmark_price' => $activeComparableIsLease ? $comparableLease : $comparableMarket,
+            'active_difference_percent' => $activeDiffPct,
+            'matched_band' => $matchedBand,
+            'scoring_bands' => self::propertyCostScoringMetadata()['bands'],
+            'scoring_version' => self::PROPERTY_COST_MARKET_COMPETITIVENESS_VERSION,
             'listing_purpose' => $purpose,
             'land_area_sqm' => $landArea,
             'offered_space_scope' => $offeredScope,
@@ -1320,9 +1367,6 @@ final class PropertyAssessmentService
         if ($purpose === 'lease' && !isset($data['offered_area_sqm']) && ($data['offered_space_scope'] ?? '') !== 'entire_land') {
             $missing[] = 'Relevant offered lease area with explicit scope';
         }
-        $activeComparableIsLease = $purpose === 'lease' || ($purpose === 'sale_or_lease'
-            && !($askingPricePerSqm !== null && $comparableMarket !== null)
-            && $leasePricePerSqm !== null && $comparableLease !== null);
         $hasComparableBenchmark = $activeComparableIsLease ? $comparableLease !== null : $comparableMarket !== null;
         if (!$hasComparableBenchmark || $competitivenessRatio === null || $activeDiffPct === null) {
             $missing[] = 'Verified local comparable market benchmark';
@@ -1376,34 +1420,9 @@ final class PropertyAssessmentService
             ];
         }
 
-        // When verified comparable market benchmark is present and verified:
-        // Authoritative price-competitiveness scoring rubric:
-        // - Within +/- 5% of market benchmark: 100.0 (Highly competitive market alignment)
-        // - 5% to 15% above market: 85.0 (Moderate premium over market)
-        // - 15% to 30% above market: 70.0 (Substantial premium over market)
-        // - > 30% above market: 50.0 (Significantly elevated asking price)
-        // - 5% to 20% below market: 90.0 (Competitive discount below market)
-        // - More than 20% below market: 75.0 (Deep discount below market; title & encumbrance review required)
-        $compPct = $activeDiffPct;
-        if ($compPct >= -5.0 && $compPct <= 5.0) {
-            $score = 100.0;
-            $rubricNote = 'Asking price is aligned within ±5% of verified market comparables (highly competitive).';
-        } elseif ($compPct > 5.0 && $compPct <= 15.0) {
-            $score = 85.0;
-            $rubricNote = 'Asking price reflects a moderate 5% to 15% premium over local market comparables.';
-        } elseif ($compPct > 15.0 && $compPct <= 30.0) {
-            $score = 70.0;
-            $rubricNote = 'Asking price reflects a substantial 15% to 30% premium over local market comparables.';
-        } elseif ($compPct > 30.0) {
-            $score = 50.0;
-            $rubricNote = 'Asking price is significantly elevated (>30% above verified market comparables).';
-        } elseif ($compPct < -5.0 && $compPct >= -20.0) {
-            $score = 90.0;
-            $rubricNote = 'Asking price reflects a competitive discount of 5% to 20% below verified market comparables.';
-        } else {
-            $score = 75.0;
-            $rubricNote = 'Asking price is deeply discounted (>20% below verified market benchmark); requires title, encumbrance, and physical condition review.';
-        }
+        // The same band metadata is supplied to the price explanation in the UI.
+        $score = $matchedBand['score'];
+        $rubricNote = $matchedBand['explanation'];
 
         $iaiContribution = round($score * 0.20, 2);
 
@@ -1906,6 +1925,12 @@ final class PropertyAssessmentService
         $eligibility['proposed_activity'] = $activity ?: null;
         $eligibility['conditions_met'] = $zoning['status'] === 'permitted';
         $eligibility['outstanding_requirements'] = $zoning['unmet_conditions'] ?? $zoning['required_conditions'] ?? [];
+        if (!empty($zoning['reason'])) {
+            $eligibility['reason'] = $zoning['reason'];
+        }
+        if (!empty($zoning['explanation'])) {
+            $eligibility['explanation'] = $zoning['explanation'];
+        }
         if ($eligibility['zoning'] === 'conditional' && !$eligibility['outstanding_requirements']) {
             $eligibility['outstanding_requirements'] = ['Recorded zoning conditions require review and clearance.'];
         }
@@ -1968,7 +1993,10 @@ final class PropertyAssessmentService
                         'provenance_status' => AssessmentEvidence::status($item)];
                 }
             }
-            $engineOptions = ['is_verified' => $authenticated];
+            $engineOptions = [
+                'is_verified' => $authenticated,
+                'preview_only' => ($options['preview_only'] ?? false) === true || ($options['allow_scalar_completion'] ?? false) === true,
+            ];
             // Detailed observations select one rubric. Aggregate scores never supply missing observations.
             $evaluation = match ($key) {
                 'spatial_accessibility' => self::evaluateSpatialAccessibility(is_array($input) ? $input : null, $engineOptions),
