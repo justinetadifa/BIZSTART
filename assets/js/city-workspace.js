@@ -1755,16 +1755,33 @@ function printFooterMarkup(property) {
   `;
 }
 
-function printButtonMarkup(id = '') {
+function printButtonMarkup(id = '', propertyId = null) {
+  const basePath = config.basePath || '';
+  const pid = propertyId || (typeof params !== 'undefined' ? Number(params?.get('id')) : null);
+  const caoUrl = pid ? `${basePath}/reports.php?cao=${encodeURIComponent(pid)}` : '';
   return `
-    <button class="city-button city-button-secondary city-print-trigger-btn print:tw-hidden" type="button" ${id ? `id="${id}"` : ''} title="Print property information and MCE / IAI calculation sheet">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-        <rect x="6" y="14" width="12" height="8"></rect>
-      </svg>
-      <span>Print Information</span>
-    </button>
+    <div class="tw-inline-flex tw-items-center tw-gap-2 print:tw-hidden">
+      <button class="city-button city-button-secondary city-print-trigger-btn" type="button" ${id ? `id="${id}"` : ''} title="Print property information and MCE / IAI calculation sheet">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+          <rect x="6" y="14" width="12" height="8"></rect>
+        </svg>
+        <span>Print Details</span>
+      </button>
+      ${caoUrl ? `
+        <a href="${caoUrl}" class="city-button city-button-secondary" title="Generate official City Assessor's Office (CAO) Property Assessment &amp; Valuation Dossier">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>CAO Dossier</span> <span aria-hidden="true">&#8599;</span>
+        </a>
+      ` : ''}
+    </div>
   `;
 }
 

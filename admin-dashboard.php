@@ -125,6 +125,9 @@ sfc_render_header($context, 'admin');
         <a href="<?= $escape(sfc_path('/admin-properties.php')) ?>" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
           Listing review
         </a>
+        <a href="<?= $escape(sfc_path('/reports.php')) ?>" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
+          Assessment &amp; CAO Reports
+        </a>
         <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
           City team
         </a>

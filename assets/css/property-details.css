@@ -367,11 +367,12 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
   }
 
   /* Screen overflow-x rules create scroll containers and clip printed columns. */
-  html:has(body:is([data-page="city-details"], [data-page="city-investment-report"])),
-  body:is([data-page="city-details"], [data-page="city-investment-report"]),
-  body:is([data-page="city-details"], [data-page="city-investment-report"]) .city-workspace,
+  html:has(body:is([data-page="city-details"], [data-page="city-investment-report"], [data-page="city-cao-report"])),
+  body:is([data-page="city-details"], [data-page="city-investment-report"], [data-page="city-cao-report"]),
+  body:is([data-page="city-details"], [data-page="city-investment-report"], [data-page="city-cao-report"]) .city-workspace,
   #cityPropertyDetails,
-  #investmentReportRoot {
+  #investmentReportRoot,
+  #caoReportRoot {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
@@ -401,7 +402,7 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
     display: none !important;
   }
 
-  /* Show the LOCUS-SF Investor Brief print dossier */
+  /* Show the LOCUS-SF Investor Brief & CAO print dossiers */
   .locus-print-dossier-wrapper {
     display: block !important;
     width: 100% !important;
@@ -409,7 +410,8 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
     padding: 0 !important;
   }
 
-  .locus-investor-brief {
+  .locus-investor-brief,
+  .locus-cao-dossier {
     display: block !important;
     width: 100% !important;
     background: #ffffff !important;
@@ -417,6 +419,20 @@ details.property-panel>summary span,.property-disclosure>summary small{font-size
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
   }
 
+}
+
+/* Screen styles for document dossiers */
+body[data-page="city-cao-report"] .brief-page,
+body[data-page="city-investment-report"] .brief-page {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  padding: 32px 36px;
+  margin-bottom: 28px;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* LOCUS-SF editorial print system. Local fonts keep offline exports consistent. */

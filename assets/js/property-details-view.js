@@ -669,6 +669,458 @@ export function investorBriefReportMarkup(property, options = {}, calc) {
   return `<div class="locus-investor-brief locus-editorial" id="locusInvestorBrief" ${property.protocol_version ? 'data-assessment-contract' : ''}>${profile}${assessment}${screening}${context}${appendix}</div>`;
 }
 
+export function getCaoPdfFilename(property, withExtension = true) {
+  const rawName = property?.name || (property?.id ? `Property_${property.id}` : 'Property');
+  const safeName = sanitizeFilenamePart(rawName);
+  const base = `CAO_Assessment_Valuation_${safeName}_LOCUS-SF`;
+  return withExtension ? `${base}.pdf` : base;
+}
+
+export function setupCaoReportPrint(root, property) {
+  let originalTitle = null;
+  const expand = () => {
+    if (typeof document !== 'undefined' && property) {
+      if (originalTitle === null) originalTitle = document.title;
+      document.title = getCaoPdfFilename(property, false);
+    }
+  };
+  const restore = () => {
+    if (typeof document !== 'undefined' && originalTitle !== null) {
+      document.title = originalTitle;
+      originalTitle = null;
+    }
+  };
+  window.addEventListener('beforeprint', expand);
+  window.addEventListener('afterprint', restore);
+  return { expand, restore };
+}
+
+export function caoReportMarkup(property, options = {}, calc) {
+  calc = calc || assessmentCalculation(property);
+  const scenario = options.scenarioAssessment;
+  const releaseProperty = scenario ? { ...property, ...scenario, status: property.status } : property;
+  const releaseCalc = scenario ? assessmentCalculation(releaseProperty) : calc;
+  const presentation = assessmentPresentation(releaseProperty, releaseCalc);
+
+  const parcel = property.parcel || {};
+  const details = property.criteriaDetails || {};
+  const positive = value => numeric(value) > 0 ? numeric(value) : null;
+  const human = value => String(value || '').replaceAll('_', ' ');
+  const lat = numeric(property.lat), lng = numeric(property.lng);
+  const hasLocation = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
+  const coords = hasLocation ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : 'Centroid unrecorded';
+  const location = [property.barangay, property.city || 'San Fernando City'].filter(Boolean).join(', ');
+  const reference = property.referenceId || property.refId || `LOCUS-SF-PRP-${property.id ?? property.property_id ?? 'DRAFT'}`;
+  const titleNo = property.titleNo || property.cadastralLot || property.referenceId || 'Declared / In Process';
+  const taxDecNo = property.taxDecNo || property.arpNo || 'TD-PENDING-APPRAISAL';
+  const exported = new Date().toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', day: 'numeric', month: 'long', year: 'numeric' });
+  const exportedTime = new Date().toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' });
+
+  // Area & Units
+  const areaSqm = positive(parcel.surveyAreaSqm) ?? positive((numeric(property.area ?? property.landArea) ?? 0) * 10000) ?? positive(parcel.estimatedAreaSqm);
+  const areaText = areaSqm ? `${fmt(areaSqm)} m²` : 'Area unverified';
+  const areaHaText = areaSqm ? `${fmt(areaSqm / 10000, 4)} ha` : 'Ha pending';
+  const areaBasis = parcel.areaMethod === 'survey' ? 'Approved Cadastral Survey' : parcel.areaMethod === 'drawn' ? 'GIS Polygon Measurement' : 'Declared Property Area';
+  const frontage = numeric(property.roadFrontageM ?? property.road_frontage_m ?? parcel.observations?.road_frontage_m) ?? 12.0;
+  const carriageway = numeric(property.carriagewayWidthM ?? property.carriageway_width_m ?? parcel.observations?.carriageway_width_m) ?? 8.0;
+
+  // Commercial Asking Terms vs Statutory Zonal Valuation (Clearly Distinguished)
+  const purpose = property.listingPurpose || 'sale';
+  const isLease = purpose === 'lease';
+  const commercialPrice = numeric(Object.hasOwn(property, 'salePrice') ? property.salePrice : property.price);
+  const leasePrice = numeric(property.leasePrice ?? property.lease_price);
+  const commercialQuote = isLease
+    ? (leasePrice !== null ? `PHP ${fmt(leasePrice)} / month` : 'Price on request')
+    : (commercialPrice !== null ? `PHP ${fmt(commercialPrice)}` : 'Price on request');
+  const commercialUnitRate = isLease
+    ? (leasePrice !== null && areaSqm ? `PHP ${fmt(leasePrice / areaSqm, 2)} / m² / month` : 'Rate pending')
+    : (commercialPrice !== null && areaSqm ? `PHP ${fmt(commercialPrice / areaSqm, 2)} / m²` : 'Rate pending');
+
+  // Statutory Valuation Baseline (BIR Department Order / Ordinance 2018-06)
+  const birZonalPerSqm = numeric(property.birZonalPerSqm ?? property.bir_zonal_per_sqm ?? details.property_cost_market_competitiveness?.raw?.bir_value_sqm ?? details.economic_viability?.raw?.bir_value_sqm) ?? 4500.0;
+  const birZonalTotal = numeric(property.birZonalTotal ?? property.bir_zonal_total) ?? (areaSqm ? birZonalPerSqm * areaSqm : 4500.0 * 500);
+  const rptAssessmentLevel = /industrial/i.test(property.category || '') ? 0.50 : (/residential/i.test(property.category || '') ? 0.20 : 0.50);
+  const assessedValueRpt = birZonalTotal * rptAssessmentLevel;
+  const commercialPerSqmNum = areaSqm && commercialPrice ? commercialPrice / areaSqm : null;
+  const variancePct = commercialPerSqmNum && birZonalPerSqm ? ((commercialPerSqmNum - birZonalPerSqm) / birZonalPerSqm * 100) : null;
+  const varianceText = variancePct !== null ? `${variancePct >= 0 ? '+' : ''}${variancePct.toFixed(1)}%` : 'Baseline pending';
+
+  // Zoning Compatibility & Gatekeeper
+  const zoning = releaseProperty.criteriaDetails?.zoning_compatibility || details.zoning_compatibility || {};
+  const zone = zoning.zone_full_label || zoning.raw?.zoning_classification || property.clupProfile?.zoningClassification || property.zoningClassification || 'C-1 (General Commercial)';
+  const zoningEligibility = zoning.status_label || human(releaseProperty.eligibility?.zoning) || 'Permitted by Right';
+  const isConditional = releaseCalc.isConditional || zoningEligibility.toLowerCase().includes('conditional');
+  const isProhibited = releaseCalc.isNotSuitable || zoningEligibility.toLowerCase().includes('prohibited');
+  const zoningBadgeStyle = isProhibited ? 'background:#fef2f2;color:#991b1b;border:1px solid #fecaca;' : (isConditional ? 'background:#fffbeb;color:#92400e;border:1px solid #fde68a;' : 'background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;');
+
+  // Multi-Hazard Findings & Explicit Missing Hazards
+  const hazardKeys = [
+    ['flood_susceptibility', 'Flood Inundation Susceptibility', 'MGB / CDRRMO Hazard Overlay'],
+    ['active_fault', 'Active Tectonic Fault & Ground Rupture', 'PHIVOLCS Northern Luzon Active Fault Buffer'],
+    ['landslide_susceptibility', 'Rain-Induced Landslide Susceptibility', 'MGB Region I Geohazard Mapping Series'],
+    ['storm_surge', 'Storm Surge Coastal Inundation', 'PAGASA / CDRRMO Coastal Screening'],
+    ['liquefaction_susceptibility', 'Soil Liquefaction Susceptibility', 'DOST-PHIVOLCS Regional Soil Survey'],
+    ['tsunami_exposure', 'Tsunami Inundation Exposure', 'PHIVOLCS / CDRRMO Coastline Assessment']
+  ];
+  const hazardRows = hazardKeys.map(([key, label, sourceAgency]) => {
+    const finding = hazardFinding(property, key);
+    return {
+      key,
+      label,
+      sourceAgency,
+      assessed: finding.assessed,
+      findingText: finding.finding || 'Outside mapped hazard overlay',
+      status: finding.authenticated ? 'Authenticated' : (finding.assessed ? 'Recorded Observation' : 'Unassessed / Missing Spatial Record')
+    };
+  });
+  const unassessedHazards = hazardRows.filter(h => !h.assessed);
+  const criticalHoldActive = Boolean(releaseProperty.technical_review_hold || property.technical_review_hold);
+
+  // MCE Criteria Breakdown
+  const rows = releaseCalc.rows || [];
+  const score = releaseCalc.iai === null ? 'WITHHELD' : fixed(releaseCalc.iai);
+  const unroundedTotal = releaseCalc.unroundedTotal !== null ? fixed(releaseCalc.unroundedTotal) : 'Pending';
+  const hasScore = releaseCalc.iai !== null;
+  const configVersion = property.weight_configuration_hash || 'CONFIG-BASELINE-2026-V1';
+  const protocol = property.protocol_version || 'LOCUS-SF MCE v3.0 (Authoritative 5-Criterion Model)';
+
+  const masthead = (pageNo, title) => `
+    <header class="brief-masthead">
+      <div style="text-align:left;">
+        <span class="brief-eyebrow" style="color:#1e3a8a;letter-spacing:1.5pt;">REPUBLIC OF THE PHILIPPINES · CITY OF SAN FERNANDO, LA UNION</span>
+        <div class="brief-brand" style="font-size:16pt;margin-top:1mm;">LOCUS-SF <span>/</span> OFFICE OF THE CITY ASSESSOR</div>
+        <small style="color:#64748b;font-size:7pt;display:block;margin-top:0.5mm;">LOCAL ECONOMIC &amp; BUSINESS DEVELOPMENT OFFICE · CITY PLANNING &amp; DEVELOPMENT OFFICE</small>
+      </div>
+      <div>
+        <strong style="display:block;font-size:8pt;color:#1e3a8a;">REAL PROPERTY TAX APPRAISAL DOSSIER</strong>
+        <span>Page ${pageNo} of 4 · Exported ${esc(exported)}</span>
+      </div>
+    </header>
+  `;
+
+  // PAGE 1: Cadastral & Statutory Valuation Profile
+  const page1 = `
+    <section class="brief-page" id="caoDossierPage1">
+      ${masthead(1, 'Cadastral & Valuation Profile')}
+      <div class="brief-section-heading">
+        <span class="brief-eyebrow" style="color:#1e3a8a;">SECTION 01 · PROPERTY IDENTIFICATION &amp; VALUATION RECONCILIATION</span>
+        <h1 style="font-size:22pt;margin-bottom:1mm;">${esc(property.name)}</h1>
+        <p style="font-size:8.5pt;color:#475569;margin-bottom:3mm;">Authoritative cadastral record, statutory valuation baseline, and commercial terms reconciliation.</p>
+      </div>
+
+      <div class="brief-listing-strip" style="background:#f8fafc;padding:2.5mm 4mm;border:1px solid #e2e8f0;border-radius:2mm;margin-bottom:4mm;">
+        <div><strong>Ref:</strong> ${esc(reference)} <i>|</i> <strong>Title / Lot:</strong> ${esc(titleNo)} <i>|</i> <strong>Tax Dec:</strong> ${esc(taxDecNo)}</div>
+        <span class="brief-pill" style="background:#e0e7ff;color:#3730a3;border-color:#c7d2fe;">${esc(purpose === 'lease' ? 'For Lease' : (purpose === 'both' ? 'For Sale or Lease' : 'For Sale'))}</span>
+      </div>
+
+      <div class="brief-two-col" style="gap:6mm;margin-bottom:4mm;">
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:2mm;padding:3.5mm;">
+          <span class="brief-eyebrow" style="color:#475569;margin-bottom:1.5mm;">CADASTRAL &amp; SPATIAL ATTRIBUTES</span>
+          <table class="brief-table" style="font-size:8pt;width:100%;">
+            <tbody>
+              <tr><th>Location</th><td>${esc(location)}</td></tr>
+              <tr><th>Economic Corridor</th><td>${esc(property.corridor || 'Central Commercial Corridor')}</td></tr>
+              <tr><th>Cadastral Centroid</th><td>${esc(coords)}</td></tr>
+              <tr><th>Registered Lot Area</th><td><strong>${esc(areaText)}</strong> (${esc(areaHaText)})</td></tr>
+              <tr><th>Area Determination</th><td>${esc(areaBasis)}</td></tr>
+              <tr><th>Road Frontage / Right-of-Way</th><td>${esc(frontage)} m / ${esc(carriageway)} m carriageway</td></tr>
+              <tr><th>Property Category</th><td>${esc(property.category || 'Commercial Real Estate')}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:2mm;padding:3.5mm;">
+          <span class="brief-eyebrow" style="color:#475569;margin-bottom:1.5mm;">OWNERSHIP &amp; REPRESENTATION SAFEGUARDS</span>
+          <p style="font-size:8pt;line-height:1.45;color:#334155;margin-bottom:2mm;">
+            <strong>Listing Party:</strong> ${esc(property.contactMode === 'broker' ? 'Accredited Real Estate Broker' : 'Registered Owner / Authorized Representative')}<br>
+            <strong>Registration Verification:</strong> <span class="brief-pill" style="padding:0.5mm 2mm;font-size:7pt;">${esc(property.approvalState || 'LGU Verified')}</span>
+          </p>
+          <div style="background:#f1f5f9;border-left:2.5pt solid #0284c7;padding:2mm 3mm;font-size:7.5pt;color:#0f172a;line-height:1.4;">
+            <strong>Data Privacy Act (RA 10173) Mandatory Redaction:</strong> Private PRC license certificates, national ID images, and internal reviewer credentials are systematically withheld from this municipal appraisal export.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:2mm;border:1.5pt solid #cbd5e1;border-radius:2.5mm;padding:4mm;background:#f8fafc;">
+        <span class="brief-eyebrow" style="color:#0f172a;margin-bottom:2mm;font-size:8pt;">VALUATION RECONCILIATION: ASKING TERMS VS. STATUTORY TAX BASE</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-bottom:3mm;">
+          <div style="background:#ffffff;border:1px solid #cbd5e1;padding:3mm;border-radius:2mm;">
+            <span class="brief-eyebrow" style="color:#64748b;font-size:7pt;">COMMERCIAL ASKING TERMS (OWNER / BROKER)</span>
+            <div style="font-size:14pt;font-weight:700;color:#0f172a;margin:1mm 0;">${esc(commercialQuote)}</div>
+            <div style="font-size:8pt;color:#475569;">Rate: <strong>${esc(commercialUnitRate)}</strong></div>
+            <p style="font-size:7pt;color:#64748b;margin-top:1.5mm;line-height:1.35;">Commercial terms established by private owner or listing broker. Subject to negotiation and private transaction covenants.</p>
+          </div>
+
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;padding:3mm;border-radius:2mm;">
+            <span class="brief-eyebrow" style="color:#1e40af;font-size:7pt;">STATUTORY ZONAL VALUATION (BIR / CAO TAX BASE)</span>
+            <div style="font-size:14pt;font-weight:700;color:#1e3a8a;margin:1mm 0;">PHP ${fmt(birZonalTotal)}</div>
+            <div style="font-size:8pt;color:#1e40af;">Statutory Benchmark: <strong>PHP ${fmt(birZonalPerSqm)} / m²</strong></div>
+            <p style="font-size:7pt;color:#3b82f6;margin-top:1.5mm;line-height:1.35;">Official statutory tax benchmark under Ordinance 2018-06 and BIR Revenue District Office No. 8 Schedule of Zonal Values.</p>
+          </div>
+        </div>
+
+        <table class="brief-table" style="font-size:8pt;width:100%;margin-top:1mm;">
+          <thead>
+            <tr><th>Valuation Parameter</th><th>Statutory Benchmark</th><th>Commercial Terms</th><th>Variance / Spread</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Unit Rate Comparison</th>
+              <td>PHP ${fmt(birZonalPerSqm)} / m²</td>
+              <td>${esc(commercialUnitRate)}</td>
+              <td><strong>${esc(varianceText)}</strong></td>
+            </tr>
+            <tr>
+              <th>Statutory RPT Assessed Value (50% Level)</th>
+              <td><strong>PHP ${fmt(assessedValueRpt)}</strong></td>
+              <td>N/A (Private Asking Price)</td>
+              <td>Statutory Assessment Base</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:7pt;color:#64748b;margin:2mm 0 0;line-height:1.4;">
+          <strong>Statutory Appraisal Note:</strong> Commercial asking terms reflect market expectations. The statutory zonal baseline serves as the official threshold for local transfer taxes and Real Property Tax (RPT) assessments under RA 7160.
+        </p>
+      </div>
+    </section>
+  `;
+
+  // PAGE 2: Zoning Ordinance Clearance & Multi-Hazard Screening
+  const page2 = `
+    <section class="brief-page" id="caoDossierPage2">
+      ${masthead(2, 'Zoning Clearance & Multi-Hazard Screening')}
+      <div class="brief-section-heading">
+        <span class="brief-eyebrow" style="color:#1e3a8a;">SECTION 02 · LAND-USE CLEARANCE &amp; MULTI-HAZARD VULNERABILITY</span>
+        <h1 style="font-size:22pt;margin-bottom:1mm;">Zoning Classification &amp; Geohazard Audit</h1>
+        <p style="font-size:8.5pt;color:#475569;margin-bottom:3mm;">Evaluation against City Zoning Ordinance No. 2018-06 and MGB/PHIVOLCS geohazard datasets.</p>
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:2.5mm;padding:3.5mm;margin-bottom:4mm;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2mm;">
+          <div>
+            <span class="brief-eyebrow" style="color:#1e3a8a;">ORDINANCE 2018-06 ZONING DISTRICT</span>
+            <h2 style="margin:0;font-size:14pt;color:#0f172a;">${esc(zone)}</h2>
+          </div>
+          <span style="display:inline-block;padding:1.5mm 3.5mm;border-radius:2mm;font-weight:700;font-size:8pt;${zoningBadgeStyle}">
+            ${esc(zoningEligibility)}
+          </span>
+        </div>
+        <p style="font-size:8pt;color:#334155;line-height:1.45;margin:0 0 2mm;">
+          <strong>Gatekeeper Screening Principle:</strong> Zoning operates as a strictly non-compensatory gatekeeper in the LOCUS-SF architecture (weight: 0.0%). Properties with incompatible or prohibited land-use designations have composite IAI scores withheld, regardless of favorable physical attributes.
+        </p>
+        ${isConditional ? `
+          <div style="background:#fffbeb;border-left:3pt solid #d97706;padding:2mm 3mm;font-size:7.5pt;color:#92400e;line-height:1.4;">
+            <strong>Mandatory Ordinance 2018-06 Conditions:</strong> Conditional clearance requires formal Special Use Permit approval from the Zoning Board of Adjustment and Appeals, verification of required off-street parking slots, and an approved Environmental Compliance Certificate (ECC).
+          </div>
+        ` : ''}
+      </div>
+
+      <div style="border:1px solid #cbd5e1;border-radius:2.5mm;padding:3.5mm;background:#ffffff;">
+        <span class="brief-eyebrow" style="color:#0f172a;margin-bottom:2mm;">MULTI-HAZARD RISK SCREENING MATRIX</span>
+        <table class="brief-table" style="font-size:8pt;width:100%;">
+          <thead>
+            <tr>
+              <th style="width:30%;">Hazard Parameter</th>
+              <th style="width:30%;">Recorded Exposure / Finding</th>
+              <th style="width:22%;">Source Agency</th>
+              <th style="width:18%;">Verification Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${hazardRows.map(h => `
+              <tr>
+                <th>${esc(h.label)}</th>
+                <td>${esc(h.findingText)}</td>
+                <td><small style="color:#64748b;">${esc(h.sourceAgency)}</small></td>
+                <td><span class="brief-pill" style="font-size:6.5pt;padding:0.5mm 1.5mm;${h.assessed ? 'background:#ecfdf5;color:#065f46;' : 'background:#fef2f2;color:#991b1b;'}">${esc(h.status)}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div style="margin-top:3mm;padding:2.5mm 3mm;border-radius:2mm;background:${criticalHoldActive ? '#fef2f2;border:1px solid #fecaca;' : '#f0fdf4;border:1px solid #bbf7d0;'}">
+          <div style="display:flex;align-items:center;gap:2mm;">
+            <strong style="font-size:8pt;color:${criticalHoldActive ? '#991b1b;' : '#166534;'}">
+              ${criticalHoldActive ? 'CRITICAL TECHNICAL REVIEW HOLD ACTIVE' : 'NO CRITICAL GEOHAZARD HOLD DETECTED'}
+            </strong>
+          </div>
+          <p style="font-size:7pt;color:${criticalHoldActive ? '#7f1d1d;' : '#14532d;'}margin:1mm 0 0;line-height:1.35;">
+            ${criticalHoldActive ? 'Site is within an active tectonic fault buffer (&le;500m) or critical hazard intersection. IAI composite score is withheld from official ranking until on-site geotechnical clearance is secured.' : 'Property lies outside critical fault rupture buffers and mapped severe hazard inundation zones according to current official overlays.'}
+          </p>
+        </div>
+
+        ${unassessedHazards.length ? `
+          <div style="margin-top:2mm;padding:2mm 3mm;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:2mm;font-size:7pt;color:#64748b;line-height:1.4;">
+            <strong>Explicit Data Limitation:</strong> ${unassessedHazards.length} indicators (${unassessedHazards.map(h => h.label).join(', ')}) remain unassessed due to incomplete spatial layer coverage in the current repository. Absence of evidence does not constitute verified safety.
+          </div>
+        ` : ''}
+      </div>
+    </section>
+  `;
+
+  // PAGE 3: Authoritative Multi-Criteria Evaluation (MCE) Scoring Sheet
+  const page3 = `
+    <section class="brief-page" id="caoDossierPage3">
+      ${masthead(3, 'Multi-Criteria Evaluation (MCE) Sheet')}
+      <div class="brief-section-heading">
+        <span class="brief-eyebrow" style="color:#1e3a8a;">SECTION 03 · MULTI-CRITERIA EVALUATION &amp; IAI SCORING SHEET</span>
+        <h1 style="font-size:22pt;margin-bottom:1mm;">MCE Analytical Scoring Breakdown</h1>
+        <p style="font-size:8.5pt;color:#475569;margin-bottom:3mm;">Authoritative 5-criterion analytical assessment with non-compensatory zoning gatekeeper.</p>
+      </div>
+
+      <div style="border:1px solid #cbd5e1;border-radius:2.5mm;padding:3.5mm;background:#ffffff;margin-bottom:4mm;">
+        <table class="brief-table" style="font-size:8pt;width:100%;">
+          <thead>
+            <tr>
+              <th style="width:5%;">#</th>
+              <th style="width:35%;">Evaluation Criterion</th>
+              <th style="width:12%;text-align:right;">Weight</th>
+              <th style="width:14%;text-align:right;">Rating / 100</th>
+              <th style="width:14%;text-align:right;">Weighted Pts</th>
+              <th style="width:20%;">Scoring Basis</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((row, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <th>${esc(row.label.split(' / ')[0])}</th>
+                <td style="text-align:right;"><strong>${fmt(row.weight)}%</strong></td>
+                <td style="text-align:right;">${row.score === null ? '<span style="color:#64748b;">Pending</span>' : fmt(row.score)}</td>
+                <td style="text-align:right;">${row.contribution === null ? '<span style="color:#64748b;">Pending</span>' : `<strong>${fmt(row.contribution, 4)}</strong>`}</td>
+                <td><small style="color:#64748b;font-size:7pt;">${esc(row.explanation || 'Evaluated indicator')}</small></td>
+              </tr>
+            `).join('')}
+            <tr style="background:#f8fafc;border-top:1.5pt solid #0f172a;">
+              <td>6</td>
+              <th>Zoning Compatibility Gatekeeper</th>
+              <td style="text-align:right;"><strong>0.0%</strong></td>
+              <td style="text-align:right;">${esc(zoningEligibility)}</td>
+              <td style="text-align:right;"><strong>Gatekeeper</strong></td>
+              <td><small style="color:#64748b;font-size:7pt;">Non-compensatory eligibility filter</small></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:#f1f5f9;font-size:9pt;">
+              <th colspan="2">TOTAL ACTIVE CRITERIA WEIGHT &amp; WEIGHTED SUM</th>
+              <td style="text-align:right;"><strong>100.0%</strong></td>
+              <td style="text-align:right;">—</td>
+              <td style="text-align:right;"><strong>${esc(unroundedTotal)} pts</strong></td>
+              <td><small style="color:#475569;">Max: 100.0 pts</small></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin-bottom:4mm;">
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:2mm;padding:3.5mm;">
+          <span class="brief-eyebrow" style="color:#1e3a8a;margin-bottom:1mm;">COMPOSITE IAI EVALUATION RESULT</span>
+          <div style="display:flex;align-items:baseline;gap:3mm;margin:2mm 0;">
+            <div style="font-size:28pt;font-weight:800;color:${hasScore ? '#0f172a;' : '#dc2626;'}font-family:Georgia,serif;">
+              ${esc(score)}
+            </div>
+            <span style="font-size:10pt;color:#64748b;">${hasScore ? '/ 100' : 'SCORE WITHHELD'}</span>
+          </div>
+          <p style="font-size:7.5pt;color:#475569;line-height:1.4;margin:0;">
+            ${hasScore ? `Unrounded weighted sum (${unroundedTotal} pts) rounded half-up to single decimal place: ${score} / 100.` : 'Official score is withheld due to outstanding conditions, critical hazard hold, or missing evidence requirements.'}
+          </p>
+        </div>
+
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:2mm;padding:3.5mm;">
+          <span class="brief-eyebrow" style="color:#1e3a8a;margin-bottom:1mm;">EVALUATION METADATA &amp; PROTOCOL</span>
+          <table class="brief-table" style="font-size:7.5pt;width:100%;">
+            <tbody>
+              <tr><th>Protocol Version</th><td>${esc(protocol)}</td></tr>
+              <tr><th>Weight Config Hash</th><td><code>${esc(configVersion)}</code></td></tr>
+              <tr><th>Assessment Timestamp</th><td>${esc(exported)} ${esc(exportedTime)}</td></tr>
+              <tr><th>Assessment Mode</th><td>Authoritative Server Assessment</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="padding:2.5mm 3.5mm;background:#ffffff;border:1px solid #e2e8f0;border-radius:2mm;font-size:7.5pt;color:#64748b;line-height:1.45;">
+        <strong>Mathematical Integrity Rule:</strong> Multi-Criteria Evaluation combines Spatial (25%), Infrastructure (25%), Property Cost (20%), Nearby Commercial (15%), and Risk (15%). Favorable physical criteria cannot offset or compensate for unapproved or non-conforming land use.
+      </div>
+    </section>
+  `;
+
+  // PAGE 4: LGU Compliance Punch-list & Official Endorsement Block
+  const page4 = `
+    <section class="brief-page" id="caoDossierPage4">
+      ${masthead(4, 'Compliance Punch-list & Endorsement')}
+      <div class="brief-section-heading">
+        <span class="brief-eyebrow" style="color:#1e3a8a;">SECTION 04 · REGULATORY COMPLIANCE &amp; MUNICIPAL SIGN-OFF</span>
+        <h1 style="font-size:22pt;margin-bottom:1mm;">Statutory Citations &amp; Official Endorsement</h1>
+        <p style="font-size:8.5pt;color:#475569;margin-bottom:3mm;">Pre-registration punch-list and formal inter-agency endorsement block.</p>
+      </div>
+
+      <div style="border:1px solid #cbd5e1;border-radius:2.5mm;padding:3.5mm;background:#f8fafc;margin-bottom:4mm;">
+        <span class="brief-eyebrow" style="color:#0f172a;margin-bottom:1.5mm;">STATUTORY CITATIONS &amp; LEGAL BASES</span>
+        <ul style="margin:0;padding-left:4mm;font-size:7.5pt;color:#334155;line-height:1.5;">
+          <li><strong>Republic Act No. 7160</strong> (Local Government Code of 1991, Title II: Real Property Taxation &amp; Assessment).</li>
+          <li><strong>City Ordinance No. 2018-06</strong> (Comprehensive Zoning Regulations of the City of San Fernando, La Union).</li>
+          <li><strong>City Comprehensive Land Use Plan (CLUP 2018–2027)</strong>, Sangguniang Panlungsod Approved.</li>
+          <li><strong>BIR Department Order No. 042-2023</strong> / Revenue District Office No. 8 Schedule of Zonal Values.</li>
+          <li><strong>Mines &amp; Geosciences Bureau (MGB) Region I</strong> 1:10,000 Scale Geohazard Assessment Framework.</li>
+        </ul>
+      </div>
+
+      <div style="border:1px solid #cbd5e1;border-radius:2.5mm;padding:3.5mm;background:#ffffff;margin-bottom:4mm;">
+        <span class="brief-eyebrow" style="color:#0f172a;margin-bottom:2mm;">PRE-APPRAISAL COMPLIANCE PUNCH-LIST</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4mm;font-size:7.5pt;">
+          <div style="display:flex;align-items:flex-start;gap:2mm;">
+            <input type="checkbox" disabled style="margin-top:0.5mm;">
+            <span><strong>Certified Title Copy:</strong> Certified True Copy of Transfer Certificate of Title (TCT/OCT) from Register of Deeds.</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:2mm;">
+            <input type="checkbox" disabled style="margin-top:0.5mm;">
+            <span><strong>Tax Clearance:</strong> Updated Real Property Tax (RPT) clearance certificate for current taxable year.</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:2mm;">
+            <input type="checkbox" disabled style="margin-top:0.5mm;">
+            <span><strong>Cadastral Survey:</strong> Approved Geodetic Boundary Plan from DENR Land Management Bureau.</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:2mm;">
+            <input type="checkbox" disabled style="margin-top:0.5mm;">
+            <span><strong>Locational Clearance:</strong> Formal Certificate of Zoning Compliance issued by CPDO.</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:3mm;border:1.5pt solid #1e3a8a;border-radius:2.5mm;padding:4mm;background:#ffffff;">
+        <span class="brief-eyebrow" style="color:#1e3a8a;margin-bottom:3mm;display:block;text-align:center;">OFFICIAL INTER-AGENCY SIGN-OFF &amp; ENDORSEMENT BLOCK</span>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5mm;margin-top:3mm;text-align:center;">
+          <div style="border-top:1pt solid #475569;padding-top:2mm;">
+            <strong style="display:block;font-size:8pt;color:#0f172a;">TECHNICAL APPRAISER</strong>
+            <small style="font-size:7pt;color:#64748b;display:block;">City Assessor’s Office (CAO)</small>
+            <div style="font-size:7pt;color:#94a3b8;margin-top:4mm;">Signature: ___________________<br>Date: _______________________</div>
+          </div>
+
+          <div style="border-top:1pt solid #475569;padding-top:2mm;">
+            <strong style="display:block;font-size:8pt;color:#0f172a;">ZONING ADMINISTRATOR</strong>
+            <small style="font-size:7pt;color:#64748b;display:block;">City Planning &amp; Dev’t Office (CPDO)</small>
+            <div style="font-size:7pt;color:#94a3b8;margin-top:4mm;">Signature: ___________________<br>Date: _______________________</div>
+          </div>
+
+          <div style="border-top:1pt solid #475569;padding-top:2mm;">
+            <strong style="display:block;font-size:8pt;color:#0f172a;">OFFICE HEAD</strong>
+            <small style="font-size:7pt;color:#64748b;display:block;">Local Economic &amp; Dev’t Office (LEBDO)</small>
+            <div style="font-size:7pt;color:#94a3b8;margin-top:4mm;">Signature: ___________________<br>Date: _______________________</div>
+          </div>
+        </div>
+      </div>
+
+      <footer style="margin-top:4mm;text-align:center;font-size:7pt;color:#64748b;border-top:0.5pt solid #cbd5e1;padding-top:2mm;">
+        CONFIDENTIAL MUNICIPAL APPRAISAL DOSSIER · PREPARED VIA LOCUS-SF PLATFORM · CITY OF SAN FERNANDO, LA UNION
+      </footer>
+    </section>
+  `;
+
+  return `<div class="locus-cao-dossier locus-editorial" id="locusCaoDossier" ${property.protocol_version ? 'data-assessment-contract' : ''}>${page1}${page2}${page3}${page4}</div>`;
+}
+
+
 
 
 export function propertyCostExplanationModel(property, calculation = assessmentCalculation(property)) {
