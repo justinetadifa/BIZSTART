@@ -15,6 +15,7 @@ Figure 2 and two focused detail diagrams were generated locally from editable Pl
 - [Figure explanation and unresolved discrepancies](manuscript-notes.md), including why document decisions/listing publication and configuration administration are excluded.
 - [Export verification](export-verification.json), with dimensions, PNG density metadata and source/SVG/PNG digests.
 - [Local renderer](tools/render.ps1).
+- [Computation defense script](computation-defense-script.md), with a three-minute explanation, worked calculation and panel follow-up answers based on the current five-criterion code defaults.
 
 ## Word insertion
 
