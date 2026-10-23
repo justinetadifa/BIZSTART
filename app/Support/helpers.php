@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 function read_json_input(): array
 {
-    $raw = file_get_contents('php://input') ?: '';
+    $raw = $GLOBALS['sfc_test_raw_input'] ?? (file_get_contents('php://input') ?: '');
     if ($raw === '') {
         return [];
     }

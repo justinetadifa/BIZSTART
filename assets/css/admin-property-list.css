@@ -1,205 +1,1065 @@
-/* Property desk: use the existing LOCUS-SF navy, burgundy and gold. */
-[data-city-workspace="properties"] [data-property-list] { gap: 16px; }
+/* Property desk: LOCUS-SF authoritative executive styling (Navy, Crimson, Gold & Slate) */
+[data-city-workspace="properties"] [data-property-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ==========================================================================
+   Master Property Card (Bespoke Municipal Architecture)
+   ========================================================================== */
 .city-listing-card {
   display: grid;
-  grid-template-columns: 184px minmax(0, 1fr) 224px;
+  grid-template-columns: 204px minmax(0, 1fr) 234px;
   grid-template-rows: 1fr auto;
-  gap: 18px 24px;
-  padding: 22px;
-  border: 1px solid rgba(220, 226, 235, 0.9);
-  border-radius: 24px;
-  background: #fff;
-  color: #11224d;
+  gap: 16px 24px;
+  padding: 20px 22px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0b1736;
   min-width: 0;
-  box-shadow: 0 1px 3px 0 rgba(17, 34, 77, 0.03), 0 8px 24px -4px rgba(17, 34, 77, 0.05);
+  box-shadow: 
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 4px 12px -2px rgba(15, 23, 42, 0.04),
+    0 14px 28px -6px rgba(15, 23, 42, 0.03);
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
+
 .city-listing-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 4px 6px -1px rgba(17, 34, 77, 0.04), 0 20px 40px -6px rgba(17, 34, 77, 0.09);
+  box-shadow: 
+    0 3px 6px rgba(15, 23, 42, 0.03),
+    0 10px 24px -3px rgba(15, 23, 42, 0.07),
+    0 22px 48px -8px rgba(15, 23, 42, 0.06);
   transform: translateY(-2px);
 }
+
+/* ==========================================================================
+   Photo Thumbnail & Micro-interactions
+   ========================================================================== */
 .city-listing-photo {
   position: relative;
   grid-row: 1 / 3;
   display: block;
   align-self: stretch;
   min-height: 180px;
-  border-radius: 18px;
+  border-radius: 12px;
   overflow: hidden;
   background: #edf0f4;
-  box-shadow: 0 2px 8px -1px rgba(17, 34, 77, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
-.city-listing-photo img { display: block; width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; }
+
+.city-listing-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  object-fit: cover;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.city-listing-card:hover .city-listing-photo img {
+  transform: scale(1.035);
+}
+
+.city-listing-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.12) 0%, transparent 45%, rgba(15, 23, 42, 0.32) 100%);
+  pointer-events: none;
+  border-radius: 12px;
+}
+
 .city-listing-photo > span {
   position: absolute;
   top: 10px;
   left: 10px;
-  padding: 4px 11px;
-  border-radius: 9999px;
-  background: rgba(17, 34, 77, 0.88);
+  z-index: 2;
+  padding: 3.5px 9px;
+  border-radius: 6px;
+  background: rgba(11, 23, 54, 0.76);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
-.city-listing-main { min-width: 0; align-self: start; padding-top: 2px; }
-.city-listing-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+/* ==========================================================================
+   Center Information Section
+   ========================================================================== */
+.city-listing-main {
+  min-width: 0;
+  align-self: start;
+  padding-top: 2px;
+}
+
+/* Eyebrow Status Badges */
+.city-listing-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.city-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  padding: 3px 8.5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.city-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.city-status-chip.city-status-available {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+
+.city-status-chip.city-status-available .city-status-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  animation: sfcPulseDot 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes sfcPulseDot {
+  0%, 100% {
+    box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.35);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 4.5px rgba(16, 185, 129, 0);
+    opacity: 0.8;
+  }
+}
+
+.city-status-chip.city-status-unavailable {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.city-status-chip.city-status-reserved {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+}
+
+.city-status-chip.city-status-sold {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.city-status-chip.city-status-leased {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
 .city-listing-purpose {
   display: inline-flex;
   align-items: center;
-  border-radius: 9999px;
-  padding: 3px 10px;
-  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 3px 8.5px;
+  background: #f8fafc;
   border: 1px solid #e2e8f0;
   font-size: 11px;
   font-weight: 600;
   color: #475569;
+  letter-spacing: 0.01em;
 }
-.city-listing-title { font-size: 17px; line-height: 1.4; font-weight: 650; letter-spacing: -.015em; margin: 10px 0 7px; overflow-wrap: anywhere; }
-[data-city-workspace="properties"] .city-listing-title a { font: inherit; color: #11224d; text-decoration: none; }
-[data-city-workspace="properties"] .city-listing-title a:hover { color: #8b151b; text-decoration: underline; text-underline-offset: 3px; }
-.city-listing-location { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; line-height: 1.6; color: #61708a; margin: 0; }
-.city-listing-location > svg { flex: 0 0 14px; margin-top: 3px; color: #8491a5; }
-.city-listing-location > svg + span { font-weight: 600; color: #3e4e68; }
-.city-listing-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 14px; }
-.city-listing-facts > strong { font-size: 19px; font-weight: 650; line-height: 1.4; letter-spacing: -.015em; font-variant-numeric: tabular-nums; }
-.city-listing-facts > .is-price-request { font-size: 16px; font-weight: 550; }
-.city-listing-area { display: inline-flex; align-items: center; gap: 6px; color: #4d5b72; font-size: 13px; }
-.city-listing-area > svg { color: #8491a5; flex: 0 0 14px; }
-.city-listing-area small { color: #718099; font-size: 11px; }
+
+/* Property Title */
+.city-listing-title {
+  font-size: 18.5px;
+  line-height: 1.35;
+  font-weight: 750;
+  letter-spacing: -0.018em;
+  margin: 9px 0 5px;
+  color: #0b1736;
+  overflow-wrap: anywhere;
+}
+
+[data-city-workspace="properties"] .city-listing-title a {
+  font: inherit;
+  color: #0b1736;
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+[data-city-workspace="properties"] .city-listing-title a:hover {
+  color: #8b151b;
+  text-decoration: none;
+}
+
+/* Location Metadata */
+.city-listing-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #64748b;
+  margin: 0;
+}
+
+.city-listing-location > svg {
+  flex: 0 0 14px;
+  color: #94a3b8;
+  margin-top: -1px;
+}
+
+.city-listing-location > svg + span {
+  font-weight: 600;
+  color: #334155;
+}
+
+.city-listing-subcat {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.city-location-divider {
+  color: #cbd5e1;
+  font-weight: bold;
+}
+
+/* Key Facts: Structured Price & Area */
+.city-listing-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 18px;
+  margin-top: 13px;
+}
+
+.city-listing-facts > strong,
+.city-fact-price {
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #0b1736;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3.5px;
+}
+
+.city-price-currency {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.city-price-amt {
+  font-size: 18.5px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #0b1736;
+}
+
+.city-price-unit {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 2px;
+}
+
+.city-listing-facts > .is-price-request,
+.city-fact-price.is-price-request {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.city-listing-area {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding-left: 14px;
+  border-left: 1px solid #e2e8f0;
+}
+
+.city-listing-area > svg {
+  color: #94a3b8;
+  flex: 0 0 14px;
+}
+
+.city-area-ha,
+.city-listing-area small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  background: #f1f5f9;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  margin-left: 3px;
+}
+
+/* ==========================================================================
+   Executive Tactical Assessment HUD (Gamified Real-Estate Intelligence)
+   ========================================================================== */
 .city-listing-assessment {
-  grid-column: 3; grid-row: 1 / 3;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-  min-width: 0; align-self: stretch; border: 1px solid #e2e8f0;
-  background: linear-gradient(155deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 20px; padding: 16px 18px; color: #11224d;
-  text-align: left; font: inherit; cursor: pointer;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8), 0 2px 8px -2px rgba(17, 34, 77, 0.03);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  grid-column: 3;
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  align-self: stretch;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-top: 3.5px solid #11224d;
+  background-color: #ffffff;
+  background-image: 
+    radial-gradient(rgba(17, 34, 77, 0.05) 1px, transparent 1px),
+    linear-gradient(175deg, #ffffff 0%, #fbfcfe 100%);
+  background-size: 10px 10px, 100% 100%;
+  border-radius: 14px;
+  padding: 15px 17px;
+  color: #0b1736;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 1px 3px rgba(15, 23, 42, 0.03),
+    0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.city-listing-assessment.is-verified {
+  border-top-color: #059669;
+}
+
+.city-listing-assessment.is-hold {
+  border-top-color: #8b151b;
+}
+
+.city-listing-assessment.is-incomplete {
+  border-top-color: #d97706;
+}
+
+/* Holographic / Tactile Sheen on Hover */
+.city-listing-assessment::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.75s ease;
+  z-index: 5;
+}
+
+.city-listing-assessment:hover::before {
+  left: 150%;
+}
+
 .city-listing-assessment:hover {
-  background: linear-gradient(155deg, #f1f5f9 0%, #e8edf5 100%);
+  background-color: #ffffff;
   border-color: #cbd5e1;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px -2px rgba(17, 34, 77, 0.07);
+  border-top-color: inherit;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 18px rgba(15, 23, 42, 0.06),
+    0 14px 28px -4px rgba(15, 23, 42, 0.07);
 }
-.city-listing-assessment-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
-.city-listing-score-label { font-size: 11px; font-weight: 600; color: #5c6980; }
-.city-listing-score-value { font-size: 28px; line-height: 1.1; letter-spacing: -.04em; font-weight: 650; font-variant-numeric: tabular-nums; }
-.city-listing-score-value small { font-size: 12px; letter-spacing: 0; font-weight: 400; color: #6b7890; margin-left: 6px; }
-.city-listing-assessment:is(.is-incomplete, .is-hold) .city-listing-score-value { font-size: 15px; letter-spacing: 0; }
-.city-listing-assessment:is(.is-incomplete, .is-hold) .city-listing-score-value small { font-size: 12px; }
-.city-listing-score-status { color: #77561b; font-size: 10px; font-weight: 600; background: #f7edcf; border-radius: 9999px; padding: 3px 9px; line-height: 1.3; }
-.city-listing-assessment.is-incomplete .city-listing-score-status { color: #56677d; background: #e9edf3; }
-.city-listing-assessment.is-verified .city-listing-score-status { color: #237148; background: #e6f2eb; }
-.city-listing-assessment.is-hold .city-listing-score-status { color: #8b151b; background: #f8e9ea; }
-.city-listing-progress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; width: 100%; margin: 2px 0; }
-.city-listing-progress > span { height: 5px; border-radius: 9999px; background: #dfe5ed; }
-.city-listing-progress > .is-ready { background: #11224d; }
-.city-listing-score-note { font-size: 11px; color: #6b7890; line-height: 1.5; overflow-wrap: anywhere; }
-.city-listing-score-link { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; margin-top: auto; padding-top: 2px; color: #8b151b; }
-.city-listing-assessment:hover .city-listing-score-link { text-decoration: underline; text-underline-offset: 3px; }
-.city-listing-footer { grid-column: 2; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-.city-listing-created { margin: 0; font-size: 11px; color: #748198; display: flex; gap: 12px; flex-wrap: wrap; }
-.city-listing-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.city-listing-menu { margin-left: auto; }
-.city-listing-action, .city-listing-menu > summary {
+
+/* Top Header */
+.city-listing-assessment-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.city-listing-score-label {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.city-listing-score-status {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 5px;
+  padding: 2.5px 7.5px;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.city-listing-assessment.is-verified .city-listing-score-status {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.city-listing-assessment.is-incomplete .city-listing-score-status {
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.city-listing-assessment.is-hold .city-listing-score-status {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* Hero Row: Score Lockup + Circular HUD Gauge */
+.city-assessment-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  margin-top: 1px;
+}
+
+.city-assessment-score-lockup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Dynamic Tier / Rank Badge */
+.city-score-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2.5px 7px;
+  border-radius: 5px;
+  line-height: 1.2;
+  width: fit-content;
+}
+
+.city-score-tier.is-prime {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+}
+
+.city-score-tier.is-prime .city-tier-icon {
+  color: #d97706;
+}
+
+.city-score-tier.is-qualified {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.city-score-tier.is-conditional {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #b45309;
+}
+
+.city-score-tier.is-hold {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.city-score-tier.is-incomplete {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.city-listing-score-value {
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  color: #0b1736;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.city-listing-score-value small,
+.city-score-denom {
+  font-size: 12px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.city-listing-assessment:is(.is-incomplete, .is-hold) .city-listing-score-value {
+  font-size: 18px;
+}
+
+/* Circular HUD Gauge */
+.city-score-gauge-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.city-score-gauge {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.city-gauge-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 4;
+}
+
+.city-gauge-bar {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.city-gauge-bar.is-prime {
+  stroke: #059669;
+}
+
+.city-gauge-bar.is-qualified {
+  stroke: #2563eb;
+}
+
+.city-gauge-bar.is-conditional {
+  stroke: #d97706;
+}
+
+.city-gauge-bar.is-hold {
+  stroke: #8b151b;
+}
+
+.city-gauge-bar.is-incomplete {
+  stroke: #94a3b8;
+}
+
+.city-gauge-grade {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.city-gauge-grade.is-prime {
+  color: #047857;
+}
+
+.city-gauge-grade.is-qualified {
+  color: #1d4ed8;
+}
+
+.city-gauge-grade.is-conditional {
+  color: #b45309;
+}
+
+.city-gauge-grade.is-hold {
+  color: #991b1b;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.city-gauge-grade.is-incomplete {
+  color: #64748b;
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+/* Tactical Criteria Matrix (ACC, INF, MKT, BIZ, RSK) */
+.city-hud-matrix {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 2px 0;
+}
+
+.city-hud-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.city-hud-progress-title {
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.city-hud-progress-count {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #047857;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-listing-assessment.is-incomplete .city-hud-progress-count {
+  color: #b45309;
+}
+
+.city-listing-assessment.is-hold .city-hud-progress-count {
+  color: #991b1b;
+}
+
+.city-listing-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.city-pip-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: default;
+}
+
+.city-pip-bar {
+  width: 100%;
+  height: 4.5px;
+  border-radius: 2px;
+  background: #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.city-pip-item.is-ready .city-pip-bar {
+  background: #11224d;
+  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.2);
+}
+
+.city-listing-assessment.is-verified .city-pip-item.is-ready .city-pip-bar {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35);
+}
+
+.city-pip-code {
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  transition: color 0.16s ease;
+}
+
+.city-pip-item.is-ready .city-pip-code {
+  color: #475569;
+}
+
+.city-listing-assessment:hover .city-pip-item.is-ready .city-pip-code {
+  color: #0b1736;
+}
+
+/* Criteria Note */
+.city-listing-score-note {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Tactical HUD Action Button (VIEW ASSESSMENT →) */
+.city-listing-score-link {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-top: auto;
+  padding: 7px 11px;
+  border-radius: 7px;
+  border: 1px solid rgba(139, 21, 27, 0.16);
+  background: rgba(139, 21, 27, 0.04);
+  color: #8b151b;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.city-listing-score-link *,
+.city-listing-score-link:hover,
+.city-listing-score-link:focus {
+  text-decoration: none !important;
+}
+
+.city-listing-assessment:hover .city-listing-score-link {
+  background: linear-gradient(135deg, #8b151b 0%, #701115 100%);
+  color: #ffffff;
+  border-color: #701115;
+  box-shadow: 0 3px 10px -2px rgba(139, 21, 27, 0.35);
+}
+
+.city-listing-score-link svg,
+.city-score-arrow {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
+.city-listing-assessment:hover .city-score-arrow {
+  transform: translateX(3px);
+}
+
+/* ==========================================================================
+   Card Footer & Action Buttons
+   ========================================================================== */
+.city-listing-footer {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 2px;
+}
+
+.city-listing-created {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.city-created-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.city-listing-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.city-listing-menu {
+  margin-left: auto;
+  position: relative;
+}
+
+/* Action Buttons (Precision Rounded Rectangles, NOT AI Pills) */
+.city-listing-action, 
+.city-listing-menu > summary {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 8px 18px;
-  border: 1px solid #dce2eb;
-  border-radius: 9999px;
-  background: #fff;
-  color: #11224d;
+  gap: 6.5px;
+  min-height: 36px;
+  padding: 0 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
   font: inherit;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(17, 34, 77, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
 }
-.city-listing-action:hover, .city-listing-menu > summary:hover {
+
+.city-listing-action:hover, 
+.city-listing-menu > summary:hover {
   background: #f8fafc;
-  border-color: #cbd5e1;
+  border-color: #9ca3af;
+  color: #0b1736;
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px -2px rgba(17, 34, 77, 0.08);
+  box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.08);
 }
-.city-listing-action:active, .city-listing-menu > summary:active {
+
+.city-listing-action:active, 
+.city-listing-menu > summary:active {
   transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
+
+/* Primary Executive San Fernando Crimson Action */
 .city-listing-action.is-primary {
-  background: linear-gradient(135deg, #8B151B 0%, #701015 100%);
-  border-color: #701015;
-  color: #fff;
-  box-shadow: 0 2px 8px -1px rgba(139, 21, 27, 0.38);
+  background: linear-gradient(135deg, #8b151b 0%, #701115 100%);
+  border-color: #701115;
+  color: #ffffff;
+  box-shadow: 
+    0 1px 3px rgba(139, 21, 27, 0.25),
+    0 3px 8px -2px rgba(139, 21, 27, 0.35);
 }
+
 .city-listing-action.is-primary:hover {
-  background: linear-gradient(135deg, #7A1217 0%, #5C0D11 100%);
-  border-color: #5C0D11;
-  box-shadow: 0 4px 14px -2px rgba(139, 21, 27, 0.48);
+  background: linear-gradient(135deg, #7a1217 0%, #580d11 100%);
+  border-color: #580d11;
+  color: #ffffff;
+  box-shadow: 
+    0 2px 6px rgba(139, 21, 27, 0.35),
+    0 6px 14px -3px rgba(139, 21, 27, 0.45);
   transform: translateY(-1px);
 }
+
+/* Manage Dropdown Menu */
+.city-listing-menu details[open] .city-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.city-menu-chevron {
+  transition: transform 0.2s ease;
+}
+
 .city-listing-menu .city-menu-dropdown {
-  border-radius: 18px;
-  padding: 6px;
-  box-shadow: 0 12px 36px -4px rgba(17, 34, 77, 0.14), 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-.city-listing-menu .city-menu-item {
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 5px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 
+    0 12px 32px -4px rgba(15, 23, 42, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.04);
+  z-index: 40;
 }
-.city-listing-card :is(a, button, summary):focus-visible { outline: 2px solid #bc941d; outline-offset: 3px; }
-.city-dossier-screening { color: #11224d; }
-.city-dossier-screening table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
-.city-dossier-screening caption { text-align: left; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
-.city-dossier-screening :is(td, th) { border-bottom: 1px solid #e6eaf0; padding: 9px 8px; text-align: right; }
-.city-dossier-screening th:first-child { text-align: left; }
-.city-dossier-screening thead th { color: #61708a; font-size: 11px; font-weight: 500; }
-.city-dossier-screening tbody th { font-weight: 500; }
-.city-dossier-screening p { font-size: 12px; line-height: 1.6; color: #61708a; }
-.city-dossier-screening p.is-hold { color: #8b151b; font-weight: 600; }
-@media (max-width: 1050px) {
-  .city-listing-card { grid-template-columns: 132px minmax(0, 1fr) 204px; column-gap: 18px; padding: 18px; }
-  .city-listing-assessment { grid-row: auto; padding: 12px; }
-  .city-listing-footer { grid-column: 2 / 4; }
+
+.city-listing-menu .city-menu-item {
+  border-radius: 6px;
+  padding: 7px 11px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-@media (max-width: 700px) {
-  .city-listing-card { grid-template-columns: 88px minmax(0, 1fr); gap: 14px; padding: 16px; border-radius: 20px; }
-  .city-listing-photo { grid-row: 1; height: 108px; min-height: 0; align-self: start; border-radius: 14px; }
-  .city-listing-photo > span { top: 7px; left: 7px; padding: 2px 7px; font-size: 10px; }
-  .city-listing-title { font-size: 15px; margin-top: 8px; }
-  .city-listing-eyebrow { gap: 6px; }
-  .city-listing-facts { gap: 7px; flex-direction: column; align-items: flex-start; margin-top: 10px; }
-  .city-listing-facts > strong, .city-listing-facts > .is-price-request { font-size: 15px; }
-  .city-listing-location { font-size: 11px; gap: 3px 6px; }
-  .city-listing-assessment { grid-column: 1 / -1; padding: 14px; border-radius: 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; }
-  .city-listing-assessment-heading { grid-column: 1; justify-content: flex-start; }
-  .city-listing-score-value { grid-column: 2; grid-row: 1 / 3; font-size: 25px; }
-  .city-listing-progress { grid-column: 1; max-width: 160px; }
-  .city-listing-score-note { grid-column: 1 / -1; font-size: 10px; }
-  .city-listing-score-link { grid-column: 1 / -1; padding-top: 0; }
-  .city-listing-footer { grid-column: 1 / -1; align-items: flex-start; border-top: 1px solid #edf0f4; padding-top: 12px; }
-  .city-listing-actions { width: 100%; gap: 6px; }
-  .city-listing-action { flex: 1; white-space: nowrap; }
-  .city-listing-action, .city-listing-menu > summary { min-height: 42px; padding: 7px 10px; }
-  .city-listing-created { font-size: 10px; }
+
+.city-listing-menu .city-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
-@media (max-width: 360px) {
-  .city-listing-card { grid-template-columns: 64px minmax(0, 1fr); }
-  .city-listing-photo { height: 96px; }
-  .city-listing-assessment-heading { grid-column: 1 / -1; }
-  .city-listing-score-value { grid-row: 2; }
-  .city-listing-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42px; }
-  .city-listing-action { padding: 7px 8px; font-size: 11px; }
-  .city-listing-action > svg { flex-shrink: 0; }
-  .city-listing-menu > summary { width: 42px; padding: 0; }
-  .city-listing-menu > summary > span, .city-listing-menu .city-menu-chevron { display: none; }
-  .city-listing-menu > summary > svg:first-child { width: 16px; height: 16px; }
+
+.city-listing-card :is(a, button, summary):focus-visible {
+  outline: 2px solid #bc941d;
+  outline-offset: 3px;
+}
+
+/* ==========================================================================
+   Dossier Screening Table (Modal / Drawer view)
+   ========================================================================== */
+.city-dossier-screening {
+  color: #11224d;
+}
+.city-dossier-screening table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.city-dossier-screening caption {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.city-dossier-screening :is(td, th) {
+  border-bottom: 1px solid #e6eaf0;
+  padding: 9px 8px;
+  text-align: right;
+}
+.city-dossier-screening th:first-child {
+  text-align: left;
+}
+.city-dossier-screening thead th {
+  color: #61708a;
+  font-size: 11px;
+  font-weight: 500;
+}
+.city-dossier-screening tbody th {
+  font-weight: 500;
+}
+.city-dossier-screening p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #61708a;
+}
+.city-dossier-screening p.is-hold {
+  color: #8b151b;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
+@media (max-width: 1080px) {
+  .city-listing-card {
+    grid-template-columns: 150px minmax(0, 1fr) 214px;
+    column-gap: 18px;
+    padding: 18px;
+  }
+  .city-listing-assessment {
+    padding: 14px 16px;
+  }
+  .city-listing-footer {
+    grid-column: 2 / 4;
+  }
+}
+
+@media (max-width: 768px) {
+  .city-listing-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+  .city-listing-photo {
+    grid-row: 1;
+    height: 112px;
+    min-height: 0;
+    align-self: start;
+    border-radius: 10px;
+  }
+  .city-listing-photo > span {
+    top: 6px;
+    left: 6px;
+    padding: 2px 7px;
+    font-size: 9.5px;
+    border-radius: 4px;
+  }
+  .city-listing-title {
+    font-size: 16px;
+    margin-top: 6px;
+  }
+  .city-listing-facts {
+    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 10px;
+  }
+  .city-listing-area {
+    padding-left: 0;
+    border-left: none;
+  }
+  .city-listing-assessment {
+    grid-column: 1 / -1;
+    padding: 15px 16px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .city-listing-footer {
+    grid-column: 1 / -1;
+    align-items: flex-start;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 12px;
+  }
+  .city-listing-actions {
+    width: 100%;
+    gap: 6px;
+  }
+  .city-listing-action {
+    flex: 1;
+    white-space: nowrap;
+  }
+  .city-listing-action, 
+  .city-listing-menu > summary {
+    min-height: 38px;
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .city-listing-card {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+  .city-listing-photo {
+    height: 96px;
+  }
+  .city-listing-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42px;
+  }
+  .city-listing-action {
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .city-listing-menu > summary {
+    width: 42px;
+    padding: 0;
+  }
+  .city-listing-menu > summary > span, 
+  .city-listing-menu .city-menu-chevron {
+    display: none;
+  }
 }

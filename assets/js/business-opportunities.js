@@ -353,6 +353,28 @@ export const BUSINESS_CATALOG = [
     version: RULE_VERSION,
   },
   {
+    id: 'fitness_gym',
+    label: 'Fitness Gym & Wellness Center',
+    sector: 'tourism_recreation',
+    sectorLabel: 'Tourism & Recreation',
+    description: 'Commercial fitness gym, strength training facility, aerobic/yoga studio and wellness club.',
+    activityCenters: ['office', 'residential', 'college', 'school', 'hotel', 'hospital'],
+    areaGuideline: 'Typically 80–400 sqm in a commercial building with adequate ventilation and ceiling height',
+    minAreaSqm: 80,
+    maxAreaSqm: 1000,
+    requiredUtilities: ['electricity', 'water'],
+    roadAccess: 'paved',
+    competitorCategories: ['gym', 'fitness_centre', 'sports_centre'],
+    complementaryCategories: ['cafe', 'pharmacy', 'convenience', 'salon_barbershop', 'office'],
+    allowedZonings: ['Commercial', 'General Commercial', 'Mixed Use', 'High Density Commercial', 'Medium Density Commercial', 'C-2', 'C-3'],
+    prohibitedZonings: ['Heavy Industrial', 'Forest Reserve', 'Protected Agricultural'],
+    explanationTemplate: 'Concentration of commercial offices, students and daytime commuters around {anchors} creates recurring demand for fitness and wellness facilities.',
+    mainUnresolvedNotice: 'Confirm structural live-load capacity for weight equipment and ventilation/air conditioning line.',
+    ruleSource: RULE_SOURCE,
+    reviewStatus: 'draft',
+    version: RULE_VERSION,
+  },
+  {
     id: 'agri_vet_supply',
     label: 'Agri-Vet & Animal Feeds Supply',
     sector: 'industrial_agricultural',
@@ -1333,11 +1355,53 @@ export function formatOpportunityDisplayItem(m, index = 0) {
 }
 
 /**
+ * Map business opportunity catalog items to scenario simulation activity codes and suggested capitalization.
+ */
+export function mapOpportunityToScenarioActivity(oppId, oppLabel = '') {
+  const normId = String(oppId || '').toLowerCase().trim();
+  const map = {
+    convenience_store: { activityCode: 'retail_convenience', capital: 1500000, label: 'Convenience Retail Store' },
+    grocery: { activityCode: 'retail_supermarket', capital: 5000000, label: 'Neighborhood Grocery & Mart' },
+    bakery: { activityCode: 'food_bakery', capital: 1200000, label: 'Bakery & Pastry Shop' },
+    eatery: { activityCode: 'food_restaurant', capital: 2000000, label: 'Casual Dining & Eatery' },
+    cafe: { activityCode: 'food_cafe', capital: 3500000, label: 'Café & Beverage Specialty' },
+    printing: { activityCode: 'office_professional', capital: 1000000, label: 'Printing & Document Services' },
+    school_supplies: { activityCode: 'retail_convenience', capital: 1000000, label: 'School & Office Supplies Retail' },
+    laundry: { activityCode: 'retail_convenience', capital: 1800000, label: 'Laundry & Garment Care' },
+    water_refilling: { activityCode: 'retail_convenience', capital: 800000, label: 'Water Refilling Station' },
+    salon_barbershop: { activityCode: 'retail_convenience', capital: 800000, label: 'Salon & Grooming Services' },
+    repair_shop: { activityCode: 'retail_hardware', capital: 600000, label: 'Electronics & Appliance Repair' },
+    courier: { activityCode: 'office_professional', capital: 1200000, label: 'Courier & Logistics Drop-off' },
+    hardware: { activityCode: 'retail_hardware', capital: 4000000, label: 'Hardware & Trade Supplies' },
+    accommodation: { activityCode: 'tour_hotel', capital: 15000000, label: 'Travelers Accommodation & Inn' },
+    tour_services: { activityCode: 'tour_recreation', capital: 1500000, label: 'Tour & Activity Booking Agency' },
+    agri_vet_supply: { activityCode: 'agri_crop_production', capital: 1500000, label: 'Agri-Vet & Animal Feeds Supply' },
+    cold_storage: { activityCode: 'log_distribution_center', capital: 10000000, label: 'Cold Storage & Produce Logistics' },
+  };
+
+  if (normId && map[normId]) {
+    return map[normId];
+  }
+
+  const lower = String(oppLabel || '').toLowerCase();
+  if (lower.includes('hotel') || lower.includes('inn') || lower.includes('lodg')) return { activityCode: 'tour_hotel', capital: 15000000, label: oppLabel || 'Lodging' };
+  if (lower.includes('caf') || lower.includes('coffee')) return { activityCode: 'food_cafe', capital: 3500000, label: oppLabel || 'Café' };
+  if (lower.includes('rest') || lower.includes('eat') || lower.includes('din')) return { activityCode: 'food_restaurant', capital: 2000000, label: oppLabel || 'Dining' };
+  if (lower.includes('bake') || lower.includes('bread')) return { activityCode: 'food_bakery', capital: 1200000, label: oppLabel || 'Bakery' };
+  if (lower.includes('groc') || lower.includes('mart') || lower.includes('supermarket')) return { activityCode: 'retail_supermarket', capital: 5000000, label: oppLabel || 'Grocery' };
+  if (lower.includes('ware') || lower.includes('stor') || lower.includes('cold')) return { activityCode: 'log_distribution_center', capital: 8000000, label: oppLabel || 'Logistics' };
+  if (lower.includes('office') || lower.includes('bpo')) return { activityCode: 'office_professional', capital: 2500000, label: oppLabel || 'Office' };
+
+  return { activityCode: 'retail_convenience', capital: 1500000, label: oppLabel || 'Proposed Business' };
+}
+
+/**
  * Render a single opportunity card with iOS-refined scannable front and collapsible evidence drawer.
  */
 export function renderOpportunityCard(item, property = null) {
   const supportingList = Array.isArray(item.supportingPlaces) ? item.supportingPlaces : [];
   const supportingNames = supportingList.map(sp => sp.name || '').filter(Boolean).join('|||');
+  const simInfo = mapOpportunityToScenarioActivity(item.id, item.label);
 
   return `
     <article class="opportunity-blue-card" data-opportunity-id="${esc(item.id)}" data-sector="${esc(item.sector)}" data-supporting-places="${esc(supportingNames)}" id="oppCard-${esc(item.id)}">
@@ -1377,13 +1441,19 @@ export function renderOpportunityCard(item, property = null) {
           </div>
         </div>
 
-        <!-- Dark circular action button with white arrow -->
-        <button type="button" class="opportunity-circle-action-btn no-print" data-toggle-opportunity-details="${esc(item.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" aria-label="Toggle details for ${esc(item.label)}">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
+        <!-- Action buttons: Quick simulate & circular details toggle -->
+        <div class="opportunity-card-actions no-print">
+          <button type="button" class="opportunity-quick-simulate-btn" data-simulate-activity="${esc(simInfo.activityCode)}" data-simulate-label="${esc(item.label)}" data-simulate-capital="${simInfo.capital}" title="Simulate ${esc(item.label)} on this property">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Simulate</span>
+          </button>
+          <button type="button" class="opportunity-circle-action-btn" data-toggle-opportunity-details="${esc(item.id)}" aria-expanded="false" aria-controls="oppDetails-${esc(item.id)}" aria-label="Toggle details for ${esc(item.label)}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- iOS-Style Segmented Evidence Dropdown Drawer -->
@@ -1508,12 +1578,18 @@ export function renderOpportunityCard(item, property = null) {
             </div>
           </div>
 
-          <!-- 4. Direct City Planning Inquiry CTA -->
+          <!-- 4. Direct City Planning Inquiry CTA & Simulation Button -->
           <div class="opportunity-drawer-cta-row">
-            <button type="button" class="opportunity-inquire-cta-btn" data-inquire-use="${esc(item.label)}" title="Contact City Investment Facilitation regarding ${esc(item.label)}">
-              <span>Inquire about ${esc(item.label)} suitability</span>
-              <span aria-hidden="true">&nearr;</span>
-            </button>
+            <div class="opportunity-drawer-btn-group">
+              <button type="button" class="opportunity-simulate-cta-btn" data-simulate-activity="${esc(simInfo.activityCode)}" data-simulate-label="${esc(item.label)}" data-simulate-capital="${simInfo.capital}" title="Simulate ${esc(item.label)} on this property">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Simulate on this property</span>
+              </button>
+              <button type="button" class="opportunity-inquire-cta-btn" data-inquire-use="${esc(item.label)}" data-opportunity-id="${esc(item.id)}" title="Contact City Investment Facilitation regarding ${esc(item.label)}">
+                <span>Inquire about ${esc(item.label)} suitability</span>
+                <span aria-hidden="true">&nearr;</span>
+              </button>
+            </div>
             <p class="opportunity-drawer-disclaimer-note">Directs to City Planning &amp; Investment facilitation team</p>
           </div>
 
@@ -1860,7 +1936,9 @@ export function catalogDialogMarkup() {
 
         <!-- Catalog Items Grid -->
         <div class="opportunities-catalog-grid" id="opportunitiesCatalogGrid">
-          ${BUSINESS_CATALOG.map(item => `
+          ${BUSINESS_CATALOG.map(item => {
+            const simInfo = mapOpportunityToScenarioActivity(item.id, item.label);
+            return `
             <div class="opportunities-catalog-card" data-catalog-sector="${esc(item.sector)}">
               <div class="opportunities-catalog-card-header">
                 <span class="opportunity-sector-pill sector-${esc(item.sector)}">${esc(item.sectorLabel)}</span>
@@ -1878,8 +1956,19 @@ export function catalogDialogMarkup() {
               <div class="opportunities-catalog-notice">
                 <span>Status: Draft seed relationship requiring City Planning & LEBDO validation.</span>
               </div>
+
+              <div class="opportunities-catalog-card-actions">
+                <button type="button" class="opportunity-catalog-simulate-btn" data-simulate-activity="${esc(simInfo.activityCode)}" data-simulate-label="${esc(item.label)}" data-simulate-capital="${simInfo.capital}" title="Simulate ${esc(item.label)} on this property">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Simulate on Parcel</span>
+                </button>
+                <button type="button" class="opportunity-catalog-inquire-btn" data-inquire-use="${esc(item.label)}" data-opportunity-id="${esc(item.id)}" title="Inquire about ${esc(item.label)} suitability">
+                  <span>Inquire</span> &nearr;
+                </button>
+              </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     </dialog>
@@ -1926,21 +2015,147 @@ export function initBusinessOpportunities(root = document, property = null) {
     });
   }
 
+  function bindSimulationEvents(container) {
+    container.querySelectorAll('[data-simulate-activity]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const activityCode = btn.getAttribute('data-simulate-activity');
+        const activityLabel = btn.getAttribute('data-simulate-label') || 'Proposed Business';
+        const capitalStr = btn.getAttribute('data-simulate-capital');
+        const capitalNum = capitalStr ? parseFloat(capitalStr) : null;
+
+        // 1. Close catalog dialog if open
+        const catalogDialog = document.querySelector('#opportunitiesCatalogDialog');
+        if (catalogDialog) {
+          if (typeof catalogDialog.close === 'function' && catalogDialog.open) {
+            catalogDialog.close();
+          } else {
+            catalogDialog.removeAttribute('open');
+          }
+        }
+
+        // 2. Locate the scenario engine section and its parent disclosure
+        const scenarioSection = document.getElementById('propertyScenarioSection');
+        if (!scenarioSection) {
+          console.warn('Scenario engine section #propertyScenarioSection not found in DOM.');
+          return;
+        }
+
+        const parentDisclosure = scenarioSection.closest('.site-scenario-disclosure') || scenarioSection.closest('details');
+        if (parentDisclosure && !parentDisclosure.open) {
+          parentDisclosure.open = true;
+        }
+
+        // 3. Set the activity select dropdown
+        const select = scenarioSection.querySelector('#investorProposedActivitySelect');
+        if (select) {
+          select.value = activityCode;
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        // 4. Set proposed capital if provided
+        if (capitalNum && capitalNum > 0) {
+          const capitalInput = scenarioSection.querySelector('#investorProposedCapitalInput');
+          if (capitalInput) {
+            capitalInput.value = Number(capitalNum).toLocaleString('en-US');
+            capitalInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+
+        // 5. Update quick-picks active pill if present
+        scenarioSection.querySelectorAll('[data-scenario-quick-pick]').forEach(pill => {
+          const pickCode = pill.getAttribute('data-scenario-quick-pick');
+          pill.classList.toggle('is-active', pickCode === activityCode);
+        });
+
+        // 6. Smooth scroll to the scenario simulation section
+        scenarioSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // 7. Trigger pulsing visual highlight animation
+        scenarioSection.classList.remove('is-simulating-highlight');
+        void scenarioSection.offsetWidth;
+        scenarioSection.classList.add('is-simulating-highlight');
+        setTimeout(() => {
+          scenarioSection.classList.remove('is-simulating-highlight');
+        }, 2200);
+
+        // 8. Show feedback toast
+        const existingToast = document.querySelector('.opp-simulation-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'opp-simulation-toast';
+        toast.innerHTML = `
+          <div class="opp-sim-toast-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </div>
+          <div class="opp-sim-toast-content">
+            <strong>Simulating: ${esc(activityLabel)}</strong>
+            <span>Evaluating CLUP zoning clearance &amp; incentives on this parcel</span>
+          </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('is-visible'), 10);
+        setTimeout(() => {
+          toast.classList.remove('is-visible');
+          setTimeout(() => toast.remove(), 300);
+        }, 3600);
+      });
+    });
+  }
+
   function bindInquiryEvents(container) {
     container.querySelectorAll('[data-inquire-use]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         const useName = btn.getAttribute('data-inquire-use') || 'selected business use';
+        const oppId = btn.getAttribute('data-opportunity-id') || '';
+        const propTitle = property?.title || property?.name || document.querySelector('.property-hero-title, .property-header-title, h1')?.textContent?.trim() || 'Subject Property';
+        const propId = property?.id || property?.property_id || '';
+        const barangay = property?.barangay || '';
+        const zone = property?.clupProfile?.zoningClassification || property?.zoningClassification || property?.zoning_classification || '';
+        const areaSqm = property?.area_sqm || property?.lot_area || '';
+        const areaStr = areaSqm ? `${Number(areaSqm).toLocaleString('en-US')} sqm` : '';
+
+        // Close catalog dialog if open
+        const catalogDialog = document.querySelector('#opportunitiesCatalogDialog');
+        if (catalogDialog) {
+          if (typeof catalogDialog.close === 'function' && catalogDialog.open) {
+            catalogDialog.close();
+          } else {
+            catalogDialog.removeAttribute('open');
+          }
+        }
+
         const inquiryPanel = document.getElementById('cityInquiryPanel');
         const inquiryText = document.getElementById('cityInquiryText');
+
+        const propertyMeta = [
+          propId ? `Parcel #${propId}` : null,
+          barangay ? `Brgy. ${barangay}` : null,
+          zone ? `CLUP Zone: ${zone}` : null,
+          areaStr ? `Area: ${areaStr}` : null,
+        ].filter(Boolean).join(' · ');
+
+        const formalMessage = [
+          `Inquiry regarding suitability for ${useName} at ${propTitle}${propertyMeta ? ` (${propertyMeta})` : ''}.`,
+          '',
+          `Dear City Planning & Development Office (CPDO) and Local Economic & Business Development Office (LEBDO):`,
+          `I am evaluating the feasibility of establishing ${useName} on this property. Please advise on:`,
+          `1. Locational clearance procedures, allowable use schedules, and specific conditions under City Ordinance No. 2018-06.`,
+          `2. Technical infrastructure readiness (electric load capacity, municipal water line, drainage, and road access).`,
+          `3. Available statutory incentives under the San Fernando City Investment Code (§19).`,
+        ].join('\n');
 
         if (inquiryPanel) {
           if (typeof inquiryPanel.open !== 'undefined') {
             inquiryPanel.open = true;
           }
           if (inquiryText) {
-            inquiryText.value = `Inquiry regarding suitability for ${useName} at this property. Please advise on commercial zoning clearance and municipal permitting requirements.`;
+            inquiryText.value = formalMessage;
             inquiryText.focus();
           }
           inquiryPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1967,6 +2182,7 @@ export function initBusinessOpportunities(root = document, property = null) {
   // Initial binding for cards present at render time
   bindDrawerEvents(root);
   bindInquiryEvents(root);
+  bindSimulationEvents(root);
 
   let applySectorFilterToMap = () => {};
   let updateAmenityChipsForSector = () => {};
@@ -2562,6 +2778,7 @@ export function initBusinessOpportunities(root = document, property = null) {
       stack.style.transform = 'translateY(0)';
       bindDrawerEvents(stack);
       bindInquiryEvents(stack);
+      bindSimulationEvents(stack);
       bindCardMapHover(stack);
     }, 150);
   }
@@ -2593,6 +2810,10 @@ export function initBusinessOpportunities(root = document, property = null) {
 
   // 4. Catalog Dialog open / close
   const dialog = root.querySelector('#opportunitiesCatalogDialog');
+  if (dialog) {
+    bindSimulationEvents(dialog);
+    bindInquiryEvents(dialog);
+  }
   root.querySelectorAll('[data-open-opportunities-catalog]').forEach(openBtn => {
     openBtn.addEventListener('click', () => {
       if (dialog && typeof dialog.showModal === 'function') {

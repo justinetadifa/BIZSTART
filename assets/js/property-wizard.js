@@ -3040,13 +3040,17 @@
     }
     function bindTabs(attribute, select) {
       const buttons = all(`[${attribute}]`);
-      buttons.forEach((button, index) => {
+      buttons.forEach(button => {
         button.addEventListener('click', () => select(button.getAttribute(attribute)));
         button.addEventListener('keydown', event => {
-          if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+          if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
           event.preventDefault();
-          const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
-          buttons[next].click(); buttons[next].focus();
+          const available = buttons.filter(tab => !tab.hidden && !tab.disabled && tab.style.display !== 'none');
+          if (!available.length) return;
+          const index = available.indexOf(button);
+          const forward = ['ArrowRight', 'ArrowDown'].includes(event.key);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1 : (index + (forward ? 1 : -1) + available.length) % available.length;
+          available[next].click(); available[next].focus();
         });
       });
     }
@@ -3063,10 +3067,10 @@
 
       switch (activeTab) {
         case 'spatial_accessibility':
-          nextLabelText = 'Next: Infrastructure';
+          nextLabelText = 'Next: Utilities';
           break;
         case 'infrastructure_readiness':
-          nextLabelText = 'Next: Economic viability';
+          nextLabelText = 'Next: Cost & market';
           break;
         case 'economic_viability':
           nextLabelText = 'Next: Nearby businesses';
@@ -3166,10 +3170,16 @@
       if (step === 2) { const editor = $('[data-evidence-editor]'); if (editor) editor.open = true; }
       activeEvidenceCriterion = selected;
       tabs('data-evidence-tab', 'data-evidence-panel', selected);
+      const visibleSections = all('[data-evidence-tab]').filter(tab => !tab.hidden && tab.style.display !== 'none');
+      const sectionIndex = visibleSections.findIndex(tab => tab.dataset.evidenceTab === selected);
+      setText('[data-assessment-position]', `Criterion ${sectionIndex + 1} of ${visibleSections.length}`);
       const mobileSelect = $('[data-criteria-mobile-select]');
       if (mobileSelect && mobileSelect.value !== selected) {
         mobileSelect.value = selected;
       }
+      all('[data-mobile-criterion-icon]').forEach(icon => {
+        icon.hidden = icon.dataset.mobileCriterionIcon !== selected;
+      });
       all('[data-criteria-pill]').forEach(pill => {
         pill.classList.toggle('is-active', pill.dataset.criteriaPill === selected);
       });
@@ -3634,7 +3644,7 @@
       if (edit) $('[data-editor-step="' + edit.dataset.reviewEdit + '"]')?.click();
       if (event.target.closest('[data-trigger-hazard-evidence]')) {
         const inp = field('hazard_evidence_source');
-        if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        revealAssessmentField(inp);
       }
     });
     function preview() {
@@ -5297,6 +5307,22 @@
       return `<article class="pw-hazard ${color === 'red' ? 'pw-hazard--warning' : ''}"><span class="pw-hazard-icon" aria-hidden="true">${color === 'red' ? '⚠' : (status === 'LOW' ? '✓' : 'i')}</span><div><strong>${escape(title)}</strong><span class="pw-pill pw-pill--${color}">${status}</span><p>${escape(text)}${point() && !boundary ? ' This result covers the location pin only.' : ''}</p>${layer?.source ? `<small>${escape(layer.source)}${layer.date ? ` · ${escape(layer.date)}` : ''}</small>` : ''}${key === 'faults' && layer?.bufferMeters ? `<small>Verified review buffer: ${number(layer.bufferMeters)} meters</small>` : ''}<button type="button" class="pw-text-button" data-show-hazard-source="${key}">Review hazard evidence →</button></div></article>`;
     }
 
+    $('[data-risk-scoring-details]')?.addEventListener('toggle', event => {
+      $('#pwRiskFindingsTable')?.classList.toggle('is-showing-scores', event.target.open);
+    });
+
+    // Source inputs can live in a closed disclosure; reveal them before an action focuses them.
+    function revealAssessmentField(input) {
+      if (!input) return;
+      let parent = input.parentElement;
+      while (parent && parent !== form) {
+        if (parent.tagName === 'DETAILS') parent.open = true;
+        parent = parent.parentElement;
+      }
+      input.focus();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     function assessHazards() {
       const pt = point();
       const testGeom = boundary || (pt && window.turf ? turf.point([pt[1], pt[0]]) : null);
@@ -5556,6 +5582,7 @@
       setText('[data-risk-iai-pts]', iaiPts !== null ? iaiPts.toFixed(2) : '—');
 
       const suppliedCount = all('[data-finding-hazard]').filter(i => i.value.trim() !== '' && i.value !== 'unknown').length;
+      setText('[data-risk-recorded-count]', `${suppliedCount} of 6 recorded`);
       const totalFindingInputs = 6;
       const footerSpan = $('.pw-table-footer-record span');
       if (footerSpan) {
@@ -6698,15 +6725,6 @@
     const nearbyMapWrapper = $('#pwCriterionNearby .pw-nearby-map-wrapper');
     const nearbyResults = $('[data-nearby-assessment-card]');
     if(nearbyMapWrapper && nearbyResults)nearbyMapWrapper.before(nearbyResults);
-    // Show the calculation before report metadata in the risk section.
-    const riskMain = $('#pwCriterionRisks .pw-screening-col-main');
-    const riskTableCard = $('#pwRiskFindingsTable')?.closest('.pw-screening-card');
-    if (riskMain && riskTableCard) riskMain.prepend(riskTableCard);
-    if (riskTableCard) {
-      const result = riskTableCard.querySelector('[data-risk-preview-card]');
-      const body = riskTableCard.querySelector('.pw-card-body');
-      if (body && result) body.prepend(result);
-    }
     for (const tier of ['checks','readiness']) {
       const card = $(`[data-review-tier="${tier}"]`);
       const title = card?.querySelector('.pw-review-card-title')?.textContent?.trim();
@@ -6716,19 +6734,11 @@
         card.before(details); details.append(summary,card);
       }
     }
-    const zoningMain = $('#pwCriterionZoning .pw-screening-col-main');
-    const zoningRules = $('#pwZoningOrdinanceSection');
-    if (zoningMain && zoningRules) zoningMain.prepend(zoningRules);
-    for (const [main, primary] of [[riskMain,riskTableCard],[zoningMain,zoningRules]]) {
-      if (!main) continue;
-      const secondary = [...main.children].filter(node=>node.classList.contains('pw-screening-card') && node!==primary);
-      if (secondary.length) {
-        const details=document.createElement('details'); details.className='pw-disclosure pw-source-disclosure';
-        const summary=document.createElement('summary'); summary.textContent='Source document, date & location';
-        details.append(summary,...secondary);main.append(details);
-        details.addEventListener('toggle',()=>{if(details.open)requestAnimationFrame(syncRiskAndZoningMiniMaps);});
-      }
-    }
+    all('[data-assessment-support]').forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (details.open) requestAnimationFrame(syncRiskAndZoningMiniMaps);
+      });
+    });
     const intakeControls = window.SFCPropertyIntakeControls?.(form);
     const editHistory = window.SFCPropertyEditorTools?.history(60);
     let historyTimer = null, restoringHistory = false;

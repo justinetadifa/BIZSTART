@@ -15,6 +15,7 @@ final class SurroundingsRadar
     private const EARTH_RADIUS = 6371000.0; // meters
 
     private const OVERPASS_MIRRORS = [
+        'https://overpass.osm.ch/api/interpreter',
         'https://overpass-api.de/api/interpreter',
         'https://overpass.kumi.systems/api/interpreter',
         'https://overpass.private.coffee/api/interpreter',

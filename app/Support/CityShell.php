@@ -101,7 +101,7 @@ function sfc_render_header(array $context, string $active = ''): void
     $role = $user['role'] ?? 'guest';
     $home = match ($role) { 'admin' => '/admin-dashboard.php', 'seller' => '/seller-dashboard.php', 'investor' => '/investor-dashboard.php', default => '/index.php' };
     $items = match ($role) {
-        'admin' => [['Overview', '/admin-dashboard.php', 'admin'], ['Listings', '/admin-properties.php', 'admin-properties'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
+        'admin' => [['Overview', '/admin-dashboard.php', 'admin'], ['Listings', '/admin-properties.php', 'admin-properties'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Intelligence & Reports', '/city-intelligence.php', 'intelligence']],
         'seller' => [['My listings', '/seller-dashboard.php', 'seller'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
         'investor' => [['Properties', '/investor-dashboard.php', 'investor'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Compare', '/compare-decision.php', 'compare'], ['Saved', '/investor-dashboard.php?view=saved', 'saved']],
         default => [['Properties', '/index.php#properties', 'properties'], ['Why San Fernando', '/index.php#why-invest', 'why'], ['About', '/index.php#about', 'about']],

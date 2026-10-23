@@ -1504,3 +1504,195 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ==========================================================================
+   Interactive Simulation Actions & Workflow (Option A Enhancements)
+   ========================================================================== */
+.opportunity-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.opportunity-quick-simulate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #11224D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 9999px;
+  padding: 6px 13px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(17, 34, 77, 0.22);
+  white-space: nowrap;
+}
+
+.opportunity-quick-simulate-btn:hover {
+  background: #007AFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.32);
+}
+
+.opportunity-quick-simulate-btn:active {
+  transform: scale(0.97);
+}
+
+.opportunity-quick-simulate-btn svg {
+  flex-shrink: 0;
+}
+
+.opportunity-drawer-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.opportunity-simulate-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #11224D;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.2);
+}
+
+.opportunity-simulate-cta-btn:hover {
+  background: #007AFF;
+  border-color: #007AFF;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.35);
+}
+
+.opportunity-simulate-cta-btn:active {
+  transform: scale(0.98);
+}
+
+.opportunities-catalog-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.opportunity-catalog-simulate-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #11224D;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opportunity-catalog-simulate-btn:hover {
+  background: #007AFF;
+  box-shadow: 0 3px 10px rgba(0, 122, 255, 0.28);
+}
+
+.opportunity-catalog-inquire-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #F1F5F9;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opportunity-catalog-inquire-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+/* Floating Simulation Feedback Toast */
+.opp-simulation-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 12px 18px;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: 'Inter', -apple-system, sans-serif;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  max-width: 420px;
+}
+
+.opp-simulation-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.opp-sim-toast-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.2);
+  color: #60A5FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.opp-sim-toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opp-sim-toast-content strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.25;
+}
+
+.opp-sim-toast-content span {
+  font-size: 11px;
+  font-weight: 400;
+  color: #94A3B8;
+  line-height: 1.35;
+}

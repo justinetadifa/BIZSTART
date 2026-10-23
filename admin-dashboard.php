@@ -62,48 +62,102 @@ sfc_render_header($context, 'admin');
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
 <main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
-  <section class="tw-relative tw-isolate tw-overflow-hidden tw-rounded-[32px] tw-bg-ink tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
-    <img src="<?= $escape($context['assetBase']) ?>/images/admin-city.jpg" class="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_58%]" alt="" fetchpriority="high">
-    <div class="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(8,22,49,0.90)_0%,rgba(17,34,77,0.58)_55%,rgba(17,34,77,0.20)_100%)]"></div>
+  <section class="admin-hero-card tw-relative tw-isolate tw-overflow-hidden tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
+    <img src="<?= $escape($context['assetBase']) ?>/images/mapArtLineArt.png" class="admin-hero-bg-gis" alt="" fetchpriority="high">
+    <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-r tw-from-[#050d1e]/95 tw-via-[#0a1835]/85 tw-to-transparent tw-pointer-events-none tw-z-[1]"></div>
+    <div class="tw-absolute tw-inset-0 tw-bg-[radial-gradient(circle_at_90%_15%,rgba(59,130,246,0.18)_0%,transparent_50%)] tw-pointer-events-none tw-z-[1]"></div>
     
-    <!-- Glassmorphic "TODAY" Capsule at Top Right (Current Date & Live Time) -->
-    <div class="tw-absolute tw-top-5 tw-right-5 sm:tw-top-6 sm:tw-right-6 tw-z-20 tw-flex tw-items-center tw-gap-3 tw-rounded-2xl tw-border tw-border-white/25 tw-bg-black/35 tw-backdrop-blur-md tw-px-4 tw-py-2.5 tw-text-white tw-shadow-xl" id="adminTodayCapsule">
-      <svg class="tw-h-5 tw-w-5 tw-shrink-0 tw-text-white/85" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-        <rect x="3" y="5" width="18" height="16" rx="3"/>
-        <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>
-      </svg>
+    <!-- Sleek Glassmorphic Date & Status Capsule at Top Right -->
+    <div class="admin-hero-capsule" id="adminTodayCapsule">
+      <div class="tw-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-lg tw-bg-amber-400/15 tw-text-amber-400 tw-border tw-border-amber-400/20 tw-shrink-0">
+        <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+      </div>
       <div>
-        <span class="tw-block tw-text-[9.5px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-white/70">TODAY</span>
-        <time class="tw-block tw-text-xs sm:tw-text-sm tw-font-bold tw-text-white" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
-          <?= $today->format('M j, Y') ?>
-        </time>
-        <span class="tw-block tw-text-[10px] tw-font-medium tw-text-white/80" id="adminHeroLiveTime"></span>
+        <div class="tw-flex tw-items-center tw-gap-1.5">
+          <span class="tw-text-[9px] tw-font-extrabold tw-tracking-widest tw-uppercase tw-text-amber-400 font-mono">TODAY</span>
+          <span class="tw-text-white/30">·</span>
+          <time class="tw-text-xs tw-font-bold tw-text-white font-mono" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
+            <?= $today->format('M j, Y') ?>
+          </time>
+        </div>
+        <span class="tw-block tw-text-[10.5px] tw-font-mono tw-text-slate-300" id="adminHeroLiveTime"></span>
       </div>
     </div>
 
-    <!-- Banner Content & Capsule Overlay Buttons -->
-    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-min-h-[220px] sm:tw-min-h-[240px] tw-p-6 sm:tw-p-8 sm:tw-pt-7 sm:tw-pb-8">
+    <!-- Banner Content & Structured Executive Action Strip -->
+    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-min-h-[210px] sm:tw-min-h-[230px] tw-p-6 sm:tw-p-8 sm:tw-pb-8">
       <div class="tw-min-w-0 tw-max-w-2xl">
-        <h1 id="cityOverviewTitle" class="tw-mb-1.5 tw-text-2xl sm:tw-text-3xl lg:tw-text-[36px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-white"><?= $escape($profile['title']) ?></h1>
-        <p class="tw-mb-0 tw-max-w-xl tw-text-xs sm:tw-text-sm tw-leading-relaxed tw-text-white/85"><?= $escape($profile['subtitle']) ?></p>
+        <div class="tw-mb-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
+          <span class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-border tw-border-white/15 tw-px-3 tw-py-1 tw-text-[10.5px] tw-font-bold tw-tracking-wider tw-text-slate-200 tw-uppercase tw-font-mono tw-backdrop-blur-md">
+            <span class="tw-relative tw-flex tw-h-2 tw-w-2">
+              <span class="tw-animate-ping tw-absolute tw-inline-flex tw-h-full tw-w-full tw-rounded-full tw-bg-emerald-400 tw-opacity-75"></span>
+              <span class="tw-relative tw-inline-flex tw-rounded-full tw-h-2 tw-w-2 tw-bg-emerald-500"></span>
+            </span>
+            SAN FERNANDO MUNICIPAL OPS
+          </span>
+          <span class="tw-text-[11px] tw-font-semibold tw-text-white/40">·</span>
+          <span class="tw-text-[11.5px] tw-font-medium tw-text-slate-300"><?= $escape($department) ?> Department</span>
+        </div>
+        <h1 id="cityOverviewTitle" class="tw-mb-1.5 tw-text-2xl sm:tw-text-3xl lg:tw-text-[34px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-white"><?= $escape(rtrim($profile['title'], '.')) ?></h1>
+        <p class="tw-mb-0 tw-max-w-xl tw-text-xs sm:tw-text-sm tw-leading-relaxed tw-text-slate-300/90"><?= $escape($profile['subtitle']) ?></p>
       </div>
 
-      <!-- Fully-Rounded Capsule Buttons Directly Overlaying the Image -->
-      <div class="tw-mt-7 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
-        <!-- White capsule button with dropdown arrow: "Your responsibilities" -->
+      <!-- Cohesive, Unified Action Bar (Exact heights, consistent borders, zero clashing buttons) -->
+      <div class="admin-hero-toolbar">
+        <!-- 1. Featured Action: City Intelligence & Reports -->
+        <a href="<?= $escape(sfc_path('/city-intelligence.php')) ?>" class="admin-hero-btn admin-hero-btn-primary">
+          <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <span>City Intelligence &amp; Reports</span>
+        </a>
+
+        <!-- 2. Listing Review Queue -->
+        <a href="<?= $escape(sfc_path('/admin-properties.php')) ?>" class="admin-hero-btn">
+          <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Listing review</span>
+        </a>
+
+        <!-- 3. Assessment & CAO Reports -->
+        <a href="<?= $escape(sfc_path('/reports.php')) ?>" class="admin-hero-btn">
+          <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          <span>CAO Reports</span>
+        </a>
+
+        <!-- 4. MCE Weight Configuration (Configurator only) -->
+        <?php if ($mceConfigurator): ?>
+        <button type="button" onclick="document.getElementById('openMceConfigModalBtn')?.click()" class="admin-hero-btn" title="Adjust MCE weights">
+          <svg class="hero-btn-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          <span>MCE Weights</span>
+        </button>
+        <?php endif; ?>
+
+        <!-- 5. City Administration -->
+        <a href="#cityStaffPanel" class="admin-hero-btn">
+          <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>City Team</span>
+        </a>
+
+        <!-- 6. Department Responsibilities Popover -->
         <div class="tw-relative">
-          <button type="button" id="responsibilitiesDropdownBtn" class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-slate-900 tw-shadow-md hover:tw-bg-slate-100 active:tw-scale-[0.98] tw-transition-all cursor-pointer">
-            <span>Your responsibilities</span>
-            <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-700 tw-transition-transform tw-duration-200" id="responsibilitiesChevron" viewBox="0 0 20 20" fill="currentColor">
+          <button type="button" id="responsibilitiesDropdownBtn" class="admin-hero-btn">
+            <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Responsibilities</span>
+            <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-300 tw-transition-transform tw-duration-200" id="responsibilitiesChevron" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
             </svg>
           </button>
           
           <!-- Dropdown popover for responsibilities -->
-          <div id="responsibilitiesMenu" class="tw-hidden tw-absolute tw-left-0 tw-top-full tw-mt-2.5 tw-z-30 tw-w-72 sm:tw-w-84 tw-rounded-2xl tw-border tw-border-slate-100 tw-bg-white tw-p-3.5 tw-shadow-2xl">
+          <div id="responsibilitiesMenu" class="tw-hidden tw-absolute tw-left-0 sm:tw-right-0 sm:tw-left-auto tw-top-full tw-mt-2.5 tw-z-30 tw-w-72 sm:tw-w-84 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-2xl">
+            <div class="tw-mb-2.5 tw-border-b tw-border-slate-100 tw-pb-2">
+              <span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-400 font-mono"><?= $escape($department) ?> CHARTER</span>
+              <strong class="tw-block tw-text-xs tw-font-bold tw-text-slate-900"><?= $escape($profile['title']) ?></strong>
+            </div>
             <div class="tw-space-y-2">
               <?php foreach ($profile['responsibilities'] as $title => $description): ?>
-              <div class="tw-rounded-xl tw-bg-[#F1F3F7] tw-p-2.5">
+              <div class="tw-rounded-xl tw-bg-[#F8FAFC] tw-border tw-border-slate-100 tw-p-2.5">
                 <strong class="tw-block tw-text-xs tw-font-bold tw-text-slate-900"><?= $escape($title) ?></strong>
                 <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] tw-leading-relaxed tw-text-slate-600"><?= $escape($description) ?></p>
               </div>
@@ -111,47 +165,30 @@ sfc_render_header($context, 'admin');
             </div>
           </div>
         </div>
-
-        <!-- Dark, fully-rounded capsule buttons directly overlaying the image -->
-        <?php if ($mceConfigurator): ?>
-        <button type="button" onclick="document.getElementById('openMceConfigModalBtn')?.click()" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all cursor-pointer">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-text-amber-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
-          MCE weight config
-        </button>
-        <?php endif; ?>
-        <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
-          Technical administration
-        </a>
-        <a href="<?= $escape(sfc_path('/admin-properties.php')) ?>" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
-          Listing review
-        </a>
-        <a href="<?= $escape(sfc_path('/reports.php')) ?>" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
-          Assessment &amp; CAO Reports
-        </a>
-        <a href="#cityStaffPanel" class="tw-inline-flex tw-items-center tw-rounded-full tw-border tw-border-white/20 tw-bg-black/60 tw-backdrop-blur-md tw-px-4 tw-py-2 tw-text-xs sm:tw-text-[13px] tw-font-semibold tw-text-white hover:tw-bg-black/80 hover:tw-border-white/40 tw-transition-all tw-no-underline">
-          City team
-        </a>
       </div>
     </div>
   </section>
   <p class="city-status tw-mb-0 tw-mt-3 tw-min-h-0 tw-text-xs empty:tw-hidden" data-workspace-status role="status">Loading workspace…</p>
   <section class="tw-mb-6 tw-mt-5 tw-grid tw-grid-cols-1 tw-gap-3.5 min-[400px]:tw-grid-cols-2 lg:tw-grid-cols-4" aria-label="Overview" data-city-stats></section>
   <div class="tw-grid tw-min-w-0 tw-gap-6 lg:tw-grid-cols-[1.1fr_1fr]">
-    <section class="tw-min-w-0 tw-rounded-[28px] tw-border tw-border-slate-100 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-[0_10px_28px_rgba(17,34,77,0.06)]">
+    <section class="tw-min-w-0 tw-rounded-2xl tw-border tw-border-slate-200/80 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-sm hover:tw-border-slate-300/80 tw-transition-all">
       <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3">
         <div>
           <h2 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900"><?= $governance ? 'Listing reviews' : 'Property records' ?></h2>
           <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500"><?= $governance ? 'Properties ready for a city decision.' : 'Keep site information complete and current.' ?></p>
         </div>
-        <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/admin-properties.php')) ?>">View all &rarr;</a>
+        <a class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs sm:tw-text-[12.5px] tw-font-bold tw-text-[#9e1b22] hover:tw-text-[#7a1318] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/admin-properties.php')) ?>">
+          <span>View all</span>
+          <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
+        </a>
       </div>
       <div data-overview-listings></div>
     </section>
-    <section class="tw-min-w-0 tw-rounded-[28px] tw-border tw-border-slate-100 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-[0_10px_28px_rgba(17,34,77,0.06)]">
+    <section class="tw-min-w-0 tw-rounded-2xl tw-border tw-border-slate-200/80 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-sm hover:tw-border-slate-300/80 tw-transition-all">
       <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3">
         <div>
           <h2 class="tw-m-0 tw-text-lg sm:tw-text-xl tw-font-bold tw-text-slate-900">MCE &amp; IAI</h2>
-          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Top scored, properties charts.</p>
+          <p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Site suitability &amp; investment priority distribution.</p>
         </div>
         <div class="tw-flex tw-items-center tw-gap-2">
           <?php if ($mceConfigurator): ?>
@@ -160,7 +197,10 @@ sfc_render_header($context, 'admin');
             <span>Weight config</span>
           </button>
           <?php endif; ?>
-          <a class="tw-text-xs sm:tw-text-[13px] tw-font-bold tw-text-[#9e1b22] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">Priority board &rarr;</a>
+          <a class="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs sm:tw-text-[12.5px] tw-font-bold tw-text-[#9e1b22] hover:tw-text-[#7a1318] hover:tw-underline tw-no-underline" href="<?= $escape(sfc_path('/property-ranking.php')) ?>">
+            <span>Priority board</span>
+            <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd"/></svg>
+          </a>
         </div>
       </div>
       <div data-assessment-ranking></div>
@@ -486,96 +526,214 @@ sfc_render_header($context, 'admin');
   <?php if ($mceConfigurator): ?>
   <!-- MCE Weight Configuration Dialog -->
   <dialog id="mceWeightConfigDialog" class="city-dialog tw-w-full tw-max-w-3xl tw-rounded-3xl tw-p-0 tw-border-0 tw-shadow-2xl tw-bg-white" aria-labelledby="mceConfigModalTitle">
-    <div class="tw-flex tw-items-center tw-justify-between tw-border-b tw-border-slate-100 tw-px-6 tw-py-4">
-      <div>
-        <h2 id="mceConfigModalTitle" class="tw-m-0 tw-text-lg tw-font-bold tw-text-slate-900">MCE Weight Configuration</h2>
-        <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Adjust multi-criteria evaluation weights with validation, simulations, and audit logging.</p>
+    <!-- Top Jewel Brand Accent -->
+    <div class="mce-dialog-accent-bar tw-h-1.5 tw-w-full tw-bg-gradient-to-r tw-from-[#9E1B22] tw-via-[#11224d] tw-to-[#0284c7]"></div>
+    
+    <!-- Modal Header -->
+    <div class="mce-dialog-header tw-flex tw-items-center tw-justify-between tw-border-b tw-border-slate-200/80 tw-bg-slate-50/70 tw-px-6 tw-py-4">
+      <div class="tw-flex tw-items-center tw-gap-3.5">
+        <div class="mce-modal-icon-badge">
+          <svg class="tw-h-5 tw-w-5 tw-text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+        </div>
+        <div>
+          <div class="tw-flex tw-items-center tw-gap-2">
+            <h2 id="mceConfigModalTitle" class="tw-m-0 tw-text-base tw-font-black tw-tracking-tight tw-text-slate-900">Spatial Multi-Criteria Evaluation (MCE)</h2>
+            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-200/80 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Governance Engine</span>
+          </div>
+          <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Fine-tune analytical weight coefficients with live balance validation, simulation telemetry, and immutable audit logs.</p>
+        </div>
       </div>
-      <button type="button" id="closeMceConfigBtn" class="tw-rounded-full tw-p-1.5 tw-text-slate-400 hover:tw-bg-slate-100 hover:tw-text-slate-700 tw-transition-colors" aria-label="Close dialog">
+      <button type="button" id="closeMceConfigBtn" class="tw-rounded-xl tw-p-2 tw-text-slate-400 hover:tw-bg-slate-200/70 hover:tw-text-slate-700 tw-transition-colors" aria-label="Close dialog">
         <svg class="tw-h-5 tw-w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
       </button>
     </div>
 
-    <div class="tw-max-h-[75vh] tw-overflow-y-auto tw-p-6 tw-space-y-5">
+    <!-- Modal Scrollable Body -->
+    <div class="mce-dialog-body tw-max-h-[75vh] tw-overflow-y-auto tw-p-6 tw-space-y-5">
       <!-- Status message -->
       <div id="mceConfigStatusMessage" class="tw-hidden tw-text-xs tw-font-medium" role="status"></div>
 
       <!-- Discrepancy Note Banner -->
       <div id="mceDiscrepancyBanner"></div>
 
-      <!-- Active Version & Overview -->
-      <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-rounded-2xl tw-bg-slate-50 tw-p-3.5 tw-border tw-border-slate-200/80">
-        <div>
-          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500">Active Model Version</span>
-          <strong id="mceCurrentVersionBadge" class="tw-text-sm tw-font-black tw-text-slate-900">Loading...</strong>
+      <!-- Active Version & Overview Telemetry HUD -->
+      <div class="mce-telemetry-hud">
+        <div class="tw-relative tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
+          <div class="tw-space-y-1">
+            <div class="tw-flex tw-items-center tw-gap-2">
+              <span class="mce-telemetry-pill">
+                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-400 tw-animate-pulse"></span>
+                Active Evaluation Model
+              </span>
+            </div>
+            <div class="tw-flex tw-items-baseline tw-gap-2">
+              <strong id="mceCurrentVersionBadge" class="tw-text-base tw-font-black tw-tracking-tight tw-text-white">LOCUS-SF-MCE-v3.0-Baseline (Active)</strong>
+            </div>
+            <p class="tw-mb-0 tw-text-[11px] tw-text-blue-100/75">5-Criterion normalized linear combination model with binary zoning exclusion.</p>
+          </div>
+
+          <div class="mce-telemetry-stats-box">
+            <div class="tw-text-right">
+              <span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-blue-200/90">Sum Allocation</span>
+              <span id="mceTotalDisplay" class="tw-text-xl tw-font-black tw-tracking-tight tw-text-white">100.0%</span>
+            </div>
+            <div class="tw-h-8 tw-w-px tw-bg-white/20"></div>
+            <div>
+              <span id="mceTotalStatusBadge" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-500/20 tw-px-3 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-300 tw-border tw-border-emerald-400/30">
+                <svg class="tw-h-3.5 tw-w-3.5 tw-text-emerald-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Balanced (100.0%)
+              </span>
+            </div>
+          </div>
         </div>
-        <div class="tw-text-right">
-          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-500">Weights Balance</span>
-          <div class="tw-flex tw-items-center tw-gap-2">
-            <span id="mceTotalDisplay" class="tw-text-base tw-font-black tw-text-slate-900">100.0%</span>
-            <span id="mceTotalStatusBadge" class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-emerald-50 tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-bold tw-text-emerald-700">Balanced</span>
+
+        <!-- Segmented 100% Cumulative Allocation Bar -->
+        <div class="mce-stacked-bar-container">
+          <div class="mce-stacked-bar-header">
+            <span class="tw-font-bold tw-text-[11px] tw-text-blue-100">Live Cumulative Distribution</span>
+            <span id="mceStackedBarTotalText" class="tw-font-mono tw-font-bold tw-text-white tw-text-[11px]">100.0% / 100.0%</span>
+          </div>
+          <div id="mceStackedBar" class="mce-stacked-bar">
+            <!-- 5 segments + remaining slot populated by JS -->
+          </div>
+          <div class="mce-stacked-legend">
+            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#3b82f6;"></span>Spatial</span>
+            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#06b6d4;"></span>Infra</span>
+            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#f59e0b;"></span>Cost</span>
+            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#8b5cf6;"></span>Nearby</span>
+            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#ec4899;"></span>Risk</span>
+            <span id="mceLegendRemaining" class="mce-legend-item" style="display:none;"><span class="mce-legend-dot mce-dot-striped"></span>Remaining</span>
           </div>
         </div>
       </div>
 
-      <!-- Criteria Adjusters List -->
-      <div class="tw-space-y-3">
-        <div class="tw-flex tw-items-center tw-justify-between">
-          <h3 class="tw-m-0 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-600">Active Criteria Weights (Permitted 5% – 60%)</h3>
-          <span class="tw-text-[11px] tw-text-slate-400">Sum must equal exactly 100.0%</span>
+      <!-- Auto-Balance & Breakdown Suggestion Assistant -->
+      <div id="mceBalanceAssistant" class="mce-assistant-card" style="display: none;">
+        <div class="mce-assistant-inner">
+          <div class="mce-assistant-left">
+            <span id="mceAssistantStatusPill" class="mce-assistant-pill remaining">
+              40.0% Remaining
+            </span>
+            <div>
+              <div class="tw-flex tw-items-center tw-gap-2">
+                <strong id="mceAssistantHeadline" class="tw-text-xs tw-font-black tw-text-slate-900">
+                  Suggested Breakdown to Reach 100.0%
+                </strong>
+                <span class="tw-text-[10px] tw-text-slate-500 tw-hidden sm:tw-inline">Proportional to baseline</span>
+              </div>
+              <div id="mceAssistantBreakdownChips" class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 tw-mt-1">
+                <!-- dynamic chips populated by JS -->
+              </div>
+            </div>
+          </div>
+          <div>
+            <button type="button" id="mceApplySuggestionBtn" class="mce-btn-apply-suggestion">
+              <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+              <span id="mceApplySuggestionBtnText">Apply Suggested Breakdown</span>
+            </button>
+          </div>
         </div>
-        <div id="mceCriteriaInputs" class="tw-space-y-2.5">
-          <p class="tw-text-xs tw-text-slate-400">Loading criteria...</p>
+      </div>
+
+      <!-- Criteria Adjusters List with Quick Presets -->
+      <div class="tw-space-y-3">
+        <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
+          <div class="tw-flex tw-items-center tw-gap-2">
+            <h3 class="tw-m-0 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-700">Active Criteria Weights</h3>
+            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-600">Bounds: 5.0% – 60.0%</span>
+          </div>
+          
+          <!-- Quick Presets -->
+          <div class="tw-flex tw-items-center tw-gap-1.5">
+            <span class="tw-text-[10px] tw-font-bold tw-uppercase tw-text-slate-400">Presets:</span>
+            <button type="button" class="mce-preset-btn" data-mce-preset="baseline" title="Spatial 25%, Infra 25%, Cost 20%, Nearby 15%, Risk 15%">Baseline</button>
+            <button type="button" class="mce-preset-btn" data-mce-preset="logistics" title="Spatial 35%, Infra 30%, Cost 15%, Nearby 10%, Risk 10%">Logistics</button>
+            <button type="button" class="mce-preset-btn" data-mce-preset="commercial" title="Spatial 20%, Infra 20%, Cost 25%, Nearby 25%, Risk 10%">Commercial</button>
+            <button type="button" class="mce-preset-btn" data-mce-preset="balanced" title="All 20.0%">Equal (20%)</button>
+          </div>
+        </div>
+        <div id="mceCriteriaInputs" class="tw-space-y-3">
+          <p class="tw-text-xs tw-text-slate-400">Loading criteria parameters...</p>
         </div>
       </div>
 
       <!-- Reason & Reference Inputs -->
-      <div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-p-4 tw-space-y-3 tw-bg-slate-50/50">
-        <h3 class="tw-m-0 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Change Justification &amp; Authority</h3>
-        <div>
-          <label for="mceReasonInput" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-700">Documented Reason for Adjustment <span class="tw-text-rose-600">*</span></label>
-          <input type="text" id="mceReasonInput" placeholder="e.g., CICTO Technical Committee revision for commercial corridor weighting"
-            class="tw-mt-1 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-text-slate-900 focus:tw-border-[#11224d] focus:tw-outline-none">
+      <div class="tw-rounded-2xl tw-border tw-border-slate-200/90 tw-bg-slate-50/70 tw-p-4 tw-space-y-3.5">
+        <div class="tw-flex tw-items-center tw-gap-2">
+          <svg class="tw-h-4 tw-w-4 tw-text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="tw-m-0 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-800">Change Justification &amp; Statutory Authority</h3>
         </div>
         <div>
-          <label for="mceReferenceInput" class="tw-block tw-text-xs tw-font-semibold tw-text-slate-700">Source / Consultation Reference (Optional)</label>
+          <div class="tw-flex tw-items-center tw-justify-between">
+            <label for="mceReasonInput" class="tw-block tw-text-xs tw-font-bold tw-text-slate-700">Documented Reason for Adjustment <span class="tw-text-rose-600">*</span></label>
+            <span id="mceReasonCharCount" class="tw-text-[11px] tw-font-semibold tw-text-slate-400">Min. 8 characters</span>
+          </div>
+          <input type="text" id="mceReasonInput" placeholder="e.g., CICTO Technical Committee revision for commercial corridor weighting"
+            class="tw-mt-1.5 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2.5 tw-text-xs tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-[#11224d] focus:tw-ring-2 focus:tw-ring-[#11224d]/10 focus:tw-outline-none tw-transition-all">
+          <div id="mceReasonInlineError" class="tw-hidden tw-text-[11px] tw-font-bold tw-text-rose-600 tw-mt-1"></div>
+        </div>
+        <div>
+          <label for="mceReferenceInput" class="tw-block tw-text-xs tw-font-bold tw-text-slate-700">Source / Consultation Reference <span class="tw-text-slate-400 tw-font-normal">(Optional, min. 5 chars if provided)</span></label>
           <input type="text" id="mceReferenceInput" placeholder="e.g., CSFP CLUP 2017-2027 Sec. 4.2 / LEBDO Resolution 2026-03"
-            class="tw-mt-1 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-text-slate-900 focus:tw-border-[#11224d] focus:tw-outline-none">
-          <span class="tw-text-[10px] tw-text-slate-400 tw-mt-0.5 tw-block">Note: Do not label references as 'officially validated' unless authenticated executive orders or ordinance numbers are provided.</span>
+            class="tw-mt-1.5 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2.5 tw-text-xs tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-[#11224d] focus:tw-ring-2 focus:tw-ring-[#11224d]/10 focus:tw-outline-none tw-transition-all">
+          <div id="mceReferenceInlineError" class="tw-hidden tw-text-[11px] tw-font-bold tw-text-rose-600 tw-mt-1"></div>
+          <span class="tw-text-[11px] tw-text-slate-500 tw-mt-1 tw-block">Administrative guideline: Cite authenticated executive resolutions, comprehensive land use plans (CLUP), or official committee issuances.</span>
         </div>
       </div>
 
       <!-- Preview Container -->
-      <div id="mcePreviewContainer" class="tw-hidden tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4">
-        <h3 class="tw-m-0 tw-mb-3 tw-text-xs tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Simulation &amp; Comparative Preview</h3>
+      <div id="mcePreviewContainer" class="tw-hidden tw-rounded-2xl tw-border tw-border-blue-200/90 tw-bg-blue-50/20 tw-p-4">
+        <h3 class="tw-m-0 tw-mb-3 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-800">Simulation &amp; Comparative Preview</h3>
         <div id="mcePreviewContent"></div>
       </div>
 
       <!-- Audit History Accordion -->
-      <details class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-slate-50/50 tw-p-3.5">
-        <summary class="tw-cursor-pointer tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-text-[#9e1b22] tw-transition-colors">
-          View MCE Weight Audit History
+      <details class="tw-group tw-rounded-2xl tw-border tw-border-slate-200/90 tw-bg-slate-50/50 tw-p-3.5 tw-transition-all">
+        <summary class="tw-flex tw-cursor-pointer tw-items-center tw-justify-between tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-text-[#9e1b22] tw-transition-colors">
+          <span class="tw-flex tw-items-center tw-gap-2">
+            <svg class="tw-h-4 tw-w-4 tw-text-slate-500 group-hover:tw-text-[#9e1b22] tw-transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Historical MCE Weight Audit Log
+          </span>
+          <svg class="tw-h-4 tw-w-4 tw-text-slate-400 group-open:tw-rotate-180 tw-transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </summary>
-        <div id="mceHistoryContainer" class="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-2"></div>
+        <div id="mceHistoryContainer" class="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-2.5"></div>
       </details>
     </div>
 
     <!-- Modal Actions Footer -->
-    <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-100 tw-bg-slate-50/80 tw-px-6 tw-py-4 tw-rounded-b-3xl">
+    <div class="mce-dialog-footer tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-200/80 tw-bg-slate-50/90 tw-px-6 tw-py-4 tw-rounded-b-3xl">
       <div class="tw-flex tw-items-center tw-gap-2">
-        <button type="button" id="restoreMceBaselineBtn" class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-700 hover:tw-bg-slate-50 hover:tw-text-[#9e1b22] tw-transition-colors cursor-pointer">
+        <button type="button" id="restoreMceBaselineBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-bg-slate-100 hover:tw-text-[#9e1b22] tw-transition-all cursor-pointer tw-shadow-sm">
+          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
           Restore Approved Baseline
         </button>
-        <button type="button" id="cancelMceConfigBtn" class="tw-rounded-xl tw-px-3 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-500 hover:tw-text-slate-800 tw-transition-colors cursor-pointer">
+        <button type="button" id="cancelMceConfigBtn" class="tw-rounded-xl tw-px-3.5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-500 hover:tw-text-slate-800 hover:tw-bg-slate-200/60 tw-transition-all cursor-pointer">
           Cancel
         </button>
       </div>
-      <div class="tw-flex tw-items-center tw-gap-2">
-        <button type="button" id="previewMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-2 tw-text-xs tw-font-semibold tw-text-slate-800 hover:tw-bg-slate-100 tw-transition-colors cursor-pointer">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/><path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+      <div class="tw-flex tw-items-center tw-gap-2.5">
+        <button type="button" id="previewMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-bold tw-text-slate-800 hover:tw-bg-slate-100 tw-transition-all cursor-pointer tw-shadow-sm">
+          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
           Simulate Impact
         </button>
-        <button type="button" id="applyMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border-0 tw-bg-[#11224d] tw-px-4 tw-py-2 tw-text-xs tw-font-bold tw-text-white hover:tw-bg-[#0c1836] tw-transition-colors cursor-pointer">
+        <button type="button" id="applyMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border-0 tw-bg-gradient-to-r tw-from-[#9E1B22] tw-to-[#751117] tw-px-5 tw-py-2.5 tw-text-xs tw-font-bold tw-text-white hover:tw-from-[#b01e26] hover:tw-to-[#88141b] tw-shadow-md tw-shadow-rose-900/25 hover:tw-shadow-lg tw-transition-all cursor-pointer">
+          <svg class="tw-h-3.5 tw-w-3.5 tw-text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
           Apply Weights
         </button>
       </div>

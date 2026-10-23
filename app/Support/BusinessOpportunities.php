@@ -384,6 +384,29 @@ final class BusinessOpportunities
                 'version' => self::RULE_VERSION,
             ],
             [
+                'id' => 'fitness_gym',
+                'label' => 'Fitness Gym & Wellness Center',
+                'sector' => 'tourism_recreation',
+                'sectorLabel' => 'Tourism & Recreation',
+                'zoningActivityCode' => 'tour_recreation',
+                'description' => 'Commercial fitness gym, strength training facility, aerobic/yoga studio and wellness club.',
+                'activityCenters' => ['office', 'residential', 'college', 'school', 'hotel', 'hospital'],
+                'areaGuideline' => 'Typically 80–400 sqm in a commercial building with adequate ventilation and ceiling height',
+                'minAreaSqm' => 80,
+                'maxAreaSqm' => 1000,
+                'requiredUtilities' => ['electricity', 'water'],
+                'roadAccess' => 'paved',
+                'competitorCategories' => ['gym', 'fitness_centre', 'sports_centre'],
+                'complementaryCategories' => ['cafe', 'pharmacy', 'convenience', 'salon_barbershop', 'office'],
+                'allowedZonings' => ['Commercial', 'General Commercial', 'Mixed Use', 'High Density Commercial', 'Medium Density Commercial', 'C-2', 'C-3'],
+                'prohibitedZonings' => ['Heavy Industrial', 'Forest Reserve', 'Protected Agricultural'],
+                'explanationTemplate' => 'Concentration of commercial offices, students and daytime commuters around {anchors} creates recurring demand for fitness and wellness facilities.',
+                'mainUnresolvedNotice' => 'Confirm structural live-load capacity for weight equipment and ventilation/air conditioning line.',
+                'ruleSource' => self::RULE_SOURCE,
+                'reviewStatus' => 'draft',
+                'version' => self::RULE_VERSION,
+            ],
+            [
                 'id' => 'agri_vet_supply',
                 'label' => 'Agri-Vet & Animal Feeds Supply',
                 'sector' => 'industrial_agricultural',
@@ -520,7 +543,7 @@ final class BusinessOpportunities
         $areaHa = (float) ($property['area'] ?? $property['landArea'] ?? 0.0);
         $areaSqm = $areaHa > 0 ? ($areaHa * 10000.0) : (float) ($property['parcel']['surveyAreaSqm'] ?? 0.0);
         $zoningClassification = trim((string) ($property['clupProfile']['zoningClassification'] ?? $property['zoningClassification'] ?? $property['zoning_classification'] ?? ''));
-        $utilities = is_array($property['utilities'] ?? null) ? $property['utilities'] : [];
+        $utilities = self::normalizeUtilitiesList($property['utilities'] ?? null);
         $hazardStatus = $property['criteriaDetails']['risk_constraints']['raw']['hazard_status'] ?? [];
         if (is_string($hazardStatus)) {
             $hazardStatus = [$hazardStatus];
@@ -771,13 +794,29 @@ final class BusinessOpportunities
                 $competitorAvailability = 'unavailable_or_none_recorded';
             }
 
+            $formattedUtilities = array_values(array_filter(array_map(static function ($u) {
+                if (is_string($u) && trim($u) !== '') {
+                    return ucfirst(trim($u));
+                }
+                if (is_scalar($u)) {
+                    return ucfirst(trim((string) $u));
+                }
+                if (is_array($u)) {
+                    $name = $u['name'] ?? $u['key'] ?? $u['label'] ?? null;
+                    return is_string($name) && trim($name) !== '' ? ucfirst(trim($name)) : null;
+                }
+                return null;
+            }, $utilities)));
+            $utilitiesLabel = !empty($formattedUtilities) ? implode(', ', $formattedUtilities) : 'Utility connections unconfirmed';
+            $roadAccessStr = is_string($profile['roadAccess'] ?? null) ? $profile['roadAccess'] : 'all_weather';
+
             // Structured site conditions
             $supportingConditions = [
                 'areaGuideline' => $profile['areaGuideline'],
                 'recordedAreaSqm' => $areaSqm > 0 ? round($areaSqm) : null,
                 'areaStatus' => $areaSqm > 0 ? (round($areaSqm) . ' sqm recorded') : 'Unknown (unrecorded)',
-                'roadAccess' => ucfirst($profile['roadAccess']) . ' access required',
-                'utilities' => !empty($utilities) ? implode(', ', array_map('ucfirst', $utilities)) : 'Utility connections unconfirmed',
+                'roadAccess' => ucfirst($roadAccessStr) . ' access required',
+                'utilities' => $utilitiesLabel,
             ];
 
             // Structured nearby context (Straight-line proximity)
@@ -899,5 +938,75 @@ final class BusinessOpportunities
             'unavailableReason' => $unavailableReason,
             'generatedAt' => gmdate('Y-m-d\TH:i:s\Z'),
         ];
+    }
+
+    /**
+     * Normalize various property utility representations into a clean list of string tokens.
+     *
+     * @param mixed $rawUtilities
+     * @return array<int, string>
+     */
+    public static function normalizeUtilitiesList(mixed $rawUtilities): array
+    {
+        if (empty($rawUtilities)) {
+            return [];
+        }
+
+        $list = [];
+
+        if (is_array($rawUtilities)) {
+            $isAssoc = array_keys($rawUtilities) !== range(0, count($rawUtilities) - 1);
+            if ($isAssoc) {
+                foreach ($rawUtilities as $uKey => $uVal) {
+                    if ($uKey === 'additional_services') {
+                        if (is_array($uVal)) {
+                            foreach ($uVal as $subKey => $subVal) {
+                                if (is_string($subVal) && trim($subVal) !== '') {
+                                    $list[] = (string) $subKey;
+                                }
+                            }
+                        }
+                        continue;
+                    }
+
+                    if (is_array($uVal)) {
+                        $status = strtolower(trim((string) ($uVal['status'] ?? $uVal['connection_status'] ?? '')));
+                        $hasConnection = in_array($status, ['available', 'connected', 'ready'], true);
+                        $hasDetails = !empty($uVal['provider']) || !empty($uVal['source']) || !empty($uVal['primary_supply']);
+                        if ($hasConnection || $hasDetails) {
+                            $list[] = (string) $uKey;
+                        }
+                    } elseif (is_string($uVal) && trim($uVal) !== '') {
+                        $cleanVal = strtolower(trim($uVal));
+                        if (!in_array($cleanVal, ['not_verified', 'unavailable', 'none', 'false', '0'], true)) {
+                            $list[] = is_numeric($uKey) ? $uVal : (string) $uKey;
+                        }
+                    } elseif ($uVal === true) {
+                        $list[] = (string) $uKey;
+                    }
+                }
+            } else {
+                foreach ($rawUtilities as $item) {
+                    if (is_string($item) && trim($item) !== '') {
+                        $list[] = trim($item);
+                    } elseif (is_array($item)) {
+                        $name = $item['name'] ?? $item['key'] ?? $item['type'] ?? $item['label'] ?? null;
+                        if (is_string($name) && trim($name) !== '') {
+                            $list[] = trim($name);
+                        }
+                    }
+                }
+            }
+        } elseif (is_string($rawUtilities) && trim($rawUtilities) !== '') {
+            $parts = explode(',', $rawUtilities);
+            foreach ($parts as $p) {
+                $trimmed = trim($p);
+                if ($trimmed !== '') {
+                    $list[] = $trimmed;
+                }
+            }
+        }
+
+        return array_values(array_unique($list));
     }
 }

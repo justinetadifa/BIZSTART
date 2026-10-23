@@ -46,9 +46,24 @@ function sfc_verify_csrf_token(mixed $token): bool
 
 function sfc_verify_csrf_request(): bool
 {
-    $header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
-    $body = $_POST['_csrf'] ?? null;
-    return sfc_verify_csrf_token(is_string($header) && $header !== '' ? $header : $body);
+    $header = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_SERVER['HTTP_X_XSRF_TOKEN'] ?? null;
+    $body = $_POST['_csrf'] ?? $_POST['csrf_token'] ?? null;
+    $token = is_string($header) && $header !== '' ? $header : (is_string($body) && $body !== '' ? $body : null);
+
+    if ($token === null && stripos((string) ($_SERVER['CONTENT_TYPE'] ?? ''), 'application/json') !== false) {
+        $raw = file_get_contents('php://input');
+        if (!empty($raw)) {
+            $json = json_decode($raw, true);
+            if (is_array($json)) {
+                $candidate = $json['csrf_token'] ?? $json['_csrf'] ?? null;
+                if (is_string($candidate) && $candidate !== '') {
+                    $token = $candidate;
+                }
+            }
+        }
+    }
+
+    return sfc_verify_csrf_token($token);
 }
 
 function sfc_require_csrf_form(): void

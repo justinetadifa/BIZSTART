@@ -39,6 +39,10 @@ $pwIcon = static function (string $name, string $class = '') use ($pwEscape): st
         'activity' => '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
         'wind' => '<path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/>',
         'mountain' => '<path d="m8 3 4 8 5-5 5 15H2L8 3z"/>',
+        'waves' => '<path d="M2 6c2-3 4 3 6 0s4 3 6 0 4 3 8 0M2 12c2-3 4 3 6 0s4 3 6 0 4 3 8 0M2 18c2-3 4 3 6 0s4 3 6 0 4 3 8 0"/>',
+        'home' => '<path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7"/>',
+        'factory' => '<path d="M3 21V10l6 3V8l6 3V3h4l2 18H3ZM7 17h1m4 0h1m4 0h1"/>',
+        'sun' => '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
     ];
     return '<svg class="pw-icon ' . $pwEscape($class) . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ($paths[$name] ?? $paths['info']) . '</svg>';
 };
@@ -55,6 +59,15 @@ $pwReadiness = [
 ];
 $pwUser = $context['user'] ?? ($GLOBALS['user'] ?? (function_exists('sfc_current_user') ? sfc_current_user() : null));
 $pwUserRole = (string) ($pwUser['role'] ?? '');
+$pwSectionIcons = [
+    'spatial_accessibility' => 'road',
+    'infrastructure_readiness' => 'utilities',
+    'economic_viability' => 'chart',
+    'nearby_businesses' => 'store',
+    'risk_constraints' => 'shield',
+    'zoning_compatibility' => 'layers',
+    'authority_to_sell' => 'document',
+];
 ?>
 <dialog class="property-wizard" id="cityPropertyEditor" data-user-role="<?= $pwEscape($pwUserRole) ?>" aria-labelledby="cityEditorTitle">
   <form class="pw-form" data-property-form novalidate>
@@ -73,7 +86,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
             <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-redo disabled title="Redo last change (Ctrl+Shift+Z)"><?= $pwIcon('redo') ?> <span>Redo</span></button>
           </div>
           <span class="pw-device-draft-status" data-device-draft-status><svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg> <span data-device-draft-text>Draft not saved</span></span>
-          <button class="pw-button pw-button-light pw-button-small" type="button" data-save-exit title="Save this draft on this device"><?= $pwIcon('save') ?> Save draft</button>
+          <button class="pw-button pw-button-light pw-button-small pw-save-close" type="button" data-save-exit title="Save draft and close" aria-label="Save draft and close"><?= $pwIcon('save') ?></button>
           <button class="pw-close" type="button" data-close-dialog aria-label="Close property editor"><?= $pwIcon('close') ?></button>
         </div>
       </div>
@@ -692,29 +705,6 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
         </div>
       </section>
       <section class="pw-panel" data-editor-panel="2" hidden>
-        <!-- Unified Step 3 Command Center Header -->
-        <div class="pw-section-intro pw-evidence-intro">
-          <div class="pw-evidence-intro-main">
-            <div class="pw-evidence-intro-text">
-              <div class="pw-evidence-eyebrow-row">
-                <span class="pw-eyebrow">STEP 3 OF 4 &middot; MULTI-CRITERIA EVALUATION (LOCUS-SF)</span>
-                <span class="pw-badge pw-badge-weight">5 numerical criteria &middot; 100% total weight + Mandatory Zoning Gate</span>
-              </div>
-              <h3>Property assessment</h3>
-              <p>Enter site facts to see live results. Add supporting records when available.</p>
-            </div>
-            <div class="pw-evidence-intro-actions">
-              <button type="button" class="pw-button pw-button-light pw-button-small pw-evidence-fast-forward-btn" data-skip-enrichment title="Skip site evidence and proceed directly to Review">
-                <span>Skip to Review</span> <?= $pwIcon('arrow') ?>
-              </button>
-              <div class="pw-evidence-status-pill">
-                <span class="pw-badge pw-badge-sky" data-completeness-badge><span data-completeness-count>0 of 5</span> criteria</span>
-                <small class="pw-muted">Evidence entered &middot; verification separate</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <details class="pw-disclosure pw-evidence-editor" data-evidence-editor open>
           <summary class="pw-evidence-summary pw-visually-hidden">
             <span>Site details &amp; assessment workspace</span>
@@ -724,72 +714,102 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
           <div class="pw-evidence-workspace">
             <!-- Criterion Navigation: Desktop Tabs + Mobile Accessible Select -->
             <div class="pw-criteria-nav-bar">
+              <div class="pw-assessment-nav-heading">
+                <span class="pw-assessment-nav-eyebrow">Evaluation Framework</span>
+                <strong>Decision Criteria</strong>
+                <span data-assessment-position>Criterion 1 of <?= $pwUserRole === 'seller' ? '7' : '6' ?></span>
+              </div>
               <!-- Mobile Criterion Selector -->
               <div class="pw-criteria-mobile-picker">
                 <label for="pwCriteriaMobileSelect" class="pw-sr-only">Choose assessment criterion</label>
+                <?php foreach ($pwSectionIcons as $pwSectionKey => $pwSectionIcon): ?>
+                <span class="pw-mobile-section-icon" data-mobile-criterion-icon="<?= $pwEscape($pwSectionKey) ?>" aria-hidden="true"<?= $pwSectionKey !== 'spatial_accessibility' ? ' hidden' : '' ?>><?= $pwIcon($pwSectionIcon) ?></span>
+                <?php endforeach; ?>
                 <select id="pwCriteriaMobileSelect" class="pw-criteria-select-mobile" data-criteria-mobile-select>
-                  <option value="spatial_accessibility">1. Spatial accessibility (25%)</option>
-                  <option value="infrastructure_readiness">2. Infrastructure readiness (25%)</option>
-                  <option value="economic_viability">3. Property cost &amp; market competitiveness (20%)</option>
-                  <option value="nearby_businesses">4. Nearby businesses (15%)</option>
-                  <option value="risk_constraints">5. Risk constraints (15%)</option>
-                  <option value="zoning_compatibility">6. CLUP &amp; Land-Use Screening (Mandatory Gate)</option>
+                  <option value="spatial_accessibility">1. Roads &amp; access</option>
+                  <option value="infrastructure_readiness">2. Utilities</option>
+                  <option value="economic_viability">3. Cost &amp; market</option>
+                  <option value="nearby_businesses">4. Nearby places</option>
+                  <option value="risk_constraints">5. Risk &amp; hazards</option>
+                  <option value="zoning_compatibility">6. Zoning compatibility</option>
                   <option value="authority_to_sell" class="pw-broker-only-option" <?= $pwUserRole !== 'seller' ? 'style="display:none;" disabled' : '' ?>>7. Authority to Sell / Lease (Broker req.)</option>
                 </select>
               </div>
 
-              <!-- Desktop Horizontal Criteria Tablist -->
-              <div class="pw-tabs pw-criteria-tabs" role="tablist" aria-label="Assessment criteria">
+              <!-- Desktop assessment sections -->
+              <div class="pw-tabs pw-criteria-tabs" role="tablist" aria-label="Assessment criteria" aria-orientation="vertical">
                 <button class="pw-criterion-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="pwCriterionSpatial" data-evidence-tab="spatial_accessibility">
-                  <span class="pw-crit-num">1</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('road') ?></span>
                   <span class="pw-crit-content">
-                    <span class="pw-crit-title">Spatial access</span>
-                    <span class="pw-crit-weight">25% weight</span>
+                    <span class="pw-crit-title">Roads &amp; access</span>
+                    <span class="pw-crit-weight">Getting to the property</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionInfrastructure" data-evidence-tab="infrastructure_readiness">
-                  <span class="pw-crit-num">2</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('utilities') ?></span>
                   <span class="pw-crit-content">
-                    <span class="pw-crit-title">Infrastructure</span>
-                    <span class="pw-crit-weight">25% weight</span>
+                    <span class="pw-crit-title">Utilities</span>
+                    <span class="pw-crit-weight">Power, water &amp; internet</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionEconomic" data-evidence-tab="economic_viability">
-                  <span class="pw-crit-num">3</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('chart') ?></span>
                   <span class="pw-crit-content">
-                    <span class="pw-crit-title">Cost &amp; Market</span>
-                    <span class="pw-crit-weight">20% weight</span>
+                    <span class="pw-crit-title">Cost &amp; market</span>
+                    <span class="pw-crit-weight">Price comparison</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionNearby" data-evidence-tab="nearby_businesses">
-                  <span class="pw-crit-num">4</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('store') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Nearby places</span>
-                    <span class="pw-crit-weight">15% weight</span>
+                    <span class="pw-crit-weight">Businesses around the site</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionRisks" data-evidence-tab="risk_constraints">
-                  <span class="pw-crit-num">5</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('shield') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Risk &amp; hazards</span>
-                    <span class="pw-crit-weight">15% weight</span>
+                    <span class="pw-crit-weight">Source findings</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionZoning" data-evidence-tab="zoning_compatibility">
-                  <span class="pw-crit-num">6</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('layers') ?></span>
                   <span class="pw-crit-content">
-                    <span class="pw-crit-title">CLUP Zoning</span>
-                    <span class="pw-crit-weight">Eligibility Gate</span>
+                    <span class="pw-crit-title">Zoning</span>
+                    <span class="pw-crit-weight">Permitted business activities</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab pw-broker-only-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionAuthority" data-evidence-tab="authority_to_sell" <?= $pwUserRole !== 'seller' ? 'style="display:none;" hidden' : '' ?>>
-                  <span class="pw-crit-num">7</span>
+                  <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('document') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title" data-authority-tab-title>Authority to Sell</span>
                     <span class="pw-crit-weight">Broker req.</span>
                   </span>
                 </button>
               </div>
+        <!-- Unified Step 3 Command Center Header -->
+        <div class="pw-section-intro pw-evidence-intro pw-assessment-nav-footer">
+          <div class="pw-evidence-intro-main">
+            <div class="pw-evidence-intro-text">
+              <div class="pw-evidence-eyebrow-row">
+                <span class="pw-eyebrow">Step 3 of 4</span>
+                <span class="pw-badge pw-badge-weight">5 numerical criteria &middot; 100% total weight + Mandatory Zoning Gate</span>
+              </div>
+              <h3>Assess the property</h3>
+              <p>Missing a detail? Save a draft and finish later.</p>
+            </div>
+            <div class="pw-evidence-intro-actions">
+              <button type="button" class="pw-button pw-button-light pw-button-small pw-evidence-fast-forward-btn" data-skip-enrichment title="Skip site evidence and proceed directly to Review">
+                <span>Review listing</span> <?= $pwIcon('arrow') ?>
+              </button>
+              <div class="pw-evidence-status-pill">
+                <span class="pw-badge pw-badge-sky" data-completeness-badge><span data-completeness-count>0 of 5</span> criteria</span>
+                <small class="pw-muted">Evidence entered &middot; verification separate</small>
+              </div>
+            </div>
+          </div>
+        </div>
             </div>
 
           <!-- 1. SPATIAL ACCESSIBILITY PANE -->
@@ -801,8 +821,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <div class="pw-spatial-eyebrow-row">
                     <span class="pw-spatial-eyebrow">CRITERION 1 &middot; MULTI-CRITERIA EVALUATION</span>
                   </div>
-                  <h3 class="pw-spatial-title">Spatial Accessibility</h3>
-                  <p class="pw-spatial-subtitle">Step 3 &middot; MCE Assessment</p>
+                  <h3 class="pw-spatial-title pw-section-icon-heading"><span class="pw-section-heading-icon"><?= $pwIcon('road') ?></span><span>Spatial Accessibility</span></h3>
+                  <p class="pw-spatial-subtitle">Evaluates legal ingress, road surface quality, carriageway width, and primary arterial proximity.</p>
                 </div>
                 <div class="pw-spatial-header-badges">
                   <span class="pw-badge pw-badge-provisional"><span class="pw-spatial-pulse-dot"></span> Provisional model</span>
@@ -815,7 +835,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <span class="pw-reused-icon"><?= $pwIcon('pin') ?></span>
                 <div class="pw-reused-content">
                   <div class="pw-reused-header-row">
-                    <span class="pw-reused-label">Reused location data from Step 2</span>
+                    <span class="pw-reused-label">Synced Location &amp; Boundary Context (Step 2)</span>
                     <span class="pw-reused-verified-pill"><?= $pwIcon('check') ?> Synced from map</span>
                   </div>
                   <div class="pw-reused-chips">
@@ -1130,7 +1150,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                   <div class="pw-infra-eyebrow-row">
                     <span class="pw-infra-eyebrow">CRITERION 2 &middot; MULTI-CRITERIA EVALUATION</span>
                   </div>
-                  <h3 class="pw-infra-title">Infrastructure Readiness</h3>
+                  <h3 class="pw-infra-title pw-section-icon-heading"><span class="pw-section-heading-icon"><?= $pwIcon('utilities') ?></span><span>Infrastructure Readiness</span></h3>
                   <p class="pw-infra-subtitle">Report verified utility connections and on-site distribution networks for power, water, telecom, and drainage.</p>
                 </div>
                 <div class="pw-infra-header-badges">
@@ -1568,7 +1588,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <!-- Card Header -->
               <div class="pw-econ-header">
                 <div class="pw-econ-heading-group">
-                  <h3 class="pw-econ-title">Cost &amp; Market</h3>
+                  <h3 class="pw-econ-title pw-section-icon-heading"><span class="pw-section-heading-icon"><?= $pwIcon('chart') ?></span><span>Cost &amp; Market</span></h3>
                   <p class="pw-econ-subtitle">Compare your asking rate with a similar property.</p>
                 </div>
                 <div class="pw-econ-header-badges">
@@ -2107,18 +2127,17 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <!-- Unified Criterion Header -->
               <div class="pw-spatial-header">
                 <div class="pw-spatial-heading-group">
-                  <span class="pw-spatial-eyebrow">Criterion 5 &middot; Multi-Criteria Evaluation</span>
-                  <h3 class="pw-spatial-title">Risk &amp; Hazard Constraints</h3>
-                  <p class="pw-spatial-subtitle">Review municipal hazard layers and parcel vulnerability.</p>
+                  <span class="pw-spatial-eyebrow">Section 5</span>
+                  <h3 class="pw-spatial-title pw-section-icon-heading"><span class="pw-section-heading-icon"><?= $pwIcon('shield') ?></span><span>Risk &amp; hazards</span></h3>
+                  <p class="pw-spatial-subtitle">Choose each finding from your report. Missing findings can stay unknown.</p>
                 </div>
                 <div class="pw-spatial-header-badges">
-                  <span class="pw-badge pw-badge-provisional">Provisional model</span>
-                  <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                  <span class="pw-badge pw-badge-weight">Source-based screening</span>
                 </div>
               </div>
 
               <!-- Multi-Hazard Vulnerability Tracker Ribbon -->
-              <div class="pw-risk-utility-ribbon" role="region" aria-label="Multi-hazard screening summary">
+              <div class="pw-risk-utility-ribbon" role="region" aria-label="Multi-hazard screening summary" hidden>
                 <div class="pw-risk-utility-pill" data-risk-status-pill="flood">
                   <span class="pw-risk-pill-icon pw-risk-icon-flood"><?= $pwIcon('water') ?></span>
                   <div class="pw-risk-pill-meta">
@@ -2192,150 +2211,14 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <!-- LEFT COLUMN: Assessment Form & Findings -->
                 <div class="pw-screening-col-main">
 
-                  <!-- 1. Location Assessed Card -->
-                  <div class="pw-screening-card">
-                    <div class="pw-card-header">
-                      <div class="pw-card-title-group">
-                        <span class="pw-step-number-circle">1</span>
-                        <h3 class="pw-card-title">Location assessed</h3>
-                      </div>
-                      <button type="button" class="pw-button pw-button-light pw-button-small" data-jump-step2-location>
-                        <?= $pwIcon('edit') ?> <span>Edit property location</span>
-                      </button>
-                    </div>
-                    <div class="pw-card-body pw-location-assessed-grid">
-                      <div class="pw-location-form-fields">
-                        <div class="pw-location-summary-box" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:12px;">
-                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <strong style="color:#0f172a; font-size:13.5px;" data-canonical-property-name><?= $pwEscape($property['title'] ?? 'Untitled Property') ?></strong>
-                            <span class="pw-badge pw-badge-teal" data-canonical-barangay><?= $pwEscape($property['barangay'] ?? 'San Fernando') ?></span>
-                          </div>
-                          <div style="font-size:12px; color:#64748b; display:flex; flex-wrap:wrap; gap:12px;">
-                            <span><?= $pwIcon('pin') ?> <strong data-canonical-coords><?= !empty($property['latitude']) ? ($pwEscape($property['latitude']) . ', ' . $pwEscape($property['longitude'])) : 'Pin pending' ?></strong></span>
-                            <span><?= $pwIcon('area') ?> <strong data-canonical-area><?= !empty($property['area']) ? ($pwEscape($property['area']) . ' ha') : 'Area pending' ?></strong></span>
-                          </div>
-                        </div>
-
-                        <!-- Expandable option for separate assessed coordinates if supporting document uses a different point -->
-                        <details class="pw-disclosure" style="margin-bottom:12px;">
-                          <summary><?= $pwIcon('pin') ?> <span>Supporting document uses different coordinates</span><?= $pwIcon('chevron') ?></summary>
-                          <div style="padding-top:10px;">
-                            <div class="pw-sc-coords-row">
-                              <label class="pw-sc-field">
-                                <span class="pw-sc-label">Assessed Latitude</span>
-                                <input type="text" id="pwRiskAssessedLat" name="risk_assessed_lat" class="pw-sc-input" placeholder="Latitude from report" value="<?= $pwEscape($property['risk_assessed_lat'] ?? '') ?>">
-                              </label>
-                              <label class="pw-sc-field">
-                                <span class="pw-sc-label">Assessed Longitude</span>
-                                <input type="text" id="pwRiskAssessedLng" name="risk_assessed_lng" class="pw-sc-input" placeholder="Longitude from report" value="<?= $pwEscape($property['risk_assessed_lng'] ?? '') ?>">
-                              </label>
-                            </div>
-                            <label class="pw-sc-field" style="margin-top:8px;">
-                              <span class="pw-sc-label">Reason for coordinate difference</span>
-                              <input type="text" name="risk_coords_difference_reason" class="pw-sc-input" placeholder="e.g. Report evaluated northeast boundary corner monument" value="<?= $pwEscape($property['risk_coords_difference_reason'] ?? '') ?>">
-                            </label>
-                          </div>
-                        </details>
-
-                        <!-- Hidden compatibility inputs for existing scripts and tests (no duplicate name="latitude" / name="longitude") -->
-                        <input type="hidden" id="pwRiskPropertyName" value="<?= $pwEscape($property['title'] ?? '') ?>">
-                        <input type="hidden" id="pwRiskLatitude" value="<?= $pwEscape($property['latitude'] ?? '') ?>">
-                        <input type="hidden" id="pwRiskLongitude" value="<?= $pwEscape($property['longitude'] ?? '') ?>">
-
-                        <div class="pw-sc-scope-row">
-                          <label class="pw-sc-field pw-sc-scope-field">
-                            <span class="pw-sc-label">Assessment scope</span>
-                            <select id="pwRiskAssessmentScope" name="risk_assessment_scope" class="pw-sc-select">
-                              <option value="selected_point" selected>Selected point</option>
-                              <option value="entire_parcel">Entire parcel</option>
-                              <option value="buffer_corridor">Buffer corridor (50m)</option>
-                            </select>
-                          </label>
-                          <button type="button" class="pw-btn-check-location" id="pwRiskCheckLocationBtn">
-                            <?= $pwIcon('pin') ?>
-                            <span>Check location</span>
-                          </button>
-                        </div>
-                        <p class="pw-sc-caption-note">A selected-point report does not describe exposure across the entire parcel.</p>
-                      </div>
-
-                      <div class="pw-location-map-preview">
-                        <div class="pw-mini-map-container" id="pwRiskMiniMap">
-                          <div class="pw-mini-map-canvas" id="pwRiskMiniMapCanvas" data-risk-mini-map-canvas style="width:100%;height:100%;min-height:185px;"></div>
-                          <span class="pw-map-illustrative-badge">Location assessed</span>
-                        </div>
-                        <p class="pw-sc-caption-note">Property location reference. Imagery alone does not establish hazard exposure or a clearance.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 2. Source Document Card -->
-                  <div class="pw-screening-card">
-                    <div class="pw-card-header">
-                      <div class="pw-card-title-group">
-                        <span class="pw-step-number-circle">2</span>
-                        <h3 class="pw-card-title">Source document</h3>
-                      </div>
-                      <a href="https://hazardhunter.georisk.gov.ph/" target="_blank" rel="noopener noreferrer" class="pw-btn-external-source">
-                        <span>Open HazardHunterPH</span>
-                        <svg class="pw-icon-ext" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-                      </a>
-                    </div>
-                    <div class="pw-card-body">
-                      <div class="pw-sc-field">
-                        <span class="pw-sc-label">Source</span>
-                        <select name="hazard_evidence_source" class="pw-sc-select" id="pwRiskSourceSelect">
-                      <option value="" selected>Not recorded</option>
-                          <option value="HazardHunterPH — indicative report">HazardHunterPH &mdash; indicative report</option>
-                          <option value="DENR-MGB Geohazard Assessment Sheet">DENR-MGB Geohazard Assessment Sheet</option>
-                          <option value="DOST-PHIVOLCS Official Certification">DOST-PHIVOLCS Official Certification</option>
-                          <option value="CDRRMO Local Hazard Map">CDRRMO Local Hazard Map</option>
-                          <option value="Other official engineering study">Other official engineering study</option>
-                        </select>
-                      </div>
-                      <div class="pw-sc-source-details-row">
-                        <label class="pw-sc-field">
-                          <span class="pw-sc-label">Report generated on</span>
-                          <input type="date" name="hazard_evidence_date" class="pw-sc-input" id="pwRiskReportDate" value="<?= $pwEscape($property['hazard_evidence_date'] ?? '') ?>">
-                        </label>
-                        <label class="pw-sc-field">
-                          <span class="pw-sc-label">Reference / report link</span>
-                          <input type="text" name="hazard_evidence_reference" class="pw-sc-input" id="pwRiskReportRef" placeholder="Paste source reference" value="<?= $pwEscape($property['hazard_evidence_reference'] ?? '') ?>">
-                        </label>
-                      </div>
-
-                      <div class="pw-sc-upload-wrapper">
-                        <div class="pw-sc-dropzone" id="pwRiskDropzone">
-                          <input type="file" id="pwRiskFileInput" class="pw-hidden-file-input" accept=".pdf,.jpg,.jpeg,.png">
-                          <div class="pw-dropzone-icon">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                          </div>
-                          <strong class="pw-dropzone-title">Upload assessment report or supporting map</strong>
-                          <span class="pw-dropzone-sub">PDF, JPG, PNG &middot; Subject to review</span>
-                        </div>
-                        <div class="pw-sc-file-chip" id="pwRiskFileChip" style="<?= empty($property['hazard_evidence_file']) ? 'display: none;' : '' ?>">
-                          <div class="pw-file-icon-pdf">PDF</div>
-                          <div class="pw-file-chip-info">
-                            <strong class="pw-file-name" id="pwRiskFileName"><?= $pwEscape($property['hazard_evidence_file'] ?? '') ?></strong>
-                            <span class="pw-file-sub" id="pwRiskFileStatus"><?= !empty($property['hazard_evidence_file']) ? 'Subject to review' : '' ?></span>
-                          </div>
-                          <button type="button" class="pw-file-chip-remove" id="pwRiskFileRemove" aria-label="Remove attachment">&times;</button>
-                        </div>
-                      </div>
-                      <p class="pw-sc-caption-note">Store the report date separately from the upload date.</p>
-                    </div>
-                  </div>
-
                   <!-- 3. Reported Findings Card -->
-                  <div class="pw-screening-card">
+                  <div class="pw-screening-card pw-risk-findings-card">
                     <div class="pw-card-header">
                       <div class="pw-card-title-group">
-                        <span class="pw-step-number-circle">3</span>
                         <h3 class="pw-card-title">Reported findings</h3>
                       </div>
                       <div class="pw-findings-header-badges">
-                        <span class="pw-badge pw-badge-provisional">Authoritative Agency Datasets</span>
-                        <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                        <span class="pw-recorded-count" data-risk-recorded-count aria-live="polite">0 of 6 recorded</span>
                       </div>
                     </div>
                     <div class="pw-card-body">
@@ -2348,29 +2231,13 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         </div>
                       </div>
 
-                      <!-- Official Guidance & Quick-Fill Preset Banner -->
-                      <div class="pw-hazard-guide-banner">
-                        <div class="pw-hazard-guide-content">
-                          <span class="pw-hazard-guide-icon"><?= $pwIcon('shield') ?></span>
-                          <div class="pw-hazard-guide-text">
-                            <strong>Authoritative Agency Classifications</strong>
-                            <p>Choose the classification stated in your source for each hazard. The result updates immediately. Unknown findings stay pending; higher suitability scores indicate lower recorded disaster risk.</p>
-                          </div>
-                        </div>
-                        <div class="pw-hazard-guide-actions">
-                          <button type="button" class="pw-button pw-button-light pw-button-small" id="pwRiskQuickClearBtn" title="Fill unrecorded hazards with 'No mapped exposure'">
-                            <?= $pwIcon('utilities') ?> <span>All-Clear Preset</span>
-                          </button>
-                        </div>
-                      </div>
-
                       <div class="pw-hazard-grid-6 pw-findings-table-responsive">
                         <table class="pw-findings-table" id="pwRiskFindingsTable">
                           <thead>
                             <tr>
-                              <th style="width: 34%;">Hazard &amp; Agency Dataset</th>
-                              <th style="width: 40%;">Reported Source Finding</th>
-                              <th style="width: 26%;">Suitability Score &amp; Points</th>
+                              <th>Hazard</th>
+                              <th>Finding from your report</th>
+                              <th>Score &amp; points</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2518,7 +2385,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                             <tr class="pw-hazard-row-compact" data-hazard-row="tsunami">
                               <td class="pw-hazard-col-cell">
                                 <div class="pw-hazard-identity">
-                                  <span class="pw-hazard-symbol pw-hazard-symbol--teal"><?= $pwIcon('water') ?></span>
+                                  <span class="pw-hazard-symbol pw-hazard-symbol--teal"><?= $pwIcon('waves') ?></span>
                                   <div class="pw-hazard-meta">
                                     <div class="pw-hazard-label-group">
                                       <strong>Tsunami</strong>
@@ -2556,14 +2423,25 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <span>Record &middot; No hazard classifications supplied</span>
                       </div>
 
+                        <!-- High Hazard Warnings Container -->
+                        <div class="pw-risk-warnings-box" data-risk-warnings-box hidden>
+                          <div class="pw-risk-warnings-head">
+                            <span class="pw-risk-warning-icon">⚠️</span>
+                            <strong>Identified Elevated Hazards &amp; Site Alerts:</strong>
+                          </div>
+                          <ul class="pw-risk-warnings-list" data-risk-warnings-list></ul>
+                        </div>
+
+                      <details class="pw-calm-disclosure pw-risk-scoring-details" data-risk-scoring-details>
+                        <summary><?= $pwIcon('chart') ?> Scoring &amp; calculation details <small>15% assessment weight</small></summary>
                       <!-- Integrated Executive Multi-Hazard Scorecard Card -->
                       <div class="pw-risk-scorecard-card pw-risk-assessment-embed" data-risk-preview-card>
                         <div class="pw-risk-scorecard-header">
                           <div class="pw-risk-scorecard-title-group">
                             <span class="pw-risk-scorecard-icon"><?= $pwIcon('shield') ?></span>
                             <div>
-                              <h4 class="pw-risk-scorecard-title">MCE Multi-Hazard Suitability Scorecard</h4>
-                              <span class="pw-risk-scorecard-sub">Criterion 5 preliminary screening &middot; 15% overall MCE weight</span>
+                              <h4 class="pw-risk-scorecard-title">Hazard screening score</h4>
+                              <span class="pw-risk-scorecard-sub">Preliminary calculation &middot; 15% of the assessment</span>
                             </div>
                           </div>
                           <span class="pw-badge pw-badge-calculated" data-risk-status-badge>Pending Screening</span>
@@ -2577,7 +2455,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                           <div class="pw-risk-score-meta">
                             <div class="pw-risk-contribution-pill">
                               <span class="pw-risk-contrib-icon"><?= $pwIcon('chart') ?></span>
-                              <span>15% MCE Contribution: <strong data-risk-iai-pts>—</strong> / 15.00 pts</span>
+                              <span>Assessment contribution: <strong data-risk-iai-pts>—</strong> / 15.00 pts</span>
                             </div>
                             <p class="pw-risk-score-note" data-risk-next-action aria-live="polite">Choose all six hazard findings to calculate a weighted score.</p>
                           </div>
@@ -2586,15 +2464,6 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         <div class="pw-infra-progress-track pw-risk-progress-track">
                           <div class="pw-infra-progress-bar pw-risk-progress-bar" data-risk-progress-bar style="width: 0%; background: #dc2626;"></div>
                         </div>
-                        <!-- High Hazard Warnings Container -->
-                        <div class="pw-risk-warnings-box" data-risk-warnings-box hidden>
-                          <div class="pw-risk-warnings-head">
-                            <span class="pw-risk-warning-icon">⚠️</span>
-                            <strong>Identified Elevated Hazards &amp; Site Alerts:</strong>
-                          </div>
-                          <ul class="pw-risk-warnings-list" data-risk-warnings-list></ul>
-                        </div>
-
                         <!-- Technical details disclosure -->
                         <details class="pw-disclosure pw-risk-technical-details">
                           <summary class="pw-risk-disclosure-summary">
@@ -2625,16 +2494,169 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                         </details>
                       </div>
 
-                      <!-- General site observations & notes -->
+                      </details>
+                      <details class="pw-calm-disclosure">
+                        <summary><?= $pwIcon('text') ?> Additional site notes <small>Optional</small></summary>
+                        <!-- General site observations & notes -->
                       <div class="pw-supporting-evidence-box" style="margin-top: 14px;">
                         <label class="pw-sc-field">
                           <span class="pw-sc-label">General site observations &amp; notes <span class="pw-muted" style="font-weight: 400;">(optional)</span></span>
                           <textarea name="readiness_notes" rows="2" maxlength="10000" class="pw-sc-textarea" placeholder="Add observed site conditions, physical features, and note anything that needs verification by city staff."><?= $pwEscape($property['readiness_notes'] ?? '') ?></textarea>
                         </label>
                       </div>
+                      </details>
                     </div>
                   </div>
 
+
+                  <details class="pw-calm-disclosure pw-assessment-support" data-assessment-support>
+                    <summary><?= $pwIcon('document') ?> Location &amp; source documents <small>Report details and attachments</small></summary>
+                    <div class="pw-assessment-support-body">
+                  <!-- 1. Location Assessed Card -->
+                  <div class="pw-screening-card">
+                    <div class="pw-card-header">
+                      <div class="pw-card-title-group">
+                        <span class="pw-step-number-circle">1</span>
+                        <h3 class="pw-card-title">Location assessed</h3>
+                      </div>
+                      <button type="button" class="pw-button pw-button-light pw-button-small" data-jump-step2-location>
+                        <?= $pwIcon('edit') ?> <span>Edit property location</span>
+                      </button>
+                    </div>
+                    <div class="pw-card-body pw-location-assessed-grid">
+                      <div class="pw-location-form-fields">
+                        <div class="pw-location-summary-box" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:12px;">
+                          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <strong style="color:#0f172a; font-size:13.5px;" data-canonical-property-name><?= $pwEscape($property['title'] ?? 'Untitled Property') ?></strong>
+                            <span class="pw-badge pw-badge-teal" data-canonical-barangay><?= $pwEscape($property['barangay'] ?? 'San Fernando') ?></span>
+                          </div>
+                          <div style="font-size:12px; color:#64748b; display:flex; flex-wrap:wrap; gap:12px;">
+                            <span><?= $pwIcon('pin') ?> <strong data-canonical-coords><?= !empty($property['latitude']) ? ($pwEscape($property['latitude']) . ', ' . $pwEscape($property['longitude'])) : 'Pin pending' ?></strong></span>
+                            <span><?= $pwIcon('area') ?> <strong data-canonical-area><?= !empty($property['area']) ? ($pwEscape($property['area']) . ' ha') : 'Area pending' ?></strong></span>
+                          </div>
+                        </div>
+
+                        <!-- Expandable option for separate assessed coordinates if supporting document uses a different point -->
+                        <details class="pw-disclosure" style="margin-bottom:12px;">
+                          <summary><?= $pwIcon('pin') ?> <span>Supporting document uses different coordinates</span><?= $pwIcon('chevron') ?></summary>
+                          <div style="padding-top:10px;">
+                            <div class="pw-sc-coords-row">
+                              <label class="pw-sc-field">
+                                <span class="pw-sc-label">Assessed Latitude</span>
+                                <input type="text" id="pwRiskAssessedLat" name="risk_assessed_lat" class="pw-sc-input" placeholder="Latitude from report" value="<?= $pwEscape($property['risk_assessed_lat'] ?? '') ?>">
+                              </label>
+                              <label class="pw-sc-field">
+                                <span class="pw-sc-label">Assessed Longitude</span>
+                                <input type="text" id="pwRiskAssessedLng" name="risk_assessed_lng" class="pw-sc-input" placeholder="Longitude from report" value="<?= $pwEscape($property['risk_assessed_lng'] ?? '') ?>">
+                              </label>
+                            </div>
+                            <label class="pw-sc-field" style="margin-top:8px;">
+                              <span class="pw-sc-label">Reason for coordinate difference</span>
+                              <input type="text" name="risk_coords_difference_reason" class="pw-sc-input" placeholder="e.g. Report evaluated northeast boundary corner monument" value="<?= $pwEscape($property['risk_coords_difference_reason'] ?? '') ?>">
+                            </label>
+                          </div>
+                        </details>
+
+                        <!-- Hidden compatibility inputs for existing scripts and tests (no duplicate name="latitude" / name="longitude") -->
+                        <input type="hidden" id="pwRiskPropertyName" value="<?= $pwEscape($property['title'] ?? '') ?>">
+                        <input type="hidden" id="pwRiskLatitude" value="<?= $pwEscape($property['latitude'] ?? '') ?>">
+                        <input type="hidden" id="pwRiskLongitude" value="<?= $pwEscape($property['longitude'] ?? '') ?>">
+
+                        <div class="pw-sc-scope-row">
+                          <label class="pw-sc-field pw-sc-scope-field">
+                            <span class="pw-sc-label">Assessment scope</span>
+                            <select id="pwRiskAssessmentScope" name="risk_assessment_scope" class="pw-sc-select">
+                              <option value="selected_point" selected>Selected point</option>
+                              <option value="entire_parcel">Entire parcel</option>
+                              <option value="buffer_corridor">Buffer corridor (50m)</option>
+                            </select>
+                          </label>
+                          <button type="button" class="pw-btn-check-location" id="pwRiskCheckLocationBtn">
+                            <?= $pwIcon('pin') ?>
+                            <span>Check location</span>
+                          </button>
+                        </div>
+                        <p class="pw-sc-caption-note">A selected-point report does not describe exposure across the entire parcel.</p>
+                      </div>
+
+                      <div class="pw-location-map-preview">
+                        <div class="pw-mini-map-container" id="pwRiskMiniMap">
+                          <div class="pw-mini-map-canvas" id="pwRiskMiniMapCanvas" data-risk-mini-map-canvas style="width:100%;height:100%;min-height:185px;"></div>
+                          <span class="pw-map-illustrative-badge">Location assessed</span>
+                        </div>
+                        <p class="pw-sc-caption-note">Property location reference. Imagery alone does not establish hazard exposure or a clearance.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. Source Document Card -->
+                  <div class="pw-screening-card">
+                    <div class="pw-card-header">
+                      <div class="pw-card-title-group">
+                        <span class="pw-step-number-circle">2</span>
+                        <h3 class="pw-card-title">Source document</h3>
+                      </div>
+                      <a href="https://hazardhunter.georisk.gov.ph/" target="_blank" rel="noopener noreferrer" class="pw-btn-external-source">
+                        <span>Open HazardHunterPH</span>
+                        <svg class="pw-icon-ext" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+                      </a>
+                    </div>
+                    <div class="pw-card-body">
+                      <div class="pw-sc-field">
+                        <span class="pw-sc-label">Source</span>
+                        <select name="hazard_evidence_source" class="pw-sc-select" id="pwRiskSourceSelect">
+                      <option value="" selected>Not recorded</option>
+                          <option value="HazardHunterPH — indicative report">HazardHunterPH &mdash; indicative report</option>
+                          <option value="DENR-MGB Geohazard Assessment Sheet">DENR-MGB Geohazard Assessment Sheet</option>
+                          <option value="DOST-PHIVOLCS Official Certification">DOST-PHIVOLCS Official Certification</option>
+                          <option value="CDRRMO Local Hazard Map">CDRRMO Local Hazard Map</option>
+                          <option value="Other official engineering study">Other official engineering study</option>
+                        </select>
+                      </div>
+                      <div class="pw-sc-source-details-row">
+                        <label class="pw-sc-field">
+                          <span class="pw-sc-label">Report generated on</span>
+                          <input type="date" name="hazard_evidence_date" class="pw-sc-input" id="pwRiskReportDate" value="<?= $pwEscape($property['hazard_evidence_date'] ?? '') ?>">
+                        </label>
+                        <label class="pw-sc-field">
+                          <span class="pw-sc-label">Reference / report link</span>
+                          <input type="text" name="hazard_evidence_reference" class="pw-sc-input" id="pwRiskReportRef" placeholder="Paste source reference" value="<?= $pwEscape($property['hazard_evidence_reference'] ?? '') ?>">
+                        </label>
+                      </div>
+
+                      <div class="pw-sc-upload-wrapper">
+                        <div class="pw-sc-dropzone" id="pwRiskDropzone">
+                          <input type="file" id="pwRiskFileInput" class="pw-hidden-file-input" accept=".pdf,.jpg,.jpeg,.png">
+                          <div class="pw-dropzone-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                          </div>
+                          <strong class="pw-dropzone-title">Upload assessment report or supporting map</strong>
+                          <span class="pw-dropzone-sub">PDF, JPG, PNG &middot; Subject to review</span>
+                        </div>
+                        <div class="pw-sc-file-chip" id="pwRiskFileChip" style="<?= empty($property['hazard_evidence_file']) ? 'display: none;' : '' ?>">
+                          <div class="pw-file-icon-pdf">PDF</div>
+                          <div class="pw-file-chip-info">
+                            <strong class="pw-file-name" id="pwRiskFileName"><?= $pwEscape($property['hazard_evidence_file'] ?? '') ?></strong>
+                            <span class="pw-file-sub" id="pwRiskFileStatus"><?= !empty($property['hazard_evidence_file']) ? 'Subject to review' : '' ?></span>
+                          </div>
+                          <button type="button" class="pw-file-chip-remove" id="pwRiskFileRemove" aria-label="Remove attachment">&times;</button>
+                        </div>
+                      </div>
+                      <p class="pw-sc-caption-note">Store the report date separately from the upload date.</p>
+                    </div>
+                  </div>
+
+                      <details class="pw-calm-disclosure pw-bulk-entry">
+                        <summary>Fill several findings at once</summary>
+                        <p>Use only when your report states no mapped exposure for all unrecorded hazards. Check the findings afterward.</p>
+                        <div class="pw-hazard-guide-actions">
+                          <button type="button" class="pw-button pw-button-light pw-button-small" id="pwRiskQuickClearBtn" title="Fill unrecorded hazards with 'No mapped exposure'">
+                            <?= $pwIcon('utilities') ?> <span>Set unrecorded to no mapped exposure</span>
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  </details>
                 </div>
 
                 <!-- RIGHT COLUMN: Reviewer Workspace (Hidden from intake workflow) -->
@@ -2723,11 +2745,12 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
               <!-- Unified Criterion Header -->
               <div class="pw-spatial-header">
                 <div class="pw-spatial-heading-group">
-                  <h3 class="pw-spatial-title">CLUP zoning &amp; proposed use</h3>
-                  <p class="pw-spatial-subtitle">Check a specific activity against the recorded district, then verify the parcel and supporting records.</p>
+                  <span class="pw-spatial-eyebrow">Section 6</span>
+                  <h3 class="pw-spatial-title pw-section-icon-heading"><span class="pw-section-heading-icon"><?= $pwIcon('layers') ?></span><span>Zoning compatibility</span></h3>
+                  <p class="pw-spatial-subtitle">Choose the recorded district and a proposed business to check whether they match.</p>
                 </div>
                 <div class="pw-findings-header-badges">
-                  <span class="pw-badge pw-badge-weight">Eligibility gate · no points</span>
+                  <span class="pw-badge pw-badge-weight">CLUP reference check</span>
                 </div>
               </div>
 
@@ -2741,93 +2764,29 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                 <!-- LEFT COLUMN: Location, Source Document, Official Zone & Uses -->
                 <div class="pw-screening-col-main">
 
-                  <!-- 🌟 CLUP Smart Advisor Banner -->
-                  <div class="pw-clup-smart-banner" id="pwClupSmartBanner">
-                    <div class="pw-clup-smart-header">
-                      <div class="pw-clup-smart-badge-wrap">
-                        <span class="pw-clup-smart-icon">
-                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        </span>
-                        <strong>CLUP Zoning Advisor</strong>
-                        <span class="pw-clup-smart-context-tag" id="pwClupContextTag">Contextual Guidance</span>
-                      </div>
-                      <span class="pw-clup-ordinance-badge">City Ordinance No. 2018-06</span>
-                    </div>
-                    <div class="pw-clup-smart-body">
-                      <p class="pw-clup-smart-text" id="pwClupSmartText">
-                        Connecting your listing category with official San Fernando zoning rules. Select the recorded district below or use quick suggestions to check allowable business activities in real-time.
-                      </p>
-                      <div class="pw-clup-smart-rec" id="pwClupSmartRec">
-                        <span class="pw-clup-rec-label">💡 Recommended for this property:</span>
-                        <div class="pw-clup-rec-buttons" id="pwClupRecButtons">
-                          <!-- Injected dynamically by JS based on Step 1 category and Step 2 location -->
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   <!-- 1. Primary Screening: District & Activity Check -->
                   <div class="pw-screening-card pw-zoning-main-card" id="pwZoningOrdinanceSection">
                     <div class="pw-card-header">
                       <div class="pw-card-title-group">
                         <span class="pw-step-number-circle">1</span>
-                        <h3 class="pw-card-title">Zoning District &amp; Business Activity Check</h3>
+                        <h3 class="pw-card-title">Check a business activity</h3>
                       </div>
-                      <span class="pw-card-badge-active">San Fernando Master Plan</span>
+
                     </div>
                     <div class="pw-card-body">
 
                       <!-- SECTION 1A: Recorded Zoning District -->
                       <div class="pw-zoning-substep">
                         <div class="pw-substep-header">
-                          <span class="pw-substep-num">Step A</span>
-                          <strong class="pw-substep-title">Select the recorded zoning district</strong>
-                          <small class="pw-muted">&middot; Pick a zone category or choose exact code</small>
-                        </div>
-
-                        <!-- Category Quick-Pills -->
-                        <div class="pw-zoning-cat-pills" id="pwZoningCatPills" role="radiogroup" aria-label="Zoning District Categories">
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="commercial" aria-pressed="false">
-                            <span class="pw-cat-icon">🏢</span>
-                            <span class="pw-cat-text">Commercial</span>
-                            <small class="pw-cat-codes">C-1, C-2, C-3</small>
-                          </button>
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="residential" aria-pressed="false">
-                            <span class="pw-cat-icon">🏡</span>
-                            <span class="pw-cat-text">Residential</span>
-                            <small class="pw-cat-codes">R-1, R-2, R-3</small>
-                          </button>
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="industrial" aria-pressed="false">
-                            <span class="pw-cat-icon">🏭</span>
-                            <span class="pw-cat-text">Industrial</span>
-                            <small class="pw-cat-codes">I-1, I-2</small>
-                          </button>
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="agricultural" aria-pressed="false">
-                            <span class="pw-cat-icon">🌾</span>
-                            <span class="pw-cat-text">Agricultural</span>
-                            <small class="pw-cat-codes">AGR-S, AGR-NS, AIZ</small>
-                          </button>
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="tourism" aria-pressed="false">
-                            <span class="pw-cat-icon">🏖️</span>
-                            <span class="pw-cat-text">Tourism &amp; Eco</span>
-                            <small class="pw-cat-codes">TZ, FEZ</small>
-                          </button>
-                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="institutional" aria-pressed="false">
-                            <span class="pw-cat-icon">🏛️</span>
-                            <span class="pw-cat-text">Institutional / Mixed</span>
-                            <small class="pw-cat-codes">GI, SI, PDZ</small>
-                          </button>
-                        </div>
-
-                        <!-- Quick District Cards Subgrid (Filtered by active category pill) -->
-                        <div class="pw-zoning-district-chips" id="pwZoningDistrictChips">
-                          <!-- Injected & synced by JS -->
+                          <span class="pw-substep-num">1</span>
+                          <strong class="pw-substep-title"><?= $pwIcon('layers') ?> Property zoning</strong>
+                          <small class="pw-muted">Use the district code in your zoning record.</small>
                         </div>
 
                         <!-- Official Two-Col Select Form (Maintained for 100% full form & test parity) -->
                         <div class="pw-fields-two-col" style="margin-top:14px;">
                           <label class="pw-sc-field">
-                            <span class="pw-sc-label">Recorded zoning district <small class="pw-muted">&middot; all 18 official zones</small></span>
+                            <span class="pw-sc-label">Recorded zoning district</span>
                             <select id="pwZoningClassification" name="zoning_classification" class="pw-sc-select" data-zoning-select>
                               <option value="">— Choose the recorded district —</option>
                               <optgroup label="Commercial districts">
@@ -2866,7 +2825,7 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                           </label>
 
                           <label class="pw-sc-field">
-                            <span class="pw-sc-label">Existing property use <small class="pw-muted">&middot; observed site condition</small></span>
+                            <span class="pw-sc-label">Current property use <small class="pw-muted">&middot; optional</small></span>
                             <select id="pwExistingLandUse" name="existing_land_use" class="pw-sc-select">
                               <option value="">— Select Existing Land Use —</option>
                               <option value="Vacant Land">Vacant Land / Unimproved Lot</option>
@@ -2881,20 +2840,96 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                             </select>
                           </label>
                         </div>
-                        <p class="pw-calculation-help">Existing use describes current physical site utilization. Official zoning designates permitted future commercial &amp; development activities.</p>
+                        <p class="pw-calculation-help">Current use is what is on the site today. The zoning district determines which activities can be allowed.</p>
                       </div>
 
+                      <details class="pw-calm-disclosure pw-district-help">
+                        <summary><?= $pwIcon('search') ?> Need help finding a district code?</summary>
+                        <p>Browse district descriptions, then confirm the code against your property record. Current use describes what is on the site today; the zoning district determines which activities can be allowed.</p>
+                  <!-- 🌟 CLUP Smart Advisor Banner -->
+                  <div class="pw-clup-smart-banner" id="pwClupSmartBanner">
+                    <div class="pw-clup-smart-header">
+                      <div class="pw-clup-smart-badge-wrap">
+                        <span class="pw-clup-smart-icon">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        </span>
+                        <strong>CLUP Zoning Advisor</strong>
+                        <span class="pw-clup-smart-context-tag" id="pwClupContextTag">Contextual Guidance</span>
+                      </div>
+                      <span class="pw-clup-ordinance-badge">City Ordinance No. 2018-06</span>
+                    </div>
+                    <div class="pw-clup-smart-body">
+                      <p class="pw-clup-smart-text" id="pwClupSmartText">
+                        Connecting your listing category with official San Fernando zoning rules. Select the recorded district below or use quick suggestions to check allowable business activities in real-time.
+                      </p>
+                      <div class="pw-clup-smart-rec" id="pwClupSmartRec">
+                        <span class="pw-clup-rec-label">💡 Recommended for this property:</span>
+                        <div class="pw-clup-rec-buttons" id="pwClupRecButtons">
+                          <!-- Injected dynamically by JS based on Step 1 category and Step 2 location -->
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                        <!-- Category Quick-Pills -->
+                        <div class="pw-zoning-cat-pills" id="pwZoningCatPills" role="group" aria-label="Zoning District Categories">
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="commercial" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('store') ?></span>
+                            <span class="pw-cat-text">Commercial</span>
+                            <small class="pw-cat-codes">C-1, C-2, C-3</small>
+                          </button>
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="residential" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('home') ?></span>
+                            <span class="pw-cat-text">Residential</span>
+                            <small class="pw-cat-codes">R-1, R-2, R-3</small>
+                          </button>
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="industrial" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('factory') ?></span>
+                            <span class="pw-cat-text">Industrial</span>
+                            <small class="pw-cat-codes">I-1, I-2</small>
+                          </button>
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="agricultural" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('leaf') ?></span>
+                            <span class="pw-cat-text">Agricultural</span>
+                            <small class="pw-cat-codes">AGR-S, AGR-NS, AIZ</small>
+                          </button>
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="tourism" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('sun') ?></span>
+                            <span class="pw-cat-text">Tourism &amp; Eco</span>
+                            <small class="pw-cat-codes">TZ, FEZ</small>
+                          </button>
+                          <button type="button" class="pw-zoning-cat-btn" data-zoning-category-tab="institutional" aria-pressed="false">
+                            <span class="pw-cat-icon"><?= $pwIcon('office') ?></span>
+                            <span class="pw-cat-text">Institutional / Mixed</span>
+                            <small class="pw-cat-codes">GI, SI, PDZ</small>
+                          </button>
+                        </div>
+
+                        <!-- Quick District Cards Subgrid (Filtered by active category pill) -->
+                        <div class="pw-zoning-district-chips" id="pwZoningDistrictChips">
+                          <!-- Injected & synced by JS -->
+                        </div>
+
+                      </details>
                       <!-- SECTION 1B: Proposed Activity & Live Simulation -->
                       <div class="pw-zoning-scenario" style="margin-top:20px;">
                         <div class="pw-substep-header">
-                          <span class="pw-substep-num">Step B</span>
-                          <strong class="pw-substep-title">Check a proposed business activity</strong>
-                          <small class="pw-muted">&middot; Instant compatibility evaluation</small>
+                          <span class="pw-substep-num">2</span>
+                          <strong class="pw-substep-title"><?= $pwIcon('store') ?> Proposed business</strong>
+                          <small class="pw-muted">Optional if no business is planned yet.</small>
                         </div>
 
-                        <!-- Popular Business Presets -->
+                        <!-- Standard Two-Col Select Form -->
+                        <div class="pw-fields-two-col" style="margin-top:12px;">
+                          <label class="pw-field">Activity group<select id="pwZoningCategory" name="zoning_category"><option value="">All activity groups</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><option value="<?= $pwEscape($key) ?>"><?= $pwEscape($group['label']) ?></option><?php endforeach; ?></select></label>
+                          <label class="pw-field">Specific proposed activity<select id="pwZoningActivity" name="proposed_activity"><option value="">Choose an activity</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><optgroup label="<?= $pwEscape($group['label']) ?>" data-category-group="<?= $pwEscape($key) ?>"><?php foreach ($group['activities'] as $code => $activity): ?><option value="<?= $pwEscape($code) ?>" data-category="<?= $pwEscape($key) ?>"><?= $pwEscape($activity['label']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select></label>
+                        </div>
+
+                        <details class="pw-calm-disclosure pw-activity-help">
+                          <summary><?= $pwIcon('search') ?> Search or choose a common activity</summary>
+                          <!-- Popular Business Presets -->
                         <div class="pw-popular-activities-wrapper">
-                          <span class="pw-popular-act-label">Popular Business Types in San Fernando:</span>
+                          <span class="pw-popular-act-label">Common activities</span>
                           <div class="pw-popular-act-chips" id="pwPopularActChips">
                             <button type="button" class="pw-pop-chip" data-pop-activity="food_cafe" data-pop-category="food">☕ Café / Coffee Shop</button>
                             <button type="button" class="pw-pop-chip" data-pop-activity="food_restaurant" data-pop-category="food">🍽️ Restaurant / Dining</button>
@@ -2909,24 +2944,19 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
 
                         <!-- Real-time Activity Search Bar -->
                         <div class="pw-quick-activity-search-bar" style="margin-top:12px;">
-                          <input type="search" id="pwQuickActivitySearch" class="pw-input" placeholder="🔍 Quick search any activity (e.g., pharmacy, bakery, hardware, bpo, resort, clinic)..." autocomplete="off">
+                          <input type="search" id="pwQuickActivitySearch" class="pw-input" placeholder="Search activities, e.g. pharmacy or bakery" aria-label="Search proposed business activities" autocomplete="off">
                           <div class="pw-quick-search-matches" id="pwQuickSearchMatches" hidden></div>
                         </div>
 
-                        <!-- Standard Two-Col Select Form -->
-                        <div class="pw-fields-two-col" style="margin-top:12px;">
-                          <label class="pw-field">Activity group<select id="pwZoningCategory" name="zoning_category"><option value="">All activity groups</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><option value="<?= $pwEscape($key) ?>"><?= $pwEscape($group['label']) ?></option><?php endforeach; ?></select></label>
-                          <label class="pw-field">Specific proposed activity<select id="pwZoningActivity" name="proposed_activity"><option value="">Choose an activity</option><?php foreach (\App\Support\ZoningRulesEngine::getHierarchicalUseCatalog() as $key => $group): ?><optgroup label="<?= $pwEscape($group['label']) ?>" data-category-group="<?= $pwEscape($key) ?>"><?php foreach ($group['activities'] as $code => $activity): ?><option value="<?= $pwEscape($code) ?>" data-category="<?= $pwEscape($key) ?>"><?= $pwEscape($activity['label']) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select></label>
-                        </div>
-
+                        </details>
                         <!-- Dynamic Color-Coded Live Result Box -->
                         <div class="pw-zoning-live-result" aria-live="polite" data-zoning-live-result>
-                          <span class="pw-zoning-kicker">REFERENCE RULE CHECK</span>
-                          <strong data-zoning-live-status>Choose district and activity</strong>
-                          <p data-zoning-live-explanation>CLUP is an eligibility gate. It does not add points to the five-criterion assessment.</p>
+                          <span class="pw-zoning-kicker">COMPATIBILITY RESULT</span>
+                          <strong data-zoning-live-status>Your result will appear here</strong>
+                          <p data-zoning-live-explanation>Select a district and an activity above to see the reference result.</p>
                           <div id="pwConditionalUsesContainer" class="pw-zoning-requirements" hidden><h5 data-zoning-live-requirement-title>Requirements to verify</h5><ul data-zoning-live-requirements></ul></div>
                         </div>
-                        <div class="pw-zoning-evidence-state"><strong>Parcel compliance: Unverified</strong><p>This check uses a coded reference matrix. City review must confirm the district, applicable rule, parcel boundary and overlays before eligibility can be established.</p></div>
+                        <div class="pw-zoning-evidence-state"><strong>City verification is still required</strong><p>This reference check adds no assessment points. City staff must verify the district, parcel and applicable rules before confirming eligibility.</p></div>
                       </div>
 
                       <!-- Collapsible Full Activity Catalog Reference -->
@@ -2968,7 +2998,10 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                     </div>
                   </div>
 
-                  <!-- 2. Location & District Assessed Card (Canonical Read-Only Summary) -->
+                  <details class="pw-calm-disclosure pw-assessment-support" data-assessment-support>
+                    <summary><?= $pwIcon('document') ?> Location &amp; clearance documents <small>Supporting records</small></summary>
+                    <div class="pw-assessment-support-body">
+                      <!-- 2. Location & District Assessed Card (Canonical Read-Only Summary) -->
                   <div class="pw-screening-card">
                     <div class="pw-card-header">
                       <div class="pw-card-title-group">
@@ -3098,7 +3131,8 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
                       <p class="pw-sc-caption-note">Store the clearance date separately from the upload date.</p>
                     </div>
                   </details>
-
+                    </div>
+                  </details>
                 </div>
 
                 <!-- RIGHT COLUMN: Reviewer Workspace (Hidden from intake workflow) -->
@@ -3702,4 +3736,4 @@ $pwUserRole = (string) ($pwUser['role'] ?? '');
     </script>
   </form>
 </dialog>
-<?php unset($pwEscape, $pwIcon, $pwCriteria, $pwReadiness); ?>
+<?php unset($pwEscape, $pwIcon, $pwCriteria, $pwReadiness, $pwSectionIcons, $pwSectionKey, $pwSectionIcon); ?>

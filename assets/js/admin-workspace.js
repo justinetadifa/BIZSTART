@@ -161,37 +161,49 @@
     const approved = properties.filter((property) => property.approvalState === 'approved');
     const awaitingAssessment = properties.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
     const stats = governance
-      ? [['All properties', properties.length, 'Across the city catalog', false], ['Awaiting review', pending.length, 'Ready for a city decision', true], ['Published', approved.length, 'Visible to investors', false], ['Needs site evidence', properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length, 'Awaiting site verification', false]]
-      : [['All properties', properties.length, 'Across the city catalog', false], ['Needs assessment', awaitingAssessment.length, 'Ready for assessment', false], ['Awaiting review', pending.length, 'Ready for decision', true], ['Available area (m²)', number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0)), 'Across city catalog', false]];
-    root.querySelector('[data-city-stats]').innerHTML = stats.map(([label, value, desc, isHighlight]) => `
-      <div class="tw-flex tw-items-center tw-gap-4 tw-rounded-[28px] ${isHighlight ? 'tw-bg-[#FFFCF6] tw-border-[2.5px] tw-border-[#E8D196] tw-shadow-[0_10px_26px_rgba(232,209,150,0.22)]' : 'tw-bg-white tw-border tw-border-slate-100 tw-shadow-[0_10px_26px_rgba(17,34,77,0.06)]'} tw-p-5 sm:tw-p-6">
-        <div>
-          <span class="tw-block tw-text-xs tw-font-semibold tw-text-slate-600">${escape(label)}</span>
-          <strong class="tw-mt-0.5 tw-block tw-text-[32px] sm:tw-text-[36px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-slate-900">${escape(value)}</strong>
-          <span class="tw-mt-0.5 tw-block tw-text-[11px] ${isHighlight ? 'tw-text-[#B45309] tw-font-semibold' : 'tw-text-slate-400'}">${escape(desc)}</span>
+      ? [
+          { label: 'All properties', value: properties.length, desc: 'Across city catalog' },
+          { label: 'Awaiting review', value: pending.length, desc: pending.length ? 'Ready for review' : 'Queue clear' },
+          { label: 'Published', value: approved.length, desc: 'Visible to investors' },
+          { label: 'Needs site evidence', value: properties.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived').length, desc: 'Site verification up to date' }
+        ]
+      : [
+          { label: 'All properties', value: properties.length, desc: 'Across city catalog' },
+          { label: 'Needs assessment', value: awaitingAssessment.length, desc: 'Ready for assessment' },
+          { label: 'Awaiting review', value: pending.length, desc: 'Ready for decision' },
+          { label: 'Available area (m²)', value: number(approved.filter((property) => property.status === 'Available').reduce((total, property) => total + property.area * 10000, 0)), desc: 'Across city catalog' }
+        ];
+    root.querySelector('[data-city-stats]').innerHTML = stats.map((stat) => `
+      <article class="tw-flex tw-flex-col tw-justify-between tw-rounded-2xl tw-bg-white tw-border tw-border-slate-200/80 tw-p-4 sm:tw-p-5 tw-shadow-sm hover:tw-shadow-md tw-transition-all">
+        <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
+          <span class="tw-block tw-text-[11px] tw-font-bold tw-tracking-wider tw-text-slate-500 tw-font-mono tw-uppercase">${escape(stat.label)}</span>
         </div>
-      </div>`).join('');
+        <div class="tw-mt-3">
+          <strong class="tw-block tw-text-3xl sm:tw-text-[34px] tw-font-black tw-leading-none tw-tracking-tight tw-text-slate-900 tw-tabular-nums">${escape(stat.value)}</strong>
+          <span class="tw-mt-2 tw-block tw-text-[11px] tw-text-slate-400 font-medium">${escape(stat.desc)}</span>
+        </div>
+      </article>`).join('');
     const queue = governance ? pending : awaitingAssessment;
     root.querySelector('[data-overview-listings]').innerHTML = queue.length
       ? queue.slice(0, 3).map((property) => `
-        <article class="tw-flex tw-items-center tw-justify-between tw-gap-3.5 tw-rounded-[22px] tw-bg-[#EEF1F6] tw-p-3 sm:tw-p-4 tw-mb-3 hover:tw-bg-[#E5EAEF] tw-transition-all">
+        <article class="tw-group tw-flex tw-items-center tw-justify-between tw-gap-3.5 tw-rounded-xl tw-border tw-border-slate-200/70 tw-bg-slate-50/60 tw-p-3 sm:tw-p-3.5 tw-mb-2.5 hover:tw-bg-white hover:tw-border-slate-300 hover:tw-shadow-sm tw-transition-all">
           <div class="tw-flex tw-items-center tw-gap-3.5 tw-min-w-0">
-            <img class="tw-h-16 tw-w-16 sm:tw-h-[68px] sm:tw-w-[68px] tw-rounded-[18px] tw-object-cover tw-shadow-sm tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
+            <img class="tw-h-14 tw-w-14 sm:tw-h-16 sm:tw-w-16 tw-rounded-xl tw-object-cover tw-ring-1 tw-ring-black/10 tw-shadow-2xs tw-shrink-0" src="${escape(imageUrl(property.imageUrl))}" alt="" loading="lazy">
             <div class="tw-min-w-0">
               <h3 class="tw-m-0 tw-truncate tw-text-xs sm:tw-text-sm tw-font-bold tw-text-slate-900">${escape(property.name)}</h3>
               <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] sm:tw-text-xs tw-text-slate-500">${escape(property.barangay || property.category)} · ${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not provided'}</p>
-              <span class="tw-mt-1.5 tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-[#FEF3C7] tw-px-3 tw-py-0.5 tw-text-[10px] sm:tw-text-[11px] tw-font-bold tw-text-[#92400E]">
+              <span class="tw-mt-1.5 tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-md tw-bg-amber-50 tw-border tw-border-amber-200/80 tw-px-2 tw-py-0.5 tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-amber-800">
                 <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500"></span>
                 ${governance ? 'Awaiting review' : 'Source scores pending'}
               </span>
             </div>
           </div>
-          <a class="tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-slate-200/90 tw-bg-white tw-px-5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-800 tw-shadow-sm hover:tw-bg-slate-50 tw-transition-all tw-shrink-0 tw-no-underline" href="${escape(path(`admin-properties.php?edit=${property.id}`))}">Review &rarr;</a>
+          <a class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-border tw-border-slate-200 tw-bg-white tw-px-3.5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-800 tw-shadow-2xs hover:tw-bg-slate-900 hover:tw-text-white hover:tw-border-slate-900 active:tw-scale-[0.98] tw-transition-all tw-shrink-0 tw-no-underline" href="${escape(path(`admin-properties.php?edit=${property.id}`))}">Review &rarr;</a>
         </article>`).join('')
       : '<p class="city-empty">All caught up.</p>';
-    const ranked = approved.filter((property) => property.rank_eligible === true).sort((a, b) => String(a.comparison_key).localeCompare(String(b.comparison_key)) || b.unrounded_total - a.unrounded_total).slice(0, 5);
+    const ranked = approved.filter((property) => property.rank_eligible === true || (property.mceScore != null && property.iaiScore != null)).sort((a, b) => (Number(b.iaiScore) || 0) - (Number(a.iaiScore) || 0) || a.id - b.id).slice(0, 5);
     root.querySelector('[data-assessment-ranking]').innerHTML = ranked.length
-      ? `<table class="city-ranking-table"><thead><tr><th>Property</th><th>MCE</th><th>IAI</th></tr></thead><tbody>${ranked.map((property) => `<tr><td><a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></td><td>${score(property.mceScore)} <small>#${property.mceRank}</small></td><td>${score(property.iaiScore)} <small>#${property.iaiRank}</small></td></tr>`).join('')}</tbody></table>`
+      ? `<table class="city-ranking-table"><thead><tr><th>Property</th><th>MCE</th><th>IAI</th></tr></thead><tbody>${ranked.map((property) => `<tr><td><a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a></td><td>${score(property.mceScore)} <small>#${property.mceRank || '-'}</small></td><td>${score(property.iaiScore)} <small>#${property.iaiRank || '-'}</small></td></tr>`).join('')}</tbody></table>`
       : '<p class="city-empty">Rankings appear after department assessment.</p>';
   }
 
@@ -254,20 +266,46 @@
       const statusInfo = propertyOperationalStatus(property);
       const assessment = window.SFCPropertyEditorTools.listingAssessment(property);
       const assessmentCriteria = [
-        ['spatial_accessibility', 'Spatial access'],
-        ['infrastructure_readiness', 'Infrastructure'],
-        ['property_cost_market_competitiveness', 'Cost & market'],
-        ['nearby_businesses', 'Nearby businesses'],
-        ['risk_constraints', 'Risk & hazards']
+        ['spatial_accessibility', 'ACC', 'Spatial access'],
+        ['infrastructure_readiness', 'INF', 'Infrastructure'],
+        ['property_cost_market_competitiveness', 'MKT', 'Cost & market'],
+        ['nearby_businesses', 'BIZ', 'Nearby businesses'],
+        ['risk_constraints', 'RSK', 'Risk & hazards']
       ];
-      const assessmentProgress = assessmentCriteria.map(([key, label]) => {
+      const assessmentProgress = assessmentCriteria.map(([key, code, label]) => {
         const rating = property.screeningAssessment?.criteria?.[key]?.score;
         const ready = assessment.kind === 'verified' || (typeof rating === 'number' && Number.isFinite(rating) && rating >= 0 && rating <= 100);
-        return `<span class="${ready ? 'is-ready' : ''}" title="${escape(label)}: ${ready ? 'calculated' : 'input needed'}"></span>`;
+        return `<div class="city-pip-item ${ready ? 'is-ready' : ''}" title="${escape(label)}: ${ready ? 'Calculated' : 'Input needed'}"><span class="city-pip-bar"></span><span class="city-pip-code">${code}</span></div>`;
       }).join('');
+      const scoreRank = (() => {
+        if (assessment.kind === 'hold') {
+          return { grade: 'HOLD', tier: 'RESTRICTED', tone: 'hold', icon: '⛔' };
+        }
+        if (assessment.score === null || typeof assessment.score !== 'number') {
+          return { grade: `${assessment.count}/5`, tier: `LVL ${assessment.count} · INTAKE`, tone: 'incomplete', icon: '⚡' };
+        }
+        const s = assessment.score;
+        if (s >= 90) return { grade: 'A+', tier: 'TIER 1+ · PRIME', tone: 'prime', icon: '✦' };
+        if (s >= 80) return { grade: 'A', tier: 'TIER 1 · PRIME', tone: 'prime', icon: '★' };
+        if (s >= 70) return { grade: 'B', tier: 'TIER 2 · QUALIFIED', tone: 'qualified', icon: '◈' };
+        if (s >= 60) return { grade: 'C', tier: 'TIER 3 · CONDITIONAL', tone: 'conditional', icon: '▲' };
+        return { grade: 'D', tier: 'TIER 4 · WATCHLIST', tone: 'watchlist', icon: '•' };
+      })();
+      const gaugePercent = assessment.score !== null ? Math.min(100, Math.max(0, assessment.score)) : (assessment.count / 5) * 100;
+      const gaugeOffset = (125.66 * (1 - gaugePercent / 100)).toFixed(2);
       const assessmentAction = assessment.kind === 'incomplete' ? 'Continue assessment' : assessment.kind === 'hold' ? 'Review assessment' : 'View assessment';
       const nextCriterion = assessment.kind === 'incomplete' ? assessmentCriteria.find(([key]) => property.screeningAssessment?.criteria?.[key]?.score == null)?.[0] : '';
       const priceText = askingPrice(property);
+      const priceMarkup = (() => {
+        if (!priceText || priceText.startsWith('Price on request')) {
+          return `<span class="is-price-request">${escape(priceText || 'Price on request')}</span>`;
+        }
+        const m = priceText.match(/^([A-Z]{3})\s+([0-9,]+(?:\.[0-9]+)?)(.*)$/);
+        if (m) {
+          return `<span class="city-price-currency">${escape(m[1])}</span><span class="city-price-amt">${escape(m[2])}</span>${m[3] ? `<span class="city-price-unit">${escape(m[3])}</span>` : ''}`;
+        }
+        return escape(priceText);
+      })();
       return `
       <article class="city-listing-card" data-listing-id="${property.id}">
         <a class="city-listing-photo" href="${escape(propertyUrl(property.id))}" tabindex="-1" aria-hidden="true">
@@ -288,25 +326,56 @@
           <p class="city-listing-location">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
             <span>${escape(property.barangay || property.city || 'Location pending')}</span>
-            ${property.subcategory ? `<span aria-hidden="true">·</span><span>${escape(property.subcategory)}</span>` : ''}
+            ${property.subcategory ? `<span class="city-location-divider" aria-hidden="true">·</span><span class="city-listing-subcat">${escape(property.subcategory)}</span>` : ''}
           </p>
           <div class="city-listing-facts">
-            <strong class="${priceText.startsWith('Price on request') ? 'is-price-request' : ''}">${escape(priceText)}</strong>
-            <span class="city-listing-area"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}${property.area >= 1 ? ` <small>(${number(property.area)} ha)</small>` : ''}</span>
+            <strong class="city-fact-price ${priceText.startsWith('Price on request') ? 'is-price-request' : ''}">${priceMarkup}</strong>
+            <span class="city-listing-area"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg><span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}</span>${property.area >= 1 ? ` <small class="city-area-ha">(${number(property.area)} ha)</small>` : ''}</span>
           </div>
         </div>
         <button type="button" class="city-listing-assessment is-${assessment.kind}" data-listing-assessment="${property.id}" data-assessment-next="${nextCriterion || ''}" aria-label="${assessmentAction} for ${escape(property.name)}. ${assessment.score === null ? `${assessment.count} of 5 criteria calculated` : `${assessment.score.toFixed(1)} out of 100`}. ${escape(assessment.status)}.">
-          <span class="city-listing-assessment-heading"><span class="city-listing-score-label">${assessment.label}</span><span class="city-listing-score-status">${escape(assessment.status)}</span></span>
-          <span class="city-listing-score-value">${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}<small>${assessment.score === null ? '/ 5 criteria' : '/ 100'}</small></span>
-          <span class="city-listing-progress" aria-hidden="true">${assessmentProgress}</span>
+          <span class="city-listing-assessment-heading">
+            <span class="city-listing-score-label">${assessment.label}</span>
+            <span class="city-listing-score-status">${assessment.kind === 'verified' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' : ''}<span>${escape(assessment.status)}</span></span>
+          </span>
+          <div class="city-assessment-hero">
+            <div class="city-assessment-score-lockup">
+              <span class="city-score-tier is-${scoreRank.tone}">
+                <span class="city-tier-icon" aria-hidden="true">${scoreRank.icon}</span>
+                <span>${scoreRank.tier}</span>
+              </span>
+              <span class="city-listing-score-value">
+                ${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}
+                <small class="city-score-denom">${assessment.score === null ? '/ 5 criteria' : '/ 100'}</small>
+              </span>
+            </div>
+            <div class="city-score-gauge-wrap" aria-hidden="true">
+              <svg class="city-score-gauge" width="48" height="48" viewBox="0 0 48 48">
+                <circle class="city-gauge-bg" cx="24" cy="24" r="20" />
+                <circle class="city-gauge-bar is-${scoreRank.tone}" cx="24" cy="24" r="20" style="stroke-dasharray: 125.66; stroke-dashoffset: ${gaugeOffset};" />
+              </svg>
+              <span class="city-gauge-grade is-${scoreRank.tone}">${scoreRank.grade}</span>
+            </div>
+          </div>
+          <div class="city-hud-matrix">
+            <div class="city-hud-progress-header">
+              <span class="city-hud-progress-title">CRITERIA MATRIX</span>
+              <span class="city-hud-progress-count">${assessment.count}/5 ACTIVE</span>
+            </div>
+            <div class="city-listing-progress" aria-hidden="true">${assessmentProgress}</div>
+          </div>
           <span class="city-listing-score-note">${assessment.score === null ? escape(assessment.reason) : '5 of 5 criteria calculated'}</span>
-          <span class="city-listing-score-link">${assessmentAction}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></span>
+          <span class="city-listing-score-link">
+            <span>${assessmentAction}</span>
+            <svg class="city-score-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+          </span>
         </button>
         <div class="city-listing-footer">
           <p class="city-listing-created">
+            <svg class="city-created-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Created ${escape(listingDate(property.createdAt))}</span>
-            ${isArchived(property) ? `<span>Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}
-            ${property.isDeleted ? `<span>Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}
+            ${isArchived(property) ? `<span>· Archived ${escape(listingDate(property.archivedAt))}</span>` : ''}
+            ${property.isDeleted ? `<span>· Deleted ${escape(listingDate(property.deletedAt))}</span>` : ''}
           </p>
           <div class="city-listing-actions">
           ${property.isDeleted ? `
@@ -583,7 +652,7 @@
       button.classList.toggle('is-active', active);
       let isComplete = false;
       if (stepIdx === 2) {
-        isComplete = propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false;
+        isComplete = stepIdx !== step && (propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false);
       } else {
         isComplete = stepIdx < step;
       }

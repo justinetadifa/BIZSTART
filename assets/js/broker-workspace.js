@@ -393,7 +393,7 @@ function setEditorStep(step) {
     button.classList.toggle('is-active', active);
     let isComplete = false;
     if (stepIdx === 2) {
-      isComplete = propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false;
+      isComplete = stepIdx !== step && (propertyWizard?.areCriteriaInputsComplete ? propertyWizard.areCriteriaInputsComplete() : false);
     } else {
       isComplete = stepIdx < step;
     }

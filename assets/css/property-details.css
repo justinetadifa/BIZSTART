@@ -136,8 +136,40 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 .property-gallery-thumbnails::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
 .property-gallery-thumb-btn{flex:0 0 76px;height:52px;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;background:#f1f5f9;padding:0;cursor:pointer;transition:border-color .15s ease,transform .15s ease,opacity .15s ease;opacity:.65}
 .property-gallery-thumb-btn:hover{opacity:.9;border-color:#94a3b8;transform:translateY(-1px)}
-.property-gallery-thumb-btn.is-active{opacity:1;border-color:#1a56db;box-shadow:0 0 0 2px rgba(26,86,219,0.2);transform:translateY(-1px)}
+.property-gallery-thumb-btn.is-active{opacity:1!important;border:2px solid #dc2626!important;box-shadow:0 0 0 2px rgba(220,38,38,0.25)!important;transform:translateY(-1px)}
 .property-gallery-thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Gamified Media Dock Intelligence Capsules Bar (Panel Approved Land Use & Business Recommendation) */
+.property-media-intel-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;padding:4px 2px 2px;flex-wrap:wrap}
+.property-media-intel-bar .property-gallery-thumbnails{flex:0 1 auto;margin:0;padding:2px 2px 4px}
+.property-gallery-thumbnails.is-single .property-gallery-thumb-btn{opacity:1;border-color:#cbd5e1;cursor:default}
+
+.property-intel-grid{display:grid;grid-template-columns:auto 128px 128px;grid-template-rows:38px 38px;align-items:center;column-gap:14px;row-gap:10px;margin-left:auto}
+.property-intel-label{text-align:right;font-family:'Poppins','Inter',-apple-system,sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#475569;white-space:nowrap;user-select:none;line-height:1}
+.property-intel-label.is-italic{font-style:italic;font-weight:750;color:#334155}
+
+.property-intel-pill{display:inline-flex;align-items:center;justify-content:center;width:100%;height:38px;border-radius:9999px;font-family:'Poppins','Inter',-apple-system,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border:none;cursor:pointer;user-select:none;text-decoration:none;transition:transform .16s cubic-bezier(.16,1,.3,1),box-shadow .16s ease,filter .16s ease;outline:none;box-sizing:border-box}
+
+.property-intel-pill.pill-blue,.property-intel-pill.pill-landuse{background:#004bff;background:linear-gradient(180deg,#0a58ff 0%,#0044ea 100%);border:none;box-shadow:0 1px 3px rgba(0,68,234,0.2);cursor:default}
+.property-intel-pill.pill-blue:hover,.property-intel-pill.pill-landuse:hover{transform:translateY(-1px);filter:brightness(1.05)}
+
+.property-intel-pill.pill-red,.property-intel-pill.pill-biz{background:#e60000;background:linear-gradient(180deg,#f00000 0%,#d60000 100%);border:none;box-shadow:0 1px 3px rgba(214,0,0,0.22);cursor:pointer}
+.property-intel-pill.pill-red:hover,.property-intel-pill.pill-biz:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.property-intel-pill.pill-red:active,.property-intel-pill.pill-biz:active{transform:scale(0.97)}
+
+.property-intel-pill.pill-dark,.property-intel-pill.pill-more{background:#23272e;background:linear-gradient(180deg,#2b303a 0%,#1e2229 100%);border:none;box-shadow:0 1px 3px rgba(15,23,42,0.2);cursor:pointer}
+.property-intel-pill.pill-dark:hover,.property-intel-pill.pill-more:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.property-intel-pill.pill-dark:active,.property-intel-pill.pill-more:active{transform:scale(0.97)}
+
+.property-opportunities.is-highlighted-section{animation:locusSectionPulse 1.8s ease-out}
+@keyframes locusSectionPulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,0.5)}40%{box-shadow:0 0 0 8px rgba(220,38,38,0.2)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}
+
+@media (max-width:768px){
+  .property-media-intel-bar{flex-direction:column;align-items:stretch;gap:14px}
+  .property-intel-grid{margin-left:0;grid-template-columns:auto 1fr 1fr;width:100%;column-gap:8px}
+  .property-intel-label{text-align:left;font-size:11px}
+}
+
 
 /* Row 1: Listing Assistance / Contact Card */
 .property-contact{min-height:350px;border:1px solid rgba(226,232,240,0.85);border-radius:20px;padding:24px 26px;background:#fff;box-shadow:0 4px 18px -2px rgba(15,23,42,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
@@ -631,6 +663,28 @@ body[data-page="city-investment-report"] .brief-page {
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
   position: relative;
   overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.property-scenario-simulation.is-simulating-highlight {
+  animation: scenarioGlowPulse 2.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scenarioGlowPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.65), 0 4px 20px rgba(0, 122, 255, 0.25);
+    border-color: #007AFF;
+  }
+  30% {
+    box-shadow: 0 0 0 6px rgba(0, 122, 255, 0.35), 0 8px 30px rgba(0, 122, 255, 0.3);
+    border-color: #007AFF;
+  }
+  70% {
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15), 0 4px 18px rgba(0, 122, 255, 0.15);
+  }
+  100% {
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  }
 }
 
 .property-scenario-simulation::before {
@@ -1003,6 +1057,80 @@ body[data-page="city-investment-report"] .brief-page {
 .property-scenario-field-group label svg {
   color: #0284c7;
   flex-shrink: 0;
+}
+
+/* Scenario Quick-Pill Recommendations */
+.property-scenario-quick-picks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 6px;
+}
+
+.property-scenario-quick-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748B;
+}
+
+.property-scenario-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scenario-quick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #F8FAFC;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+  border-radius: 9999px;
+  padding: 4.5px 12px;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.scenario-quick-pill:hover {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+  transform: translateY(-1px);
+}
+
+.scenario-quick-pill:active {
+  transform: scale(0.97);
+}
+
+.scenario-quick-pill.is-active {
+  background: #11224D;
+  border-color: #11224D;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(17, 34, 77, 0.28);
+}
+
+.quick-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94A3B8;
+  transition: background 0.18s ease;
+}
+
+.scenario-quick-pill:hover .quick-pill-dot {
+  background: #3B82F6;
+}
+
+.scenario-quick-pill.is-active .quick-pill-dot {
+  background: #38BDF8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
 }
 
 .property-scenario-select,

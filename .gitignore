@@ -14,6 +14,7 @@ Desktop.ini
 
 .ui-audit/
 scratch/
+scratch_*.php
 cookies.txt
 data/property-evidence/
 data/broker-documents/

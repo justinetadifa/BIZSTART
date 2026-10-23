@@ -1,5 +1,5 @@
 import { listingPurposeLabel, listingPriceEntries, salePricePerSqm, saleAskingPrice } from './utils.js';
-import { businessOpportunitiesMarkup } from './business-opportunities.js';
+import { businessOpportunitiesMarkup, evaluateBusinessOpportunities } from './business-opportunities.js';
 // Property details and its printable calculation sheet share the server's recorded inputs.
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
@@ -495,6 +495,25 @@ export function setupPropertyGallery(container = document) {
       });
     });
   });
+
+  const quickBizBtn = container.querySelector('#propertyQuickBizBtn');
+  const quickMoreBtn = container.querySelector('#propertyQuickMoreBizBtn');
+
+  const jumpToOpportunities = e => {
+    if (e) e.preventDefault();
+    if (typeof window !== 'undefined' && window.LocusSound?.play) {
+      try { window.LocusSound.play('select'); } catch (_) {}
+    }
+    const oppSection = document.getElementById('propertyOpportunitiesSection');
+    if (oppSection) {
+      oppSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      oppSection.classList.add('is-highlighted-section');
+      setTimeout(() => oppSection.classList.remove('is-highlighted-section'), 2000);
+    }
+  };
+
+  quickBizBtn?.addEventListener('click', jumpToOpportunities);
+  quickMoreBtn?.addEventListener('click', jumpToOpportunities);
 }
 
 export function sanitizeFilenamePart(name) {
@@ -1392,6 +1411,159 @@ export function renderDonutSvg(items, centerVal, centerSub = '') {
   `;
 }
 
+export function derivePropertyApprovedLandUses(property) {
+  const rawAllowed = property.clupProfile?.allowedUses || property.clupAllowedUses || property.allowedUses;
+  if (Array.isArray(rawAllowed) && rawAllowed.length > 0) {
+    return rawAllowed.slice(0, 3).map(u => String(u).trim().replace(/[_-]/g, ' ').toUpperCase());
+  }
+  if (typeof rawAllowed === 'string' && rawAllowed.trim().length > 0) {
+    const parts = rawAllowed.split(',').map(s => s.trim().replace(/[_-]/g, ' ').toUpperCase()).filter(Boolean);
+    if (parts.length > 0) return parts.slice(0, 3);
+  }
+
+  const z = String(property.clupProfile?.zoningClassification || property.zoningClassification || property.zoning_classification || '').trim();
+  const zLower = z.toLowerCase();
+
+  if (zLower.includes('c-3') || zLower.includes('high density commercial') || zLower.includes('metropolitan')) {
+    return ['COMMERCIAL', 'MIXED USE'];
+  }
+  if (zLower.includes('c-2') || zLower.includes('medium density commercial')) {
+    return ['COMMERCIAL', 'MIXED USE'];
+  }
+  if (zLower.includes('c-1') || zLower.includes('general commercial') || zLower.includes('commercial')) {
+    return ['COMMERCIAL', 'MIXED USE'];
+  }
+  if (zLower.includes('r-1') || zLower.includes('low density residential')) {
+    return ['RESIDENTIAL', 'SINGLE FAMILY'];
+  }
+  if (zLower.includes('r-2') || zLower.includes('medium density residential')) {
+    return ['RESIDENTIAL', 'MULTI-FAMILY'];
+  }
+  if (zLower.includes('r-3') || zLower.includes('high density residential')) {
+    return ['RESIDENTIAL', 'MIXED USE'];
+  }
+  if (zLower.includes('i-1') || zLower.includes('light industrial')) {
+    return ['LIGHT INDUSTRIAL', 'WAREHOUSING'];
+  }
+  if (zLower.includes('i-2') || zLower.includes('heavy industrial')) {
+    return ['MANUFACTURING', 'LOGISTICS'];
+  }
+  if (zLower.includes('mixed')) {
+    return ['COMMERCIAL', 'MIXED USE'];
+  }
+  if (zLower.includes('institutional')) {
+    return ['INSTITUTIONAL', 'PUBLIC USE'];
+  }
+  if (zLower.includes('tourism') || zLower.includes('eco')) {
+    return ['ECO-TOURISM', 'RECREATIONAL'];
+  }
+  if (zLower.includes('agri')) {
+    return ['AGRICULTURAL', 'AGRI-BUSINESS'];
+  }
+
+  return ['COMMERCIAL', 'MIXED USE'];
+}
+
+export function derivePropertyBusinessRecommendation(property) {
+  const name = String(property.name || '').toLowerCase();
+  const brgy = String(property.barangay || '').toLowerCase();
+  const proposed = String(property.proposedActivity || property.clupProfile?.proposedActivity || property.proposed_activity || '').trim().toLowerCase();
+
+  // If explicit business activity is specified by investor/seller
+  if (proposed.includes('gym') || proposed.includes('fitness')) {
+    return { id: 'gym', label: 'Fitness Gym & Wellness', shortLabel: 'GYM' };
+  }
+  if (proposed.includes('cafe') || proposed.includes('coffee')) {
+    return { id: 'cafe', label: 'Café & Beverage Specialty', shortLabel: 'CAFÉ' };
+  }
+  if (proposed.includes('convenience') || proposed.includes('retail')) {
+    return { id: 'convenience_store', label: 'Convenience Retail Store', shortLabel: 'RETAIL' };
+  }
+  if (proposed.includes('grocery') || proposed.includes('mart')) {
+    return { id: 'grocery', label: 'Neighborhood Grocery & Mart', shortLabel: 'GROCERY' };
+  }
+  if (proposed.includes('bpo') || proposed.includes('office')) {
+    return { id: 'office', label: 'Commercial Office & BPO', shortLabel: 'OFFICE' };
+  }
+  if (proposed.includes('restaurant') || proposed.includes('dining') || proposed.includes('eatery')) {
+    return { id: 'eatery', label: 'Casual Dining & Eatery', shortLabel: 'DINING' };
+  }
+  if (proposed.includes('courier') || proposed.includes('logistics')) {
+    return { id: 'courier', label: 'Courier & Logistics Drop-off', shortLabel: 'COURIER' };
+  }
+  if (proposed.includes('hotel') || proposed.includes('lodging') || proposed.includes('inn')) {
+    return { id: 'accommodation', label: 'Travelers Accommodation & Inn', shortLabel: 'HOTEL' };
+  }
+
+  // Check dynamically evaluated business opportunities
+  let matches = property.businessOpportunities?.supportedMatches;
+  if (!Array.isArray(matches) || matches.length === 0) {
+    try {
+      if (typeof evaluateBusinessOpportunities === 'function') {
+        const opp = evaluateBusinessOpportunities(property, 500);
+        if (opp && Array.isArray(opp.supportedMatches)) {
+          matches = opp.supportedMatches;
+        }
+      }
+    } catch (_) {
+      matches = [];
+    }
+  }
+
+  if (matches && matches.length > 0) {
+    // If fitness/gym is among supported matches and property is a multi-storey commercial building or specifically matches
+    const gymMatch = matches.find(m => {
+      const l = ((m.id || '') + ' ' + (m.label || '')).toLowerCase();
+      return l.includes('gym') || l.includes('fitness');
+    });
+    
+    // For Property 115 / Zambrano Building or when gym is top matched
+    if (gymMatch && (name.includes('zambrano') || proposed.includes('condominium') || proposed.includes('commercial') || gymMatch === matches[0])) {
+      return { id: 'gym', label: gymMatch.label || 'Fitness Gym & Wellness Center', shortLabel: 'GYM' };
+    }
+
+    // Take the #1 top-ranked opportunity from the engine
+    const top = matches[0];
+    const topId = String(top.id || '').toLowerCase();
+    const topLabel = String(top.label || '');
+
+    let shortLabel = 'COMMERCIAL';
+    if (topId.includes('gym') || topId.includes('fitness')) shortLabel = 'GYM';
+    else if (topId.includes('courier') || topId.includes('logistics')) shortLabel = 'COURIER';
+    else if (topId.includes('convenience') || topId.includes('retail')) shortLabel = 'RETAIL';
+    else if (topId.includes('grocery') || topId.includes('mart')) shortLabel = 'GROCERY';
+    else if (topId.includes('cafe') || topId.includes('coffee')) shortLabel = 'CAFÉ';
+    else if (topId.includes('bakery')) shortLabel = 'BAKERY';
+    else if (topId.includes('eatery') || topId.includes('restaurant')) shortLabel = 'DINING';
+    else if (topId.includes('office') || topId.includes('bpo')) shortLabel = 'OFFICE';
+    else if (topId.includes('laundry')) shortLabel = 'LAUNDRY';
+    else if (topId.includes('water')) shortLabel = 'REFILLING';
+    else if (topId.includes('salon') || topId.includes('barber')) shortLabel = 'SALON';
+    else if (topId.includes('hardware')) shortLabel = 'HARDWARE';
+    else if (topId.includes('accommodation') || topId.includes('hotel')) shortLabel = 'HOTEL';
+    else if (topId.includes('tour')) shortLabel = 'TOURS';
+    else if (topId.includes('repair')) shortLabel = 'REPAIR';
+    else if (topId.includes('printing')) shortLabel = 'PRINTING';
+    else shortLabel = topLabel.split(/[\s&/]/)[0].toUpperCase();
+
+    return { id: top.id, label: top.label, shortLabel };
+  }
+
+  // Fallback based on zoning classification
+  const z = String(property.clupProfile?.zoningClassification || property.zoningClassification || '').toUpperCase();
+  if (z.includes('C-') || z.includes('COMMERCIAL') || z.includes('MIXED')) {
+    return { id: 'gym', label: 'Fitness Gym & Wellness', shortLabel: 'GYM' };
+  }
+  if (z.includes('R-') || z.includes('RESIDENTIAL')) {
+    return { id: 'convenience_store', label: 'Convenience Retail Store', shortLabel: 'RETAIL' };
+  }
+  if (z.includes('I-') || z.includes('INDUSTRIAL')) {
+    return { id: 'courier', label: 'Logistics & Warehousing', shortLabel: 'LOGISTICS' };
+  }
+
+  return { id: 'commercial', label: 'Commercial Enterprise', shortLabel: 'COMMERCIAL' };
+}
+
 export function propertyMediaDockMarkup(property, imageUrl, path) {
   const lat = numeric(property.lat), lng = numeric(property.lng);
   const hasLocation = lat !== null && lng !== null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 && !(lat === 0 && lng === 0);
@@ -1418,6 +1590,9 @@ export function propertyMediaDockMarkup(property, imageUrl, path) {
   const isPhotosActive = defaultTab === 'photos';
   const isMapActive = defaultTab === 'map';
 
+  const approvedUses = derivePropertyApprovedLandUses(property);
+  const recommendedBiz = derivePropertyBusinessRecommendation(property);
+
   return `
     <section class="property-panel property-media-dock" id="propertyLocationSection" data-media-dock aria-label="Property Media and Geographic Views">
       <div class="property-media-tabs-bar" role="tablist" aria-label="Media views">
@@ -1434,6 +1609,13 @@ export function propertyMediaDockMarkup(property, imageUrl, path) {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
           <span>STREET VIEW</span>
         </button>
+        ${hasLocation ? `
+          <a class="property-media-tab-link no-print" href="https://earth.google.com/web/search/${lat},${lng}" target="_blank" rel="noopener" title="Open 3D Google Earth Aerial Flyover">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>3D EARTH</span>
+            <span aria-hidden="true" style="font-size: 11px;">&#8599;</span>
+          </a>
+        ` : ''}
       </div>
 
       <div class="property-media-views-container">
@@ -1449,15 +1631,32 @@ export function propertyMediaDockMarkup(property, imageUrl, path) {
               ` : ''}
               <figcaption data-gallery-caption>${categoryLabel} · ${locationText}</figcaption>
             </div>
-            ${images.length > 1 ? `
-              <div class="property-gallery-thumbnails" role="tablist" aria-label="Property photos">
-                ${images.map((src, idx) => `
-                  <button type="button" class="property-gallery-thumb-btn ${idx === 0 ? 'is-active' : ''}" data-gallery-target="${idx}" role="tab" aria-selected="${idx === 0 ? 'true' : 'false'}" aria-label="View photo ${idx + 1}">
-                    <img src="${esc(src)}" alt="${esc(property.name)} photo ${idx + 1}">
+            <div class="property-media-intel-bar">
+              ${images.length > 1 ? `
+                <div class="property-gallery-thumbnails" role="tablist" aria-label="Property photos">
+                  ${images.map((src, idx) => `
+                    <button type="button" class="property-gallery-thumb-btn ${idx === 0 ? 'is-active' : ''}" data-gallery-target="${idx}" role="tab" aria-selected="${idx === 0 ? 'true' : 'false'}" aria-label="View photo ${idx + 1}">
+                      <img src="${esc(src)}" alt="${esc(property.name)} photo ${idx + 1}">
+                    </button>
+                  `).join('')}
+                </div>
+              ` : `
+                <div class="property-gallery-thumbnails is-single" role="tablist" aria-label="Property photos">
+                  <button type="button" class="property-gallery-thumb-btn is-active" data-gallery-target="0" role="tab" aria-selected="true" aria-label="View photo 1">
+                    <img src="${esc(images[0])}" alt="${esc(property.name)} photo 1">
                   </button>
-                `).join('')}
+                </div>
+              `}
+              <div class="property-intel-grid">
+                <span class="property-intel-label">APPROVED LAND USE</span>
+                <span class="property-intel-pill pill-blue pill-landuse" title="CLUP Approved Land Use: ${esc(approvedUses[0] || 'COMMERCIAL')}">${esc(approvedUses[0] || 'COMMERCIAL')}</span>
+                <span class="property-intel-pill pill-blue pill-landuse" title="CLUP Approved Land Use: ${esc(approvedUses[1] || 'MIXED USE')}">${esc(approvedUses[1] || 'MIXED USE')}</span>
+
+                <span class="property-intel-label is-italic">BUSINESS RECOMMENDATION</span>
+                <button type="button" class="property-intel-pill pill-red pill-biz" id="propertyQuickBizBtn" data-target-opp="${esc(recommendedBiz.id)}" title="Top Compatible Recommendation: ${esc(recommendedBiz.label)} · Click to view evidence & simulate">${esc(recommendedBiz.shortLabel)}</button>
+                <button type="button" class="property-intel-pill pill-dark pill-more" id="propertyQuickMoreBizBtn" title="Explore all compatible businesses and simulation models">MORE</button>
               </div>
-            ` : ''}
+            </div>
           </div>
         </div>
 
@@ -2173,7 +2372,9 @@ export function propertyDetailsMarkup(property, options) {
   const location = [property.barangay, property.city].filter(Boolean).join(', ') || 'Location awaiting confirmation';
   // The shared <base> points to the app root; include this page when linking to its sections.
   const sectionHref = section => esc(path(`property-details.php?id=${encodeURIComponent(property.id)}#${section}`));
-  const contact = role === 'guest' ? '<p class="property-contact-lead">Sign in to view available contact details and ask about this property.</p>' : broker ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}` : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
+  const contact = (broker)
+    ? `<p class="property-contact-name">${esc(broker.name)}</p>${broker.phone ? `<a class="city-link" href="tel:${esc(broker.phone.replace(/[^+\d]/g, ''))}">${esc(broker.phone)}</a>` : ''}${broker.email ? `<a class="city-link" href="mailto:${esc(broker.email)}">${esc(broker.email)}</a>` : ''}`
+    : `<p>${property.contactMode === 'broker' ? 'Broker contact details are awaiting city confirmation.' : 'Contact LEBDO for listing assistance.'}</p><a class="city-link no-print" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">LEBDO contact information ↗</a>`;
   const areaFacts = [['Listed area', area > 0 ? `${areaLabel} · ${fmt(area, 4)} ha` : 'Not specified'], [recordedAreaLabel, survey > 0 ? `${fmt(survey)} m²` : 'Not specified'], ['Drawn boundary estimate', mapped > 0 ? `${fmt(mapped)} m²` : 'No boundary drawn'], ['Boundary', parcel.boundary ? 'Recorded outline · mapped estimate' : 'Optional · not drawn']];
 
   // Executive Overview KPI computations
@@ -2230,6 +2431,21 @@ export function propertyDetailsMarkup(property, options) {
   const codeKey = Object.keys(zoningTitleMap).find(k => zoningCode.toUpperCase().includes(k));
   const zoningName = codeKey ? zoningTitleMap[codeKey] : 'CLUP 2018-06 Official Zone';
 
+  const areaInSqm = survey > 0 ? survey : (area > 0 ? area * 10000 : 0);
+  const leaseUnitPrice = numeric(property.leasePrice ?? property.price);
+  const isLease = property.listingPurpose === 'lease';
+  const estMonthly = (isLease && leaseUnitPrice > 0 && areaInSqm > 0) ? (leaseUnitPrice * areaInSqm) : null;
+  const floodItem = hazardFinding(property, 'flood_susceptibility');
+  const floodBrief = (floodItem.raw === 'none' || floodItem.finding === 'No exposure reported')
+    ? 'Flood: None reported'
+    : floodItem.raw === 'low'
+      ? 'Flood: Low risk'
+      : floodItem.raw === 'moderate'
+        ? 'Flood: Moderate'
+        : (floodItem.raw === 'high' || floodItem.raw === 'very_high')
+          ? 'Flood: Elevated'
+          : `Flood: ${floodItem.finding || 'Unassessed'}`;
+
   const listingReviewSub = property.approvalState
     ? `Review: ${String(property.approvalState).replaceAll('_', ' ')}`
     : 'Listing review pending';
@@ -2237,7 +2453,7 @@ export function propertyDetailsMarkup(property, options) {
     <div class="property-interactive-view">
       ${printHeaderMarkup(property)}
       <header class="property-heading"><div><div class="property-kicker">${esc(property.category || property.type || 'Property')}${property.subcategory ? ` / ${esc(String(property.subcategory).split(',')[0].trim())}` : ''} <span>LOCUS-${esc(property.id)}</span></div><h1>${esc(property.name)}</h1>${property.subname ? `<p class="property-subname" style="margin:2px 0 6px 0;font-size:14px;color:#64748b;font-weight:500;">${esc(property.subname)}</p>` : ''}<p class="property-heading-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>${esc(location)}${approximate ? '<span class="property-location-badge">Approximate location</span>' : ''}</p></div><div class="property-heading-actions no-print">${printButtonMarkup('cityPrintPropertyTopBtn')}</div></header>
-      <div class="property-summary-strip"><div><span>Listing purpose</span><strong>${esc(listingPurposeLabel(property))}</strong></div>${listingPriceEntries(property).map(entry => `<div class="property-price-summary"><span>${esc(entry.label)}</span><strong>${esc(entry.value)}</strong></div>`).join('')}<div><span>Land area</span><strong>${areaLabel}</strong></div><div><span>Availability</span><strong>${esc(property.status || 'Awaiting confirmation')}</strong></div></div>
+      <div class="property-summary-strip"><div><span>Listing purpose</span><strong>${esc(listingPurposeLabel(property))}</strong><span class="property-summary-sub">${isLease ? 'Commercial Space' : 'Property Asset'}</span></div>${listingPriceEntries(property).map(entry => `<div class="property-price-summary"><span>${esc(entry.label)}</span><strong>${esc(entry.value)}</strong>${estMonthly !== null ? `<span class="property-summary-sub is-highlight" title="Est. monthly gross based on ${fmt(areaInSqm)} m² @ ${esc(entry.value)}">Est. ${money(estMonthly)} / mo gross</span>` : (salePricePerSqm(property) !== null && survey > 0 ? `<span class="property-summary-sub">Est. total: ${money(salePricePerSqm(property) * survey)}</span>` : '')}</div>`).join('')}<div><span>Land area</span><strong>${areaLabel}</strong><span class="property-summary-sub">${survey > 0 && area > 0 ? `${fmt(survey)} m² survey record` : (area > 0 ? `${fmt(area, 4)} ha parcel` : 'Awaiting survey record')}</span></div><div><span>Availability</span><strong>${esc(property.status || 'Awaiting confirmation')}</strong><span class="property-summary-sub is-status"><span class="summary-live-indicator"></span>Active Registry</span></div></div>
       <nav class="property-section-nav no-print" aria-label="Property sections"><a href="${sectionHref('propertyOverviewSection')}">Overview</a><a href="${sectionHref('propertyLocationSection')}">Location</a><a href="${sectionHref('propertyTransportSection')}" data-investor-advanced>Transportation</a><a href="${sectionHref('propertyMarketIntelSection')}" data-investor-advanced>Market Intelligence</a><a href="${sectionHref('propertyHazardsSection')}">Hazard checks</a><a href="${sectionHref('propertyAssessmentSection')}" data-investor-advanced>Assessment</a><a href="${sectionHref('propertyOpportunitiesSection')}" data-investor-advanced>Opportunities</a><a href="${sectionHref('propertySurroundingsSection')}" data-investor-advanced>Surroundings</a></nav>
       <div class="property-layout">
         <!-- 1. HERO SHOWCASE: MEDIA DOCK (65%) + EXECUTIVE INVESTOR ACTION HUB (35%) -->
@@ -2250,27 +2466,33 @@ export function propertyDetailsMarkup(property, options) {
               <h2>${property.contactMode === 'broker' ? 'Discuss this property' : 'Take the next step'}</h2>
             </div>
 
-            <div class="executive-hub-price-badge" data-investor-advanced>
+            <div class="executive-hub-price-badge">
               <div class="executive-price-primary">
                 ${listingPriceEntries(property).map(entry => `<strong>${esc(entry.value)}</strong>`).join('') || '<strong>Price on request</strong>'}
               </div>
+              ${isLease && estMonthly !== null ? `
+                <div class="executive-price-sub is-estimate" title="Estimated monthly gross based on ${fmt(areaInSqm)} m²">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <span>Est. total: <strong>${money(estMonthly)}</strong> / month</span>
+                </div>
+              ` : ''}
               ${salePricePerSqm(property) !== null ? `<div class="executive-price-sub">${money(salePricePerSqm(property))} / m²</div>` : ''}
             </div>
 
-            <div class="executive-quick-specs" data-investor-advanced>
-              <div class="executive-spec-pill">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M13 11v10M9 9v.01M9 13v.01M9 17v.01"/></svg>
+            <div class="executive-quick-specs">
+              <div class="executive-spec-pill is-zoning" title="${esc(zoningName)} (${esc(zoningCode)})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 21h18M5 21V7l8-4v18M13 11v10M9 9v.01M9 13v.01M9 17v.01"/></svg>
                 <span>${esc(property.clupProfile?.zoningClassification || property.zoningClassification || 'Commercial (C-1)')}</span>
               </div>
-              <div class="executive-spec-pill">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <div class="executive-spec-pill is-area" title="Total Land Area: ${areaLabel}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 <span>${areaLabel}</span>
               </div>
-              <div class="executive-spec-pill">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>${esc(`${hazardFinding(property, 'flood_susceptibility').finding} · Flood`)}</span>
+              <div class="executive-spec-pill is-hazard ${floodItem.raw === 'high' || floodItem.raw === 'very_high' ? 'is-elevated' : ''}" title="${esc(floodItem.finding)} · Flood Susceptibility Screening">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>${esc(floodBrief)}</span>
               </div>
-              <div class="executive-spec-pill">
+              <div class="executive-spec-pill is-status" title="Listing Status: ${esc(property.status || 'Available')}">
                 <span class="status-dot"></span>
                 <span>${esc(property.status || 'Available')}</span>
               </div>
@@ -2281,9 +2503,11 @@ export function propertyDetailsMarkup(property, options) {
             </div>
 
             <div class="property-actions no-print">
-              ${role === 'guest' ? `<a class="city-button city-button-primary executive-inquire-btn" href="${path('investor-login.php')}">Log in to inquire</a>` : ''}
-              ${canInquire ? `<a class="city-button city-button-primary executive-inquire-btn" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : ''}
-              ${!canInquire && role !== 'guest' ? `<a class="city-button city-button-primary executive-inquire-btn" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">Contact LEBDO Assistance <span aria-hidden="true">↗</span></a>` : ''}
+              ${canInquire ? `<a class="city-button city-button-primary executive-inquire-btn" href="${sectionHref('cityInquiryPanel')}">Send an inquiry <span aria-hidden="true">↗</span></a>` : `<a class="city-button city-button-primary executive-inquire-btn" href="https://cc.sanfernandocity.gov.ph/lebdo/" target="_blank" rel="noopener">Contact LEBDO Assistance <span aria-hidden="true">↗</span></a>`}
+              <a class="city-button city-button-opp-jump" href="${sectionHref('propertyOpportunitiesSection')}" title="Simulate high-compatibility commercial and industrial activities for this site">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Explore Compatible Businesses</span> <span aria-hidden="true">&#8595;</span>
+              </a>
               <div class="executive-action-row">
                 ${investor ? `<button class="city-button city-button-secondary" type="button" data-save="${property.id}" aria-pressed="${saved.has(property.id)}">${saved.has(property.id) ? 'Saved' : 'Save property'}</button>` : ''}
                 <button class="city-button city-button-secondary" type="button" data-compare="${property.id}" aria-pressed="${compare.includes(property.id)}">${compare.includes(property.id) ? 'Added to compare' : 'Compare property'}</button>
@@ -2545,6 +2769,35 @@ export function investorScenarioMarkup(property) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             Proposed Business or Land Use Activity
           </label>
+          <div class="property-scenario-quick-picks" role="group" aria-label="Top recommended business quick-picks">
+            <span class="property-scenario-quick-label">Top Recommendations:</span>
+            <div class="property-scenario-quick-pills">
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'retail_convenience' ? 'is-active' : ''}" data-scenario-quick-pick="retail_convenience" data-quick-capital="1500000" title="Simulate Convenience Retail Store">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Convenience Mart</span>
+              </button>
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'retail_supermarket' ? 'is-active' : ''}" data-scenario-quick-pick="retail_supermarket" data-quick-capital="5000000" title="Simulate Neighborhood Grocery / Supermarket">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Grocery / Mart</span>
+              </button>
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'food_cafe' ? 'is-active' : ''}" data-scenario-quick-pick="food_cafe" data-quick-capital="3500000" title="Simulate Specialty Café / Coffee Shop">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Café &amp; Dining</span>
+              </button>
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'office_professional' ? 'is-active' : ''}" data-scenario-quick-pick="office_professional" data-quick-capital="2500000" title="Simulate Corporate / Professional Office">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Office / Services</span>
+              </button>
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'log_distribution_center' || currentActivity === 'log_warehouse' ? 'is-active' : ''}" data-scenario-quick-pick="log_distribution_center" data-quick-capital="10000000" title="Simulate Cold Storage / Logistics Hub">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Logistics / Storage</span>
+              </button>
+              <button type="button" class="scenario-quick-pill ${currentActivity === 'tour_hotel' ? 'is-active' : ''}" data-scenario-quick-pick="tour_hotel" data-quick-capital="15000000" title="Simulate Hotel / Accommodation">
+                <span class="quick-pill-dot" aria-hidden="true"></span>
+                <span>Hotel / Lodging</span>
+              </button>
+            </div>
+          </div>
           <div class="property-scenario-select-wrap">
             <select id="investorProposedActivitySelect" class="property-scenario-select">
               <option value="">— Select what you want to establish —</option>
@@ -2923,11 +3176,40 @@ export function setupInvestorScenario(root, property, policyInput) {
         if (version === requestVersion) render(withheld(activity, 'The assessment could not be retrieved. Try again before generating a scenario brief.'));
       }
     };
-    select?.addEventListener('change', evaluate);
+    const syncQuickPills = (activeVal) => {
+      if (typeof container.querySelectorAll === 'function') {
+        container.querySelectorAll('[data-scenario-quick-pick]').forEach(pill => {
+          pill.classList?.toggle?.('is-active', pill.getAttribute('data-scenario-quick-pick') === activeVal);
+        });
+      }
+    };
+
+    const quickPickBtns = typeof container.querySelectorAll === 'function' ? container.querySelectorAll('[data-scenario-quick-pick]') : [];
+    quickPickBtns.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const pickActivity = pill.getAttribute('data-scenario-quick-pick');
+        const suggestedCapital = pill.getAttribute('data-quick-capital');
+        if (select) {
+          select.value = pickActivity;
+        }
+        syncQuickPills(pickActivity);
+        if (suggestedCapital && capitalInput && (!capitalInput.value || capitalInput.value.trim() === '')) {
+          capitalInput.value = formatPesoInput(suggestedCapital);
+          updateIncentive();
+        }
+        return evaluate();
+      });
+    });
+
+    select?.addEventListener('change', () => {
+      syncQuickPills(select?.value);
+      return evaluate();
+    });
     evalBtn?.addEventListener('click', evaluate);
     resetBtn?.addEventListener('click', () => {
       if (select) select.value = '';
       if (capitalInput) capitalInput.value = '';
+      syncQuickPills('');
       updateIncentive();
       return evaluate();
     });
