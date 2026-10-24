@@ -59,6 +59,7 @@ sfc_render_header($context, 'admin');
 ?>
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/admin-workspace.css<?= sfc_asset_version('css/admin-workspace.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
+<?php if ($mceConfigurator): ?><link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/admin-mce-weights.css<?= sfc_asset_version('css/admin-mce-weights.css') ?>"><?php endif; ?>
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
 <main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
@@ -525,226 +526,57 @@ sfc_render_header($context, 'admin');
   <?php endif; ?>
   <?php if ($mceConfigurator): ?>
   <!-- MCE Weight Configuration Dialog -->
-  <dialog id="mceWeightConfigDialog" class="city-dialog tw-w-full tw-max-w-3xl tw-rounded-3xl tw-p-0 tw-border-0 tw-shadow-2xl tw-bg-white" aria-labelledby="mceConfigModalTitle">
-    <!-- Top Jewel Brand Accent -->
-    <div class="mce-dialog-accent-bar tw-h-1.5 tw-w-full tw-bg-gradient-to-r tw-from-[#9E1B22] tw-via-[#11224d] tw-to-[#0284c7]"></div>
-    
-    <!-- Modal Header -->
-    <div class="mce-dialog-header tw-flex tw-items-center tw-justify-between tw-border-b tw-border-slate-200/80 tw-bg-slate-50/70 tw-px-6 tw-py-4">
-      <div class="tw-flex tw-items-center tw-gap-3.5">
-        <div class="mce-modal-icon-badge">
-          <svg class="tw-h-5 tw-w-5 tw-text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-          </svg>
-        </div>
-        <div>
-          <div class="tw-flex tw-items-center tw-gap-2">
-            <h2 id="mceConfigModalTitle" class="tw-m-0 tw-text-base tw-font-black tw-tracking-tight tw-text-slate-900">Spatial Multi-Criteria Evaluation (MCE)</h2>
-            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-200/80 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-700">Governance Engine</span>
-          </div>
-          <p class="tw-mb-0 tw-mt-0.5 tw-text-xs tw-text-slate-500">Fine-tune analytical weight coefficients with live balance validation, simulation telemetry, and immutable audit logs.</p>
-        </div>
+  <dialog id="mceWeightConfigDialog" class="city-dialog mce-editor" aria-labelledby="mceConfigModalTitle" aria-describedby="mceConfigDescription">
+    <header class="mce-dialog-header">
+      <div class="mce-header-copy">
+        <span class="mce-eyebrow">Evaluation settings</span>
+        <h2 id="mceConfigModalTitle">MCE criteria &amp; weights</h2>
+        <p id="mceConfigDescription">Set what matters most in new property assessments.</p>
       </div>
-      <button type="button" id="closeMceConfigBtn" class="tw-rounded-xl tw-p-2 tw-text-slate-400 hover:tw-bg-slate-200/70 hover:tw-text-slate-700 tw-transition-colors" aria-label="Close dialog">
-        <svg class="tw-h-5 tw-w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      <button type="button" id="closeMceConfigBtn" class="mce-icon-button" aria-label="Close weight settings">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
       </button>
+    </header>
+    <div class="mce-dialog-body">
+      <section class="mce-allocation" aria-label="Weight allocation">
+        <div class="mce-allocation-top">
+          <div><span id="mceDraftState" class="mce-draft-state">Active configuration</span><p>Five criteria. One clear evaluation.</p></div>
+          <div class="mce-total"><strong id="mceTotalDisplay">100.0%</strong><span id="mceTotalStatusBadge" class="mce-balance-badge is-balanced">Balanced</span></div>
+        </div>
+        <div id="mceStackedBar" class="mce-allocation-bar" aria-hidden="true"></div>
+        <div class="mce-allocation-meta"><span id="mceStackedBarTotalText">Total allocation · 100% required</span><span>5–60% per criterion</span></div>
+      </section>
+      <div class="mce-editor-tools">
+        <label class="mce-auto-balance" for="mceAutoBalance"><input id="mceAutoBalance" type="checkbox" checked /><span><strong>Keep total at 100%</strong><small>Other weights adjust proportionally.</small></span></label>
+        <div class="mce-presets" role="group" aria-label="Weight presets"><button type="button" data-mce-preset="baseline" aria-pressed="false">Baseline</button><button type="button" data-mce-preset="logistics" aria-pressed="false">Logistics</button><button type="button" data-mce-preset="commercial" aria-pressed="false">Commercial</button><button type="button" data-mce-preset="balanced" aria-pressed="false">Equal</button></div>
+      </div>
+      <div id="mceBalanceAssistant" class="mce-balance-help" hidden><p id="mceAssistantHeadline"></p><button type="button" id="mceApplySuggestionBtn" class="mce-button">Balance to 100%</button></div>
+      <div id="mceCriteriaInputs" class="mce-criteria-list"><p class="mce-muted">Loading active criteria…</p></div>
+      <section class="mce-justification" aria-labelledby="mceJustificationTitle">
+        <div class="mce-section-heading"><h3 id="mceJustificationTitle">Document this change</h3><p>Keep a clear record of why the evaluation changed.</p></div>
+        <div class="mce-field"><div class="mce-field-heading"><label for="mceReasonInput">Reason for adjustment <span aria-hidden="true">*</span></label><small id="mceReasonCharCount">0/8 minimum</small></div><textarea id="mceReasonInput" rows="2" maxlength="2000" required minlength="8" placeholder="Explain the priorities behind this adjustment" aria-describedby="mceReasonCharCount mceReasonInlineError"></textarea><p id="mceReasonInlineError" class="mce-field-error" hidden></p></div>
+        <div class="mce-field"><label for="mceReferenceInput">Source or consultation reference <span aria-hidden="true">*</span></label><input type="text" id="mceReferenceInput" required minlength="5" maxlength="255" placeholder="e.g., Committee resolution or planning reference" aria-describedby="mceReferenceInlineError" /><p id="mceReferenceInlineError" class="mce-field-error" hidden></p></div>
+      </section>
+      <section id="mcePreviewContainer" class="mce-preview" aria-labelledby="mcePreviewTitle" hidden><div class="mce-section-heading"><h3 id="mcePreviewTitle">Preview impact</h3></div><div id="mcePreviewContent"></div></section>
+      <details class="mce-disclosure"><summary>Methodology &amp; zoning safeguards</summary><div class="mce-disclosure-body"><p>Zoning compatibility is a required eligibility check. Changing criterion weights cannot make a prohibited land use eligible.</p><p id="mceDiscrepancyBanner" class="mce-muted"></p><p class="mce-version">Active version <code id="mceCurrentVersionBadge">Loading…</code></p></div></details>
+      <details class="mce-disclosure"><summary>Configuration history</summary><div id="mceHistoryContainer" class="mce-disclosure-body"></div></details>
+      <button type="button" id="restoreMceBaselineBtn" class="mce-restore">Restore methodological baseline</button>
     </div>
-
-    <!-- Modal Scrollable Body -->
-    <div class="mce-dialog-body tw-max-h-[75vh] tw-overflow-y-auto tw-p-6 tw-space-y-5">
-      <!-- Status message -->
-      <div id="mceConfigStatusMessage" class="tw-hidden tw-text-xs tw-font-medium" role="status"></div>
-
-      <!-- Discrepancy Note Banner -->
-      <div id="mceDiscrepancyBanner"></div>
-
-      <!-- Active Version & Overview Telemetry HUD -->
-      <div class="mce-telemetry-hud">
-        <div class="tw-relative tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4">
-          <div class="tw-space-y-1">
-            <div class="tw-flex tw-items-center tw-gap-2">
-              <span class="mce-telemetry-pill">
-                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-400 tw-animate-pulse"></span>
-                Active Evaluation Model
-              </span>
-            </div>
-            <div class="tw-flex tw-items-baseline tw-gap-2">
-              <strong id="mceCurrentVersionBadge" class="tw-text-base tw-font-black tw-tracking-tight tw-text-white">LOCUS-SF-MCE-v3.0-Baseline (Active)</strong>
-            </div>
-            <p class="tw-mb-0 tw-text-[11px] tw-text-blue-100/75">5-Criterion normalized linear combination model with binary zoning exclusion.</p>
-          </div>
-
-          <div class="mce-telemetry-stats-box">
-            <div class="tw-text-right">
-              <span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-blue-200/90">Sum Allocation</span>
-              <span id="mceTotalDisplay" class="tw-text-xl tw-font-black tw-tracking-tight tw-text-white">100.0%</span>
-            </div>
-            <div class="tw-h-8 tw-w-px tw-bg-white/20"></div>
-            <div>
-              <span id="mceTotalStatusBadge" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-500/20 tw-px-3 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-300 tw-border tw-border-emerald-400/30">
-                <svg class="tw-h-3.5 tw-w-3.5 tw-text-emerald-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                Balanced (100.0%)
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Segmented 100% Cumulative Allocation Bar -->
-        <div class="mce-stacked-bar-container">
-          <div class="mce-stacked-bar-header">
-            <span class="tw-font-bold tw-text-[11px] tw-text-blue-100">Live Cumulative Distribution</span>
-            <span id="mceStackedBarTotalText" class="tw-font-mono tw-font-bold tw-text-white tw-text-[11px]">100.0% / 100.0%</span>
-          </div>
-          <div id="mceStackedBar" class="mce-stacked-bar">
-            <!-- 5 segments + remaining slot populated by JS -->
-          </div>
-          <div class="mce-stacked-legend">
-            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#3b82f6;"></span>Spatial</span>
-            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#06b6d4;"></span>Infra</span>
-            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#f59e0b;"></span>Cost</span>
-            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#8b5cf6;"></span>Nearby</span>
-            <span class="mce-legend-item"><span class="mce-legend-dot" style="background:#ec4899;"></span>Risk</span>
-            <span id="mceLegendRemaining" class="mce-legend-item" style="display:none;"><span class="mce-legend-dot mce-dot-striped"></span>Remaining</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Auto-Balance & Breakdown Suggestion Assistant -->
-      <div id="mceBalanceAssistant" class="mce-assistant-card" style="display: none;">
-        <div class="mce-assistant-inner">
-          <div class="mce-assistant-left">
-            <span id="mceAssistantStatusPill" class="mce-assistant-pill remaining">
-              40.0% Remaining
-            </span>
-            <div>
-              <div class="tw-flex tw-items-center tw-gap-2">
-                <strong id="mceAssistantHeadline" class="tw-text-xs tw-font-black tw-text-slate-900">
-                  Suggested Breakdown to Reach 100.0%
-                </strong>
-                <span class="tw-text-[10px] tw-text-slate-500 tw-hidden sm:tw-inline">Proportional to baseline</span>
-              </div>
-              <div id="mceAssistantBreakdownChips" class="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 tw-mt-1">
-                <!-- dynamic chips populated by JS -->
-              </div>
-            </div>
-          </div>
-          <div>
-            <button type="button" id="mceApplySuggestionBtn" class="mce-btn-apply-suggestion">
-              <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-              </svg>
-              <span id="mceApplySuggestionBtnText">Apply Suggested Breakdown</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Criteria Adjusters List with Quick Presets -->
-      <div class="tw-space-y-3">
-        <div class="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2">
-          <div class="tw-flex tw-items-center tw-gap-2">
-            <h3 class="tw-m-0 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-700">Active Criteria Weights</h3>
-            <span class="tw-inline-flex tw-items-center tw-rounded-full tw-bg-slate-100 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-text-slate-600">Bounds: 5.0% – 60.0%</span>
-          </div>
-          
-          <!-- Quick Presets -->
-          <div class="tw-flex tw-items-center tw-gap-1.5">
-            <span class="tw-text-[10px] tw-font-bold tw-uppercase tw-text-slate-400">Presets:</span>
-            <button type="button" class="mce-preset-btn" data-mce-preset="baseline" title="Spatial 25%, Infra 25%, Cost 20%, Nearby 15%, Risk 15%">Baseline</button>
-            <button type="button" class="mce-preset-btn" data-mce-preset="logistics" title="Spatial 35%, Infra 30%, Cost 15%, Nearby 10%, Risk 10%">Logistics</button>
-            <button type="button" class="mce-preset-btn" data-mce-preset="commercial" title="Spatial 20%, Infra 20%, Cost 25%, Nearby 25%, Risk 10%">Commercial</button>
-            <button type="button" class="mce-preset-btn" data-mce-preset="balanced" title="All 20.0%">Equal (20%)</button>
-          </div>
-        </div>
-        <div id="mceCriteriaInputs" class="tw-space-y-3">
-          <p class="tw-text-xs tw-text-slate-400">Loading criteria parameters...</p>
-        </div>
-      </div>
-
-      <!-- Reason & Reference Inputs -->
-      <div class="tw-rounded-2xl tw-border tw-border-slate-200/90 tw-bg-slate-50/70 tw-p-4 tw-space-y-3.5">
-        <div class="tw-flex tw-items-center tw-gap-2">
-          <svg class="tw-h-4 tw-w-4 tw-text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="tw-m-0 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-800">Change Justification &amp; Statutory Authority</h3>
-        </div>
-        <div>
-          <div class="tw-flex tw-items-center tw-justify-between">
-            <label for="mceReasonInput" class="tw-block tw-text-xs tw-font-bold tw-text-slate-700">Documented Reason for Adjustment <span class="tw-text-rose-600">*</span></label>
-            <span id="mceReasonCharCount" class="tw-text-[11px] tw-font-semibold tw-text-slate-400">Min. 8 characters</span>
-          </div>
-          <input type="text" id="mceReasonInput" placeholder="e.g., CICTO Technical Committee revision for commercial corridor weighting"
-            class="tw-mt-1.5 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2.5 tw-text-xs tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-[#11224d] focus:tw-ring-2 focus:tw-ring-[#11224d]/10 focus:tw-outline-none tw-transition-all">
-          <div id="mceReasonInlineError" class="tw-hidden tw-text-[11px] tw-font-bold tw-text-rose-600 tw-mt-1"></div>
-        </div>
-        <div>
-          <label for="mceReferenceInput" class="tw-block tw-text-xs tw-font-bold tw-text-slate-700">Source / Consultation Reference <span class="tw-text-slate-400 tw-font-normal">(Optional, min. 5 chars if provided)</span></label>
-          <input type="text" id="mceReferenceInput" placeholder="e.g., CSFP CLUP 2017-2027 Sec. 4.2 / LEBDO Resolution 2026-03"
-            class="tw-mt-1.5 tw-w-full tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2.5 tw-text-xs tw-text-slate-900 placeholder:tw-text-slate-400 focus:tw-border-[#11224d] focus:tw-ring-2 focus:tw-ring-[#11224d]/10 focus:tw-outline-none tw-transition-all">
-          <div id="mceReferenceInlineError" class="tw-hidden tw-text-[11px] tw-font-bold tw-text-rose-600 tw-mt-1"></div>
-          <span class="tw-text-[11px] tw-text-slate-500 tw-mt-1 tw-block">Administrative guideline: Cite authenticated executive resolutions, comprehensive land use plans (CLUP), or official committee issuances.</span>
-        </div>
-      </div>
-
-      <!-- Preview Container -->
-      <div id="mcePreviewContainer" class="tw-hidden tw-rounded-2xl tw-border tw-border-blue-200/90 tw-bg-blue-50/20 tw-p-4">
-        <h3 class="tw-m-0 tw-mb-3 tw-text-xs tw-font-black tw-uppercase tw-tracking-wider tw-text-slate-800">Simulation &amp; Comparative Preview</h3>
-        <div id="mcePreviewContent"></div>
-      </div>
-
-      <!-- Audit History Accordion -->
-      <details class="tw-group tw-rounded-2xl tw-border tw-border-slate-200/90 tw-bg-slate-50/50 tw-p-3.5 tw-transition-all">
-        <summary class="tw-flex tw-cursor-pointer tw-items-center tw-justify-between tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-text-[#9e1b22] tw-transition-colors">
-          <span class="tw-flex tw-items-center tw-gap-2">
-            <svg class="tw-h-4 tw-w-4 tw-text-slate-500 group-hover:tw-text-[#9e1b22] tw-transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Historical MCE Weight Audit Log
-          </span>
-          <svg class="tw-h-4 tw-w-4 tw-text-slate-400 group-open:tw-rotate-180 tw-transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </summary>
-        <div id="mceHistoryContainer" class="tw-mt-3 tw-border-t tw-border-slate-200 tw-pt-2.5"></div>
-      </details>
-    </div>
-
-    <!-- Modal Actions Footer -->
-    <div class="mce-dialog-footer tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-t tw-border-slate-200/80 tw-bg-slate-50/90 tw-px-6 tw-py-4 tw-rounded-b-3xl">
-      <div class="tw-flex tw-items-center tw-gap-2">
-        <button type="button" id="restoreMceBaselineBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-3.5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-700 hover:tw-bg-slate-100 hover:tw-text-[#9e1b22] tw-transition-all cursor-pointer tw-shadow-sm">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Restore Approved Baseline
-        </button>
-        <button type="button" id="cancelMceConfigBtn" class="tw-rounded-xl tw-px-3.5 tw-py-2 tw-text-xs tw-font-bold tw-text-slate-500 hover:tw-text-slate-800 hover:tw-bg-slate-200/60 tw-transition-all cursor-pointer">
-          Cancel
-        </button>
-      </div>
-      <div class="tw-flex tw-items-center tw-gap-2.5">
-        <button type="button" id="previewMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border tw-border-slate-300 tw-bg-white tw-px-4 tw-py-2.5 tw-text-xs tw-font-bold tw-text-slate-800 hover:tw-bg-slate-100 tw-transition-all cursor-pointer tw-shadow-sm">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-          Simulate Impact
-        </button>
-        <button type="button" id="applyMceConfigBtn" class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-xl tw-border-0 tw-bg-gradient-to-r tw-from-[#9E1B22] tw-to-[#751117] tw-px-5 tw-py-2.5 tw-text-xs tw-font-bold tw-text-white hover:tw-from-[#b01e26] hover:tw-to-[#88141b] tw-shadow-md tw-shadow-rose-900/25 hover:tw-shadow-lg tw-transition-all cursor-pointer">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-text-rose-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          Apply Weights
-        </button>
-      </div>
-    </div>
+    <footer class="mce-dialog-footer">
+      <div id="mceConfigStatusMessage" class="mce-status" role="status" aria-live="polite" hidden></div>
+      <div class="mce-footer-actions"><button type="button" id="cancelMceConfigBtn" class="mce-button mce-button-quiet">Close</button><div><button type="button" id="previewMceConfigBtn" class="mce-button" disabled>Preview impact</button><button type="button" id="applyMceConfigBtn" class="mce-button mce-button-primary" disabled>Apply weights</button></div></div>
+      <p class="mce-footer-note">Applied weights take effect immediately for new property assessments.</p>
+    </footer>
   </dialog>
   <?php endif; ?>
 </main>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-overview.js<?= sfc_asset_version('js/admin-overview.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-workspace.js<?= sfc_asset_version('js/admin-workspace.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-investors.js<?= sfc_asset_version('js/admin-investors.js') ?>" defer></script>
-<?php if ($mceConfigurator): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/admin-mce-weights.js<?= sfc_asset_version('js/admin-mce-weights.js') ?>"></script><?php endif; ?>
+<?php if ($mceConfigurator): ?>
+<script defer src="<?= $escape($context['assetBase']) ?>/js/mce-weights-model.js<?= sfc_asset_version('js/mce-weights-model.js') ?>"></script>
+<script defer src="<?= $escape($context['assetBase']) ?>/js/admin-mce-weights.js<?= sfc_asset_version('js/admin-mce-weights.js') ?>"></script>
+<?php endif; ?>
 <?php if ($technicalAdmin): ?><script defer src="<?= $escape($context['assetBase']) ?>/js/city-staff.js<?= sfc_asset_version('js/city-staff.js') ?>"></script><?php endif; ?>
 <?php sfc_render_footer($context); ?>
 

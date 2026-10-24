@@ -2,6 +2,7 @@
   'use strict';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const score = value => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toFixed(1);
+  const isAutomatic = assessment => ['automatic', 'automatic_observations'].includes(assessment?.assessmentMode);
 
   window.SFCAutomaticAssessment = (form, { apiBase, dialog }) => {
     if (!form?.querySelector('[data-automatic-assessment]')) return null;
@@ -88,7 +89,7 @@
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || 'The assessment could not be calculated.');
         if (currentRevision !== revision) return null;
-        if (!payload.assessment || payload.assessment.assessmentMode !== 'automatic') throw new Error('The server did not return an automatic assessment.');
+        if (!isAutomatic(payload.assessment)) throw new Error('The server did not return an automatic assessment.');
         cached = payload.assessment; lastKey = key;
         render(cached);
         notice(cached?.assessmentComplete ? 'System-generated preview. The server recalculates when you save.' : 'Awaiting source data or approved conversion rules. You can save the property for review.');
@@ -115,7 +116,7 @@
       refresh,
       setProperty(property) {
         controller?.abort(); revision++; clearTimeout(timer); cached = null; lastKey = '';
-        legacy = Boolean(property && property.assessmentMode !== 'automatic' && Object.values(property.assessmentCriteria || {}).some(value => value != null));
+        legacy = Boolean(property && !isAutomatic(property) && Object.values(property.assessmentCriteria || {}).some(value => value != null));
         render(); notice('Scores are optional at submission and depend on verified source evidence.');
       },
     };

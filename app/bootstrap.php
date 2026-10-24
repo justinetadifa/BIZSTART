@@ -93,6 +93,7 @@ if ($autoMigrate) {
 if ($autoSeed) {
     AutoSeeder::seedIfNeeded($pdo);
 }
+\App\Support\PropertyAssessmentService::configureDatabase($pdo);
 $privateAdminSettingsPath = __DIR__ . '/admin-access.local.php';
 if (is_file($privateAdminSettingsPath)) {
     try {

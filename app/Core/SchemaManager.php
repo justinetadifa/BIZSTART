@@ -503,6 +503,18 @@ SQL
                 $stmt->execute($row);
             }
         } else {
+            // A v3 configuration is operational data, not a schema default. Re-running
+            // bootstrap must never undo an administrator's approved allocation.
+            $current = $pdo->query('SELECT criterion_key, is_active FROM criteria_config')->fetchAll(PDO::FETCH_ASSOC);
+            $activeKeys = [];
+            foreach ($current as $criterion) {
+                if (!empty($criterion['is_active'])) { $activeKeys[] = $criterion['criterion_key']; }
+            }
+            $v3Keys = ['spatial_accessibility', 'infrastructure_readiness', 'property_cost_market_competitiveness', 'nearby_businesses', 'risk_constraints'];
+            sort($activeKeys);
+            sort($v3Keys);
+            if ($activeKeys === $v3Keys) { return; }
+
             // Synchronize existing criteria_config to definitive 5-criterion MCE v3.0 model with zoning gate
             $pdo->exec("UPDATE criteria_config SET weight = 25.00, is_active = 1, is_required = 1, sort_order = 1 WHERE criterion_key = 'spatial_accessibility'");
             $pdo->exec("UPDATE criteria_config SET weight = 25.00, is_active = 1, is_required = 1, sort_order = 2 WHERE criterion_key = 'infrastructure_readiness'");

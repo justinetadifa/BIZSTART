@@ -184,12 +184,15 @@ final class AutomaticPropertyAssessment
                 'status' => $measurement['missingData'] ? 'missing_data' : 'source_reported',
                 'justification' => $measurement['justification'], 'evidence' => $measurement['evidence']];
         }
+        $configuration = PropertyAssessmentService::publicWeightConfiguration($pdo);
         $scores = PropertyAssessment::scores([], [
+            'weights' => $configuration['weights'],
             'pdo' => $pdo, 'property_id' => $input['property_id'] ?? null, 'proposed_activity' => $input['proposed_activity'] ?? '',
             'zoning_district' => $input['zoning_district'] ?? $details['zoning_compatibility']['raw']['zoning_classification'] ?? '',
             'criteria_details' => $details,
         ]);
         return array_merge($scores, [
+            'configuration_version' => $configuration['version'],
             'assessmentMode' => 'automatic_observations', 'assessmentVersion' => self::VERSION,
             'inputs' => $inputs, 'observation_inputs' => $observations, 'spatialContext' => $context, 'generatedAt' => $scores['assessed_at'],
             'completedCount' => count(array_filter($scores['criterion_scores'], static fn ($v): bool => $v !== null)),

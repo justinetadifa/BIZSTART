@@ -23,7 +23,7 @@ check(tools.listingAssessment({screeningAssessment:{...incomplete,criteria:{cost
 const source = fs.readFileSync('assets/js/property-wizard.js','utf8');
 const start = source.indexOf('    function calculateWizardCompositeMce(');
 const end = source.indexOf('    if (typeof window',start);
-const context = vm.createContext({});vm.runInContext(source.slice(start,end),context);
+const context = vm.createContext({mceModel:require('../assets/js/mce-active-weights.js').create()});vm.runInContext(source.slice(start,end),context);
 const scores = {spatial_accessibility:100,infrastructure_readiness:100,property_cost_market_competitiveness:100,nearby_businesses:92.5,risk_constraints:100,zoning_compatibility:100};
 check(context.calculateWizardCompositeMce(scores).provisionalScore,98.9,'Preview sums all five weighted criteria, including nearby');
 check(context.calculateWizardCompositeMce({...scores,zoning_compatibility:null}).provisionalScore,98.9,'Numeric calculation remains visible while zoning is pending');
@@ -31,13 +31,13 @@ check(context.calculateWizardCompositeMce({...scores,nearby_businesses:null}).pr
 check(context.calculateWizardCompositeMce({...scores,_riskCritical:true}).provisionalScore,null,'Hazard holds apply to the preview');
 check(context.calculateWizardCompositeMce({...scores,_zoningProhibited:true}).provisionalScore,null,'Prohibited activity withholds the preview');
 const zoningCases = [['C-1','retail_convenience'],['R-1','retail_convenience'],['R-1','ind_heavy_manufacturing'],['unknown','retail_convenience'],['C-1','unknown']];
-const zoning = JSON.parse(execFileSync('php',['-r',"require 'app/Support/ZoningRulesEngine.php'; $cases=json_decode(stream_get_contents(STDIN),true); echo json_encode(['rules'=>App\\Support\\ZoningRulesEngine::getAllRules(),'results'=>array_map(static fn($c)=>App\\Support\\ZoningRulesEngine::evaluate($c[0],$c[1]),$cases)]);"],{input:JSON.stringify(zoningCases),encoding:'utf8',windowsHide:true}));
+const zoning = JSON.parse(execFileSync('php',['-r',"require 'app/Support/ZoningRulesEngine.php'; $cases=json_decode(stream_get_contents(STDIN),true); echo json_encode(App\\Support\\ZoningRulesEngine::getScreeningData()+['results'=>array_map(static fn($c)=>App\\Support\\ZoningRulesEngine::evaluate($c[0],$c[1]),$cases)]);"],{input:JSON.stringify(zoningCases),encoding:'utf8',windowsHide:true}));
 const zoningSource = source.slice(source.indexOf('    function evaluateZoningCompatibilityClient()'),source.indexOf('    function syncZoningCompatibility()'));
 for (const [index,[zone,activity]] of zoningCases.entries()) {
-  const c = vm.createContext({value:key=>({zoning_classification:zone,proposed_activity:activity})[key] || '',$:()=>null,field:()=>null,getZoningEngineData:()=>zoning});
+  const c = vm.createContext({value:key=>({zoning_classification:zone,proposed_activity:activity})[key] || '',$:()=>null,field:()=>null,getZoningEngineData:()=>zoning,zoningReferenceStatus:status=>status});
   vm.runInContext(zoningSource,c);const client=c.evaluateZoningCompatibilityClient(),server=zoning.results[index];
   check(client.score,server.score,'Actual embedded rules produce the same gate score as PHP');
   check(client.isComplete,server.is_complete,'Actual embedded rules produce the same completion status as PHP');
-  check(client.isEligible,server.is_eligible,'Actual embedded rules produce the same eligibility as PHP');
+  check(client.isEligible,false,'Intake reference never asserts verified parcel eligibility');
 }
 console.log(`Listing assessment: ${checks} result, progress, verification and gate checks passed.`);

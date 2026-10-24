@@ -15,7 +15,7 @@ console.log('✅ PASS: Step 3 panel exists');
 // Check Mockup Card Header
 assert.ok(viewContent.includes('class="pw-spatial-card"'), 'Spatial Accessibility card layout exists');
 assert.ok(viewContent.includes('Spatial Accessibility'), 'Card title "Spatial Accessibility" exists');
-assert.ok(viewContent.includes('Step 3 &middot; MCE Assessment'), 'Subtitle "Step 3 · MCE Assessment" exists');
+assert.ok(viewContent.includes('Step 3 of 4'), 'Assessment shows its position in the property workflow');
 assert.ok(viewContent.includes('Provisional model'), 'Badge "Provisional model" exists');
 console.log('✅ PASS: Spatial Accessibility header and provisional badge match mockup');
 
@@ -120,7 +120,7 @@ for (let i = fnStart; i < jsContent.length; i++) {
     }
 }
 const fnSource = jsContent.slice(fnStart, fnEnd);
-const sandbox = {};
+const sandbox = {mceWeight:key=>require('../assets/js/mce-active-weights.js').create().weight(key)};
 vm.createContext(sandbox);
 vm.runInContext(fnSource, sandbox);
 const evaluateSpatial = sandbox.evaluateSpatialAccessibilityClient;
@@ -135,12 +135,12 @@ const completeRes = evaluateSpatial({
 });
 assert.equal(completeRes.is_complete, true, 'Complete input is complete');
 assert.equal(completeRes.score, 97.0, 'Complete input scores 97.0/100');
-assert.equal(completeRes.iai_contribution, 19.4, 'Complete input contributes 19.4 pts IAI');
+assert.equal(completeRes.iai_contribution, 24.25, 'Complete input contributes 24.25 pts at the 25% baseline');
 assert.equal(completeRes.subcriteria.road_access.score, 100);
 assert.equal(completeRes.subcriteria.road_surface_passability.score, 100);
 assert.equal(completeRes.subcriteria.carriageway_width.score, 100);
 assert.equal(completeRes.subcriteria.distance_to_major_road.score, 85);
-console.log('✅ PASS: Client JS complete calculation: 97.0 / 100 score, 19.4 pts IAI');
+console.log('✅ PASS: Client JS complete calculation: 97.0 / 100 score, 24.25 pts IAI');
 
 // Test Case 2: Partial Condition
 const partialRes = evaluateSpatial({
@@ -151,10 +151,10 @@ const partialRes = evaluateSpatial({
 });
 assert.equal(partialRes.is_complete, true, 'Partial condition is complete');
 assert.equal(partialRes.score, 69.5, 'Partial condition scores 69.5/100');
-assert.equal(partialRes.iai_contribution, 13.9, 'Partial condition contributes 13.9 pts IAI');
+assert.equal(partialRes.iai_contribution, 17.375, 'Partial condition preserves the 25% contribution before display rounding');
 assert.equal(partialRes.subcriteria.road_surface_passability.score, 40);
 assert.equal(partialRes.subcriteria.carriageway_width.score, 50);
-console.log('✅ PASS: Client JS partial calculation: 69.5 / 100 score, 13.9 pts IAI');
+console.log('✅ PASS: Client JS partial calculation: 69.5 / 100 score, 17.375 pts IAI');
 
 // Test Case 3: Missing Width
 const missingRes = evaluateSpatial({

@@ -42,7 +42,21 @@ final class PropertyScreening
         $criteria = $missing = [];
         $total = 0.0;
         $completed = 0;
-        foreach (PropertyAssessmentService::DEFAULT_WEIGHTS as $key => $weight) {
+        $weights = $property['weight_configuration'] ?? PropertyAssessmentService::weights();
+        // A saved assessment keeps its recorded allocation; new previews use the active model.
+        if (!isset($weights['property_cost_market_competitiveness']) && isset($weights['economic_viability'])) {
+            $weights['property_cost_market_competitiveness'] = $weights['economic_viability'];
+        }
+        $weights = array_intersect_key($weights, PropertyAssessmentService::DEFAULT_WEIGHTS);
+        try { PropertyAssessmentService::validateWeights($weights); }
+        catch (\DomainException) {
+            return ['version' => self::VERSION, 'score' => null, 'unrounded_total' => null,
+                'completed_count' => 0, 'total_count' => 5, 'numerically_complete' => false,
+                'is_verified' => false, 'rank_eligible' => false, 'status' => 'review_required',
+                'reason' => 'The saved MCE weight configuration requires review.', 'criteria' => [],
+                'weight_configuration' => $weights, 'formula' => '', 'technical_review_hold' => true];
+        }
+        foreach ($weights as $key => $weight) {
             $result = $evaluations[$key];
             $score = $result['score'] ?? null;
             $valid = is_numeric($score) && is_finite((float) $score) && $score >= 0 && $score <= 100;
@@ -79,7 +93,8 @@ final class PropertyScreening
             'status' => $status, 'reason' => $reason, 'criteria' => $criteria,
             'zoning_status' => $zoning['status'] ?? 'undetermined', 'technical_review_hold' => $hold,
             'business_type' => $parcel['observations']['nearby_screening']['observations']['business_type'] ?? null,
-            'formula' => 'Spatial × 25% + infrastructure × 25% + cost & market × 20% + nearby businesses × 15% + risk × 15%',
+            'weight_configuration' => $weights,
+            'formula' => implode(' + ', array_map(static fn ($key) => self::LABELS[$key] . ' × ' . (float) $weights[$key] . '%', array_keys($weights))),
             'disclaimer' => 'Provisional calculation from saved observations. Final IAI and ranking require authorized evidence verification. Nearby reference counts await city calibration.',
         ];
     }

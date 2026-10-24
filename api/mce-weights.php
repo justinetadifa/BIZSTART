@@ -8,6 +8,7 @@ use App\Support\PropertyAssessmentService;
 api_handle(function (array $container): array {
     $method = request_method();
     $user = sfc_current_user();
+    if (!headers_sent()) { header('Cache-Control: private, no-store, max-age=0'); }
 
     if ($method === 'GET') {
         if ($user === null || (!sfc_can_manage_properties($user) && ($user['role'] ?? '') !== 'admin')) {
@@ -173,16 +174,13 @@ api_handle(function (array $container): array {
             $weights = is_array($input['weights'] ?? null) ? $input['weights'] : [];
             $reason = trim((string) ($input['reason'] ?? ''));
             $sourceReference = trim((string) ($input['source_reference'] ?? ($input['reference'] ?? '')));
-            if ($sourceReference === '') {
-                $sourceReference = 'City Technical Committee (CSFP MCE-CFG Authorized Adjustment)';
-            }
-
             $result = PropertyAssessmentService::applyWeights(
                 $weights,
                 $reason,
                 $sourceReference,
                 $user,
-                $container['pdo'] ?? null
+                $container['pdo'] ?? null,
+                isset($input['expected_version']) ? (string) $input['expected_version'] : null
             );
 
             return [200, $result];
@@ -194,7 +192,8 @@ api_handle(function (array $container): array {
             }
 
             $reason = (string) ($input['reason'] ?? 'Restored approved LOCUS-SF v3.0 baseline weights');
-            $result = PropertyAssessmentService::restoreBaseline($reason, $user, $container['pdo'] ?? null);
+            $result = PropertyAssessmentService::restoreBaseline($reason, $user, $container['pdo'] ?? null,
+                isset($input['expected_version']) ? (string) $input['expected_version'] : null);
 
             return [200, $result];
         }

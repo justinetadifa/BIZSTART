@@ -30,12 +30,14 @@ const sandbox = {window:{},AbortController,URLSearchParams,setTimeout,clearTimeo
 vm.runInNewContext(fs.readFileSync('assets/js/admin-assessment.js','utf8'),sandbox);
 const card = sandbox.window.SFCAutomaticAssessment(form,{apiBase:'/api',dialog});
 const response = assessment => ({ok:true,json:async()=>({assessment})});
-const assessment = (value, complete = true) => ({assessmentMode:'automatic',assessmentComplete:complete,mceScore:value,iaiScore:value,completedCount:complete?7:1,assessmentCriteria:Object.fromEntries(keys.map(key=>[key,value])),criteriaDetails:{spatial_accessibility:{justification:'Calculated from: a verified road geometry',evidence:[{source:'Official local layer',version:'test-v1'}]}},spatialContext:[]});
+const assessment = (value, complete = true) => ({assessmentMode:'automatic_observations',assessmentComplete:complete,mceScore:value,iaiScore:value,completedCount:complete?7:1,assessmentCriteria:Object.fromEntries(keys.map(key=>[key,value])),criteriaDetails:{spatial_accessibility:{justification:'Calculated from: a verified road geometry',evidence:[{source:'Official local layer',version:'test-v1'}]}},spatialContext:[]});
 
 (async()=>{
   card.setProperty({assessmentMode:'legacy_manual',assessmentCriteria:{spatial_accessibility:90}});
   assert.equal(root.children['[data-legacy-assessment]'].hidden,false);
   assert.equal(total.children['[data-total-mce]'].textContent,'—','Legacy values must not appear as automatic scores');
+  card.setProperty(assessment(90));
+  assert.equal(root.children['[data-legacy-assessment]'].hidden,true,'Current observation snapshots must not be labeled legacy');
   const zero = card.refresh(); requests.at(-1).resolve(response(assessment(0))); await zero;
   assert.equal(total.children['[data-total-mce]'].textContent,'0.0');
   assert.equal(cards[0].children['[data-score-value]'].textContent,'0.0%');
@@ -56,6 +58,11 @@ const assessment = (value, complete = true) => ({assessmentMode:'automatic',asse
   dialog.dispatch('close');closedRequest.resolve(response(assessment(100)));await closing;
   assert.equal(total.children['[data-total-mce]'].textContent,'—','Closing the editor must invalidate an outstanding preview');
   assert(closedRequest.options.signal.aborted);
+  const compatible=card.refresh(true);requests.at(-1).resolve(response({...assessment(76),assessmentMode:'automatic'}));await compatible;
+  assert.equal(total.children['[data-total-mce]'].textContent,'76.0','The earlier automatic preview contract remains supported');
+  const unsupported=card.refresh(true);requests.at(-1).resolve(response({...assessment(100),assessmentMode:'legacy_manual'}));await unsupported;
+  assert.equal(total.children['[data-total-mce]'].textContent,'—','Manual snapshots cannot be accepted as automatic preview responses');
+  assert(root.children['[data-assessment-status]'].textContent.includes('did not return an automatic assessment'));
   const php=fs.readFileSync('app/Support/property-wizard-view.php','utf8');
   const start=php.indexOf('data-automatic-assessment>');const end=php.indexOf('data-assessment-method',start);
   assert(start>=0 && end>start,'The rendered wizard must contain the automatic scorecard');

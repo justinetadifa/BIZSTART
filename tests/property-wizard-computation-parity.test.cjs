@@ -12,6 +12,8 @@ function evaluate(name, input, mappedArea = 0) {
   const end = source.indexOf('\n    }', start + 1) + 6;
   assert(start >= 0 && end > start, `Find production function ${name}`);
   const context = {
+    mceModel: require('../assets/js/mce-active-weights.js').create(),
+    mceWeight: key => require('../assets/js/mce-active-weights.js').create().weight(key),
     value: key => input[key] == null ? '' : String(input[key]),
     getListingPurpose: () => input.listing_purpose || 'sale',
     enteredAreaSqm: () => input.land_area ?? null,

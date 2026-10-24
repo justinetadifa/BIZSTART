@@ -387,6 +387,14 @@ final class PropertyAssessmentService
     ];
 
     private static ?array $cachedConfig = null;
+    private static ?PDO $configuredDatabase = null;
+
+    /** Bind the application's authoritative store for all evaluation entry points. */
+    public static function configureDatabase(?PDO $pdo): void
+    {
+        self::$configuredDatabase = $pdo;
+        self::clearConfigCache();
+    }
 
     /**
      * Retrieve active criteria configuration from database or static fallback.
@@ -394,9 +402,7 @@ final class PropertyAssessmentService
      */
     public static function getCriteriaConfig(?PDO $pdo = null, bool $forceRefresh = false): array
     {
-        if ($pdo === null && self::$cachedConfig !== null && !$forceRefresh) {
-            return self::$cachedConfig;
-        }
+        $pdo ??= self::$configuredDatabase;
 
         $config = self::DEFAULT_CRITERIA_CONFIG;
 
@@ -431,8 +437,12 @@ final class PropertyAssessmentService
                         $config = array_merge($config, $loaded);
                     }
                 }
-            } catch (Throwable) {
-                // Fall back to default criteria configuration
+            } catch (Throwable $error) {
+                // Uninitialized PDO doubles are used by pure observation tests.
+                // A configured application must never quietly evaluate with stale defaults.
+                if ($pdo === self::$configuredDatabase) { throw $error; }
+                try { $pdo->getAttribute(PDO::ATTR_DRIVER_NAME); } catch (\Error) { return $config; }
+                throw $error;
             }
         }
 
@@ -442,7 +452,7 @@ final class PropertyAssessmentService
                 try {
                     $cachedData = json_decode((string) file_get_contents($cacheFile), true);
                     if (is_array($cachedData) && !empty($cachedData['weights'])) {
-                        foreach ($cachedData['weights'] as $cKey => $cWeight) {
+                        foreach (self::validateAdjustableWeights($cachedData['weights']) as $cKey => $cWeight) {
                             if (isset($config[$cKey])) {
                                 $config[$cKey]['weight'] = (float) $cWeight;
                             }
@@ -462,7 +472,6 @@ final class PropertyAssessmentService
         }
         self::validateWeights($activeWeights);
 
-        if ($pdo === null) { self::$cachedConfig = $config; }
         return $config;
     }
 
@@ -629,30 +638,41 @@ final class PropertyAssessmentService
 
         foreach ($weights as $key => $val) {
             if ($key === 'zoning_compatibility') {
-                if ((float) $val !== 0.0) {
+                if (is_bool($val) || !is_numeric($val) || (float) $val !== 0.0) {
                     throw new DomainException("CLUP Zoning Compatibility is a non-compensatory eligibility gate and must remain at 0.0% weight in the 5-criterion MCE model.");
                 }
                 continue;
             }
             if ($key === 'environmental_safety' || $key === 'economic_viability') {
+                if ($key === 'economic_viability' && is_numeric($val) && (float) $val === (float) $weights['property_cost_market_competitiveness']) { continue; }
+                if (is_bool($val) || !is_numeric($val) || (float) $val !== 0.0) {
+                    throw new DomainException("Inactive or duplicate criterion '{$key}' cannot carry an additional weight.");
+                }
                 continue;
+            }
+
+            if (!in_array($key, $requiredKeys, true)) {
+                throw new DomainException("Unknown MCE criterion '{$key}'.");
             }
 
             if (is_bool($val) || !is_numeric($val) || !is_finite((float) $val)) {
                 throw new DomainException("Weight for '{$key}' must be a finite, numeric value.");
             }
-            $floatVal = round((float) $val, 2);
+            $floatVal = (float) $val;
+            if (abs($floatVal - round($floatVal, 2)) > 0.000000001) {
+                throw new DomainException("Weight for '{$key}' must have at most two decimal places.");
+            }
             if ($floatVal < 5.0) {
                 throw new DomainException("Criterion '{$key}' weight ({$floatVal}%) is below the minimum permitted threshold of 5.0%.");
             }
             if ($floatVal > 60.0) {
                 throw new DomainException("Criterion '{$key}' weight ({$floatVal}%) exceeds the maximum permitted threshold of 60.0%.");
             }
-            $sanitized[$key] = $floatVal;
+            $sanitized[$key] = round($floatVal, 2);
         }
 
         $sum = array_sum($sanitized);
-        if (abs($sum - 100.0) > 0.01) {
+        if (abs($sum - 100.0) > self::WEIGHT_TOLERANCE) {
             throw new DomainException(sprintf("Active MCE criteria weights must sum to exactly 100.00%%. Current total: %.2f%%.", $sum));
         }
 
@@ -720,201 +740,112 @@ final class PropertyAssessmentService
     /**
      * Apply and persist an authorized MCE weight configuration.
      */
-    public static function applyWeights(array $weights, string $reason, string $sourceReference, ?array $actor = null, ?PDO $pdo = null): array
+    public static function applyWeights(array $weights, string $reason, string $sourceReference, ?array $actor = null, ?PDO $pdo = null, ?string $expectedVersion = null): array
     {
-        $sanitizedWeights = self::validateAdjustableWeights($weights);
-
-        $cleanReason = trim($reason);
-        if (strlen($cleanReason) < 8) {
-            throw new DomainException('A documented reason for adjusting MCE weights is required (minimum 8 characters).');
-        }
-
-        $cleanSource = trim($sourceReference);
-        if (strlen($cleanSource) < 5) {
-            throw new DomainException('A valid source or consultation reference is required (minimum 5 characters).');
-        }
-
-        $previousWeights = self::weights($pdo);
-        $versionId = 'MCE-CFG-' . gmdate('Ymd-His') . '-' . substr(bin2hex(random_bytes(3)), 0, 6);
-        $validationStatus = self::WEIGHT_STATUS_PROVISIONAL;
-        $timestamp = gmdate(DATE_ATOM);
-
-        if ($pdo instanceof PDO) {
-            try {
-                $stmt = $pdo->prepare(
-                    'UPDATE criteria_config
-                     SET weight = :weight, source_reference = :source_reference, validation_status = :validation_status
-                     WHERE criterion_key = :key'
-                );
-                foreach ($sanitizedWeights as $key => $weight) {
-                    $stmt->execute([
-                        'weight' => $weight,
-                        'source_reference' => $cleanSource,
-                        'validation_status' => $validationStatus,
-                        'key' => $key,
-                    ]);
-                }
-            } catch (Throwable) {}
-        }
-
-        $cacheDir = dirname(__DIR__, 2) . '/data/cache';
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0777, true);
-        }
-        $cacheFile = $cacheDir . '/mce_active_weights.json';
-        $payload = [
-            'version' => $versionId,
-            'applied_at' => $timestamp,
-            'weights' => $sanitizedWeights,
-            'reason' => $cleanReason,
-            'source_reference' => $cleanSource,
-            'validation_status' => $validationStatus,
-            'actor' => $actor ? ($actor['name'] ?? "User #{$actor['id']}") : 'CICTO Administrator',
-        ];
-        @file_put_contents($cacheFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        $historyFile = $cacheDir . '/mce_weights_history.json';
-        $history = [];
-        if (is_file($historyFile)) {
-            $history = json_decode((string) file_get_contents($historyFile), true) ?: [];
-        }
-        array_unshift($history, [
-            'id' => time(),
-            'timestamp' => $timestamp,
-            'actor_name' => $actor['name'] ?? 'CICTO Administrator',
-            'version' => $versionId,
-            'reason' => $cleanReason,
-            'source_reference' => $cleanSource,
-            'is_baseline' => false,
-            'weights' => $sanitizedWeights,
-        ]);
-        @file_put_contents($historyFile, json_encode(array_slice($history, 0, 30), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        if ($pdo instanceof PDO) {
-            try {
-                $auditStmt = $pdo->prepare(
-                    "INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata)
-                     VALUES (:actor_id, 'EDIT', 'MCE_CONFIG', 0, :metadata)"
-                );
-                $auditStmt->execute([
-                    'actor_id' => $actor['id'] ?? null,
-                    'metadata' => json_encode([
-                        'eventType' => 'MCE_WEIGHT_ADJUSTMENT',
-                        'versionId' => $versionId,
-                        'reason' => $cleanReason,
-                        'sourceReference' => $cleanSource,
-                        'validationStatus' => $validationStatus,
-                        'previousWeights' => $previousWeights,
-                        'newWeights' => $sanitizedWeights,
-                        'actorName' => $actor['name'] ?? 'CICTO Administrator',
-                        'timestamp' => $timestamp,
-                        'isBaseline' => false,
-                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                ]);
-            } catch (Throwable) {}
-        }
-
-        self::clearConfigCache();
-
-        return [
-            'ok' => true,
-            'version' => $versionId,
-            'applied_at' => $timestamp,
-            'weights' => $sanitizedWeights,
-            'previous_weights' => $previousWeights,
-            'reason' => $cleanReason,
-            'source_reference' => $cleanSource,
-            'validation_status' => $validationStatus,
-        ];
+        return self::persistWeights($weights, $reason, $sourceReference, $actor, $pdo, false, $expectedVersion);
     }
 
-    /**
-     * Restore the official baseline configuration.
-     */
-    public static function restoreBaseline(string $reason = 'Restored approved LOCUS-SF v3.0 baseline weights', ?array $actor = null, ?PDO $pdo = null): array
+    public static function restoreBaseline(string $reason = 'Restored approved LOCUS-SF v3.0 baseline weights', ?array $actor = null, ?PDO $pdo = null, ?string $expectedVersion = null): array
     {
-        $baseline = self::baselineWeights();
-        $cleanReason = trim($reason) ?: 'Restored approved LOCUS-SF v3.0 baseline weights';
-        $sourceReference = 'San Fernando City LOCUS-SF MCE v3.0 Methodological Baseline Specification';
+        return self::persistWeights(self::baselineWeights(), trim($reason) ?: 'Restored approved LOCUS-SF v3.0 baseline weights',
+            'San Fernando City LOCUS-SF MCE v3.0 Methodological Baseline Specification', $actor, $pdo, true, $expectedVersion);
+    }
 
-        $versionId = 'MCE-CFG-BASELINE-' . gmdate('Ymd-His');
+    /** A successful response means both the allocation and its audit record were committed. */
+    private static function persistWeights(array $weights, string $reason, string $sourceReference, ?array $actor, ?PDO $pdo, bool $isBaseline, ?string $expectedVersion): array
+    {
+        $weights = self::validateAdjustableWeights($weights);
+        $reason = trim($reason);
+        $sourceReference = trim($sourceReference);
+        if (strlen($reason) < 8) {
+            throw new DomainException('A documented reason for adjusting MCE weights is required (minimum 8 characters).');
+        }
+        if (strlen($sourceReference) < 5 || strlen($sourceReference) > 255) {
+            throw new DomainException('A valid source or consultation reference is required (5 to 255 characters).');
+        }
+        $pdo ??= self::$configuredDatabase;
+        $version = 'MCE-CFG-' . ($isBaseline ? 'BASELINE-' : '') . gmdate('Ymd-His') . '-' . bin2hex(random_bytes(3));
         $timestamp = gmdate(DATE_ATOM);
-
-        if ($pdo instanceof PDO) {
-            try {
-                $stmt = $pdo->prepare(
-                    'UPDATE criteria_config
-                     SET weight = :weight, source_reference = :source_reference, validation_status = :validation_status
-                     WHERE criterion_key = :key'
-                );
-                foreach ($baseline as $key => $weight) {
-                    $defaultMeta = self::DEFAULT_CRITERIA_CONFIG[$key] ?? [];
-                    $stmt->execute([
-                        'weight' => $weight,
-                        'source_reference' => $defaultMeta['source_reference'] ?? $sourceReference,
-                        'validation_status' => self::WEIGHT_STATUS_PROVISIONAL,
-                        'key' => $key,
-                    ]);
-                }
-            } catch (Throwable) {}
-        }
-
-        $cacheDir = dirname(__DIR__, 2) . '/data/cache';
-        $cacheFile = $cacheDir . '/mce_active_weights.json';
-        if (is_file($cacheFile)) {
-            @unlink($cacheFile);
-        }
-
-        $historyFile = $cacheDir . '/mce_weights_history.json';
-        $history = [];
-        if (is_file($historyFile)) {
-            $history = json_decode((string) file_get_contents($historyFile), true) ?: [];
-        }
-        array_unshift($history, [
-            'id' => time(),
-            'timestamp' => $timestamp,
-            'actor_name' => $actor['name'] ?? 'CICTO Administrator',
-            'version' => $versionId,
-            'reason' => $cleanReason,
-            'source_reference' => $sourceReference,
-            'is_baseline' => true,
-            'weights' => $baseline,
-        ]);
-        @file_put_contents($historyFile, json_encode(array_slice($history, 0, 30), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-        if ($pdo instanceof PDO) {
-            try {
-                $auditStmt = $pdo->prepare(
-                    "INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata)
-                     VALUES (:actor_id, 'EDIT', 'MCE_CONFIG', 0, :metadata)"
-                );
-                $auditStmt->execute([
-                    'actor_id' => $actor['id'] ?? null,
-                    'metadata' => json_encode([
-                        'eventType' => 'MCE_WEIGHT_ADJUSTMENT',
-                        'versionId' => $versionId,
-                        'reason' => $cleanReason,
-                        'sourceReference' => $sourceReference,
-                        'validationStatus' => self::WEIGHT_STATUS_PROVISIONAL,
-                        'newWeights' => $baseline,
-                        'actorName' => $actor['name'] ?? 'CICTO Administrator',
-                        'timestamp' => $timestamp,
-                        'isBaseline' => true,
-                    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                ]);
-            } catch (Throwable) {}
-        }
-
-        self::clearConfigCache();
-
-        return [
-            'ok' => true,
-            'version' => $versionId,
-            'applied_at' => $timestamp,
-            'weights' => $baseline,
-            'reason' => $cleanReason,
-            'is_baseline' => true,
+        $actorName = $actor['name'] ?? 'CICTO Administrator';
+        $previousWeights = self::weights($pdo);
+        $payload = [
+            'version' => $version, 'applied_at' => $timestamp, 'weights' => $weights,
+            'reason' => $reason, 'source_reference' => $sourceReference,
+            'validation_status' => self::WEIGHT_STATUS_PROVISIONAL, 'actor' => $actorName,
+            'is_baseline' => $isBaseline,
         ];
+        if ($pdo instanceof PDO) {
+            if ($pdo->inTransaction()) {
+                throw new \RuntimeException('Apply MCE weights outside an existing transaction.');
+            }
+            $pdo->beginTransaction();
+            try {
+                $lockSuffix = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+                $rows = $pdo->query('SELECT criterion_key FROM criteria_config ORDER BY criterion_key' . $lockSuffix)->fetchAll(PDO::FETCH_COLUMN);
+                foreach (array_keys($weights) as $key) {
+                    if (!in_array($key, $rows, true)) {
+                        throw new \RuntimeException("MCE configuration is missing '{$key}'. Run the schema migration before applying weights.");
+                    }
+                }
+                $previousWeights = self::weights($pdo);
+                if ($expectedVersion !== null && $expectedVersion !== self::publicWeightConfiguration($pdo)['version']) {
+                    throw new DomainException('The active MCE configuration changed. Reload the latest weights before applying your changes.');
+                }
+                $stmt = $pdo->prepare('UPDATE criteria_config SET weight = :weight, is_active = 1, is_required = 1, source_reference = :source_reference, validation_status = :validation_status WHERE criterion_key = :key');
+                foreach ($weights as $key => $weight) {
+                    $stmt->execute(['weight' => $weight, 'source_reference' => $sourceReference,
+                        'validation_status' => self::WEIGHT_STATUS_PROVISIONAL, 'key' => $key]);
+                }
+                $pdo->exec("UPDATE criteria_config SET weight = 0, is_active = 0 WHERE criterion_key IN ('zoning_compatibility', 'economic_viability', 'environmental_safety')");
+                $audit = $pdo->prepare("INSERT INTO audit_logs (actor_id, action_type, entity_type, entity_id, metadata) VALUES (:actor_id, 'EDIT', 'MCE_CONFIG', 0, :metadata)");
+                $audit->execute(['actor_id' => $actor['id'] ?? null, 'metadata' => json_encode([
+                    'eventType' => 'MCE_WEIGHT_ADJUSTMENT', 'versionId' => $version, 'reason' => $reason,
+                    'sourceReference' => $sourceReference, 'validationStatus' => self::WEIGHT_STATUS_PROVISIONAL,
+                    'previousWeights' => $previousWeights, 'newWeights' => $weights,
+                    'actorName' => $actorName, 'timestamp' => $timestamp, 'isBaseline' => $isBaseline,
+                ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)]);
+                $pdo->commit();
+            } catch (Throwable $error) {
+                if ($pdo->inTransaction()) { $pdo->rollBack(); }
+                throw $error;
+            }
+        } else {
+            // Standalone/offline use has one atomic snapshot containing the complete history.
+            $directory = dirname(__DIR__, 2) . '/data/cache';
+            if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+                throw new \RuntimeException('Unable to create the MCE configuration directory.');
+            }
+            $lock = fopen($directory . '/mce_weights.lock', 'c');
+            if ($lock === false || !flock($lock, LOCK_EX)) {
+                throw new \RuntimeException('Unable to lock MCE configuration storage.');
+            }
+            $temporary = null;
+            try {
+                $file = $directory . '/mce_active_weights.json';
+                $previous = is_file($file) ? json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR) : [];
+                if ($expectedVersion !== null && $expectedVersion !== ($previous['version'] ?? 'LOCUS-SF-MCE-v3.0-Baseline')) {
+                    throw new DomainException('The active MCE configuration changed. Reload the latest weights before applying your changes.');
+                }
+                $previousWeights = $previous['weights'] ?? self::baselineWeights();
+                $history = $previous['history'] ?? [];
+                array_unshift($history, [
+                    'id' => $version, 'timestamp' => $timestamp, 'actor_name' => $actorName, 'version' => $version,
+                    'reason' => $reason, 'source_reference' => $sourceReference, 'is_baseline' => $isBaseline, 'weights' => $weights,
+                ]);
+                $payload['history'] = array_slice($history, 0, 30);
+                $temporary = tempnam($directory, 'mce-');
+                if ($temporary === false || file_put_contents($temporary, json_encode($payload, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) === false
+                    || !rename($temporary, $file)) {
+                    throw new \RuntimeException('Unable to persist MCE weights. No changes were applied.');
+                }
+            } finally {
+                if (is_string($temporary) && is_file($temporary)) { unlink($temporary); }
+                flock($lock, LOCK_UN);
+                fclose($lock);
+            }
+        }
+        self::clearConfigCache();
+        return ['ok' => true] + $payload + ['previous_weights' => $previousWeights];
     }
 
     /**
@@ -922,6 +853,7 @@ final class PropertyAssessmentService
      */
     public static function getWeightConfigurationDetails(?PDO $pdo = null): array
     {
+        $pdo ??= self::$configuredDatabase;
         $config = self::getCriteriaConfig($pdo);
         $activeWeights = [];
         $criteriaMeta = [];
@@ -941,21 +873,23 @@ final class PropertyAssessmentService
             }
         }
 
-        $version = 'LOCUS-SF-MCE-v3.0-Baseline';
+        $version = $activeWeights === self::baselineWeights() ? 'LOCUS-SF-MCE-v3.0-Baseline'
+            : 'MCE-CFG-' . substr(hash('sha256', json_encode($activeWeights)), 0, 12);
         $cacheFile = dirname(__DIR__, 2) . '/data/cache/mce_active_weights.json';
         $historyFile = dirname(__DIR__, 2) . '/data/cache/mce_weights_history.json';
         $cachedHistory = [];
 
-        if (is_file($cacheFile)) {
+        if ($pdo === null && is_file($cacheFile)) {
             try {
                 $cached = json_decode((string) file_get_contents($cacheFile), true);
                 if (!empty($cached['version'])) {
                     $version = (string) $cached['version'];
                 }
+                $cachedHistory = is_array($cached['history'] ?? null) ? $cached['history'] : [];
             } catch (Throwable) {}
         }
 
-        if (is_file($historyFile)) {
+        if ($pdo === null && !$cachedHistory && is_file($historyFile)) {
             try {
                 $cachedHistory = json_decode((string) file_get_contents($historyFile), true) ?: [];
             } catch (Throwable) {}
@@ -965,10 +899,9 @@ final class PropertyAssessmentService
         if ($pdo instanceof PDO) {
             try {
                 $stmt = $pdo->prepare(
-                    "SELECT l.id, l.actor_id, l.created_at, l.metadata, u.name AS actor_name, u.email AS actor_email
+                    "SELECT l.id, l.actor_id, l.created_at, l.metadata
                      FROM audit_logs l
-                     LEFT JOIN users u ON u.id = l.actor_id
-                     WHERE l.entity_type = 'MCE_CONFIG' OR JSON_UNQUOTE(JSON_EXTRACT(l.metadata, '$.eventType')) = 'MCE_WEIGHT_ADJUSTMENT'
+                     WHERE l.entity_type = 'MCE_CONFIG'
                      ORDER BY l.id DESC LIMIT 10"
                 );
                 $stmt->execute();
@@ -986,6 +919,9 @@ final class PropertyAssessmentService
                         'weights' => $meta['newWeights'] ?? [],
                     ];
                 }
+                if (!empty($dbHistory) && $dbHistory[0]['weights'] == $activeWeights) {
+                    $version = (string) $dbHistory[0]['version'];
+                }
             } catch (Throwable) {}
         }
 
@@ -1001,8 +937,15 @@ final class PropertyAssessmentService
             'discrepancy' => self::discrepancyNote(),
             'history' => $history,
             'permitted_weight_range' => ['min' => 5.0, 'max' => 60.0],
-            'rounding_tolerance' => 0.01,
+            'rounding_tolerance' => self::WEIGHT_TOLERANCE,
         ];
+    }
+
+    /** Minimal configuration for listing forms; excludes audit details and staff identity. */
+    public static function publicWeightConfiguration(?PDO $pdo = null): array
+    {
+        $details = self::getWeightConfigurationDetails($pdo);
+        return ['weights' => $details['active_weights'], 'version' => $details['current_version']];
     }
 
     /**
@@ -1013,91 +956,26 @@ final class PropertyAssessmentService
         if ($propertyId <= 0) {
             throw new InvalidArgumentException('A valid property ID is required for assessment recalculation.');
         }
-
-        $container = function_exists('sfc_app_container') ? sfc_app_container() : null;
-        $repo = $container['properties'] ?? null;
-        $pdoInstance = $pdo ?? ($container['pdo'] ?? null);
-
-        $property = null;
-        if ($repo !== null) {
-            $property = $repo->find($propertyId, $actor);
-        } elseif ($pdoInstance instanceof PDO) {
-            $stmt = $pdoInstance->prepare('SELECT * FROM properties WHERE id = :id');
-            $stmt->execute(['id' => $propertyId]);
-            $property = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        $pdo ??= self::$configuredDatabase;
+        if (!$pdo instanceof PDO) {
+            throw new \RuntimeException('A database connection is required to recalculate a saved property.');
         }
-
-        if (!$property) {
-            throw new DomainException("Property #{$propertyId} not found.");
-        }
-
-        $previousAssessment = $property['assessment'] ?? $property['assessment_json'] ?? null;
-        if (is_string($previousAssessment)) {
-            $previousAssessment = json_decode($previousAssessment, true) ?: null;
-        }
-
-        $criteria = $previousAssessment['assessmentCriteria'] ?? $previousAssessment['criteria'] ?? $property['criteria'] ?? [];
-        if (empty($criteria) && !empty($property['criteriaDetails'])) {
-            foreach ($property['criteriaDetails'] as $k => $det) {
-                if (isset($det['score']) && is_numeric($det['score'])) {
-                    $criteria[$k] = (float) $det['score'];
-                }
-            }
-        }
-
-        $activeWeights = self::weights($pdoInstance);
-        $configDetails = self::getWeightConfigurationDetails($pdoInstance);
-        $configVersion = $configDetails['current_version'] ?? 'LOCUS-SF-MCE-v3.0';
-
-        $recalcResult = self::evaluate($criteria, [
-            'weights' => $activeWeights,
-            'pdo' => $pdoInstance,
-            'property_id' => $propertyId,
-            'allow_scalar_completion' => true,
-        ]);
-
-        $snapshot = [
-            'recalculated_at' => gmdate(DATE_ATOM),
-            'recalculated_by' => $actor ? ($actor['name'] ?? "User #{$actor['id']}") : 'System Administrator',
-            'configuration_version' => $configVersion,
-            'weights_applied' => $activeWeights,
-            'recalculated_assessment' => $recalcResult,
-            'historical_snapshot' => $previousAssessment ? [
-                'archived_at' => gmdate(DATE_ATOM),
-                'assessment' => $previousAssessment,
-            ] : null,
-        ];
-
-        if ($pdoInstance instanceof PDO) {
-            try {
-                $updStmt = $pdoInstance->prepare('UPDATE properties SET assessment_json = :json WHERE id = :id');
-                $updStmt->execute([
-                    'json' => json_encode($snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                    'id' => $propertyId,
-                ]);
-
-                if (isset($container['auditLogs'])) {
-                    $container['auditLogs']->record($actor['id'] ?? null, 'CALCULATE', 'PROPERTY', $propertyId, [
-                        'eventType' => 'MCE_RECALCULATION',
-                        'configVersion' => $configVersion,
-                        'weightsApplied' => $activeWeights,
-                        'newIai' => $recalcResult['displayed_iai'] ?? null,
-                    ]);
-                }
-            } catch (Throwable) {}
-        }
-
+        require_once dirname(__DIR__) . '/Repositories/PropertyRepository.php';
+        require_once dirname(__DIR__) . '/Repositories/AuditLogRepository.php';
+        $repository = new \App\Repositories\PropertyRepository($pdo, new \App\Repositories\AuditLogRepository($pdo));
+        // The normal save path re-evaluates trusted observations, keeps evidence gates,
+        // archives the previous metadata, and writes all assessment columns together.
+        $property = $repository->update($propertyId, ['recalculate_assessment' => true], $actor);
         return [
-            'ok' => true,
-            'property_id' => $propertyId,
-            'recalculated_at' => $snapshot['recalculated_at'],
-            'recalculated_by' => $snapshot['recalculated_by'],
-            'configuration_version' => $configVersion,
-            'weights_applied' => $activeWeights,
-            'displayed_iai' => $recalcResult['displayed_iai'] ?? null,
-            'unrounded_total' => $recalcResult['unrounded_total'] ?? null,
-            'previous_snapshot_preserved' => $snapshot['historical_snapshot'] !== null,
-            'result' => $recalcResult,
+            'ok' => true, 'property_id' => $propertyId,
+            'recalculated_at' => $property['assessed_at'] ?? gmdate(DATE_ATOM),
+            'recalculated_by' => $actor['name'] ?? 'City Administrator',
+            'configuration_version' => $property['configuration_version'] ?? self::publicWeightConfiguration($pdo)['version'],
+            'weights_applied' => $property['weight_configuration'] ?? [],
+            'displayed_iai' => $property['displayed_iai'] ?? null,
+            'unrounded_total' => $property['unrounded_total'] ?? null,
+            'previous_snapshot_preserved' => !empty($property['legacyAssessment']['snapshots']),
+            'result' => $property,
         ];
     }
 

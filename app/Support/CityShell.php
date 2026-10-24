@@ -23,6 +23,12 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
         'policy' => (require dirname(__DIR__) . '/config.php')['policy'],
         'barangays' => \App\Support\PropertyCatalog::barangays(),
     ];
+    if (in_array($page, ['admin-workspace', 'broker-workspace'], true)) {
+        require_once __DIR__ . '/PropertyAssessmentService.php';
+        $weightConfiguration = \App\Support\PropertyAssessmentService::publicWeightConfiguration();
+        $config['mceWeights'] = $weightConfiguration['weights'];
+        $config['mceVersion'] = $weightConfiguration['version'];
+    }
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     $legacy = (!str_starts_with($page, 'city-') || $page === 'city-pipeline') && !in_array($page, ['broker-workspace', 'admin-workspace', 'admin-listings', 'profile', 'investor-login', 'seller-login', 'admin-login'], true);
     $GLOBALS['sfc_legacy_page'] = $legacy;
@@ -36,6 +42,9 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <base href="<?= $e(($context['basePath'] ?: '') . '/') ?>">
   <link rel="icon" href="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png">
   <script>window.SFC_APP_CONFIG = <?= json_encode($config, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;</script>
+  <?php if (in_array($page, ['admin-workspace', 'broker-workspace'], true)): ?>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/mce-active-weights.js<?= sfc_asset_version('js/mce-active-weights.js') ?>"></script>
+  <?php endif; ?>
   <script src="<?= $e($context['assetBase']) ?>/js/investor-view.js<?= sfc_asset_version('js/investor-view.js') ?>"></script>
   <?php if ($legacy): ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/portal.css">

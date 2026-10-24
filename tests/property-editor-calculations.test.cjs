@@ -21,7 +21,7 @@ function browserRisk(findings) {
     if(!nodes.has(selector))nodes.set(selector,{hidden:true,textContent:'',className:'',innerHTML:'',style:{},dataset:{}});
     return nodes.get(selector);
   };
-  const context=vm.createContext({window:{},boundary:null,context:null,point:()=>null,withinCityCoverage:()=>false,
+  const context=vm.createContext({mceWeight:key=>require('../assets/js/mce-active-weights.js').create().weight(key),window:{},boundary:null,context:null,point:()=>null,withinCityCoverage:()=>false,
     $:node,all:selector=>selector==='[data-finding-hazard]'||selector==='.pw-finding-input'?inputs:[],
     setText:(selector,text)=>{node(selector).textContent=String(text);},escape:String,HAZARD_CONFIG:config});
   vm.runInContext(source.slice(fnStart,fnEnd)+';assessHazards();',context);

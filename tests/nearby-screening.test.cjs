@@ -28,7 +28,7 @@ check(tools.nearbyScreening(empty,reference,'cafe').score,null,'Empty scan stays
 // Run the production context resolver against both freshly scanned and reopened observations.
 const source = fs.readFileSync('assets/js/property-wizard.js', 'utf8');
 const fields = {reference_label:'location',lat:String(reference[0]),lng:String(reference[1]),radar_business_type:'cafe',nearby_screening:JSON.stringify(record)};
-const context = vm.createContext({window:{SFCPropertyEditorTools:tools},boundary:null,radarData:null,
+const context = vm.createContext({mceWeight:key=>require('../assets/js/mce-active-weights.js').create().weight(key),window:{SFCPropertyEditorTools:tools},boundary:null,radarData:null,
   value:name=>fields[name] || '',point:(lat='lat',lng='lng')=>fields[lat]&&fields[lng]?[Number(fields[lat]),Number(fields[lng])]:null});
 vm.runInContext(source.slice(source.indexOf('    function nearbyReferencePoint()'),source.indexOf('    function classify(feature)')),context);
 check(context.currentNearbyEvaluation().score,92.5,'Reopening restores the saved provisional preview before any scan');

@@ -260,6 +260,49 @@
     const value = name => field(name)?.value || '';
     const setText = (selector, text) => all(selector).forEach(node => { node.textContent = text; });
 
+    const mceModel = window.SFCMceWeights.create({weights:window.SFC_APP_CONFIG?.mceWeights, version:window.SFC_APP_CONFIG?.mceVersion});
+    const mceWeight = key => mceModel.weight(key);
+    const mceFactor = key => String(mceWeight(key) / 100);
+    let mceRevision = 0;
+    let mceController = null;
+    function mceSyncStatus(message, state = 'loading') {
+      all('[data-mce-sync-status]').forEach(node => { node.hidden = false; node.textContent = message; node.dataset.state = state; });
+    }
+    function renderMceLabels() {
+      all('[data-mce-weight-label]').forEach(node => {
+        const weight = mceWeight(node.dataset.mceWeightLabel);
+        if (weight !== undefined) node.textContent = (node.dataset.mceWeightLabelFormat || '{weight}% of MCE').replaceAll('{weight}', number(weight)).replaceAll('{factor}', String(weight / 100));
+      });
+      setText('[data-mce-active-model-label]', mceModel.version || 'Five-criterion MCE');
+    }
+    function updateMceConfiguration(configuration) {
+      if (!mceModel.update(configuration)) return false;
+      window.SFC_APP_CONFIG.mceWeights = mceModel.weights;
+      window.SFC_APP_CONFIG.mceVersion = mceModel.version;
+      renderMceLabels();
+      mceSyncStatus('Current saved weights · applied to new assessments', 'current');
+      syncSpatialAccessibility(); syncInfrastructureReadiness(); syncEconomicViability();
+      assessHazards(); syncNearbyAssessment(); preview();
+      assessment?.refresh(true);
+      return true;
+    }
+    async function refreshMceConfiguration() {
+      mceController?.abort();
+      const controller = new AbortController();
+      mceController = controller;
+      const request = ++mceRevision;
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      mceSyncStatus('Checking current saved weights…');
+      try {
+        const response = await fetch(`${apiBase}/mce-configuration.php`, {credentials:'same-origin', cache:'no-store', headers:{Accept:'application/json'}, signal:controller.signal});
+        const payload = await response.json();
+        if (request !== mceRevision) return;
+        if (!response.ok || !updateMceConfiguration(payload)) throw new Error('Current weights are unavailable.');
+      } catch (error) {
+        if (request === mceRevision) mceSyncStatus('Could not refresh weights. Preview may be outdated; saving uses the current server model.', 'error');
+      } finally { clearTimeout(timeout); }
+    }
+
     let isLegacyZeroSale = false;
     let isLegacyZeroLease = false;
     let propertyApprovalState = 'draft';
@@ -1085,7 +1128,7 @@
       const totalScore = isComplete
         ? Math.round(((accessScore * 0.30) + (surfaceScore * 0.25) + (widthScore * 0.25) + (distScore * 0.20)) * 10) / 10
         : null;
-      const iaiContribution = isComplete ? Math.round((totalScore * 0.20) * 100) / 100 : null;
+      const iaiContribution = isComplete ? totalScore * mceWeight('spatial_accessibility') / 100 : null;
 
       return {
         access: { score: accessScore, label: accessLabel, weighted: accessScore !== null ? accessScore * 0.30 : null },
@@ -1326,7 +1369,7 @@
       const totalScore = isComplete
         ? Math.round(((elecScore * 0.35) + (waterScore * 0.30) + (netScore * 0.20) + (drainScore * 0.15)) * 10) / 10
         : null;
-      const iaiContribution = isComplete ? Math.round((totalScore * 0.20) * 100) / 100 : null;
+      const iaiContribution = isComplete ? totalScore * mceWeight('infrastructure_readiness') / 100 : null;
 
       const crossCriteria = {};
       if (elecVal === 'generator_only') {
@@ -1717,7 +1760,7 @@
             : 'Deeply discounted asking price (>20% below market benchmark); title & encumbrance review required.';
         }
         isComplete = true;
-        iaiContribution = Math.round((totalScore * 0.20) * 100) / 100;
+        iaiContribution = totalScore * mceWeight('economic_viability') / 100;
         statusLabel = 'Preliminary Calculated';
       }
 
@@ -2013,7 +2056,7 @@
         ? `(${currency(activeRate)} ÷ ${currency(res.activeBenchmark)} − 1) × 100 = ${res.activeDiffPct.toFixed(2)}%`
         : activeRate !== null ? `Your rate is ${currency(activeRate)}/m²${activeRateIsLease ? '/month' : ''}.` : 'Your rate and a similar property’s rate are needed.');
       setText('[data-economic-live-score]', res.score !== null ? `${number(res.score)}/100` : '—');
-      setText('[data-economic-live-contribution]', res.iaiContribution !== null ? `+${res.iaiContribution.toFixed(2)} of 20 points` : 'Up to 20 points');
+      setText('[data-economic-live-contribution]', res.iaiContribution !== null ? `+${res.iaiContribution.toFixed(2)} of ${number(mceWeight('economic_viability'))} points` : `Up to ${number(mceWeight('economic_viability'))} points`);
       setText('[data-economic-live-next]', blocker?.message || 'Included in your provisional assessment. City verification is separate.');
       const fix = $('[data-economic-live-result] [data-economic-fix]');
       if (fix) { fix.hidden = !blocker; fix.textContent = blocker?.action || 'Review inputs'; }
@@ -3326,13 +3369,7 @@
     }
 
     function calculateWizardCompositeMce(criteriaScores) {
-      const weights = {
-        spatial_accessibility: 25,
-        infrastructure_readiness: 25,
-        property_cost_market_competitiveness: 20,
-        nearby_businesses: 15,
-        risk_constraints: 15
-      };
+      const weights = mceModel.weights;
       let total = 0;
       let completedCount = 0;
       const breakdown = {};
@@ -3479,7 +3516,7 @@
       const compositeStatusEl = $('[data-review-composite-status]');
       const compositeDescEl = $('[data-review-composite-desc]');
       setText('[data-review-scenario]', zoningRes?.useLabel || 'Business activity not selected');
-      setText('[data-review-model-version]', 'LOCUS-SF v3.0 · Five-Criterion MCE');
+      setText('[data-review-model-version]', mceModel.version || 'LOCUS-SF v3.0 · Five-Criterion MCE');
 
       if (isZoningProhibited) {
         if (compositeIaiEl) compositeIaiEl.textContent = 'Zoning review';
@@ -3505,7 +3542,7 @@
           compositeStatusEl.className = 'pw-badge pw-badge-sky';
         }
         if (compositeDescEl) {
-          compositeDescEl.textContent = `All five criteria are calculated using the 25% + 25% + 20% + 15% + 15% weights.${composite.isComplete ? '' : ' Confirm the CLUP zone and proposed activity.'} This provisional result will appear on the listing after saving. Final IAI and ranking require city evidence verification.`;
+          compositeDescEl.textContent = `All five criteria use the current ${Object.values(mceModel.weights).map(weight => `${number(weight)}%`).join(' + ')} weights.${composite.isComplete ? '' : ' Confirm the CLUP zone and proposed activity.'} Saving recalculates with the current server model. Final IAI and ranking require city evidence verification.`;
         }
       } else {
         if (compositeIaiEl) compositeIaiEl.innerHTML = '— <small>/ 100</small>';
@@ -5574,7 +5611,7 @@
       // Live Assessment Card
       const compositeScore = allAssessed ? Math.max(0, Math.min(100, weightedSum)) : null;
       if(riskPreview)riskPreview.dataset.unroundedScore=compositeScore === null ? '' : String(compositeScore);
-      const iaiPts = compositeScore !== null ? Math.round(compositeScore * 0.15 * 100) / 100 : null;
+      const iaiPts = compositeScore !== null ? compositeScore * mceWeight('risk_constraints') / 100 : null;
 
       const missingHazards = HAZARD_CONFIG.filter(item => !Number.isFinite(Number($('['+item.scoreAttr+']')?.textContent)) || $('['+item.scoreAttr+']')?.textContent === '—').map(item => item.label);
       setText('[data-risk-next-action]', missingHazards.length ? 'Still needed: '+missingHazards.join(', ')+'. Unknown findings are not treated as no exposure.' : 'Weighted suitability = flood × 25% + active fault × 25% + landslide × 15% + storm surge × 15% + liquefaction × 10% + tsunami × 10%. '+(hasCriticalFault ? 'Active fault conflict requires specialist review regardless of the total.' : 'Preliminary source findings; city verification is separate.'));
@@ -5676,12 +5713,13 @@
     function currentNearbyEvaluation() {
       const current = radarContextIsCurrent();
       const benchmark = current ? window.SFCPropertyEditorTools?.nearbyBenchmark(radarData?.benchmarks) : null;
-      if (benchmark) return {...benchmark, provisional:false};
+      if (benchmark) return {...benchmark, contribution:benchmark.score * mceWeight('nearby_businesses') / 100, provisional:false};
       let snapshot = current ? radarData?.screening : null;
       if (!current) {
         try { snapshot = JSON.parse(value('nearby_screening') || 'null'); } catch { return null; }
       }
-      return window.SFCPropertyEditorTools?.nearbyScreening(snapshot, nearbyReferencePoint(), value('radar_business_type') || 'cafe') ?? null;
+      const result = window.SFCPropertyEditorTools?.nearbyScreening(snapshot, nearbyReferencePoint(), value('radar_business_type') || 'cafe') ?? null;
+      return result ? {...result, contribution:result.score === null ? null : result.score * mceWeight('nearby_businesses') / 100} : null;
     }
     function classify(feature) {
       const properties = feature.properties || {};
@@ -6221,8 +6259,8 @@
           setText(`[data-subcrit-rule="${key}"]`, evaluation.provisional ? evaluation.record.subcriteria[key].rule : 'Configured BPLO reference score');
         }
 
-        if (contrib) contrib.textContent = `${iaiContrib.toFixed(2)} pts (15% of MCE)`;
-        if (formula) formula.textContent = `${total.toFixed(2)} × 0.15 = ${iaiContrib.toFixed(2)} pts${evaluation.provisional ? ' · Provisional contribution; final IAI requires verified evidence.' : ' toward overall MCE.'}`;
+        if (contrib) contrib.textContent = `${iaiContrib.toFixed(2)} pts (${number(mceWeight('nearby_businesses'))}% of MCE)`;
+        if (formula) formula.textContent = `${total.toFixed(2)} × ${mceFactor('nearby_businesses')} = ${iaiContrib.toFixed(2)} pts${evaluation.provisional ? ' · Provisional contribution; final IAI requires verified evidence.' : ' toward overall MCE.'}`;
       } else {
         if (badge) {
           badge.textContent = available ? 'More observations needed' : 'Run nearby search';
@@ -6231,15 +6269,15 @@
         if (expl) {
           expl.textContent = available
             ? 'No usable mapped business inventory for scoring this point. Check local coverage and the proposed business type, then retry. Missing records do not prove that there are no businesses.'
-            : 'Choose the proposed business type, then scan the 500 m perimeter to calculate a provisional score and its 15% contribution.';
+            : `Choose the proposed business type, then scan the 500 m perimeter to calculate a provisional score and its ${number(mceWeight('nearby_businesses'))}% contribution.`;
         }
         ['commercial_activity', 'complementary_businesses', 'competitive_pressure', 'activity_anchors'].forEach(k => {
           setText(`[data-subcrit-score="${k}"]`, available ? 'Inventory needed' : 'Scan needed');
           $(`[data-subcrit-bar="${k}"]`)?.style.setProperty('width', '0%');
           setText(`[data-subcrit-rule="${k}"]`, 'Calculated from the 500 m inventory');
         });
-        if (contrib) contrib.textContent = 'Pending nearby observations (15% weight)';
-        if (formula) formula.textContent = 'Nearby score × 0.15. A scan with no usable business records stays pending.';
+        if (contrib) contrib.textContent = `Pending nearby observations (${number(mceWeight('nearby_businesses'))}% weight)`;
+        if (formula) formula.textContent = `Nearby score × ${mceFactor('nearby_businesses')}. A scan with no usable business records stays pending.`;
       }
     }
     function renderRadarList() {
@@ -6817,6 +6855,16 @@
         event.preventDefault();restoreEditorHistory(event.key.toLowerCase()==='y'||event.shiftKey?'redo':'undo');
       }
     });
+    renderMceLabels();
+    window.addEventListener('locus:mce-weights-updated', event => {
+      mceController?.abort(); mceRevision++;
+      updateMceConfiguration(event.detail);
+    });
+    window.addEventListener('storage', event => {
+      if (event.key === 'locus:mce-weights-updated' && dialog.open) refreshMceConfiguration();
+    });
+    window.addEventListener('focus', () => { if (dialog.open) refreshMceConfiguration(); });
+    dialog.addEventListener('close', () => { if (!dialog.open) { mceController?.abort(); mceRevision++; } });
     ready();
     return {
       getClassification,
@@ -6946,6 +6994,9 @@
         }
       },
       setProperty(property){
+        renderMceLabels();
+        // Recheck on every opening, including a fresh listing after an admin changes weights.
+        queueMicrotask(refreshMceConfiguration);
         savedAuthorityDoc = property?.authorityToSell || null;
         intakeControls?.restore(property?.ownerContact || {});
         clearTimeout(autosaveTimer); submitted=false; draftGeneration++; mediaRevision++;

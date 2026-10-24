@@ -69,7 +69,7 @@ $pwSectionIcons = [
     'authority_to_sell' => 'document',
 ];
 ?>
-<dialog class="property-wizard" id="cityPropertyEditor" data-user-role="<?= $pwEscape($pwUserRole) ?>" aria-labelledby="cityEditorTitle">
+<dialog class="property-wizard pw-workspace" id="cityPropertyEditor" data-user-role="<?= $pwEscape($pwUserRole) ?>" aria-labelledby="cityEditorTitle" aria-describedby="pwEditorDescription">
   <form class="pw-form" data-property-form novalidate>
     <header class="pw-header">
       <div class="pw-heading-row">
@@ -78,7 +78,7 @@ $pwSectionIcons = [
           <div class="pw-title-badge-row">
             <h2 id="cityEditorTitle">Start with the essentials</h2>
           </div>
-          <p class="pw-header-note">Add the details investors need to understand the property.</p>
+          <p class="pw-header-note" id="pwEditorDescription">Build a clear listing, assess the site, and send it for city review.</p>
         </div>
         <div class="pw-header-actions">
           <div class="pw-history-actions" role="group" aria-label="Edit history">
@@ -92,7 +92,7 @@ $pwSectionIcons = [
       </div>
       <nav class="pw-steps" aria-label="Property form steps">
         <?php foreach (['Basic information', 'Location & boundary', 'Assessment', 'Review'] as $pwStep => $pwStepLabel): ?>
-        <button class="pw-step<?= $pwStep === 0 ? ' is-active' : '' ?>" type="button" data-editor-step="<?= $pwStep ?>" aria-label="Step <?= $pwStep + 1 ?>: <?= $pwEscape($pwStepLabel) ?>"<?= $pwStep === 0 ? ' aria-current="step"' : '' ?>><span class="pw-step-number"><span><?= $pwStep + 1 ?></span><?= $pwIcon('check', 'pw-step-check') ?></span><span class="pw-step-label"><?= $pwStepLabel ?></span></button>
+        <button class="pw-step<?= $pwStep === 0 ? ' is-active' : '' ?>" type="button" data-editor-step="<?= $pwStep ?>" aria-label="Step <?= $pwStep + 1 ?>: <?= $pwEscape($pwStepLabel) ?>"<?= $pwStep === 0 ? ' aria-current="step"' : '' ?>><span class="pw-step-number"><span><?= $pwStep + 1 ?></span><?= $pwIcon('check', 'pw-step-check') ?></span><span class="pw-step-copy"><span class="pw-step-label"><?= $pwStepLabel ?></span><small class="pw-step-description"><?= ['Listing, photos & pricing', 'Pin, boundary & land area', 'Evidence & weighted scores', 'Check & submit'][$pwStep] ?></small></span></button>
         <?php endforeach; ?>
       </nav>
     </header>
@@ -107,14 +107,20 @@ $pwSectionIcons = [
     <div class="pw-content">
       <div class="pw-feedback-region"><p class="pw-form-message" data-editor-message role="status" tabindex="-1"></p></div>
       <section class="pw-panel" data-editor-panel="0">
+        <div class="pw-page-intro">
+          <div><span class="pw-page-eyebrow">THE LISTING</span><h3>A strong first impression starts here.</h3><p>Describe the property as it is. You can save your progress at any time.</p></div>
+          <span class="pw-required-note"><span aria-hidden="true">*</span> Required fields</span>
+        </div>
         <div class="pw-columns pw-basics-columns">
           <div class="pw-basics-sections">
 
             <!-- CARD 1: BASIC PROPERTY INFORMATION -->
             <article class="pw-card pw-section-card pw-card-basic-info" data-section="about">
               <div class="pw-section-header">
+                <span class="pw-section-symbol" aria-hidden="true"><?= $pwIcon('home') ?></span>
                 <div>
-                  <h3 class="pw-section-title">Basic property information</h3>
+                  <h3 class="pw-section-title">Property essentials</h3>
+                  <p class="pw-section-description">A memorable title and clear photos help investors understand the opportunity.</p>
                 </div>
               </div>
               <div class="pw-card-basic-grid">
@@ -122,7 +128,7 @@ $pwSectionIcons = [
                 <div class="pw-fields">
                   <label class="pw-field pw-full">
                     <span class="pw-field-label">Property title <span class="pw-required-indicator" aria-hidden="true">*</span></span>
-                    <input name="property_name" required maxlength="180" placeholder="Sample commercial lot" autocomplete="off" class="pw-input-prominent">
+                    <input name="property_name" required maxlength="180" placeholder="e.g. Commercial lot in Biday" autocomplete="off" class="pw-input-prominent">
                     <small class="pw-muted">Use a clear, factual title.</small>
                   </label>
 
@@ -165,7 +171,8 @@ $pwSectionIcons = [
                       <input class="pw-file-input" id="property_image_file" name="image_files[]" type="file" multiple accept="image/jpeg,image/png,image/webp" data-photo-file>
                       <span class="pw-photo-icon"><?= $pwIcon('camera') ?></span>
                       <strong>Add property photos</strong>
-                      <span>Choose a cover photo</span>
+                      <span>Drop images here or browse files</span>
+                      <small>JPG, PNG or WebP &middot; First photo becomes the cover</small>
                       <small data-photo-file-name hidden></small>
                     </label>
                     <div class="pw-photo-empty-slots" aria-hidden="true">
@@ -181,8 +188,10 @@ $pwSectionIcons = [
             <!-- CARD 2: LISTING & PRICE -->
             <article class="pw-card pw-section-card" data-section="details">
               <div class="pw-section-header">
+                <span class="pw-section-symbol" aria-hidden="true"><?= $pwIcon('tag') ?></span>
                 <div>
                   <h3 class="pw-section-title">Listing &amp; price</h3>
+                  <p class="pw-section-description">Choose how the property is offered and how its price appears.</p>
                 </div>
               </div>
 
@@ -288,8 +297,10 @@ $pwSectionIcons = [
             <!-- CARD 3: LOCATION & AREA -->
             <article class="pw-card pw-section-card">
               <div class="pw-section-header">
+                <span class="pw-section-symbol" aria-hidden="true"><?= $pwIcon('pin') ?></span>
                 <div>
                   <h3 class="pw-section-title">Location &amp; area</h3>
+                  <p class="pw-section-description">Add the known details now. Confirm the exact location in the next step.</p>
                 </div>
               </div>
 
@@ -298,10 +309,10 @@ $pwSectionIcons = [
                 <div class="pw-grid-2-col pw-full">
                   <!-- Searchable Barangay -->
                   <div class="pw-field pw-barangay-combobox" data-barangay-combobox>
-                    <span class="pw-field-label">
+                    <label class="pw-field-label" for="pwBarangayTextInput">
                       <span>Barangay <small class="pw-muted">&middot; optional</small></span>
                       <span class="pw-barangay-psgc-tag" data-barangay-psgc-tag hidden>PSGC</span>
-                    </span>
+                    </label>
                     <input type="hidden" name="barangay" id="pwBarangayHidden" data-barangay-hidden>
                     <input type="hidden" name="barangay_psgc" id="pwBarangayPsgcHidden" data-barangay-psgc-hidden>
 
@@ -332,7 +343,7 @@ $pwSectionIcons = [
 
                   <!-- Land area -->
                   <div class="pw-field">
-                    <span class="pw-field-label">Land area <small class="pw-muted">&middot; if known</small></span>
+                    <label class="pw-field-label" for="pwDeclaredAreaInput">Land area <small class="pw-muted">&middot; if known</small></label>
                     <div class="pw-input-group pw-basics-area-control">
                       <input name="declared_area_sqm" id="pwDeclaredAreaInput" type="number" step="any" min="0" placeholder="1,000" autocomplete="off" class="pw-input-prominent">
                       <select name="basics_area_unit" data-basics-area-unit aria-label="Land area unit"><option value="sqm">m²</option><option value="hectares">ha</option></select>
@@ -346,7 +357,7 @@ $pwSectionIcons = [
                 <!-- Short description -->
                 <div class="pw-field pw-full" style="margin-top:14px;">
                   <div class="pw-label-row">
-                    <span class="pw-field-label">Short description</span>
+                    <label class="pw-field-label" for="pwDescriptionInput">Short description <small class="pw-muted">&middot; optional</small></label>
                   </div>
                   <textarea name="description" id="pwDescriptionInput" rows="3" maxlength="500" placeholder="Vacant lot offered for sale. Access, utilities, zoning, and hazard information will be recorded separately..." autocomplete="off"></textarea>
                   <div class="pw-char-counter"><span data-char-count>0</span>/500</div>
@@ -365,7 +376,7 @@ $pwSectionIcons = [
 
                   <div class="pw-field" data-property-subtype-field>
                     <span class="pw-field-label" id="pwSubtypeLabel">Property classifications <span class="pw-required-indicator" aria-hidden="true">*</span></span>
-                    <select name="subcategory" required data-property-subtype-select>
+                    <select name="subcategory" required aria-labelledby="pwSubtypeLabel" data-property-subtype-select>
                       <option value="">Select classification...</option>
                       <?php foreach (\App\Support\PropertyCatalog::categories()['Land'] as $pwSubtype): ?>
                       <option value="<?= $pwEscape($pwSubtype) ?>"><?= $pwEscape($pwSubtype) ?></option>
@@ -431,6 +442,7 @@ $pwSectionIcons = [
                   <svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   <strong>Investor preview</strong>
                 </div>
+                <span class="pw-preview-live-indicator">Live preview</span>
               </div>
 
               <!-- Preview Card Inner -->
@@ -444,7 +456,7 @@ $pwSectionIcons = [
                 </div>
 
                 <div class="pw-preview-body">
-                  <h4 class="pw-preview-name" data-preview-name>Sample commercial lot</h4>
+                  <h4 class="pw-preview-name" data-preview-name>Your property title</h4>
                   <p class="pw-preview-subname" data-preview-subname hidden></p>
 
                   <div class="pw-preview-location-line" data-preview-location-badge>
@@ -453,7 +465,7 @@ $pwSectionIcons = [
                   </div>
 
                   <div class="pw-preview-price-row">
-                    <strong class="pw-preview-price-val" data-preview-price>₱10,000,000</strong>
+                    <strong class="pw-preview-price-val" data-preview-price>Price not entered</strong>
                     <span class="pw-preview-draft-pill" data-preview-approval-state>Draft listing</span>
                     <span class="pw-badge pw-badge-sky pw-preview-negotiable-badge" data-preview-negotiable-badge hidden>Negotiable</span>
                     <span class="pw-badge" data-preview-category hidden><span>Land</span></span>
@@ -463,7 +475,7 @@ $pwSectionIcons = [
                   <div class="pw-preview-stats-grid">
                     <div class="pw-preview-stat-item">
                       <span>Land area</span>
-                      <strong data-preview-area-val>1,000 m²</strong>
+                      <strong data-preview-area-val>&mdash;</strong>
                     </div>
                     <div class="pw-preview-stat-item">
                       <span>Area basis</span>
@@ -471,15 +483,15 @@ $pwSectionIcons = [
                     </div>
                     <div class="pw-preview-stat-item">
                       <span data-preview-unit-price-label>Price per m²</span>
-                      <strong data-preview-sqm-price>₱10,000</strong>
+                      <strong data-preview-sqm-price>&mdash;</strong>
                     </div>
                   </div>
 
-                  <p class="pw-preview-desc-snippet" data-preview-desc-snippet>Vacant lot offered for sale. Access, utilities, zoning, and hazard information will be recorded separately.</p>
+                  <p class="pw-preview-desc-snippet" data-preview-desc-snippet>Your description will appear here as you add the details.</p>
 
                   <button type="button" class="pw-preview-view-btn" disabled>
                     <svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                    View property
+                    Available after publication
                   </button>
 
                   <p class="pw-preview-bottom-caption">Only verified assessment results will appear later.</p>
@@ -496,10 +508,10 @@ $pwSectionIcons = [
               <div class="pw-before-checklist">
                 <div class="pw-before-check-item" data-check-item="essentials">
                   <span class="pw-check-bullet" data-check-icon="essentials">&#10003;</span>
-                  <span>Enter title, barangay, and land area</span>
+                  <span>Add a title and property classification</span>
                 </div>
                 <div class="pw-before-check-item" data-check-item="price">
-                  <span class="pw-check-bullet is-checked" data-check-icon="price">&#10003;</span>
+                  <span class="pw-check-bullet" data-check-icon="price">&#10003;</span>
                   <span>Add a price or select Price on inquiry</span>
                 </div>
               </div>
@@ -705,6 +717,18 @@ $pwSectionIcons = [
         </div>
       </section>
       <section class="pw-panel" data-editor-panel="2" hidden>
+        <div class="pw-model-context" aria-label="Current assessment weights">
+          <div class="pw-model-context-heading">
+            <span class="pw-model-context-icon" aria-hidden="true"><?= $pwIcon('chart') ?></span>
+            <div><span class="pw-page-eyebrow">ASSESSMENT MODEL</span><strong data-mce-active-model-label>Loading current weights&hellip;</strong><p>Saved weights determine each criterion's contribution. Zoning is a separate eligibility check.</p></div>
+          </div>
+          <div class="pw-model-weight-summary">
+            <?php foreach (['spatial_accessibility' => 'Access', 'infrastructure_readiness' => 'Utilities', 'economic_viability' => 'Cost', 'nearby_businesses' => 'Nearby', 'risk_constraints' => 'Risk'] as $pwWeightKey => $pwWeightName): ?>
+            <span class="pw-model-weight-chip" data-weight-criterion="<?= $pwEscape($pwWeightKey) ?>"><span><?= $pwEscape($pwWeightName) ?></span><strong data-mce-weight-label="<?= $pwEscape($pwWeightKey) ?>" data-mce-weight-label-format="{weight}%">&mdash;</strong></span>
+            <?php endforeach; ?>
+          </div>
+          <p class="pw-model-sync-status" data-mce-sync-status role="status" hidden></p>
+        </div>
         <details class="pw-disclosure pw-evidence-editor" data-evidence-editor open>
           <summary class="pw-evidence-summary pw-visually-hidden">
             <span>Site details &amp; assessment workspace</span>
@@ -826,7 +850,7 @@ $pwSectionIcons = [
                 </div>
                 <div class="pw-spatial-header-badges">
                   <span class="pw-badge pw-badge-provisional"><span class="pw-spatial-pulse-dot"></span> Provisional model</span>
-                  <span class="pw-badge pw-badge-weight">25% of MCE</span>
+                  <span class="pw-badge pw-badge-weight" data-mce-weight-label="spatial_accessibility" data-mce-weight-label-format="{weight}% of MCE">Current weight &mdash;</span>
                 </div>
               </div>
 
@@ -836,17 +860,17 @@ $pwSectionIcons = [
                 <div class="pw-reused-content">
                   <div class="pw-reused-header-row">
                     <span class="pw-reused-label">Synced Location &amp; Boundary Context (Step 2)</span>
-                    <span class="pw-reused-verified-pill"><?= $pwIcon('check') ?> Synced from map</span>
+                    <span class="pw-reused-verified-pill"><?= $pwIcon('pin') ?> From location details</span>
                   </div>
                   <div class="pw-reused-chips">
-                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Coordinates:</span> <strong data-reused-coords>16.6150° N, 120.3160° E</strong></span>
-                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Barangay:</span> <strong data-reused-barangay>San Fernando</strong></span>
-                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Recorded area:</span> <strong data-reused-area>2,500 m²</strong></span>
+                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Coordinates:</span> <strong data-reused-coords>Not specified</strong></span>
+                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Barangay:</span> <strong data-reused-barangay>Not specified</strong></span>
+                    <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Recorded area:</span> <strong data-reused-area>Not specified</strong></span>
                   </div>
                   <p class="pw-reused-details" style="display:none;" hidden>
-                    Coordinates: <strong data-reused-coords-legacy>16.6150° N, 120.3160° E</strong> &middot; 
-                    Barangay: <strong data-reused-barangay-legacy>San Fernando</strong> &middot; 
-                    Recorded area: <strong data-reused-area-legacy>2,500 m²</strong>
+                    Coordinates: <strong data-reused-coords-legacy>Not specified</strong> &middot;
+                    Barangay: <strong data-reused-barangay-legacy>Not specified</strong> &middot;
+                    Recorded area: <strong data-reused-area-legacy>Not specified</strong>
                   </p>
                 </div>
               </div>
@@ -1032,24 +1056,24 @@ $pwSectionIcons = [
                     <div class="pw-spatial-score-showcase">
                       <div class="pw-spatial-score-main">
                         <div class="pw-spatial-score-row">
-                          <span class="pw-spatial-score-num"><strong data-spatial-total-score>92.5</strong> <small>/ 100 pts</small></span>
-                          <span class="pw-spatial-tier-badge" data-spatial-tier-badge>Tier A &middot; Prime Spatial Access</span>
+                          <span class="pw-spatial-score-num"><strong data-spatial-total-score>&mdash;</strong> <small>/ 100 pts</small></span>
+                          <span class="pw-spatial-tier-badge" data-spatial-tier-badge>Awaiting inputs</span>
                         </div>
 
                         <!-- Burgundy Progress Bar matching Infrastructure -->
                         <div class="pw-spatial-progress-track">
-                          <div class="pw-spatial-progress-bar" data-spatial-progress-bar style="width: 92.5%;"></div>
+                          <div class="pw-spatial-progress-bar" data-spatial-progress-bar style="width: 0%;"></div>
                         </div>
                         <span class="pw-spatial-score-caption">Spatial Accessibility component score before criterion weighting</span>
                       </div>
 
                       <div class="pw-spatial-iai-row">
                         <div class="pw-spatial-iai-header">
-                          <span class="pw-spatial-iai-title">Contribution to final IAI (25%)</span>
-                          <span class="pw-spatial-iai-weight-tag">25% MCE Weight</span>
+                          <span class="pw-spatial-iai-title">Weighted contribution</span>
+                          <span class="pw-spatial-iai-weight-tag" data-mce-weight-label="spatial_accessibility" data-mce-weight-label-format="{weight}% MCE weight">Current weight &mdash;</span>
                         </div>
-                        <strong class="pw-spatial-iai-val">+<span data-spatial-iai-contrib>18.5</span> <small>pts</small></strong>
-                        <span class="pw-spatial-iai-desc">Transfers directly into overall Investment Assessment Index</span>
+                        <strong class="pw-spatial-iai-val"><span data-spatial-iai-contrib>&mdash;</span> <small>pts</small></strong>
+                        <span class="pw-spatial-iai-desc">Component score &times; the current criterion weight</span>
                       </div>
                     </div>
 
@@ -1061,7 +1085,7 @@ $pwSectionIcons = [
                           <strong>Road Access</strong>
                           <small>30% of Spatial</small>
                         </div>
-                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-access>30.0 pts</strong></div>
+                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-access>&mdash;</strong></div>
                       </div>
                       <div class="pw-spatial-pill pw-spatial-breakdown-card">
                         <div class="pw-spatial-bdown-icon pw-spatial-icon-surface"><?= $pwIcon('layers') ?></div>
@@ -1069,7 +1093,7 @@ $pwSectionIcons = [
                           <strong>Road Surface</strong>
                           <small>25% of Spatial</small>
                         </div>
-                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-surface>25.0 pts</strong></div>
+                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-surface>&mdash;</strong></div>
                       </div>
                       <div class="pw-spatial-pill pw-spatial-breakdown-card">
                         <div class="pw-spatial-bdown-icon pw-spatial-icon-width"><?= $pwIcon('area') ?></div>
@@ -1077,7 +1101,7 @@ $pwSectionIcons = [
                           <strong>Carriageway Width</strong>
                           <small>25% of Spatial</small>
                         </div>
-                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-width>20.0 pts</strong></div>
+                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-width>&mdash;</strong></div>
                       </div>
                       <div class="pw-spatial-pill pw-spatial-breakdown-card">
                         <div class="pw-spatial-bdown-icon pw-spatial-icon-dist"><?= $pwIcon('target') ?></div>
@@ -1085,7 +1109,7 @@ $pwSectionIcons = [
                           <strong>Proximity to Highway</strong>
                           <small>20% of Spatial</small>
                         </div>
-                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-dist>17.0 pts</strong></div>
+                        <div class="pw-spatial-bdown-pts"><strong data-spatial-p-dist>&mdash;</strong></div>
                       </div>
                     </div>
 
@@ -1155,7 +1179,7 @@ $pwSectionIcons = [
                 </div>
                 <div class="pw-infra-header-badges">
                   <span class="pw-badge pw-badge-provisional"><span class="pw-infra-pulse-dot"></span> Provisional model</span>
-                  <span class="pw-badge pw-badge-weight">25% of MCE</span>
+                  <span class="pw-badge pw-badge-weight" data-mce-weight-label="infrastructure_readiness" data-mce-weight-label-format="{weight}% of MCE">Current weight &mdash;</span>
                 </div>
               </div>
 
@@ -1454,28 +1478,28 @@ $pwSectionIcons = [
                   </div>
 
                   <!-- Complete State -->
-                  <div class="pw-infra-state-complete" data-infra-state-complete>
+                  <div class="pw-infra-state-complete" data-infra-state-complete hidden>
                     <div class="pw-infra-score-showcase">
                       <div class="pw-infra-score-main">
                         <div class="pw-infra-score-row">
-                          <span class="pw-infra-score-num"><strong data-infra-total-score>79.0</strong> <small>/ 100 pts</small></span>
-                          <span class="pw-infra-tier-badge" data-infra-tier-badge>Tier B &middot; High Readiness</span>
+                          <span class="pw-infra-score-num"><strong data-infra-total-score>&mdash;</strong> <small>/ 100 pts</small></span>
+                          <span class="pw-infra-tier-badge" data-infra-tier-badge>Awaiting inputs</span>
                         </div>
 
                         <!-- Burgundy Progress Bar matching Screenshot -->
                         <div class="pw-infra-progress-track">
-                          <div class="pw-infra-progress-bar" data-infra-progress-bar style="width: 79%;"></div>
+                          <div class="pw-infra-progress-bar" data-infra-progress-bar style="width: 0%;"></div>
                         </div>
                         <span class="pw-infra-score-caption">Infrastructure Readiness component score before criterion weighting</span>
                       </div>
 
                       <div class="pw-infra-iai-row">
                         <div class="pw-infra-iai-header">
-                          <span class="pw-infra-iai-title">Contribution to final IAI (25%)</span>
-                          <span class="pw-infra-iai-weight-tag">25% MCE Weight</span>
+                          <span class="pw-infra-iai-title">Weighted contribution</span>
+                          <span class="pw-infra-iai-weight-tag" data-mce-weight-label="infrastructure_readiness" data-mce-weight-label-format="{weight}% MCE weight">Current weight &mdash;</span>
                         </div>
-                        <strong class="pw-infra-iai-val"><span data-infra-iai-contrib>15.80</span> pts</strong>
-                        <span class="pw-infra-iai-desc">Transfers directly into overall Investment Assessment Index</span>
+                        <strong class="pw-infra-iai-val"><span data-infra-iai-contrib>&mdash;</span> pts</strong>
+                        <span class="pw-infra-iai-desc">Component score &times; the current criterion weight</span>
                       </div>
                     </div>
 
@@ -1487,7 +1511,7 @@ $pwSectionIcons = [
                           <strong>Electricity</strong>
                           <small>35% of Infrastructure</small>
                         </div>
-                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-elec>14.00</strong> pts</div>
+                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-elec>&mdash;</strong> pts</div>
                       </div>
                       <div class="pw-infra-breakdown-row pw-infra-breakdown-card">
                         <div class="pw-infra-bdown-icon pw-infra-icon-water"><?= $pwIcon('water') ?></div>
@@ -1495,7 +1519,7 @@ $pwSectionIcons = [
                           <strong>Water Supply</strong>
                           <small>30% of Infrastructure</small>
                         </div>
-                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-water>30.00</strong> pts</div>
+                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-water>&mdash;</strong> pts</div>
                       </div>
                       <div class="pw-infra-breakdown-row pw-infra-breakdown-card">
                         <div class="pw-infra-bdown-icon pw-infra-icon-telecom"><?= $pwIcon('wifi') ?></div>
@@ -1503,7 +1527,7 @@ $pwSectionIcons = [
                           <strong>Internet &amp; Telecom</strong>
                           <small>20% of Infrastructure</small>
                         </div>
-                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-internet>20.00</strong> pts</div>
+                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-internet>&mdash;</strong> pts</div>
                       </div>
                       <div class="pw-infra-breakdown-row pw-infra-breakdown-card">
                         <div class="pw-infra-bdown-icon pw-infra-icon-drainage"><?= $pwIcon('drainage') ?></div>
@@ -1511,7 +1535,7 @@ $pwSectionIcons = [
                           <strong>Drainage</strong>
                           <small>15% of Infrastructure</small>
                         </div>
-                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-drainage>15.00</strong> pts</div>
+                        <div class="pw-infra-row-pts pw-infra-bdown-pts"><strong data-infra-pts-drainage>&mdash;</strong> pts</div>
                       </div>
                     </div>
 
@@ -1522,7 +1546,7 @@ $pwSectionIcons = [
                   </div>
 
                   <!-- Incomplete State -->
-                  <div class="pw-infra-state-incomplete" data-infra-state-incomplete hidden>
+                  <div class="pw-infra-state-incomplete" data-infra-state-incomplete>
                     <div class="pw-infra-score-row">
                       <div class="pw-infra-score-main">
                         <h4 class="pw-infra-incomplete-title">Assessment incomplete</h4>
@@ -1581,7 +1605,7 @@ $pwSectionIcons = [
             <div class="pw-econ-card pw-econ-simple">
               <div class="pw-live-result" data-economic-live-result aria-live="polite">
                 <div><span class="pw-result-eyebrow">YOUR RESULT · PROVISIONAL</span><h4 data-economic-live-title>Add a comparison</h4><p data-economic-live-equation>We compare both properties using the same price per m².</p></div>
-                <div class="pw-live-result-value"><strong data-economic-live-score>—</strong><span data-economic-live-contribution>20% of the assessment</span></div>
+                <div class="pw-live-result-value"><strong data-economic-live-score>—</strong><span data-economic-live-contribution>Complete the price comparison</span></div>
                 <p class="pw-result-next" data-economic-live-next>Add the missing inputs below to see the comparison.</p>
                 <button type="button" class="pw-button pw-button-light pw-button-small" data-economic-fix hidden>Review inputs</button>
               </div>
@@ -1592,7 +1616,7 @@ $pwSectionIcons = [
                   <p class="pw-econ-subtitle">Compare your asking rate with a similar property.</p>
                 </div>
                 <div class="pw-econ-header-badges">
-                  <span class="pw-badge pw-badge-weight">Up to 20 points</span>
+                  <span class="pw-badge pw-badge-weight" data-mce-weight-label="economic_viability" data-mce-weight-label-format="Up to {weight} points">Current weight &mdash;</span>
                 </div>
               </div>
 
@@ -1845,7 +1869,7 @@ $pwSectionIcons = [
                     <h4>Nearby Businesses</h4>
                     <p class="pw-small pw-muted">Interactive 500-meter straight-line radar &amp; commercial environment context.</p>
                   </div>
-                  <span class="pw-badge pw-badge-weight">15% of MCE</span>
+                  <span class="pw-badge pw-badge-weight" data-mce-weight-label="nearby_businesses" data-mce-weight-label-format="{weight}% of MCE">Current weight &mdash;</span>
                 </div>
 
                 <!-- Proposed Business Type Card (Matching User Mockup) -->
@@ -1972,7 +1996,7 @@ $pwSectionIcons = [
                   <div class="pw-nearby-assessment-header">
                     <div>
                       <h5>Business Environment Assessment</h5>
-                      <span class="pw-small pw-muted">500 m screening · 15% of the assessment</span>
+                      <span class="pw-small pw-muted">500 m screening &middot; <span data-mce-weight-label="nearby_businesses" data-mce-weight-label-format="{weight}% of the assessment">Current weight &mdash;</span></span>
                     </div>
                     <span class="pw-badge pw-badge-amber" data-nearby-assessment-badge data-nearby-assessment-status data-nearby-assessment-score>Assessment Incomplete</span>
                   </div>
@@ -2045,7 +2069,7 @@ $pwSectionIcons = [
                     <div>
                       <span class="pw-nearby-mce-title">MCE Contribution:</span>
                       <strong data-nearby-mce-contrib data-nearby-iai-contrib>Run nearby search</strong>
-                      <span class="pw-muted">&middot; 15% of overall MCE weight</span>
+                      <span class="pw-muted" data-mce-weight-label="nearby_businesses" data-mce-weight-label-format="{weight}% of overall MCE weight">Current weight &mdash;</span>
                     </div>
                     <small class="pw-muted" data-nearby-mce-formula>Formula: Business Environment Score &times; 0.15. Missing source data is never defaulted.</small>
                   </div>
@@ -2433,7 +2457,7 @@ $pwSectionIcons = [
                         </div>
 
                       <details class="pw-calm-disclosure pw-risk-scoring-details" data-risk-scoring-details>
-                        <summary><?= $pwIcon('chart') ?> Scoring &amp; calculation details <small>15% assessment weight</small></summary>
+                        <summary><?= $pwIcon('chart') ?> Scoring &amp; calculation details <small data-mce-weight-label="risk_constraints" data-mce-weight-label-format="{weight}% assessment weight">Current weight &mdash;</small></summary>
                       <!-- Integrated Executive Multi-Hazard Scorecard Card -->
                       <div class="pw-risk-scorecard-card pw-risk-assessment-embed" data-risk-preview-card>
                         <div class="pw-risk-scorecard-header">
@@ -2441,7 +2465,7 @@ $pwSectionIcons = [
                             <span class="pw-risk-scorecard-icon"><?= $pwIcon('shield') ?></span>
                             <div>
                               <h4 class="pw-risk-scorecard-title">Hazard screening score</h4>
-                              <span class="pw-risk-scorecard-sub">Preliminary calculation &middot; 15% of the assessment</span>
+                              <span class="pw-risk-scorecard-sub">Preliminary calculation &middot; <span data-mce-weight-label="risk_constraints" data-mce-weight-label-format="{weight}% of the assessment">Current weight &mdash;</span></span>
                             </div>
                           </div>
                           <span class="pw-badge pw-badge-calculated" data-risk-status-badge>Pending Screening</span>
@@ -3327,16 +3351,16 @@ $pwSectionIcons = [
       </section>
       <section class="pw-panel" data-editor-panel="3" hidden>
         <div class="pw-section-intro">
-          <div class="pw-section-eyebrow">STEP 4 OF 4 &middot; PRE-SUBMISSION REVIEW</div>
-          <h3>Property Review &amp; Submission Readiness</h3>
-          <p>Verify property specifications, spatial integrity, and provisional assessment indicators before city review.</p>
+          <div class="pw-section-eyebrow">READY FOR REVIEW</div>
+          <h3>A final look before you submit.</h3>
+          <p>Check the listing, location, and assessment. Use Edit to return to any section.</p>
         </div>
 
         <!-- TIER 1: PROPERTY SUMMARY -->
         <article class="pw-card pw-review-section-card" data-review-tier="summary">
           <div class="pw-review-card-header">
             <div class="pw-review-card-title-group">
-              <span class="pw-tier-badge">Tier 1</span>
+              <span class="pw-tier-badge">01</span>
               <div>
                 <h4 class="pw-review-card-title">Property Summary</h4>
                 <p class="pw-review-card-subtitle">Basic listing essentials, offered pricing, and photo gallery</p>
@@ -3374,7 +3398,7 @@ $pwSectionIcons = [
         <article class="pw-card pw-review-section-card" data-review-tier="checks">
           <div class="pw-review-card-header">
             <div class="pw-review-card-title-group">
-              <span class="pw-tier-badge">Tier 2</span>
+              <span class="pw-tier-badge">02</span>
               <div>
                 <h4 class="pw-review-card-title">Location &amp; Data Checks</h4>
                 <p class="pw-review-card-subtitle">Boundary alignment, coordinate verification, and barangay validation</p>
@@ -3428,7 +3452,7 @@ $pwSectionIcons = [
         <article class="pw-card pw-review-section-card" data-review-tier="readiness">
           <div class="pw-review-card-header">
             <div class="pw-review-card-title-group">
-              <span class="pw-tier-badge">Tier 3</span>
+              <span class="pw-tier-badge">03</span>
               <div>
                 <h4 class="pw-review-card-title">Assessment Readiness (LOCUS-SF MCE)</h4>
                 <p class="pw-review-card-subtitle">Multi-Criteria Evaluation status across 5 official criteria (100% total weight) + Mandatory Zoning Eligibility Gate</p>
@@ -3466,7 +3490,7 @@ $pwSectionIcons = [
             <div class="pw-review-crit-row" data-review-crit="spatial_accessibility">
               <div class="pw-crit-col-name">
                 <strong>1. Spatial Accessibility</strong>
-                <span class="pw-muted">25% weight &middot; Road frontage &amp; passability</span>
+                <span class="pw-muted"><span data-mce-weight-label="spatial_accessibility" data-mce-weight-label-format="{weight}% weight">Current weight &mdash;</span> &middot; Road frontage &amp; passability</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="spatial_accessibility">&mdash;</span>
@@ -3483,7 +3507,7 @@ $pwSectionIcons = [
             <div class="pw-review-crit-row" data-review-crit="infrastructure_readiness">
               <div class="pw-crit-col-name">
                 <strong>2. Infrastructure Readiness</strong>
-                <span class="pw-muted">25% weight &middot; Power, water, telecom, drainage</span>
+                <span class="pw-muted"><span data-mce-weight-label="infrastructure_readiness" data-mce-weight-label-format="{weight}% weight">Current weight &mdash;</span> &middot; Power, water, telecom, drainage</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="infrastructure_readiness">&mdash;</span>
@@ -3500,7 +3524,7 @@ $pwSectionIcons = [
             <div class="pw-review-crit-row" data-review-crit="economic_viability">
               <div class="pw-crit-col-name">
                 <strong>3. Property Cost &amp; Market Competitiveness</strong>
-                <span class="pw-muted">20% weight &middot; Your rate compared with a similar property</span>
+                <span class="pw-muted"><span data-mce-weight-label="economic_viability" data-mce-weight-label-format="{weight}% weight">Current weight &mdash;</span> &middot; Your rate compared with a similar property</span>
                 <p class="pw-review-input-issue" data-review-crit-issue="economic_viability" hidden></p>
               </div>
               <div class="pw-crit-col-score">
@@ -3518,7 +3542,7 @@ $pwSectionIcons = [
             <div class="pw-review-crit-row" data-review-crit="nearby_businesses">
               <div class="pw-crit-col-name">
                 <strong>4. Nearby Businesses</strong>
-                <span class="pw-muted">15% weight &middot; Commercial density &amp; activity anchors</span>
+                <span class="pw-muted"><span data-mce-weight-label="nearby_businesses" data-mce-weight-label-format="{weight}% weight">Current weight &mdash;</span> &middot; Commercial density &amp; activity anchors</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="nearby_businesses">&mdash;</span>
@@ -3535,7 +3559,7 @@ $pwSectionIcons = [
             <div class="pw-review-crit-row" data-review-crit="risk_constraints">
               <div class="pw-crit-col-name">
                 <strong>5. Risk Constraints</strong>
-                <span class="pw-muted">15% weight &middot; 6-hazard multi-risk screening</span>
+                <span class="pw-muted"><span data-mce-weight-label="risk_constraints" data-mce-weight-label-format="{weight}% weight">Current weight &mdash;</span> &middot; Six hazard findings</span>
               </div>
               <div class="pw-crit-col-score">
                 <span data-review-crit-score="risk_constraints">&mdash;</span>
@@ -3610,7 +3634,7 @@ $pwSectionIcons = [
         <article class="pw-card pw-review-section-card" data-review-tier="submission">
           <div class="pw-review-card-header">
             <div class="pw-review-card-title-group">
-              <span class="pw-tier-badge">Tier 4</span>
+              <span class="pw-tier-badge">04</span>
               <div>
                 <h4 class="pw-review-card-title">Submission Confirmation</h4>
                 <p class="pw-review-card-subtitle">Listing validation governance and submission processing</p>
@@ -3709,7 +3733,7 @@ $pwSectionIcons = [
               <div class="pw-assessment-criteria">
                 <?php foreach ($pwCriteria as $pwKey => $pwCriterion): ?>
                 <article class="pw-criterion" data-assessment-criterion="<?= $pwKey ?>">
-                  <div class="pw-criterion-heading"><h4><?= $pwEscape($pwCriterion) ?></h4><span><?= \App\Support\PropertyAssessment::WEIGHTS[$pwKey] ?>% of MCE</span><strong data-score-value>Awaiting data</strong></div>
+                  <div class="pw-criterion-heading"><h4><?= $pwEscape($pwCriterion) ?></h4><span<?= $pwKey !== 'zoning_compatibility' ? ' data-mce-weight-label="' . $pwEscape($pwKey) . '" data-mce-weight-label-format="{weight}% of MCE"' : '' ?>><?= $pwKey === 'zoning_compatibility' ? 'Eligibility check' : 'Current weight &mdash;' ?></span><strong data-score-value>Awaiting data</strong></div>
                   <div class="pw-criterion-bar" role="progressbar" aria-label="<?= $pwEscape($pwCriterion) ?>" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Awaiting source data"><span></span></div>
                   <details class="pw-criterion-evidence"><summary>Evidence &amp; calculation <?= $pwIcon('chevron') ?></summary><p data-score-justification>Add property location to check available source evidence.</p><p class="pw-small pw-muted" data-score-rule hidden></p><p class="pw-small pw-muted" data-score-evidence hidden></p></details>
                 </article>
@@ -3736,4 +3760,4 @@ $pwSectionIcons = [
     </script>
   </form>
 </dialog>
-<?php unset($pwEscape, $pwIcon, $pwCriteria, $pwReadiness, $pwSectionIcons, $pwSectionKey, $pwSectionIcon); ?>
+<?php unset($pwEscape, $pwIcon, $pwCriteria, $pwReadiness, $pwSectionIcons, $pwSectionKey, $pwSectionIcon, $pwWeightKey, $pwWeightName); ?>

@@ -74,6 +74,7 @@ assert(fnMatch !== null, 'Found evaluateEconomicViabilityClient function in prop
 
 // Helper dummy form context for VM evaluation
 const evaluatorFn = new Function('overrides', `
+  const mceWeight = () => 20;
   const form = {
     querySelector: () => ({ value: 'amount' })
   };

@@ -62,6 +62,7 @@ const fnMatch = jsContent.match(/function evaluateInfrastructureReadinessClient\
 assert(fnMatch !== null, 'Found evaluateInfrastructureReadinessClient function text in property-wizard.js');
 
 const evaluatorFn = new Function('overrides', `
+  const mceWeight = () => 25;
   ${fnMatch[0]}
   return evaluateInfrastructureReadinessClient(overrides);
 `);
@@ -76,7 +77,7 @@ const clientMockup = evaluatorFn({
 
 assert(clientMockup.isComplete === true, 'Client evaluator marks mockup conditions complete');
 assert(clientMockup.totalScore === 79.0, `Client evaluator yields score 79.0 (actual: ${clientMockup.totalScore})`);
-assert(clientMockup.iaiContribution === 15.80, `Client evaluator yields IAI contribution 15.80 (actual: ${clientMockup.iaiContribution})`);
+assert(clientMockup.iaiContribution === 19.75, `Client evaluator yields IAI contribution 19.75 at 25% (actual: ${clientMockup.iaiContribution})`);
 assert(clientMockup.electricity.weighted === 14.00, 'Client electricity contribution is 14.00 pts (40 * 0.35)');
 assert(clientMockup.water.weighted === 30.00, 'Client water contribution is 30.00 pts (100 * 0.30)');
 assert(clientMockup.internet.weighted === 20.00, 'Client internet contribution is 20.00 pts (100 * 0.20)');
@@ -105,7 +106,7 @@ const clientPerfect = evaluatorFn({
 });
 
 assert(clientPerfect.totalScore === 100.0, 'Client perfect score is 100.0');
-assert(clientPerfect.iaiContribution === 20.00, 'Client perfect IAI contribution is 20.00');
+assert(clientPerfect.iaiContribution === 25.00, 'Client perfect IAI contribution is 25.00 at 25%');
 
 // Test 3.4: Alternative conditions in client VM
 const clientAlt = evaluatorFn({
@@ -116,7 +117,7 @@ const clientAlt = evaluatorFn({
 });
 
 assert(clientAlt.totalScore === 86.0, `Client alternative score is 86.0 (actual: ${clientAlt.totalScore})`);
-assert(clientAlt.iaiContribution === 17.20, `Client alternative IAI contribution is 17.20 (actual: ${clientAlt.iaiContribution})`);
+assert(clientAlt.iaiContribution === 21.50, `Client alternative IAI contribution is 21.50 at 25% (actual: ${clientAlt.iaiContribution})`);
 
 console.log(`\nSummary: ${testsRun - failures}/${testsRun} tests passed.`);
 if (failures > 0) {
