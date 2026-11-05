@@ -4638,6 +4638,10 @@ function hydrateStudioReveal(node, index = 0) {
   if (!(node instanceof HTMLElement) || node.dataset.uiRevealReady === "1") return;
 
   node.dataset.uiRevealReady = "1";
+  if (window.LOCUS_MOTION) {
+    window.LOCUS_MOTION.reveal(node, { index });
+    return;
+  }
   node.classList.add("ui-reveal");
   node.style.setProperty("--ui-reveal-delay", `${Math.min(index, 10) * 55}ms`);
 
@@ -4700,7 +4704,7 @@ function initStudioMotion() {
     studioMotionReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     studioTiltEnabled = (window.matchMedia?.("(pointer:fine)")?.matches ?? true) && !studioMotionReduced;
 
-    if ("IntersectionObserver" in window && !studioMotionReduced) {
+    if (!window.LOCUS_MOTION && "IntersectionObserver" in window && !studioMotionReduced) {
       studioRevealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
@@ -4784,7 +4788,12 @@ function initLandingChrome() {
     });
   }
 
-  if (revealTargets.length && "IntersectionObserver" in window) {
+  if (window.LOCUS_MOTION) {
+    revealTargets.forEach((target, index) => {
+      target.classList.add("is-visible");
+      window.LOCUS_MOTION.reveal(target, { index });
+    });
+  } else if (revealTargets.length && "IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;

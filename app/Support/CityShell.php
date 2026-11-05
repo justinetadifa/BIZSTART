@@ -61,9 +61,11 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <script src="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.markercluster.js"></script>
   <?php endif; ?>
   <?php if ($user !== null): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/session-guard.css"><?php endif; ?>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700&family=Montserrat:wght@800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <?php if ($page === 'city-landing'): ?>
+  <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/archivo-black.ttf" as="font" type="font/ttf" crossorigin>
+  <?php endif; ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-foundation.css<?= sfc_asset_version('css/locus-foundation.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
@@ -73,15 +75,22 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/auth-interface.css<?= sfc_asset_version('css/auth-interface.css') ?>">
   <?php endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-glance.css<?= sfc_asset_version('css/home-glance.css') ?>"><?php endif; ?>
+  <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/civic-metrics.css<?= sfc_asset_version('css/civic-metrics.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/password-visibility.css<?= sfc_asset_version('css/password-visibility.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/help-center.css<?= sfc_asset_version('css/help-center.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/sound-system.css<?= sfc_asset_version('css/sound-system.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-hud.css<?= sfc_asset_version('css/locus-hud.css') ?>">
+  <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-discovery.css<?= sfc_asset_version('css/home-discovery.css') ?>"><?php endif; ?>
+  <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-hero.css<?= sfc_asset_version('css/home-hero.css') ?>"><?php endif; ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-motion.css<?= sfc_asset_version('css/locus-motion.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/help-center.js<?= sfc_asset_version('js/help-center.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/locus-motion.js<?= sfc_asset_version('js/locus-motion.js') ?>"></script>
+  <?php if ($page === 'city-landing'): ?><script defer src="<?= $e($context['assetBase']) ?>/js/home-glance.js<?= sfc_asset_version('js/home-glance.js') ?>"></script><?php endif; ?>
+  <?php if ($page === 'city-landing'): ?><script defer src="<?= $e($context['assetBase']) ?>/js/home-hero.js<?= sfc_asset_version('js/home-hero.js') ?>"></script><?php endif; ?>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
   <div class="locus-map-backdrop" aria-hidden="true"></div>

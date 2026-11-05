@@ -1,0 +1,278 @@
+/* Native, once-per-visit motion shared by current and legacy LOCUS-SF pages. */
+(() => {
+  'use strict';
+  if (window.LOCUS_MOTION) return;
+
+  const main = document.querySelector('main');
+  if (!main) return;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const depthAllowed = matchMedia('(min-width: 851px) and (pointer: fine)');
+  const root = document.documentElement;
+  const selector = [
+    '[data-locus-reveal]', 'main > section', '.section-block',
+    '.city-section-heading', '.discovery-section-heading', '.city-concierge-header',
+    '.glance-profile-header', '.glance-city-portrait',
+    '.glance-fact', '.locator-section-header', '.locator-card',
+    '.city-why-card', '.discovery-trail', '.city-concierge-card',
+    '.city-property-card', '.city-about', '.city-benefits > article',
+    '.city-detail-panel', '.city-stats > .city-stat', '.city-account-gate',
+    '.property-section', '.property-section-heading', '.ci-section',
+    '.report-section', '.report-card', '.report-stat', '.city-page-heading',
+    '.page-intro-card', '.panel-card', '.stat-card', '.comparison-card',
+    '.request-card', '.visit-window-card', '.command-score-card',
+    '.search-result-card', '.role-card', '.news-card', '.about-stat-card',
+    '.explorer-card', '.prospectus-card', '.readiness-pillar-card',
+    '.readiness-editor-card', '.intent-card', '.cta-card', '.landing-panel',
+    '.landing-role-link', '.landing-showcase-card', '.landing-ranking-mini',
+    '.landing-demand-card', '.final-cta-card', '.property-card', '.vote-card',
+    '.showcase-card', '.showcase-spotlight-card', '.showcase-admin-card',
+    '.showcase-card-section', '.spotlight-card', '.decision-card', '.contact-card',
+    'main.city-prose > h2', 'main.city-prose > p'
+  ].join(',');
+  const excluded = [
+    '[data-locus-motion="off"]', '[data-locus-hero]', '.city-hero',
+    '.city-hero-frame', '.admin-hero-card', '.hero', '[data-hero-stage]',
+    'header', 'nav', 'footer', 'dialog', '[role="dialog"]', '[role="tabpanel"]',
+    '[role="tablist"]', '[role="grid"]', '[role="log"]', '[role="status"]', '[role="alert"]',
+    '[inert]', '[hidden]', 'table', '.city-table-wrap', '.report-table-scroll',
+    '.leaflet-container', '.maplibregl-map', '.city-map-panel', '.city-map-canvas',
+    '.map-panel-card', '.explorer-map-studio', '.property-wizard', '.pw-workspace',
+    '.ia-chat', '.ia-chat-body', '.ia-conversation', '.ia-conversation-body',
+    '.ia-map-panel', '.thread-card', '.visit-thread-card',
+    '.locus-help-dialog', '.city-navigation', '.auth-visual', '.auth-surface'
+  ].join(',');
+  const records = new WeakMap();
+  const pending = new Set();
+  const active = new Set();
+  const artwork = new Set();
+  const visibleArtwork = new Set();
+  let revealObserver;
+  let depthObserver;
+  let mutations;
+  let depthFrame = 0;
+  let refreshFrame = 0;
+  let suspended = document.hidden;
+  let disabled = false;
+  const addedRoots = new Set();
+
+  const enabled = () => !disabled && !suspended && !reduced.matches;
+  const hasBox = node => node.getClientRects().length > 0;
+  const isScrollable = style => /(auto|scroll)/.test(`${style.overflowX} ${style.overflowY}`);
+
+  // Transforming a parent must never change a map, fixed control or nested
+  // scroll panel's coordinate system. Guard both the ancestry and descendants.
+  function safe(node) {
+    if (!(node instanceof HTMLElement) || !main.contains(node) || node.closest(excluded) || !hasBox(node)) return false;
+    for (let parent = node; parent && parent !== main; parent = parent.parentElement) {
+      const style = getComputedStyle(parent);
+      if (style.position === 'fixed' || style.position === 'sticky' || isScrollable(style)) return false;
+    }
+    if (node.querySelector(excluded)) return false;
+    for (const child of node.querySelectorAll('*')) {
+      // Small, explicit units keep this bounded; section-sized targets are
+      // rejected before this walk if they contain more specific units.
+      const style = getComputedStyle(child);
+      if (style.position === 'fixed' || style.position === 'sticky' || isScrollable(style)) return false;
+    }
+    const style = getComputedStyle(node);
+    return style.visibility !== 'hidden' && style.animationName === 'none'
+      && (style.translate === 'none' || style.translate === '0px')
+      && Number(style.opacity) > 0;
+  }
+
+  function clearAnimation(node) {
+    node.classList.remove('locus-reveal-active');
+    node.style.removeProperty('--locus-motion-delay');
+    node.style.removeProperty('--locus-motion-opacity');
+    active.delete(node);
+  }
+
+  function settle(node) {
+    const record = records.get(node);
+    if (!record) return;
+    record.seen = true;
+    node.dataset.locusMotion = 'seen';
+    pending.delete(node);
+    revealObserver?.unobserve(node);
+    clearAnimation(node);
+  }
+
+  function finish(scope = main) {
+    for (const node of [...pending, ...active]) {
+      if (scope === main || scope === document || scope === node || scope.contains?.(node) || node.contains(scope)) settle(node);
+    }
+  }
+
+  function staggerIndex(node) {
+    const unit = node.closest('.glance-stat-group') || node;
+    if (!unit.parentElement) return 0;
+    const siblings = [...unit.parentElement.children].filter(child => child.matches(selector) || child.matches('.glance-stat-group'));
+    return Math.max(0, siblings.indexOf(unit)) % 4;
+  }
+
+  function enter(node) {
+    const record = records.get(node);
+    if (!record || record.seen) return;
+    pending.delete(node);
+    revealObserver?.unobserve(node);
+    record.seen = true;
+    node.dataset.locusMotion = 'seen';
+    if (!enabled() || !node.isConnected || !hasBox(node) || node.contains(document.activeElement)) return;
+    const bounds = node.getBoundingClientRect();
+    if (bounds.bottom < 0) return;
+    node.style.setProperty('--locus-motion-delay', `${record.index * 75}ms`);
+    node.style.setProperty('--locus-motion-opacity', getComputedStyle(node).opacity);
+    active.add(node);
+    node.classList.add('locus-reveal-active');
+    // CSS ends naturally with fill:backwards, so even a later script failure
+    // cannot leave the unit transparent or translated indefinitely.
+  }
+
+  function reveal(node, options = {}) {
+    if (!(node instanceof HTMLElement) || records.has(node)) return;
+    if (node.querySelector(selector)) return;
+    if (!safe(node)) return;
+    if (node.parentElement?.closest('[data-locus-motion="pending"], .locus-reveal-active')) return;
+    const record = { seen: false, index: Math.min(3, Math.max(0, options.index ?? staggerIndex(node))) };
+    records.set(node, record);
+    const bounds = node.getBoundingClientRect();
+    // The initial viewport, restored scroll position, heroes and previous
+    // content stay stable. Only content still below the viewport can reveal.
+    if (!enabled() || !revealObserver || bounds.top <= innerHeight + 80) {
+      record.seen = true;
+      node.dataset.locusMotion = 'seen';
+      return;
+    }
+    node.dataset.locusMotion = 'pending';
+    pending.add(node);
+    revealObserver.observe(node);
+  }
+
+  function resetDepth() {
+    cancelAnimationFrame(depthFrame);
+    depthFrame = 0;
+    for (const node of artwork) node.style.removeProperty('--locus-parallax-y');
+  }
+
+  function renderDepth() {
+    depthFrame = 0;
+    if (!enabled() || !depthAllowed.matches) return;
+    const updates = [];
+    for (const node of visibleArtwork) {
+      if (!node.isConnected) { visibleArtwork.delete(node); artwork.delete(node); continue; }
+      const box = (node.closest('picture') || node).getBoundingClientRect();
+      const progress = (innerHeight / 2 - (box.top + box.height / 2)) / ((innerHeight + box.height) / 2);
+      updates.push([node, Math.max(-6, Math.min(6, progress * 6))]);
+    }
+    for (const [node, y] of updates) node.style.setProperty('--locus-parallax-y', `${y.toFixed(2)}px`);
+  }
+
+  function scheduleDepth() {
+    if (!depthFrame && visibleArtwork.size && enabled() && depthAllowed.matches) depthFrame = requestAnimationFrame(renderDepth);
+  }
+
+  function refresh(scope = main) {
+    const nodes = [];
+    if (scope instanceof HTMLElement && scope.matches(selector)) nodes.push(scope);
+    if (scope.querySelectorAll) nodes.push(...scope.querySelectorAll(selector));
+    nodes.forEach(node => reveal(node));
+    const imageSelector = '.glance-portrait-art, img[data-locus-parallax]';
+    const images = [...(scope.querySelectorAll?.(imageSelector) || [])];
+    if (scope instanceof HTMLImageElement && scope.matches(imageSelector)) images.unshift(scope);
+    for (const image of images) {
+      if (artwork.has(image) || image.closest(excluded) || !hasBox(image)) continue;
+      artwork.add(image);
+      image.classList.add('locus-parallax');
+      depthObserver?.observe(image);
+    }
+  }
+
+  function failOpen() {
+    disabled = true;
+    finish();
+    resetDepth();
+    revealObserver?.disconnect();
+    depthObserver?.disconnect();
+    mutations?.disconnect();
+    cancelAnimationFrame(refreshFrame);
+    addedRoots.clear();
+  }
+
+  function revealHash() {
+    try {
+      const id = decodeURIComponent(location.hash.slice(1));
+      const target = id && document.getElementById(id);
+      if (target) finish(target);
+    } catch { /* Malformed optional hashes do not affect content visibility. */ }
+  }
+
+  window.LOCUS_MOTION = { reveal, refresh, finish };
+  try {
+    if (!('IntersectionObserver' in window) || !CSS.supports('translate', '0px 1px')) return;
+    if (!getComputedStyle(root).getPropertyValue('--locus-motion-duration').trim()) return;
+    revealObserver = new IntersectionObserver(entries => {
+      try { entries.filter(entry => entry.isIntersecting).forEach(entry => enter(entry.target)); }
+      catch { failOpen(); }
+    }, { rootMargin: '0px 0px 80px 0px', threshold: 0 });
+    depthObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) visibleArtwork.add(entry.target);
+        else { visibleArtwork.delete(entry.target); entry.target.style.removeProperty('--locus-parallax-y'); }
+      });
+      scheduleDepth();
+    }, { threshold: 0 });
+
+    main.addEventListener('animationend', event => {
+      if (event.animationName === 'locus-enter') clearAnimation(event.target);
+    });
+    main.addEventListener('animationcancel', event => {
+      if (event.animationName === 'locus-enter') clearAnimation(event.target);
+    });
+    document.addEventListener('focusin', event => finish(event.target));
+    window.addEventListener('hashchange', revealHash);
+    window.addEventListener('scroll', scheduleDepth, { passive: true });
+    window.addEventListener('resize', scheduleDepth, { passive: true });
+    window.addEventListener('beforeprint', () => { finish(); resetDepth(); });
+    document.addEventListener('visibilitychange', () => {
+      suspended = document.hidden;
+      if (suspended) { finish(); resetDepth(); }
+      else scheduleDepth();
+    });
+    window.addEventListener('pagehide', () => { suspended = true; finish(); resetDepth(); });
+    window.addEventListener('pageshow', () => { suspended = false; scheduleDepth(); });
+    reduced.addEventListener('change', () => {
+      if (reduced.matches) { finish(); resetDepth(); }
+      else scheduleDepth();
+    });
+    depthAllowed.addEventListener('change', () => {
+      if (!depthAllowed.matches) resetDepth();
+      else scheduleDepth();
+    });
+    mutations = new MutationObserver(changes => {
+      for (const change of changes) for (const node of change.addedNodes) {
+        if (node instanceof HTMLElement && !node.closest(excluded)) addedRoots.add(node);
+      }
+      const removed = changes.some(change => change.removedNodes.length > 0);
+      if ((!addedRoots.size && !removed) || refreshFrame) return;
+      refreshFrame = requestAnimationFrame(() => {
+        refreshFrame = 0;
+        try {
+          for (const node of addedRoots) if (node.isConnected) refresh(node);
+          addedRoots.clear();
+          // Release removed collection entries instead of retaining old cards.
+          for (const node of pending) if (!node.isConnected) settle(node);
+          for (const node of active) if (!node.isConnected) clearAnimation(node);
+          for (const image of artwork) if (!image.isConnected) {
+            artwork.delete(image);
+            visibleArtwork.delete(image);
+            depthObserver?.unobserve(image);
+          }
+        } catch { failOpen(); }
+      });
+    });
+    mutations.observe(main, { childList: true, subtree: true });
+    refresh();
+    revealHash();
+    root.dataset.locusMotionReady = 'true';
+  } catch { failOpen(); }
+})();

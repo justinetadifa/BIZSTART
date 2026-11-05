@@ -1,0 +1,713 @@
+/* San Fernando's city guide. Scoped to the public homepage; loaded after the shell. */
+body[data-page="city-landing"] :is(#at-a-glance, #incentive-recipients, #why-invest) {
+  --discovery-navy: #11224d;
+  --discovery-red: #9e1b22;
+  --discovery-gold: #e9bb62;
+  font-family: "Inter", sans-serif;
+}
+
+.discovery-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.discovery-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: #53617c;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.discovery-eyebrow > span { color: var(--discovery-red); font-variant-numeric: tabular-nums; }
+.discovery-heading-note { margin: 0; color: #5d6880; font-size: 14px; line-height: 1.65; }
+
+/* Company directory: an editorial introduction and four native profile sheets. */
+body[data-page="city-landing"] #incentive-recipients {
+  --locator-ink: #101d35;
+  --locator-secondary: #5a626b;
+  --locator-red: #981e32;
+  --locator-columns: minmax(220px, 1.15fr) 72px minmax(230px, 1fr) 114px;
+  --locator-gap: 20px;
+  --locator-row-inset: 18px;
+  --locator-ease: cubic-bezier(.22, 1, .36, 1);
+  background: #f6f4ef;
+  color: var(--locator-ink);
+  scroll-margin-top: 110px;
+}
+#incentive-recipients .locator-section-content { display: grid; grid-template-columns: minmax(200px, 240px) minmax(0, 1fr); gap: 0 40px; }
+#incentive-recipients .locator-section-header { display: contents; }
+#incentive-recipients .locator-section-intro { grid-column: 1; grid-row: 1 / 3; min-width: 0; max-width: 100%; padding-top: 10px; }
+#incentive-recipients .locator-section-eyebrow { display: flex; align-items: center; gap: 10px; margin: 0 0 25px; color: #4b5057; font-size: 10px; font-weight: 500; line-height: 1.6; letter-spacing: .16em; text-transform: uppercase; }
+#incentive-recipients .locator-section-eyebrow::before { content: ''; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #a71938; box-shadow: 0 0 0 3px #a7193809; }
+#incentive-recipients .locator-section-title { max-width: 100%; margin: 0; color: var(--locator-ink); overflow-wrap: anywhere; }
+#incentive-recipients .locator-section-description { max-width: 24ch; margin: 20px 0 0; color: #4e5661; font-size: 15px; line-height: 1.7; letter-spacing: -.015em; }
+#incentive-recipients .locator-terms-link { grid-column: 2; grid-row: 1; justify-self: end; display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: fit-content; min-height: 44px; max-width: 100%; margin: 0 0 22px; padding: 10px 15px; border: 1px solid #fff; border-radius: 999px; background: linear-gradient(120deg, #fff7f4c9, #eef4f1b3); color: #5e2732; font-size: 12px; font-weight: 500; line-height: 1.5; text-decoration: none; box-shadow: 0 4px 12px -6px #1c2c4233, inset 0 1px 0 #fff, 0 0 0 1px #15213d12; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); transition: transform 200ms var(--locator-ease), box-shadow 200ms ease, background-color 200ms ease; }
+#incentive-recipients .locator-terms-link > svg { flex: 0 0 15px; width: 15px; height: 15px; }
+#incentive-recipients .locator-terms-link > svg:last-child { flex-basis: 13px; width: 13px; height: 13px; }
+#incentive-recipients .locator-terms-link:hover { transform: translateY(-2px); box-shadow: 0 7px 17px -7px #1c2c423d, inset 0 1px 0 #fff, 0 0 0 1px #981e3226; }
+#incentive-recipients .locator-terms-link:active { transform: translateY(0) scale(.98); }
+#incentive-recipients .locator-directory { grid-column: 2; grid-row: 2; min-width: 0; padding: 5px; border: 1px solid #ffffffed; border-radius: 26px; background: #ffffff26; box-shadow: 0 0 0 1px #1728460c; }
+#incentive-recipients .locator-directory-head { display: grid; grid-template-columns: var(--locator-columns); align-items: center; gap: var(--locator-gap); padding: 15px var(--locator-row-inset); border: 1px solid #ffffff0a; border-radius: 19px; background: radial-gradient(ellipse at 38% -140%, #48689599, transparent 80%), linear-gradient(125deg, #14264a, #0c1831); color: #d4deed; font-size: 10px; font-weight: 400; line-height: 1.45; box-shadow: 0 4px 10px -7px #07152e5c, inset 0 1px 0 #ffffff14; }
+#incentive-recipients .locator-head-company { display: flex; align-items: center; gap: 10px; min-width: 0; color: #fff; font-size: 12px; letter-spacing: -.015em; }
+#incentive-recipients .locator-company-count { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border: 1px solid #ffffff1a; border-radius: 9px; background: linear-gradient(135deg, #ffffff1f, #ffffff05); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; box-shadow: inset 0 1px 0 #ffffff14; }
+#incentive-recipients .locator-head-period { display: grid; gap: 6px; min-width: 0; container-type: inline-size; }
+#incentive-recipients .locator-calendar { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0; color: #aab9d1; font-size: 8px; font-variant-numeric: tabular-nums; text-align: center; }
+#incentive-recipients .locator-head-action { text-align: right; }
+#incentive-recipients .locator-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 12px; }
+#incentive-recipients .locator-card { min-width: 0; border: 1px solid #fff; border-radius: 20px; background: linear-gradient(115deg, #ffffffc9, #fafbf8b3); box-shadow: 0 6px 16px -10px #18273d29, 0 0 0 1px #17284610, inset 0 1px 0 #fff; transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease; }
+#incentive-recipients .locator-summary { position: relative; display: grid; grid-template-columns: var(--locator-columns); align-items: center; gap: var(--locator-gap); min-width: 0; padding: 16px var(--locator-row-inset); border-radius: 19px; cursor: pointer; list-style: none; -webkit-tap-highlight-color: transparent; }
+#incentive-recipients .locator-summary::-webkit-details-marker { display: none; }
+#incentive-recipients .locator-summary::marker { content: ''; }
+#incentive-recipients .locator-card[open] { border-color: #fff; background: linear-gradient(115deg, #fff, #f6f8f6); box-shadow: 0 12px 24px -17px #18273d4d, 0 0 0 1px #6b88ae36, inset 0 1px 0 #fff; }
+#incentive-recipients .locator-card[open] .locator-summary { border-radius: 19px 19px 0 0; }
+#incentive-recipients .locator-identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
+#incentive-recipients .locator-logo-well { display: grid; place-items: center; flex: 0 0 66px; width: 66px; height: 66px; padding: 8px; border: 1px solid #fff; border-radius: 18px; background: linear-gradient(145deg, #fff, #f0f1ed); box-shadow: 0 6px 12px -7px #10243a66, inset 0 1px 1px #fff, 0 0 0 1px #26374310; }
+#incentive-recipients .locator-logo { display: block; width: 48px; height: 48px; border: 1px solid #18273d0a; border-radius: 11px; background: #fff; object-fit: contain; }
+#incentive-recipients .locator-logo--lucs { background: #020733; }
+#incentive-recipients .locator-identity-copy { display: block; min-width: 0; }
+#incentive-recipients .locator-name { display: block; color: var(--locator-ink); font-size: 16px; font-weight: 600; line-height: 1.35; letter-spacing: -.03em; overflow-wrap: anywhere; }
+#incentive-recipients .locator-category { display: block; margin-top: 4px; color: #505b69; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+#incentive-recipients .locator-location { display: block; margin-top: 1px; color: #69727b; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+#incentive-recipients .locator-benefit { display: block; min-width: 0; }
+#incentive-recipients .locator-duration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 5px; color: var(--locator-ink); font-size: 37px; font-weight: 600; line-height: 1.08; letter-spacing: -.065em; font-variant-numeric: tabular-nums; }
+#incentive-recipients .locator-duration > span { color: #5e6875; font-size: 11px; font-weight: 400; line-height: 1.4; letter-spacing: -.015em; }
+#incentive-recipients :is(.locator-benefit-label, .locator-period-label) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#incentive-recipients .locator-period { display: grid; gap: 7px; min-width: 0; color: var(--locator-ink); font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; container-type: inline-size; }
+#incentive-recipients .locator-period-copy { display: flex; justify-content: center; }
+#incentive-recipients .locator-period-dates { display: inline-block; max-width: 100%; padding: 2px 9px; border: 1px solid #fff; border-radius: 7px; background: #fbfcfa; color: #425363; font-size: 10px; line-height: 1.6; box-shadow: 0 2px 6px -3px #18273d30, 0 0 0 1px #17284608; overflow-wrap: anywhere; }
+#incentive-recipients .locator-timeline { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); height: 12px; padding-block: 3px; border-radius: 999px; background: linear-gradient(180deg, #e2e4df, #e9ebe6); box-shadow: inset 0 1px 3px #18273d12; }
+#incentive-recipients .locator-timeline::before { content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(var(--period-start) * 12.5%); width: calc(var(--period-length) * 12.5%); border: 1px solid #ffffff26; border-radius: 999px; background: linear-gradient(90deg, #79b8bf, #517db9 48%, #2448aa); box-shadow: 0 0 10px #4f91b829, inset 0 1px 0 #ffffff36; }
+#incentive-recipients .locator-timeline-year { position: relative; min-width: 0; border-right: 1px solid #ffffffa6; }
+#incentive-recipients .locator-timeline-year:last-child { border: 0; }
+#incentive-recipients .locator-timeline-labels { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0; color: #64707b; font-size: 8px; line-height: 1.4; text-align: center; }
+#incentive-recipients :is(.locator-calendar, .locator-timeline-labels) > span:first-child { text-align: left; }
+#incentive-recipients :is(.locator-calendar, .locator-timeline-labels) > span:last-child { text-align: right; }
+#incentive-recipients .locator-disclosure { display: inline-flex; align-items: center; justify-content: center; justify-self: end; gap: 6px; min-height: 36px; max-width: 100%; padding: 7px 10px; border: 1px solid #fff; border-radius: 999px; background: linear-gradient(130deg, #fff, #f0f3ef); color: #364656; font-size: 10px; font-weight: 500; line-height: 1.5; text-align: center; box-shadow: 0 3px 7px -5px #10243a4d, 0 0 0 1px #2637430d, inset 0 1px 0 #fff; transition: background-color 200ms ease, transform 200ms var(--locator-ease), box-shadow 200ms ease; }
+#incentive-recipients .locator-disclosure-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 12px; width: 12px; height: 12px; color: #536674; }
+#incentive-recipients .locator-disclosure-icon svg { width: 12px; height: 12px; transition: transform 240ms var(--locator-ease); }
+#incentive-recipients .locator-hide-label { display: none; }
+#incentive-recipients .locator-card[open] .locator-details-label { display: none; }
+#incentive-recipients .locator-card[open] .locator-hide-label { display: inline; }
+#incentive-recipients .locator-card[open] .locator-disclosure { background: #e9eff5; color: #1c3d65; box-shadow: inset 0 1px 3px #10243a14, 0 0 0 1px #fff; }
+#incentive-recipients .locator-card[open] .locator-disclosure-icon svg { transform: rotate(180deg); }
+#incentive-recipients .locator-summary:active .locator-disclosure { transform: scale(.97); }
+#incentive-recipients :is(.locator-summary, .locator-terms-link):focus-visible { outline: 3px solid #981e32; outline-offset: 4px; }
+#incentive-recipients .locator-card-details { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 28px; margin: 0 20px 20px 98px; padding-top: 19px; border-top: 1px solid #dce2df; color: #566270; font-size: 13px; line-height: 1.7; }
+#incentive-recipients .locator-story { min-width: 0; }
+#incentive-recipients .locator-profile-label { margin: 0 0 7px; color: #8b293d; font-size: 10px; font-weight: 500; line-height: 1.5; }
+#incentive-recipients .locator-card-details p { margin: 0; color: #566270; overflow-wrap: anywhere; }
+#incentive-recipients .locator-impact { min-width: 0; padding-left: 24px; border-left: 1px solid #dce2df; }
+#incentive-recipients .locator-impact .locator-highlight { color: #182b46; font-size: 18px; font-weight: 600; line-height: 1.4; letter-spacing: -.035em; }
+#incentive-recipients .locator-section-note { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 9px; margin: 26px 0 0; color: #697078; font-size: 10px; line-height: 1.7; }
+#incentive-recipients .locator-section-note::before { content: ''; flex: 0 0 4px; width: 4px; height: 4px; border-radius: 50%; background: #981e32; transform: translateY(-2px); }
+@media (hover: hover) and (pointer: fine) {
+  #incentive-recipients .locator-card:hover { border-color: #fff; box-shadow: 0 10px 24px -16px #18273d47, 0 0 0 1px #6b88ae26, inset 0 1px 0 #fff; }
+  #incentive-recipients .locator-summary:hover .locator-disclosure { transform: translateY(-1px); background: #fff; box-shadow: 0 5px 11px -6px #10243a42, 0 0 0 1px #26374314; }
+}
+@container (max-width: 26ch) {
+  #incentive-recipients :is(.locator-calendar, .locator-timeline-labels) > span:not(:first-child):not(:last-child) { visibility: hidden; }
+}
+@supports (interpolate-size: allow-keywords) {
+  #incentive-recipients .locator-card { interpolate-size: allow-keywords; }
+  #incentive-recipients .locator-card::details-content { block-size: 0; opacity: 0; overflow: clip; transition: block-size 320ms var(--locator-ease), opacity 220ms ease, content-visibility 320ms allow-discrete; }
+  #incentive-recipients .locator-card[open]::details-content { block-size: auto; opacity: 1; }
+}
+@layer locus-foundation {
+  body[data-page="city-landing"] #incentive-recipients .locator-section-content { width: min(1360px, calc(100% - 48px)) !important; max-width: 1360px !important; }
+  body[data-page="city-landing"] #incentive-recipients .locator-section-header { gap: 0 !important; margin: 0 !important; }
+  body[data-page="city-landing"] #incentive-recipients .locator-section-title { font-size: clamp(42px, 3.7vw, 52px) !important; font-weight: 650 !important; line-height: .99 !important; letter-spacing: -.06em !important; }
+}
+@media (max-width: 1199px) and (min-width: 1024px) {
+  body[data-page="city-landing"] #incentive-recipients { --locator-columns: minmax(190px, 1.1fr) 58px minmax(170px, 1fr) 100px; --locator-gap: 14px; --locator-row-inset: 14px; }
+  #incentive-recipients .locator-section-content { grid-template-columns: 195px minmax(0, 1fr); column-gap: 28px; }
+  #incentive-recipients .locator-identity { gap: 11px; }
+  #incentive-recipients .locator-logo-well { flex-basis: 56px; width: 56px; height: 56px; padding: 6px; border-radius: 16px; }
+  #incentive-recipients .locator-logo { width: 42px; height: 42px; border-radius: 9px; }
+  #incentive-recipients .locator-name { font-size: 14px; }
+  #incentive-recipients .locator-category { font-size: 10px; }
+  #incentive-recipients .locator-directory-head { font-size: 9px; }
+  #incentive-recipients .locator-head-company { font-size: 11px; gap: 8px; }
+}
+@media (max-width: 1023px) {
+  body[data-page="city-landing"] #incentive-recipients { --locator-columns: minmax(200px, 1.2fr) 64px minmax(200px, 1fr) 110px; --locator-gap: 16px; --locator-row-inset: 16px; }
+  #incentive-recipients .locator-section-content { display: block; }
+  #incentive-recipients .locator-section-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 26px; }
+  #incentive-recipients .locator-section-intro { padding-top: 0; }
+  #incentive-recipients .locator-section-eyebrow { margin-bottom: 16px; }
+  #incentive-recipients .locator-section-description { max-width: 48ch; margin-top: 15px; font-size: 14px; }
+  #incentive-recipients .locator-terms-link { flex: 0 0 auto; margin: 0; }
+  @layer locus-foundation { body[data-page="city-landing"] #incentive-recipients .locator-section-header { gap: 24px !important; margin-bottom: 26px !important; } }
+}
+@media (max-width: 850px) {
+  #incentive-recipients .locator-section-header { align-items: flex-start; }
+  #incentive-recipients .locator-directory-head { display: none; }
+  #incentive-recipients .locator-directory { padding: 0; border: 0; background: transparent; box-shadow: none; }
+  #incentive-recipients .locator-grid { padding: 0; gap: 14px; }
+  #incentive-recipients .locator-summary { grid-template-columns: minmax(0, 1fr) 112px; gap: 18px; padding: 20px; }
+  #incentive-recipients .locator-identity { grid-column: 1; grid-row: 1; }
+  #incentive-recipients .locator-benefit { grid-column: 2; grid-row: 1; justify-self: end; }
+  #incentive-recipients .locator-duration { justify-content: flex-end; }
+  #incentive-recipients .locator-period { grid-column: 1; grid-row: 2; }
+  #incentive-recipients .locator-period-copy { justify-content: flex-start; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  #incentive-recipients .locator-period-label { position: static; width: auto; height: auto; margin: 0; padding: 0; overflow: visible; clip-path: none; white-space: normal; color: #69727e; font-size: 10px; line-height: 1.5; }
+  #incentive-recipients .locator-disclosure { grid-column: 2; grid-row: 2; align-self: end; min-height: 44px; width: 112px; }
+  #incentive-recipients .locator-card-details { margin-left: 20px; }
+}
+@media (max-width: 640px) {
+  #incentive-recipients .locator-section-header { flex-direction: column; align-items: flex-start; }
+  #incentive-recipients .locator-section-eyebrow { font-size: 10px; }
+  #incentive-recipients .locator-section-description { max-width: 36ch; }
+  #incentive-recipients .locator-terms-link { margin: 0 0 2px; }
+  #incentive-recipients .locator-summary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px 12px; padding: 18px; }
+  #incentive-recipients .locator-identity { grid-column: 1 / -1; grid-row: 1; gap: 13px; }
+  #incentive-recipients .locator-logo-well { flex-basis: 58px; width: 58px; height: 58px; padding: 7px; border-radius: 16px; }
+  #incentive-recipients .locator-logo { width: 42px; height: 42px; border-radius: 9px; }
+  #incentive-recipients .locator-name { font-size: 16px; }
+  #incentive-recipients .locator-category { font-size: 11px; }
+  #incentive-recipients .locator-benefit { grid-column: 1; grid-row: 2; justify-self: start; }
+  #incentive-recipients .locator-duration { justify-content: flex-start; font-size: 32px; }
+  #incentive-recipients .locator-benefit-label { position: static; display: block; width: auto; height: auto; margin: 4px 0 0; padding: 0; overflow: visible; clip-path: none; white-space: normal; color: #69727e; font-size: 10px; line-height: 1.5; }
+  #incentive-recipients .locator-disclosure { grid-column: 2; grid-row: 2; align-self: center; }
+  #incentive-recipients .locator-period { grid-column: 1 / -1; grid-row: 3; padding-top: 14px; border-top: 1px solid #dce2df; }
+  #incentive-recipients .locator-card-details { grid-template-columns: minmax(0, 1fr); gap: 18px; margin: 0 18px 18px; padding-top: 18px; }
+  #incentive-recipients .locator-impact { padding-left: 0; border-left: 0; }
+  #incentive-recipients .locator-section-note { margin-top: 24px; }
+  @layer locus-foundation {
+    body[data-page="city-landing"] #incentive-recipients .locator-section-content { width: calc(100% - 24px) !important; }
+    body[data-page="city-landing"] #incentive-recipients .locator-section-title { font-size: 44px !important; }
+    body[data-page="city-landing"] #incentive-recipients .locator-section-header { gap: 18px !important; margin-bottom: 24px !important; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #incentive-recipients *, #incentive-recipients *::before, #incentive-recipients *::details-content { transition: none !important; animation: none !important; }
+  #incentive-recipients :is(.locator-terms-link, .locator-disclosure) { transform: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  #incentive-recipients :is(.locator-card, .locator-terms-link, .locator-directory) { background: #fbfbf8; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@media (forced-colors: active) {
+  #incentive-recipients :is(.locator-card, .locator-terms-link, .locator-directory-head, .locator-disclosure) { border: 1px solid ButtonText; }
+  #incentive-recipients .locator-timeline::before { background: Highlight; }
+}
+
+/* A compact six-topic guide; opened topics retain their native inline details. */
+#why-invest {
+  --why-ease: cubic-bezier(.22, 1, .36, 1);
+  position: relative;
+  padding-block: 48px 68px;
+}
+#why-invest .discovery-section-heading { position: relative; z-index: 1; }
+#why-invest .discovery-section-heading > div { min-width: 0; max-width: 100%; }
+#why-invest .city-why-heading { margin-bottom: 10px !important; overflow-wrap: anywhere; }
+#why-invest .discovery-heading-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  color: var(--discovery-red);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 180ms ease;
+}
+#why-invest .discovery-heading-link:hover { color: #7b1319; text-decoration: underline; text-underline-offset: 4px; }
+#why-invest .discovery-heading-link-arrow { display: inline-block; line-height: 1; }
+
+/* The live count and six markers stay visible without an oversized progress panel. */
+#why-invest .discovery-trail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(150px, 1fr) auto minmax(150px, 1fr);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid #e0e6ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 8px #11224d04;
+}
+#why-invest .discovery-trail[hidden],
+#why-invest .discovery-continue[hidden] { display: none !important; }
+#why-invest .discovery-trail-emblem {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5d5b2;
+  border-radius: 10px;
+  background: #fcf8ee;
+  color: #88601f;
+}
+#why-invest .discovery-trail-emblem svg { width: 16px; height: 16px; }
+#why-invest .discovery-trail-copy { display: grid; gap: 1px; min-width: 0; }
+#why-invest .discovery-trail-copy strong { color: #11224d; font-size: 13px; font-weight: 600; line-height: 1.4; }
+#why-invest .discovery-trail-copy > span { color: #556682; font-size: 11px; line-height: 1.5; }
+#why-invest .discovery-trail-track { display: flex; align-items: center; gap: 6px; }
+#why-invest .discovery-trail-track > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f0f3f8;
+  color: #5c6b84;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+#why-invest .discovery-trail-track > .is-explored { color: #fff; background: #9e1b22; }
+#why-invest .discovery-trail.is-complete { border-color: #d7c29c; background: #fffdf9; }
+#why-invest .discovery-continue {
+  display: inline-flex;
+  justify-self: end;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 9px 14px;
+  border: 1px solid #d5dce7;
+  border-radius: 10px;
+  background: #fff;
+  color: #11224d;
+  font: 600 12px/1.5 "Inter", sans-serif;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms var(--why-ease);
+}
+#why-invest .discovery-continue:hover { background: #f4f6f9; border-color: #9ba9c0; }
+#why-invest .discovery-continue:active { transform: scale(.98); }
+
+#why-invest .discovery-guide-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+/* Only the open panel's row adapts; unrelated rows retain their button alignment. */
+@media (min-width: 1024px) {
+  #why-invest .discovery-guide-grid:has(> :nth-child(-n+3).is-expanded) > :nth-child(-n+3),
+  #why-invest .discovery-guide-grid:has(> :nth-child(n+4).is-expanded:not(.city-why-card--setup)) > :nth-child(n+4) { align-self: start; }
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  #why-invest .discovery-guide-grid:has(> :nth-child(-n+2).is-expanded) > :nth-child(-n+2),
+  #why-invest .discovery-guide-grid:has(> :nth-child(n+3):nth-child(-n+4).is-expanded) > :nth-child(n+3):nth-child(-n+4),
+  #why-invest .discovery-guide-grid:has(> :nth-child(n+5).is-expanded:not(.city-why-card--setup)) > :nth-child(n+5) { align-self: start; }
+}
+@media (min-width: 641px) and (max-width: 899px) {
+  #why-invest .discovery-guide-grid:has(> .city-why-card--setup.is-expanded) > :nth-child(n+5) { align-self: start; }
+}
+#why-invest .city-why-card {
+  position: relative;
+  isolation: isolate;
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px !important;
+  border: 1px solid #ffffff20 !important;
+  border-radius: 18px !important;
+  background: #11224d !important;
+  box-shadow: 0 4px 12px #11224d12 !important;
+  overflow: hidden;
+  scroll-margin-top: 115px;
+  transform: none !important;
+  transition: transform 220ms var(--why-ease), border-color 220ms ease, box-shadow 220ms ease !important;
+}
+#why-invest .city-why-card::before {
+  content: '';
+  display: block !important;
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(125deg, #1a3769 0%, #182b54 42%, #502537 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms var(--why-ease);
+}
+#why-invest .city-why-card::after { display: none !important; }
+#why-invest .city-why-card:is(:focus-within, .is-expanded)::before { opacity: 1; }
+#why-invest .city-why-card:is(:focus-within, .is-expanded) { border-color: #ffffff46 !important; }
+#why-invest .city-why-card.is-explored { border-color: #b49b68 !important; }
+@media (hover: hover) and (pointer: fine) {
+  #why-invest .city-why-card:hover {
+    transform: translateY(-3px) !important;
+    border-color: #ffffff46 !important;
+    box-shadow: 0 8px 18px #11224d20 !important;
+  }
+  #why-invest .city-why-card:hover::before { opacity: 1; }
+}
+#why-invest .discovery-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+#why-invest .discovery-card-number {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ffffff24;
+  border-radius: 9px;
+  color: #d5deef;
+  font: 600 12px/1 "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 200ms ease, color 200ms ease;
+}
+#why-invest .is-explored .discovery-card-number { color: #f2cc87; border-color: #e9bb6266; }
+#why-invest .city-why-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0;
+  margin: 0 0 14px !important;
+  color: #e9c47f !important;
+  font: 600 10px/1.6 "Inter", sans-serif !important;
+  letter-spacing: .045em !important;
+  text-transform: uppercase !important;
+}
+#why-invest .discovery-card-top .city-why-tag { margin: 0 !important; }
+#why-invest .city-why-tag-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 13px;
+  width: 13px !important;
+  height: 13px !important;
+  color: inherit !important;
+  background: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+#why-invest .city-why-tag-icon svg { width: 13px !important; height: 13px !important; stroke: currentColor !important; }
+#why-invest .city-why-title {
+  position: relative;
+  margin: 0 0 9px !important;
+  color: #fff !important;
+  font-family: "Inter", sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 650 !important;
+  line-height: 1.28 !important;
+  letter-spacing: -.025em !important;
+  text-shadow: none !important;
+}
+#why-invest .city-why-subtitle {
+  position: relative;
+  min-height: 0;
+  margin: 0 0 20px !important;
+  color: #c1cce0 !important;
+  font: 400 13px/1.65 "Inter", sans-serif !important;
+}
+#why-invest .city-why-btn {
+  display: inline-flex !important;
+  align-self: flex-start;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: fit-content !important;
+  max-width: 100%;
+  min-height: 44px !important;
+  margin-top: auto;
+  padding: 10px 14px !important;
+  border: 1px solid #ffffff20 !important;
+  border-radius: 10px !important;
+  background: #b51c29 !important;
+  color: #fff !important;
+  font: 600 12px/1.5 "Inter", sans-serif !important;
+  text-align: left;
+  white-space: normal !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 5px #0000000d !important;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms var(--why-ease), box-shadow 180ms ease !important;
+}
+#why-invest .city-why-btn > span:last-child { min-width: 0; }
+#why-invest .city-why-btn:hover { background: #9e1b22 !important; transform: none !important; box-shadow: 0 3px 8px #00000018 !important; }
+#why-invest .city-why-btn:active { transform: scale(.98) !important; }
+#why-invest .city-why-card.is-expanded .city-why-btn { background: #9e1b22 !important; }
+#why-invest .city-why-btn-triangle {
+  display: inline-block !important;
+  flex: 0 0 auto;
+  width: auto !important;
+  height: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  color: #fff !important;
+  font-size: 8px !important;
+  line-height: 1 !important;
+  transition: transform 220ms var(--why-ease) !important;
+}
+#why-invest .city-why-btn[aria-expanded="true"] .city-why-btn-triangle { transform: rotate(90deg) !important; }
+#why-invest :is(button, a, select):focus-visible { outline: 3px solid #e9bb62 !important; outline-offset: 4px !important; }
+#why-invest .city-why-details :is(button, a, select):focus-visible { outline-offset: -3px !important; }
+#why-invest :is(.discovery-continue, .discovery-heading-link):focus-visible { outline-color: #9e1b22 !important; }
+#why-invest :is(.discovery-continue, .city-why-btn) { -webkit-tap-highlight-color: transparent; }
+
+/* Animate the disclosure itself; its border never changes the card's dimensions. */
+#why-invest .city-why-details {
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  transition: grid-template-rows 320ms var(--why-ease), opacity 220ms ease, margin-top 320ms var(--why-ease) !important;
+}
+#why-invest .city-why-card.is-expanded .city-why-details { grid-template-rows: 1fr !important; opacity: 1 !important; margin-top: 18px !important; }
+#why-invest .city-why-details-inner {
+  min-height: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  transform: translateY(-5px) !important;
+  transition: transform 320ms var(--why-ease) !important;
+}
+#why-invest .city-why-card.is-expanded .city-why-details-inner { transform: none !important; }
+#why-invest .city-why-desc { margin: 10px 0 16px !important; color: #dce4f2 !important; font: 400 13px/1.7 "Inter", sans-serif !important; }
+#why-invest .city-why-desc:last-child { margin-bottom: 0 !important; }
+#why-invest .city-why-pill {
+  display: inline-block !important;
+  max-width: 100% !important;
+  padding: 4px 8px !important;
+  border: 1px solid #e9bb624d !important;
+  border-radius: 6px !important;
+  background: #e9bb6212 !important;
+  color: #f8e2b5 !important;
+  font: 600 10px/1.6 "Inter", sans-serif !important;
+  letter-spacing: .035em !important;
+  text-transform: uppercase !important;
+  white-space: normal !important;
+}
+
+
+/* Scoped Drawer Components: Card 3 Priority Sectors */
+#why-invest .city-priority-sector-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 12px 14px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+#why-invest .city-priority-sector-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(233, 187, 98, 0.45) !important;
+  transform: translateX(3px) !important;
+}
+#why-invest .city-priority-sector-badge {
+  background: rgba(233, 187, 98, 0.2) !important;
+  border: 1px solid rgba(233, 187, 98, 0.35) !important;
+  color: #FFE6A8 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+}
+#why-invest .city-priority-sector-icon {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  padding: 2px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+#why-invest .city-priority-sector-icon img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
+}
+#why-invest .city-why-sectors-portal-btn {
+  border-radius: 8px !important;
+  background: #9E1B22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(158, 27, 34, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+#why-invest .city-why-sectors-portal-btn:hover {
+  background: #7B1319 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Scoped Drawer Components: Card 4 Ordinance Showcase */
+#why-invest .city-ordinance-showcase {
+  background: #08122A !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+}
+#why-invest .city-ordinance-kicker {
+  color: #F5D38A !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+}
+#why-invest .city-ordinance-download-btn {
+  border-radius: 6px !important;
+  background: #0284C7 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+#why-invest .city-ordinance-download-btn:hover {
+  background: #0369A1 !important;
+}
+#why-invest .city-why-concierge-callout {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  padding: 12px 14px !important;
+  margin-top: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+#why-invest .city-why-concierge-tag {
+  color: #F5D38A !important;
+  font-weight: 750 !important;
+  font-size: 12px !important;
+}
+#why-invest .city-why-concierge-link {
+  color: #60A5FA !important;
+  text-decoration: underline !important;
+}
+
+/* Scoped Drawer Components: Card 5 Cost Guidance */
+#why-invest .city-why-select {
+  min-height: 44px;
+  background: rgba(255, 255, 255, 0.10) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 16px center !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 8px !important;
+  padding: 9px 40px 9px 14px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+#why-invest .city-cost-display-card {
+  background: #08122A !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 12px !important;
+}
+#why-invest .city-cost-card-tag {
+  color: #F5D38A !important;
+}
+#why-invest .city-cost-row {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+}
+#why-invest .city-cost-rate {
+  color: #FBBF24 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#why-invest .city-why-cost-portal-btn {
+  border-radius: 8px !important;
+  background: #9E1B22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 12px rgba(158, 27, 34, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+#why-invest .city-why-cost-portal-btn:hover {
+  background: #7B1319 !important;
+}
+
+/* Scoped Drawer Components: Card 6 Setting Up a Business */
+#why-invest .city-bizsetup-wrapper {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22) !important;
+  overflow: hidden !important;
+}
+#why-invest .city-bizsetup-banner {
+  background: #001A4E !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  padding: 14px 18px !important;
+}
+#why-invest :is(.city-priority-sector-content, .city-priority-sector-item, .city-cost-display-card, .city-bizsetup-wrapper, .city-bizsetup-body) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Detail content adapts to the narrower topic column, including desktop. */
+#why-invest .city-ordinance-showcase { grid-template-columns: minmax(0, 1fr) !important; padding: 16px !important; gap: 16px !important; }
+#why-invest :is(.city-why-sectors-portal-btn, .city-why-cost-portal-btn, .city-ordinance-download-btn) { min-height: 44px; max-width: 100%; white-space: normal !important; }
+#why-invest :is(.city-why-concierge-row, .city-priority-sector-meta) { flex-wrap: wrap; }
+#why-invest :is(.city-why-details-inner, .city-why-concierge-row, .city-bizsetup-body) { overflow-wrap: anywhere; }
+#why-invest .city-cost-row { flex-wrap: wrap; gap: 6px 12px; }
+#why-invest .city-cost-rate { white-space: normal; }
+#why-invest .city-priority-sector-item { padding: 12px !important; gap: 10px !important; }
+#why-invest .city-priority-sector-item:hover { transform: none !important; }
+#why-invest .city-priority-sector-name { font-size: 13px !important; }
+#why-invest .city-priority-sector-icon { flex: 0 0 36px !important; width: 36px !important; height: 36px !important; min-width: 36px !important; }
+
+@media (max-width: 1023px) {
+  #why-invest .discovery-guide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #why-invest .discovery-trail { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 12px; }
+  #why-invest .discovery-trail-track { grid-column: 2; grid-row: 2; }
+  #why-invest .discovery-trail-emblem { grid-row: 1 / 3; }
+  #why-invest .discovery-continue { grid-column: 3; grid-row: 1 / 3; }
+}
+@media (max-width: 640px) {
+  #why-invest .discovery-section-heading { flex-direction: column; align-items: start; gap: 8px; }
+  #why-invest .discovery-heading-note { font-size: 13px; }
+  #why-invest .discovery-heading-link { align-self: flex-start; }
+  #why-invest .discovery-trail { grid-template-columns: minmax(0, 1fr) auto; padding: 12px; gap: 12px; }
+  #why-invest .discovery-trail-emblem { display: none; }
+  #why-invest .discovery-trail-copy { grid-column: 1; grid-row: 1; }
+  #why-invest .discovery-trail-track { grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 6px; }
+  #why-invest .discovery-trail-track > span { flex: 1; width: auto; }
+  #why-invest .discovery-continue { grid-column: 2; grid-row: 1; max-width: 140px; }
+  #why-invest .discovery-guide-grid { grid-template-columns: minmax(0, 1fr); }
+  #why-invest .city-why-card { padding: 20px !important; }
+  #why-invest .city-why-title { font-size: 21px !important; }
+  #why-invest .city-why-btn { width: 100% !important; justify-content: flex-start !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="city-landing"] #why-invest *,
+  body[data-page="city-landing"] #why-invest *::before { transition: none !important; animation: none !important; }
+  #why-invest .city-why-card:is(:hover, :focus-within, :active),
+  #why-invest :is(.city-why-details-inner, .city-why-btn, .discovery-continue, .city-why-btn-triangle) { transform: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(#at-a-glance, #incentive-recipients, #why-invest) *,
+  :is(#at-a-glance, #incentive-recipients, #why-invest) *::before { animation: none !important; transition: none !important; }
+  #why-invest .city-why-card:hover { transform: none !important; }
+}

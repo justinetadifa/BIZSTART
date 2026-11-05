@@ -100,6 +100,18 @@ final class PropertyRepository
         return $this->presentProperties($this->hydrateProperties($rows), $user);
     }
 
+    public function publicListingCount(): int
+    {
+        $params = [];
+        $visibility = $this->visibilityCondition(null, $params);
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM properties p LEFT JOIN users seller ON seller.id = p.seller_user_id WHERE ' . $visibility
+        );
+        $statement->execute($params);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function find(int $propertyId, ?array $user = null): array
     {
         return $this->presentProperties($this->hydrateProperties([$this->rawPropertyRow($propertyId, $user, true)]), $user)[0];

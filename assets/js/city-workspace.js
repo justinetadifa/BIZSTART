@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evaluation.js';
 import { propertyDetailsMarkup, assessmentCalculation, assessmentPresentation, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario, setupLocalMarketIntelligence, nearbyBusinessesPanelMarkup, setupPriceScoreExplanation } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
+import { setupHomeDiscovery } from './home-discovery.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
@@ -2395,17 +2396,7 @@ function setupLandingFeatures() {
     });
   }
 
-  document.querySelectorAll('.city-why-btn[data-why-toggle]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const card = btn.closest('.city-why-card');
-      if (!card) return;
-      const isExpanded = card.classList.toggle('is-expanded');
-      btn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-      const details = card.querySelector('.city-why-details');
-      if (details) details.setAttribute('aria-hidden', isExpanded ? 'false' : 'true');
-    });
-  });
+  setupHomeDiscovery();
 
   // Auto-expand Card 4 when Ordinance terms link is clicked
   document.querySelectorAll('a[href="#investment-incentives-code"]').forEach(link => {
@@ -2418,7 +2409,8 @@ function setupLandingFeatures() {
           if (btn) btn.click();
         }
         setTimeout(() => {
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+          card.querySelector('[data-why-toggle]')?.focus({ preventScroll: true });
         }, 150);
       }
     });
@@ -2473,29 +2465,11 @@ function setupLandingFeatures() {
     });
   });
 
-  document.querySelectorAll('.home-recipient-item[data-recipient-card]').forEach(card => {
-    card.addEventListener('click', (e) => {
-      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouch && !card.classList.contains('is-flipped')) {
-        e.preventDefault();
-        document.querySelectorAll('.home-recipient-item[data-recipient-card].is-flipped').forEach(other => {
-          if (other !== card) other.classList.remove('is-flipped');
-        });
-        card.classList.add('is-flipped');
-      }
-    });
-  });
-
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.city-acronym')) {
       document.querySelectorAll('.city-acronym.is-active').forEach(el => {
         el.classList.remove('is-active');
         el.setAttribute('aria-expanded', 'false');
-      });
-    }
-    if (!e.target.closest('.home-recipient-item[data-recipient-card]')) {
-      document.querySelectorAll('.home-recipient-item[data-recipient-card].is-flipped').forEach(card => {
-        card.classList.remove('is-flipped');
       });
     }
   });

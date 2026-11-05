@@ -8,335 +8,191 @@ $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, '
 $cataloguePath = $context['user'] === null
     ? '/investor-login.php'
     : (($context['user']['role'] ?? '') === 'investor' ? '/investor-dashboard.php' : '/property-explorer.php');
+$heroAvailability = 'Active listings available';
+try {
+    $heroListingCount = sfc_app_container()['properties']->publicListingCount();
+    $heroAvailability = number_format($heroListingCount) . ($heroListingCount === 1 ? ' active listing available' : ' active listings available');
+} catch (\Throwable) {
+    // The hero and its destinations remain usable when catalogue data is offline.
+}
 ?>
 <main id="main-content">
-  <div class="city-hero-frame">
-    <div class="city-accent-stripe city-accent-stripe-top" aria-hidden="true">
-      <span class="stripe-segment stripe-red"></span>
-      <span class="stripe-segment stripe-blue"></span>
-    </div>
-    <section class="city-hero" aria-labelledby="heroTitle">
-      <img src="<?= $e($context['assetBase']) ?>/images/landing-city.jpg" alt="San Fernando city center and coastline at sunset" fetchpriority="high" width="1800" height="1012">
-      <div class="city-container city-hero-content">
-        <div class="city-hero-lead">
-          <h1 id="heroTitle" class="city-hero-title">FIND THE PLACE<br>FOR WHAT COMES NEXT.</h1>
-          <p class="city-hero-subtitle">Explore verified properties and investment opportunities across San Fernando City.</p>
-          <div class="city-hero-action-row">
-            <a class="city-button city-hero-btn" href="#properties">Explore properties</a>
-          </div>
-        </div>
-      </div>
-    </section>
-    <div class="city-accent-stripe city-accent-stripe-bottom" aria-hidden="true">
-      <span class="stripe-segment stripe-red"></span>
-      <span class="stripe-segment stripe-blue"></span>
-    </div>
-  </div>
+  <div id="locus-react-hero" class="city-hero-frame ios-hero-frame" data-asset-base="<?= $e($context['assetBase']) ?>" data-availability="<?= $e($heroAvailability) ?>"><?= str_replace(['__LOCUS_ASSET_BASE__', '__LOCUS_AVAILABILITY__'], [$e($context['assetBase']), $e($heroAvailability)], trim((string) file_get_contents(__DIR__ . '/app/Views/home-hero.generated.html'))) ?></div>
 
   <!-- SAN FERNANDO AT A GLANCE -->
-  <section class="city-container home-glance" id="at-a-glance" aria-labelledby="glanceTitle">
-    <div class="home-glance-panel">
-      <h2 id="glanceTitle" class="home-glance-title">SAN FERNANDO AT A GLANCE</h2>
-
-      <div class="home-glance-grid">
-        <!-- 1. LAND AREA -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 31L16 27L28 32L38 28V12L28 16L16 11L6 15V31Z" fill="#FEE2E2" stroke="#FDA4AF" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M16 11V27" stroke="#FB7185" stroke-width="1.4" stroke-dasharray="2 1.5"/>
-              <path d="M28 16V32" stroke="#FB7185" stroke-width="1.4" stroke-dasharray="2 1.5"/>
-              <path d="M16 11L28 16V32L16 27V11Z" fill="#FECDD3" fill-opacity="0.7"/>
-              <ellipse cx="22" cy="24.5" rx="3.5" ry="1.6" fill="#881337" fill-opacity="0.25"/>
-              <path d="M22 23.5C22 23.5 27 17.5 27 13.5C27 10.7386 24.7614 8.5 22 8.5C19.2386 8.5 17 10.7386 17 13.5C17 17.5 22 23.5 22 23.5Z" fill="#DC2626"/>
-              <circle cx="22" cy="13.5" r="2.4" fill="#FFFFFF"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">LAND AREA</span>
-            <div class="glance-value">105.26 km<sup>2</sup></div>
-          </div>
-        </article>
-
-        <!-- 2. SCHOOLS -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22.5V28C12 32 16.5 35 22 35C27.5 35 32 32 32 28V22.5" fill="#D97706" fill-opacity="0.2" stroke="#B45309" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M22 10.5L39 18.5L22 26.5L5 18.5L22 10.5Z" fill="#D97706" stroke="#92400E" stroke-width="1.8" stroke-linejoin="round"/>
-              <path d="M22 12L37 18.5L22 25L7 18.5L22 12Z" fill="#F59E0B" fill-opacity="0.45"/>
-              <circle cx="22" cy="18.5" r="1.8" fill="#78350F"/>
-              <path d="M34 19V30.5C34 31.5 35.5 32 35.5 33C35.5 34 34.5 34.5 34 34.5C33.5 34.5 32.5 34 32.5 33C32.5 32 34 31.5 34 30.5" stroke="#92400E" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">SCHOOLS</span>
-            <div class="glance-value">11 universities<br>&amp; colleges</div>
-          </div>
-        </article>
-
-        <!-- 3. POPULATION -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="13" cy="16.5" r="4" fill="#9E1B22" fill-opacity="0.8"/>
-              <path d="M5 32C5 27 8.8 23.8 13 23.8C15.4 23.8 17.4 24.9 18.8 26.6C16.8 28.3 15.6 30.6 15.3 33H5V32Z" fill="#9E1B22" fill-opacity="0.8"/>
-              <circle cx="31" cy="16.5" r="4" fill="#9E1B22" fill-opacity="0.8"/>
-              <path d="M39 32C39 27 35.2 23.8 31 23.8C28.6 23.8 26.6 24.9 25.2 26.6C27.2 28.3 28.4 30.6 28.7 33H39V32Z" fill="#9E1B22" fill-opacity="0.8"/>
-              <circle cx="22" cy="13.5" r="5" fill="#9E1B22"/>
-              <path d="M12.5 33C12.5 26.5 16.7 23 22 23C27.3 23 31.5 26.5 31.5 33H12.5Z" fill="#9E1B22"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">POPULATION</span>
-            <div class="glance-value">128,024 (2023)</div>
-          </div>
-        </article>
-
-        <!-- 4. FINANCE -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 29.5C9 32.5 14 34.5 19.5 34.5C25 34.5 30 32.5 30 29.5V25C30 28 25 30 19.5 30C14 30 9 28 9 25V29.5Z" fill="#D97706"/>
-              <path d="M9 24C9 27 14 29 19.5 29C25 29 30 27 30 24V19.5C30 22.5 25 24.5 19.5 24.5C14 24.5 9 22.5 9 19.5V24Z" fill="#F59E0B"/>
-              <ellipse cx="19.5" cy="18.5" rx="10.5" ry="5.2" fill="#FBBF24" stroke="#D97706" stroke-width="1.4"/>
-              <ellipse cx="19.5" cy="18.5" rx="7.8" ry="3.6" fill="#FDE68A" fill-opacity="0.75"/>
-              <path d="M24 21C24 23 28 25 32.5 25C37 25 41 23 41 21V17C41 19 37 21 32.5 21C28 21 24 19 24 17V21Z" fill="#B45309"/>
-              <ellipse cx="32.5" cy="16.5" rx="8.5" ry="4.2" fill="#F59E0B" stroke="#B45309" stroke-width="1.4"/>
-              <ellipse cx="32.5" cy="16.5" rx="6.2" ry="2.8" fill="#FDE68A" fill-opacity="0.7"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">FINANCE</span>
-            <div class="glance-value">170<br>institutions</div>
-          </div>
-        </article>
-
-        <!-- 5. ROAD NETWORK -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16 8H28L35 36H9L16 8Z" fill="#11224D"/>
-              <path d="M16 8L9 36" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M28 8L35 36" stroke="#2563EB" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M22 11V15" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
-              <path d="M22 19V24.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
-              <path d="M22 29V35" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">ROAD NETWORK</span>
-            <div class="glance-value">279.52 km</div>
-          </div>
-        </article>
-
-        <!-- 6. HOUSEHOLDS -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M29 12V16.5L32 19.5V12H29Z" fill="#9E1B22"/>
-              <path d="M22 8L7 21.5H11.5V35C11.5 35.5 12 36 12.5 36H19V26C19 25.4 19.4 25 20 25H24C24.6 25 25 25.4 25 26V36H31.5C32 36 32.5 35.5 32.5 35V21.5H37L22 8Z" fill="#9E1B22"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">HOUSEHOLDS</span>
-            <div class="glance-value">32,202 (2023)</div>
-          </div>
-        </article>
-
-        <!-- 7. HEALTH -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17.5 9C17.5 8.2 18.2 7.5 19 7.5H25C25.8 7.5 26.5 8.2 26.5 9V17.5H35C35.8 17.5 36.5 18.2 36.5 19V25C36.5 25.8 35.8 26.5 35 26.5H26.5V35C26.5 35.8 25.8 36.5 25 36.5H19C18.2 36.5 17.5 35.8 17.5 35V26.5H9C8.2 26.5 7.5 25.8 7.5 25V19C7.5 18.2 8.2 17.5 9 17.5H17.5V9Z" fill="#B45309" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M19.5 11H24.5V19.5H33V24.5H24.5V33H19.5V24.5H11V19.5H19.5V11Z" fill="#FBBF24" fill-opacity="0.35"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">HEALTH</span>
-            <div class="glance-value">292 facilities</div>
-          </div>
-        </article>
-
-        <!-- 8. BUSINESS -->
-        <article class="glance-card">
-          <div class="glance-icon" aria-hidden="true">
-            <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="9.5" y="25" width="6.5" height="12" rx="2.5" fill="#9E1B22" fill-opacity="0.6"/>
-              <rect x="18.5" y="17.5" width="6.5" height="19.5" rx="2.5" fill="#9E1B22" fill-opacity="0.85"/>
-              <rect x="27.5" y="10" width="6.5" height="27" rx="2.5" fill="#9E1B22"/>
-            </svg>
-          </div>
-          <div class="glance-copy">
-            <span class="glance-label">BUSINESS</span>
-            <div class="glance-value">9,129<br>registered</div>
-          </div>
-        </article>
+  <section class="home-glance" id="at-a-glance" aria-labelledby="glanceTitle">
+    <div class="city-container home-glance-panel">
+      <div class="glance-profile-header">
+        <div>
+          <p class="glance-section-label">City overview</p>
+          <h2 id="glanceTitle" class="home-glance-title">San Fernando,<br class="glance-title-break"> at a glance.</h2>
+          <p class="glance-profile-description">The people, businesses and connections that make up the city.</p>
+        </div>
+        <div class="glance-profile-meta">
+          <span class="glance-reporting-period">2023&ndash;2024 figures</span>
+          <a href="#properties" class="glance-property-link">
+            <span>Explore properties</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+          </a>
+        </div>
       </div>
+
+      <figure class="glance-city-portrait" aria-labelledby="glancePortraitTitle">
+        <div class="glance-photo-well">
+          <img class="glance-city-photo" src="<?= $e($context['assetBase']) ?>/images/sfcatglance.png<?= sfc_asset_version('images/sfcatglance.png') ?>" width="1920" height="1080" alt="Aerial view across San Fernando City's streets, buildings and surrounding hills." loading="lazy" decoding="async">
+          <figcaption class="glance-portrait-caption">
+            <span>LA UNION / PHILIPPINES</span>
+            <h3 id="glancePortraitTitle">One city.<br>Many connections.</h3>
+          </figcaption>
+          <div class="glance-barangay-badge" aria-label="San Fernando City, 59 barangays">
+            <span>San Fernando City</span><strong>59</strong><span>barangays</span>
+          </div>
+        </div>
+        <div class="glance-insight" id="glanceInsight" data-current-key="residents">
+          <div class="glance-insight-primary">
+            <p class="glance-insight-category" data-insight-category>People</p>
+            <h3 data-insight-label>Residents</h3>
+            <p class="glance-insight-value"><strong data-insight-value>128,024</strong><span data-insight-unit></span></p>
+          </div>
+          <div class="glance-insight-source">
+            <span class="glance-insight-caption">Source / 2023&ndash;2024 figures</span>
+            <p data-insight-source>PSA Census</p>
+            <span class="glance-insight-state" data-insight-state>Selected indicator</span>
+          </div>
+          <div class="glance-insight-related">
+            <span class="glance-insight-caption">Also in <span data-insight-related-category>People</span></span>
+            <p><span data-insight-related-label>Households</span><strong><span data-insight-related-value>32,202</span><small data-insight-related-unit></small></strong></p>
+            <span class="glance-insight-related-source" data-insight-related-source>PSA Census &middot; 4.0 people per household</span>
+          </div>
+        </div>
+      </figure>
+
+      <div id="locus-civic-metrics"><?= trim((string) file_get_contents(__DIR__ . '/app/Views/civic-metrics.generated.html')) ?></div>
     </div>
   </section>
 
-  <!-- APPROVED TAX INCENTIVE RECIPIENTS (Catalyst locator showcase below glance) -->
-  <section class="city-container home-recipients-section" id="incentive-recipients" aria-labelledby="recipientsSectionTitle">
-    <div class="home-recipients-panel">
-      <div class="home-recipients-header">
-        <div class="home-recipients-header-lead">
-          <div class="home-recipients-kicker-wrap">
-            <span class="home-recipients-kicker-dot" aria-hidden="true"></span>
-            <span class="home-recipients-kicker">APPROVED TAX HOLIDAYS &bull; ORDINANCE NO. 2024-41</span>
-          </div>
-          <h2 id="recipientsSectionTitle" class="home-recipients-title">Catalyst Investment Locators</h2>
-          <p class="home-recipients-desc">Major enterprises granted municipal tax holidays, anchoring commercial vitality and job creation across San Fernando.</p>
+  <!-- APPROVED TAX INCENTIVE RECIPIENTS -->
+  <?php
+  $incentiveRecipients = [
+      [
+          'id' => 'taskus', 'name' => 'TaskUs La Union', 'logo' => 'taskus.png',
+          'sector' => 'Technology & customer experience',
+          'location' => 'MacArthur Highway', 'years' => '6', 'period' => '2024–2029', 'start' => 2024, 'end' => 2029,
+          'highlight' => '2,500+ tech & AI jobs',
+          'story' => 'The Lighthouse campus supports global customer experience, technology and AI operations around the clock.',
+      ],
+      [
+          'id' => 'robinsons', 'name' => 'Robinsons La Union', 'logo' => 'robs.png',
+          'sector' => 'Retail & lifestyle',
+          'location' => 'Barangay Sevilla', 'years' => '6', 'period' => '2023–2028', 'start' => 2023, 'end' => 2028,
+          'highlight' => '4-level lifestyle hub',
+          'story' => 'A four-level retail center with more than 100 stores, Robinsons Movieworld cinemas and lifestyle spaces.',
+      ],
+      [
+          'id' => 'lucs', 'name' => 'LUCS', 'logo' => 'lucs.png',
+          'sector' => 'Construction & infrastructure',
+          'location' => 'San Fernando City', 'years' => '4', 'period' => '2023–2026', 'start' => 2023, 'end' => 2026,
+          'highlight' => 'Accredited batching plant',
+          'story' => 'La Union Concreting Solutions supplies ready-mix concrete and pumpcrete for roads, port infrastructure and local construction.',
+      ],
+      [
+          'id' => 'sm-city', 'name' => 'SM City La Union', 'logo' => 'sm.png',
+          'sector' => 'Retail & entertainment',
+          'location' => 'Barangay Biday', 'years' => '6', 'period' => '2025–2030', 'start' => 2025, 'end' => 2030,
+          'highlight' => '112,000 m² · 3,000+ regional jobs',
+          'story' => 'A regional retail complex with Cyberzone, cinemas, Sandbox and more than 1,100 parking slots.',
+      ],
+  ];
+  ?>
+  <section class="locator-section" id="incentive-recipients" aria-labelledby="recipientsSectionTitle">
+    <div class="city-container locator-section-content">
+      <div class="locator-section-header">
+        <div class="locator-section-intro">
+          <p class="locator-section-eyebrow">Business community</p>
+          <h2 id="recipientsSectionTitle" class="locator-section-title">In good <br>company.</h2>
+          <p class="locator-section-description">Meet the businesses investing in San Fernando. Compare their approved incentives and explore each company.</p>
         </div>
-        <a href="#investment-incentives-code" class="home-recipients-link" id="homeRecipientsTermsLink" title="View Ordinance No. 2024-41 Incentives Code">
-          <span>Ordinance terms</span>
-          <span aria-hidden="true">&rarr;</span>
+        <a href="#investment-incentives-code" class="locator-terms-link" id="homeRecipientsTermsLink">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8m-8 4h5"/></svg>
+          <span>View incentive terms</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
         </a>
       </div>
 
-      <div class="home-recipients-grid">
-        <!-- 1. TaskUs La Union -->
-        <a href="#investment-incentives-code" class="home-recipient-item" title="TaskUs La Union: 6 years business tax holiday (2024–2029)" data-recipient-card>
-          <div class="home-recipient-flip-card">
-            <div class="home-recipient-flipper">
-              <div class="home-recipient-front">
-                <img src="<?= $e($context['assetBase']) ?>/images/taskus.png" alt="TaskUs La Union" width="160" height="160" loading="lazy">
-                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                  <span>Info</span>
-                </span>
-              </div>
-              <div class="home-recipient-back">
-                <div class="home-recipient-back-top">
-                  <span class="home-recipient-back-badge">DIGITAL BPO &bull; AI</span>
-                  <span class="home-recipient-back-loc">MacArthur Hwy</span>
-                </div>
-                <div class="home-recipient-back-body">
-                  <strong class="home-recipient-back-stat">2,500+ Tech Jobs</strong>
-                  <p class="home-recipient-back-text">Lighthouse Campus anchoring 24/7 global tech, AI curation &amp; CX operations.</p>
-                </div>
-                <div class="home-recipient-back-foot">
-                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
-                </div>
-              </div>
+      <div class="locator-directory">
+        <div class="locator-directory-head" aria-hidden="true">
+          <span class="locator-head-company"><span class="locator-company-count"><?= sprintf('%02d', count($incentiveRecipients)) ?></span> Incentive recipients</span>
+          <span>Business<br>tax holiday</span>
+          <span class="locator-head-period"><span>Approved period</span><span class="locator-calendar"><?php for ($year = 2023; $year <= 2030; $year++): ?><span><?= $year ?></span><?php endfor; ?></span></span>
+          <span class="locator-head-action">Company profile</span>
+        </div>
+        <div class="locator-grid">
+        <?php foreach ($incentiveRecipients as $recipient): ?>
+        <details class="locator-card">
+          <summary class="locator-summary">
+            <span class="locator-identity">
+              <span class="locator-logo-well"><img class="locator-logo locator-logo--<?= $e($recipient['id']) ?>" src="<?= $e($context['assetBase']) ?>/images/<?= $e($recipient['logo']) ?>" alt="" width="64" height="64" loading="lazy"></span>
+              <span class="locator-identity-copy">
+                <span class="locator-name" id="locator-<?= $e($recipient['id']) ?>-name" role="heading" aria-level="3"><?= $e($recipient['name']) ?></span>
+                <span class="locator-category"><?= $e($recipient['sector']) ?></span>
+                <span class="locator-location"><?= $e($recipient['location']) ?></span>
+              </span>
+            </span>
+            <span class="locator-benefit">
+              <strong class="locator-duration"><?= $e($recipient['years']) ?> <span>years</span></strong>
+              <span class="locator-benefit-label">Business tax holiday</span>
+            </span>
+            <span class="locator-period">
+              <span class="locator-period-copy"><span class="locator-period-label">Approved period</span><span class="locator-period-dates"><?= $e($recipient['period']) ?></span></span>
+              <span class="locator-timeline" aria-hidden="true" style="--period-start: <?= (int) $recipient['start'] - 2023 ?>; --period-length: <?= (int) $recipient['end'] - (int) $recipient['start'] + 1 ?>"><?php for ($year = 2023; $year <= 2030; $year++): ?><span class="locator-timeline-year<?= $year >= $recipient['start'] && $year <= $recipient['end'] ? ' is-approved' : '' ?>"></span><?php endfor; ?></span>
+              <span class="locator-timeline-labels" aria-hidden="true"><?php for ($year = 2023; $year <= 2030; $year++): ?><span><?= $year ?></span><?php endfor; ?></span>
+            </span>
+            <span class="locator-disclosure">
+              <span class="locator-details-label">View profile</span><span class="locator-hide-label">Close profile</span>
+              <span class="locator-disclosure-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>
+            </span>
+          </summary>
+          <div class="locator-card-details">
+            <div class="locator-story">
+              <h4 class="locator-profile-label">About the business</h4>
+              <p><?= $e($recipient['story']) ?></p>
+            </div>
+            <div class="locator-impact">
+              <h4 class="locator-profile-label">Local presence</h4>
+              <p class="locator-highlight"><?= $e($recipient['highlight']) ?></p>
             </div>
           </div>
-          <div class="home-recipient-info">
-            <h3 class="home-recipient-name">TASKUS LA UNION</h3>
-            <span class="home-recipient-badge">6 yrs holiday &bull; 2024–29</span>
-          </div>
-        </a>
-
-        <!-- 2. Robinsons La Union -->
-        <a href="#investment-incentives-code" class="home-recipient-item" title="Robinsons La Union: 6 years business tax holiday (2023–2028)" data-recipient-card>
-          <div class="home-recipient-flip-card">
-            <div class="home-recipient-flipper">
-              <div class="home-recipient-front">
-                <img src="<?= $e($context['assetBase']) ?>/images/robs.png" alt="Robinsons La Union" width="160" height="160" loading="lazy">
-                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                  <span>Info</span>
-                </span>
-              </div>
-              <div class="home-recipient-back">
-                <div class="home-recipient-back-top">
-                  <span class="home-recipient-back-badge">REGIONAL RETAIL</span>
-                  <span class="home-recipient-back-loc">Brgy. Sevilla</span>
-                </div>
-                <div class="home-recipient-back-body">
-                  <strong class="home-recipient-back-stat">4-Level Lifestyle Hub</strong>
-                  <p class="home-recipient-back-text">Premier retail anchor with 100+ stores, Movieworld cinemas &amp; eco-design.</p>
-                </div>
-                <div class="home-recipient-back-foot">
-                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="home-recipient-info">
-            <h3 class="home-recipient-name">ROBINSONS LA UNION</h3>
-            <span class="home-recipient-badge">6 yrs holiday &bull; 2023–28</span>
-          </div>
-        </a>
-
-        <!-- 3. LUCS -->
-        <a href="#investment-incentives-code" class="home-recipient-item" title="La Union Concreting Solutions: 4 years business tax holiday (2023–2026)" data-recipient-card>
-          <div class="home-recipient-flip-card">
-            <div class="home-recipient-flipper">
-              <div class="home-recipient-front home-recipient-front--lucs">
-                <img src="<?= $e($context['assetBase']) ?>/images/lucs.png" alt="La Union Concreting Solutions" width="160" height="160" loading="lazy">
-                <span class="home-recipient-flip-hint home-recipient-flip-hint--dark" aria-hidden="true" title="Hover to view details">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                  <span>Info</span>
-                </span>
-              </div>
-              <div class="home-recipient-back">
-                <div class="home-recipient-back-top">
-                  <span class="home-recipient-back-badge">INFRASTRUCTURE</span>
-                  <span class="home-recipient-back-loc">San Fernando City</span>
-                </div>
-                <div class="home-recipient-back-body">
-                  <strong class="home-recipient-back-stat">Accredited Batching</strong>
-                  <p class="home-recipient-back-text">Ready-mix concrete &amp; pumpcrete powering regional highways, port &amp; builders.</p>
-                </div>
-                <div class="home-recipient-back-foot">
-                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="home-recipient-info">
-            <h3 class="home-recipient-name">LUCS<span class="home-recipient-name-sub">La Union Concreting</span></h3>
-            <span class="home-recipient-badge">4 yrs holiday &bull; 2023–26</span>
-          </div>
-        </a>
-
-        <!-- 4. SM City La Union -->
-        <a href="#investment-incentives-code" class="home-recipient-item" title="SM City La Union: 6 years business tax holiday (2025–2030)" data-recipient-card>
-          <div class="home-recipient-flip-card">
-            <div class="home-recipient-flipper">
-              <div class="home-recipient-front">
-                <img src="<?= $e($context['assetBase']) ?>/images/sm.png" alt="SM City La Union" width="160" height="160" loading="lazy">
-                <span class="home-recipient-flip-hint" aria-hidden="true" title="Hover to view details">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                  <span>Info</span>
-                </span>
-              </div>
-              <div class="home-recipient-back">
-                <div class="home-recipient-back-top">
-                  <span class="home-recipient-back-badge">SUPERMALL</span>
-                  <span class="home-recipient-back-loc">Brgy. Biday</span>
-                </div>
-                <div class="home-recipient-back-body">
-                  <strong class="home-recipient-back-stat">112k m² &bull; 3k+ Jobs</strong>
-                  <p class="home-recipient-back-text">89th SM Supermall featuring Cyberzone, cinemas, Sandbox &amp; 1,100+ parking slots.</p>
-                </div>
-                <div class="home-recipient-back-foot">
-                  <span class="home-recipient-back-law">Ord. No. 2024-41 Approved</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="home-recipient-info">
-            <h3 class="home-recipient-name">SM CITY LA UNION</h3>
-            <span class="home-recipient-badge">6 yrs holiday &bull; 2025–30</span>
-          </div>
-        </a>
+        </details>
+        <?php endforeach; ?>
+        </div>
       </div>
+
+      <p class="locator-section-note">Approved business tax incentives under City Ordinance No. 2024-41.</p>
     </div>
   </section>
 
   <section class="city-container city-section" id="why-invest" aria-labelledby="whyTitle">
-    <div class="tw-mb-8 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4">
+    <div class="discovery-section-heading">
       <div>
-        <span class="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-uppercase tw-tracking-[.15em] tw-text-slate-400">A city to invest in</span>
+        <span class="discovery-eyebrow"><span aria-hidden="true">03 /</span> Find your opportunity</span>
         <h2 id="whyTitle" class="city-why-heading">WHY SAN FERNANDO?</h2>
-        <p class="tw-m-0 tw-text-sm tw-text-slate-500">A city positioned for business, innovation, and strategic growth.</p>
+        <p class="discovery-heading-note">Six things to know before your next move. Pick a topic to begin.</p>
       </div>
-      <a class="tw-text-xs tw-font-bold tw-text-[#9E1B22] hover:tw-underline" href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener">City investment guide ↗</a>
+      <a class="discovery-heading-link" href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener"><span>City investment guide</span> <span class="discovery-heading-link-arrow" aria-hidden="true">&nearr;</span></a>
     </div>
 
-    <div class="tw-grid tw-gap-6 md:tw-grid-cols-2">
+    <div class="discovery-trail" data-discovery-trail hidden>
+      <div class="discovery-trail-emblem" aria-hidden="true"><?= sfc_icon('map') ?></div>
+      <div class="discovery-trail-copy">
+        <strong>Your city discovery</strong>
+        <span data-discovery-status role="status" aria-live="polite" aria-atomic="true">0 of 6 topics explored</span>
+      </div>
+      <div class="discovery-trail-track" aria-hidden="true">
+        <?php for ($step = 1; $step <= 6; $step++): ?><span data-discovery-step><?= $step ?></span><?php endfor; ?>
+      </div>
+      <button type="button" class="discovery-continue" data-discovery-continue>Start exploring <span aria-hidden="true">&rarr;</span></button>
+    </div>
+    <div class="discovery-guide-grid">
       <!-- 1. Strategic Investment Areas (Exact copy of user reference image) -->
       <article class="city-why-card">
         <div class="city-why-tag">
@@ -404,7 +260,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 1 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-1.jpg" alt="Agriculture, Agribusiness, and Fishery emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-1.jpg" alt="Agriculture, Agribusiness, and Fishery emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -418,7 +274,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 2 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-2.jpg" alt="Support facilities emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-2.jpg" alt="Support facilities emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -432,7 +288,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 3 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-3.jpg" alt="Tourism and Transportation emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-3.jpg" alt="Tourism and Transportation emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -446,7 +302,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 4 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-4.jpg" alt="Information and Communication Technology (ICT) emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-4.jpg" alt="Information and Communication Technology (ICT) emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -460,7 +316,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 5 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-5.jpg" alt="Manufacturing / Processing emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-5.jpg" alt="Manufacturing / Processing emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -474,7 +330,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 6 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-6.jpg" alt="Infrastructure, Water and Sanitation, and Property Development emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-6.jpg" alt="Infrastructure, Water and Sanitation, and Property Development emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -488,7 +344,7 @@ $cataloguePath = $context['user'] === null
               <!-- Sector 7 -->
               <div class="city-priority-sector-item">
                 <div class="city-priority-sector-icon">
-                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-7.jpg" alt="Ecological Solid Waste Management emblem" width="48" height="48" loading="lazy">
+                  <img src="<?= $e($context['assetBase']) ?>/images/sectors/sector-7.jpg" alt="Ecological Solid Waste Management emblem" width="48" height="48">
                 </div>
                 <div class="city-priority-sector-content">
                   <div class="city-priority-sector-meta">
@@ -536,7 +392,7 @@ $cataloguePath = $context['user'] === null
                 </a>
               </div>
               <div class="city-ordinance-showcase-media">
-                <img src="<?= $e($context['assetBase']) ?>/images/thunderbird-resorts.jpg" alt="Thunderbird Resorts and Casinos, PPMC aerial view" width="640" height="360" loading="lazy">
+                <img src="<?= $e($context['assetBase']) ?>/images/thunderbird-resorts.jpg" alt="Thunderbird Resorts and Casinos, PPMC aerial view" width="640" height="360">
                 <span class="city-ordinance-media-caption">Thunderbird Resorts and Casinos, PPMC</span>
               </div>
             </div>
