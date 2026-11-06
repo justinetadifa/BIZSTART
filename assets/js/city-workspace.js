@@ -38,6 +38,21 @@ let floodLayer, faultLayer;
 let toastTimer;
 let detailsTileTimer;
 try { compare = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(id => Number.isInteger(id)); } catch { compare = []; }
+// Share a bounded comparison through the URL when browser storage is unavailable.
+if (page === 'city-compare' && params.has('properties')) {
+  compare = [...new Set((params.get('properties') || '').split(',').filter(id => /^\d{1,10}$/.test(id)).map(Number))].filter(id => id > 0).slice(0, 3);
+}
+window.addEventListener('locus:assistant-saved', event => {
+  if (!Array.isArray(event.detail?.propertyIds)) return;
+  saved = new Set(event.detail.propertyIds.filter(Number.isInteger));
+  if (properties.length) render();
+});
+window.addEventListener('locus:assistant-compare', event => {
+  if (!Array.isArray(event.detail?.propertyIds)) return;
+  compare = [...new Set(event.detail.propertyIds.filter(Number.isInteger))].slice(0, 3);
+  saveCompare();
+  if (properties.length) render();
+});
 
 function toast(message) {
   document.getElementById('cityToast')?.remove();
@@ -185,7 +200,13 @@ function card(property, index) {
     const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
     const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
 
-    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><span class="tw-text-xs tw-text-slate-500">${esc(property.assessmentStatus || 'incomplete')} · comparison group ${esc(property.comparison_key?.slice(0, 12) || 'withheld')}</span>
+    const assessmentStatus = {
+      historical_review_required: 'Assessment needs review',
+      review_required: 'Assessment needs review',
+      incomplete: 'Assessment incomplete', complete: 'Assessment available',
+      pending: 'Assessment pending',
+    }[property.assessmentStatus] || String(property.assessmentStatus || 'Assessment incomplete').replaceAll('_', ' ');
+    return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><div class="city-card-assessment-note">${esc(assessmentStatus)}<span data-investor-advanced> · Comparison group: ${esc(property.comparison_key?.slice(0, 12) || 'Not assigned')}</span></div>
       <!-- Media / Satellite Image Container -->
       <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
         <img class="tw-h-full tw-w-full tw-object-cover tw-transition-transform tw-duration-500 group-hover:tw-scale-105" src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy">
@@ -993,6 +1014,36 @@ function render() {
   if (map) renderMarkers();
 }
 
+function setupFilterDisclosure() {
+  const form = document.getElementById('cityFilters');
+  if (page !== 'city-explorer' || !form || form.dataset.enhanced) return;
+  const ids = ['cityAllowedUse', 'cityUtilities', 'cityHazard', 'citySort'];
+  ids.forEach(id => {
+    const select = document.getElementById(id);
+    if (select) select.parentElement.dataset.extraFilter = 'true';
+  });
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'city-filter-toggle';
+  toggle.setAttribute('aria-controls', ids.join(' '));
+  const sync = () => {
+    const expanded = form.classList.contains('filters-expanded');
+    const count = ids.slice(0, 3).filter(id => document.getElementById(id)?.value).length;
+    toggle.setAttribute('aria-expanded', String(expanded));
+    toggle.textContent = `${expanded ? 'Fewer filters' : 'More filters'}${count ? ` (${count} active)` : ''}`;
+  };
+  toggle.addEventListener('click', () => { form.classList.toggle('filters-expanded'); sync(); });
+  form.insertBefore(toggle, document.getElementById('cityResetFilters'));
+  form.addEventListener('change', sync);
+  document.getElementById('cityResetFilters')?.addEventListener('click', () => queueMicrotask(sync));
+  const labels = { citySearch:'Search property or barangay', cityCategory:'Property type',
+    cityListingPurpose:'Listing purpose', cityAllowedUse:'Suitable land use',
+    cityUtilities:'Available utilities', cityHazard:'Flood risk', citySort:'Sort properties' };
+  Object.entries(labels).forEach(([id, label]) => document.getElementById(id)?.setAttribute('aria-label', label));
+  form.dataset.enhanced = 'true';
+  sync();
+}
+
 function setupFilters() {
   const category = document.getElementById('cityCategory');
   const subcategory = document.getElementById('citySubcategory');
@@ -1026,10 +1077,15 @@ function setupFilters() {
   hazard?.addEventListener('change', render);
 
   document.getElementById('citySort')?.addEventListener('change', render);
-  document.getElementById('citySearch')?.addEventListener('input', render);
+  let searchRenderTimer;
+  document.getElementById('citySearch')?.addEventListener('input', () => {
+    clearTimeout(searchRenderTimer);
+    searchRenderTimer = setTimeout(render, 100);
+  });
   document.getElementById('cityFilters')?.addEventListener('submit', event => event.preventDefault());
 
   document.getElementById('cityResetFilters')?.addEventListener('click', () => {
+    clearTimeout(searchRenderTimer);
     const search = document.getElementById('citySearch');
     const sort = document.getElementById('citySort');
     if (search) search.value = '';
@@ -1240,7 +1296,7 @@ function flyToPropertyMarker(property, marker, shouldOpenPopup = true) {
   // Smooth Google Maps-style camera flight
   map.flyTo(targetLatLng, targetZoom, {
     animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
-    duration: 1.1,
+    duration: 0.4,
     easeLinearity: 0.25
   });
 
@@ -1262,7 +1318,7 @@ function flyToPropertyMarker(property, marker, shouldOpenPopup = true) {
 }
 
 function setupMap() {
-  if (!document.getElementById('cityPropertyMap')) return;
+  if (map || !document.getElementById('cityPropertyMap')) return;
   if (!window.L) {
     document.getElementById('cityPropertyMap').innerHTML = '<div class="city-empty">Map unavailable. Property listings are still available.</div>';
     return;
@@ -1270,6 +1326,7 @@ function setupMap() {
   map = L.map('cityPropertyMap', {
     scrollWheelZoom: false,
     zoomControl: false,
+    preferCanvas: true,
     maxZoom: 19,
     minZoom: 9,
   }).setView([16.6159, 120.3166], 13);
@@ -1305,7 +1362,7 @@ function setupMap() {
       maxClusterRadius: 65,
       spiderfyDistanceMultiplier: 1.5,
       zoomToBoundsOnClick: true,
-      animate: true,
+      animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
       chunkedLoading: true,
       disableClusteringAtZoom: 18,
     });
@@ -1485,10 +1542,10 @@ function setupMap() {
 
   // Keep map sharply rendered across all screen resize & orientation events
   const handleViewportResize = () => {
-    if (map) {
-      map.invalidateSize();
-    }
+    cancelAnimationFrame(mapResizeFrame);
+    mapResizeFrame = requestAnimationFrame(() => map?.invalidateSize({ pan: false }));
   };
+  let mapResizeFrame;
   window.addEventListener('resize', handleViewportResize, { passive: true });
   window.addEventListener('orientationchange', () => {
     setTimeout(handleViewportResize, 250);
@@ -1498,6 +1555,7 @@ function setupMap() {
 }
 
 function setMapLayer(layer) {
+  if (tileLayer && currentMapLayer === layer) return;
   clearTimeout(detailsTileTimer);
   if (tileLayer) map.removeLayer(tileLayer);
   currentMapLayer = layer;
@@ -1507,11 +1565,15 @@ function setMapLayer(layer) {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         maxNativeZoom: 18,
         maxZoom: 19,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
         attribution: 'Tiles © Esri, Maxar'
       }),
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
         maxNativeZoom: 16,
         maxZoom: 19,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
         opacity: 0.85
       })
     ]);
@@ -1519,6 +1581,8 @@ function setMapLayer(layer) {
     tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxNativeZoom: 19,
       maxZoom: 19,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     });
   } else {
@@ -1527,11 +1591,15 @@ function setMapLayer(layer) {
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
         maxNativeZoom: 16,
         maxZoom: 19,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
         attribution: '© Esri, HERE, Garmin, © OpenStreetMap contributors'
       }),
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
         maxNativeZoom: 16,
         maxZoom: 19,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
         opacity: 0.95
       })
     ]);
@@ -1556,31 +1624,52 @@ function setMapLayer(layer) {
 
 function renderMarkers() {
   if (!markers) return;
-  markers.clearLayers();
-  markerMap.clear();
+  const visibleIds = new Set(filtered.filter(hasCoordinates).map(property => property.id));
+  for (const [id, marker] of markerMap) {
+    if (!visibleIds.has(id)) {
+      markers.removeLayer(marker);
+      markerMap.delete(id);
+    }
+  }
+  const additions = [];
+  const advanced = advancedView();
+  let refreshClusters = false;
 
   filtered.forEach(property => {
     if (!hasCoordinates(property)) return;
+    const existing = markerMap.get(property.id);
+    if (existing) {
+      if (existing.propertyData !== property || existing.locusAdvanced !== advanced) {
+        existing.propertyData = property;
+        existing.locusAdvanced = advanced;
+        existing.setLatLng([property.lat, property.lng]);
+        existing.setIcon(createPillIcon(property, false, existing === activeMarker));
+        existing.setPopupContent(createPopupContent(property));
+        refreshClusters = true;
+      }
+      return;
+    }
 
     const marker = L.marker([property.lat, property.lng], {
       icon: createPillIcon(property)
     });
     marker.propertyId = property.id;
     marker.propertyData = property;
+    marker.locusAdvanced = advanced;
 
-    marker.bindPopup(createPopupContent(property), {
+    marker.bindPopup(() => createPopupContent(marker.propertyData), {
       className: 'locus-popup',
       maxWidth: 320,
       minWidth: 260
     });
 
     marker.on('click', () => {
-      flyToPropertyMarker(property, marker, true);
+      flyToPropertyMarker(marker.propertyData, marker, true);
     });
 
     marker.on('popupclose', () => {
       if (activeMarker === marker) {
-        marker.setIcon(createPillIcon(property, false, false));
+        marker.setIcon(createPillIcon(marker.propertyData, false, false));
         if (typeof marker.setZIndexOffset === 'function') {
           marker.setZIndexOffset(0);
         }
@@ -1591,7 +1680,7 @@ function renderMarkers() {
 
     marker.on('mouseover', () => {
       if (marker !== activeMarker) {
-        marker.setIcon(createPillIcon(property, true, false));
+        marker.setIcon(createPillIcon(marker.propertyData, true, false));
       }
       const card = document.querySelector(`.city-property-card[data-property-id="${property.id}"]`);
       if (card) card.classList.add('is-map-hovered');
@@ -1599,7 +1688,7 @@ function renderMarkers() {
 
     marker.on('mouseout', () => {
       if (marker !== activeMarker) {
-        marker.setIcon(createPillIcon(property, false, false));
+        marker.setIcon(createPillIcon(marker.propertyData, false, false));
       }
       const card = document.querySelector(`.city-property-card[data-property-id="${property.id}"]`);
       if (card && !card.classList.contains('is-active-card')) {
@@ -1608,8 +1697,11 @@ function renderMarkers() {
     });
 
     markerMap.set(property.id, marker);
-    markers.addLayer(marker);
+    additions.push(marker);
   });
+  if (typeof markers.addLayers === 'function') markers.addLayers(additions);
+  else additions.forEach(marker => markers.addLayer(marker));
+  if (refreshClusters && typeof markers.refreshClusters === 'function') markers.refreshClusters();
 }
 
 function setupCardHoverSync() {
@@ -1799,13 +1891,17 @@ async function renderDetails() {
   if (!root) return;
   const id = Number(params.get('id'));
   if (!Number.isInteger(id) || id < 1) throw new Error('Choose a property from the list.');
-  const response = await fetch(`${config.apiBase}/property.php?id=${id}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+  const [response, shortlist, existingConversation] = await Promise.all([
+    fetch(`${config.apiBase}/property.php?id=${id}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } }),
+    investor ? api.shortlist() : Promise.resolve(null),
+    investor ? api.getMessages(id).catch(() => null) : Promise.resolve(null),
+  ]);
+  if (shortlist) saved = new Set(shortlist.propertyIds || []);
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Property is unavailable. Log in to access the full catalogue.');
   const property = result.property;
   if (!properties.some(item => item.id === id)) properties.push(property);
   const broker = role !== 'guest' ? property.brokerContact : null;
-  const existingConversation = investor ? await api.getMessages(id).catch(() => null) : null;
   const canInquire = investor && (existingConversation?.thread || (property.contactMode === 'broker' ? broker : property.sellerUserId));
   root.innerHTML = propertyDetailsMarkup(property, {
     role, investor, saved, compare, broker, canInquire, path, imageUrl,
@@ -2265,6 +2361,7 @@ document.addEventListener('click', async event => {
       const response=await fetch(`${config.apiBase}/cart.php`,{method:saved.has(id)?'DELETE':'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':config.csrfToken},credentials:'same-origin',body:JSON.stringify({propertyId:id})});
       const payload=await response.json();if(!response.ok)throw new Error(payload.error);
       saved=new Set(payload.propertyIds); if(page==='city-details'){saveButton.textContent=saved.has(id)?'Saved':'Save property';saveButton.setAttribute('aria-pressed',String(saved.has(id)));}else render();
+      window.dispatchEvent(new CustomEvent('locus:saved-updated', { detail: { propertyIds: [...saved] } }));
       toast(saved.has(id)?'Property saved to favorites.':'Property removed from favorites.');
     }catch(error){toast(error.message);}finally{saveButton.disabled=false;}
   }
@@ -2278,6 +2375,7 @@ document.addEventListener('click', async event => {
     else if(compare.length<3)compare.push(id);
     else {toast('Compare up to three properties. Remove one to add another.');return;}
     saveCompare();if(page==='city-details'){compareButton.textContent=compare.includes(id)?'Added to compare':'Compare';compareButton.setAttribute('aria-pressed',String(compare.includes(id)));}else render();
+    window.dispatchEvent(new CustomEvent('locus:compare-updated', { detail: { propertyIds: [...compare] } }));
     toast(compare.includes(id)?'Property added to compare matrix.':'Property removed from compare matrix.');
   }
   if (locateButton && map) {
@@ -2478,9 +2576,20 @@ function setupLandingFeatures() {
 async function initialize() {
   setupPrivacy();
   setupLandingFeatures();
-  const bootstrap=await api.bootstrap();properties=(bootstrap.properties||[]).filter(property=>!property.isDeleted);categories=bootstrap.categories||{};criteria=bootstrap.criteria||{};
+  setupFilterDisclosure();
+  // A property page needs its own record, rather than the complete catalogue first.
+  if (page === 'city-details') {
+    await renderDetails();
+    return;
+  }
+  // Start the basemap while listing data is in flight.
+  if (page === 'city-explorer') setupMap();
+  const [bootstrap, shortlist] = await Promise.all([
+    api.bootstrap(), investor ? api.shortlist() : Promise.resolve(null),
+  ]);
+  properties=(bootstrap.properties||[]).filter(property=>!property.isDeleted);categories=bootstrap.categories||{};criteria=bootstrap.criteria||{};
   compare=[...new Set(compare)].filter(id=>properties.some(property=>property.id===id)).slice(0,3);saveCompare();
-  if(investor){const result=await api.shortlist();saved=new Set(result.propertyIds||[]);}
+  if (shortlist) saved = new Set(shortlist.propertyIds || []);
   if(page==='city-investor'){
     document.getElementById('cityAreaStat').textContent=number(bootstrap.stats?.availableAreaHa);
     document.getElementById('cityPropertiesStat').textContent=number(bootstrap.stats?.availableProperties);
@@ -2499,8 +2608,9 @@ async function initialize() {
       });
     }
   }
-  if (page === 'city-details') { await renderDetails(); return; }
-  setupFilters();synchronizeInvestorSort();render();setupMap();
+  setupFilters();synchronizeInvestorSort();render();
+  if (map) fitMap();
+  else setupMap();
 }
 
 window.addEventListener('sfc:investor-view-change', () => {

@@ -16,6 +16,9 @@ and native anchor links work before JavaScript and when it is unavailable.
 Client hydration adds continuous aerial drift, a warm light pass, a travelling
 underline highlight, and a small scroll cue. These use CSS transforms/opacity
 and pause when the hero is offscreen, the tab is hidden, or navigation is open.
+The one-time entrance sequences the spring-settled headline, curved underline,
+supporting copy, and glass panels. Italic gradient ink uses a padded inner span
+so letters can extend beyond their advance width without being clipped.
 Hero motion starts automatically after hydration, without a Play/Pause control
 or a stored pause setting. The hero's explicit autoplay behavior runs independently
 of the system motion preference; the rest of the site's reduced-motion behavior

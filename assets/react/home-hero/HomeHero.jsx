@@ -2,13 +2,24 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LazyMotion, domAnimation, m, useAnimationControls, useSpring } from 'framer-motion';
 
 const wordVariants = {
-  hidden: { y: 20, opacity: 0, filter: 'blur(8px)' },
+  hidden: { y: 22, opacity: 0, filter: 'blur(6px)' },
   visible: index => ({
     y: 0, opacity: 1, filter: 'blur(0px)',
     transition: {
-      y: { type: 'spring', stiffness: 170, damping: 24, delay: index * .065 },
-      opacity: { duration: .4, delay: index * .065 },
-      filter: { duration: .5, delay: index * .065 },
+      y: { type: 'spring', stiffness: 115, damping: 23, mass: .85, delay: index * .075 },
+      opacity: { duration: .55, ease: [.22, 1, .36, 1], delay: index * .075 },
+      filter: { duration: .65, ease: [.22, 1, .36, 1], delay: index * .075 },
+    },
+  }),
+};
+
+const surfaceVariants = {
+  hidden: { y: 16, opacity: 0 },
+  visible: (order = 0) => ({
+    y: 0, opacity: 1,
+    transition: {
+      y: { type: 'spring', stiffness: 100, damping: 23, mass: .8, delay: .55 + order * .09 },
+      opacity: { duration: .45, ease: [.22, 1, .36, 1], delay: .55 + order * .09 },
     },
   }),
 };
@@ -17,7 +28,7 @@ function Words({ text, offset = 0, controls }) {
   return text.split(' ').map((word, index) => (
     <React.Fragment key={word + index}>
       {index > 0 ? ' ' : null}
-      <m.span className="ios-hero-word hr-inline-block" initial={false} animate={controls} variants={wordVariants} custom={offset + index}>{word}</m.span>
+      <m.span className="ios-hero-word hr-inline-block" initial={false} animate={controls} variants={wordVariants} custom={offset + index}><span className="ios-hero-word-ink">{word}</span></m.span>
     </React.Fragment>
   ));
 }
@@ -28,8 +39,8 @@ function useHeroMotion() {
   const [inView, setInView] = useState(false);
   const [visible, setVisible] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const x = useSpring(0, { stiffness: 65, damping: 24, mass: .8 });
-  const y = useSpring(0, { stiffness: 65, damping: 24, mass: .8 });
+  const x = useSpring(0, { stiffness: 55, damping: 26, mass: 1.1 });
+  const y = useSpring(0, { stiffness: 55, damping: 26, mass: 1.1 });
   const enabled = ready;
   const running = enabled && inView && visible && !menuOpen;
 
@@ -68,8 +79,8 @@ function useHeroMotion() {
     const bounds = event.currentTarget.getBoundingClientRect();
     const horizontal = Math.max(-1, Math.min(1, (event.clientX - bounds.left) / bounds.width * 2 - 1));
     const vertical = Math.max(-1, Math.min(1, (event.clientY - bounds.top) / bounds.height * 2 - 1));
-    x.set(horizontal * 10);
-    y.set(vertical * 7);
+    x.set(horizontal * 8);
+    y.set(vertical * 5);
   };
   const reset = () => { if (running) { x.set(0); y.set(0); } };
   return { scene, enabled, activated: enabled, running, x, y, pointer, reset };
@@ -116,14 +127,14 @@ export function HomeHero({ assetBase, availability }) {
   useLayoutEffect(() => {
     const finish = () => { words.stop(); words.set('visible'); underline.stop(); underline.set({ pathLength: 1, opacity: 1 }); };
     // Keep the server headline visible; reveal once when motion is first enabled.
-    // Focus and history restoration settle every word immediately.
-    const shouldReveal = motion.enabled && !entered.current && scrollY < 64 && !document.hidden;
+    // Late hydration, focus and history restoration keep already-read content visible.
+    const shouldReveal = motion.enabled && !entered.current && performance.now() < 900 && scrollY < 64 && !document.hidden && !motion.scene.current?.contains(document.activeElement);
     if (shouldReveal) {
       entered.current = true;
       words.set('hidden');
       underline.set({ pathLength: 0, opacity: 0 });
       void words.start('visible');
-      void underline.start({ pathLength: 1, opacity: 1, transition: { duration: .9, ease: 'easeOut', delay: .35 } });
+      void underline.start({ pathLength: 1, opacity: 1, transition: { duration: 1.2, ease: [.22, 1, .36, 1], delay: .45 } });
     } else finish();
     const visibility = () => { if (document.hidden) finish(); };
     window.addEventListener('pagehide', finish);
@@ -155,33 +166,34 @@ export function HomeHero({ assetBase, availability }) {
               <svg className="ios-hero-underline hr-pointer-events-none hr-absolute" viewBox="0 0 900 44" fill="none" aria-hidden="true" preserveAspectRatio="none">
                 <defs><linearGradient id="heroUnderlineGlow" x1="0" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse"><stop stopColor="#fff" stopOpacity="0" /><stop offset=".22" stopColor="#fff4d6" /><stop offset="1" stopColor="#f2c477" /></linearGradient></defs>
                 <m.path initial={false} animate={underline} d="M12 32C205 4 552 4 886 32" stroke="url(#heroUnderlineGlow)" strokeWidth="2.5" strokeLinecap="round" />
-                <path className="ios-hero-underline-runner" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="#fff3d1" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="12 88" />
+                <path className="ios-hero-underline-runner ios-hero-underline-halo" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="#f9ce84" strokeWidth="9" strokeLinecap="round" strokeDasharray="4 96" />
+                <path className="ios-hero-underline-runner" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="#fff8e8" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="4 96" />
               </svg>
             </span>
           </h1>
-          <p className="ios-hero-tagline">Start with an idea. Find a place for it in San Fernando.</p>
+          <m.p className="ios-hero-tagline" initial={false} animate={words} variants={surfaceVariants}>Start with an idea. Find a place for it in San Fernando.</m.p>
         </div>
 
         <div className="ios-hero-bottom hr-grid hr-items-end">
-          <div className="ios-hero-explore hr-flex hr-items-center hr-gap-4 hr-rounded-full hr-border hr-border-white/30 hr-bg-white/20 hr-backdrop-blur-lg">
+          <m.div className="ios-hero-explore hr-flex hr-items-center hr-gap-4 hr-rounded-full hr-border hr-border-white/30 hr-bg-white/20 hr-backdrop-blur-lg" initial={false} animate={words} variants={surfaceVariants} custom={1}>
             <m.a className="ios-hero-cta hr-inline-flex hr-items-center hr-justify-center hr-gap-3 hr-rounded-full hr-bg-[#8B1E24] hr-text-white" href="#properties" initial={false} animate="rest" whileHover={motion.enabled ? 'hover' : undefined} whileFocus={motion.enabled ? 'hover' : undefined} whileTap={motion.enabled ? 'tap' : undefined} variants={{ rest: { scale: 1 }, hover: { scale: 1.04 }, tap: { scale: .96 } }} transition={{ type: 'spring', stiffness: 400, damping: 28 }}>
               <span>Explore properties</span><m.span aria-hidden="true" variants={{ rest: { x: 0, y: 0 }, hover: { x: 3, y: -3 }, tap: { x: 0, y: 0 } }}>↗</m.span>
             </m.a>
             <span className="ios-hero-availability">{availability}</span>
-          </div>
+          </m.div>
 
-          <div className="ios-hero-scroll-group hr-grid hr-justify-items-center hr-gap-3">
+          <m.div className="ios-hero-scroll-group hr-grid hr-justify-items-center hr-gap-3" initial={false} animate={words} variants={surfaceVariants} custom={2}>
             <m.a className="ios-hero-scroll hr-inline-flex hr-items-center hr-justify-center hr-gap-2 hr-rounded-full hr-border hr-border-white/30 hr-bg-white/20 hr-backdrop-blur-lg" href="#at-a-glance" whileHover={motion.enabled ? { y: -3, scale: 1.04 } : undefined} whileTap={motion.enabled ? { scale: .96 } : undefined}>
               <svg className="ios-hero-scroll-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <span>Scroll</span>
             </m.a>
             <PageProgress />
-          </div>
+          </m.div>
 
-          <aside className="ios-hero-note hr-rounded-2xl hr-border hr-border-white/40 hr-bg-white/65 hr-backdrop-blur-xl" aria-label="Explore San Fernando">
+          <m.aside className="ios-hero-note hr-rounded-2xl hr-border hr-border-white/40 hr-bg-white/65 hr-backdrop-blur-xl" aria-label="Explore San Fernando" initial={false} animate={words} variants={surfaceVariants} custom={3}>
             <img src={`${assetBase}/images/logoLocusRedBlue.png`} width="30" height="30" alt="" className="ios-hero-note-mark" />
             <p>Explore verified properties and investment opportunities across San Fernando City.</p>
-          </aside>
+          </m.aside>
         </div>
       </div>
     </section>

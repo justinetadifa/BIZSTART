@@ -7,6 +7,9 @@ require_once __DIR__ . '/HelpCenter.php';
 function sfc_render_head(string $title, array $context, array $bodyData = []): void
 {
     $page = (string) ($bodyData['page'] ?? '');
+    $propertyInterface = in_array($page, ['city-investor', 'city-explorer', 'city-ranking', 'city-details', 'city-compare', 'broker-workspace', 'admin-listings'], true)
+        || ($page === 'admin-workspace' && basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'admin-properties.php');
+    if ($propertyInterface) { $bodyData['property-style'] = 'editorial'; }
     $user = $context['user'];
     $config = [
         'appName' => $context['appName'], 'basePath' => $context['basePath'],
@@ -65,6 +68,10 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($page === 'city-landing'): ?>
   <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/archivo-black.ttf" as="font" type="font/ttf" crossorigin>
   <?php endif; ?>
+  <?php if (in_array($page, ['city-explorer', 'city-details', 'admin-workspace', 'broker-workspace'], true)): ?>
+  <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
+  <link rel="dns-prefetch" href="https://tile.openstreetmap.org">
+  <?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-foundation.css<?= sfc_asset_version('css/locus-foundation.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
@@ -83,6 +90,18 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-discovery.css<?= sfc_asset_version('css/home-discovery.css') ?>"><?php endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-hero.css<?= sfc_asset_version('css/home-hero.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-motion.css<?= sfc_asset_version('css/locus-motion.css') ?>">
+  <?php if ($propertyInterface || $page === 'city-landing'): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial.css<?= sfc_asset_version('css/property-editorial.css') ?>">
+  <?php endif; ?>
+  <?php if ($page === 'city-investor'): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial-assistant.css<?= sfc_asset_version('css/property-editorial-assistant.css') ?>">
+  <?php endif; ?>
+  <?php if (in_array($page, ['city-details', 'city-compare'], true)): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial-details.css<?= sfc_asset_version('css/property-editorial-details.css') ?>">
+  <?php elseif ($propertyInterface): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial-workspaces.css<?= sfc_asset_version('css/property-editorial-workspaces.css') ?>">
+  <?php endif; ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-interactions.css<?= sfc_asset_version('css/locus-interactions.css') ?>">
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
@@ -121,7 +140,7 @@ function sfc_render_header(array $context, string $active = ''): void
     $items = match ($role) {
         'admin' => [['Overview', '/admin-dashboard.php', 'admin'], ['Listings', '/admin-properties.php', 'admin-properties'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Intelligence & Reports', '/city-intelligence.php', 'intelligence']],
         'seller' => [['My listings', '/seller-dashboard.php', 'seller'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
-        'investor' => [['Properties', '/investor-dashboard.php', 'investor'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Compare', '/compare-decision.php', 'compare'], ['Saved', '/investor-dashboard.php?view=saved', 'saved']],
+        'investor' => [['Properties', '/investor-dashboard.php', 'investor'], ['Find Agent', '/investor-dashboard.php?view=agents', 'agents'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Compare', '/compare-decision.php', 'compare'], ['Saved', '/investor-dashboard.php?view=saved', 'saved']],
         default => [['Properties', '/index.php#properties', 'properties'], ['Why San Fernando', '/index.php#why-invest', 'why'], ['About', '/index.php#about', 'about']],
     };
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');

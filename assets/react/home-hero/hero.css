@@ -2,17 +2,18 @@
 @tailwind utilities;
 
 @keyframes locus-hero-drift {
-  0%, 100% { transform: scale(1.035) translate3d(-.35%, .2%, 0); }
-  50% { transform: scale(1.095) translate3d(.55%, -.5%, 0); }
+  0%, 100% { transform: scale(1.045) translate3d(-.3%, .2%, 0); }
+  35% { transform: scale(1.075) translate3d(.4%, -.15%, 0); }
+  70% { transform: scale(1.06) translate3d(-.15%, -.35%, 0); }
 }
 @keyframes locus-hero-light-pass {
   0%, 100% { transform: translate3d(-14%, -3%, 0) rotate(-9deg); opacity: .18; }
   50% { transform: translate3d(16%, 5%, 0) rotate(6deg); opacity: .5; }
 }
 @keyframes locus-hero-trace {
-  0% { stroke-dashoffset: 112; opacity: 0; }
-  12%, 82% { opacity: .95; }
-  100% { stroke-dashoffset: -12; opacity: 0; }
+  0%, 10% { stroke-dashoffset: 106; opacity: 0; }
+  19%, 76% { opacity: 1; }
+  90%, 100% { stroke-dashoffset: -8; opacity: 0; }
 }
 @keyframes locus-hero-scroll-cue {
   0%, 35%, 75%, 100% { transform: translateY(0); }
@@ -100,7 +101,7 @@
     object-fit: cover !important;
     object-position: 50% 53% !important;
     filter: sepia(.22) saturate(.9) brightness(.94);
-    animation: locus-hero-drift 20s ease-in-out infinite;
+    animation: locus-hero-drift 26s cubic-bezier(.45, 0, .55, 1) infinite;
     animation-play-state: paused;
     transform-origin: 52% 48%;
   }
@@ -113,7 +114,7 @@
     background: radial-gradient(ellipse at 70% 12%, #ffe3a64d 0%, #edbf721a 30%, transparent 60%);
     opacity: 0;
     mix-blend-mode: screen;
-    animation: locus-hero-light-pass 12s ease-in-out infinite;
+    animation: locus-hero-light-pass 16s cubic-bezier(.45, 0, .55, 1) infinite;
     animation-play-state: paused;
   }
   body[data-page="city-landing"] #locus-react-hero .ios-hero:not([data-motion-activated="true"]) .ios-hero-aurora { visibility: hidden; }
@@ -151,16 +152,21 @@
     width: fit-content;
     max-width: 100%;
     margin: 10px auto 0;
-    padding: 0 .08em;
+    padding: 0 .22em;
     font-size: 1.08em;
     font-weight: 800 !important;
     font-style: italic !important;
     letter-spacing: -.065em;
+    word-spacing: .1em;
     line-height: 1.04;
   }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word {
-    padding-right: .045em;
-    margin-right: -.045em;
+  /* Italic ink extends beyond its advance width, especially the terminal S.
+     Give the gradient its own generous paint box without widening the words.
+     The outer span handles motion; its ink never meets a clipping edge. */
+  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word-ink {
+    display: block;
+    padding: .12em .28em;
+    margin: -.12em -.28em;
     color: #ffe4b2;
     background: linear-gradient(110deg, #fff 15%, #fff4df 55%, #f1c47c 100%);
     background-size: 300% 100%;
@@ -169,9 +175,9 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(2) { background-position: 50% 50%; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(3) { background-position: 100% 50%; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-word { display: inline-block; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(2) .ios-hero-word-ink { background-position: 50% 50%; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(3) .ios-hero-word-ink { background-position: 100% 50%; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero-word { display: inline-block; white-space: nowrap; overflow: visible; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-underline {
     position: absolute;
     inset: auto 0 -23px;
@@ -181,10 +187,12 @@
     filter: drop-shadow(0 0 6px #f8cf8599);
   }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-underline-runner {
-    animation: locus-hero-trace 5.5s ease-in-out infinite;
+    animation: locus-hero-trace 7s cubic-bezier(.4, 0, .25, 1) infinite;
+    animation-delay: 1.15s;
     animation-play-state: paused;
     opacity: 0;
   }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero-underline-halo { stroke-opacity: .18; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-tagline {
     max-width: 560px !important;
     margin: 34px auto 0 !important;
@@ -344,6 +352,7 @@
   }
   @media (max-width: 360px) {
     body[data-page="city-landing"] #locus-react-hero .ios-hero-layout { padding-inline: 18px; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-title { font-size: 32px !important; }
     body[data-page="city-landing"] #locus-react-hero .ios-hero-explore { flex-wrap: wrap; border-radius: 24px; padding: 10px; }
     body[data-page="city-landing"] #locus-react-hero .ios-hero-cta { width: 100%; }
     body[data-page="city-landing"] #locus-react-hero .ios-hero-availability { flex: 1 1 100%; max-width: none; text-align: center; }
@@ -360,7 +369,7 @@
     body[data-page="city-landing"] #locus-react-hero :is(.ios-hero-explore, .ios-hero-scroll) { background: #172c48 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
   }
   @media (forced-colors: active) {
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word { -webkit-text-fill-color: CanvasText; color: CanvasText; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word-ink { -webkit-text-fill-color: CanvasText; color: CanvasText; }
     body[data-page="city-landing"] #locus-react-hero :is(a, aside) { border: 1px solid ButtonText; }
   }
 }

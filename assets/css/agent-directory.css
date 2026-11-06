@@ -1,0 +1,27 @@
+.agent-directory{padding-block:45px 64px;min-height:65vh;color:#172641;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.agent-directory-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:32px}
+.agent-directory-kicker{font-size:11px;color:#8b3540;letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+.agent-directory h1{font:600 clamp(30px,4vw,42px)/1.2 Poppins,Inter,sans-serif;letter-spacing:-.04em;margin:12px 0;color:#11224d}
+.agent-directory-heading p{margin:0;color:#687386;font-size:14px}
+.agent-directory-back{color:#9e1b22;font-size:13px;font-weight:600;white-space:nowrap}
+.agent-directory-search{padding:22px 24px;border:1px solid #e3e7ed;border-radius:12px;background:#fff;margin-bottom:24px;max-width:740px}
+.agent-directory-search label{display:block;font-size:12px;font-weight:600;margin-bottom:9px}
+.agent-directory-search>div{display:flex;align-items:center;gap:12px}
+.agent-directory-search input[type=search]{flex:1;min-width:0;min-height:44px;border:1px solid #dce1e9;border-radius:7px;padding:9px 12px;font-size:14px;background:#fff;color:#172641}
+.agent-directory-search button{min-height:44px;border:0;border-radius:7px;background:#a91e2b;color:#fff;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer}
+.agent-directory-search a{font-size:12px;color:#687386}
+.agent-directory-count,.agent-directory-note{color:#687386;font-size:12px}.agent-directory-note{margin-top:25px;max-width:750px;line-height:1.8}
+.agent-directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.agent-directory-card{border:1px solid #e3e7ed;border-radius:12px;background:#fff;padding:25px;min-width:0}
+.agent-directory-identity{display:flex;gap:14px;align-items:center;margin-bottom:19px}
+.agent-directory-avatar{display:grid;place-items:center;flex-shrink:0;width:50px;height:50px;border-radius:50%;background:#f5e9eb;color:#a91e2b;font-size:21px;font-weight:600}
+.agent-directory-status{color:#456457;font-size:10px;font-weight:600;letter-spacing:.02em}
+.agent-directory-card h2{font:600 18px/1.4 Poppins,Inter,sans-serif;letter-spacing:-.02em;margin:4px 0 0;overflow-wrap:anywhere}
+.agent-directory-contacts{display:grid;gap:7px;font-size:12px;min-height:43px;color:#536078;overflow-wrap:anywhere}.agent-directory-contacts p{margin:0}
+.agent-directory-contacts a:hover,.agent-directory-card li a:hover{color:#a91e2b;text-decoration:underline}
+.agent-directory-card h3{font-size:11px;font-weight:600;margin:22px 0 5px;padding-top:16px;border-top:1px solid #edf0f4}.agent-directory-card h3>span{color:#687386;margin-left:7px}
+.agent-directory-card ul{list-style:none;margin:0;padding:0}.agent-directory-card li+li{border-top:1px solid #edf0f4}.agent-directory-card li a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;color:#172641;font-size:12px}.agent-directory-card li a>span:first-child{min-width:0;overflow-wrap:anywhere}.agent-directory-card li a>span:last-child{color:#a91e2b}.agent-directory-card small{display:block;font-size:10px;color:#687386;margin-top:4px}
+.agent-directory-empty{border:1px solid #e3e7ed;border-radius:12px;background:#fff;padding:48px 28px;max-width:740px}.agent-directory-empty h2{font-size:18px;font-weight:600;margin:0 0 10px}.agent-directory-empty p{font-size:13px;color:#687386;margin:0 0 18px}.agent-directory-empty a{font-size:13px;font-weight:600;color:#a91e2b}
+.agent-directory :is(a,button,input):focus-visible{outline:2px solid #9e1b22;outline-offset:4px}
+@media(max-width:1050px){.agent-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.agent-directory{padding-block:25px 40px}.agent-directory-heading{align-items:flex-start;flex-direction:column;gap:18px}.agent-directory-grid{grid-template-columns:1fr}.agent-directory-search{padding:18px}.agent-directory-search>div{flex-wrap:wrap}.agent-directory-search input[type=search]{font-size:16px;flex-basis:100%}.agent-directory-card{padding:22px}}

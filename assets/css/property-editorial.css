@@ -1,0 +1,196 @@
+/* One editorial type and surface system for property interfaces.
+   Screen-only so assessment reports retain their established print layout. */
+@layer locus-foundation {
+  @media screen {
+    body[data-property-style="editorial"],
+    body[data-page="city-landing"] #properties {
+      --pe-canvas: #f5f4f0;
+      --pe-surface: #fff;
+      --pe-ink: #171918;
+      --pe-muted: #656861;
+      --pe-line: #deded6;
+      --pe-accent: #8b1e24;
+      --pe-radius: 12px;
+      --pe-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body[data-property-style="editorial"] {
+      --city-paper: var(--pe-canvas);
+      --city-border: var(--pe-line);
+      --city-muted: var(--pe-muted);
+      --city-red: var(--pe-accent);
+      background: var(--pe-canvas) !important;
+      color: var(--pe-ink) !important;
+    }
+
+    body[data-property-style="editorial"]::before,
+    body[data-property-style="editorial"] > .locus-map-backdrop {
+      display: none !important;
+    }
+
+    body[data-property-style="editorial"] :is(main, .investment-assistant, dialog) :is(h1, h2, h3),
+    body[data-property-style="editorial"] :is(.priority-hero-frame, .city-investor-hero-frame) :is(h1, h2),
+    body[data-property-style="editorial"] #agentDirectoryTitle,
+    body[data-page="city-landing"] #properties :is(h2, h3) {
+      font-family: var(--pe-font) !important;
+      font-style: normal !important;
+      font-weight: 650 !important;
+      line-height: 1.15 !important;
+      letter-spacing: -.04em !important;
+      text-transform: uppercase !important;
+      text-shadow: none !important;
+      -webkit-text-stroke: 0 !important;
+      overflow-wrap: anywhere;
+      text-wrap: pretty;
+    }
+
+    body[data-property-style="editorial"] main :is(h1, .locus-page-title),
+    body[data-property-style="editorial"] #agentDirectoryTitle,
+    body[data-property-style="editorial"] :is(#priorityBoardTitle, #investorHeroTitle) {
+      font-size: clamp(30px, 3.3vw, 46px) !important;
+      letter-spacing: -.05em !important;
+    }
+
+    body[data-property-style="editorial"] :is(main, .investment-assistant) :is(a, button, input, select, textarea, summary):focus-visible {
+      outline: 2px solid var(--pe-accent) !important;
+      outline-offset: 4px !important;
+    }
+
+    body[data-property-style="editorial"] :is(main, .investment-assistant) :is(button, a) {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body[data-property-style="editorial"] main.city-workspace {
+      width: var(--locus-content-width) !important;
+      max-width: var(--locus-content-max) !important;
+    }
+
+    body[data-property-style="editorial"] main .investor-view-toolbar {
+      gap: 16px !important;
+      padding: 12px 14px !important;
+      border: 1px solid var(--pe-line) !important;
+      border-radius: 10px !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-intro {
+      min-width: 0 !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-intro p {
+      color: var(--pe-muted) !important;
+      font-size: 11px !important;
+      line-height: 1.6 !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-label {
+      color: var(--pe-ink) !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-control {
+      background: #ecece5 !important;
+      border: 1px solid var(--pe-line) !important;
+      border-radius: 8px !important;
+      box-shadow: none !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-control button {
+      min-height: 36px !important;
+      border-radius: 5px !important;
+      color: var(--pe-muted) !important;
+      box-shadow: none !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-control button[aria-pressed="true"] {
+      background: var(--pe-ink) !important;
+      color: #fff !important;
+    }
+    body[data-property-style="editorial"] main .investor-view-pill {
+      border-radius: 5px !important;
+      background: var(--pe-ink) !important;
+      box-shadow: none !important;
+    }
+
+    /* Keep the existing navigation, with a quieter finish on research screens. */
+    body[data-property-style="editorial"] .city-header {
+      --nav-ink: #20231f !important;
+      --nav-muted: #666a62 !important;
+      --nav-brand-red: #8b1e24 !important;
+    }
+    body[data-property-style="editorial"] .city-header .city-nav::before {
+      background: #fffffff2 !important;
+      border: 1px solid #deded6 !important;
+      box-shadow: 0 3px 16px #21251b05 !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+    }
+    body[data-property-style="editorial"] .city-header .city-nav::after {
+      opacity: 0 !important;
+    }
+
+    /* The homepage adopts the same title/card language within Properties only. */
+    body[data-page="city-landing"] #properties {
+      background: var(--pe-canvas) !important;
+    }
+    body[data-page="city-landing"] #properties .city-section-heading h2 {
+      font-size: clamp(29px, 3vw, 42px) !important;
+      color: var(--pe-ink) !important;
+    }
+    body[data-page="city-landing"] #properties .city-property-card {
+      border: 1px solid var(--pe-line) !important;
+      border-radius: var(--pe-radius) !important;
+      background: var(--pe-surface) !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-landing"] #properties .city-property-card h3 {
+      color: var(--pe-ink) !important;
+      font-size: 18px !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      -webkit-line-clamp: unset !important;
+    }
+    body[data-page="city-landing"] #properties .city-property-card > div:has(> .locus-card-glass) {
+      height: auto !important;
+      overflow: visible !important;
+      background: #fff !important;
+    }
+    body[data-page="city-landing"] #properties .city-property-card > div:has(> .locus-card-glass) > img {
+      width: 100% !important;
+      height: 220px !important;
+      object-fit: cover !important;
+      border-radius: 0 !important;
+    }
+    body[data-page="city-landing"] #properties .locus-card-glass {
+      position: relative !important;
+      inset: auto !important;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 20px !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: #fff !important;
+      color: var(--pe-ink) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-landing"] #properties .locus-card-glass :is(h3 a, p) {
+      color: var(--pe-ink) !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+    body[data-page="city-landing"] #properties .locus-card-glass p {
+      color: var(--pe-muted) !important;
+    }
+
+    @media (max-width: 640px) {
+      body[data-property-style="editorial"] main .investor-view-control button {
+        min-height: 44px !important;
+      }
+      body[data-property-style="editorial"] main :is(h1, .locus-page-title),
+      body[data-property-style="editorial"] #agentDirectoryTitle,
+      body[data-property-style="editorial"] :is(#priorityBoardTitle, #investorHeroTitle) {
+        font-size: clamp(28px, 7.8vw, 36px) !important;
+      }
+    }
+  }
+}

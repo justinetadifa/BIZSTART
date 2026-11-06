@@ -8,7 +8,7 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
     $firstName = trim((string) ($context['user']['firstName'] ?? '')) ?: explode(' ', trim((string) ($context['user']['name'] ?? 'Investor')))[0];
     $greeting = ($_SESSION['sfc_account_greeting'] ?? '') === 'new' ? 'Welcome' : 'Welcome back';
     ?>
-<?php if ($isLoopNetView): ?>
+<?php if ($isLoopNetView && !function_exists('sfc_render_investment_assistant')): ?>
 <div class="city-hero-frame">
   <div class="city-accent-stripe city-accent-stripe-top" aria-hidden="true">
     <span class="stripe-segment stripe-red"></span>
@@ -102,11 +102,11 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
 <main class="city-container city-workspace" id="propertyResults">
   <?php sfc_investor_view_control($context); ?>
   <?php if ($mode === 'explorer'): ?>
-  <div class="tw-mb-4">
-    <h1 class="tw-text-2xl sm:tw-text-3xl tw-font-black tw-italic tw-tracking-tight tw-text-[#9E1B22] tw-uppercase tw-m-0" style="font-family: 'Poppins', sans-serif;">MAP EXPLORER</h1>
+  <div class="workspace-heading tw-mb-6">
+    <h1 id="mapExplorerTitle" class="tw-m-0 tw-text-ink">Map explorer</h1>
     <p class="tw-text-sm tw-text-slate-500 tw-mt-1 tw-mb-0">Explore properties by location.</p>
   </div>
-  <?php elseif (!$isLoopNetView && $mode !== 'ranking'): ?>
+  <?php elseif ($mode !== 'ranking' && (!$isLoopNetView || function_exists('sfc_render_investment_assistant'))): ?>
   <div class="city-page-heading tw-flex-wrap tw-items-start">
     <div><h1><?= $e($heading) ?></h1><p><?= $e($description) ?></p></div>
     <?php if ($mode === 'investor'): ?>

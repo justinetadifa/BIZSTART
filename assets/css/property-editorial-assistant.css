@@ -1,0 +1,649 @@
+/* Guided discovery: a calm conversation rail and an image-led catalogue.
+   Existing native filters, disclosures, maps and mobile composer own behavior. */
+@layer locus-foundation {
+  @media screen {
+    body[data-page="city-investor"] .investment-assistant {
+      --ia-navy: var(--pe-ink) !important;
+      --ia-red: var(--pe-accent) !important;
+      --ia-ink: var(--pe-ink) !important;
+      --ia-muted: var(--pe-muted) !important;
+      --ia-line: var(--pe-line) !important;
+      --ia-workspace-gap: 18px !important;
+      padding-bottom: 40px !important;
+    }
+
+    body[data-page="city-investor"] .investment-assistant .ia-shell {
+      border: 1px solid var(--pe-line) !important;
+      border-radius: 20px !important;
+      background: var(--pe-surface) !important;
+      box-shadow: 0 8px 30px -18px #292e1826 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-workbench {
+      grid-template-columns: minmax(300px, 31.5%) minmax(0, 1fr) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-conversation {
+      padding: 28px 24px 22px !important;
+      background: #efeee8 !important;
+      border-color: var(--pe-line) !important;
+      border-radius: 20px 0 0 20px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-brand-line {
+      gap: 7px !important;
+      flex-wrap: wrap !important;
+      margin-bottom: 28px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-brand-line h1 {
+      color: var(--pe-accent) !important;
+      font-size: 11px !important;
+      font-weight: 650 !important;
+      letter-spacing: .035em !important;
+      line-height: 1.4 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-chat-icon {
+      width: 17px !important;
+      height: 17px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-brand-line #iaReset {
+      min-height: 34px !important;
+      margin-left: auto !important;
+      padding: 7px 11px !important;
+      border: 1px solid #23251f !important;
+      border-radius: 999px !important;
+      background: #23251f !important;
+      color: #fff !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      line-height: 1.4 !important;
+      text-decoration: none !important;
+      white-space: normal !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-intro h2 {
+      margin-bottom: 14px !important;
+      color: var(--pe-ink) !important;
+      font-size: clamp(28px, 2.35vw, 36px) !important;
+      font-weight: 650 !important;
+      line-height: 1.08 !important;
+      letter-spacing: -.05em !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-description {
+      max-width: 29ch !important;
+      color: #45493f !important;
+      font-size: 14px !important;
+      line-height: 1.65 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-conversation-body {
+      margin-top: 26px !important;
+      scrollbar-color: #c8c9bf transparent !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-message-label {
+      border-color: #ddded6 !important;
+      color: var(--pe-accent) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-message p {
+      padding: 14px !important;
+      border-radius: 3px 12px 12px 12px !important;
+      background: #e4e3db !important;
+      color: #373b32 !important;
+      font-size: 13px !important;
+      line-height: 1.65 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-message-user p {
+      background: #ebe1dc !important;
+      color: #59292a !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-message-user .ia-message-label {
+      color: #fff !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-starters, .ia-guidance, .ia-suggestions) button {
+      min-height: 38px !important;
+      padding: 8px 12px !important;
+      border: 1px solid #d5d6cd !important;
+      border-radius: 999px !important;
+      background: #fff !important;
+      color: #30342c !important;
+      font-size: 11px !important;
+      line-height: 1.5 !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-starters, .ia-guidance, .ia-suggestions) button:hover {
+      border-color: #a4a69b !important;
+      background: #fafaf7 !important;
+    }
+
+    body[data-page="city-investor"] .investment-assistant .ia-composer {
+      min-height: 60px !important;
+      gap: 10px !important;
+      padding: 8px !important;
+      border-color: #d8d9cf !important;
+      border-radius: 14px !important;
+      background: #fff !important;
+      box-shadow: 0 2px 5px #21251b03 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-composer textarea {
+      color: var(--pe-ink) !important;
+      font-size: 12px !important;
+      line-height: 1.6 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-composer textarea::placeholder {
+      color: #74786c !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-composer button {
+      width: 40px !important;
+      height: 40px !important;
+      border-radius: 10px !important;
+      background: var(--pe-accent) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-composer .ia-compose-filter {
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 50% !important;
+      border-color: #deded5 !important;
+      background: #fff !important;
+      color: #41463b !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-compose-meta, .ia-mode, .ia-service-notice) {
+      color: #696e60 !important;
+      font-size: 10px !important;
+    }
+
+    body[data-page="city-investor"] .investment-assistant .ia-results {
+      padding: 28px !important;
+      border-radius: 0 20px 20px 0 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-breadcrumb {
+      margin-bottom: 20px !important;
+      color: #70756a !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-results-head {
+      align-items: center !important;
+      flex-wrap: wrap !important;
+      gap: 14px !important;
+      margin-bottom: 22px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-results-title-row {
+      align-items: center !important;
+      gap: 10px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-results-head h2 {
+      color: var(--pe-ink) !important;
+      font-size: clamp(26px, 2.45vw, 36px) !important;
+      font-weight: 650 !important;
+      letter-spacing: -.05em !important;
+      line-height: 1.1 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-results-head p {
+      margin-top: 8px !important;
+      color: #656b5f !important;
+      font-size: 12px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-result-count {
+      border: 0 !important;
+      border-radius: 5px !important;
+      background: #eeeee8 !important;
+      color: #5a6152 !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-view-switch {
+      gap: 2px !important;
+      padding: 3px !important;
+      border-color: #e1e1d8 !important;
+      border-radius: 10px !important;
+      background: #eae9e2 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-view-switch button {
+      min-height: 36px !important;
+      padding: 8px 12px !important;
+      color: #54594d !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-view-switch button[aria-pressed="true"] {
+      border-color: #d5d6cb !important;
+      background: #fff !important;
+      color: #20261b !important;
+      box-shadow: 0 1px 4px #242c1512 !important;
+    }
+
+    body[data-page="city-investor"] .investment-assistant .ia-search-tools {
+      margin-bottom: 18px !important;
+      padding: 14px !important;
+      border: 1px solid #e2e1d9 !important;
+      border-radius: 14px !important;
+      background: #e9e7df !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-tools-title {
+      color: #353b2f !important;
+      font-size: 12px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-tools-title svg {
+      color: #747a6b !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-tools-actions :is(#iaEditFilters, #iaClearFilters) {
+      min-height: 36px !important;
+      padding: 7px 10px !important;
+      border-color: #d7d7cc !important;
+      border-radius: 7px !important;
+      color: #414739 !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-tools-actions #iaClearFilters {
+      color: var(--pe-accent) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-quick-filters {
+      gap: 8px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-filter-trigger {
+      display: grid !important;
+      grid-template-columns: 16px minmax(0, 1fr) 11px !important;
+      align-content: center !important;
+      gap: 4px 6px !important;
+      min-height: 64px !important;
+      padding: 10px !important;
+      border: 1px solid #45473f !important;
+      border-radius: 9px !important;
+      background: #4d4b43 !important;
+      color: #fff !important;
+      box-shadow: 0 1px 2px #1c1c1712 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-icon {
+      grid-area: 1 / 1 !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-text {
+      display: contents !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-label {
+      grid-area: 1 / 2 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-value {
+      grid-area: 2 / 1 / 3 / -1 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-secondary {
+      grid-area: 3 / 1 / 4 / -1 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-trigger .ia-filter-chevron {
+      grid-area: 1 / 3 !important;
+      justify-self: end !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-filter-trigger:is(:hover, [aria-expanded="true"]) {
+      border-color: #20251a !important;
+      background: #373c30 !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-label {
+      color: #e4e3dc !important;
+      font-size: 10px !important;
+      font-weight: 450 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-value {
+      color: #fff !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      overflow-wrap: anywhere !important;
+      text-overflow: clip !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-secondary {
+      color: #e0e1d7 !important;
+      font-size: 10px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-filter-icon, .ia-filter-chevron) {
+      stroke: #e8e9e1 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-details {
+      border-color: #d6d8cd !important;
+      border-radius: 10px !important;
+      box-shadow: none !important;
+    }
+    body[data-page="city-investor"] .investment-assistant #iaFilterEditorTitle {
+      color: var(--pe-ink) !important;
+      font-size: 17px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-filter-form .ia-filter-field {
+      color: #525b47 !important;
+      font-size: 12px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-filter-form :is(input, select) {
+      min-height: 44px !important;
+      border-color: #d9dcd1 !important;
+      background: #f9faf6 !important;
+      color: #2f3826 !important;
+      font-size: 13px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-filter-note, .ia-editor-kicker) {
+      color: #6d7563 !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-chip, #iaDismissFilters) {
+      border-color: #d5d9cc !important;
+      color: #525f43 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-primary-button, .ia-compare-bar a) {
+      border-radius: 7px !important;
+      font-size: 12px !important;
+    }
+
+    body[data-page="city-investor"] .investment-assistant .ia-result-status {
+      color: #656d5a !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-result-list {
+      gap: 18px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-property-card {
+      border: 1px solid var(--pe-line) !important;
+      border-radius: 12px !important;
+      background: #fff !important;
+      box-shadow: none !important;
+      transition: border-color 220ms ease, box-shadow 220ms ease !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-property-card:hover {
+      border-color: #b8bbad !important;
+      box-shadow: 0 5px 15px -10px #29331926 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-media {
+      height: auto !important;
+      aspect-ratio: 16 / 9 !important;
+      background: #eeeee6 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-media img {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      transition: transform 600ms cubic-bezier(.22, 1, .36, 1) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-media:hover img {
+      transform: scale(1.035) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-purpose {
+      padding: 5px 8px !important;
+      border-radius: 5px !important;
+      color: #30382a !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      box-shadow: 0 1px 4px #141b0812 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-save {
+      width: 34px !important;
+      height: 36px !important;
+      border-color: #e0e2d8 !important;
+      border-radius: 6px !important;
+      color: #353d2f !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-content {
+      padding: 16px 16px 0 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-price {
+      margin-bottom: 2px !important;
+      color: var(--pe-accent) !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      letter-spacing: -.025em !important;
+      font-variant-numeric: tabular-nums !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-basis {
+      margin-bottom: 9px !important;
+      color: #6f7763 !important;
+      font-size: 10px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-property-card h3 {
+      margin-bottom: 8px !important;
+      color: var(--pe-ink) !important;
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      line-height: 1.25 !important;
+      letter-spacing: -.035em !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-location {
+      gap: 5px !important;
+      margin-bottom: 12px !important;
+      color: #636d57 !important;
+      font-size: 11px !important;
+      line-height: 1.6 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-facts {
+      gap: 8px !important;
+      padding-block: 10px !important;
+      flex-wrap: wrap !important;
+      border-color: #e5e7dd !important;
+      color: #5d674f !important;
+      font-size: 10px !important;
+      line-height: 1.65 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-facts span {
+      min-width: 0 !important;
+      max-width: 100% !important;
+      padding: 2px 5px !important;
+      border: 0 !important;
+      border-radius: 4px !important;
+      background: #f0f1e9 !important;
+      overflow-wrap: anywhere !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-facts > span:first-child {
+      flex-shrink: 1 !important;
+      white-space: normal !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-card-disclosure, .ia-assessment) {
+      border-color: #e5e7dd !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-disclosure > summary {
+      min-height: 36px !important;
+      padding-block: 9px !important;
+      color: #69765a !important;
+      font-size: 10px !important;
+      line-height: 1.65 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-card-unknowns, .ia-reasons ul, .ia-verification, .ia-assessment-body) {
+      color: #667259 !important;
+      font-size: 11px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-actions {
+      gap: 10px !important;
+      flex-wrap: wrap !important;
+      padding: 10px 16px 14px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-actions > a {
+      min-height: 38px !important;
+      padding: 8px 13px !important;
+      border: 1px solid #242a1f !important;
+      border-radius: 999px !important;
+      background: #242a1f !important;
+      color: #fff !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-actions > a:hover {
+      background: #414a38 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-secondary {
+      margin-left: auto !important;
+      flex-wrap: wrap !important;
+      gap: 4px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-actions button {
+      min-height: 38px !important;
+      padding: 6px 3px !important;
+      color: #69765c !important;
+      font-size: 10px !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-card-actions button[aria-pressed="true"] {
+      color: var(--pe-accent) !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-evidence-note, .ia-catalogue-link, .ia-map-panel > p) {
+      color: #717b63 !important;
+      font-size: 11px !important;
+      line-height: 1.7 !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-map-panel {
+      border-color: var(--pe-line) !important;
+      border-radius: 12px !important;
+      background: #f2f3ec !important;
+    }
+    body[data-page="city-investor"] .investment-assistant :is(.ia-empty, .ia-loading) {
+      border-color: #d7dbcd !important;
+      border-radius: 12px !important;
+      background: #fafbf7 !important;
+      color: #6b755e !important;
+    }
+    body[data-page="city-investor"] .investment-assistant .ia-empty p {
+      color: #6b755e !important;
+    }
+
+    @media (min-width: 761px) and (max-width: 1120px) {
+      body[data-page="city-investor"] .investment-assistant .ia-workbench {
+        grid-template-columns: 280px minmax(0, 1fr) !important;
+      }
+      body[data-page="city-investor"] .investment-assistant :is(.ia-conversation, .ia-results) {
+        padding-inline: 20px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-brand-line #iaReset {
+        margin-left: 24px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-results-head h2 {
+        font-size: 28px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-result-list {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    @media (min-width: 761px) and (max-width: 1000px) {
+      body[data-page="city-investor"] .investment-assistant .ia-workbench {
+        display: block !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-conversation {
+        position: relative !important;
+        top: auto !important;
+        height: auto !important;
+        min-height: 0 !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--pe-line) !important;
+        border-radius: 20px 20px 0 0 !important;
+        padding: 28px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-conversation-body {
+        max-height: 260px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-intro h2 {
+        max-width: 24ch !important;
+        font-size: 36px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-brand-line #iaReset {
+        margin-left: auto !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-results {
+        padding: 28px !important;
+        border-radius: 0 0 20px 20px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-result-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body[data-page="city-investor"] .investment-assistant {
+        --ia-workspace-gap: 12px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-workbench {
+        display: block !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-conversation {
+        padding: 24px 20px !important;
+        border-radius: 20px 20px 0 0 !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-brand-line {
+        margin-bottom: 24px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-intro h2 {
+        max-width: 15ch !important;
+        font-size: clamp(30px, 6.8vw, 42px) !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-description {
+        max-width: 38ch !important;
+        font-size: 13px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-results {
+        padding: 24px 18px calc(var(--ia-active-composer-height, 120px) + 24px) !important;
+        border-radius: 0 0 20px 20px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-results-head h2 {
+        font-size: clamp(26px, 6.2vw, 34px) !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-view-switch {
+        margin-left: auto !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-view-switch button {
+        min-width: 60px !important;
+        min-height: 44px !important;
+        font-size: 11px !important;
+        gap: 6px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-quick-filters {
+        scrollbar-color: #9e9f92 transparent !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-filter-trigger {
+        flex-basis: 148px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-tools-actions :is(#iaEditFilters, #iaClearFilters) {
+        min-height: 44px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-compose-wrap {
+        border-color: #d5d9cb !important;
+        border-radius: 16px !important;
+        background: #fafbf8 !important;
+        box-shadow: 0 -4px 20px #2933190d !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-composer textarea {
+        font-size: 16px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-composer button,
+      body[data-page="city-investor"] .investment-assistant .ia-composer .ia-compose-filter,
+      body[data-page="city-investor"] .investment-assistant .ia-composer #iaSend {
+        width: 44px !important;
+        height: 44px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant :is(.ia-card-save, #iaDismissFilters) {
+        width: 44px !important;
+        height: 44px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant :is(.ia-card-actions > a, .ia-card-actions button, .ia-card-disclosure > summary, .ia-brand-line #iaReset, .ia-starters button, .ia-guidance button, .ia-suggestions button) {
+        min-height: 44px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-search-tools .ia-filter-form :is(input, select) {
+        font-size: 16px !important;
+      }
+    }
+
+    @media (max-width: 460px) {
+      body[data-page="city-investor"] .investment-assistant .ia-brand-line #iaReset {
+        margin-left: 24px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-result-list {
+        grid-template-columns: 1fr !important;
+      }
+      body[data-page="city-investor"] .investment-assistant :is(.ia-conversation, .ia-results) {
+        padding-inline: 16px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-property-card h3 {
+        font-size: 17px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-card-price {
+        font-size: 17px !important;
+      }
+      body[data-page="city-investor"] .investment-assistant .ia-card-facts {
+        font-size: 11px !important;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body[data-page="city-investor"] .investment-assistant .ia-card-media img {
+        transition: none !important;
+      }
+    }
+  }
+}

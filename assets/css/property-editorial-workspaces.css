@@ -1,0 +1,457 @@
+@media screen {
+/* Property workspaces share the catalogue's restrained editorial language.
+   Only presentation changes here; map, form and disclosure state stay native. */
+@layer locus-foundation {
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults {
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.city-page-heading h1, .workspace-heading h1),
+  body[data-page="city-ranking"] #priorityBoardTitle {
+    font-family: var(--pe-font, Inter), sans-serif !important;
+    color: var(--pe-ink, #171918) !important;
+    font-size: clamp(30px, 3.2vw, 46px) !important;
+    font-weight: 650 !important;
+    font-style: normal !important;
+    line-height: 1.06 !important;
+    letter-spacing: -.045em !important;
+    text-transform: uppercase !important;
+    overflow-wrap: anywhere;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.city-page-heading, .workspace-heading) p {
+    color: var(--pe-muted, #656861) !important;
+    font-size: 14px !important;
+    line-height: 1.65 !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.city-filters, #cityFilters, .city-compare-tray) {
+    background: #ecebe5 !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #cityFilters :is(input, select) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-color: #d0d1c8 !important;
+    border-radius: 7px !important;
+    background-color: var(--pe-surface, #fff) !important;
+    color: var(--pe-ink, #171918) !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    text-transform: none !important;
+  }
+
+  body[data-page="city-investor"] #cityFilters.city-toolbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+  }
+
+  body[data-page="city-investor"] #cityFilters.city-toolbar .city-field { min-width: 0 !important; }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-stat {
+    background: var(--pe-surface, #fff) !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    box-shadow: none !important;
+  }
+
+  /* A photo followed by its information, with no frosted text over the image. */
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card {
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    background: var(--pe-surface, #fff) !important;
+    box-shadow: 0 3px 12px #25292305 !important;
+    transition: border-color 200ms ease, box-shadow 200ms ease !important;
+    min-width: 0;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card:hover {
+    border-color: #b8bbb0 !important;
+    box-shadow: 0 6px 20px #25292309 !important;
+    transform: none !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card > div:has(> .locus-card-glass) {
+    height: auto !important;
+    overflow: visible !important;
+    background: var(--pe-surface, #fff) !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card > div:has(> .locus-card-glass) > img {
+    height: 200px !important;
+    width: 100% !important;
+    object-fit: cover !important;
+    border-radius: 0 !important;
+    transform: none !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .locus-card-glass {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 18px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: var(--pe-surface, #fff) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card h3,
+  body[data-page="city-ranking"] #propertyResults .priority-card h3 {
+    display: block !important;
+    font-family: var(--pe-font, Inter), sans-serif !important;
+    font-style: normal !important;
+    font-weight: 650 !important;
+    font-size: 17px !important;
+    letter-spacing: -.035em !important;
+    line-height: 1.3 !important;
+    text-transform: uppercase !important;
+    color: var(--pe-ink, #171918) !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    -webkit-line-clamp: unset !important;
+    overflow-wrap: anywhere;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-property-card h3 a,
+  body[data-page="city-ranking"] #propertyResults .priority-card h3 a {
+    color: inherit !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .locus-card-glass p {
+    white-space: normal !important;
+    overflow: visible !important;
+    color: var(--pe-muted, #656861) !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.locus-card-toggle, .city-card-actions button) {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+    background: var(--pe-surface, #fff) !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .city-card-assessment-note {
+    background: #f0f0ea !important;
+    color: var(--pe-muted, #656861) !important;
+    border-color: var(--pe-line, #deded6) !important;
+    font-size: 11px !important;
+  }
+
+  body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .locus-card-drawer {
+    border-color: var(--pe-line, #deded6) !important;
+    background: #fff !important;
+  }
+
+  /* The map retains its own touch, wheel, zoom and internal scrolling. */
+  body[data-page="city-explorer"] #propertyResults .city-map-panel {
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    box-shadow: 0 3px 16px #25292306 !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults :is(.city-map-controls, .city-map-options) {
+    background: var(--pe-surface, #fff) !important;
+    border-color: var(--pe-line, #deded6) !important;
+    color: var(--pe-muted, #656861) !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-segmented {
+    background: #eeeee8 !important;
+    border-color: var(--pe-line, #deded6) !important;
+    border-radius: 8px !important;
+    flex-wrap: wrap;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-segmented button {
+    min-height: 38px !important;
+    border-radius: 5px !important;
+    color: var(--pe-muted, #656861) !important;
+    box-shadow: none !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-segmented button.is-active {
+    background: var(--pe-ink, #171918) !important;
+    color: #fff !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-btn {
+    min-height: 38px !important;
+    border-radius: 6px !important;
+    color: var(--pe-ink, #171918) !important;
+    box-shadow: none !important;
+    border-color: var(--pe-line, #deded6) !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .locus-popup-title {
+    font-family: var(--pe-font, Inter), sans-serif !important;
+    font-style: normal !important;
+    font-weight: 650 !important;
+    letter-spacing: -.025em !important;
+    text-transform: uppercase !important;
+    color: var(--pe-ink, #171918) !important;
+    overflow-wrap: anywhere;
+  }
+
+  /* A compact editorial masthead replaces the decorative priority banner. */
+  body[data-page="city-ranking"] .priority-hero-frame {
+    background: var(--pe-canvas, #f5f4f0) !important;
+    border-color: var(--pe-line, #deded6) !important;
+    box-shadow: none !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body[data-page="city-ranking"] .priority-hero-frame > img,
+  body[data-page="city-ranking"] .priority-hero-frame > .tw-absolute { display: none !important; }
+
+  body[data-page="city-ranking"] .priority-hero-frame > .city-container { padding-block: 30px !important; }
+  body[data-page="city-ranking"] .priority-hero-frame .tw-max-w-xl p { color: var(--pe-muted, #656861) !important; }
+  body[data-page="city-ranking"] .priority-hero-frame .tw-max-w-xl > .tw-flex { color: var(--pe-muted, #656861) !important; }
+
+  body[data-page="city-ranking"] .priority-stats-widget {
+    background: var(--pe-surface, #fff) !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    box-shadow: none !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body[data-page="city-ranking"] #propertyResults .priority-card {
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    padding: 20px !important;
+    background: var(--pe-surface, #fff) !important;
+    box-shadow: 0 2px 10px #25292304 !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body[data-page="city-ranking"] #propertyResults .priority-card:hover {
+    border-color: #b8bbb0 !important;
+    box-shadow: 0 5px 16px #25292309 !important;
+    transform: none !important;
+  }
+
+  body[data-page="city-ranking"] #propertyResults .priority-card :is(a:has(> img), img) { border-radius: 8px !important; }
+  body[data-page="city-ranking"] #propertyResults .priority-card > div:last-child > div:first-child {
+    background: #f5f4ef !important;
+    border-color: var(--pe-line, #deded6) !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+
+  /* Broker and city property desks keep their existing workflows and hierarchy. */
+  body[data-page="broker-workspace"] .broker-workspace,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] {
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-workspace :is(h1, h2, h3),
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(h1, h2, h3) {
+    font-family: var(--pe-font, Inter), sans-serif !important;
+    font-style: normal !important;
+    font-weight: 650 !important;
+    letter-spacing: -.035em !important;
+    text-transform: uppercase !important;
+    color: var(--pe-ink, #171918) !important;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="broker-workspace"] .broker-hero,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-hero {
+    min-height: 0 !important;
+    padding: 28px !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    background: var(--pe-surface, #fff) !important;
+    box-shadow: none !important;
+    color: var(--pe-ink, #171918) !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-hero::before,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(.city-hero-backdrop-img, .city-hero-scrim, .city-hero-glow) { display: none !important; }
+
+  body[data-page="broker-workspace"] .broker-hero-title,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-title {
+    font-size: clamp(30px, 3.2vw, 44px) !important;
+    line-height: 1.08 !important;
+    text-shadow: none !important;
+    color: var(--pe-ink, #171918) !important;
+    -webkit-text-fill-color: var(--pe-ink, #171918) !important;
+    filter: none !important;
+  }
+  body[data-page="admin-workspace"] #propertyDeskTodayCapsule :is(.city-capsule-label, .city-capsule-date, .city-capsule-time, .city-capsule-icon-wrap) {
+    color: var(--pe-ink, #171918) !important;
+    text-shadow: none !important;
+    background: transparent !important;
+  }
+  body[data-page="admin-workspace"] #propertyDeskTodayCapsule .city-capsule-icon {
+    stroke: var(--pe-muted, #656861) !important;
+  }
+
+  body[data-page="broker-workspace"] :is(.broker-hero-subtitle, .broker-hero-location),
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-subtitle {
+    color: var(--pe-muted, #656861) !important;
+    text-shadow: none !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-hero-location,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-today-capsule {
+    background: #f1f0ea !important;
+    border: 1px solid var(--pe-line, #deded6) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-hero-pill,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-badge {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--pe-accent, #8b1e24) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    font-weight: 600 !important;
+    letter-spacing: .08em !important;
+  }
+
+  body[data-page="broker-workspace"] :is(.broker-panel, .broker-listing, .broker-kpi-card, .broker-verification-card),
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(.city-listing-card, .city-property-stat, .city-filters) {
+    border: 1px solid var(--pe-line, #deded6) !important;
+    border-radius: var(--pe-radius, 12px) !important;
+    background: var(--pe-surface, #fff) !important;
+    box-shadow: 0 2px 10px #25292304 !important;
+    color: var(--pe-ink, #171918) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-listing-title > a,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-title a {
+    color: var(--pe-ink, #171918) !important;
+    font-size: 17px !important;
+    font-weight: 650 !important;
+    font-style: normal !important;
+    line-height: 1.3 !important;
+    letter-spacing: -.03em !important;
+    text-transform: uppercase !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-property-stat[aria-pressed="true"] {
+    background: #f9efed !important;
+    color: var(--pe-accent, #8b1e24) !important;
+    border-color: var(--pe-accent, #8b1e24) !important;
+    box-shadow: inset 0 0 0 1px var(--pe-accent, #8b1e24) !important;
+  }
+
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-assessment {
+    border-radius: 8px !important;
+    border-color: var(--pe-line, #deded6) !important;
+    background: #f5f4ef !important;
+    box-shadow: none !important;
+  }
+
+  body[data-page="broker-workspace"] .broker-listing-photo,
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-photo { border-radius: 8px !important; box-shadow: none !important; }
+
+  body[data-page="broker-workspace"] :is(.broker-btn-submit, .broker-button-primary),
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(.city-btn-pill-add, .city-listing-action.is-primary) {
+    background: var(--pe-accent, #8b1e24) !important;
+    border-color: var(--pe-accent, #8b1e24) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    min-height: 44px !important;
+  }
+
+  body[data-page="broker-workspace"] :is(.broker-btn-profile, .broker-button),
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-action:not(.is-primary) {
+    border-color: var(--pe-line, #deded6) !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    color: var(--pe-ink, #171918) !important;
+    box-shadow: none !important;
+    min-height: 44px !important;
+  }
+
+  /* The shared listing editor is intentionally restyled only on property desks. */
+  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor {
+    --pw-navy: var(--pe-ink, #171918);
+    --pw-muted: var(--pe-muted, #656861);
+    --pw-line: var(--pe-line, #deded6);
+    border-color: var(--pe-line, #deded6) !important;
+    border-radius: 16px !important;
+    background: var(--pe-canvas, #f5f4f0) !important;
+    box-shadow: 0 24px 80px #17191826 !important;
+  }
+
+  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(h2, h3, h4) {
+    font-family: var(--pe-font, Inter), sans-serif !important;
+    font-style: normal !important;
+    font-weight: 650 !important;
+    letter-spacing: -.025em !important;
+    text-transform: uppercase !important;
+    color: var(--pe-ink, #171918) !important;
+    overflow-wrap: anywhere;
+  }
+
+  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(.pw-header, .pw-footer, .pw-card, .pw-section-card) {
+    background: var(--pe-surface, #fff) !important;
+    border-color: var(--pe-line, #deded6) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(.pw-card, .pw-section-card) { border-radius: 10px !important; }
+  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor .pw-button-primary {
+    background: var(--pe-ink, #171918) !important;
+    border-color: var(--pe-ink, #171918) !important;
+    box-shadow: none !important;
+  }
+
+  @media (max-width: 1000px) {
+    body[data-page="city-investor"] #cityFilters.city-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
+
+  @media (max-width: 1024px) {
+    body[data-page="city-explorer"] #propertyResults .city-map-panel { position: relative !important; top: auto !important; }
+  }
+
+  @media (max-width: 640px) {
+    body[data-page="city-investor"] #cityFilters.city-toolbar { grid-template-columns: minmax(0, 1fr) !important; }
+    body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.city-page-heading h1, .workspace-heading h1),
+    body[data-page="city-ranking"] #priorityBoardTitle { font-size: clamp(27px, 7.7vw, 36px) !important; }
+    body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults .locus-card-glass { padding: 16px !important; }
+    body[data-page="city-ranking"] #propertyResults .priority-card { padding: 16px !important; }
+    body[data-page="broker-workspace"] .broker-hero,
+    body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-desk-hero { padding: 22px 18px !important; }
+    body[data-page="broker-workspace"] .broker-hero-location { position: static !important; margin-top: 18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body:is([data-page="city-investor"], [data-page="city-explorer"], [data-page="city-ranking"]) #propertyResults :is(.city-property-card, .priority-card) { transition: none !important; }
+  }
+}
+
+}
