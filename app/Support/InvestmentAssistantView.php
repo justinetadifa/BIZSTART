@@ -76,7 +76,12 @@ function sfc_render_investment_assistant(array $context): void
       </details>
       </div>
       <div class="ia-result-status" id="iaResultStatus" role="status" aria-live="polite">Loading published listings…</div>
-      <div class="ia-map-panel" id="iaMapPanel" hidden><div class="ia-map-canvas" id="iaPropertyMap" aria-label="Map of matching published properties"></div><p id="iaMapStatus" role="status"></p></div>
+      <section class="ia-map-panel" id="iaMapPanel" aria-labelledby="iaMapTitle" hidden>
+        <header class="ia-map-toolbar"><div><h3 id="iaMapTitle">Property locations</h3><p id="iaMapHelp">Select a numbered pin or a property below.</p></div><button type="button" id="iaMapFit" disabled><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 3H3v4M13 3h4v4M3 13v4h4M17 13v4h-4M7 10h6M10 7v6"/></svg>Fit listings</button></header>
+        <div class="ia-map-stage"><div class="ia-map-canvas" id="iaPropertyMap" aria-label="Map of matching published properties" aria-describedby="iaMapHelp iaMapStatus"></div><p class="ia-map-empty" id="iaMapEmpty" hidden>No recorded property locations to display.</p></div>
+        <div class="ia-map-feedback"><p id="iaMapStatus" role="status" aria-live="polite"></p><button type="button" id="iaMapRetry" hidden>Retry map</button></div>
+        <div class="ia-map-locations" id="iaMapLocations" role="group" aria-label="Explore mapped properties" hidden></div>
+      </section>
       <div class="ia-result-list" id="iaResultList"><div class="ia-loading"><span class="ia-spinner" aria-hidden="true"></span><span>Loading published listings…</span></div></div>
       <div class="ia-suggestions" id="iaSuggestions" aria-label="Ways to adjust your search" hidden></div>
       <div class="ia-compare-bar" id="iaCompareBar" hidden><span id="iaCompareCount"></span><a id="iaCompareLink" href="<?= $e(sfc_path('/compare-decision.php')) ?>">Open comparison <span aria-hidden="true">↗</span></a></div>

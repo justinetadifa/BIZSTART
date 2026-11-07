@@ -156,7 +156,8 @@ try {
         const help = await cdp.eval("(() => {const help=document.querySelector('.locus-floating-help-btn'),composer=document.querySelector('.ia-compose-wrap');if(!help)return null;const a=help.getBoundingClientRect(),b=composer.getBoundingClientRect();return {bottom:a.bottom,composerTop:b.top};})()");
         if (help) assert.ok(help.bottom <= help.composerTop, JSON.stringify(help));
       }
-      if (width > 760) assert.ok(report.conversation.right <= report.results.left + 1, JSON.stringify(report));
+      if (width > 1000) assert.ok(report.conversation.right <= report.results.left + 1, JSON.stringify(report));
+      else assert.ok(report.conversation.bottom <= report.results.top + 1, JSON.stringify(report));
       if ([1920, 1536, 1440, 390, 320].includes(width)) await shot(cdp, `property-assistant-${width}.png`);
       return report;
     });
@@ -332,8 +333,25 @@ try {
     await cdp.eval("document.querySelector('#iaMapView').click()");
     await waitFor(cdp, "!document.querySelector('#iaMapPanel').hidden && document.querySelector('#iaMapStatus').textContent.length>0", 20000);
     assert.equal(await cdp.eval("document.querySelector('#iaMapView').getAttribute('aria-pressed')"), 'true');
+    await waitFor(cdp, "document.querySelectorAll('.ia-map-location').length > 0");
+    const mappedId = await cdp.eval("Number(document.querySelector('.ia-map-location').dataset.iaMapProperty)");
+    await cdp.eval("document.querySelector('.ia-map-location').click()");
+    await waitFor(cdp, "document.querySelector('.ia-map-popup a')");
+    assert.ok((await cdp.eval("document.querySelector('.ia-map-popup a').href")).includes(`property-details.php?id=${mappedId}`));
+    assert.equal(await cdp.eval("document.querySelector('.ia-map-location').getAttribute('aria-pressed')"), 'true');
+    assert.ok(await cdp.eval("[...document.querySelectorAll('.ia-map-marker, .leaflet-control-zoom a')].every(e=>e.getBoundingClientRect().width>=44 && e.getBoundingClientRect().height>=44)"));
+    await cdp.eval("document.querySelector('.leaflet-control-zoom-in').click()");
+    await delay(700);
+    const markerPositions = await cdp.eval("[...document.querySelectorAll('.ia-map-marker')].map(e=>e.style.transform)");
     await cdp.eval("document.querySelector('#iaListView').click()");
     assert.equal(await cdp.eval("document.querySelector('#iaMapPanel').hidden"), true);
+    await cdp.eval("document.querySelector('#iaMapView').click()");
+    await delay(400);
+    assert.deepEqual(await cdp.eval("[...document.querySelectorAll('.ia-map-marker')].map(e=>e.style.transform)"), markerPositions, 'Switching views must preserve the explored map viewport.');
+    await cdp.eval("document.querySelector('#iaMapFit').click()");
+    await delay(500);
+    assert.equal(await cdp.eval("Boolean(document.querySelector('.ia-map-popup'))"), false);
+    await cdp.eval("document.querySelector('#iaListView').click()");
   });
   await test('Map clears markers when filters remove every result', async () => {
     await cdp.eval("document.querySelector('#iaMapView').click()");
@@ -341,7 +359,11 @@ try {
     await filters(cdp, { purpose: 'sale', budget: 1, budgetBasis: 'sale_total' });
     assert.equal(await cdp.eval("document.querySelectorAll('#iaPropertyMap .leaflet-marker-icon').length"), 0);
     assert.ok(await cdp.eval("document.querySelector('#iaMapStatus').textContent.includes('No published properties match your current filters.')"));
+    assert.equal(await cdp.eval("document.querySelector('#iaMapEmpty').hidden"), false);
+    assert.equal(await cdp.eval("document.querySelector('#iaPropertyMap').inert"), true);
+    assert.equal(await cdp.eval("document.querySelector('#iaMapFit').disabled"), true);
     await resetAssistant(cdp);
+    await waitFor(cdp, "!document.querySelector('#iaPropertyMap').inert && !document.querySelector('#iaMapFit').disabled");
     await cdp.eval("document.querySelector('#iaListView').click()");
   });
   await test('Loading disables duplicate submissions', async () => {

@@ -35,6 +35,22 @@ Ambiguous locations, conflicting types and invalid/unsupported ranges preserve t
 
 ## State and failures
 
+The assistant map uses the configured tile source, with bounded Esri Gray Canvas
+and OpenStreetMap fallbacks if the background fails or stalls. Provider changes
+keep property markers, popups, and native gestures intact, with matching source
+attribution. Successful tiles clear imagery warnings. If every source fails,
+Retry map reloads the background without discarding the current search. Selecting
+Map also retries; reconnecting automatically retries a visible failed map.
+
+The numbered property rail selects the corresponding pin and opens its recorded
+name, price, location, land area (when available), and existing detail-page link.
+Fit listings restores the full result extent. Switching views or saving a property
+preserves the explored viewport; changed location results reset the extent. A
+container ResizeObserver keeps tiles aligned after responsive layout changes.
+Empty results disable the old canvas and its keyboard controls. Wheel scrolling
+remains page scrolling, with native map dragging, keyboard navigation and explicit
+44px zoom controls. Reduced motion disables animated fitting.
+
 The server session retains criteria and the latest 16 messages separately per investor for two hours of inactivity. Reset clears the conversation and filters. Request version checks protect concurrent tabs; an idempotent request ID prevents duplicate accepted turns. User text is limited to 2,000 characters, request bodies to 16 KB, and the existing rate limiter allows 20 updates per investor and 80 per IP each minute.
 
 Loading and request/database failures have their own UI and retry state. PDO query failures return HTTP 503 with `code: database_unavailable`; the last successful session state remains intact. Database errors are never represented as missing listing information or a zero-result search. The assistant writes only session state and rate counters; save/compare actions use the existing application integrations.
@@ -51,6 +67,7 @@ php tests/investment-assistant-api.test.php
 php tests/property-assistant-details.test.php
 php tests/find-agent.test.php
 node --check assets/js/investment-assistant.js
+node tests/assistant-map-layer.test.mjs
 node tests/property-assistant-browser.test.mjs
 node tests/property-assistant-browser.test.mjs --mobile-only
 ```

@@ -1,3 +1,5 @@
+import { createAssistantBasemap } from './assistant-map-layer.js';
+
 /** Investor discovery. All criteria, results and explanations come from the protected API. */
 const root = document.querySelector('[data-investment-assistant]');
 if (root) {
@@ -31,6 +33,15 @@ if (root) {
   let mapMarkers = null;
   let mapVisible = false;
   let mapAssets = null;
+  let mapBasemap = null;
+  let mapCaption = '';
+  let mapHasLocations = false;
+  let mapRenderSequence = 0;
+  let mapCardsSignature = '';
+  let mapCoordinatesSignature = '';
+  let selectedMapId = null;
+  let mapSizeFrame = null;
+  const mapEntries = new Map();
   let filterOrigin = null;
   const MISSING = 'This information is not available in the current listing.';
   try { compare = uniqueIds(JSON.parse(localStorage.getItem(compareKey) || '[]')); } catch { /* In-memory comparison remains available. */ }
@@ -68,7 +79,7 @@ if (root) {
   window.addEventListener('scroll', scheduleComposer, { passive: true });
   window.addEventListener('resize', () => {
     scheduleComposer();
-    if (mapVisible && map) map.invalidateSize({ pan: false });
+    scheduleMapSize();
   }, { passive: true });
   window.visualViewport?.addEventListener('resize', scheduleComposer, { passive: true });
   window.visualViewport?.addEventListener('scroll', scheduleComposer, { passive: true });
@@ -320,68 +331,210 @@ if (root) {
   }
 
   function ensureMapAssets() {
-    if (window.L) return Promise.resolve();
     if (mapAssets) return mapAssets;
     const assetBase = config.assetBase || route('assets');
-    if (!document.querySelector('[data-ia-leaflet-style]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `${assetBase}/vendor/leaflet/leaflet.css`;
-      link.dataset.iaLeafletStyle = 'true';
-      document.head.append(link);
-    }
-    mapAssets = new Promise((resolve, reject) => {
+    const style = new Promise((resolve, reject) => {
+      const link = document.querySelector('[data-ia-leaflet-style]') || document.createElement('link');
+      if (link.sheet) { resolve(); return; }
+      const fail = () => { clearTimeout(timer); link.remove(); reject(new Error('Map styles could not load. Use Retry map to try again.')); };
+      const timer = setTimeout(fail, 15000);
+      link.onload = () => { clearTimeout(timer); resolve(); };
+      link.onerror = fail;
+      if (!link.isConnected) {
+        link.rel = 'stylesheet';
+        link.href = `${assetBase}/vendor/leaflet/leaflet.css`;
+        link.dataset.iaLeafletStyle = 'true';
+        document.head.append(link);
+      }
+    });
+    const loadScript = () => window.L ? Promise.resolve() : new Promise((resolve, reject) => {
       const script = document.createElement('script');
       script.src = `${assetBase}/vendor/leaflet/leaflet.js`;
-      const timer = setTimeout(() => { script.remove(); mapAssets = null; reject(new Error('Map controls could not load. Select Map to try again.')); }, 15000);
-      script.onload = () => { clearTimeout(timer); if (window.L) resolve(); else { mapAssets = null; reject(new Error('Map controls are unavailable. Select Map to try again.')); } };
-      script.onerror = () => { clearTimeout(timer); script.remove(); mapAssets = null; reject(new Error('Map controls could not load. Select Map to try again.')); };
+      const fail = () => { clearTimeout(timer); script.remove(); reject(new Error('Map controls could not load. Use Retry map to try again.')); };
+      const timer = setTimeout(fail, 15000);
+      script.onload = () => { clearTimeout(timer); if (window.L) resolve(); else fail(); };
+      script.onerror = fail;
       document.head.append(script);
     });
+    mapAssets = style.then(loadScript).catch(error => { mapAssets = null; throw error; });
     return mapAssets;
   }
 
   async function renderMap() {
+    const renderToken = ++mapRenderSequence;
     const currentCards = cards;
     const coordinate = (value, limit) => (typeof value === 'number' || (typeof value === 'string' && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim()))) && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= limit;
     const positioned = cards.filter(card => coordinate(card.lat, 90) && coordinate(card.lng, 180));
-    map?.closePopup();
-    mapMarkers?.clearLayers();
     const status = byId('iaMapStatus');
+    mapHasLocations = positioned.length > 0;
+    byId('iaPropertyMap').inert = !mapHasLocations;
+    byId('iaMapEmpty').hidden = mapHasLocations;
+    byId('iaMapFit').disabled = !mapHasLocations || !map;
     if (!positioned.length) {
+      map?.closePopup();
+      mapMarkers?.clearLayers();
+      mapEntries.clear();
+      mapCardsSignature = mapCoordinatesSignature = '';
+      selectedMapId = null;
+      byId('iaMapLocations').replaceChildren();
+      byId('iaMapLocations').hidden = true;
+      byId('iaMapRetry').hidden = true;
+      byId('iaPropertyMap').setAttribute('aria-busy', 'false');
       status.textContent = cards.length ? `Recorded map coordinates: ${MISSING}` : 'No published properties match your current filters.';
-      if (!map) { byId('iaPropertyMap').textContent = 'No recorded property locations to display.'; byId('iaPropertyMap').classList.add('ia-map-unavailable'); }
       return;
     }
-    status.textContent = 'Loading recorded property locations...';
+    mapCaption = `${positioned.length} of ${cards.length} displayed listings have recorded map coordinates.${positioned.length < cards.length ? ' Other listings have no recorded coordinates.' : ''}`;
+    if (!map) status.textContent = 'Loading recorded property locations…';
     try {
       await ensureMapAssets();
-      if (!mapVisible) return;
-      if (currentCards !== cards) { renderMap(); return; }
+      if (!mapVisible || renderToken !== mapRenderSequence || currentCards !== cards) return;
       if (!map) {
         const canvas = byId('iaPropertyMap');
         canvas.replaceChildren();
-        canvas.classList.remove('ia-map-unavailable');
-        map = window.L.map(canvas, { scrollWheelZoom: false });
-        window.L.tileLayer(config.mapTileUrl || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: config.mapAttribution || '&copy; OpenStreetMap contributors', maxZoom: 19 }).addTo(map).on('tileerror', () => { status.textContent = 'Map imagery is unavailable. Recorded property markers and listing links are still shown.'; });
+        map = window.L.map(canvas, { scrollWheelZoom: false, zoomControl: false });
+        window.L.control.zoom({ position: 'bottomright' }).addTo(map);
         mapMarkers = window.L.featureGroup().addTo(map);
+        if ('ResizeObserver' in window) new ResizeObserver(scheduleMapSize).observe(canvas);
+        mapBasemap = createAssistantBasemap(window.L, map, {
+          tileUrl: config.mapTileUrl, attribution: config.mapAttribution,
+          onState: ({ state }) => updateMapStatus(state),
+        });
       }
+      const coordinatesSignature = JSON.stringify(positioned.map(card => [card.id, Number(card.lat), Number(card.lng)]));
+      const signature = JSON.stringify(positioned.map(card => [card.id, card.name, card.priceLabel, card.location, card.areaSqm, Number(card.lat), Number(card.lng)]));
+      // Toggling views, saving, or asking a follow-up must not reset exploration.
+      if (signature === mapCardsSignature) {
+        scheduleMapSize();
+        byId('iaMapFit').disabled = false;
+        updateMapStatus(mapBasemap.getState());
+        return;
+      }
+      map.closePopup();
       mapMarkers.clearLayers();
-      positioned.forEach(card => {
+      mapEntries.clear();
+      const locations = document.createDocumentFragment();
+      positioned.forEach((card, index) => {
+        const id = Number(card.id);
         const popup = document.createElement('div');
         popup.className = 'ia-map-popup';
+        const name = document.createElement('strong');
+        name.textContent = card.name || 'Property listing';
         const link = document.createElement('a');
-        link.href = route(`property-details.php?id=${Number(card.id)}`);
-        link.textContent = card.name || 'View property';
+        link.href = route(`property-details.php?id=${id}`);
+        link.textContent = 'View property →';
         const price = document.createElement('p');
+        price.className = 'ia-map-price';
         price.textContent = card.priceLabel || MISSING;
-        popup.append(link, price);
-        window.L.marker([Number(card.lat), Number(card.lng)], { icon: window.L.divIcon({ className: 'ia-map-marker', html: '', iconSize: [30, 30], iconAnchor: [15, 15] }) }).bindPopup(popup).addTo(mapMarkers);
+        const details = document.createElement('p');
+        const hasArea = card.areaSqm !== null && card.areaSqm !== '' && Number.isFinite(Number(card.areaSqm)) && Number(card.areaSqm) > 0;
+        details.textContent = [card.location, hasArea ? `${number(card.areaSqm)} m²` : null].filter(Boolean).join(' · ');
+        popup.append(name, price, details, link);
+        const marker = window.L.marker([Number(card.lat), Number(card.lng)], {
+          title: card.name || `Property ${index + 1}`,
+          alt: `Property ${index + 1}: ${card.name || 'Property listing'}`,
+          icon: window.L.divIcon({ className: 'ia-map-marker', html: `<span>${index + 1}</span>`, iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -18] }),
+        }).bindPopup(popup, { maxWidth: mapPopupWidth(), minWidth: 120, autoPanPadding: [20, 20], keepInView: true }).addTo(mapMarkers);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'ia-map-location';
+        button.dataset.iaMapProperty = String(id);
+        button.setAttribute('aria-pressed', 'false');
+        button.setAttribute('aria-label', `Show property ${index + 1} on map: ${card.name || 'Property listing'}`);
+        const badge = document.createElement('span');
+        badge.className = 'ia-map-number';
+        badge.textContent = String(index + 1);
+        const text = document.createElement('span');
+        const title = document.createElement('strong');
+        title.textContent = card.name || 'Property listing';
+        const subtitle = document.createElement('span');
+        subtitle.textContent = card.priceLabel || 'Price on request';
+        text.append(title, subtitle);
+        button.append(badge, text);
+        locations.append(button);
+        mapEntries.set(id, { marker, button });
+        marker.getElement()?.setAttribute('aria-label', `Property ${index + 1}: ${card.name || 'Property listing'}`);
+        marker.on('popupopen', () => selectMapProperty(id));
       });
+      byId('iaMapLocations').replaceChildren(locations);
+      byId('iaMapLocations').hidden = false;
       map.invalidateSize({ pan: false });
-      map.fitBounds(mapMarkers.getBounds().pad(0.18), { maxZoom: 16, animate: !reducedMotion.matches });
-      status.textContent = `${positioned.length} of ${cards.length} displayed listings have recorded map coordinates.${positioned.length < cards.length ? ' Other listings have no recorded coordinates.' : ''}`;
-    } catch (error) { status.textContent = error.message || 'The map could not load. Property listings remain available.'; }
+      if (coordinatesSignature !== mapCoordinatesSignature) {
+        selectedMapId = null;
+        fitMapListings(false);
+      } else if (mapEntries.has(selectedMapId)) selectMapProperty(selectedMapId);
+      mapCardsSignature = signature;
+      mapCoordinatesSignature = coordinatesSignature;
+      byId('iaMapFit').disabled = false;
+      updateMapStatus(mapBasemap.getState());
+    } catch (error) {
+      if (renderToken !== mapRenderSequence) return;
+      status.textContent = error.message || 'The map could not load. Property listings remain available.';
+      byId('iaMapRetry').hidden = false;
+      byId('iaPropertyMap').setAttribute('aria-busy', 'false');
+    }
+  }
+
+  function scheduleMapSize() {
+    if (!mapVisible || !map || mapSizeFrame !== null) return;
+    mapSizeFrame = requestAnimationFrame(() => {
+      mapSizeFrame = null;
+      if (mapVisible) {
+        map.invalidateSize({ pan: false, debounceMoveend: true });
+        const width = mapPopupWidth();
+        mapEntries.forEach(({ marker }) => {
+          const popup = marker.getPopup();
+          if (popup.options.maxWidth !== width) {
+            popup.options.maxWidth = width;
+            if (popup.isOpen()) popup.update();
+          }
+        });
+      }
+    });
+  }
+
+  function mapPopupWidth() {
+    return Math.max(120, Math.min(270, byId('iaPropertyMap').clientWidth - 90));
+  }
+
+  function fitMapListings(animate = true) {
+    if (!map || !mapEntries.size) return;
+    map.closePopup();
+    map.fitBounds(mapMarkers.getBounds(), { padding: [38, 38], maxZoom: 16, animate: animate && !reducedMotion.matches, duration: 0.4 });
+  }
+
+  function selectMapProperty(id, open = false) {
+    const entry = mapEntries.get(id);
+    if (!entry) return;
+    selectedMapId = id;
+    mapEntries.forEach(({ marker, button }, entryId) => {
+      const selected = entryId === id;
+      marker.getElement()?.classList.toggle('is-selected', selected);
+      marker.setZIndexOffset(selected ? 1000 : 0);
+      button.setAttribute('aria-pressed', String(selected));
+    });
+    if (open) entry.marker.openPopup();
+    const rail = byId('iaMapLocations');
+    const bounds = rail.getBoundingClientRect();
+    const item = entry.button.getBoundingClientRect();
+    if (item.left < bounds.left || item.right > bounds.right) {
+      rail.scrollTo({ left: rail.scrollLeft + item.left - bounds.left - 16, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    }
+  }
+
+  function retryMap() {
+    if (!mapVisible || !mapHasLocations) return;
+    byId('iaMapRetry').hidden = true;
+    if (mapBasemap) mapBasemap.retry();
+    else renderMap();
+  }
+
+  function updateMapStatus(state) {
+    if (!mapHasLocations) return;
+    byId('iaMapRetry').hidden = state !== 'unavailable';
+    byId('iaPropertyMap').setAttribute('aria-busy', String(state === 'loading'));
+    byId('iaMapStatus').textContent = state === 'unavailable'
+      ? 'Map imagery is unavailable. Retry the background or explore the property pins and listings.'
+      : state === 'loading' ? 'Loading map background… Property locations remain available.' : mapCaption;
   }
 
   function switchView(showMap) {
@@ -389,7 +542,7 @@ if (root) {
     byId('iaMapPanel').hidden = !showMap;
     byId('iaMapView').setAttribute('aria-pressed', String(showMap));
     byId('iaListView').setAttribute('aria-pressed', String(!showMap));
-    if (showMap) renderMap();
+    if (showMap) { mapBasemap?.retry(); renderMap(); }
   }
 
   function renderCompare() {
@@ -534,6 +687,15 @@ if (root) {
   byId('iaDismissFilters').addEventListener('click', () => closeFilters());
   byId('iaListView').addEventListener('click', () => switchView(false));
   byId('iaMapView').addEventListener('click', () => switchView(true));
+  byId('iaMapFit').addEventListener('click', () => fitMapListings());
+  byId('iaMapRetry').addEventListener('click', retryMap);
+  byId('iaMapLocations').addEventListener('click', event => {
+    const button = event.target.closest('[data-ia-map-property]');
+    if (button) selectMapProperty(Number(button.dataset.iaMapProperty), true);
+  });
+  window.addEventListener('online', () => {
+    if (mapVisible && mapBasemap?.getState() === 'unavailable') retryMap();
+  });
 
   function syncFilterExpanded() {
     const panel = byId('iaFilterDetails');
