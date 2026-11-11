@@ -1,5 +1,6 @@
 import { listingPurposeLabel, listingPriceEntries, salePricePerSqm, saleAskingPrice } from './utils.js';
 import { businessOpportunitiesMarkup, evaluateBusinessOpportunities } from './business-opportunities.js';
+import { renderProfileManagerMarkup } from './project-profile-manager.js';
 // Property details and its printable calculation sheet share the server's recorded inputs.
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 const numeric = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : null;
@@ -481,7 +482,7 @@ export function setupPropertyGallery(container = document) {
       if (counter) {
         counter.textContent = `${currentIndex + 1} / ${count}`;
       }
-      targetThumb?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      targetThumb?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
     }
 
     prevBtn?.addEventListener('click', e => { e.preventDefault(); goTo(currentIndex - 1); });
@@ -506,7 +507,7 @@ export function setupPropertyGallery(container = document) {
     }
     const oppSection = document.getElementById('propertyOpportunitiesSection');
     if (oppSection) {
-      oppSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      oppSection.scrollIntoView({ behavior: 'auto', block: 'start' });
       oppSection.classList.add('is-highlighted-section');
       setTimeout(() => oppSection.classList.remove('is-highlighted-section'), 2000);
     }
@@ -1297,7 +1298,7 @@ export function propertyAssessmentMarkup(property, calc = assessmentCalculation(
     <div class="site-chart-heading"><div><h3>Where the ratings come from</h3><p>Recorded ratings on a 0–100 scale.</p></div><span>${calc.isLegacy ? 'Legacy record · ' : ''}${count} criteria · ${fmt(calc.rows.reduce((sum, row) => sum + row.weight, 0))}% total weight</span></div>
     <div data-site-rating-chart>${criterionBarsMarkup(calc)}</div>
     <div data-site-price-explanation>${propertyCostExplanationMarkup(property, calc)}</div>
-    <nav class="property-assessment-subnav site-assessment-links" aria-label="Explore the assessment"><button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" aria-pressed="true">Overview</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" aria-pressed="false">Calculation</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" aria-pressed="false">Evidence &amp; sources</button><button type="button" class="property-score-card-action" data-scenario-report-btn>Download brief <span aria-hidden="true">↗</span></button></nav>
+    <nav class="property-assessment-subnav site-assessment-links" aria-label="Explore the assessment"><button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" aria-pressed="true">Overview</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" aria-pressed="false">Calculation</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" aria-pressed="false">Evidence &amp; sources</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="v2" aria-pressed="false">V2 Evidence-Backed <span class="v2-version-pill v2-pill-new">NEW</span></button><button type="button" class="property-score-card-action" data-scenario-report-btn>Download brief <span aria-hidden="true">↗</span></button></nav>
     <div class="property-assessment-disclosures">
       <details class="property-disclosure" data-print-expand data-disclosure-calc>
         <summary>
@@ -1322,6 +1323,10 @@ export function propertyAssessmentMarkup(property, calc = assessmentCalculation(
         </summary>
         <div class="property-disclosure-body">${radarMarkup(calc)}</div>
       </details>
+    </div>
+
+    <div data-assessment-tab-panel="v2" hidden>
+      ${v2AssessmentPanelMarkup(property)}
     </div>
 
     <p class="property-assessment-footnote">${esc(property.weightStatus || 'Provisional model · subject to technical and LGU validation')}. Decision support only; no guarantee of returns or regulatory clearance.</p>
@@ -2619,6 +2624,7 @@ export function propertyDetailsMarkup(property, options) {
         ${role === 'guest' || investor ? '<p class="property-basic-helper no-print" data-investor-basic>Switch to <strong>Advanced</strong> for the full property profile, transportation, market intelligence, assessments and source records.</p>' : ''}
         ${propertyAssessmentMarkup(property, calc)}
         <div class="property-advanced" data-investor-advanced>
+          ${investor ? renderProfileManagerMarkup() : ''}
           ${businessOpportunitiesMarkup ? businessOpportunitiesMarkup(property, options) : ''}
           <details class="property-disclosure site-scenario-disclosure" data-print-expand open><summary><span class="disclosure-title-wrap"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Test a proposed business <small>Assess a specific activity</small></span><small>Simulate zoning clearance, policy incentives &amp; IAI</small></summary><div class="property-disclosure-body">${investorScenarioMarkup(property)}</div></details>
           <details class="property-panel property-surroundings" id="propertySurroundingsSection" data-print-expand><summary>Surroundings & nearby businesses <span>${property.nearbyBusinesses?.length || 0} mapped places</span></summary><div class="property-disclosure-body">${nearbyBusinessesMarkup(property)}</div></details>
@@ -3264,4 +3270,81 @@ export function setupInvestorScenario(root, property, policyInput) {
     return;
   }
 
+}
+
+export function v2AssessmentPanelMarkup(property) {
+  const v2 = property.v2Assessment && typeof property.v2Assessment === 'object' ? property.v2Assessment : null;
+  const eligibility = v2?.eligibility || null;
+  const status = eligibility?.status || property.v2EligibilityStatus || 'insufficient_information';
+  const statusLabel = eligibility?.status_label || (status === 'meets_screened_requirements' ? 'Meets Screened Requirements' : status === 'conditional' ? 'Conditional' : status === 'does_not_meet_requirements' ? 'Does Not Meet Requirements' : 'Insufficient Information');
+  const iai = v2?.iai_score ?? property.v2IaiScore ?? null;
+  const covPct = v2?.evidence_coverage_pct ?? property.evidenceCoveragePct ?? 0;
+  const strengths = Array.isArray(v2?.strengths) ? v2.strengths : [];
+  const tradeoffs = Array.isArray(v2?.tradeoffs) ? v2.tradeoffs : [];
+  const unresolved = Array.isArray(v2?.unresolved_checks) ? v2.unresolved_checks : [];
+  const actions = Array.isArray(v2?.next_actions) ? v2.next_actions : [];
+  const breakdown = v2?.score_breakdown && typeof v2.score_breakdown === 'object' ? v2.score_breakdown : {};
+  const checks = Array.isArray(eligibility?.checks) ? eligibility.checks : [];
+  const statusClass = status === 'meets_screened_requirements' ? 'is-meets' : status === 'conditional' ? 'is-conditional' : status === 'does_not_meet_requirements' ? 'is-not-met' : 'is-insufficient';
+
+  if (!v2) {
+    return `<div class="v2-panel-unavailable"><p><strong>V2 Evidence-Backed assessment not yet generated for this property.</strong></p><p>The V2 model requires structured facts to be entered. Contact the platform administrator.</p></div>`;
+  }
+
+  const breakdownRows = Object.entries(breakdown).map(([domain, data]) => {
+    if (!data || typeof data !== 'object') return '';
+    const domainLabel = { access: 'Access & Connectivity', utilities: 'Utilities & Infrastructure', market_context: 'Market Context', physical_suitability: 'Physical Suitability', hazards: 'Hazards & Risk Constraints', setup_costs: 'Setup Cost Factors' }[domain] || domain;
+    const scored = data.score != null && Number.isFinite(Number(data.score));
+    const weighted = data.weighted_score != null && Number.isFinite(Number(data.weighted_score));
+    return `<tr><th scope="row">${esc(domainLabel)}</th><td>${scored ? fmt(data.score, 1) : '—'}</td><td>${data.weight != null ? fmt(data.weight) + '%' : '—'}</td><td>${weighted ? fmt(data.weighted_score, 2) : '—'}</td><td class="v2-evidence-cell">${data.evidence_count != null ? data.evidence_count + ' fact(s)' : '—'}</td></tr>`;
+  }).filter(Boolean);
+
+  return `
+    <div class="v2-assessment-panel">
+      <div class="v2-draft-notice" role="note">
+        <span class="v2-draft-badge">DRAFT MODEL</span>
+        <p>V2 is a scenario-specific, evidence-backed assessment model. All scoring weights are <strong>unvalidated drafts</strong> and must not be used for authoritative investment rankings until formally validated by technical reviewers. Evidence coverage is shown separately and never silently rewards missing data.</p>
+      </div>
+
+      <div class="v2-eligibility-banner ${statusClass}" role="alert" aria-live="polite">
+        <span class="v2-eligibility-icon" aria-hidden="true">${status === 'meets_screened_requirements' ? '✓' : status === 'conditional' ? '⚠' : status === 'does_not_meet_requirements' ? '✕' : 'ℹ'}</span>
+        <div>
+          <strong class="v2-eligibility-label">${esc(statusLabel)}</strong>
+          ${eligibility?.failed_reasons?.length ? `<ul class="v2-eligibility-reasons">${eligibility.failed_reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+          ${eligibility?.conditional_reasons?.length ? `<ul class="v2-eligibility-reasons">${eligibility.conditional_reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+          ${eligibility?.insufficient_reasons?.length ? `<ul class="v2-eligibility-reasons v2-insufficient-list">${eligibility.insufficient_reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+        </div>
+      </div>
+
+      ${checks.length ? `<div class="v2-eligibility-checks"><h4>Eligibility Gate Checks</h4><ul class="v2-checks-list">${checks.map(check => `<li class="v2-check-item v2-check-${esc(check.result || 'unknown')}"><span class="v2-check-icon" aria-hidden="true">${check.result === 'passed' ? '✓' : check.result === 'failed' ? '✕' : check.result === 'conditional' ? '⚠' : '?'}</span><span class="v2-check-label">${esc(check.label)}</span>${check.detail ? `<span class="v2-check-detail">${esc(check.detail)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
+
+      <div class="v2-kpi-grid">
+        <div class="v2-kpi-card ${iai === null ? 'is-withheld' : ''}">
+          <span class="v2-kpi-label">IAI Score (V2)</span>
+          <strong class="v2-kpi-value">${iai !== null ? fmt(iai, 1) + ' / 100' : '—'}</strong>
+          <small class="v2-kpi-note">${iai !== null ? 'Draft composite score' : status === 'does_not_meet_requirements' ? 'Withheld — eligibility failed' : 'Awaiting evidence'}</small>
+        </div>
+        <div class="v2-kpi-card">
+          <span class="v2-kpi-label">Evidence Coverage</span>
+          <strong class="v2-kpi-value">${fmt(covPct, 0)}%</strong>
+          <small class="v2-kpi-note">Verified structured facts</small>
+        </div>
+        <div class="v2-kpi-card">
+          <span class="v2-kpi-label">Eligibility Gate</span>
+          <strong class="v2-kpi-value v2-status-pill ${statusClass}">${esc(statusLabel)}</strong>
+          <small class="v2-kpi-note">Non-negotiable requirements</small>
+        </div>
+      </div>
+
+      ${(strengths.length || tradeoffs.length) ? `<div class="v2-procon-grid"><div class="v2-strengths-col"><h4>Strengths</h4>${strengths.length ? `<ul>${strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : '<p class="v2-empty-note">No strengths identified yet.</p>'}</div><div class="v2-tradeoffs-col"><h4>Trade-offs</h4>${tradeoffs.length ? `<ul>${tradeoffs.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="v2-empty-note">No trade-offs identified yet.</p>'}</div></div>` : ''}
+
+      ${unresolved.length ? `<div class="v2-unresolved-panel"><h4>Unresolved Checks</h4><ul>${unresolved.map(u => `<li>${esc(u)}</li>`).join('')}</ul></div>` : ''}
+
+      ${actions.length ? `<div class="v2-actions-panel"><h4>Recommended Next Actions</h4><ol>${actions.map(a => `<li>${esc(a)}</li>`).join('')}</ol></div>` : ''}
+
+      ${breakdownRows.length ? `<div class="v2-breakdown-section"><h4>Score Breakdown by Domain</h4><table class="v2-breakdown-table brief-table"><thead><tr><th scope="col">Domain</th><th scope="col">Score / 100</th><th scope="col">Weight</th><th scope="col">Points</th><th scope="col">Evidence</th></tr></thead><tbody>${breakdownRows.join('')}</tbody><tfoot><tr><th scope="row">Draft Composite IAI</th><td colspan="4">${iai !== null ? fmt(iai, 1) + ' / 100' : 'Not ranked (eligibility gate)'}</td></tr></tfoot></table><p class="v2-breakdown-note">Weights are unvalidated drafts. Evidence coverage is reported separately and does not inflate scores for missing data.</p></div>` : ''}
+
+      <p class="v2-disclaimer">${esc(v2?.disclaimer || 'V2 assessment is a draft decision-support tool. Unvalidated scenario weights must not be used for authoritative rankings. Always verify evidence and consult qualified professionals before any investment commitment.')}</p>
+    </div>
+  `;
 }

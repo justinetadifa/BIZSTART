@@ -266,11 +266,11 @@
       const statusInfo = propertyOperationalStatus(property);
       const assessment = window.SFCPropertyEditorTools.listingAssessment(property);
       const assessmentCriteria = [
-        ['spatial_accessibility', 'ACC', 'Spatial access'],
-        ['infrastructure_readiness', 'INF', 'Infrastructure'],
-        ['property_cost_market_competitiveness', 'MKT', 'Cost & market'],
-        ['nearby_businesses', 'BIZ', 'Nearby businesses'],
-        ['risk_constraints', 'RSK', 'Risk & hazards']
+        ['spatial_accessibility', 'Access', 'Spatial accessibility'],
+        ['infrastructure_readiness', 'Infra', 'Infrastructure'],
+        ['property_cost_market_competitiveness', 'Cost', 'Cost & market'],
+        ['nearby_businesses', 'Biz', 'Nearby businesses'],
+        ['risk_constraints', 'Risk', 'Risk & hazards']
       ];
       const assessmentProgress = assessmentCriteria.map(([key, code, label]) => {
         const rating = property.screeningAssessment?.criteria?.[key]?.score;
@@ -279,22 +279,24 @@
       }).join('');
       const scoreRank = (() => {
         if (assessment.kind === 'hold') {
-          return { grade: 'HOLD', tier: 'RESTRICTED', tone: 'hold', icon: '⛔' };
+          return { grade: 'HOLD', tier: 'Policy Restriction', tone: 'hold', label: 'POLICY' };
         }
         if (assessment.score === null || typeof assessment.score !== 'number') {
-          return { grade: `${assessment.count}/5`, tier: `LVL ${assessment.count} · INTAKE`, tone: 'incomplete', icon: '⚡' };
+          return { grade: `${assessment.count}/5`, tier: `Intake · ${assessment.count}/5 Ready`, tone: 'incomplete', label: 'INTAKE' };
         }
         const s = assessment.score;
-        if (s >= 90) return { grade: 'A+', tier: 'TIER 1+ · PRIME', tone: 'prime', icon: '✦' };
-        if (s >= 80) return { grade: 'A', tier: 'TIER 1 · PRIME', tone: 'prime', icon: '★' };
-        if (s >= 70) return { grade: 'B', tier: 'TIER 2 · QUALIFIED', tone: 'qualified', icon: '◈' };
-        if (s >= 60) return { grade: 'C', tier: 'TIER 3 · CONDITIONAL', tone: 'conditional', icon: '▲' };
-        return { grade: 'D', tier: 'TIER 4 · WATCHLIST', tone: 'watchlist', icon: '•' };
+        if (s >= 90) return { grade: 'A+', tier: 'Tier 1+ · Prime', tone: 'prime', label: 'RATING' };
+        if (s >= 80) return { grade: 'A', tier: 'Tier 1 · Prime', tone: 'prime', label: 'RATING' };
+        if (s >= 70) return { grade: 'B', tier: 'Tier 2 · Qualified', tone: 'qualified', label: 'RATING' };
+        if (s >= 60) return { grade: 'C', tier: 'Tier 3 · Conditional', tone: 'conditional', label: 'RATING' };
+        return { grade: 'D', tier: 'Tier 4 · Watchlist', tone: 'watchlist', label: 'RATING' };
       })();
-      const gaugePercent = assessment.score !== null ? Math.min(100, Math.max(0, assessment.score)) : (assessment.count / 5) * 100;
-      const gaugeOffset = (125.66 * (1 - gaugePercent / 100)).toFixed(2);
-      const assessmentAction = assessment.kind === 'incomplete' ? 'Continue assessment' : assessment.kind === 'hold' ? 'Review assessment' : 'View assessment';
+      const assessmentAction = assessment.kind === 'incomplete' ? 'Continue assessment' : assessment.kind === 'hold' ? 'Review evaluation' : 'View assessment';
       const nextCriterion = assessment.kind === 'incomplete' ? assessmentCriteria.find(([key]) => property.screeningAssessment?.criteria?.[key]?.score == null)?.[0] : '';
+      const rawTitle = property.name || 'Untitled Property';
+      const displayTitle = (rawTitle === rawTitle.toUpperCase() && rawTitle.length > 3)
+        ? rawTitle.toLowerCase().split(' ').map(w => /^(iv|iii|ii|i|bldg|llc|inc|corp)$/i.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : rawTitle;
       const priceText = askingPrice(property);
       const priceMarkup = (() => {
         if (!priceText || priceText.startsWith('Price on request')) {
@@ -321,7 +323,7 @@
             <span class="city-listing-purpose">${escape(purposeLabel(property))}</span>
           </div>
           <h3 class="city-listing-title">
-            <a href="${escape(propertyUrl(property.id))}">${escape(property.name)}</a>
+            <a href="${escape(propertyUrl(property.id))}">${escape(displayTitle)}</a>
           </h3>
           <p class="city-listing-location">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>
@@ -333,38 +335,37 @@
             <span class="city-listing-area"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/></svg><span>${property.area > 0 ? `${number(property.area * 10000)} m²` : 'Area not specified'}</span>${property.area >= 1 ? ` <small class="city-area-ha">(${number(property.area)} ha)</small>` : ''}</span>
           </div>
         </div>
-        <button type="button" class="city-listing-assessment is-${assessment.kind}" data-listing-assessment="${property.id}" data-assessment-next="${nextCriterion || ''}" aria-label="${assessmentAction} for ${escape(property.name)}. ${assessment.score === null ? `${assessment.count} of 5 criteria calculated` : `${assessment.score.toFixed(1)} out of 100`}. ${escape(assessment.status)}.">
+        <button type="button" class="city-listing-assessment is-${assessment.kind}" data-listing-assessment="${property.id}" data-assessment-next="${nextCriterion || ''}" aria-label="${assessmentAction} for ${escape(displayTitle)}. ${assessment.score === null ? `${assessment.count} of 5 criteria calculated` : `${assessment.score.toFixed(1)} out of 100`}. ${escape(assessment.status)}.">
           <span class="city-listing-assessment-heading">
-            <span class="city-listing-score-label">${assessment.label}</span>
+            <span class="city-listing-score-label">MCE EVALUATION</span>
             <span class="city-listing-score-status">${assessment.kind === 'verified' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' : ''}<span>${escape(assessment.status)}</span></span>
           </span>
           <div class="city-assessment-hero">
             <div class="city-assessment-score-lockup">
               <span class="city-score-tier is-${scoreRank.tone}">
-                <span class="city-tier-icon" aria-hidden="true">${scoreRank.icon}</span>
+                <span class="city-tier-dot" aria-hidden="true"></span>
                 <span>${scoreRank.tier}</span>
               </span>
               <span class="city-listing-score-value">
                 ${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}
-                <small class="city-score-denom">${assessment.score === null ? '/ 5 criteria' : '/ 100'}</small>
+                <small class="city-score-denom">${assessment.score === null ? '/ 5 evaluated' : '/ 100'}</small>
               </span>
             </div>
-            <div class="city-score-gauge-wrap" aria-hidden="true">
-              <svg class="city-score-gauge" width="48" height="48" viewBox="0 0 48 48">
-                <circle class="city-gauge-bg" cx="24" cy="24" r="20" />
-                <circle class="city-gauge-bar is-${scoreRank.tone}" cx="24" cy="24" r="20" style="stroke-dasharray: 125.66; stroke-dashoffset: ${gaugeOffset};" />
-              </svg>
-              <span class="city-gauge-grade is-${scoreRank.tone}">${scoreRank.grade}</span>
+            <div class="city-score-seal-wrap" aria-hidden="true">
+              <div class="city-score-seal is-${scoreRank.tone}">
+                <span class="city-seal-grade is-${scoreRank.tone}">${scoreRank.grade}</span>
+                <span class="city-seal-label">${scoreRank.label}</span>
+              </div>
             </div>
           </div>
           <div class="city-hud-matrix">
             <div class="city-hud-progress-header">
-              <span class="city-hud-progress-title">CRITERIA MATRIX</span>
-              <span class="city-hud-progress-count">${assessment.count}/5 ACTIVE</span>
+              <span class="city-hud-progress-title">CRITERIA READINESS</span>
+              <span class="city-hud-progress-count">${assessment.count}/5 READY</span>
             </div>
             <div class="city-listing-progress" aria-hidden="true">${assessmentProgress}</div>
           </div>
-          <span class="city-listing-score-note">${assessment.score === null ? escape(assessment.reason) : '5 of 5 criteria calculated'}</span>
+          <span class="city-listing-score-note">${assessment.score === null ? escape(assessment.reason) : '5 of 5 criteria verified'}</span>
           <span class="city-listing-score-link">
             <span>${assessmentAction}</span>
             <svg class="city-score-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
@@ -1526,62 +1527,75 @@
   let isAdminSubmitting = false;
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (isAdminSubmitting) return;
     if (editorStep !== editorLastStep) {
       form.querySelector('[data-editor-next]').click();
       return;
     }
     if (!validateEditor()) return;
     if (propertyWizard && !propertyWizard.validateSurroundings()) { setEditorStep(2); return; }
-    if (isAdminSubmitting) return;
     isAdminSubmitting = true;
-    const submit = form.querySelector('[type="submit"]');
-    const originalSubmitText = submit.innerHTML;
-    submit.disabled = true;
-    submit.setAttribute('aria-busy', 'true');
-    submit.innerHTML = '<span class="locus-spinner tw-mr-1.5" aria-hidden="true"></span>Submitting…';
+    let finishSubmission = () => {};
+    let accepted = false;
+    let outcome = null;
     const id = form.elements.id.value;
-    const data = new FormData(form);
-    nearby?.append(data);
-    propertyWizard?.append(data);
-    if (propertyWizard) propertyWizard.buildSubmission(data);
-    else {
-      data.delete('id');
-      const unitVal = areaUnit?.value || 'sqm';
-      data.set('land_area', String(areaInput?.value || '').trim());
-      data.set('land_area_unit', unitVal);
-      const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
-      data.set('property_type', type);
-      data.set('subcategory', Array.from(new Set([form.elements.subcategory?.value, ...selectedSubcategories].filter(Boolean))).join(', '));
-      data.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
-      data.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
-      data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
-      data.set('recalculate_assessment', 'true');
-      data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
-    }
-    if (id) data.set('_method', 'PATCH');
     try {
+      const data = new FormData(form);
+      nearby?.append(data);
+      propertyWizard?.append(data);
+      if (propertyWizard) propertyWizard.buildSubmission(data);
+      else {
+        data.delete('id');
+        const unitVal = areaUnit?.value || 'sqm';
+        data.set('land_area', String(areaInput?.value || '').trim());
+        data.set('land_area_unit', unitVal);
+        const type = { Industrial: 'manufacturing', Hospitality: 'hotel', Office: 'bpo' }[form.elements.category.value] || 'commercial';
+        data.set('property_type', type);
+        data.set('subcategory', Array.from(new Set([form.elements.subcategory?.value, ...selectedSubcategories].filter(Boolean))).join(', '));
+        data.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
+        data.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
+        data.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
+        data.set('recalculate_assessment', 'true');
+        data.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+      }
+      if (id) data.set('_method', 'PATCH');
+      finishSubmission = window.SFCPropertySubmission.pending(form, editor);
+      message(form.querySelector('[data-editor-message]'), 'Submitting…');
+      const retry = form.querySelector('[data-editor-retry]');
+      if (retry) retry.hidden = true;
       window.LocusHUD?.show({
         title: id ? 'Updating property...' : 'Submitting property...',
-        subtitle: 'Auditing parcel coordinates & computing multi-criteria weights...',
+        subtitle: 'Saving your listing and attachments…',
         step: 'Uploading listing data',
         mode: 'loading'
       });
       const res = await request(id ? `property.php?id=${encodeURIComponent(id)}` : 'properties.php', { method: 'POST', body: data });
+      accepted = true;
+      outcome = window.SFCPropertySubmission.describe(res, Boolean(id));
       const savedPropertyId = res?.property?.id || res?.id || id;
       if (savedPropertyId && form.elements.id) {
         form.elements.id.value = String(savedPropertyId);
       }
       propertyWizard?.saved();
-      await refresh();
       editor.close();
       window.LocusHUD?.setSubmitted({
-        title: id ? 'Property Updated!' : 'Property Submitted!',
-        subtitle: 'Your property listing has been recorded and submitted for municipal review.'
+        title: outcome.title,
+        subtitle: outcome.message
       });
-      await window.LocusHUD?.hide(1000);
-      message(status, 'Your property has been sent for review. Track its status in My Listings.');
+      window.LocusHUD?.hide();
+      message(status, outcome.message);
+      // Saving has succeeded. A failed list reload must never offer another create request.
+      refresh().then(() => message(status, outcome.message)).catch(() => {
+        message(status, `${outcome.message} Refresh the page to update the property list.`);
+      });
     } catch (error) {
       window.LocusHUD?.hide();
+      finishSubmission();
+      finishSubmission = () => {};
+      if (accepted) {
+        message(status, `${outcome?.message || 'Property saved.'} Refresh the page to update the property list.`);
+        return;
+      }
       if (propertyWizard?.showSubmissionError) {
         const issue = propertyWizard.showSubmissionError(error);
         if (issue) setEditorStep(issue.step);
@@ -1589,9 +1603,7 @@
     }
     finally {
       isAdminSubmitting = false;
-      submit.disabled = false;
-      submit.removeAttribute('aria-busy');
-      submit.innerHTML = originalSubmitText;
+      finishSubmission();
     }
   });
 

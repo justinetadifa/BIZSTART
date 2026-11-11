@@ -459,6 +459,8 @@ SQL,
         self::ensureCriteriaConfigTable($pdo);
         require_once __DIR__ . '/BrokerSchemaManager.php';
         BrokerSchemaManager::ensure($pdo);
+        require_once __DIR__ . '/V2SchemaManager.php';
+        V2SchemaManager::ensure($pdo);
     }
 
     public static function ensureCriteriaConfigTable(PDO $pdo): void

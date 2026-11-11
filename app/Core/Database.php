@@ -5,7 +5,8 @@ namespace App\Core;
 
 use PDO;
 use PDOException;
-use RuntimeException;
+
+require_once __DIR__ . '/DatabaseUnavailableException.php';
 
 final class Database
 {
@@ -60,7 +61,7 @@ final class Database
             );
             $this->pdo->exec("SET time_zone = '+00:00'");
         } catch (PDOException $exception) {
-            throw new RuntimeException(
+            throw new DatabaseUnavailableException(
                 'Unable to connect to MySQL. Confirm Apache/MySQL are running in XAMPP and that app/config.local.php matches your local credentials.',
                 0,
                 $exception

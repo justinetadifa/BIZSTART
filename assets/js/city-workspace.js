@@ -4,6 +4,7 @@ import { evaluationMarkup, setupInvestmentEvaluation } from './investment-evalua
 import { propertyDetailsMarkup, assessmentCalculation, assessmentPresentation, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, setupPropertyGallery, setupInvestorScenario, setupLocalMarketIntelligence, nearbyBusinessesPanelMarkup, setupPriceScoreExplanation } from './property-details-view.js';
 import { initBusinessOpportunities } from './business-opportunities.js';
 import { setupHomeDiscovery } from './home-discovery.js';
+import { createBrowseRestoration } from './browse-restoration.js';
 
 const config = window.SFC_APP_CONFIG || {};
 const page = document.body.dataset.page;
@@ -1055,16 +1056,6 @@ function setupFilters() {
 
   if (category) {
     Object.keys(categories).forEach(label => category.add(new Option(label, label)));
-    function updateSubcategories() {
-      if (!subcategory) return;
-      subcategory.innerHTML = '<option value="">All subcategories</option>';
-      const subs = categories[category.value] || [];
-      subs.forEach(label => subcategory.add(new Option(label, label)));
-      subcategory.disabled = !(subs.length);
-      if (subcategoryWrapper) {
-        subcategoryWrapper.style.display = subs.length ? '' : 'none';
-      }
-    }
     if (Object.hasOwn(categories, params.get('category') || '')) category.value = params.get('category');
     updateSubcategories();
     category.addEventListener('change', () => { updateSubcategories(); render(); });
@@ -1112,20 +1103,8 @@ function setupFilters() {
     const btnList = document.getElementById('priorityViewList');
     const btnGrid = document.getElementById('priorityViewGrid');
 
-    const updateToggleUI = () => {
-      if (!btnList || !btnGrid) return;
-      if (currentRankingView === 'list') {
-        btnList.className = 'tw-p-2 tw-rounded-full tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-shadow-xs tw-transition-all';
-        btnList.setAttribute('aria-pressed', 'true');
-        btnGrid.className = 'tw-p-2 tw-rounded-full tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all';
-        btnGrid.setAttribute('aria-pressed', 'false');
-      } else {
-        btnGrid.className = 'tw-p-2 tw-rounded-full tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-shadow-xs tw-transition-all';
-        btnGrid.setAttribute('aria-pressed', 'true');
-        btnList.className = 'tw-p-2 tw-rounded-full tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all';
-        btnList.setAttribute('aria-pressed', 'false');
-      }
-    };
+    const updateToggleUI = syncRankingView;
+    updateToggleUI();
 
     btnList?.addEventListener('click', () => {
       currentRankingView = 'list';
@@ -1156,6 +1135,81 @@ function setupFilters() {
       document.querySelectorAll('[data-quick-category]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
       applyHero();
     }));
+  }
+}
+
+function updateSubcategories() {
+  const category = document.getElementById('cityCategory');
+  const subcategory = document.getElementById('citySubcategory');
+  if (!subcategory) return;
+  subcategory.innerHTML = '<option value="">All subcategories</option>';
+  const subs = categories[category?.value] || [];
+  subs.forEach(label => subcategory.add(new Option(label, label)));
+  subcategory.disabled = !subs.length;
+  const wrapper = document.getElementById('citySubcategoryWrapper');
+  if (wrapper) wrapper.style.display = subs.length ? '' : 'none';
+}
+
+function syncRankingView() {
+  const btnList = document.getElementById('priorityViewList');
+  const btnGrid = document.getElementById('priorityViewGrid');
+  if (!btnList || !btnGrid) return;
+  for (const [button, view] of [[btnList, 'list'], [btnGrid, 'grid']]) {
+    const selected = currentRankingView === view;
+    button.className = selected
+      ? 'tw-p-2 tw-rounded-full tw-bg-[#11224D] tw-text-white tw-border-0 tw-cursor-pointer hover:tw-opacity-90 tw-shadow-xs tw-transition-all'
+      : 'tw-p-2 tw-rounded-full tw-bg-transparent tw-text-slate-500 hover:tw-text-slate-900 tw-border-0 tw-cursor-pointer tw-transition-all';
+    button.setAttribute('aria-pressed', String(selected));
+  }
+}
+
+const browsingControlIds = ['citySearch', 'cityCategory', 'citySubcategory', 'cityListingPurpose',
+  'cityAllowedUse', 'cityUtilities', 'cityHazard', 'citySort', 'citySavedOnly'];
+
+function captureBrowsingState() {
+  const controls = {};
+  for (const id of browsingControlIds) {
+    const node = document.getElementById(id);
+    if (node) controls[id] = node.type === 'checkbox' ? node.checked : node.value;
+  }
+  const center = map?.getCenter();
+  return { controls, expandedCards: [...expandedCards], rankingView: currentRankingView,
+    filtersExpanded: document.getElementById('cityFilters')?.classList.contains('filters-expanded') || false,
+    map: center ? { lat: center.lat, lng: center.lng, zoom: map.getZoom(), layer: currentMapLayer } : null };
+}
+
+function restoreBrowsingState(state) {
+  if (!state || !state.controls || typeof state.controls !== 'object') return;
+  const assign = id => {
+    const node = document.getElementById(id), value = state.controls[id];
+    if (!node || value === undefined) return;
+    if (node.type === 'checkbox') node.checked = value === true;
+    else if (node.tagName !== 'SELECT' || Array.from(node.options).some(option => option.value === value)) node.value = String(value);
+  };
+  assign('cityCategory'); updateSubcategories();
+  for (const id of browsingControlIds) if (id !== 'cityCategory') assign(id);
+  currentRankingView = state.rankingView === 'grid' ? 'grid' : 'list';
+  expandedCards = new Set((Array.isArray(state.expandedCards) ? state.expandedCards : []).filter(id => Number.isInteger(id)));
+  syncRankingView();
+  const form = document.getElementById('cityFilters');
+  if (form) {
+    form.classList.toggle('filters-expanded', state.filtersExpanded === true);
+    form.dispatchEvent(new Event('change'));
+  }
+  const heroCategory = document.getElementById('cityHeroCategory');
+  if (heroCategory) heroCategory.value = document.getElementById('cityCategory')?.value || '';
+  const heroSearch = document.getElementById('citySearchGlass');
+  if (heroSearch) heroSearch.value = document.getElementById('citySearch')?.value || '';
+}
+
+function restoreBrowsingMap(state) {
+  const savedMap = state?.map;
+  if (!map || !savedMap || !Number.isFinite(savedMap.lat) || !Number.isFinite(savedMap.lng)
+      || !Number.isFinite(savedMap.zoom) || Math.abs(savedMap.lat) > 90 || Math.abs(savedMap.lng) > 180) return;
+  map.setView([savedMap.lat, savedMap.lng], savedMap.zoom, { animate: false });
+  if (['canvas', 'streets', 'satellite'].includes(savedMap.layer)) {
+    setMapLayer(savedMap.layer);
+    document.querySelectorAll('[data-layer-btn]').forEach(button => button.classList.toggle('is-active', button.dataset.layerBtn === savedMap.layer));
   }
 }
 
@@ -1312,7 +1366,7 @@ function flyToPropertyMarker(property, marker, shouldOpenPopup = true) {
   if (card) {
     card.classList.add('is-active-card', 'is-map-hovered');
     if (window.innerWidth > 850) {
-      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      card.scrollIntoView({ behavior: 'auto', block: 'nearest' });
     }
   }
 }
@@ -1739,7 +1793,7 @@ function setupCardHoverSync() {
     if (marker && marker.propertyData) {
       flyToPropertyMarker(marker.propertyData, marker, true);
       if (window.innerWidth <= 850) {
-        document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'start' });
       }
     }
   });
@@ -2006,7 +2060,7 @@ async function renderDetails() {
           if (biz._marker) {
             biz._marker.openPopup();
           }
-          document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
         }, 150);
       }
     });
@@ -2038,12 +2092,12 @@ async function renderDetails() {
       if (tab !== 'overview' && !advancedView()) window.SFCInvestorView?.set('advanced');
       if (tab === 'calculation' && calcDisclosure) {
         calcDisclosure.open = true;
-        calcDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        calcDisclosure.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else if (tab === 'evidence' && evidenceDisclosure) {
         evidenceDisclosure.open = true;
-        evidenceDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        evidenceDisclosure.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else if (tab === 'overview') {
-        assessmentSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        assessmentSec.scrollIntoView({ behavior: 'auto', block: 'start' });
       }
     };
 
@@ -2153,7 +2207,7 @@ function setupTransportationInteractions(root, property, map) {
           `)
           .openOn(map);
       }
-      document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
   });
 }
@@ -2169,7 +2223,7 @@ function setupClimateRiskInteractions(root, property, map) {
     if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
       tabMapBtn.click();
     }
-    document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
 
     if (floodOverlayLayer) {
       if (map.hasLayer(floodOverlayLayer)) {
@@ -2391,7 +2445,7 @@ document.addEventListener('click', async event => {
         map.setView(marker.getLatLng(), 16);
         marker.openPopup();
       }
-      document.querySelector('.city-map-panel')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.querySelector('.city-map-panel')?.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
   }
 });
@@ -2574,6 +2628,9 @@ function setupLandingFeatures() {
 }
 
 async function initialize() {
+  const browsing = page !== 'city-details' ? createBrowseRestoration({
+    scope: `${config.basePath || ''}:${config.user?.id || 'guest'}`, capture: captureBrowsingState,
+  }) : null;
   setupPrivacy();
   setupLandingFeatures();
   setupFilterDisclosure();
@@ -2608,9 +2665,11 @@ async function initialize() {
       });
     }
   }
-  setupFilters();synchronizeInvestorSort();render();
+  setupFilters();restoreBrowsingState(browsing?.data);synchronizeInvestorSort();render();
   if (map) fitMap();
   else setupMap();
+  restoreBrowsingMap(browsing?.data);
+  browsing?.ready();
 }
 
 window.addEventListener('sfc:investor-view-change', () => {

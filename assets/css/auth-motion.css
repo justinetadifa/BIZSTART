@@ -1,0 +1,108 @@
+/* One visual language for account access: city navy, LOCUS red, and clear state. */
+@keyframes auth-orbit-turn { to { rotate: 360deg; } }
+@keyframes auth-orbit-reverse { to { rotate: -360deg; } }
+@keyframes auth-gateway-enter { from { opacity: .25; transform: scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes auth-line-travel { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+@keyframes auth-arrival-resolve { from { opacity: .35; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes auth-arrival-orbit { from { rotate: -95deg; scale: .82; opacity: .35; } to { rotate: 0deg; scale: 1; opacity: 1; } }
+
+@layer locus-foundation {
+  .account-auth .account-shell { position: relative; }
+  .account-auth .account-scene {
+    background: radial-gradient(ellipse at 85% 5%, #29466b 0%, transparent 60%), linear-gradient(145deg, #11224d, #0a1835) !important;
+  }
+  .account-auth .account-scene::before {
+    background: radial-gradient(ellipse at 15% 85%, #9e1b225c, transparent 65%), repeating-linear-gradient(125deg, transparent 0 54px, #ffffff08 55px 56px) !important;
+  }
+  .account-auth .hero-glow-img { opacity: .45 !important; }
+  .account-auth .hero-poster-title { animation: none !important; }
+  .account-auth .hero-poster-kicker { font-size: 13px !important; font-weight: 600 !important; letter-spacing: .15em !important; font-style: normal !important; margin-bottom: 18px !important; }
+  .account-auth .hero-tagline-script { font-style: normal !important; font-size: 13px !important; opacity: .8; }
+  .account-auth .hero-tagline-action { font-style: normal !important; font-size: 15px !important; letter-spacing: .04em; margin-top: 8px; }
+  .account-auth .account-submit { background: #9e1b22 !important; }
+  .account-auth .account-submit:hover { background: #7d131b !important; }
+  .account-auth input { font-size: 16px !important; }
+  .account-shell[data-auth-pending="true"] > :not(.auth-flight) { visibility: hidden; }
+  .auth-flight {
+    position: absolute; z-index: 15; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden; padding: 28px; isolation: isolate; text-align: center;
+    background: #0c1937; color: #fff;
+  }
+  .auth-flight.is-portal { position: fixed !important; z-index: 20000 !important; inset: 0 !important; min-height: 100svh; }
+  .auth-flight[hidden] { display: none !important; }
+  .auth-flight-grid {
+    position: absolute; z-index: -1; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 32%, #36578170, transparent 58%), radial-gradient(ellipse at 15% 95%, #9e1b2259, transparent 50%), repeating-linear-gradient(0deg, transparent 0 43px, #ffffff06 44px 45px), repeating-linear-gradient(90deg, transparent 0 43px, #ffffff06 44px 45px);
+  }
+  .auth-flight-orbit { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 180px; height: 180px; margin-bottom: 18px; }
+  .auth-flight-orbit img { width: 70px !important; height: 70px !important; object-fit: contain; filter: drop-shadow(0 7px 15px #0005); }
+  .auth-flight-ring { position: absolute; inset: 0; border: 1px solid #ffffff24; border-radius: 50%; }
+  .auth-flight-ring::after { content: ''; position: absolute; top: -4px; left: calc(50% - 4px); width: 8px; height: 8px; border-radius: 50%; background: #e46d75; box-shadow: 0 0 18px #f15265a8; }
+  .auth-flight-ring-two { inset: 17px; border: 1px dashed #ffffff38; }
+  .auth-flight-ring-two::after { width: 5px; height: 5px; background: #d9eaff; box-shadow: 0 0 14px #81baff; }
+  .auth-flight-ring-three { inset: 33px; border-width: 2px; border-color: #9e1b22 #9e1b22 transparent transparent; }
+  .auth-flight-ring-three::after { content: none; }
+  .auth-flight-brand { color: #fff !important; font-size: 11px !important; font-weight: 650 !important; letter-spacing: .25em; margin: 0 0 18px !important; }
+  .auth-flight-brand span { color: #e5757c; }
+  .auth-flight h2 { margin: 0 0 10px !important; font-size: clamp(26px, 3vw, 38px) !important; letter-spacing: -.04em; color: #fff !important; }
+  .auth-flight-copy { color: #d1d9e8 !important; font-size: 13px !important; margin: 0 0 26px !important; }
+  .auth-flight-line { position: relative; display: block; overflow: hidden; width: 135px; height: 2px; border-radius: 10px; background: #ffffff26; }
+  .auth-flight-line::after { content: ''; display: block; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, #ec737e, #fff, transparent); }
+  .auth-flight-note { margin: 12px 0 0 !important; color: #9aaac4 !important; font-size: 10px !important; letter-spacing: .03em; }
+
+  body[data-page="city-account-welcome"] .account-welcome-page {
+    min-height: calc(100svh - 100px) !important; padding: 42px 20px 64px !important;
+    background: #eef2f7 !important;
+  }
+  body[data-page="city-account-welcome"] .account-welcome-card {
+    max-width: 880px !important; min-height: 460px; display: grid; grid-template-columns: .85fr 1.15fr;
+    gap: 34px; align-items: center; padding: 52px !important; text-align: left !important;
+    background: #fff !important; border-radius: 30px !important; box-shadow: 0 22px 60px -24px #11224d45 !important;
+    animation: none !important;
+  }
+  .account-welcome-card .auth-arrival-art {
+    position: relative; min-height: 290px; display: grid; place-items: center; align-self: stretch; overflow: hidden; border-radius: 24px;
+    background: radial-gradient(ellipse at 95% 90%, #9e1b2273, transparent 65%), radial-gradient(ellipse at 25% 5%, #4965926b, transparent 60%), #11224d;
+  }
+  .auth-arrival-art::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 33px, #ffffff08 34px 35px), repeating-linear-gradient(90deg, transparent 0 33px, #ffffff08 34px 35px); mask-image: radial-gradient(ellipse, #000, transparent 75%); }
+  .auth-arrival-art .auth-flight-orbit { width: 200px; height: 200px; margin: 0; }
+  .auth-arrival-art .auth-flight-orbit img { width: 82px !important; height: 82px !important; }
+  .auth-arrival-caption { position: absolute; bottom: 23px; margin: 0 !important; color: #d6deeb !important; font-size: 9px !important; letter-spacing: .13em; }
+  .auth-arrival-content { min-width: 0; }
+  body[data-page="city-account-welcome"] .account-welcome-card .account-eyebrow { margin: 0 0 18px !important; padding: 0 !important; background: none !important; color: #9e1b22 !important; font-size: 10px !important; letter-spacing: .13em; }
+  body[data-page="city-account-welcome"] .account-welcome-card h1 { margin: 0 0 16px !important; font-size: clamp(30px, 4vw, 43px) !important; text-align: left !important; line-height: 1.08 !important; letter-spacing: -.05em !important; color: #11224d !important; }
+  body[data-page="city-account-welcome"] .account-welcome-card h1 span { display: block !important; font-size: .7em; font-weight: 500; letter-spacing: -.03em; margin-bottom: 6px; }
+  body[data-page="city-account-welcome"] .account-welcome-copy { text-align: left !important; margin: 0 0 24px !important; color: #667187 !important; font-size: 13px !important; }
+  .auth-arrival-status { display: flex; width: fit-content; align-items: center; gap: 7px; margin: 0 0 20px; padding: 6px 10px; border: 1px solid #dce5ec; border-radius: 99px; color: #314463; font-size: 10px; }
+  .auth-arrival-status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #2a603b; }
+  .auth-arrival-content .account-submit-wrap { justify-content: flex-start !important; }
+  .auth-arrival-content .account-submit { margin: 0 !important; }
+  .auth-arrival-skip { display: block; min-height: 36px; margin-top: 12px; padding: 5px 0; border: 0; background: none; color: #68758b; font-size: 11px !important; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  @media (prefers-reduced-motion: no-preference) {
+    .auth-flight.is-portal { animation: auth-gateway-enter 320ms cubic-bezier(.22, 1, .36, 1) both !important; }
+    .auth-flight .auth-flight-ring-one { animation: auth-orbit-turn 5s linear infinite !important; }
+    .auth-flight .auth-flight-ring-two { animation: auth-orbit-reverse 8s linear infinite !important; }
+    .auth-flight .auth-flight-ring-three { animation: auth-orbit-turn 1.6s cubic-bezier(.5, .1, .5, .9) infinite !important; }
+    .auth-flight-line::after { animation: auth-line-travel 1.4s ease-in-out infinite !important; }
+    [data-auth-arrival]:not([data-arrival-settled]) .auth-arrival-art { animation: auth-arrival-resolve 650ms cubic-bezier(.22, 1, .36, 1) both !important; }
+    [data-auth-arrival]:not([data-arrival-settled]) .auth-flight-orbit { animation: auth-arrival-orbit 1100ms cubic-bezier(.16, 1, .3, 1) both !important; }
+    [data-auth-arrival]:not([data-arrival-settled]) .auth-arrival-content { animation: auth-arrival-resolve 750ms 100ms cubic-bezier(.22, 1, .36, 1) backwards !important; }
+    [data-auth-arrival]:not([data-arrival-settled]) .auth-flight-ring-one { animation: auth-orbit-turn 1400ms cubic-bezier(.16, 1, .3, 1) 1 both !important; }
+    [data-auth-arrival]:not([data-arrival-settled]) .auth-flight-ring-two { animation: auth-orbit-reverse 1800ms cubic-bezier(.16, 1, .3, 1) 1 both !important; }
+  }
+  @media (max-width: 680px) {
+    .auth-flight { padding: 20px; }
+    .auth-flight-orbit { width: 140px; height: 140px; margin-bottom: 12px; }
+    .auth-flight-brand { margin-bottom: 14px !important; }
+    body[data-page="city-account-welcome"] .account-welcome-card { grid-template-columns: 1fr; gap: 28px; padding: 22px !important; max-width: 440px !important; }
+    .account-welcome-card .auth-arrival-art { min-height: 195px; }
+    .auth-arrival-art .auth-flight-orbit { width: 150px; height: 150px; }
+    .auth-arrival-art .auth-flight-orbit img { width: 64px !important; height: 64px !important; }
+    .auth-arrival-caption { bottom: 12px; font-size: 8px !important; }
+    body[data-page="city-account-welcome"] .account-welcome-card h1 { font-size: 33px !important; }
+    body[data-page="city-account-welcome"] .account-welcome-page { padding: 20px 16px 36px !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .auth-flight *, .auth-flight, [data-auth-arrival] *, [data-auth-arrival] { animation: none !important; transition: none !important; }
+  }
+}

@@ -10,7 +10,8 @@ export function setupHomeDiscovery() {
   const steps = [...section.querySelectorAll('[data-discovery-step]')];
   const storageKey = 'locus.city-discovery.v1';
   const visited = new Set();
-  const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduceMotion = () => document.documentElement.dataset.homeMotion !== 'on'
+    && matchMedia('(prefers-reduced-motion: reduce)').matches;
   try {
     const saved = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
     if (Array.isArray(saved)) saved.forEach(id => {

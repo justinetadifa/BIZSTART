@@ -25,13 +25,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 $broker = $user['role'] === 'seller' ? sfc_seller_profile_repository()->findOrInitializeByUser($user) : null;
 $dashboard = match ($user['role']) { 'seller' => '/seller-dashboard.php', 'admin' => '/admin-dashboard.php', default => '/investor-dashboard.php' };
 $accountLabel = match ($user['role']) { 'seller' => 'Broker account', 'admin' => 'City staff account', default => 'Investor account' };
-$roleClass = match ($user['role']) { 'seller' => 'is-broker', 'admin' => 'is-staff', default => 'is-investor' };
 $department = $user['role'] === 'admin' ? sfc_admin_department($user) : null;
 $needsConsent = ($user['privacyConsentVersion'] ?? null) !== sfc_privacy_consent_version();
 $photoUrl = !empty($user['profileImageUrl']) ? sfc_path('/' . ltrim($user['profileImageUrl'], '/')) : '';
 $initial = mb_strtoupper(mb_substr($user['name'], 0, 1));
 $fieldValue = static fn (string $name, mixed $default): string => sfc_account_escape($_POST[$name] ?? $default ?? '');
-$inputClass = 'profile-input-field';
 $buttonClass = 'tw-inline-flex tw-min-h-[42px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-lg tw-border tw-border-solid tw-border-[#d8dee8] tw-bg-white tw-px-4 tw-py-2.5 tw-text-sm tw-font-semibold tw-text-[#11224D] hover:tw-bg-[#F8F9FA] focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-2 focus-visible:tw-outline-[#11224D]';
 $renderField = static function (string $name, string $label, string $type, mixed $default, bool $required = false, string $autocomplete = '', int $maxLength = 255) use ($fieldValue): void {
     ?>
@@ -54,41 +52,11 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
 <link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/profile.css<?= sfc_account_escape(sfc_asset_version('css/profile.css')) ?>">
 <?php if ($broker !== null): ?><link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_account_escape(sfc_asset_version('css/broker-verification.css')) ?>"><?php endif; ?>
 
-<header class="profile-hero-banner">
-  <div class="profile-hero-inner">
-    <div class="profile-hero-topbar">
-      <div class="profile-civic-badge-group">
-        <span class="profile-civic-seal-pill">
-          <svg class="profile-seal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-          San Fernando Civic Portal
-        </span>
-        <span class="profile-role-pill <?= $roleClass ?>">
-          <span class="pulse-indicator" aria-hidden="true"></span>
-          <?= sfc_account_escape($accountLabel) ?>
-        </span>
-      </div>
-      <a class="profile-back-link" href="<?= sfc_account_escape(sfc_path($dashboard)) ?>"><span aria-hidden="true">&larr;</span> Back to dashboard</a>
-    </div>
-    <div class="profile-hero-title-row">
-      <h1 id="profileTitle">Your profile</h1>
-      <p class="profile-hero-subtitle">Official administrative profile, verified credentials, and directory contacts for LOCUS-SF.</p>
-    </div>
-    <div class="profile-hero-chips">
-      <?php if ($department !== null): ?>
-      <span class="profile-hero-chip is-gold">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M11 11h2M11 15h2M16 11h2M16 15h2M9 3h6v4H9z"/></svg>
-        City Department: <?= sfc_account_escape($department) ?>
-      </span>
-      <?php endif; ?>
-      <span class="profile-hero-chip is-verified">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-        Verified Active Session
-      </span>
-      <span class="profile-hero-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        DPA RA 10173 Protected
-      </span>
-    </div>
+<header class="profile-page-heading">
+  <div class="profile-heading-inner">
+    <a class="profile-back-link" href="<?= sfc_account_escape(sfc_path($dashboard)) ?>"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5-5 5 5 5M3 10h14"/></svg> Dashboard</a>
+    <h1 id="profileTitle">Your profile</h1>
+    <p>Your photo and contact details, all in one place.</p>
   </div>
 </header>
 
@@ -110,33 +78,26 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
     <form method="post" enctype="multipart/form-data" id="profileForm" class="profile-grand-form" aria-labelledby="profileTitle">
       <input type="hidden" name="_csrf" value="<?= sfc_account_escape(sfc_csrf_token()) ?>">
       <aside class="profile-identity-aside" aria-label="Profile photo and account">
-        <div class="profile-avatar-wrapper">
-          <div class="profile-avatar-frame">
-            <img id="profileAvatarPhoto" <?= $photoUrl !== '' ? 'src="' . sfc_account_escape($photoUrl) . '"' : '' ?> alt="Your profile photo" width="124" height="124" class="profile-avatar-img" <?= $photoUrl === '' ? 'hidden' : '' ?>>
-            <span id="profileAvatarInitial" class="profile-avatar-initial" aria-hidden="true" <?= $photoUrl !== '' ? 'hidden' : '' ?>><?= sfc_account_escape($initial) ?></span>
+        <div class="profile-identity-row">
+          <div class="profile-avatar-wrapper">
+            <div class="profile-avatar-frame">
+              <img id="profileAvatarPhoto" <?= $photoUrl !== '' ? 'src="' . sfc_account_escape($photoUrl) . '"' : '' ?> alt="Your profile photo" width="80" height="80" class="profile-avatar-img" <?= $photoUrl === '' ? 'hidden' : '' ?>>
+              <span id="profileAvatarInitial" class="profile-avatar-initial" aria-hidden="true" <?= $photoUrl !== '' ? 'hidden' : '' ?>><?= sfc_account_escape($initial) ?></span>
+            </div>
           </div>
-          <label for="profilePhotoInput" class="profile-avatar-camera-badge" title="Change photo" aria-label="Upload new photo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 5h8l1.5 3H21v12H3V8h3.5L8 5Z" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5"/></svg>
-          </label>
+          <div class="profile-identity-copy">
+            <p class="profile-account-type"><?= sfc_account_escape($accountLabel) ?></p>
+            <h2 class="profile-user-name"><?= sfc_account_escape($user['name']) ?></h2>
+            <span class="profile-user-email"><?= sfc_account_escape($user['email']) ?></span>
+            <?php if ($user['role'] === 'admin'): ?>
+            <span class="profile-account-status"><?= sfc_account_escape($department ?: 'CICTO') ?></span>
+            <?php elseif ($broker !== null): ?>
+            <span class="profile-account-status"><?= $broker['applicationStatus'] === 'verified' ? 'PRC verified' : sfc_account_escape(ucwords(str_replace('_', ' ', $broker['applicationStatus']))) ?></span>
+            <?php elseif (!empty($user['emailVerifiedAt']) || !empty($user['emailVerified'])): ?>
+            <span class="profile-account-status">Email verified</span>
+            <?php endif; ?>
+          </div>
         </div>
-        <h2 class="profile-user-name"><?= sfc_account_escape($user['name']) ?></h2>
-        <span class="profile-user-email">
-          <svg class="tw-h-3.5 tw-w-3.5 tw-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <?= sfc_account_escape($user['email']) ?>
-        </span>
-        <?php if ($user['role'] === 'admin'): ?>
-        <span class="profile-status-badge badge-staff">
-          🏛️ <?= sfc_account_escape($department ?: 'CICTO') ?> · Staff Executive
-        </span>
-        <?php elseif ($broker !== null): ?>
-        <span class="profile-status-badge <?= $broker['applicationStatus'] === 'verified' ? 'badge-verified' : 'badge-pending' ?>">
-          <?= $broker['applicationStatus'] === 'verified' ? '✓ PRC Verified Broker' : sfc_account_escape(ucwords(str_replace('_', ' ', $broker['applicationStatus']))) ?>
-        </span>
-        <?php else: ?>
-        <span class="profile-status-badge badge-verified">
-          ✓ Verified Investor Account
-        </span>
-        <?php endif; ?>
 
         <div class="profile-photo-action-box">
           <input id="profilePhotoInput" class="tw-peer tw-sr-only" type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" aria-describedby="profilePhotoHint profilePhotoStatus">
@@ -144,7 +105,7 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
             <svg class="tw-h-4 tw-w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 5h8l1.5 3H21v12H3V8h3.5L8 5Z" stroke-linejoin="round"/><circle cx="12" cy="13.5" r="3.5"/></svg>
             Change photo
           </label>
-          <p id="profilePhotoHint" class="profile-photo-hint">JPG, PNG or WEBP.<br>Crop and preview before saving.</p>
+          <p id="profilePhotoHint" class="profile-photo-hint">JPG, PNG or WEBP. Crop before saving.</p>
           <noscript><p class="tw-mt-2 tw-text-xs tw-text-[#697284]">Up to 2 MB and 4 megapixels.</p></noscript>
           <p id="profilePhotoStatus" class="profile-photo-status" role="status" aria-live="polite"></p>
           <button id="profilePhotoUndo" type="button" class="profile-undo-btn" hidden>Undo photo change</button>
@@ -157,30 +118,14 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
         </label>
         <?php endif; ?>
 
-        <div class="profile-trust-card">
-          <div class="profile-trust-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Session Guard Active</span>
-          </div>
-          <div class="profile-trust-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span>DPA RA 10173 Encrypted</span>
-          </div>
-          <div class="profile-trust-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span>Official Directory Listing</span>
-          </div>
-        </div>
+        <a class="profile-privacy-link" href="<?= sfc_account_escape(sfc_path('/privacy.php')) ?>">Privacy policy <span aria-hidden="true">↗</span></a>
       </aside>
 
       <div class="profile-details-content">
         <div class="profile-section-header">
-          <div class="profile-section-icon-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
           <div class="profile-section-title-wrap">
             <h2>Personal details</h2>
-            <p>Use the name and contact details you want us to use for official city documents and notifications.</p>
+            <p>Keep your name and contact information up to date.</p>
           </div>
         </div>
 
@@ -207,7 +152,6 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
               <span>City of San Fernando · Department Operations &amp; Listing Management</span>
             </div>
           </div>
-          <span class="profile-civic-seal-pill" style="color: #0f172a; background: #ffffff; border-color: #cbd5e1;">Authorized Personnel</span>
         </div>
         <?php endif; ?>
 
@@ -248,49 +192,34 @@ sfc_render_head('Your profile | LOCUS-SF', $context, ['page' => 'profile', 'role
         </label>
         <?php endif; ?>
 
-        <!-- Sound & Feedback Preferences Card -->
-        <div class="tw-mt-7 tw-rounded-2xl tw-border tw-border-solid tw-border-[#dfe3e9] tw-bg-[#F8F9FA] tw-p-5 sm:tw-p-6">
-          <div class="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-mb-4">
-            <div class="tw-flex tw-items-center tw-gap-3">
-              <div class="tw-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-xl tw-bg-white tw-border tw-border-solid tw-border-[#dfe3e9] tw-text-[#11224d]">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
-              </div>
-              <div>
-                <h3 class="tw-m-0 tw-text-base tw-font-bold tw-text-[#11224d]">Interface audio</h3>
-                <p class="tw-m-0 tw-text-xs tw-text-[#64748b]">iOS-inspired feedback for actions, selections, and confirmations</p>
-              </div>
-            </div>
-            <button type="button" class="locus-sound-preview-btn" onclick="window.LocusSound?.preview()">Preview sound</button>
+        <section class="profile-preferences" aria-labelledby="profilePreferencesTitle">
+          <div class="profile-preferences-heading">
+            <h2 id="profilePreferencesTitle">Sound preferences</h2>
+            <button type="button" class="profile-preview-sound" onclick="window.LocusSound?.preview()">Preview</button>
           </div>
-          <div class="tw-grid tw-gap-3 sm:tw-grid-cols-2">
-            <label class="tw-flex tw-items-center tw-justify-between tw-rounded-xl tw-bg-white tw-p-3.5 tw-border tw-border-solid tw-border-[#e2e8f0] tw-cursor-pointer">
-              <span class="tw-text-xs tw-font-semibold tw-text-[#0f172a]">Interface sounds</span>
+          <div class="profile-preference-list">
+            <label class="profile-preference-row">
+              <span>Interface sounds</span>
               <span class="locus-ios-switch">
                 <input type="checkbox" id="profileSoundToggle" role="switch" onchange="window.LocusSound?.setEnabled(this.checked)">
                 <span class="locus-ios-slider"></span>
               </span>
             </label>
-            <label class="tw-flex tw-items-center tw-justify-between tw-rounded-xl tw-bg-white tw-p-3.5 tw-border tw-border-solid tw-border-[#e2e8f0] tw-cursor-pointer">
-              <span class="tw-text-xs tw-font-semibold tw-text-[#0f172a]">Scroll settling feedback</span>
+            <label class="profile-preference-row">
+              <span>Scroll feedback</span>
               <span class="locus-ios-switch">
                 <input type="checkbox" id="profileSoundScrollToggle" role="switch" onchange="window.LocusSound?.setScrollEnabled(this.checked)">
                 <span class="locus-ios-slider"></span>
               </span>
             </label>
           </div>
-        </div>
+        </section>
 
         <div class="profile-action-footer">
           <p class="profile-audit-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            <span>Changes apply immediately across official directories and signatures.</span>
+            <span>Select Save profile to keep your changes.</span>
           </p>
           <button type="submit" class="profile-save-button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <span>Save profile</span>
           </button>
         </div>

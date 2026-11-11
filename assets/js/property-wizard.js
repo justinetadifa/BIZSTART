@@ -252,6 +252,35 @@
     return { category: canonical, primary: chosen, additional: extras };
   }
 
+  // Shared by city and broker editors: only the response determines the saved status.
+  window.SFCPropertySubmission = {
+    describe(result, updating = false) {
+      const property = result?.property || result || {};
+      const raw = property.approvalState || property.approval_state || property.status || '';
+      const status = String(raw).replace(/_/g, ' ').replace(/^./, letter => letter.toUpperCase());
+      const title = updating ? 'Property updated' : 'Property saved';
+      const availability = (property.approvalState || property.approval_state) && property.status ? ` Availability: ${property.status}.` : '';
+      return { title, status, message: status ? `${title}. Status: ${status}.${availability}` : `${title}. Check My Listings for its current status.` };
+    },
+    pending(form, dialog) {
+      const controls = [...new Set([...form.querySelectorAll('button, input, select, textarea'), ...dialog.querySelectorAll('[data-close-dialog]')])];
+      const previous = controls.map(control => [control, control.disabled]);
+      const submit = form.querySelector('[type="submit"]');
+      const original = submit?.innerHTML;
+      const cancel = event => event.preventDefault();
+      form.setAttribute('aria-busy', 'true');
+      controls.forEach(control => { control.disabled = true; });
+      if (submit) submit.textContent = 'Submitting…';
+      dialog.addEventListener('cancel', cancel);
+      return () => {
+        previous.forEach(([control, disabled]) => { control.disabled = disabled; });
+        form.removeAttribute('aria-busy');
+        if (submit) submit.innerHTML = original;
+        dialog.removeEventListener('cancel', cancel);
+      };
+    },
+  };
+
   window.SFCPropertyWizard = (form, {apiBase, dialog, assessment}) => {
     if (!form || !dialog?.classList.contains('property-wizard')) return null;
     const $ = selector => form.querySelector(selector);
@@ -730,6 +759,8 @@
     const notify = (text, isError = false) => {
       const target = $('[data-editor-message]');
       if (!target) return;
+      const retry = $('[data-editor-retry]');
+      if (retry) retry.hidden = true;
       target.textContent = text;
       target.classList.toggle('is-error', Boolean(isError));
       target.setAttribute('role', isError ? 'alert' : 'status');
@@ -774,7 +805,7 @@
         const utilityPanel = control.closest('[data-util-pane]');
         if (utilityPanel) tabs('data-util-tab','data-util-pane',utilityPanel.dataset.utilPane);
         control.focus({preventScroll:true});
-        control.scrollIntoView({behavior:'smooth', block:'center'});
+        control.scrollIntoView({behavior:'auto', block:'center'});
         control.classList.add('pw-field-error-glow');
         setTimeout(() => control.classList.remove('pw-field-error-glow'), 4000);
       });
@@ -812,7 +843,7 @@
         [/latitude|longitude|coordinate|location/i, 'lat', 1],
         [/land.*area|survey.*area|area.*positive|boundary|polygon/i, 'land_area', 1],
         [/email/i, 'owner_email', 0],
-        [/authority.*sell|proof.*authority/i, 'authority_to_sell_file', 0],
+        [/authority.*sell|proof.*authority/i, 'authority_to_sell_file', 2],
         [/offered.*area|leasable.*area|saleable.*area/i, 'offered_area_sqm', 2],
         [/security.*deposit/i, 'security_deposit_months', 2],
         [/advance.*rent/i, 'advance_rent_months', 2],
@@ -830,8 +861,13 @@
         [/evidence.*file|attachment/i, 'evidence_files[]', 2],
       ];
       const matched = mappings.find(([pattern]) => pattern.test(text));
-      notify(text,true);
-      if (!matched) return null;
+      notify(`${text} Your entered data is still here. Correct any highlighted fields or retry your submission.`,true);
+      const retry = $('[data-editor-retry]');
+      if (retry) retry.hidden = false;
+      if (!matched) {
+        requestAnimationFrame(() => { if (dialog.open) retry?.focus({preventScroll:true}); });
+        return null;
+      }
       const [,name,targetStep] = matched;
       const control = field(name) || (name === 'carriageway_width' ? field('carriageway_width_m') : null);
       if (control) {
@@ -840,6 +876,9 @@
       return {step:targetStep,field:name};
     }
     form.addEventListener('invalid', event => { showFieldError(event.target,event.target.validationMessage); }, true);
+    $('[data-editor-retry]')?.addEventListener('click', () => {
+      form.requestSubmit($('[type="submit"]'));
+    });
     for (const eventName of ['input','change']) form.addEventListener(eventName,event => { if(event.target.name)clearFieldError(event.target.name); });
     async function get(endpoint, signal) {
       const response = await fetch(`${apiBase}/${endpoint}`, {credentials:'same-origin',headers:{Accept:'application/json'},signal});
@@ -3169,7 +3208,7 @@
         selectEvidenceCriterion(nextCrit);
         const contentScrollContainer = form.closest('.pw-content') || document.querySelector('#cityPropertyEditor .pw-content');
         if (contentScrollContainer) {
-          contentScrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+          contentScrollContainer.scrollTo({ top: 0, behavior: 'auto' });
         }
         updateCriteriaStatus();
         updateFooterNextLabel();
@@ -3199,7 +3238,7 @@
         selectEvidenceCriterion(prevCrit);
         const contentScrollContainer = form.closest('.pw-content') || document.querySelector('#cityPropertyEditor .pw-content');
         if (contentScrollContainer) {
-          contentScrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+          contentScrollContainer.scrollTo({ top: 0, behavior: 'auto' });
         }
         updateCriteriaStatus();
         updateFooterNextLabel();
@@ -3231,7 +3270,7 @@
       // Reset scroll position to top of workspace so criterion header and first input are cleanly visible
       const scrollParent = form.closest('.pw-content') || document.querySelector('#cityPropertyEditor .pw-content');
       if (scrollParent) {
-        scrollParent.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollParent.scrollTo({ top: 0, behavior: 'auto' });
       }
 
       if (selected === 'risk_constraints' || selected === 'zoning_compatibility') {
@@ -3639,7 +3678,7 @@
           selectEvidenceCriterion(target);
           const panel = form.querySelector(`[data-evidence-panel="${target}"]`);
           if (panel) {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            panel.scrollIntoView({ behavior: 'auto', block: 'start' });
           }
         }
         updateCriteriaStatus();
@@ -3670,7 +3709,7 @@
           selectEvidenceCriterion(target);
           const panel = form.querySelector(`[data-evidence-panel="${target}"]`);
           if (panel) {
-            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            panel.scrollIntoView({ behavior: 'auto', block: 'start' });
           }
         }
         updateCriteriaStatus();
@@ -3877,7 +3916,7 @@
           e.preventDefault();
           all('[data-editor-step]').find(node => node.dataset.editorStep === '1')?.click();
           const mapCard = $('[data-location-map-card]');
-          if (mapCard) mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (mapCard) mapCard.scrollIntoView({ behavior: 'auto', block: 'center' });
           const landAreaInput = field('land_area');
           if (landAreaInput) landAreaInput.focus();
         };
@@ -3888,7 +3927,7 @@
           e.preventDefault();
           all('[data-editor-step]').find(node => node.dataset.editorStep === '1')?.click();
           const mapCard = $('[data-location-map-card]');
-          if (mapCard) mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (mapCard) mapCard.scrollIntoView({ behavior: 'auto', block: 'center' });
           const latInput = field('lat') || field('latitude');
           if (latInput) latInput.focus();
         };
@@ -5357,7 +5396,7 @@
         parent = parent.parentElement;
       }
       input.focus();
-      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.scrollIntoView({ behavior: 'auto', block: 'center' });
     }
 
     function assessHazards() {
@@ -5656,7 +5695,7 @@
     form.addEventListener('click',event=>{
       const button=event.target.closest('[data-show-hazard-source]');
       if(!button)return;
-      const details=$('[data-map-layers]');if(details){details.open=true;details.scrollIntoView({block:'nearest',behavior:'smooth'});}
+      const details=$('[data-map-layers]');if(details){details.open=true;details.scrollIntoView({block:'nearest',behavior:'auto'});}
     });
     function renderLayers() {
       hazardLayers.forEach(layer=>layer.remove());hazardLayers=[];
@@ -5932,7 +5971,7 @@
       const row=$(`[data-radar-row-id="${featId}"]`);
       if(row){
         row.classList.add('is-active-target');
-        row.scrollIntoView({behavior:'smooth',block:'nearest'});
+        row.scrollIntoView({behavior:'auto',block:'nearest'});
       }
     }
     function applyRadarPayload(payload, reference, businessType) {

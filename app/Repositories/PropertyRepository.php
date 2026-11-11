@@ -23,6 +23,8 @@ require_once dirname(__DIR__) . '/Support/PropertyParcel.php';
 require_once dirname(__DIR__) . '/Support/PropertyContact.php';
 require_once dirname(__DIR__) . '/Support/PropertyAuthorityToSellFiles.php';
 require_once dirname(__DIR__) . '/Support/PropertyHazardScreening.php';
+require_once dirname(__DIR__) . '/Support/V2StructuredFacts.php';
+require_once dirname(__DIR__) . '/Support/V2PropertyAssessmentService.php';
 require_once dirname(__DIR__) . '/Support/auth.php';
 
 final class PropertyRepository
@@ -815,6 +817,35 @@ final class PropertyRepository
             if (!isset($property['score']) || $property['score'] === null) {
                 $property['score'] = $property['iaiScore'] ?? $rawDbScore;
             }
+
+            // Hydrate V2 Structured Facts and V2 Evidence-Backed Evaluation
+            $structuredFacts = $this->decodeJson($row['structured_facts_json'] ?? null);
+            if (empty($structuredFacts)) {
+                $structuredFacts = \App\Support\V2StructuredFacts::generateBaselineFacts($row);
+            }
+            $property['structuredFacts'] = $structuredFacts;
+            $property['structured_facts'] = $structuredFacts;
+
+            $v2Assessment = $this->decodeJson($row['v2_assessment_json'] ?? null);
+            if (empty($v2Assessment)) {
+                $v2Assessment = \App\Support\V2PropertyAssessmentService::evaluate($property);
+            }
+            $property['v2Assessment'] = $v2Assessment;
+            $property['v2_assessment'] = $v2Assessment;
+            $property['v2EligibilityStatus'] = $row['v2_eligibility_status'] ?? ($v2Assessment['eligibility']['status'] ?? null);
+            $property['v2IaiScore'] = isset($row['v2_iai_score']) ? (float) $row['v2_iai_score'] : ($v2Assessment['iai_score'] ?? null);
+
+            // Preserve historical v1 evaluation
+            $property['v1Assessment'] = [
+                'score' => $property['score'] ?? null,
+                'mceScore' => $property['mceScore'] ?? null,
+                'iaiScore' => $property['iaiScore'] ?? null,
+                'assessmentCriteria' => $property['assessmentCriteria'] ?? [],
+                'assessmentStatus' => $property['assessmentStatus'] ?? null,
+                'assessmentVersion' => $property['assessmentVersion'] ?? 'v1.0',
+                'methodology' => $property['assessmentMethod'] ?? 'LOCUS-SF v1.0 MCE Model',
+            ];
+
             return $property;
         }, $rows);
     }

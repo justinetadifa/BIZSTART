@@ -120,8 +120,9 @@ console.log('✅ PASS: MCE additive formula verified with strict 20/20/20/10/15/
 console.log('\n--- Check 8: Final Review & Submission Reliability ---');
 assert(brokerJsContent.includes('isBrokerSubmitting'), 'Broker workspace prevents duplicate submission');
 assert(adminJsContent.includes('isAdminSubmitting'), 'Admin workspace prevents duplicate submission');
-assert(brokerJsContent.includes('aria-busy'), 'Broker workspace displays accessible loading state');
-assert(adminJsContent.includes('aria-busy'), 'Admin workspace displays accessible loading state');
+assert(jsContent.includes("form.setAttribute('aria-busy', 'true')"), 'Shared submission helper exposes accessible loading state');
+assert(brokerJsContent.includes('window.SFCPropertySubmission.pending(form, editor)'), 'Broker workspace uses shared accessible loading state');
+assert(adminJsContent.includes('window.SFCPropertySubmission.pending(form, editor)'), 'Admin workspace uses shared accessible loading state');
 assert(brokerJsContent.includes('form.elements.id.value = String(savedPropertyId)'), 'Broker workspace records created ID to prevent duplicates on retry');
 assert(adminJsContent.includes('form.elements.id.value = String(savedPropertyId)'), 'Admin workspace records created ID to prevent duplicates on retry');
 assert(brokerJsContent.includes('submitLabelText'), 'Broker workspace updates contextual submit button text');

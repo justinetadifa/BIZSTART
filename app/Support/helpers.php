@@ -60,7 +60,15 @@ function read_request_input(): array
 
 function respond_json(array $payload, int $status = 200): void
 {
+    // Compress JSON at the response boundary; binary downloads retain their
+    // original Content-Length and streaming behavior.
+    if (PHP_SAPI !== 'cli' && extension_loaded('zlib') && !headers_sent() && !ini_get('zlib.output_compression')) {
+        ini_set('zlib.output_compression', '1');
+        ini_set('zlib.output_compression_level', '4');
+    }
     http_response_code($status);
+    // Apache's PHP handler needs an explicit reason phrase for this nonstandard status.
+    if ($status === 419) header('HTTP/1.1 419 Authentication Timeout', true, 419);
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 }

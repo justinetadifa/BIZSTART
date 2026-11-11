@@ -186,8 +186,8 @@ body[data-page="city-landing"] #incentive-recipients {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  #incentive-recipients *, #incentive-recipients *::before, #incentive-recipients *::details-content { transition: none !important; animation: none !important; }
-  #incentive-recipients :is(.locator-terms-link, .locator-disclosure) { transform: none !important; }
+  html:not([data-home-motion="on"]) #incentive-recipients *, html:not([data-home-motion="on"]) #incentive-recipients *::before, html:not([data-home-motion="on"]) #incentive-recipients *::details-content { transition: none !important; animation: none !important; }
+  html:not([data-home-motion="on"]) #incentive-recipients :is(.locator-terms-link, .locator-disclosure) { transform: none !important; }
 }
 @media (prefers-reduced-transparency: reduce) {
   #incentive-recipients :is(.locator-card, .locator-terms-link, .locator-directory) { background: #fbfbf8; backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -700,14 +700,14 @@ body[data-page="city-landing"] #incentive-recipients {
   #why-invest .city-why-btn { width: 100% !important; justify-content: flex-start !important; }
 }
 @media (prefers-reduced-motion: reduce) {
-  body[data-page="city-landing"] #why-invest *,
-  body[data-page="city-landing"] #why-invest *::before { transition: none !important; animation: none !important; }
-  #why-invest .city-why-card:is(:hover, :focus-within, :active),
-  #why-invest :is(.city-why-details-inner, .city-why-btn, .discovery-continue, .city-why-btn-triangle) { transform: none !important; }
+  html:not([data-home-motion="on"]) body[data-page="city-landing"] #why-invest *,
+  html:not([data-home-motion="on"]) body[data-page="city-landing"] #why-invest *::before { transition: none !important; animation: none !important; }
+  html:not([data-home-motion="on"]) #why-invest .city-why-card:is(:hover, :focus-within, :active),
+  html:not([data-home-motion="on"]) #why-invest :is(.city-why-details-inner, .city-why-btn, .discovery-continue, .city-why-btn-triangle) { transform: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(#at-a-glance, #incentive-recipients, #why-invest) *,
-  :is(#at-a-glance, #incentive-recipients, #why-invest) *::before { animation: none !important; transition: none !important; }
-  #why-invest .city-why-card:hover { transform: none !important; }
+  html:not([data-home-motion="on"]) :is(#at-a-glance, #incentive-recipients, #why-invest) *,
+  html:not([data-home-motion="on"]) :is(#at-a-glance, #incentive-recipients, #why-invest) *::before { animation: none !important; transition: none !important; }
+  html:not([data-home-motion="on"]) #why-invest .city-why-card:hover { transform: none !important; }
 }

@@ -114,6 +114,11 @@
 
     hide(delay = 0) {
       if (!hudOverlay) return Promise.resolve();
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        hudOverlay.classList.remove('is-visible');
+        hudOverlay.classList.add('locus-hud-hidden');
+        return Promise.resolve();
+      }
       return new Promise((resolve) => {
         setTimeout(() => {
           hudOverlay.classList.remove('is-visible');

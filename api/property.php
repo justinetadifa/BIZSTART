@@ -21,6 +21,7 @@ api_handle(function (array $container): array {
     }
     if ($method === 'GET') {
         $property = $container['properties']->find($propertyId, $user);
+        \App\Support\SiteMetrics::recordVisit($container['pdo']);
         $property = $container['decisionEngine']->decorateProperty($property, [
             'voteSummary' => $container['votes']->summaryMap([$propertyId])[$propertyId] ?? [],
             'messageSummary' => $container['messages']->propertySummaryMap([$propertyId])[$propertyId] ?? [],

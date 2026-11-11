@@ -1,9 +1,9 @@
 /* Shared interaction timing. Native scrolling, geometry and control state stay
    with each component; these opt-in effects only soften visual feedback. */
 :root {
-  --locus-interaction-fast: 140ms;
-  --locus-interaction-control: 220ms;
-  --locus-interaction-panel: 280ms;
+  --locus-interaction-fast: 120ms;
+  --locus-interaction-control: 120ms;
+  --locus-interaction-panel: 240ms;
   --locus-interaction-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -13,7 +13,24 @@
 }
 
 @layer locus-foundation {
-  @media screen and (prefers-reduced-motion: no-preference) {
+  /* The white halo keeps the branded focus ring clear on navy and red surfaces. */
+  body[data-page] :where(a, button, input, select, textarea, summary, [tabindex], [role="button"]):focus-visible {
+    outline: 3px solid #9e1b22 !important;
+    outline-offset: 3px !important;
+    box-shadow: 0 0 0 3px #fff !important;
+  }
+
+  body[data-page] [aria-busy="true"] button[type="submit"] {
+    cursor: wait;
+  }
+
+  body[data-page] .pw-feedback-region [data-editor-retry] {
+    margin-top: 8px;
+    color: #11224d;
+    border-color: #11224d;
+  }
+
+  @media screen {
     body[data-page] [data-locus-press] {
       transition-property: transform, scale, background-color, border-color, color, box-shadow, opacity !important;
       transition-duration: var(--locus-interaction-control) !important;
@@ -39,7 +56,13 @@
 
     /* New panel content is immediately legible, with no position or size change. */
     body[data-page] .locus-panel-enter-active {
-      animation: locus-panel-enter var(--locus-interaction-control) var(--locus-interaction-ease) 1 backwards !important;
+      animation: locus-panel-enter var(--locus-interaction-panel) var(--locus-interaction-ease) 1 backwards !important;
+    }
+
+    @media (max-width: 560px) {
+      body[data-page="city-explorer"] #cityFilters.filters-expanded [data-extra-filter] {
+        animation: locus-panel-enter var(--locus-interaction-panel) var(--locus-interaction-ease) 1 backwards !important;
+      }
     }
 
     /* Unsupported browsers retain instant native dialog open/close behavior. */
@@ -100,16 +123,27 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    body[data-page] [data-locus-press] {
+    /* Include existing component effects and pseudo-elements, while retaining
+       text, validation, focus rings and native map controls. */
+    html:not([data-home-motion="on"]) body[data-page],
+    html:not([data-home-motion="on"]) body[data-page] *,
+    html:not([data-home-motion="on"]) body[data-page] *::before,
+    html:not([data-home-motion="on"]) body[data-page] *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+
+    html:not([data-home-motion="on"]) body[data-page] [data-locus-press] {
       scale: none !important;
       transition: none !important;
     }
-    body[data-page] .locus-panel-enter-active {
+    html:not([data-home-motion="on"]) body[data-page] .locus-panel-enter-active {
       animation: none !important;
     }
-    body[data-page] dialog[data-locus-dialog],
-    body[data-page] dialog[data-locus-dialog]::backdrop,
-    body[data-page] details[data-locus-disclosure]::details-content {
+    html:not([data-home-motion="on"]) body[data-page] dialog[data-locus-dialog],
+    html:not([data-home-motion="on"]) body[data-page] dialog[data-locus-dialog]::backdrop,
+    html:not([data-home-motion="on"]) body[data-page] details[data-locus-disclosure]::details-content {
       transition: none !important;
     }
   }

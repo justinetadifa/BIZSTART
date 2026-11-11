@@ -105,7 +105,7 @@ $pwSectionIcons = [
     <input type="hidden" name="nearby_screening">
     <script type="application/json" data-classification-catalog><?= json_encode(\App\Support\PropertyCatalog::classificationCatalog(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
     <div class="pw-content">
-      <div class="pw-feedback-region"><p class="pw-form-message" data-editor-message role="status" tabindex="-1"></p></div>
+      <div class="pw-feedback-region"><p class="pw-form-message" data-editor-message role="status" aria-live="polite" aria-atomic="true" tabindex="-1"></p><button type="button" class="pw-button pw-button-light" data-editor-retry hidden>Retry submission</button></div>
       <section class="pw-panel" data-editor-panel="0">
         <div class="pw-page-intro">
           <div><span class="pw-page-eyebrow">THE LISTING</span><h3>A strong first impression starts here.</h3><p>Describe the property as it is. You can save your progress at any time.</p></div>

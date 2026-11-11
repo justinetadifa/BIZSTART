@@ -8,11 +8,15 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const depthAllowed = matchMedia('(min-width: 851px) and (pointer: fine)');
   const root = document.documentElement;
+  // The homepage explicitly opts into full motion. Other routes keep the
+  // system preference, including account and property workspaces.
+  const motionForced = root.dataset.homeMotion === 'on';
+  const restoringHistory = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
   const selector = [
     '[data-locus-reveal]', 'main > section', '.section-block',
     '.city-section-heading', '.discovery-section-heading', '.city-concierge-header',
-    '.glance-profile-header', '.glance-city-portrait',
-    '.glance-fact', '.locator-section-header', '.locator-card',
+    '.glance-profile-header', '.glance-city-portrait', '.glance-photo-well', '.glance-insight', '.civic-column',
+    '.glance-fact', '.locator-section-header', '.locator-section-intro', '.locator-card',
     '.city-why-card', '.discovery-trail', '.city-concierge-card',
     '.city-property-card', '.city-about', '.city-benefits > article',
     '.city-detail-panel', '.city-stats > .city-stat', '.city-account-gate',
@@ -37,8 +41,8 @@
   ].join(',');
   const excluded = [
     '[data-locus-motion="off"]', '[data-locus-hero]', '.city-hero',
-    '.city-hero-frame', '.admin-hero-card', '.hero', '[data-hero-stage]',
-    'header', 'nav', 'footer', 'dialog', '[role="dialog"]', '[role="tabpanel"]',
+    '.city-hero-frame', '.admin-hero-card', '.broker-hero', '.investor-hero', '.hero', '[data-hero-stage]',
+    '.city-header', '.site-header', 'nav', 'footer', 'dialog', '[role="dialog"]', '[role="tabpanel"]',
     '[role="tablist"]', '[role="grid"]', '[role="log"]', '[role="status"]', '[role="alert"]',
     '[inert]', '[hidden]', 'table', '.city-table-wrap', '.report-table-scroll',
     '.leaflet-container', '.maplibregl-map', '.city-map-panel', '.city-map-canvas',
@@ -50,9 +54,10 @@
   ].join(',');
   const containedIslands = 'dialog, [role="dialog"], [role="tabpanel"], [role="tablist"], [role="grid"], [role="log"], form, table, .city-table-wrap, .report-table-scroll, .leaflet-container, .maplibregl-map, .city-map-panel, .city-map-canvas, .map-panel-card, .explorer-map-studio, .property-wizard, .pw-workspace, .ia-conversation, .ia-conversation-body, .ia-map-panel, .thread-card, .visit-thread-card, #locus-react-hero, #locus-civic-metrics, [data-locus-motion="off"]';
   const interactiveIslands = '#locus-react-hero, #locus-civic-metrics, .leaflet-container, .maplibregl-map, .city-map-panel, .city-map-canvas, [data-locus-motion="off"], [data-locus-interaction="off"], [role="slider"], [role="spinbutton"], .sfc-password-toggle';
-  const actionSelector = 'button, a.city-button, a.account-submit, a[class*="-btn"], a[class*="-button"], a.ia-card-actions-link, .ia-card-actions > a, .city-header nav > a';
-  const disclosureSelector = 'details.property-disclosure, details.property-criterion-disclosure, details.property-assessment-disclosure, details.city-method, details.ia-card-disclosure, details.ia-assessment';
+  const actionSelector = 'button, [role="button"], a.city-button, a.account-submit, a[class*="-btn"], a[class*="-button"], a.ia-card-actions-link, .ia-card-actions > a, .city-header nav > a';
+  const disclosureSelector = 'details';
   const panelSelector = '[role="tabpanel"], [data-media-pane], .ci-tab-pane';
+  const sectionSelector = '[data-locus-reveal="section"], .glance-profile-header, .glance-photo-well, .glance-insight, .civic-column, .locator-section-header, .locator-section-intro, .city-section-heading, .discovery-section-heading, .city-concierge-header, .property-section-heading, .ci-section-header';
   const records = new WeakMap();
   const seenKeys = new Set();
   const pending = new Set();
@@ -71,7 +76,7 @@
   let disabled = false;
   const addedRoots = new Set();
 
-  const enabled = () => !disabled && !suspended && !reduced.matches;
+  const enabled = () => !disabled && !suspended && (motionForced || !reduced.matches);
   const hasBox = node => node.getClientRects().length > 0;
   const isScrollable = style => /(auto|scroll)/.test(`${style.overflowX} ${style.overflowY}`);
 
@@ -92,7 +97,12 @@
   // Transforming a parent must never change a map, fixed control or nested
   // scroll panel's coordinate system. Guard both the ancestry and descendants.
   function safe(node) {
-    if (!(node instanceof HTMLElement) || !main.contains(node) || node.closest(excluded) || !hasBox(node)) return false;
+    if (!(node instanceof HTMLElement) || !main.contains(node) || !hasBox(node)) return false;
+    // Civic columns join only after React has hydrated. Their artwork and
+    // controls retain their own transforms; maps and scroll panels stay excluded.
+    const civicColumn = node.matches('#locus-civic-metrics .civic-column')
+      && node.closest('[data-civic-ready="true"]');
+    if (node.closest(excluded) && !civicColumn) return false;
     for (let parent = node; parent && parent !== main; parent = parent.parentElement) {
       const style = getComputedStyle(parent);
       if (style.position === 'fixed' || style.position === 'sticky' || isScrollable(style)) return false;
@@ -104,6 +114,7 @@
     if (node.childElementCount > 48) return false;
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT, {
       acceptNode(child) {
+        if (child instanceof SVGElement) return NodeFilter.FILTER_REJECT;
         if (++inspected > 128) { unsafe = true; return NodeFilter.FILTER_REJECT; }
         if (child.hidden || child.inert || child.getAttribute('aria-hidden') === 'true') return NodeFilter.FILTER_REJECT;
         const style = getComputedStyle(child);
@@ -125,7 +136,6 @@
 
   function clearAnimation(node) {
     node.classList.remove('locus-reveal-active');
-    node.style.removeProperty('--locus-motion-delay');
     node.style.removeProperty('--locus-motion-opacity');
     active.delete(node);
   }
@@ -149,13 +159,6 @@
     }
   }
 
-  function staggerIndex(node) {
-    const unit = node.closest('.glance-stat-group') || node;
-    if (!unit.parentElement) return 0;
-    const siblings = [...unit.parentElement.children].filter(child => child.matches(selector) || child.matches('.glance-stat-group'));
-    return Math.max(0, siblings.indexOf(unit)) % 4;
-  }
-
   function enter(node) {
     const record = records.get(node);
     if (!record || record.seen) return;
@@ -165,7 +168,6 @@
     if (!enabled() || !node.isConnected || !hasBox(node) || node.contains(document.activeElement)) return;
     const bounds = node.getBoundingClientRect();
     if (bounds.bottom < 0) return;
-    node.style.setProperty('--locus-motion-delay', `${record.index * 75}ms`);
     node.style.setProperty('--locus-motion-opacity', getComputedStyle(node).opacity);
     active.add(node);
     node.classList.add('locus-reveal-active');
@@ -173,17 +175,20 @@
     // cannot leave the unit transparent or translated indefinitely.
   }
 
-  function reveal(node, options = {}) {
+  function reveal(node) {
     if (!(node instanceof HTMLElement) || records.has(node)) return;
     if ([...node.querySelectorAll(selector)].some(child => !child.closest('[hidden], [inert]'))) return;
     if (!safe(node)) return;
     if (node.parentElement?.closest('[data-locus-motion="pending"], .locus-reveal-active')) return;
-    const record = { seen: false, key: identity(node), index: Math.min(3, Math.max(0, options.index ?? staggerIndex(node))) };
+    const record = { seen: false, key: identity(node) };
+    const sectionUnit = node.matches(sectionSelector);
+    if (sectionUnit) node.dataset.locusMotionKind = 'section';
     records.set(node, record);
     const bounds = node.getBoundingClientRect();
     // The initial viewport, restored scroll position, heroes and previous
     // content stay stable. Only content still below the viewport can reveal.
-    if (!enabled() || !revealObserver || (record.key && seenKeys.has(record.key)) || bounds.top <= innerHeight + 80) {
+    const alreadyInView = bounds.top <= innerHeight * (sectionUnit ? .55 : 1);
+    if (!enabled() || restoringHistory || !revealObserver || (record.key && seenKeys.has(record.key)) || alreadyInView) {
       remember(node, record);
       return;
     }
@@ -295,6 +300,19 @@
     });
     interactions.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'], attributeOldValue: true });
     document.addEventListener('click', event => {
+      const link = event.target.closest?.('a[href^="#"]');
+      if (link && !event.defaultPrevented && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+        // The shared <base> points at the site root. Resolve local fragments
+        // against this document so native anchor navigation never reloads it.
+        const hash = link.getAttribute('href');
+        try {
+          const target = hash.length > 1 && document.getElementById(decodeURIComponent(hash.slice(1)));
+          if (target) {
+            finish(target);
+            link.href = `${location.pathname}${location.search}${hash}`;
+          }
+        } catch { /* Leave malformed fragments to the browser. */ }
+      }
       const tab = event.target.closest?.('[role="tab"][aria-controls]');
       if (tab && tab.getAttribute('aria-selected') !== 'true' && !tab.closest(interactiveIslands)) requestAnimationFrame(() => showPanel(document.getElementById(tab.getAttribute('aria-controls'))));
     }, true);
@@ -327,7 +345,7 @@
     revealObserver = new IntersectionObserver(entries => {
       try { entries.filter(entry => entry.isIntersecting).forEach(entry => enter(entry.target)); }
       catch { failOpen(); }
-    }, { rootMargin: '0px 0px 80px 0px', threshold: 0 });
+    }, { rootMargin: `0px 0px -${Math.round(Math.min(160, innerHeight * .18))}px 0px`, threshold: 0 });
     depthObserver = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) visibleArtwork.add(entry.target);
@@ -344,6 +362,11 @@
     });
     document.addEventListener('focusin', event => finish(event.target));
     window.addEventListener('hashchange', revealHash);
+    document.addEventListener('locus:motion-refresh', event => {
+      if (event.detail instanceof HTMLElement) {
+        try { refresh(event.detail); } catch { failOpen(); }
+      }
+    });
     window.addEventListener('scroll', scheduleDepth, { passive: true });
     window.addEventListener('resize', scheduleDepth, { passive: true });
     window.addEventListener('beforeprint', () => { finish(); resetDepth(); });
@@ -355,7 +378,7 @@
     window.addEventListener('pagehide', () => { suspended = true; finish(); resetDepth(); });
     window.addEventListener('pageshow', () => { suspended = false; scheduleDepth(); });
     reduced.addEventListener('change', () => {
-      if (reduced.matches) { finish(); resetDepth(); }
+      if (reduced.matches && !motionForced) { finish(); resetDepth(); }
       else scheduleDepth();
     });
     depthAllowed.addEventListener('change', () => {

@@ -1,8 +1,9 @@
-/* Shared native motion. Nothing is hidden while waiting for JavaScript or IO. */
+/* Baseline content is visible. JavaScript prepares only safe, observed units. */
 :root {
-  --locus-motion-distance: 24px;
-  --locus-motion-duration: 650ms;
-  --locus-motion-stagger: 75ms;
+  --locus-motion-distance: 8px;
+  --locus-motion-duration: 240ms;
+  --locus-section-distance: 20px;
+  --locus-section-duration: 520ms;
   --locus-motion-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -16,14 +17,26 @@ html {
   to { opacity: var(--locus-motion-opacity, 1); translate: 0 0; }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media screen {
+  /* Give large editorial units time to arrive visibly inside the viewport.
+     Dense cards keep the shorter shared interaction rhythm. */
+  [data-locus-motion-kind="section"] {
+    --locus-motion-distance: var(--locus-section-distance);
+    --locus-motion-duration: var(--locus-section-duration);
+  }
+
+  [data-locus-motion-kind="section"][data-locus-motion="pending"] {
+    opacity: 0;
+    translate: 0 var(--locus-motion-distance);
+  }
+
   .locus-reveal-active {
-    animation: locus-enter var(--locus-motion-duration) var(--locus-motion-ease) var(--locus-motion-delay, 0ms) 1 backwards;
+    animation: locus-enter var(--locus-motion-duration) var(--locus-motion-ease) 1 backwards;
   }
 }
 
 /* Only opted-in, noninteractive artwork moves. No scale or clipping changes. */
-@media (prefers-reduced-motion: no-preference) and (min-width: 851px) and (pointer: fine) {
+@media (min-width: 851px) and (pointer: fine) {
   .locus-parallax { translate: 0 var(--locus-parallax-y, 0px); }
 }
 
@@ -43,9 +56,9 @@ body[data-page="landing"] .landing-shell .final-cta-card {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto !important; }
-  .locus-reveal-active { animation: none !important; }
-  .locus-parallax { translate: none !important; }
+  html:not([data-home-motion="on"]) { scroll-behavior: auto !important; }
+  html:not([data-home-motion="on"]) .locus-reveal-active { animation: none !important; }
+  html:not([data-home-motion="on"]) .locus-parallax { translate: none !important; }
 }
 
 @media print {

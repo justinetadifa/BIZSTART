@@ -519,6 +519,63 @@ final class ZoningRulesEngine
             return $normalized;
         }
 
+        $aliases = [
+            'cafe' => 'food_cafe',
+            'café' => 'food_cafe',
+            'coffee' => 'food_cafe',
+            'coffee shop' => 'food_cafe',
+            'restaurant' => 'food_restaurant',
+            'dining' => 'food_restaurant',
+            'fast food' => 'food_restaurant',
+            'eatery' => 'food_restaurant',
+            'bakery' => 'food_bakery',
+            'retail' => 'retail_convenience',
+            'convenience store' => 'retail_convenience',
+            'convenience' => 'retail_convenience',
+            'commercial goods' => 'retail_convenience',
+            'store' => 'retail_convenience',
+            'shop' => 'retail_convenience',
+            'supermarket' => 'retail_supermarket',
+            'grocery' => 'retail_supermarket',
+            'pharmacy' => 'retail_pharmacy',
+            'drugstore' => 'retail_pharmacy',
+            'hardware' => 'retail_hardware',
+            'office' => 'office_professional',
+            'professional office' => 'office_professional',
+            'bpo' => 'office_bpo',
+            'call center' => 'office_bpo',
+            'it office' => 'office_bpo',
+            'it services' => 'office_bpo',
+            'warehouse' => 'log_warehouse',
+            'warehousing' => 'log_warehouse',
+            'logistics' => 'log_warehouse',
+            'distribution center' => 'log_distribution_center',
+            'transport terminal' => 'log_transport_terminal',
+            'hotel' => 'tour_hotel',
+            'hospitality' => 'tour_hotel',
+            'resort' => 'tour_resort',
+            'light manufacturing' => 'ind_light_manufacturing',
+            'light industry' => 'ind_light_manufacturing',
+            'heavy manufacturing' => 'ind_heavy_manufacturing',
+            'heavy industry' => 'ind_heavy_manufacturing',
+            'refinery' => 'ind_heavy_manufacturing',
+            'petrochemical' => 'ind_heavy_manufacturing',
+            'petrochemical refinery' => 'ind_heavy_manufacturing',
+            'heavy petrochemical refinery' => 'ind_heavy_manufacturing',
+            'school' => 'inst_school',
+            'hospital' => 'inst_hospital',
+            'clinic' => 'inst_hospital',
+        ];
+        if (isset($aliases[$normalized])) {
+            return $aliases[$normalized];
+        }
+
+        foreach ($aliases as $needle => $code) {
+            if (str_contains($normalized, $needle)) {
+                return $code;
+            }
+        }
+
         return '';
     }
 
@@ -533,6 +590,13 @@ final class ZoningRulesEngine
         }
         if (isset(self::ZONING_DISTRICTS[$normalized])) {
             return $normalized;
+        }
+
+        if (preg_match('/^(C-[123]|R-[123]|I-[12]|TZ|AIZ|GI|PDZ)\b/i', $normalized, $matches)) {
+            $matchedCode = strtoupper($matches[1]);
+            if (isset(self::ZONING_DISTRICTS[$matchedCode])) {
+                return $matchedCode;
+            }
         }
 
         $aliases = [

@@ -6,6 +6,7 @@ $context = sfc_web_context();
 sfc_render_head('Property Details | LOCUS-SF', $context, ['page' => 'city-details', 'role' => $context['user']['role'] ?? 'guest']);
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-details.css<?= sfc_asset_version('css/property-details.css') ?>">
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/v2-assessment.css<?= sfc_asset_version('css/v2-assessment.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/business-opportunities.css<?= sfc_asset_version('css/business-opportunities.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-presentation.css<?= sfc_asset_version('css/property-presentation.css') ?>">
 <?php

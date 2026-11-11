@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="residents" viewBox="0 0 120 104">
+    <title>Residents — a community of three people</title>
+    <ellipse cx="60" cy="90" rx="47" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="M17 85V68c0-12 8-20 19-20s19 8 19 20v17Z" fill="#bfd8e9"/>
+    <path d="M20 71c0-10 5-17 12-20l-1 34H20Z" fill="#95b7d0"/>
+    <path d="M30 44h12v12l-6 5-6-5Z" fill="#c78c66"/>
+    <ellipse cx="36" cy="35" rx="12" ry="15" fill="#d7a584"/>
+    <path d="M24 35v-5c0-9 5-15 13-15 9 0 13 7 12 15-9 0-14-3-18-6l-3 11Z" fill="#11224d"/>
+    <path d="M31 41q5 5 10 0" fill="none" stroke="#faf6ec" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M69 85V67c0-12 8-20 18-20 11 0 19 8 19 20v18Z" fill="#9e1b22"/>
+    <path d="M88 49c10 1 16 8 16 20v16H94V65Z" fill="#7f151e"/>
+    <path d="M81 42h12v13l-6 5-6-5Z" fill="#c78c66"/>
+    <path d="M73 39V29c0-10 6-17 14-17 10 0 15 8 15 18v16l-9-2H77Z" fill="#9b6750"/>
+    <ellipse cx="87" cy="33" rx="11" ry="14" fill="#d7a584"/>
+    <path d="M75 32c0-12 5-17 12-17 8 0 13 7 13 17-8-1-12-4-16-9-2 5-5 8-9 9Z" fill="#9b6750"/>
+    <path d="M83 39q4 4 8 0" fill="none" stroke="#faf6ec" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M38 89V66c0-14 9-24 22-24s23 10 23 24v23Z" fill="#11224d"/>
+    <path d="m53 47 7 10 7-10 6 3-5 39H52l-5-39Z" fill="#29436a"/>
+    <path d="M54 38h12v12l-6 7-6-7Z" fill="#bd805d"/>
+    <ellipse cx="60" cy="28" rx="13" ry="16" fill="#c78c66"/>
+    <path d="M47 29v-7c0-10 6-16 14-16 9 0 14 7 13 17-11 1-16-3-20-5l-3 11Z" fill="#11224d"/>
+    <path d="M55 35q5 5 10 0" fill="none" stroke="#faf6ec" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M46 68v17M75 68v17" stroke="#bfd8e9" stroke-opacity=".3" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m58 60 2-3 2 3-2 14Z" fill="#d8b16c"/>
+  </symbol>
+
+  <symbol id="households" viewBox="0 0 120 104">
+    <title>Households — a welcoming home and family</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m21 52 39-24 36 20v35L60 96 21 77Z" fill="#bfd8e9"/>
+    <path d="m21 52 39-24v68L21 77Z" fill="#faf6ec"/>
+    <path d="m60 28 36 20v35L60 96Z" fill="#95b7d0"/>
+    <path d="m12 50 42-35 41 22 12 20-47-24-40 25Z" fill="#11224d"/>
+    <path d="m54 15 41 22 12 20-47-24Z" fill="#9e1b22"/>
+    <path d="m54 15 6 18-40 25-8-8Z" fill="#29436a"/>
+    <path d="M31 48v15l15 7V55Z" fill="#bfd8e9"/>
+    <path d="m38 52 1 14M31 56l15 7" stroke="#faf6ec" stroke-width="2"/>
+    <path d="m70 53 14 7v14l-14-7Z" fill="#11224d"/>
+    <path d="m72 55 10 5v4l-10-5Z" fill="#bfd8e9"/>
+    <path d="m72 65 10 5v2l-10-5Z" fill="#29436a"/>
+    <path d="m48 67 11-7 10 5v22l-10 7-11-6Z" fill="#11224d"/>
+    <path d="m51 68 8-5v27l-8-4Z" fill="#d8b16c"/>
+    <path d="m45 89 14 7 15-9 6 3-21 12-20-10Z" fill="#bfd8e9"/>
+    <path d="M97 81V61" stroke="#9b6750" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="98" cy="57" rx="10" ry="15" fill="#7e9b8a"/>
+    <path d="M98 44c8 6 11 18 2 25 11-1 14-10 9-18-3-5-7-7-11-7Z" fill="#587c6c"/>
+    <circle cx="24" cy="75" r="4" fill="#c78c66"/>
+    <path d="M18 92V84c0-4 2-6 6-6s6 2 6 6v8Z" fill="#9e1b22"/>
+    <circle cx="37" cy="80" r="3" fill="#d7a584"/>
+    <path d="M32 95v-7c0-3 2-5 5-5s5 2 5 5v7Z" fill="#11224d"/>
+    <path d="m28 85 5 3" stroke="#c78c66" stroke-width="3" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="businesses" viewBox="0 0 120 104">
+    <title>Registered businesses — a local storefront</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m18 49 62-7 23 13v30l-62 12-23-14Z" fill="#bfd8e9"/>
+    <path d="m18 49 62-7v43L18 96Z" fill="#faf6ec"/>
+    <path d="m80 42 23 13v30L80 97Z" fill="#95b7d0"/>
+    <path d="m16 32 61-9 27 14-61 11Z" fill="#29436a"/>
+    <path d="m16 32 61-9v17l-61 10Z" fill="#11224d"/>
+    <path d="m77 23 27 14v17L77 40Z" fill="#29436a"/>
+    <path d="m27 35 39-6v5l-39 6Z" fill="#bfd8e9" opacity=".8"/>
+    <path d="m16 48 61-10 12 16-65 11Z" fill="#9e1b22"/>
+    <path d="m26 46 9-1 11 16-10 2ZM47 43l9-2 11 16-10 2ZM67 40l10-2 12 16-11 2Z" fill="#faf6ec"/>
+    <path d="M24 65v5q6 4 12-2v-5ZM46 61v5q6 4 11-2v-5ZM67 57v5q6 3 11-3v-3Z" fill="#9e1b22"/>
+    <path d="M36 63v5q5 3 10-2v-5ZM57 59v5q5 3 10-2v-5ZM78 56v3q6 3 11-3v-2Z" fill="#faf6ec"/>
+    <path d="m27 73 25-4v16l-25 4Z" fill="#11224d"/>
+    <path d="m29 75 21-4v6l-21 4Z" fill="#bfd8e9"/>
+    <path d="m39 72 1 15" stroke="#faf6ec" stroke-width="2"/>
+    <path d="m61 68 13-2v23l-13 3Z" fill="#11224d"/>
+    <path d="m64 71 7-1v12l-7 2Z" fill="#bfd8e9"/>
+    <circle cx="70" cy="85" r="1.2" fill="#d8b16c"/>
+    <path d="m88 61 9 5v13l-9-4Z" fill="#11224d" opacity=".6"/>
+    <path d="m10 86 13 3-2 9-9-2Z" fill="#d8b16c"/>
+    <path d="M16 89c-8-6-8-12-3-12 3 0 4 5 4 8 0-7 2-11 5-10 6 2 1 11-6 14Z" fill="#7e9b8a"/>
+  </symbol>
+
+  <symbol id="finance" viewBox="0 0 120 104">
+    <title>Financial institutions — a bank and coin</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m15 45 58-9 25 13v32l-58 12-25-14Z" fill="#bfd8e9"/>
+    <path d="m15 45 58-9v45L15 93Z" fill="#faf6ec"/>
+    <path d="m73 36 25 13v32L73 93Z" fill="#95b7d0"/>
+    <path d="m11 43 31-27 35 17 25 16-29-8-58 10Z" fill="#11224d"/>
+    <path d="m42 16 31 17v8l29 8-25-16Z" fill="#29436a"/>
+    <path d="m21 41 22-19 23 12Z" fill="#d8b16c"/>
+    <path d="m21 45 47-8v6l-47 8Z" fill="#bfd8e9"/>
+    <path d="m22 52 9-2v26l-9 2ZM39 49l9-2v26l-9 2ZM57 46l9-1v26l-9 2Z" fill="#faf6ec"/>
+    <path d="m28 51 3-1v26l-3 1ZM45 48l3-1v26l-3 1ZM63 46l3-1v26l-3 1Z" fill="#d8b16c" opacity=".7"/>
+    <path d="m19 51 15-3v4l-15 3ZM36 48l15-3v4l-15 3ZM54 45l15-2v4l-15 2Z" fill="#faf6ec"/>
+    <path d="m19 78 15-3v4l-15 3ZM36 75l15-3v4l-15 3ZM54 72l15-3v4l-15 3Z" fill="#faf6ec"/>
+    <path d="m14 84 59-12 7 4-59 13Z" fill="#11224d"/>
+    <path d="m12 89 61-13 7 4-61 13Z" fill="#29436a"/>
+    <path d="m80 53 10 5v17l-10-5Z" fill="#11224d" opacity=".75"/>
+    <ellipse cx="93" cy="77" rx="16" ry="19" fill="#ab8247"/>
+    <ellipse cx="89" cy="76" rx="16" ry="19" fill="#d8b16c"/>
+    <ellipse cx="89" cy="76" rx="11" ry="14" fill="none" stroke="#faf6ec" stroke-width="2" opacity=".7"/>
+    <path d="m86 67 6 3v11l-6 4Z" fill="#faf6ec" opacity=".8"/>
+    <path d="m104 50 1 5 5 1-5 2-1 5-2-5-4-2 4-1Z" fill="#d8b16c"/>
+  </symbol>
+
+  <symbol id="education" viewBox="0 0 120 104">
+    <title>Universities and colleges — a campus and flag</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m37 48 44-8 22 12v31L59 95 37 82Z" fill="#bfd8e9"/>
+    <path d="m37 48 44-8v43L37 95Z" fill="#faf6ec"/>
+    <path d="m81 40 22 12v31L81 95Z" fill="#95b7d0"/>
+    <path d="m31 47 47-18 30 21-27-6-44 9Z" fill="#11224d"/>
+    <path d="m78 29 30 21-27-6Z" fill="#29436a"/>
+    <path d="m17 35 20-5 15 9v43l-20 6-15-10Z" fill="#bfd8e9"/>
+    <path d="m17 35 20-5v48l-20 6Z" fill="#faf6ec"/>
+    <path d="m37 30 15 9v43l-15 9Z" fill="#95b7d0"/>
+    <path d="m13 34 15-17 13 6 15 17-19-6-20 5Z" fill="#9e1b22"/>
+    <path d="m28 17 13 6 15 17-19-6Z" fill="#7f151e"/>
+    <path d="M29 20V4" stroke="#11224d" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m30 5 16 2-4 5-12-2Z" fill="#d8b16c"/>
+    <circle cx="28" cy="46" r="6" fill="#11224d"/>
+    <circle cx="28" cy="46" r="4.3" fill="#faf6ec"/>
+    <path d="M28 43v4h3" fill="none" stroke="#9e1b22" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="m23 61 9-2v14l-9 2Z" fill="#11224d"/>
+    <path d="m46 57 8-2v10l-8 2ZM62 54l8-2v10l-8 2ZM46 74l8-2v10l-8 2ZM62 71l8-2v10l-8 2Z" fill="#bfd8e9"/>
+    <path d="m88 58 8 4v10l-8-4Z" fill="#11224d" opacity=".75"/>
+    <path d="m18 86 20 6 16-9 5 4-21 12-25-9Z" fill="#bfd8e9"/>
+    <path d="M98 87V77" stroke="#9b6750" stroke-width="2.5"/>
+    <circle cx="98" cy="73" r="9" fill="#7e9b8a"/>
+    <path d="M98 65c8 4 8 12 1 17 10-1 13-14-1-17Z" fill="#587c6c"/>
+  </symbol>
+
+  <symbol id="health" viewBox="0 0 120 104">
+    <title>Healthcare facilities — a neighborhood clinic</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m18 37 58-10 27 16v42L45 98 18 82Z" fill="#bfd8e9"/>
+    <path d="m18 37 58-10v58L18 98Z" fill="#faf6ec"/>
+    <path d="m76 27 27 16v42L76 98Z" fill="#95b7d0"/>
+    <path d="m14 32 61-11 32 18-61 13Z" fill="#29436a"/>
+    <path d="m14 32 61-11v8L14 41Z" fill="#11224d"/>
+    <path d="m75 21 32 18v8L75 29Z" fill="#29436a"/>
+    <path d="m37 44 23-4v22l-23 5Z" fill="#faf6ec"/>
+    <path d="m45 45 7-1v6l6-1v7l-6 1v6l-7 1v-6l-6 1v-7l6-1Z" fill="#9e1b22"/>
+    <path d="m40 73 21-5v21l-21 5Z" fill="#11224d"/>
+    <path d="m43 75 15-3v12l-15 3Z" fill="#bfd8e9"/>
+    <path d="m50 72 1 18" stroke="#faf6ec" stroke-width="2"/>
+    <path d="m24 54 9-2v12l-9 2ZM24 74l9-2v12l-9 2ZM65 46l7-1v12l-7 2Z" fill="#bfd8e9"/>
+    <path d="m83 48 13 7v13l-13-6ZM83 71l13 7v6l-13-6Z" fill="#11224d" opacity=".7"/>
+    <path d="m83 48 13 7v4l-13-6Z" fill="#bfd8e9"/>
+    <path d="m34 94 27-6 10 5-27 7Z" fill="#bfd8e9"/>
+    <path d="m10 85 14 4-2 9-10-3Z" fill="#d8b16c"/>
+    <path d="M17 88c-9-6-8-12-3-11 3 0 4 4 4 7 0-7 4-11 7-8 4 4-1 9-8 12Z" fill="#7e9b8a"/>
+  </symbol>
+
+  <symbol id="land" viewBox="0 0 120 104">
+    <title>Land area — a planted parcel of land</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m10 62 53-29 48 27v12L59 100 10 73Z" fill="#95b7d0"/>
+    <path d="m10 62 49 28v10L10 73Z" fill="#11224d"/>
+    <path d="m59 90 52-30v12l-52 28Z" fill="#bfd8e9"/>
+    <path d="m10 62 53-29 48 27-52 30Z" fill="#7e9b8a"/>
+    <path d="m10 62 53-29 48 27-8 4-40-22-44 25Z" fill="#99b4a1"/>
+    <path d="m33 49 8-5 49 28-8 5Z" fill="#faf6ec"/>
+    <path d="m27 72 44-24 8 4-44 25Z" fill="#d8b16c"/>
+    <path d="m44 61 8-4 18 10-8 5Z" fill="#faf6ec"/>
+    <path d="m22 60 11-6 8 5-11 6Z" fill="#587c6c"/>
+    <path d="m77 57 12-7 8 5-12 7Z" fill="#587c6c"/>
+    <path d="m46 78 10-6 8 5-10 6Z" fill="#587c6c"/>
+    <path d="M62 44V23" stroke="#9b6750" stroke-width="4" stroke-linecap="round"/>
+    <path d="M62 12c-13 0-21 14-17 25 3 9 17 12 26 5 11-9 6-30-9-30Z" fill="#7e9b8a"/>
+    <path d="M62 12c14 11 12 25 1 34 10 1 18-7 18-18-1-10-9-16-19-16Z" fill="#587c6c"/>
+    <path d="M53 24c-3 2-4 5-4 8" fill="none" stroke="#bfd8e9" stroke-width="3" stroke-linecap="round" opacity=".65"/>
+    <path d="M88 64V51" stroke="#9b6750" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M88 42c-8 0-12 9-10 15 2 7 12 8 17 3 6-6 2-18-7-18Z" fill="#7e9b8a"/>
+    <path d="M88 42c8 7 8 15 1 21 13 0 16-18-1-21Z" fill="#587c6c"/>
+    <path d="M28 60v-8M24 55l4 5 5-7M53 77v-7m-4 2 4 5 4-6" fill="none" stroke="#d8b16c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="roads" viewBox="0 0 120 104">
+    <title>Road network — connecting streets and a car</title>
+    <ellipse cx="60" cy="91" rx="49" ry="8" fill="#bfd8e9" opacity=".34"/>
+    <path d="m13 43 27-16 21 12 21-12 26 15-21 13 21 12-27 16-20-12-21 13-27-16 21-13Z" fill="#95b7d0"/>
+    <path d="M13 43v11l11 6-11 8v11l27 16 21-13 20 12 27-16V67L87 55l21-13v11L87 66 61 51 40 64Z" fill="#bfd8e9"/>
+    <path d="m13 68 27 16 21-13 20 12 27-16v11L81 94 61 82 40 95 13 79Z" fill="#95b7d0"/>
+    <path d="m18 43 22-12 21 12 21-12 21 11-22 13 22 12-22 12-20-12-21 13-22-12 22-13Z" fill="#11224d"/>
+    <path d="m40 33 21 12 21-12M20 67l20 11 21-13 20 12 20-10" fill="none" stroke="#faf6ec" stroke-width="1.8" stroke-linejoin="round" opacity=".85"/>
+    <path d="m24 43 10 6m9 5 10 6m15 8 10 6m21-33-9 5m-42 24-9 5" fill="none" stroke="#faf6ec" stroke-width="2"/>
+    <path d="m69 55 8-5m-32-7 7 4" fill="none" stroke="#d8b16c" stroke-width="2"/>
+    <path d="m62 44 16-9 17 9v8l-16 10-17-10Z" fill="#7f151e"/>
+    <path d="m62 44 16-9 17 9-16 10Z" fill="#9e1b22"/>
+    <path d="m68 43 8-11 12 7 4 6-12 7Z" fill="#9e1b22"/>
+    <path d="m76 32 12 7 4 6-12 7Z" fill="#7f151e"/>
+    <path d="m77 35 9 5 3 4-9 5-8-5Z" fill="#bfd8e9"/>
+    <path d="m72 44 5-9 3 14Z" fill="#95b7d0"/>
+    <path d="m81 56 3-2v4l-3 2ZM91 50l3-2v4l-3 2Z" fill="#faf6ec"/>
+    <ellipse cx="69" cy="53" rx="3" ry="4" fill="#11224d"/>
+    <ellipse cx="88" cy="55" rx="3" ry="4" fill="#11224d"/>
+    <circle cx="69" cy="53" r="1.2" fill="#bfd8e9"/>
+    <circle cx="88" cy="55" r="1.2" fill="#bfd8e9"/>
+    <path d="m19 76 7-4 8 5-7 4Z" fill="#d8b16c"/>
+    <path d="M26 75V64" stroke="#9b6750" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="26" cy="61" r="7" fill="#7e9b8a"/>
+    <path d="M26 54c7 5 6 11 1 14 10-1 12-13-1-14Z" fill="#587c6c"/>
+  </symbol>
+</svg>

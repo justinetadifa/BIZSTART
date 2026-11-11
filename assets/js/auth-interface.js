@@ -1,5 +1,8 @@
 (() => {
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const forms = [...document.querySelectorAll('[data-account-form]')];
+  const flights = new WeakMap(forms.map(form => [form, form.closest('.account-shell')?.querySelector('[data-auth-flight]')]));
+  const restricted = new Map();
   const summary = document.querySelector('[data-validation-summary]');
   const setError = (field, message) => {
     const error = document.getElementById(`${field.id}-error`);
@@ -69,10 +72,29 @@
       button.classList.add('is-loading');
       const label = button.querySelector('[data-submit-label]');
       if (label) { label.dataset.original = label.textContent; label.textContent = button.dataset.loadingLabel; }
+      const shell = form.closest('.account-shell');
+      const flight = flights.get(form);
+      if (flight) {
+        flight.querySelector('[data-auth-flight-label]').textContent = button.dataset.loadingLabel || 'Signing in…';
+        // A body-level portal stays centered even if submitting scrolled the
+        // mobile form underneath its sticky navigation.
+        document.body.append(flight);
+        flight.classList.add('is-portal');
+        flight.hidden = false;
+        shell.dataset.authPending = 'true';
+        for (const child of document.body.children) {
+          if (child === flight || !(child instanceof HTMLElement)) continue;
+          if (!restricted.has(child)) restricted.set(child, child.inert);
+          child.inert = true;
+        }
+        flight.tabIndex = -1;
+        flight.focus({ preventScroll: true });
+      }
     });
   });
   // Reset loading state when the browser restores a form from its back cache.
-  window.addEventListener('pageshow', () => forms.forEach(form => {
+  window.addEventListener('pageshow', event => forms.forEach(form => {
+    const wasPending = form.dataset.submitting === 'true';
     delete form.dataset.submitting;
     form.removeAttribute('aria-busy');
     const button = form.querySelector('[type="submit"]');
@@ -80,6 +102,13 @@
     button.classList.remove('is-loading');
     const label = button.querySelector('[data-submit-label]');
     if (label?.dataset.original) label.textContent = label.dataset.original;
+    const shell = form.closest('.account-shell');
+    const flight = flights.get(form);
+    if (flight) flight.hidden = true;
+    if (shell) delete shell.dataset.authPending;
+    restricted.forEach((previous, child) => { child.inert = previous; });
+    restricted.clear();
+    if (event.persisted && wasPending) button.focus({ preventScroll: true });
   }));
   const tabs = [document.getElementById('btnAdminSignInTab'), document.getElementById('btnAdminOnboardTab')];
   if (tabs.every(Boolean)) {
@@ -107,6 +136,7 @@
   // Promising interactive tap effects on submit buttons
   document.querySelectorAll('.account-submit').forEach(button => {
     button.addEventListener('pointerdown', event => {
+      if (reducedMotion.matches || button.disabled) return;
       const rect = button.getBoundingClientRect();
       const ripple = document.createElement('span');
       ripple.className = 'submit-ripple';
@@ -126,6 +156,7 @@
     const glow = scene.querySelector('.hero-glow-img');
     const svgGroups = scene.querySelectorAll('.curved-group-1, .curved-group-2, .curved-group-3');
     scene.addEventListener('pointermove', event => {
+      if (reducedMotion.matches || event.pointerType !== 'mouse') return;
       const rect = scene.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width - 0.5;
       const y = (event.clientY - rect.top) / rect.height - 0.5;
@@ -141,6 +172,12 @@
       });
     });
     scene.addEventListener('pointerleave', () => {
+      if (emblem) emblem.style.transform = '';
+      if (glow) glow.style.transform = '';
+      svgGroups.forEach(group => { group.style.transform = ''; });
+    });
+    reducedMotion.addEventListener('change', () => {
+      if (!reducedMotion.matches) return;
       if (emblem) emblem.style.transform = '';
       if (glow) glow.style.transform = '';
       svgGroups.forEach(group => { group.style.transform = ''; });
@@ -185,6 +222,11 @@
 
     let currentRole = document.querySelector('.account-auth')?.dataset.accountRole || 'investor';
     let isAnimating = false;
+    reducedMotion.addEventListener('change', () => {
+      if (!reducedMotion.matches) return;
+      rolesTrack.getAnimations({ subtree: true }).forEach(animation => animation.cancel());
+      isAnimating = false;
+    });
 
     rolesTrack.addEventListener('click', (event) => {
       const pill = event.target.closest('.account-role-pill');
@@ -234,7 +276,7 @@
         const first = firstLefts.get(p);
         const last = p.getBoundingClientRect().left;
         const deltaX = first - last;
-        if (deltaX !== 0 && typeof p.animate === 'function') {
+        if (!reducedMotion.matches && deltaX !== 0 && typeof p.animate === 'function') {
           p.animate([
             { transform: `translateX(${deltaX}px)` },
             { transform: 'translateX(0px)' }
@@ -272,7 +314,7 @@
             actionEl.style.opacity = '1';
             scriptEl.style.transform = 'translateY(0)';
             actionEl.style.transform = 'translateY(0)';
-          }, 180);
+          }, reducedMotion.matches ? 0 : 180);
         }
 
         const eyebrow = document.querySelector('.account-card .account-eyebrow');
@@ -283,7 +325,8 @@
           if (newRole === 'admin') {
             heading.textContent = 'City staff access';
           } else {
-            const isReturning = localStorage.getItem('sfc_user_returning') === '1' || document.cookie.includes('sfc_returning_user=1');
+            let isReturning = document.cookie.includes('sfc_returning_user=1');
+            try { isReturning ||= localStorage.getItem('sfc_user_returning') === '1'; } catch { /* Storage is optional. */ }
             heading.textContent = isReturning ? 'WELCOME BACK!' : 'WELCOME!';
           }
         }
@@ -316,14 +359,15 @@
 
       setTimeout(() => {
         isAnimating = false;
-      }, 480);
+      }, reducedMotion.matches ? 0 : 480);
     });
   }
 
   // Handle new user vs returning user heading text
   const welcomeHeading = document.querySelector('[data-welcome-heading]');
   if (welcomeHeading) {
-    const isReturning = localStorage.getItem('sfc_user_returning') === '1' || document.cookie.includes('sfc_returning_user=1');
+    let isReturning = document.cookie.includes('sfc_returning_user=1');
+    try { isReturning ||= localStorage.getItem('sfc_user_returning') === '1'; } catch { /* Storage is optional. */ }
     const role = document.querySelector('.account-auth')?.dataset.accountRole || 'investor';
     if (role !== 'admin') {
       welcomeHeading.textContent = isReturning ? 'WELCOME BACK!' : 'WELCOME!';
@@ -332,8 +376,9 @@
 
   // Mark user as returning once they submit
   document.querySelectorAll('form[data-account-form]').forEach(form => {
-    form.addEventListener('submit', () => {
-      localStorage.setItem('sfc_user_returning', '1');
+    form.addEventListener('submit', event => {
+      if (event.defaultPrevented) return;
+      try { localStorage.setItem('sfc_user_returning', '1'); } catch { /* Storage is optional. */ }
       document.cookie = 'sfc_returning_user=1; path=/; max-age=31536000; SameSite=Lax';
     });
   });

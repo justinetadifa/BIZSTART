@@ -1,4 +1,5 @@
 import { createAssistantBasemap } from './assistant-map-layer.js';
+import { createBrowseRestoration } from './browse-restoration.js';
 
 /** Investor discovery. All criteria, results and explanations come from the protected API. */
 const root = document.querySelector('[data-investment-assistant]');
@@ -43,6 +44,11 @@ if (root) {
   let mapSizeFrame = null;
   const mapEntries = new Map();
   let filterOrigin = null;
+  let browsingRestored = false;
+  let pendingMapRestore = null;
+  const browsing = createBrowseRestoration({
+    scope: `${config.basePath || ''}:${config.user?.id || 'guest'}`, capture: captureAssistantBrowsing,
+  });
   const MISSING = 'This information is not available in the current listing.';
   try { compare = uniqueIds(JSON.parse(localStorage.getItem(compareKey) || '[]')); } catch { /* In-memory comparison remains available. */ }
 
@@ -184,6 +190,7 @@ if (root) {
   }
 
   function scrollConversation() {
+    if (!browsingRestored && browsing.data) return;
     const body = byId('iaConversationBody');
     body.scrollTo({ top: body.scrollHeight, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
   }
@@ -263,6 +270,17 @@ if (root) {
     return Object.entries(labels).filter(([key]) => value[key] !== undefined && value[key] !== null && value[key] !== '').map(([key, label]) => `<p class="ia-verification">${esc(label)}: ${esc(typeof value[key] === 'boolean' ? (value[key] ? 'Yes' : 'No') : value[key])}</p>`).join('');
   }
 
+  function v2EligibilityMarkup(card) {
+    const status = card.v2Eligibility;
+    if (!status) return '';
+    const label = card.v2EligibilityLabel || (status === 'meets_screened_requirements' ? 'Meets Requirements' : status === 'conditional' ? 'Conditional' : status === 'does_not_meet_requirements' ? 'Does Not Meet Requirements' : 'Insufficient Info');
+    const icon = status === 'meets_screened_requirements' ? '✓' : status === 'conditional' ? '⚠' : status === 'does_not_meet_requirements' ? '✕' : 'ℹ';
+    const cssClass = status === 'meets_screened_requirements' ? 'ia-v2-meets' : status === 'conditional' ? 'ia-v2-conditional' : status === 'does_not_meet_requirements' ? 'ia-v2-not-met' : 'ia-v2-insufficient';
+    const iai = card.v2IaiScore != null && Number.isFinite(Number(card.v2IaiScore)) ? Number(card.v2IaiScore) : null;
+    const strengths = Array.isArray(card.v2Strengths) ? card.v2Strengths.slice(0, 2) : [];
+    return `<div class="ia-v2-badge ${cssClass}" role="note"><span class="ia-v2-icon" aria-hidden="true">${icon}</span><div><strong class="ia-v2-label">V2: ${esc(label)}</strong>${iai !== null ? `<span class="ia-v2-score">IAI ${number(iai)}/100</span>` : ''}</div>${strengths.length ? `<ul class="ia-v2-strengths">${strengths.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}</div>`;
+  }
+
   function cardMarkup(card) {
     const id = Number(card.id);
     const href = route(`property-details.php?id=${id}`);
@@ -275,7 +293,7 @@ if (root) {
     const details = card.details && typeof card.details === 'object' ? card.details : {};
     const missing = Object.entries(details).filter(([, value]) => value === MISSING).map(([key]) => key);
     const price = card.priceLabel || 'Price on request';
-    return `<article class="ia-property-card" data-ia-property="${id}"><div class="ia-card-photo"><a class="ia-card-media" href="${href}" aria-label="View ${esc(card.name)}">${image ? `<img src="${esc(image)}" alt="${esc(card.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '<span class="ia-image-fallback">Photo not provided</span>'}</a><span class="ia-card-purpose">${esc(purpose)}</span><button class="ia-card-save" type="button" data-ia-save="${id}" aria-pressed="${selectedSaveIds.has(id)}" aria-label="${selectedSaveIds.has(id) ? 'Remove saved' : 'Save'} ${esc(card.name)}" title="${selectedSaveIds.has(id) ? 'Saved property' : 'Save property'}"><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M2 2h12v16l-6-4-6 4V2Z"/></svg></button></div><div class="ia-card-content"><strong class="ia-card-price">${esc(price)}</strong>${card.priceBasis && card.priceBasis !== MISSING && !/not (?:provided|available)/i.test(card.priceBasis) ? `<span class="ia-card-basis">${esc(card.priceBasis)}</span>` : ''}<h3><a href="${href}">${esc(card.name || 'Property listing')}</a></h3><p class="ia-card-location"><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M13 7c0 4-5 9-5 9S3 11 3 7a5 5 0 1 1 10 0Z"/><circle cx="8" cy="7" r="1.7"/></svg>${esc(card.location || MISSING)}</p><div class="ia-card-facts"><span${!hasArea ? ` title="${MISSING}"` : ''}><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3h12v12H3V3ZM1 3h4M3 1v4M13 15h4M15 13v4"/></svg>${esc(area)}</span><span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 16V2h9v14M1 16h15M7 5h.01M10 5h.01M7 8h.01M10 8h.01M7 11h.01M10 11h.01M8 16v-3"/></svg>${esc(card.subcategory || card.category || 'Type unavailable')}</span></div><details class="ia-card-disclosure"><summary>Listing facts & recorded assessment</summary><div class="ia-card-disclosure-body">${reasons.length ? `<div class="ia-reasons"><h4>Matched listing fields</h4><ul>${reasons.map(reason => `<li>${esc(reason)}</li>`).join('')}</ul></div>` : ''}${missing.length || !hasArea ? `<p class="ia-card-unknowns">${missing.length ? `${esc(missing.join(', '))}: ` : 'Land area: '}${MISSING}</p>` : ''}${unknowns.length ? `<p class="ia-card-unknowns">${esc(unknowns.join(' · '))}</p>` : ''}${verificationMarkup(card.verification)}${assessmentMarkup(card.assessment)}</div></details></div><div class="ia-card-actions"><a href="${href}">View property <span aria-hidden="true">→</span></a><div class="ia-card-secondary"><button type="button" data-ia-detail="${id}" aria-label="Ask for listing details about ${esc(card.name)}">Details</button><button type="button" data-ia-compare="${id}" aria-pressed="${compare.includes(id)}">${compare.includes(id) ? 'Selected' : 'Compare'}</button></div></div></article>`;
+    return `<article class="ia-property-card" data-ia-property="${id}"><div class="ia-card-photo"><a class="ia-card-media" href="${href}" aria-label="View ${esc(card.name)}">${image ? `<img src="${esc(image)}" alt="${esc(card.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">` : '<span class="ia-image-fallback">Photo not provided</span>'}</a><span class="ia-card-purpose">${esc(purpose)}</span><button class="ia-card-save" type="button" data-ia-save="${id}" aria-pressed="${selectedSaveIds.has(id)}" aria-label="${selectedSaveIds.has(id) ? 'Remove saved' : 'Save'} ${esc(card.name)}" title="${selectedSaveIds.has(id) ? 'Saved property' : 'Save property'}"><svg viewBox="0 0 16 20" aria-hidden="true"><path d="M2 2h12v16l-6-4-6 4V2Z"/></svg></button></div><div class="ia-card-content"><strong class="ia-card-price">${esc(price)}</strong>${card.priceBasis && card.priceBasis !== MISSING && !/not (?:provided|available)/i.test(card.priceBasis) ? `<span class="ia-card-basis">${esc(card.priceBasis)}</span>` : ''}<h3><a href="${href}">${esc(card.name || 'Property listing')}</a></h3><p class="ia-card-location"><svg viewBox="0 0 16 18" aria-hidden="true"><path d="M13 7c0 4-5 9-5 9S3 11 3 7a5 5 0 1 1 10 0Z"/><circle cx="8" cy="7" r="1.7"/></svg>${esc(card.location || MISSING)}</p><div class="ia-card-facts"><span${!hasArea ? ` title="${MISSING}"` : ''}><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 3h12v12H3V3ZM1 3h4M3 1v4M13 15h4M15 13v4"/></svg>${esc(area)}</span><span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 16V2h9v14M1 16h15M7 5h.01M10 5h.01M7 8h.01M10 8h.01M7 11h.01M10 11h.01M8 16v-3"/></svg>${esc(card.subcategory || card.category || 'Type unavailable')}</span></div><details class="ia-card-disclosure"><summary>Listing facts & recorded assessment</summary><div class="ia-card-disclosure-body">${reasons.length ? `<div class="ia-reasons"><h4>Matched listing fields</h4><ul>${reasons.map(reason => `<li>${esc(reason)}</li>`).join('')}</ul></div>` : ''}${missing.length || !hasArea ? `<p class="ia-card-unknowns">${missing.length ? `${esc(missing.join(', '))}: ` : 'Land area: '}${MISSING}</p>` : ''}${unknowns.length ? `<p class="ia-card-unknowns">${esc(unknowns.join(' · '))}</p>` : ''}${verificationMarkup(card.verification)}${assessmentMarkup(card.assessment)}${v2EligibilityMarkup(card)}</div></details></div><div class="ia-card-actions"><a href="${href}">View property <span aria-hidden="true">→</span></a><div class="ia-card-secondary"><button type="button" data-ia-detail="${id}" aria-label="Ask for listing details about ${esc(card.name)}">Details</button><button type="button" data-ia-compare="${id}" aria-pressed="${compare.includes(id)}">${compare.includes(id) ? 'Selected' : 'Compare'}</button></div></div></article>`;
   }
 
   function renderGuidance(data) {
@@ -464,6 +482,16 @@ if (root) {
       } else if (mapEntries.has(selectedMapId)) selectMapProperty(selectedMapId);
       mapCardsSignature = signature;
       mapCoordinatesSignature = coordinatesSignature;
+      if (pendingMapRestore) {
+        const saved = pendingMapRestore;
+        pendingMapRestore = null;
+        if (Number.isFinite(saved.lat) && Number.isFinite(saved.lng) && Number.isFinite(saved.zoom)
+            && Math.abs(saved.lat) <= 90 && Math.abs(saved.lng) <= 180) {
+          map.setView([saved.lat, saved.lng], saved.zoom, { animate: false });
+        }
+        if (mapEntries.has(saved.selectedId)) selectMapProperty(saved.selectedId);
+        byId('iaMapLocations').scrollTo({ left: Number(saved.railLeft) || 0, behavior: 'instant' });
+      }
       byId('iaMapFit').disabled = false;
       updateMapStatus(mapBasemap.getState());
     } catch (error) {
@@ -589,6 +617,56 @@ if (root) {
     ready = true;
   }
 
+  function captureAssistantBrowsing() {
+    const center = map?.getCenter();
+    const panel = byId('iaFilterDetails');
+    return { criteria: { ...state.criteria }, message: byId('iaMessage').value,
+      filterValues: Object.fromEntries(Object.entries(fieldIds).map(([key, id]) => [key, byId(id).value])),
+      filterOpen: panel.open, filterScope: panel.dataset.scope, filterOrigin: filterOrigin?.id || null,
+      conversationTop: byId('iaConversationBody').scrollTop, resultsTop: byId('iaResults').scrollTop,
+      mapVisible, map: center ? { lat: center.lat, lng: center.lng, zoom: map.getZoom(),
+        selectedId: selectedMapId, railLeft: byId('iaMapLocations').scrollLeft } : null };
+  }
+
+  function browsingCriteriaRequest(data) {
+    const saved = browsing.data?.criteria;
+    if (!saved || typeof saved !== 'object' || !data?.state) return null;
+    const keys = Object.keys(fieldIds);
+    const filters = Object.fromEntries(keys.map(key => [key, saved[key] ?? null]));
+    if (keys.every(key => filters[key] === (data.state.criteria?.[key] ?? null))) return null;
+    // Recheck results through the protected search API; never cache listing data.
+    return { filters, version: Number(data.state.version) || 0, requestId: requestId() };
+  }
+
+  function restoreAssistantBrowsing() {
+    const saved = browsing.data;
+    if (!saved) { browsingRestored = true; browsing.ready(); return; }
+    byId('iaMessage').value = typeof saved.message === 'string' ? saved.message.slice(0, 2000) : '';
+    resizeMessage();
+    if (saved.filterOpen) {
+      const scope = ['all', 'purpose', 'category', 'budget', 'barangay', 'area', 'activity'].includes(saved.filterScope) ? saved.filterScope : 'all';
+      configureFilterEditor(scope);
+      filterOrigin = byId(saved.filterOrigin) || byId('iaEditFilters');
+      const values = saved.filterValues || {};
+      populateSubcategories(values.category, values.subcategory);
+      for (const [key, id] of Object.entries(fieldIds)) {
+        const node = byId(id), value = values[key];
+        if (typeof value !== 'string') continue;
+        if (node.tagName !== 'SELECT' || Array.from(node.options).some(option => option.value === value)) node.value = value;
+      }
+      byId('iaFilterDetails').open = true;
+      syncFilterExpanded();
+    }
+    pendingMapRestore = saved.map || null;
+    if (saved.mapVisible) switchView(true);
+    browsingRestored = true;
+    browsing.ready(() => {
+      byId('iaConversationBody').scrollTo({ top: Number(saved.conversationTop) || 0, behavior: 'instant' });
+      byId('iaResults').scrollTo({ top: Number(saved.resultsTop) || 0, behavior: 'instant' });
+      scheduleComposer();
+    });
+  }
+
   async function callApi(payload) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
@@ -627,14 +705,20 @@ if (root) {
       scrollConversation();
     }
     try {
-      const data = await callApi(payload);
+      let data = await callApi(payload);
       if (current !== sequence) return;
+      if (!browsingRestored && !payload) {
+        const restore = browsingCriteriaRequest(data);
+        if (restore) data = await callApi(restore);
+        if (current !== sequence) return;
+      }
       applyResponse(data);
       failedRequest = null;
       if (payload?.message) byId('iaMessage').value = '';
       if (payload?.reset) { byId('iaMessage').value = ''; closeFilters(false); }
       resizeMessage();
       if (payload?.filters) closeFilters(false);
+      if (!browsingRestored) restoreAssistantBrowsing();
       if (payload?.message && mobile.matches) {
         const body = byId('iaConversationBody');
         const bounds = body.getBoundingClientRect();
@@ -746,6 +830,10 @@ if (root) {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeFilters(); }
   });
   document.addEventListener('click', event => {
+    // A details navigation keeps the editor draft for Back. Closing here would
+    // reset its inputs before pagehide captures the final browsing state.
+    const link = event.target.closest('a[href]');
+    if (link && /(?:^|\/)property-details\.php(?:\?|$)/.test(link.getAttribute('href') || '')) return;
     if (byId('iaFilterDetails').open && !event.target.closest('.ia-search-tools, [data-ia-edit], #iaComposerFilters')) closeFilters(false);
   });
   byId('iaCategory').addEventListener('change', () => populateSubcategories(byId('iaCategory').value));

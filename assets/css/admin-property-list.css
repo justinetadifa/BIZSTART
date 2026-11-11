@@ -10,7 +10,7 @@
    ========================================================================== */
 .city-listing-card {
   display: grid;
-  grid-template-columns: 204px minmax(0, 1fr) 234px;
+  grid-template-columns: 204px minmax(0, 1fr) 250px;
   grid-template-rows: 1fr auto;
   gap: 16px 24px;
   padding: 20px 22px;
@@ -329,7 +329,7 @@
 }
 
 /* ==========================================================================
-   Executive Tactical Assessment HUD (Gamified Real-Estate Intelligence)
+   Sovereign Municipal Evaluation Plaque (Institutional Real Estate Standard)
    ========================================================================== */
 .city-listing-assessment {
   grid-column: 3;
@@ -340,25 +340,22 @@
   gap: 10px;
   min-width: 0;
   align-self: stretch;
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  border-top: 3.5px solid #11224d;
+  border: 1px solid #e2e8f0;
+  border-top: 3.5px solid #1e3a8a;
   background-color: #ffffff;
-  background-image: 
-    radial-gradient(rgba(17, 34, 77, 0.05) 1px, transparent 1px),
-    linear-gradient(175deg, #ffffff 0%, #fbfcfe 100%);
-  background-size: 10px 10px, 100% 100%;
   border-radius: 14px;
-  padding: 15px 17px;
+  padding: 16px 18px;
   color: #0b1736;
   text-align: left;
   font: inherit;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
   box-shadow: 
     0 1px 3px rgba(15, 23, 42, 0.03),
     0 4px 12px -2px rgba(15, 23, 42, 0.03);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.18s ease;
 }
 
 .city-listing-assessment.is-verified {
@@ -366,40 +363,25 @@
 }
 
 .city-listing-assessment.is-hold {
-  border-top-color: #8b151b;
+  border-top-color: #991b1b;
 }
 
 .city-listing-assessment.is-incomplete {
   border-top-color: #d97706;
 }
 
-/* Holographic / Tactile Sheen on Hover */
-.city-listing-assessment::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -120%;
-  width: 70%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
-  transform: skewX(-20deg);
-  pointer-events: none;
-  transition: left 0.75s ease;
-  z-index: 5;
-}
-
-.city-listing-assessment:hover::before {
-  left: 150%;
-}
-
 .city-listing-assessment:hover {
   background-color: #ffffff;
   border-color: #cbd5e1;
-  border-top-color: inherit;
   transform: translateY(-2px);
   box-shadow: 
-    0 6px 18px rgba(15, 23, 42, 0.06),
-    0 14px 28px -4px rgba(15, 23, 42, 0.07);
+    0 4px 6px -1px rgba(15, 23, 42, 0.04),
+    0 12px 24px -4px rgba(15, 23, 42, 0.08);
+}
+
+.city-listing-assessment:focus-visible {
+  outline: 2px solid #11224d;
+  outline-offset: 2px;
 }
 
 /* Top Header */
@@ -449,36 +431,44 @@
   border: 1px solid #fecaca;
 }
 
-/* Hero Row: Score Lockup + Circular HUD Gauge */
+/* Hero Row: Score Lockup + Sovereign Grade Seal */
 .city-assessment-hero {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 8px;
-  margin-top: 1px;
+  gap: 12px;
+  margin-top: 2px;
 }
 
 .city-assessment-score-lockup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 
-/* Dynamic Tier / Rank Badge */
+/* Sovereign Rating Tier Pill */
 .city-score-tier {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-weight: 750;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 2.5px 7px;
   border-radius: 5px;
   line-height: 1.2;
   width: fit-content;
+  white-space: nowrap;
+}
+
+.city-tier-dot {
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .city-score-tier.is-prime {
@@ -486,9 +476,8 @@
   border: 1px solid #a7f3d0;
   color: #065f46;
 }
-
-.city-score-tier.is-prime .city-tier-icon {
-  color: #d97706;
+.city-score-tier.is-prime .city-tier-dot {
+  background: #059669;
 }
 
 .city-score-tier.is-qualified {
@@ -496,11 +485,17 @@
   border: 1px solid #bfdbfe;
   color: #1e40af;
 }
+.city-score-tier.is-qualified .city-tier-dot {
+  background: #2563eb;
+}
 
 .city-score-tier.is-conditional {
   background: #fffbeb;
   border: 1px solid #fde68a;
   color: #b45309;
+}
+.city-score-tier.is-conditional .city-tier-dot {
+  background: #d97706;
 }
 
 .city-score-tier.is-hold {
@@ -508,15 +503,21 @@
   border: 1px solid #fecaca;
   color: #991b1b;
 }
+.city-score-tier.is-hold .city-tier-dot {
+  background: #dc2626;
+}
 
 .city-score-tier.is-incomplete {
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   color: #475569;
+}
+.city-score-tier.is-incomplete .city-tier-dot {
+  background: #94a3b8;
 }
 
 .city-listing-score-value {
-  font-size: 28px;
+  font-size: 27px;
   line-height: 1.05;
   letter-spacing: -0.04em;
   font-weight: 850;
@@ -536,100 +537,94 @@
 }
 
 .city-listing-assessment:is(.is-incomplete, .is-hold) .city-listing-score-value {
-  font-size: 18px;
+  font-size: 20px;
 }
 
-/* Circular HUD Gauge */
-.city-score-gauge-wrap {
-  position: relative;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-}
-
-.city-score-gauge {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.city-gauge-bg {
-  fill: none;
-  stroke: #e2e8f0;
-  stroke-width: 4;
-}
-
-.city-gauge-bar {
-  fill: none;
-  stroke-width: 4;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.city-gauge-bar.is-prime {
-  stroke: #059669;
-}
-
-.city-gauge-bar.is-qualified {
-  stroke: #2563eb;
-}
-
-.city-gauge-bar.is-conditional {
-  stroke: #d97706;
-}
-
-.city-gauge-bar.is-hold {
-  stroke: #8b151b;
-}
-
-.city-gauge-bar.is-incomplete {
-  stroke: #94a3b8;
-}
-
-.city-gauge-grade {
-  position: absolute;
-  inset: 0;
+/* Sovereign Rating Plaque Seal */
+.city-score-seal-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13.5px;
-  font-weight: 850;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+  flex-shrink: 0;
 }
 
-.city-gauge-grade.is-prime {
-  color: #047857;
+.city-score-seal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd5e1;
+  background: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.city-gauge-grade.is-qualified {
-  color: #1d4ed8;
+.city-listing-assessment:hover .city-score-seal {
+  transform: scale(1.04);
 }
 
-.city-gauge-grade.is-conditional {
-  color: #b45309;
+.city-score-seal.is-prime {
+  border-color: #059669;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #065f46;
 }
 
-.city-gauge-grade.is-hold {
+.city-score-seal.is-qualified {
+  border-color: #3b82f6;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+}
+
+.city-score-seal.is-conditional {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+}
+
+.city-score-seal.is-hold {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   color: #991b1b;
-  font-size: 9.5px;
-  font-weight: 800;
 }
 
-.city-gauge-grade.is-incomplete {
+.city-score-seal.is-incomplete {
+  border-color: #cbd5e1;
+  background: #f8fafc;
   color: #64748b;
-  font-size: 9.5px;
-  font-weight: 800;
 }
 
-/* Tactical Criteria Matrix (ACC, INF, MKT, BIZ, RSK) */
+.city-seal-grade {
+  font-size: 15px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-seal-label {
+  font-size: 7.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: inherit;
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+/* Institutional Criteria Readiness Tracker (Access, Infra, Cost, Biz, Risk) */
 .city-hud-matrix {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin: 2px 0;
+  margin: 3px 0 1px 0;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 8px;
 }
 
 .city-hud-progress-header {
@@ -640,7 +635,7 @@
 }
 
 .city-hud-progress-title {
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -680,33 +675,31 @@
 
 .city-pip-bar {
   width: 100%;
-  height: 4.5px;
+  height: 4px;
   border-radius: 2px;
-  background: #e2e8f0;
+  background: #cbd5e1;
   transition: all 0.2s ease;
 }
 
 .city-pip-item.is-ready .city-pip-bar {
   background: #11224d;
-  box-shadow: 0 1px 2px rgba(17, 34, 77, 0.2);
 }
 
 .city-listing-assessment.is-verified .city-pip-item.is-ready .city-pip-bar {
-  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
-  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.35);
+  background: #059669;
 }
 
 .city-pip-code {
   font-size: 8px;
   font-weight: 750;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: #94a3b8;
   text-transform: uppercase;
   transition: color 0.16s ease;
 }
 
 .city-pip-item.is-ready .city-pip-code {
-  color: #475569;
+  color: #334155;
 }
 
 .city-listing-assessment:hover .city-pip-item.is-ready .city-pip-code {
@@ -721,7 +714,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Tactical HUD Action Button (VIEW ASSESSMENT →) */
+/* Institutional Assessment Navigation Link (evaluation details →) */
 .city-listing-score-link {
   width: 100%;
   display: inline-flex;
@@ -729,15 +722,14 @@
   justify-content: space-between;
   gap: 6px;
   font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   margin-top: auto;
-  padding: 7px 11px;
-  border-radius: 7px;
-  border: 1px solid rgba(139, 21, 27, 0.16);
-  background: rgba(139, 21, 27, 0.04);
-  color: #8b151b;
+  padding: 6.5px 11px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #1e3a8a;
   text-decoration: none !important;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
@@ -750,16 +742,23 @@
 }
 
 .city-listing-assessment:hover .city-listing-score-link {
-  background: linear-gradient(135deg, #8b151b 0%, #701115 100%);
+  background: #11224d;
   color: #ffffff;
-  border-color: #701115;
-  box-shadow: 0 3px 10px -2px rgba(139, 21, 27, 0.35);
+  border-color: #11224d;
+  box-shadow: 0 2px 8px -1px rgba(17, 34, 77, 0.25);
+}
+
+.city-listing-assessment.is-incomplete:hover .city-listing-score-link {
+  background: #b45309;
+  color: #ffffff;
+  border-color: #b45309;
+  box-shadow: 0 2px 8px -1px rgba(180, 83, 9, 0.25);
 }
 
 .city-listing-score-link svg,
 .city-score-arrow {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  stroke-width: 2.5;
+  stroke-width: 2.3;
   flex-shrink: 0;
 }
 

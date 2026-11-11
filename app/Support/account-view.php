@@ -72,7 +72,7 @@ function sfc_account_submit(string $label, string $loading): void
 
 function sfc_account_assets(array $context): void
 {
-    foreach (['account', 'auth-interface', 'broker-verification'] as $style) {
+    foreach (['account', 'auth-interface', 'broker-verification', 'auth-motion'] as $style) {
         ?><link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/<?= $style ?>.css<?= sfc_account_escape(sfc_asset_version('css/' . $style . '.css')) ?>"><?php
     }
 }
@@ -120,6 +120,19 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
     ?>
     <main class="account-page account-auth" data-account-role="<?= sfc_account_escape($role) ?>" style="--account-map: url('<?= sfc_account_escape(sfc_account_art($context)) ?>')">
       <div class="account-shell <?= $signup || $activation ? 'is-registering' : '' ?>">
+        <div class="auth-flight" data-auth-flight hidden role="status" aria-live="polite" aria-atomic="true">
+          <div class="auth-flight-grid" aria-hidden="true"></div>
+          <div class="auth-flight-orbit" aria-hidden="true">
+            <span class="auth-flight-ring auth-flight-ring-one"></span><span class="auth-flight-ring auth-flight-ring-two"></span>
+            <span class="auth-flight-ring auth-flight-ring-three"></span>
+            <img src="<?= sfc_account_escape($context['assetBase']) ?>/images/logoLocusRedBlue.png" width="76" height="76" alt="">
+          </div>
+          <p class="auth-flight-brand" aria-hidden="true">LOCUS<span>—</span>SF</p>
+          <h2 data-auth-flight-label>Signing in…</h2>
+          <p class="auth-flight-copy">Your next move starts here.</p>
+          <span class="auth-flight-line" aria-hidden="true"></span>
+          <p class="auth-flight-note">Connecting to your workspace</p>
+        </div>
         <aside class="account-scene" aria-label="LOCUS-SF, San Fernando City">
           <div class="hero-stage">
             <div class="hero-glow-wrap" aria-hidden="true">

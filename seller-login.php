@@ -23,6 +23,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $error = (string) ($fieldErrors['account_status'] ?? $fieldErrors['_form'] ?? '');
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
+    } catch (\App\Core\DatabaseUnavailableException $exception) {
+        error_log('[LOCUS-SF] Database unavailable during broker account access.');
+        http_response_code(503);
+        header('Retry-After: 30');
+        $error = 'Account services are temporarily unavailable. Please try again shortly.';
     }
 }
 sfc_render_account_page($context, 'seller', $mode, $error, $fieldErrors);

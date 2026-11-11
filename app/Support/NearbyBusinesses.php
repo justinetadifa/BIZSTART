@@ -259,6 +259,7 @@ final class NearbyBusinesses
         ];
 
         // 3. Load supplementary cached radar datasets with strict quality filtering
+        $normalizedDirectoryNames = [];
         $radarFiles = glob($dataDir . '/cache/radar/*.json') ?: [];
         foreach ($radarFiles as $file) {
             $raw = @file_get_contents($file);
@@ -293,8 +294,15 @@ final class NearbyBusinesses
                 // records identifying the same establishment at that location.
                 $alreadyCovered = false;
                 $normalizedName = self::normalizedName($name);
-                foreach ($directory as $existing) {
-                    $existingName = self::normalizedName($existing['name']);
+                foreach ($directory as $existingKey => $existing) {
+                    // A 45m match cannot differ by more than 0.0005 latitude.
+                    // Skip distant records before doing name normalization and
+                    // reuse names across the remaining source observations.
+                    if (abs($lat - $existing['lat']) > 0.0005) {
+                        continue;
+                    }
+                    $existingName = $normalizedDirectoryNames[$existingKey]
+                        ??= self::normalizedName($existing['name']);
                     if (!($props['nameGenerated'] ?? false) && min(strlen($normalizedName), strlen($existingName)) >= 3
                         && (str_contains($normalizedName, $existingName) || str_contains($existingName, $normalizedName))
                         && self::distance($lat, $lng, $existing['lat'], $existing['lng']) <= 45.0

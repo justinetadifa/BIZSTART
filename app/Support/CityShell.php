@@ -37,7 +37,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
     $GLOBALS['sfc_legacy_page'] = $legacy;
     ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"<?= $page === 'city-landing' ? ' data-home-motion="on"' : '' ?>>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,6 +102,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial-workspaces.css<?= sfc_asset_version('css/property-editorial-workspaces.css') ?>">
   <?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-interactions.css<?= sfc_asset_version('css/locus-interactions.css') ?>">
+  <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-experience.css<?= sfc_asset_version('css/home-experience.css') ?>"><?php endif; ?>
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
@@ -110,6 +111,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-motion.js<?= sfc_asset_version('js/locus-motion.js') ?>"></script>
   <?php if ($page === 'city-landing'): ?><script defer src="<?= $e($context['assetBase']) ?>/js/home-glance.js<?= sfc_asset_version('js/home-glance.js') ?>"></script><?php endif; ?>
   <?php if ($page === 'city-landing'): ?><script defer src="<?= $e($context['assetBase']) ?>/js/home-hero.js<?= sfc_asset_version('js/home-hero.js') ?>"></script><?php endif; ?>
+  <?php if ($page === 'city-landing'): ?><script defer src="<?= $e($context['assetBase']) ?>/js/home-experience.js<?= sfc_asset_version('js/home-experience.js') ?>"></script><?php endif; ?>
 </head>
 <body <?php foreach ($bodyData as $key => $value): ?>data-<?= $e((string) $key) ?>="<?= $e((string) $value) ?>" <?php endforeach; ?>>
   <div class="locus-map-backdrop" aria-hidden="true"></div>

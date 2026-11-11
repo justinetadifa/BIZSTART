@@ -30,6 +30,7 @@ export function CivicMetrics() {
   const [selectedId, setSelectedId] = useState<MetricKind>('residents');
   const [previewId, setPreviewId] = useState<MetricKind | null>(null);
   const [motionEnabled, setMotionEnabled] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(true);
   const [inView, setInView] = useState(false);
   const [visible, setVisible] = useState(true);
   const [announcementId, setAnnouncementId] = useState<MetricKind | null>(null);
@@ -37,8 +38,13 @@ export function CivicMetrics() {
 
   useEffect(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
-    setMotionEnabled(!preference.matches);
-    const preferenceChange = (event: MediaQueryListEvent) => setMotionEnabled(!event.matches);
+    const motionForced = document.documentElement.dataset.homeMotion === 'on';
+    setReducedMotion(preference.matches && !motionForced);
+    setMotionEnabled(motionForced || !preference.matches);
+    const preferenceChange = (event: MediaQueryListEvent) => {
+      setReducedMotion(event.matches && !motionForced);
+      setMotionEnabled(motionForced || !event.matches);
+    };
     preference.addEventListener('change', preferenceChange);
     const element = root.current;
     const observer = element && typeof IntersectionObserver === 'function'
@@ -52,6 +58,16 @@ export function CivicMetrics() {
     document.getElementById('at-a-glance')?.setAttribute('data-glance-ready', 'true');
     return () => { observer?.disconnect(); preference.removeEventListener('change', preferenceChange); document.removeEventListener('visibilitychange', visibility); };
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    // Run after the ready markup commits; the mount effect's first frame can
+    // otherwise beat hydration and leave every civic column unregistered.
+    const motionFrame = requestAnimationFrame(() => {
+      if (root.current) document.dispatchEvent(new CustomEvent('locus:motion-refresh', { detail: root.current }));
+    });
+    return () => cancelAnimationFrame(motionFrame);
+  }, [ready]);
 
   useEffect(() => {
     const metric = civicMetrics.find(item => item.id === (previewId || selectedId))!;
@@ -75,7 +91,7 @@ export function CivicMetrics() {
   }, [selectedId, ready]);
 
   const select = (id: MetricKind) => { setSelectedId(id); setPreviewId(null); setAnnouncementId(id); };
-  const animate = ready && motionEnabled;
+  const animate = ready && motionEnabled && !reducedMotion;
 
   return <LazyMotion features={domMax} strict>
     <section ref={root} className="civic-canvas cw-bg-[#F6F4EF] cw-px-8 cw-py-10 cw-text-zinc-900" aria-labelledby="civicTitle" data-art-motion={animate ? 'on' : 'off'} data-art-running={animate && inView && visible ? 'true' : 'false'} data-civic-ready={ready ? 'true' : 'false'}>
@@ -85,8 +101,8 @@ export function CivicMetrics() {
           <span className="civic-overview cw-rounded-full cw-bg-black/5 cw-px-3 cw-py-1 cw-text-xs cw-font-medium">Overview</span>
         </div>
         <div className="civic-settings cw-flex cw-items-center cw-gap-3">
-          <button className="civic-switch" type="button" role="switch" aria-checked={motionEnabled} aria-label="Animate illustrations" title="Animate illustrations" disabled={!ready} onClick={() => setMotionEnabled(value => !value)}>
-            <m.span className="civic-switch-thumb" initial={false} animate={{ x: motionEnabled ? 18 : 0 }} transition={animate ? { type: 'spring', stiffness: 380, damping: 28 } : { duration: 0 }} />
+          <button className="civic-switch" type="button" role="switch" aria-checked={animate} aria-label="Animate illustrations" title={reducedMotion ? 'Animation follows your reduced-motion preference' : 'Animate illustrations'} disabled={!ready || reducedMotion} onClick={() => setMotionEnabled(value => !value)}>
+            <m.span className="civic-switch-thumb" initial={false} animate={{ x: animate ? 18 : 0 }} transition={animate ? { duration: .12, ease: [.22, 1, .36, 1] } : { duration: 0 }} />
           </button>
           <span className="civic-date cw-text-sm cw-font-medium cw-text-zinc-700">2023–2024 Figures</span>
         </div>
@@ -97,7 +113,7 @@ export function CivicMetrics() {
           {civicCategories.map(category => <section key={category.id} className="civic-column cw-min-w-0" aria-labelledby={`civic-category-${category.id}`}>
             <h4 id={`civic-category-${category.id}`} className="civic-category cw-mb-2 cw-text-[11px] cw-font-semibold cw-uppercase cw-tracking-wider cw-text-zinc-600">{category.title}</h4>
             <div className="civic-stack cw-flex cw-flex-col cw-gap-5">
-              {category.metrics.map(metric => <m.div key={metric.id} className="civic-card-motion" data-crowded-badges={crowdedBadgeId === metric.id ? 'true' : 'false'} initial={false} whileHover={animate ? { y: -4, scale: 1.01 } : undefined} whileTap={animate ? { scale: .985 } : undefined} transition={{ type: 'spring', stiffness: 380, damping: 28 }}>
+              {category.metrics.map(metric => <m.div key={metric.id} className="civic-card-motion" data-crowded-badges={crowdedBadgeId === metric.id ? 'true' : 'false'} initial={false} animate={!animate ? { y: 0, scale: 1 } : undefined} whileHover={animate ? { y: -4, scale: 1.01 } : undefined} whileTap={animate ? { y: 0, scale: .985 } : undefined} transition={animate ? { duration: .12, ease: [.22, 1, .36, 1] } : { duration: 0 }}>
                 <button type="button" className={`civic-card civic-card--${metric.theme} cw-relative cw-flex cw-min-w-0 cw-flex-col cw-justify-between cw-overflow-hidden cw-rounded-[24px] cw-p-6 cw-text-left cw-select-none`}
                 data-metric-id={metric.id} data-selected={selectedId === metric.id ? 'true' : 'false'}
                 aria-pressed={selectedId === metric.id} aria-controls="glanceInsight" aria-labelledby={`civic-label-${metric.id} civic-value-${metric.id}`} aria-describedby={`civic-source-${metric.id}${metric.substat ? ` civic-substat-${metric.id}` : ''}${metric.growth ? ` civic-growth-${metric.id}` : ''}`} disabled={!ready}

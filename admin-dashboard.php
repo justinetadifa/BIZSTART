@@ -552,15 +552,17 @@ sfc_render_header($context, 'admin');
       </div>
       <div id="mceBalanceAssistant" class="mce-balance-help" hidden><p id="mceAssistantHeadline"></p><button type="button" id="mceApplySuggestionBtn" class="mce-button">Balance to 100%</button></div>
       <div id="mceCriteriaInputs" class="mce-criteria-list"><p class="mce-muted">Loading active criteria…</p></div>
-      <section class="mce-justification" aria-labelledby="mceJustificationTitle">
-        <div class="mce-section-heading"><h3 id="mceJustificationTitle">Document this change</h3><p>Keep a clear record of why the evaluation changed.</p></div>
-        <div class="mce-field"><div class="mce-field-heading"><label for="mceReasonInput">Reason for adjustment <span aria-hidden="true">*</span></label><small id="mceReasonCharCount">0/8 minimum</small></div><textarea id="mceReasonInput" rows="2" maxlength="2000" required minlength="8" placeholder="Explain the priorities behind this adjustment" aria-describedby="mceReasonCharCount mceReasonInlineError"></textarea><p id="mceReasonInlineError" class="mce-field-error" hidden></p></div>
-        <div class="mce-field"><label for="mceReferenceInput">Source or consultation reference <span aria-hidden="true">*</span></label><input type="text" id="mceReferenceInput" required minlength="5" maxlength="255" placeholder="e.g., Committee resolution or planning reference" aria-describedby="mceReferenceInlineError" /><p id="mceReferenceInlineError" class="mce-field-error" hidden></p></div>
-      </section>
-      <section id="mcePreviewContainer" class="mce-preview" aria-labelledby="mcePreviewTitle" hidden><div class="mce-section-heading"><h3 id="mcePreviewTitle">Preview impact</h3></div><div id="mcePreviewContent"></div></section>
-      <details class="mce-disclosure"><summary>Methodology &amp; zoning safeguards</summary><div class="mce-disclosure-body"><p>Zoning compatibility is a required eligibility check. Changing criterion weights cannot make a prohibited land use eligible.</p><p id="mceDiscrepancyBanner" class="mce-muted"></p><p class="mce-version">Active version <code id="mceCurrentVersionBadge">Loading…</code></p></div></details>
-      <details class="mce-disclosure"><summary>Configuration history</summary><div id="mceHistoryContainer" class="mce-disclosure-body"></div></details>
-      <button type="button" id="restoreMceBaselineBtn" class="mce-restore">Restore methodological baseline</button>
+      <aside class="mce-audit-rail">
+        <section class="mce-justification" aria-labelledby="mceJustificationTitle">
+          <div class="mce-section-heading"><h3 id="mceJustificationTitle">Document this change</h3><p>Keep a clear record of why the evaluation changed.</p></div>
+          <div class="mce-field"><div class="mce-field-heading"><label for="mceReasonInput">Reason for adjustment <span aria-hidden="true">*</span></label><small id="mceReasonCharCount">0/8 minimum</small></div><textarea id="mceReasonInput" rows="2" maxlength="2000" required minlength="8" placeholder="Explain the priorities behind this adjustment" aria-describedby="mceReasonCharCount mceReasonInlineError"></textarea><p id="mceReasonInlineError" class="mce-field-error" hidden></p></div>
+          <div class="mce-field"><label for="mceReferenceInput">Source or consultation reference <span aria-hidden="true">*</span></label><input type="text" id="mceReferenceInput" required minlength="5" maxlength="255" placeholder="e.g., Committee resolution or planning reference" aria-describedby="mceReferenceInlineError" /><p id="mceReferenceInlineError" class="mce-field-error" hidden></p></div>
+        </section>
+        <section id="mcePreviewContainer" class="mce-preview" aria-labelledby="mcePreviewTitle" hidden><div class="mce-section-heading"><h3 id="mcePreviewTitle">Preview impact</h3></div><div id="mcePreviewContent"></div></section>
+        <details class="mce-disclosure"><summary>Methodology &amp; zoning safeguards</summary><div class="mce-disclosure-body"><p>Zoning compatibility is a required eligibility check. Changing criterion weights cannot make a prohibited land use eligible.</p><p id="mceDiscrepancyBanner" class="mce-muted"></p><p class="mce-version">Active version <code id="mceCurrentVersionBadge">Loading…</code></p></div></details>
+        <details class="mce-disclosure"><summary>Configuration history</summary><div id="mceHistoryContainer" class="mce-disclosure-body"></div></details>
+        <button type="button" id="restoreMceBaselineBtn" class="mce-restore">Restore methodological baseline</button>
+      </aside>
     </div>
     <footer class="mce-dialog-footer">
       <div id="mceConfigStatusMessage" class="mce-status" role="status" aria-live="polite" hidden></div>

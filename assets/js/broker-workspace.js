@@ -1051,6 +1051,7 @@ document.addEventListener('click', (event) => {
 let isBrokerSubmitting = false;
 form?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (isBrokerSubmitting) return;
   if (!canSubmit()) return;
   ensureWizard();
   if (editorStep !== editorLastStep) {
@@ -1062,47 +1063,51 @@ form?.addEventListener('submit', async (event) => {
     setEditorStep(2);
     return;
   }
-  if (isBrokerSubmitting) return;
   isBrokerSubmitting = true;
-  const submit = form.querySelector('[type="submit"]');
-  const originalSubmitText = submit.innerHTML;
-  submit.disabled = true;
-  submit.setAttribute('aria-busy', 'true');
-  submit.innerHTML = '<span class="locus-spinner tw-mr-1.5" aria-hidden="true"></span>Submitting…';
+  let finishSubmission = () => {};
+  let accepted = false;
+  let outcome = null;
   const id = form.elements.id.value;
-  const payload = new FormData(form);
-  nearby?.append(payload);
-  propertyWizard?.append(payload);
-  if (propertyWizard) propertyWizard.buildSubmission(payload);
-  else {
-    payload.delete('id');
-    const unitVal = areaUnit?.value || 'sqm';
-    payload.set('land_area', String(areaInput?.value || '').trim());
-    payload.set('land_area_unit', unitVal);
-    const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
-    payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
-    payload.set('subcategory', Array.from(new Set([form.elements.subcategory?.value, ...selectedSubcategories].filter(Boolean))).join(', '));
-    payload.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
-    payload.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
-    payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
-    payload.set('recalculate_assessment', 'true');
-    payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
-    const photo = payload.get('image_file');
-    if (!photo?.size) payload.delete('image_file');
-  }
-
-  if (id) payload.set('_method', 'PATCH');
-
   try {
+    const payload = new FormData(form);
+    nearby?.append(payload);
+    propertyWizard?.append(payload);
+    if (propertyWizard) propertyWizard.buildSubmission(payload);
+    else {
+      payload.delete('id');
+      const unitVal = areaUnit?.value || 'sqm';
+      payload.set('land_area', String(areaInput?.value || '').trim());
+      payload.set('land_area_unit', unitVal);
+      const legacyTypes = { Retail: 'commercial', Multifamily: 'commercial', Office: 'bpo', Industrial: 'manufacturing', Hospitality: 'hotel' };
+      payload.set('property_type', legacyTypes[form.elements.category.value] || 'commercial');
+      payload.set('subcategory', Array.from(new Set([form.elements.subcategory?.value, ...selectedSubcategories].filter(Boolean))).join(', '));
+      payload.set('price', form.elements.listing_purpose?.value === 'lease' ? '' : String(priceInput?.value || '').replace(/,/g, '').trim());
+      payload.set('lease_price', form.elements.listing_purpose?.value === 'sale' ? '' : String(form.elements.lease_price?.value || '').replace(/,/g, '').trim());
+      payload.set('contactMode', form.elements.contactBrokerUserId.value ? 'broker' : 'open_listing');
+      payload.set('recalculate_assessment', 'true');
+      payload.set('assessmentTags', JSON.stringify(Array.from(form.querySelectorAll('[name="assessmentTags[]"]:checked')).map((field) => field.value)));
+      const photo = payload.get('image_file');
+      if (!photo?.size) payload.delete('image_file');
+    }
+
+    if (id) payload.set('_method', 'PATCH');
+
+    finishSubmission = window.SFCPropertySubmission.pending(form, editor);
+    const editorMessage = form.querySelector('[data-editor-message]');
+    if (editorMessage) { editorMessage.textContent = 'Submitting…'; editorMessage.classList.remove('is-error'); }
+    const retry = form.querySelector('[data-editor-retry]');
+    if (retry) retry.hidden = true;
     window.LocusHUD?.show({
       title: id ? 'Updating property...' : 'Submitting property...',
-      subtitle: 'Auditing parcel coordinates & computing multi-criteria weights...',
+      subtitle: 'Saving your listing and attachments…',
       step: 'Uploading listing data',
       mode: 'loading'
     });
     let result;
     if (id) result = await api.updateProperty(id, payload);
     else result = await api.createProperty(payload);
+    accepted = true;
+    outcome = window.SFCPropertySubmission.describe(result, Boolean(id));
     const savedPropertyId = result?.property?.id || result?.id || id;
     if (savedPropertyId && form.elements.id) {
       form.elements.id.value = String(savedPropertyId);
@@ -1110,14 +1115,22 @@ form?.addEventListener('submit', async (event) => {
     propertyWizard?.saved();
     editor?.close();
     window.LocusHUD?.setSubmitted({
-      title: id ? 'Property Updated!' : 'Property Submitted for Review!',
-      subtitle: 'Your property has been submitted for municipal review.'
+      title: outcome.title,
+      subtitle: outcome.message
     });
-    await window.LocusHUD?.hide(900);
-    showSubmissionSuccessModal(savedPropertyId);
-    await reload();
+    window.LocusHUD?.hide();
+    showSubmissionSuccessModal(savedPropertyId, outcome);
+    feedback(outcome.message);
+    // Listing refresh is separate from the accepted submission, so retry cannot duplicate it.
+    reload().catch(() => feedback(`${outcome.message} Refresh the page to update My Listings.`));
   } catch (error) {
     window.LocusHUD?.hide();
+    finishSubmission();
+    finishSubmission = () => {};
+    if (accepted) {
+      feedback(`${outcome?.message || 'Property saved.'} Refresh the page to update My Listings.`);
+      return;
+    }
     if (propertyWizard?.showSubmissionError) {
       const issue = propertyWizard.showSubmissionError(error);
       if (issue) setEditorStep(issue.step);
@@ -1130,18 +1143,18 @@ form?.addEventListener('submit', async (event) => {
     }
   } finally {
     isBrokerSubmitting = false;
-    submit.disabled = false;
-    submit.removeAttribute('aria-busy');
-    submit.innerHTML = originalSubmitText;
+    finishSubmission();
   }
 });
 
-function showSubmissionSuccessModal(propertyId) {
+function showSubmissionSuccessModal(propertyId, outcome) {
   let modal = document.getElementById('brokerSubmissionSuccessModal');
   if (!modal) {
     modal = document.createElement('dialog');
     modal.id = 'brokerSubmissionSuccessModal';
     modal.className = 'city-dialog city-dialog-small tw-p-0 tw-rounded-2xl tw-border-0 tw-shadow-2xl';
+    modal.setAttribute('aria-labelledby', 'brokerSubmissionSuccessTitle');
+    modal.setAttribute('aria-describedby', 'brokerSubmissionSuccessStatus');
     document.body.appendChild(modal);
   }
   modal.innerHTML = `
@@ -1151,9 +1164,9 @@ function showSubmissionSuccessModal(propertyId) {
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
-      <h3 class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-1.5 tw-m-0">Submitted for review</h3>
-      <p class="tw-text-xs sm:tw-text-sm tw-text-slate-600 tw-mb-5 tw-leading-relaxed">
-        Your property has been sent for review. Track its status in My Listings.
+      <h3 id="brokerSubmissionSuccessTitle" class="tw-text-lg tw-font-bold tw-text-slate-900 tw-mb-1.5 tw-m-0">${escape(outcome.title)}</h3>
+      <p id="brokerSubmissionSuccessStatus" class="tw-text-xs sm:tw-text-sm tw-text-slate-600 tw-mb-5 tw-leading-relaxed">
+        ${escape(outcome.message)} Track its status in My Listings.
       </p>
       <div class="tw-flex tw-flex-col sm:tw-flex-row tw-items-center tw-justify-center tw-gap-2.5">
         ${propertyId ? `<a href="${basePath}/property-details.php?id=${encodeURIComponent(propertyId)}" class="locus-btn-primary tw-w-full sm:tw-w-auto tw-py-2 tw-px-4 tw-rounded-xl tw-bg-[#11224D] hover:tw-bg-[#1B367A] tw-text-white tw-text-xs tw-font-semibold tw-no-underline tw-transition-colors">View submission</a>` : ''}

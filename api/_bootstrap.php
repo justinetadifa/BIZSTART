@@ -61,6 +61,13 @@ $apiDebug = (bool) ($apiConfig['app']['debug'] ?? false);
 
 require_once __DIR__ . '/../app/Support/auth.php';
 
-$container = require __DIR__ . '/../app/bootstrap.php';
+try {
+    $container = require __DIR__ . '/../app/bootstrap.php';
+} catch (\App\Core\DatabaseUnavailableException $exception) {
+    error_log('[LOCUS-SF API] Database connection unavailable.');
+    header('Retry-After: 30');
+    api_raw_json_response(['error' => 'Service temporarily unavailable. Please try again shortly.'], 503);
+    exit;
+}
 
 require_once __DIR__ . '/_request.php';

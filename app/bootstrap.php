@@ -20,6 +20,7 @@ require_once __DIR__ . '/Support/ExternalServices.php';
 require_once __DIR__ . '/Core/Database.php';
 require_once __DIR__ . '/Core/SchemaManager.php';
 require_once __DIR__ . '/Core/ClupSchemaManager.php';
+require_once __DIR__ . '/Core/V2SchemaManager.php';
 require_once __DIR__ . '/Support/JsonData.php';
 require_once __DIR__ . '/Support/PropertyCatalog.php';
 require_once __DIR__ . '/Support/ZoningRulesEngine.php';
@@ -87,8 +88,16 @@ $autoMigrate = (bool) ($config['app']['auto_migrate'] ?? false);
 $autoSeed = (bool) ($config['app']['auto_seed'] ?? false);
 
 if ($autoMigrate) {
-    SchemaManager::ensure($pdo);
-    ClupSchemaManager::ensure($pdo);
+    \App\Core\SchemaMigrationRunner::run($pdo, 'application', [
+        __DIR__ . '/Core/SchemaManager.php',
+        __DIR__ . '/Core/BrokerSchemaManager.php',
+        __DIR__ . '/Core/V2SchemaManager.php',
+        __DIR__ . '/Core/ClupSchemaManager.php',
+        __DIR__ . '/Support/ZoningRulesEngine.php',
+    ], static function () use ($pdo): void {
+        SchemaManager::ensure($pdo);
+        ClupSchemaManager::ensure($pdo);
+    });
 }
 if ($autoSeed) {
     AutoSeeder::seedIfNeeded($pdo);
