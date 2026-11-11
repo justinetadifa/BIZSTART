@@ -20,6 +20,7 @@ data/property-evidence/
 data/broker-documents/
 data/property-authority-to-sell/
 data/cache/
+WELL-YU/
 *.bak
 *_backup.*
 backup_*

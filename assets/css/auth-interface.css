@@ -167,8 +167,13 @@
   50%{box-shadow:0 0 0 10px rgba(158,27,34,.38),0 12px 30px rgba(115,6,13,.55)}
 }
 
+/* Forgot Password Link */
+.account-auth .account-forgot-wrap{margin:14px 0 0;text-align:center}
+.account-auth .account-forgot-link{font-size:12.5px;font-weight:700;color:#8e151b;text-decoration:none;transition:color .18s,text-decoration .18s}
+.account-auth .account-forgot-link:hover{color:#73060d;text-decoration:underline;text-underline-offset:3px}
+
 /* Footer Link */
-.account-auth .account-switch{font-size:13px;color:#475569;margin-top:20px;text-align:center}
+.account-auth .account-switch{font-size:13px;color:#475569;margin-top:12px;text-align:center}
 .account-auth .account-switch a{color:#8e151b;font-weight:700;text-decoration:underline;text-underline-offset:3px;transition:color .18s}
 .account-auth .account-switch a:hover{color:#73060d}
 .account-auth .account-message{font-size:13px;padding:12px 18px;border-radius:12px;margin:0 0 20px}

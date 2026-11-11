@@ -219,6 +219,9 @@ function sfc_render_account_page(array $context, string $role, string $mode, str
             <?php endif; ?>
             <?php sfc_account_submit($signup ? ($role === 'seller' ? 'Submit for verification' : 'Create account') : 'Sign in', $signup ? ($role === 'seller' ? 'Submitting application…' : 'Creating your account…') : 'Signing in…'); ?>
           </form>
+          <?php if (!$signup && $role !== 'admin'): ?>
+          <p class="account-forgot-wrap"><a href="#forgot" class="account-forgot-link" onclick="alert('Please contact your administrator or CICTO to reset your password.'); return false;">Forgot password?</a></p>
+          <?php endif; ?>
           <?php if ($role !== 'admin'): ?>
           <p class="account-switch"><?= $signup ? 'Already have an account?' : 'New to LOCUS-SF?' ?> <a href="<?= sfc_account_escape(sfc_path($route . ($signup ? '' : '?mode=signup'))) ?>"><?= $signup ? 'Sign in' : 'Create account' ?></a></p>
           <?php else: ?>
