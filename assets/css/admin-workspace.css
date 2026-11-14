@@ -165,17 +165,40 @@ body:has(.city-workspace){background:#f8f9fa!important;background-image:none!imp
 .admin-hero-card {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  z-index: 2;
+  overflow: visible;
   border-radius: 24px;
   background: linear-gradient(135deg, #050d1e 0%, #0a1835 45%, #0f234b 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 20px 45px -15px rgba(3, 10, 26, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
+.admin-hero-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.admin-responsibilities-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(480px, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .admin-hero-card::before {
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background: radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.16) 0%, transparent 55%),
               radial-gradient(circle at 12% 88%, rgba(158, 27, 34, 0.15) 0%, transparent 50%);
   pointer-events: none;
@@ -186,6 +209,7 @@ body:has(.city-workspace){background:#f8f9fa!important;background-image:none!imp
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 24px 24px;
   opacity: 0.3;

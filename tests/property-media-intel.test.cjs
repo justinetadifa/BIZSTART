@@ -1,62 +1,81 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
-const { pathToFileURL } = require('node:url');
-const { resolve } = require('node:path');
 
 (async () => {
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-
   const {
-    propertyMediaDockMarkup,
-    derivePropertyApprovedLandUses,
-    derivePropertyBusinessRecommendation,
-    setupPropertyGallery
-  } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+    propertyMediaDockMarkup, investorScenarioMarkup,
+    derivePropertyBusinessRecommendations, derivePropertyBusinessRecommendation,
+  } = await import('../assets/js/property-details-view.js');
 
-  console.log('=== Running Property Media Intel Bar Tests ===');
+  const matches = [
+    { id: 'convenience_store', label: 'Convenience Retail Store', zoningOutcome: 'permitted',
+      zoningOutcomeLabel: 'Permitted by Right', areaStatus: '373 sqm recorded',
+      supportingPlaces: [{ name: 'Biday Health Center', distanceMeters: 120 }],
+      missingEvidence: ['Utility connections unconfirmed'], ruleSource: 'Recorded screening rules' },
+    { id: 'grocery', label: 'Neighborhood Grocery & Mart', zoningOutcome: 'conditional',
+      zoningOutcomeLabel: 'Conditional Use', supportingPlaces: [{ name: 'Community Market', distanceMeters: 250 }] },
+    { id: 'cafe', label: 'Café & Beverage Specialty', zoningOutcome: 'unverified',
+      zoningOutcomeLabel: 'Unverified Zoning Clearance', supportingPlaces: [{ name: 'Biday School', distanceMeters: 300 }] },
+  ];
+  const property = { id: 126, name: 'Biday Land', barangay: 'Biday', lat: 16.63, lng: 120.32,
+    zoningClassification: 'C-1', proposedActivity: 'gym',
+    businessOpportunities: { status: 'supported', supportedMatches: matches } };
+  const media = p => propertyMediaDockMarkup(p, () => '/site.jpg', p => p);
+  const picks = html => [...html.matchAll(/data-recommendation-id="([^"]+)" data-scenario-quick-pick="([^"]+)"/g)]
+    .map(([, id, activity]) => [id, activity]);
 
-  // Test 1: Property 10 / Building Barangay IV matching panel mockup
-  const mockProperty = {
-    id: 10,
-    name: 'Building · Barangay IV',
-    barangay: 'Barangay IV',
-    category: 'Building',
-    zoningClassification: 'C-3',
-    proposedActivity: 'gym',
-    media: [
-      { kind: 'image', source: 'assets/images/Property10.png' },
-      { kind: 'image', source: 'assets/images/Property2.png' }
-    ]
-  };
+  const expected = [['convenience_store', 'retail_convenience'], ['grocery', 'retail_supermarket'], ['cafe', 'food_cafe']];
+  assert.deepEqual(picks(media(property)), expected);
+  assert.deepEqual(picks(investorScenarioMarkup(property)), expected, 'Both sections preserve assessment order and activity codes');
+  assert.deepEqual(derivePropertyBusinessRecommendations(property).map(m => m.label), matches.map(m => m.label));
+  assert.equal(derivePropertyBusinessRecommendation(property).id, 'convenience_store', 'A proposed gym never overrides supported results');
+  for (const match of matches) {
+    const escapedLabel = match.label.replaceAll('&', '&amp;');
+    assert(media(property).includes(`<span>${escapedLabel}</span>`));
+    assert(investorScenarioMarkup(property).includes(`<span>${escapedLabel}</span>`), 'Labels stay identical across sections');
+  }
+  assert(media(property).includes('Biday Health Center (120 m)'));
+  assert(media(property).includes('373 sqm recorded'));
+  assert(media(property).includes('Permitted by Right'));
+  assert(investorScenarioMarkup(property).includes('Utility connections unconfirmed'));
+  assert(investorScenarioMarkup(property).includes('Conditional Use'));
+  assert(investorScenarioMarkup(property).includes('Unverified Zoning Clearance'));
+  assert(investorScenarioMarkup(property).includes('Recorded screening rules'));
+  assert(!media(property).includes('>GYM<'));
 
-  const approvedUses = derivePropertyApprovedLandUses(mockProperty);
-  assert.deepEqual(approvedUses, ['COMMERCIAL', 'MIXED USE'], 'C-3 zoning must derive Commercial and Mixed Use');
+  // An explicit empty server result stays empty even when a client fallback could find candidates.
+  const pending = { ...property, zoningClassification: 'Commercial',
+    nearbyBusinesses: [{ name: 'Nearby Office', lat: 16.6301, lng: 120.32, categoryKey: 'office' }],
+    businessOpportunities: { status: 'no_candidates', supportedMatches: [], unavailableReason: 'No supported business activity at this site.' } };
+  assert.equal(derivePropertyBusinessRecommendation(pending), null);
+  assert.deepEqual(picks(media(pending)), []);
+  assert.deepEqual(picks(investorScenarioMarkup(pending)), []);
+  assert(media(pending).includes('Assessment pending'));
+  assert(media(pending).includes(pending.businessOpportunities.unavailableReason));
+  assert(investorScenarioMarkup(pending).includes(pending.businessOpportunities.unavailableReason));
 
-  const bizRec = derivePropertyBusinessRecommendation(mockProperty);
-  assert.equal(bizRec.shortLabel, 'GYM', 'Gym activity must produce punchy GYM badge');
-  assert.equal(bizRec.id, 'gym');
+  for (const zoningClassification of ['C-1', 'C-3', 'R-1', 'I-1', '']) {
+    const unassessed = { name: 'Zambrano', zoningClassification, proposedActivity: 'gym', lat: 16.63, lng: 120.32 };
+    assert.equal(derivePropertyBusinessRecommendation(unassessed), null, 'Name, proposal and zoning alone cannot invent recommendations');
+  }
+  for (const coordinates of [{ lat: null }, { lng: '' }, { lat: 91 }, { lat: 0, lng: 0 }]) {
+    assert.deepEqual(derivePropertyBusinessRecommendations({ ...property, ...coordinates }), [], 'A missing or invalid origin withholds recommendations');
+  }
+  const partial = { ...property, businessOpportunities: { supportedMatches: [matches[1]] } };
+  assert.equal(picks(media(partial)).length, 1, 'Fewer supported matches must never be padded');
+  assert.deepEqual(picks(media(partial)), picks(investorScenarioMarkup(partial)));
+  const prohibited = { ...property, businessOpportunities: { supportedMatches: [{ ...matches[0], zoningOutcome: 'prohibited' }] } };
+  assert.deepEqual(picks(media(prohibited)), [], 'Prohibited activities cannot appear as recommendations');
 
-  const html = propertyMediaDockMarkup(mockProperty, () => 'assets/images/Property10.png', p => p);
-  assert(html.includes('class="property-media-intel-bar"'), 'Media dock markup must include property-media-intel-bar');
-  assert(html.includes('APPROVED LAND USE'), 'Must render APPROVED LAND USE section label');
-  assert(html.includes('pill-landuse'), 'Must render pill-landuse badges');
-  assert(html.includes('COMMERCIAL'), 'Must render COMMERCIAL badge');
-  assert(html.includes('MIXED USE'), 'Must render MIXED USE badge');
-  assert(html.includes('BUSINESS RECOMMENDATION'), 'Must render BUSINESS RECOMMENDATION section label');
-  assert(html.includes('pill-biz'), 'Must render pill-biz button');
-  assert(html.includes('GYM'), 'Must render GYM recommendation badge');
-  assert(html.includes('pill-more'), 'Must render MORE action button');
-  assert(html.includes('property-gallery-thumbnails'), 'Must render thumbnail strip alongside capsules');
+  const unsafe = { ...property, businessOpportunities: { supportedMatches: [{ ...matches[0], label: '<img onerror=alert(1)>',
+    supportingPlaces: [{ name: '<script>alert(1)</script>', distanceMeters: 40 }], missingEvidence: ['<unsafe>'] }] } };
+  for (const html of [media(unsafe), investorScenarioMarkup(unsafe)]) {
+    assert(!html.includes('<script>') && !html.includes('<img onerror='));
+    assert(html.includes('&lt;script&gt;') && html.includes('&lt;img onerror='));
+  }
 
-  // Test 2: CSS rules verification
-  const css = readFileSync('assets/css/property-details.css', 'utf8');
-  assert(css.includes('.property-media-intel-bar'), 'CSS must define .property-media-intel-bar');
-  assert(css.includes('.property-intel-grid'), 'CSS must define .property-intel-grid');
-  assert(css.includes('.property-intel-pill.pill-landuse'), 'CSS must define .pill-landuse');
-  assert(css.includes('.property-intel-pill.pill-biz'), 'CSS must define .pill-biz');
-  assert(css.includes('.property-intel-pill.pill-more'), 'CSS must define .pill-more');
-
-  console.log('✅ ALL PROPERTY MEDIA INTEL BAR TESTS PASSED (100% compliance).');
-})();
+  // Pages without a server payload still use the evidence-based evaluator.
+  const client = { ...pending, businessOpportunities: undefined };
+  assert(derivePropertyBusinessRecommendations(client).length > 0);
+  assert.deepEqual(picks(media(client)), picks(investorScenarioMarkup(client)));
+  console.log('Property recommendation consistency, evidence, pending states and escaping passed.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

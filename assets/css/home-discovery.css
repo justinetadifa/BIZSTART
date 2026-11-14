@@ -37,7 +37,7 @@ body[data-page="city-landing"] #incentive-recipients {
   --locator-gap: 20px;
   --locator-row-inset: 18px;
   --locator-ease: cubic-bezier(.22, 1, .36, 1);
-  background: #f6f4ef;
+  background: transparent;
   color: var(--locator-ink);
   scroll-margin-top: 110px;
 }

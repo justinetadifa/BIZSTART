@@ -9,7 +9,7 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   --glance-card-radius: 28px;
   padding-inline: 24px;
   color: var(--glance-ink);
-  background: var(--glance-paper);
+  background: transparent;
   scroll-margin-top: 112px;
 }
 #at-a-glance .home-glance-panel { min-width: 0; }

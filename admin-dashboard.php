@@ -63,10 +63,12 @@ sfc_render_header($context, 'admin');
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
 <main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
-  <section class="admin-hero-card tw-relative tw-isolate tw-overflow-hidden tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
-    <img src="<?= $escape($context['assetBase']) ?>/images/mapArtLineArt.png" class="admin-hero-bg-gis" alt="" fetchpriority="high">
-    <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-r tw-from-[#050d1e]/95 tw-via-[#0a1835]/85 tw-to-transparent tw-pointer-events-none tw-z-[1]"></div>
-    <div class="tw-absolute tw-inset-0 tw-bg-[radial-gradient(circle_at_90%_15%,rgba(59,130,246,0.18)_0%,transparent_50%)] tw-pointer-events-none tw-z-[1]"></div>
+  <section class="admin-hero-card tw-relative tw-isolate tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
+    <div class="admin-hero-art" aria-hidden="true">
+      <img src="<?= $escape($context['assetBase']) ?>/images/mapArtLineArt.png" class="admin-hero-bg-gis" alt="" fetchpriority="high">
+      <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-r tw-from-[#050d1e]/95 tw-via-[#0a1835]/85 tw-to-transparent tw-pointer-events-none tw-z-[1]"></div>
+      <div class="tw-absolute tw-inset-0 tw-bg-[radial-gradient(circle_at_90%_15%,rgba(59,130,246,0.18)_0%,transparent_50%)] tw-pointer-events-none tw-z-[1]"></div>
+    </div>
     
     <!-- Sleek Glassmorphic Date & Status Capsule at Top Right -->
     <div class="admin-hero-capsule" id="adminTodayCapsule">
@@ -142,7 +144,7 @@ sfc_render_header($context, 'admin');
 
         <!-- 6. Department Responsibilities Popover -->
         <div class="tw-relative">
-          <button type="button" id="responsibilitiesDropdownBtn" class="admin-hero-btn">
+          <button type="button" id="responsibilitiesDropdownBtn" class="admin-hero-btn" aria-expanded="false" aria-controls="responsibilitiesMenu">
             <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <span>Responsibilities</span>
             <svg class="tw-h-3.5 tw-w-3.5 tw-text-slate-300 tw-transition-transform tw-duration-200" id="responsibilitiesChevron" viewBox="0 0 20 20" fill="currentColor">
@@ -151,7 +153,7 @@ sfc_render_header($context, 'admin');
           </button>
           
           <!-- Dropdown popover for responsibilities -->
-          <div id="responsibilitiesMenu" class="tw-hidden tw-absolute tw-left-0 sm:tw-right-0 sm:tw-left-auto tw-top-full tw-mt-2.5 tw-z-30 tw-w-72 sm:tw-w-84 tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-2xl">
+          <div id="responsibilitiesMenu" class="admin-responsibilities-menu tw-hidden tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-2xl">
             <div class="tw-mb-2.5 tw-border-b tw-border-slate-100 tw-pb-2">
               <span class="tw-block tw-text-[10px] tw-font-bold tw-uppercase tw-tracking-wider tw-text-slate-400 font-mono"><?= $escape($department) ?> CHARTER</span>
               <strong class="tw-block tw-text-xs tw-font-bold tw-text-slate-900"><?= $escape($profile['title']) ?></strong>
@@ -218,18 +220,43 @@ sfc_render_header($context, 'admin');
       const menu = document.getElementById('responsibilitiesMenu');
       const chevron = document.getElementById('responsibilitiesChevron');
       if (btn && menu) {
+        const positionMenu = () => {
+          if (menu.classList.contains('tw-hidden')) return;
+          const trigger = btn.getBoundingClientRect();
+          const below = window.innerHeight - trigger.bottom - 26;
+          const headerBottom = document.querySelector('.city-header')?.getBoundingClientRect().bottom ?? 0;
+          const above = trigger.top - 10 - Math.max(16, headerBottom + 10);
+          const openAbove = below < Math.min(480, menu.scrollHeight + 2) && above > below;
+          menu.style.top = openAbove ? 'auto' : 'calc(100% + 10px)';
+          menu.style.bottom = openAbove ? 'calc(100% + 10px)' : 'auto';
+          menu.style.maxHeight = Math.max(0, Math.min(480, openAbove ? above : below)) + 'px';
+          menu.style.left = '0px';
+          const bounds = menu.getBoundingClientRect();
+          const shift = Math.max(16 - bounds.left, Math.min(0, window.innerWidth - 16 - bounds.right));
+          menu.style.left = shift + 'px';
+        };
+        const setOpen = (open) => {
+          menu.classList.toggle('tw-hidden', !open);
+          btn.setAttribute('aria-expanded', String(open));
+          if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+          if (open) positionMenu();
+        };
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
-          const isClosed = menu.classList.contains('tw-hidden');
-          menu.classList.toggle('tw-hidden', !isClosed);
-          if (chevron) chevron.style.transform = isClosed ? 'rotate(180deg)' : 'rotate(0deg)';
+          setOpen(menu.classList.contains('tw-hidden'));
         });
         document.addEventListener('click', (e) => {
           if (!btn.contains(e.target) && !menu.contains(e.target)) {
-            menu.classList.add('tw-hidden');
-            if (chevron) chevron.style.transform = 'rotate(0deg)';
+            setOpen(false);
           }
         });
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && !menu.classList.contains('tw-hidden')) {
+            setOpen(false);
+            btn.focus();
+          }
+        });
+        window.addEventListener('resize', positionMenu);
       }
 
       // Live time ticker for glassmorphic today capsule

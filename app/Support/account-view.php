@@ -72,7 +72,7 @@ function sfc_account_submit(string $label, string $loading): void
 
 function sfc_account_assets(array $context): void
 {
-    foreach (['account', 'auth-interface', 'broker-verification', 'auth-motion'] as $style) {
+    foreach (['account', 'auth-interface', 'broker-verification', 'auth-motion', 'auth-reference'] as $style) {
         ?><link rel="stylesheet" href="<?= sfc_account_escape($context['assetBase']) ?>/css/<?= $style ?>.css<?= sfc_account_escape(sfc_asset_version('css/' . $style . '.css')) ?>"><?php
     }
 }

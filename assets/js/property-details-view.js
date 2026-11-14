@@ -1,5 +1,5 @@
 import { listingPurposeLabel, listingPriceEntries, salePricePerSqm, saleAskingPrice } from './utils.js';
-import { businessOpportunitiesMarkup, evaluateBusinessOpportunities } from './business-opportunities.js';
+import { businessOpportunitiesMarkup, evaluateBusinessOpportunities, mapOpportunityToScenarioActivity } from './business-opportunities.js';
 import { renderProfileManagerMarkup } from './project-profile-manager.js';
 // Property details and its printable calculation sheet share the server's recorded inputs.
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -497,24 +497,22 @@ export function setupPropertyGallery(container = document) {
     });
   });
 
-  const quickBizBtn = container.querySelector('#propertyQuickBizBtn');
   const quickMoreBtn = container.querySelector('#propertyQuickMoreBizBtn');
 
-  const jumpToOpportunities = e => {
+  const jumpToRecommendationBasis = e => {
     if (e) e.preventDefault();
-    if (typeof window !== 'undefined' && window.LocusSound?.play) {
-      try { window.LocusSound.play('select'); } catch (_) {}
+    const basis = container.querySelector('#propertyRecommendationBasis');
+    if (!basis) return;
+    window.SFCInvestorView?.set('advanced');
+    for (let parent = basis.parentElement; parent; parent = parent.parentElement) {
+      if (parent.tagName === 'DETAILS') parent.open = true;
     }
-    const oppSection = document.getElementById('propertyOpportunitiesSection');
-    if (oppSection) {
-      oppSection.scrollIntoView({ behavior: 'auto', block: 'start' });
-      oppSection.classList.add('is-highlighted-section');
-      setTimeout(() => oppSection.classList.remove('is-highlighted-section'), 2000);
-    }
+    basis.open = true;
+    basis.scrollIntoView({ behavior: 'auto', block: 'start' });
+    basis.querySelector('summary')?.focus({ preventScroll: true });
   };
 
-  quickBizBtn?.addEventListener('click', jumpToOpportunities);
-  quickMoreBtn?.addEventListener('click', jumpToOpportunities);
+  quickMoreBtn?.addEventListener('click', jumpToRecommendationBasis);
 }
 
 export function sanitizeFilenamePart(name) {
@@ -1469,104 +1467,67 @@ export function derivePropertyApprovedLandUses(property) {
   return ['COMMERCIAL', 'MIXED USE'];
 }
 
+/** Both recommendation surfaces use the assessment's ranked matches, including an empty result. */
+export function derivePropertyBusinessRecommendations(property) {
+  const lat = numeric(property.lat), lng = numeric(property.lng);
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return [];
+  const opportunities = property.businessOpportunities ?? evaluateBusinessOpportunities(property, 500);
+  const matches = Array.isArray(opportunities.supportedMatches) ? opportunities.supportedMatches : [];
+  return matches.filter(match => match?.id && match?.label && match.zoningOutcome !== 'prohibited').map(match => {
+    const simulation = mapOpportunityToScenarioActivity(match.id, match.label);
+    return { ...match, activityCode: simulation.activityCode, capital: simulation.capital, shortLabel: match.label };
+  });
+}
+
 export function derivePropertyBusinessRecommendation(property) {
-  const name = String(property.name || '').toLowerCase();
-  const brgy = String(property.barangay || '').toLowerCase();
-  const proposed = String(property.proposedActivity || property.clupProfile?.proposedActivity || property.proposed_activity || '').trim().toLowerCase();
+  return derivePropertyBusinessRecommendations(property)[0] ?? null;
+}
 
-  // If explicit business activity is specified by investor/seller
-  if (proposed.includes('gym') || proposed.includes('fitness')) {
-    return { id: 'gym', label: 'Fitness Gym & Wellness', shortLabel: 'GYM' };
-  }
-  if (proposed.includes('cafe') || proposed.includes('coffee')) {
-    return { id: 'cafe', label: 'Café & Beverage Specialty', shortLabel: 'CAFÉ' };
-  }
-  if (proposed.includes('convenience') || proposed.includes('retail')) {
-    return { id: 'convenience_store', label: 'Convenience Retail Store', shortLabel: 'RETAIL' };
-  }
-  if (proposed.includes('grocery') || proposed.includes('mart')) {
-    return { id: 'grocery', label: 'Neighborhood Grocery & Mart', shortLabel: 'GROCERY' };
-  }
-  if (proposed.includes('bpo') || proposed.includes('office')) {
-    return { id: 'office', label: 'Commercial Office & BPO', shortLabel: 'OFFICE' };
-  }
-  if (proposed.includes('restaurant') || proposed.includes('dining') || proposed.includes('eatery')) {
-    return { id: 'eatery', label: 'Casual Dining & Eatery', shortLabel: 'DINING' };
-  }
-  if (proposed.includes('courier') || proposed.includes('logistics')) {
-    return { id: 'courier', label: 'Courier & Logistics Drop-off', shortLabel: 'COURIER' };
-  }
-  if (proposed.includes('hotel') || proposed.includes('lodging') || proposed.includes('inn')) {
-    return { id: 'accommodation', label: 'Travelers Accommodation & Inn', shortLabel: 'HOTEL' };
-  }
+function recommendationPendingReason(property) {
+  return property.businessOpportunities?.unavailableReason
+    || 'Recommendations are pending. Record the property location and supporting nearby activity, site conditions and zoning evidence.';
+}
 
-  // Check dynamically evaluated business opportunities
-  let matches = property.businessOpportunities?.supportedMatches;
-  if (!Array.isArray(matches) || matches.length === 0) {
-    try {
-      if (typeof evaluateBusinessOpportunities === 'function') {
-        const opp = evaluateBusinessOpportunities(property, 500);
-        if (opp && Array.isArray(opp.supportedMatches)) {
-          matches = opp.supportedMatches;
-        }
-      }
-    } catch (_) {
-      matches = [];
-    }
+function recommendationBasisText(match, compact = false) {
+  const places = (Array.isArray(match.supportingPlaces) ? match.supportingPlaces : []).filter(place => place?.name);
+  let nearby = places.slice(0, 2).map(place => {
+    const distance = numeric(place.distanceMeters);
+    return `${place.name}${distance !== null ? ` (${fmt(distance, 0)} m)` : ''}`;
+  }).join('; ');
+  if (compact && places.length) {
+    const count = numeric(match.supportingCount) ?? places.length;
+    const distances = places.map(place => numeric(place.distanceMeters)).filter(distance => distance !== null && distance >= 0);
+    nearby = `${fmt(count, 0)} supporting place${count === 1 ? '' : 's'}${distances.length ? `, nearest ${fmt(Math.min(...distances), 0)} m` : ''}`;
   }
+  return [nearby ? `Nearby: ${nearby}` : 'Nearby activity evidence pending',
+    match.areaStatus || match.supportingConditions?.areaStatus,
+    match.zoningOutcomeLabel || match.zoningStatus || 'Zoning clearance unverified'].filter(Boolean).join(' · ');
+}
 
-  if (matches && matches.length > 0) {
-    // If fitness/gym is among supported matches and property is a multi-storey commercial building or specifically matches
-    const gymMatch = matches.find(m => {
-      const l = ((m.id || '') + ' ' + (m.label || '')).toLowerCase();
-      return l.includes('gym') || l.includes('fitness');
-    });
-    
-    // For Property 115 / Zambrano Building or when gym is top matched
-    if (gymMatch && (name.includes('zambrano') || proposed.includes('condominium') || proposed.includes('commercial') || gymMatch === matches[0])) {
-      return { id: 'gym', label: gymMatch.label || 'Fitness Gym & Wellness Center', shortLabel: 'GYM' };
-    }
+function recommendationPillsMarkup(recommendations, currentActivity, media = false) {
+  return recommendations.map((match, index) => {
+    const active = currentActivity === match.activityCode;
+    return `<button type="button" class="${media ? 'property-intel-pill pill-red pill-biz' : 'scenario-quick-pill'} ${active ? 'is-active' : ''}" ${media && index === 0 ? 'id="propertyQuickBizBtn"' : ''} data-recommendation-id="${esc(match.id)}" data-scenario-quick-pick="${esc(match.activityCode)}" data-quick-capital="${esc(match.capital)}" aria-pressed="${active}" title="${esc(recommendationBasisText(match))}">
+      <span>${esc(match.label)}</span>
+    </button>`;
+  }).join('');
+}
 
-    // Take the #1 top-ranked opportunity from the engine
-    const top = matches[0];
-    const topId = String(top.id || '').toLowerCase();
-    const topLabel = String(top.label || '');
-
-    let shortLabel = 'COMMERCIAL';
-    if (topId.includes('gym') || topId.includes('fitness')) shortLabel = 'GYM';
-    else if (topId.includes('courier') || topId.includes('logistics')) shortLabel = 'COURIER';
-    else if (topId.includes('convenience') || topId.includes('retail')) shortLabel = 'RETAIL';
-    else if (topId.includes('grocery') || topId.includes('mart')) shortLabel = 'GROCERY';
-    else if (topId.includes('cafe') || topId.includes('coffee')) shortLabel = 'CAFÉ';
-    else if (topId.includes('bakery')) shortLabel = 'BAKERY';
-    else if (topId.includes('eatery') || topId.includes('restaurant')) shortLabel = 'DINING';
-    else if (topId.includes('office') || topId.includes('bpo')) shortLabel = 'OFFICE';
-    else if (topId.includes('laundry')) shortLabel = 'LAUNDRY';
-    else if (topId.includes('water')) shortLabel = 'REFILLING';
-    else if (topId.includes('salon') || topId.includes('barber')) shortLabel = 'SALON';
-    else if (topId.includes('hardware')) shortLabel = 'HARDWARE';
-    else if (topId.includes('accommodation') || topId.includes('hotel')) shortLabel = 'HOTEL';
-    else if (topId.includes('tour')) shortLabel = 'TOURS';
-    else if (topId.includes('repair')) shortLabel = 'REPAIR';
-    else if (topId.includes('printing')) shortLabel = 'PRINTING';
-    else shortLabel = topLabel.split(/[\s&/]/)[0].toUpperCase();
-
-    return { id: top.id, label: top.label, shortLabel };
-  }
-
-  // Fallback based on zoning classification
-  const z = String(property.clupProfile?.zoningClassification || property.zoningClassification || '').toUpperCase();
-  if (z.includes('C-') || z.includes('COMMERCIAL') || z.includes('MIXED')) {
-    return { id: 'gym', label: 'Fitness Gym & Wellness', shortLabel: 'GYM' };
-  }
-  if (z.includes('R-') || z.includes('RESIDENTIAL')) {
-    return { id: 'convenience_store', label: 'Convenience Retail Store', shortLabel: 'RETAIL' };
-  }
-  if (z.includes('I-') || z.includes('INDUSTRIAL')) {
-    return { id: 'courier', label: 'Logistics & Warehousing', shortLabel: 'LOGISTICS' };
-  }
-
-  return { id: 'commercial', label: 'Commercial Enterprise', shortLabel: 'COMMERCIAL' };
+function recommendationBasisMarkup(property, recommendations) {
+  return `<details class="property-recommendation-basis" id="propertyRecommendationBasis">
+    <summary>Why these recommendations?</summary>
+    <div class="property-recommendation-basis-body">
+      <p>Preliminary screening based on nearby activity, recorded site conditions and zoning. Select a business to assess its requirements.</p>
+      ${recommendations.length ? `<ol>${recommendations.map(match => `<li>
+        <strong>${esc(match.label)}</strong>
+        <p>${esc(recommendationBasisText(match))}</p>
+        ${match.explanation ? `<p>${esc(match.explanation)}</p>` : ''}
+        ${match.mainUnresolvedNotice ? `<p><strong>To confirm:</strong> ${esc(match.mainUnresolvedNotice)}</p>` : ''}
+        ${Array.isArray(match.missingEvidence) && match.missingEvidence.length ? `<p><strong>Missing evidence:</strong> ${esc(match.missingEvidence.join('; '))}</p>` : ''}
+        ${match.ruleSource ? `<small>Source: ${esc(match.ruleSource)}${match.version ? ` · ${esc(match.version)}` : ''}</small>` : ''}
+      </li>`).join('')}</ol>` : `<p>${esc(recommendationPendingReason(property))}</p>`}
+    </div>
+  </details>`;
 }
 
 export function propertyMediaDockMarkup(property, imageUrl, path) {
@@ -1596,7 +1557,8 @@ export function propertyMediaDockMarkup(property, imageUrl, path) {
   const isMapActive = defaultTab === 'map';
 
   const approvedUses = derivePropertyApprovedLandUses(property);
-  const recommendedBiz = derivePropertyBusinessRecommendation(property);
+  const recommendations = derivePropertyBusinessRecommendations(property);
+  const currentActivity = property.proposed_activity || property.clupProfile?.proposedActivity || property.proposedActivity || '';
 
   return `
     <section class="property-panel property-media-dock" id="propertyLocationSection" data-media-dock aria-label="Property Media and Geographic Views">
@@ -1654,12 +1616,17 @@ export function propertyMediaDockMarkup(property, imageUrl, path) {
               `}
               <div class="property-intel-grid">
                 <span class="property-intel-label">APPROVED LAND USE</span>
-                <span class="property-intel-pill pill-blue pill-landuse" title="CLUP Approved Land Use: ${esc(approvedUses[0] || 'COMMERCIAL')}">${esc(approvedUses[0] || 'COMMERCIAL')}</span>
-                <span class="property-intel-pill pill-blue pill-landuse" title="CLUP Approved Land Use: ${esc(approvedUses[1] || 'MIXED USE')}">${esc(approvedUses[1] || 'MIXED USE')}</span>
-
-                <span class="property-intel-label is-italic">BUSINESS RECOMMENDATION</span>
-                <button type="button" class="property-intel-pill pill-red pill-biz" id="propertyQuickBizBtn" data-target-opp="${esc(recommendedBiz.id)}" title="Top Compatible Recommendation: ${esc(recommendedBiz.label)} · Click to view evidence & simulate">${esc(recommendedBiz.shortLabel)}</button>
-                <button type="button" class="property-intel-pill pill-dark pill-more" id="propertyQuickMoreBizBtn" title="Explore all compatible businesses and simulation models">MORE</button>
+                <div class="property-intel-uses">
+                  ${approvedUses.map(use => `<span class="property-intel-pill pill-blue pill-landuse">${esc(use)}</span>`).join('')}
+                </div>
+                <span class="property-intel-label">BUSINESS RECOMMENDATIONS</span>
+                <div class="property-intel-recommendations" role="group" aria-label="Recommended businesses">
+                  ${recommendations.length ? recommendationPillsMarkup(recommendations, currentActivity, true) : '<span class="property-intel-pending">Assessment pending</span>'}
+                </div>
+                <div class="property-intel-basis">
+                  <p>${recommendations.length ? `Preliminary · ${esc(recommendationBasisText(recommendations[0], true))}` : esc(recommendationPendingReason(property))}</p>
+                  <button type="button" class="property-intel-basis-link" id="propertyQuickMoreBizBtn" aria-controls="propertyRecommendationBasis">View basis <span aria-hidden="true">↗</span></button>
+                </div>
               </div>
             </div>
           </div>
@@ -2709,6 +2676,7 @@ export function potentialIncentive(capital, policy) {
 export function investorScenarioMarkup(property) {
   const zoneName = property.clupProfile?.zoningClassification || property.zoningClassification || property.zoning_classification || 'Unverified district';
   const currentActivity = property.proposed_activity || property.clupProfile?.proposedActivity || property.proposedActivity || '';
+  const recommendations = derivePropertyBusinessRecommendations(property);
   const initialCalc = assessmentCalculation(property);
   const baselineScore = initialCalc.recordedTotal !== null
     ? `${fixed(initialCalc.recordedTotal)} / 100 pts`
@@ -2778,32 +2746,10 @@ export function investorScenarioMarkup(property) {
           <div class="property-scenario-quick-picks" role="group" aria-label="Top recommended business quick-picks">
             <span class="property-scenario-quick-label">Top Recommendations:</span>
             <div class="property-scenario-quick-pills">
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'retail_convenience' ? 'is-active' : ''}" data-scenario-quick-pick="retail_convenience" data-quick-capital="1500000" title="Simulate Convenience Retail Store">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Convenience Mart</span>
-              </button>
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'retail_supermarket' ? 'is-active' : ''}" data-scenario-quick-pick="retail_supermarket" data-quick-capital="5000000" title="Simulate Neighborhood Grocery / Supermarket">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Grocery / Mart</span>
-              </button>
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'food_cafe' ? 'is-active' : ''}" data-scenario-quick-pick="food_cafe" data-quick-capital="3500000" title="Simulate Specialty Café / Coffee Shop">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Café &amp; Dining</span>
-              </button>
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'office_professional' ? 'is-active' : ''}" data-scenario-quick-pick="office_professional" data-quick-capital="2500000" title="Simulate Corporate / Professional Office">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Office / Services</span>
-              </button>
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'log_distribution_center' || currentActivity === 'log_warehouse' ? 'is-active' : ''}" data-scenario-quick-pick="log_distribution_center" data-quick-capital="10000000" title="Simulate Cold Storage / Logistics Hub">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Logistics / Storage</span>
-              </button>
-              <button type="button" class="scenario-quick-pill ${currentActivity === 'tour_hotel' ? 'is-active' : ''}" data-scenario-quick-pick="tour_hotel" data-quick-capital="15000000" title="Simulate Hotel / Accommodation">
-                <span class="quick-pill-dot" aria-hidden="true"></span>
-                <span>Hotel / Lodging</span>
-              </button>
+              ${recommendations.length ? recommendationPillsMarkup(recommendations, currentActivity) : `<span class="property-intel-pending">${esc(recommendationPendingReason(property))}</span>`}
             </div>
           </div>
+          ${recommendationBasisMarkup(property, recommendations)}
           <div class="property-scenario-select-wrap">
             <select id="investorProposedActivitySelect" class="property-scenario-select">
               <option value="">— Select what you want to establish —</option>
@@ -3183,14 +3129,16 @@ export function setupInvestorScenario(root, property, policyInput) {
       }
     };
     const syncQuickPills = (activeVal) => {
-      if (typeof container.querySelectorAll === 'function') {
-        container.querySelectorAll('[data-scenario-quick-pick]').forEach(pill => {
-          pill.classList?.toggle?.('is-active', pill.getAttribute('data-scenario-quick-pick') === activeVal);
+      if (typeof root.querySelectorAll === 'function') {
+        root.querySelectorAll('[data-scenario-quick-pick]').forEach(pill => {
+          const active = pill.getAttribute('data-scenario-quick-pick') === activeVal;
+          pill.classList?.toggle?.('is-active', active);
+          pill.setAttribute?.('aria-pressed', String(active));
         });
       }
     };
 
-    const quickPickBtns = typeof container.querySelectorAll === 'function' ? container.querySelectorAll('[data-scenario-quick-pick]') : [];
+    const quickPickBtns = typeof root.querySelectorAll === 'function' ? root.querySelectorAll('[data-scenario-quick-pick]') : [];
     quickPickBtns.forEach(pill => {
       pill.addEventListener('click', () => {
         const pickActivity = pill.getAttribute('data-scenario-quick-pick');
@@ -3202,6 +3150,14 @@ export function setupInvestorScenario(root, property, policyInput) {
         if (suggestedCapital && capitalInput && (!capitalInput.value || capitalInput.value.trim() === '')) {
           capitalInput.value = formatPesoInput(suggestedCapital);
           updateIncentive();
+        }
+        if (pill.closest?.('.property-media-intel-bar')) {
+          window.SFCInvestorView?.set('advanced');
+          for (let parent = container.parentElement; parent; parent = parent.parentElement) {
+            if (parent.tagName === 'DETAILS') parent.open = true;
+          }
+          container.scrollIntoView({ behavior: 'auto', block: 'start' });
+          select?.focus({ preventScroll: true });
         }
         return evaluate();
       });

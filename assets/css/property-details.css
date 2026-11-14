@@ -140,13 +140,22 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 .property-gallery-thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Gamified Media Dock Intelligence Capsules Bar (Panel Approved Land Use & Business Recommendation) */
-.property-media-intel-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;padding:4px 2px 2px;flex-wrap:wrap}
+.property-media-intel-bar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-top:14px;padding:4px 2px 2px;flex-wrap:wrap}
 .property-media-intel-bar .property-gallery-thumbnails{flex:0 1 auto;margin:0;padding:2px 2px 4px}
 .property-gallery-thumbnails.is-single .property-gallery-thumb-btn{opacity:1;border-color:#cbd5e1;cursor:default}
 
-.property-intel-grid{display:grid;grid-template-columns:auto 128px 128px;grid-template-rows:38px 38px;align-items:center;column-gap:14px;row-gap:10px;margin-left:auto}
-.property-intel-label{text-align:right;font-family:'Poppins','Inter',-apple-system,sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#475569;white-space:nowrap;user-select:none;line-height:1}
+.property-intel-grid{display:grid;grid-template-columns:minmax(140px,190px) minmax(0,1fr);align-items:center;column-gap:14px;row-gap:10px;margin-left:auto;flex:1 1 430px;min-width:0}
+.property-intel-label{text-align:left;font-family:'Poppins','Inter',-apple-system,sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#475569;white-space:normal;user-select:none;line-height:1.4}
 .property-intel-label.is-italic{font-style:italic;font-weight:750;color:#334155}
+.property-intel-uses,.property-intel-recommendations{display:flex;flex-wrap:wrap;gap:7px;min-width:0}
+.property-intel-uses .property-intel-pill,.property-intel-recommendations .property-intel-pill{width:auto!important;height:auto!important;min-height:38px;padding:8px 12px!important;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.property-intel-recommendations .property-intel-pill{text-transform:none!important;letter-spacing:0!important;font-size:11.5px!important;text-align:left}
+.property-intel-recommendations .property-intel-pill.is-active{box-shadow:0 0 0 2px #fff,0 0 0 4px #11224d!important}
+.property-intel-basis{grid-column:2;min-width:0;border-top:1px solid #e2e8f0;padding-top:8px}
+.property-intel-basis p,.property-intel-pending{margin:0!important;font-size:11.5px!important;line-height:1.6!important;color:#64748b;overflow-wrap:anywhere}
+.property-intel-basis-link{display:inline-flex;gap:5px;align-items:center;background:none;border:0;padding:6px 0 0;font:600 12px/1.5 Inter,sans-serif;color:#8b1e24;cursor:pointer;text-align:left}
+.property-intel-basis-link:hover{text-decoration:underline}
+.property-intel-recommendations .property-intel-pill:focus-visible,.property-intel-basis-link:focus-visible,.scenario-quick-pill:focus-visible{outline:2px solid #11224d!important;outline-offset:3px}
 
 .property-intel-pill{display:inline-flex;align-items:center;justify-content:center;width:100%;height:38px;border-radius:9999px;font-family:'Poppins','Inter',-apple-system,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border:none;cursor:pointer;user-select:none;text-decoration:none;transition:transform .16s cubic-bezier(.16,1,.3,1),box-shadow .16s ease,filter .16s ease;outline:none;box-sizing:border-box}
 
@@ -166,8 +175,9 @@ body[data-page="city-details"] .property-heading h1{font-family:'Poppins',-apple
 
 @media (max-width:768px){
   .property-media-intel-bar{flex-direction:column;align-items:stretch;gap:14px}
-  .property-intel-grid{margin-left:0;grid-template-columns:auto 1fr 1fr;width:100%;column-gap:8px}
+  .property-intel-grid{margin-left:0;grid-template-columns:1fr;width:100%;gap:8px;flex-basis:auto}
   .property-intel-label{text-align:left;font-size:11px}
+  .property-intel-uses,.property-intel-recommendations,.property-intel-basis{grid-column:1 / -1}
 }
 
 
@@ -1060,6 +1070,14 @@ body[data-page="city-investment-report"] .brief-page {
 }
 
 /* Scenario Quick-Pill Recommendations */
+.property-recommendation-basis{margin:10px 0 14px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:12px;line-height:1.6;color:#475569;min-width:0;scroll-margin-top:100px}
+.property-recommendation-basis>summary{padding:10px 12px;cursor:pointer;font-weight:650;color:#334155}
+.property-recommendation-basis>summary:focus-visible{outline:2px solid #11224d;outline-offset:2px}
+.property-recommendation-basis-body{padding:0 14px 12px;overflow-wrap:anywhere}
+.property-recommendation-basis-body p{margin:0 0 7px}
+.property-recommendation-basis-body ol{margin:10px 0 0;padding-left:20px}
+.property-recommendation-basis-body li{padding:10px 0;border-top:1px solid #e2e8f0}
+.property-recommendation-basis-body small{display:block;color:#64748b}
 .property-scenario-quick-picks {
   display: flex;
   flex-direction: column;
@@ -1096,6 +1114,9 @@ body[data-page="city-investment-report"] .brief-page {
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  max-width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .scenario-quick-pill:hover {

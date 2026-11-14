@@ -1,13 +1,16 @@
-/* One decorative layer, below content: maps, forms, charts and ID images stay opaque. */
+/* Shared system backdrop. Fade the artwork, keeping content at full opacity. */
 body { position: relative; isolation: isolate; }
 .locus-map-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: url('../images/mapgraphicstyle.png') center top / max(1440px, 100vw) auto repeat-y;
-  opacity: .04;
-  filter: grayscale(20%);
+  background: url('../images/mapgraphicstyle.png') center / cover no-repeat;
+  opacity: .10;
+}
+@media screen and (orientation: portrait) {
+  /* Keep a location pin in view when the landscape artwork crops to portrait. */
+  .locus-map-backdrop { background-position: 18% center; opacity: .08; }
 }
 body .account-auth { background: transparent; }
 body .account-auth::before { content: none; }
@@ -131,7 +134,6 @@ html[data-investor-view="basic"] .investor-view-control .investor-view-pill {
     padding: 5px 12px;
     font-size: 12px;
   }
-  .locus-map-backdrop { background-size: auto 1000px; }
 }
 @media (prefers-reduced-motion: reduce) { .investor-view-control button { transition: none; } }
 @media print { .locus-map-backdrop, .investor-view-toolbar { display: none !important; } }

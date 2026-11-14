@@ -83,9 +83,16 @@ const path = require('path');
     id: 10,
     name: 'San Fernando Commercial Lot',
     barangay: 'San Agustin',
+    lat: 16.63,
+    lng: 120.32,
     area_sqm: 1200,
     zoningClassification: 'General Commercial (GC)',
-    proposed_activity: 'retail_convenience'
+    proposed_activity: 'retail_convenience',
+    businessOpportunities: { supportedMatches: [
+      { id: 'convenience_store', label: 'Convenience Retail Store' },
+      { id: 'grocery', label: 'Neighborhood Grocery & Mart' },
+      { id: 'cafe', label: 'Café & Beverage Specialty' },
+    ] }
   };
 
   const scenarioHtml = propView.investorScenarioMarkup(propertyFixture);
@@ -94,9 +101,10 @@ const path = require('path');
   assert(scenarioHtml.includes('data-scenario-quick-pick="retail_convenience"'), 'Must have quick-pick for convenience');
   assert(scenarioHtml.includes('data-scenario-quick-pick="retail_supermarket"'), 'Must have quick-pick for grocery');
   assert(scenarioHtml.includes('data-scenario-quick-pick="food_cafe"'), 'Must have quick-pick for café');
-  assert(scenarioHtml.includes('data-scenario-quick-pick="office_professional"'), 'Must have quick-pick for office');
-  assert(scenarioHtml.includes('data-scenario-quick-pick="log_distribution_center"'), 'Must have quick-pick for logistics');
-  assert(scenarioHtml.includes('data-scenario-quick-pick="tour_hotel"'), 'Must have quick-pick for hotel');
+  assert(!scenarioHtml.includes('data-scenario-quick-pick="office_professional"'), 'Unsupported office activities must not be presented as recommendations');
+  assert(!scenarioHtml.includes('data-scenario-quick-pick="log_distribution_center"'), 'Unsupported logistics activities must not be presented as recommendations');
+  assert(!scenarioHtml.includes('data-scenario-quick-pick="tour_hotel"'), 'Unsupported hotel activities must not be presented as recommendations');
+  assert(scenarioHtml.includes('id="propertyRecommendationBasis"'), 'Recommendations must expose their screening basis');
   console.log('✅ PASS: Test 4 scenario engine quick-picks bar');
 
   // Test 5: CSS rules exist in stylesheets

@@ -150,12 +150,6 @@ export function HomeHero({ assetBase, availability }) {
             <span className="ios-hero-title-top hr-block"><Words text="Find the place for" /></span>
             <span className="ios-hero-title-next hr-relative hr-block">
               <Words text="WHAT COMES NEXT." />
-              <svg className="ios-hero-underline hr-pointer-events-none hr-absolute" viewBox="0 0 900 44" fill="none" aria-hidden="true" preserveAspectRatio="none">
-                <defs><linearGradient id="heroUnderlineGlow" x1="0" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse"><stop stopColor="#fff" stopOpacity="0" /><stop offset=".22" stopColor="#fff4d6" /><stop offset="1" stopColor="#f2c477" /></linearGradient></defs>
-                <path className="ios-hero-underline-draw" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="url(#heroUnderlineGlow)" strokeWidth="2.5" strokeLinecap="round" />
-                <path className="ios-hero-underline-runner ios-hero-underline-halo" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="#f9ce84" strokeWidth="9" strokeLinecap="round" strokeDasharray="4 96" />
-                <path className="ios-hero-underline-runner" d="M12 32C205 4 552 4 886 32" pathLength="100" stroke="#fff8e8" strokeWidth="2.8" strokeLinecap="round" strokeDasharray="4 96" />
-              </svg>
             </span>
           </h1>
           <p className="ios-hero-tagline">Start with an idea. Find a place for it in San Fernando.</p>

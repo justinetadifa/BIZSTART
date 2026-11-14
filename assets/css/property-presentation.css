@@ -10,7 +10,6 @@
     font-family: Inter, Arial, sans-serif;
   }
   body:is([data-page="city-details"], [data-page="city-compare"])::before { display: none !important; }
-  body:is([data-page="city-details"], [data-page="city-compare"]) .locus-map-backdrop { display: none !important; }
   body:is([data-page="city-details"], [data-page="city-compare"]) .city-workspace { width: min(1240px, calc(100% - 64px)); max-width: 1240px; padding: 28px 0 64px; }
   .site-eyebrow { display: block; color: #7a4744; font-size: 10px; font-weight: 700; letter-spacing: .13em; line-height: 1.6; }
   body[data-page="city-details"] .property-heading { margin: 25px 0 24px; align-items: flex-end; }
@@ -2202,7 +2201,7 @@
   /* Property Media Intel Bar (Land Use & Business Recommendation Capsules) */
   .property-media-intel-bar {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: space-between !important;
     gap: 16px !important;
     margin-top: 14px !important;
@@ -2216,24 +2215,24 @@
   }
   .property-intel-grid {
     display: grid !important;
-    grid-template-columns: auto 128px 128px !important;
-    grid-template-rows: 38px 38px !important;
+    grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) !important;
+    grid-template-rows: auto !important;
     align-items: center !important;
     column-gap: 14px !important;
     row-gap: 10px !important;
     margin-left: auto !important;
   }
   .property-intel-label {
-    text-align: right !important;
+    text-align: left !important;
     font-family: 'Poppins', 'Inter', -apple-system, sans-serif !important;
     font-size: 11.5px !important;
     font-weight: 700 !important;
     letter-spacing: .04em !important;
     text-transform: uppercase !important;
     color: #475569 !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
     user-select: none !important;
-    line-height: 1 !important;
+    line-height: 1.4 !important;
   }
   .property-intel-label.is-italic {
     font-style: italic !important;
@@ -2313,7 +2312,7 @@
     }
     .property-intel-grid {
       margin-left: 0 !important;
-      grid-template-columns: auto 1fr 1fr !important;
+      grid-template-columns: 1fr !important;
       width: 100% !important;
       column-gap: 8px !important;
     }

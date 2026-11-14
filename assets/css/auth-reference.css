@@ -1,0 +1,246 @@
+/* Restore the original split login design. Use the shared foundation layer so
+   its important typography rules cannot replace the account page's artwork. */
+@layer locus-foundation {
+  body[data-page] .account-auth {
+    padding: 16px 40px 26px !important;
+    min-height: calc(100svh - 82px) !important;
+  }
+
+  .account-auth .account-shell,
+  .account-auth .account-shell.is-registering {
+    position: relative !important;
+    width: min(100%, 1200px) !important;
+    grid-template-columns: minmax(0, .96fr) minmax(0, 1.04fr) !important;
+    border-radius: 40px !important;
+    box-shadow: 0 24px 64px -18px #163f8538 !important;
+  }
+
+  .account-auth .account-scene {
+    min-height: 728px !important;
+    padding: 52px 28px !important;
+    background: linear-gradient(145deg, #2469f4 0%, #0b4bd4 46%, #00247e 100%) !important;
+  }
+
+  .account-auth .account-scene::before {
+    background: radial-gradient(ellipse at 35% 22%, #ffffff26, transparent 58%) !important;
+  }
+
+  .account-auth .account-scene::after { background: none !important; }
+  .account-auth .hero-stage { max-width: 490px !important; }
+  .account-auth .hero-poster-copy,
+  .account-auth .hero-tagline-container {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .account-auth .hero-glow-wrap { top: 37% !important; width: 100% !important; }
+  .account-auth .hero-glow-img { opacity: .94 !important; animation: none !important; }
+  .account-auth .hero-emblem-wrap { top: 43% !important; width: min(100%, 400px) !important; }
+  .account-auth .hero-emblem-img { opacity: .86 !important; animation: none !important; }
+
+  .account-auth .hero-poster-kicker,
+  .account-auth .hero-poster-title,
+  .account-auth .hero-tagline-script,
+  .account-auth .hero-tagline-action {
+    font-family: 'Archivo Black', Inter, sans-serif !important;
+    font-style: italic !important;
+    font-weight: 400 !important;
+    letter-spacing: -.035em !important;
+  }
+
+  .account-auth .hero-poster-kicker {
+    margin: 0 0 10px !important;
+    font-size: clamp(23px, 2.45vw, 31px) !important;
+    line-height: 1.15 !important;
+  }
+
+  .account-auth .hero-poster-title {
+    font-size: clamp(56px, 6.4vw, 82px) !important;
+    line-height: .94 !important;
+    animation: none !important;
+    filter: none !important;
+    text-shadow: 0 8px 8px #00154650 !important;
+  }
+
+  .account-auth .hero-poster-title span {
+    font-family: inherit !important;
+    font-weight: inherit !important;
+  }
+
+  .account-auth[data-account-role="seller"] .hero-poster-title {
+    font-size: clamp(44px, 4.6vw, 60px) !important;
+  }
+
+  .account-auth .hero-tagline-container { max-width: none !important; margin-top: 22px !important; }
+  .account-auth .hero-tagline-script {
+    margin: 0 0 4px !important;
+    font-size: clamp(15px, 1.72vw, 22px) !important;
+    line-height: 1.4 !important;
+    opacity: 1 !important;
+  }
+
+  .account-auth .hero-tagline-action {
+    margin: 0 !important;
+    font-size: clamp(20px, 2.4vw, 30px) !important;
+    line-height: 1.2 !important;
+  }
+
+  .account-auth .account-card { padding: 54px !important; }
+  .account-auth .account-card-watermark { opacity: .035 !important; }
+  .account-auth .account-roles { margin: 0 !important; padding: 0 !important; }
+  .account-auth .account-roles-track { max-width: 450px !important; height: 52px !important; }
+  .account-auth .account-role-pill {
+    top: 2px !important;
+    height: 48px !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    border-radius: 999px !important;
+  }
+
+  .account-auth .account-role-pill.is-active {
+    background: #910009 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 6px 18px #7e071b40 !important;
+  }
+
+  .account-auth .account-role-pill:focus-visible {
+    outline: 3px solid #3976ed !important;
+    outline-offset: 4px !important;
+  }
+
+  .account-auth .account-roles-divider { margin: 16px 0 22px !important; }
+  .account-auth .account-eyebrow {
+    margin: 0 0 8px !important;
+    color: #3981ff !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    letter-spacing: .1em !important;
+    line-height: 1.4 !important;
+  }
+
+  body[data-page] .account-auth #accountTitle {
+    margin: 0 0 6px !important;
+    color: #94151d !important;
+    font-family: 'Archivo Black', Inter, sans-serif !important;
+    font-size: clamp(32px, 3.65vw, 47px) !important;
+    font-weight: 400 !important;
+    line-height: 1.12 !important;
+    letter-spacing: -.045em !important;
+  }
+
+  .account-auth .account-intro {
+    max-width: none !important;
+    margin: 0 0 28px !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    font-style: italic !important;
+    letter-spacing: 0 !important;
+    line-height: 1.5 !important;
+    color: #ad1723 !important;
+  }
+
+  .account-auth .account-form { gap: 24px !important; }
+  .account-auth .account-field { gap: 9px !important; font-size: 16px !important; font-weight: 500 !important; }
+  .account-auth .account-field input,
+  .account-auth .account-field select {
+    min-height: 61px !important;
+    padding: 15px 24px !important;
+    border: 1px solid #9db9ff !important;
+    background-color: #e0e9ff !important;
+    background-image: linear-gradient(#e0e9fff2, #dce6fff2), url('../images/mapArtLineArt.png') !important;
+    box-shadow: none !important;
+  }
+
+  .account-auth .account-field input:hover,
+  .account-auth .account-field select:hover { border-color: #789ff4 !important; }
+
+  .account-auth .account-field input:focus,
+  .account-auth .account-field select:focus {
+    border-color: #3976ed !important;
+    box-shadow: 0 0 0 4px #3976ed29 !important;
+  }
+
+  .account-auth .account-field [aria-invalid="true"] {
+    border-color: #b54349 !important;
+    background: #ffe6e9 !important;
+  }
+
+  .account-auth .account-field [aria-invalid="true"]:focus {
+    box-shadow: 0 0 0 4px #9e1b2229 !important;
+  }
+
+  .account-auth .sfc-password-toggle { right: 16px !important; border-radius: 50% !important; }
+  .account-auth .account-submit-wrap { margin-top: 2px !important; }
+  .account-auth .account-submit {
+    min-width: 188px !important;
+    min-height: 59px !important;
+    padding: 15px 36px !important;
+    gap: 12px !important;
+    font-size: 19px !important;
+    font-weight: 800 !important;
+    background: #80050d !important;
+    box-shadow: 0 6px 18px #73060d40 !important;
+  }
+
+  .account-auth .account-submit:hover { background: #990713 !important; }
+  .account-auth .account-submit.is-loading { background: #5a040a !important; }
+  .account-auth .account-forgot-wrap { margin: 24px 0 0 !important; }
+  .account-auth .account-forgot-link {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 4px !important;
+    color: #ad1723 !important;
+  }
+
+  .account-auth .account-switch { margin: 26px 0 0 !important; font-size: 16px !important; }
+  .account-auth .account-switch a { color: #ad1723 !important; font-weight: 600 !important; }
+  .account-auth .is-registering .account-card { padding-block: 40px !important; }
+  .account-auth .is-registering .account-form { gap: 18px !important; }
+  body[data-page] .account-auth .is-registering #accountTitle { font-size: 34px !important; }
+  body[data-page] .account-auth .account-card-staff #accountTitle { font-size: 37px !important; }
+
+  @media (max-width: 1100px) and (min-width: 851px) {
+    body[data-page] .account-auth { padding-inline: 24px !important; }
+    .account-auth .account-card { padding: 40px 30px !important; }
+    .account-auth .account-scene { padding-inline: 22px !important; }
+    .account-auth .hero-tagline-script { font-size: 16px !important; }
+    .account-auth .hero-tagline-action { font-size: 23px !important; }
+    .account-auth .account-role-pill { font-size: 15px !important; }
+    .account-auth .account-intro { font-size: 12px !important; }
+  }
+
+  @media (max-width: 850px) {
+    body[data-page] .account-auth { padding: 20px 16px 32px !important; }
+    .account-auth .account-shell,
+    .account-auth .account-shell.is-registering {
+      width: min(100%, 540px) !important;
+      grid-template-columns: 1fr !important;
+      border-radius: 28px !important;
+    }
+    .account-auth .account-card { padding: 32px 26px !important; }
+    .account-auth .account-role-pill { font-size: 14px !important; height: 44px !important; }
+    .account-auth .account-roles-track { height: 48px !important; }
+    .account-auth .account-eyebrow { font-size: 11px !important; }
+    body[data-page] .account-auth #accountTitle { font-size: 35px !important; }
+    body[data-page] .account-auth .account-card-staff #accountTitle,
+    body[data-page] .account-auth .is-registering #accountTitle { font-size: 29px !important; }
+    .account-auth .account-intro { font-size: 11px !important; margin-bottom: 24px !important; }
+    .account-auth .account-field { font-size: 14px !important; }
+    .account-auth .account-field input,
+    .account-auth .account-field select { min-height: 54px !important; padding: 13px 20px !important; }
+    .account-auth .account-submit { min-height: 52px !important; font-size: 16px !important; }
+    .account-auth .account-forgot-link,
+    .account-auth .account-switch { font-size: 14px !important; }
+    .account-auth .account-switch { margin-top: 22px !important; }
+  }
+
+  @media (max-width: 380px) {
+    body[data-page] .account-auth { padding-inline: 10px !important; }
+    .account-auth .account-card { padding-inline: 18px !important; }
+    .account-auth .account-role-pill { font-size: 12px !important; }
+    body[data-page] .account-auth #accountTitle { font-size: 30px !important; }
+    body[data-page] .account-auth .account-card-staff #accountTitle,
+    body[data-page] .account-auth .is-registering #accountTitle { font-size: 25px !important; }
+  }
+}

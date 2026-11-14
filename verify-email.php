@@ -40,8 +40,10 @@ $escape = static fn (string $text): string => htmlspecialchars($text, ENT_QUOTES
   <style>
     *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f6f9;color:#17304e;font:16px/1.6 system-ui,sans-serif;padding:24px}main{width:min(100%,560px);background:white;border:1px solid #dbe3ed;border-radius:20px;padding:clamp(24px,6vw,48px);box-shadow:0 16px 50px #17304e10}h1{line-height:1.2;font-size:30px;margin:20px 0}.brand{font-weight:800;letter-spacing:.08em}.notice{padding:16px;border-radius:10px;background:#fef4d9;border:1px solid #d9b456}.error{background:#fff0ee;border-color:#ca6e63;color:#7f271c}.success{background:#edf8f0;border-color:#85b495}label{display:block;font-weight:600;margin:24px 0 8px}input{width:100%;padding:12px;border:1px solid #94a3b8;border-radius:8px;font:inherit}button{width:100%;padding:14px;background:#17304e;color:white;border:0;border-radius:10px;font:600 16px system-ui;margin-top:20px;cursor:pointer}a{color:#17304e;text-underline-offset:4px}:focus-visible{outline:3px solid #dbab38;outline-offset:4px}.help{font-size:14px;color:#57687d}
   </style>
+  <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/locus-presentation.css<?= sfc_asset_version('css/locus-presentation.css') ?>">
 </head>
 <body>
+<div class="locus-map-backdrop" aria-hidden="true"></div>
 <main>
   <a class="brand" href="<?= $escape(sfc_path('/index.php')) ?>">LOCUS-SF</a>
   <h1><?= $success ? 'Email verified' : 'Verify your email address' ?></h1>

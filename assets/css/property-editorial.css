@@ -23,8 +23,7 @@
       color: var(--pe-ink) !important;
     }
 
-    body[data-property-style="editorial"]::before,
-    body[data-property-style="editorial"] > .locus-map-backdrop {
+    body[data-property-style="editorial"]::before {
       display: none !important;
     }
 
@@ -127,7 +126,7 @@
 
     /* The homepage adopts the same title/card language within Properties only. */
     body[data-page="city-landing"] #properties {
-      background: var(--pe-canvas) !important;
+      background: transparent !important;
     }
     body[data-page="city-landing"] #properties .city-section-heading h2 {
       font-size: clamp(29px, 3vw, 42px) !important;

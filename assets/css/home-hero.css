@@ -83,11 +83,6 @@
   0%, 100% { transform: translate3d(-14%, -3%, 0) rotate(-9deg); opacity: .18; }
   50% { transform: translate3d(16%, 5%, 0) rotate(6deg); opacity: .5; }
 }
-@keyframes locus-hero-trace {
-  0%, 10% { stroke-dashoffset: 106; opacity: 0; }
-  19%, 76% { opacity: 1; }
-  90%, 100% { stroke-dashoffset: -8; opacity: 0; }
-}
 @keyframes locus-hero-scroll-cue {
   0%, 35%, 75%, 100% { transform: translateY(0); }
   52% { transform: translateY(4px); }
@@ -106,10 +101,6 @@
   0% { stroke-dashoffset: 100; opacity: .9; }
   68% { stroke-dashoffset: 0; opacity: .9; }
   100% { stroke-dashoffset: 0; opacity: 0; }
-}
-@keyframes locus-hero-underline-draw {
-  from { stroke-dashoffset: 100; }
-  to { stroke-dashoffset: 0; }
 }
 
 /* The shared foundation uses important rules, so join its layer for the hero
@@ -198,8 +189,8 @@
     z-index: 2; pointer-events: none; opacity: 1;
   }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-arrival-frame rect { opacity: 0; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-arrival-reset="true"] :is(.ios-hero-photo-reveal, .ios-hero-arrival-light, .ios-hero-arrival-frame rect, .ios-hero-underline-draw) { animation: none !important; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-hero-obscured="true"] :is(.ios-hero-photo-reveal, .ios-hero-arrival-light, .ios-hero-arrival-frame rect, .ios-hero-underline-draw) { animation-play-state: paused !important; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-arrival-reset="true"] :is(.ios-hero-photo-reveal, .ios-hero-arrival-light, .ios-hero-arrival-frame rect) { animation: none !important; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-hero-obscured="true"] :is(.ios-hero-photo-reveal, .ios-hero-arrival-light, .ios-hero-arrival-frame rect) { animation-play-state: paused !important; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-photo {
     position: absolute !important;
     inset: 0;
@@ -225,7 +216,7 @@
     animation-play-state: paused;
   }
   body[data-page="city-landing"] #locus-react-hero .ios-hero:not([data-motion-activated="true"]) .ios-hero-aurora { visibility: hidden; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-motion="running"] :is(.ios-hero-photo, .ios-hero-aurora, .ios-hero-underline-runner, .ios-hero-scroll-arrow) { animation-play-state: running; }
+  body[data-page="city-landing"] #locus-react-hero .ios-hero[data-motion="running"] :is(.ios-hero-photo, .ios-hero-aurora, .ios-hero-scroll-arrow) { animation-play-state: running; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-vignette {
     background: radial-gradient(ellipse at 48% 40%, #10243c0d 30%, #07152a47 100%), linear-gradient(180deg, #0b1a301a 0%, #08192e4d 35%, #081a3066 62%, #06172e80 100%);
   }
@@ -285,21 +276,6 @@
   body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(2) .ios-hero-word-ink { background-position: 50% 50%; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next .ios-hero-word:nth-of-type(3) .ios-hero-word-ink { background-position: 100% 50%; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-word { display: inline-block; white-space: nowrap; overflow: visible; }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-underline {
-    position: absolute;
-    inset: auto 0 -23px;
-    width: 100%;
-    height: 38px;
-    overflow: visible;
-    filter: drop-shadow(0 0 6px #f8cf8599);
-  }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-underline-runner {
-    animation: locus-hero-trace 7s cubic-bezier(.4, 0, .25, 1) infinite;
-    animation-delay: 1.15s;
-    animation-play-state: paused;
-    opacity: 0;
-  }
-  body[data-page="city-landing"] #locus-react-hero .ios-hero-underline-halo { stroke-opacity: .18; }
   body[data-page="city-landing"] #locus-react-hero .ios-hero-tagline {
     max-width: 560px !important;
     margin: 34px auto 0 !important;
@@ -433,10 +409,6 @@
     body[data-page="city-landing"] #locus-react-hero .ios-hero-arrival-frame rect {
       stroke-dasharray: 100;
       animation: locus-hero-arrival-stroke 2100ms 80ms cubic-bezier(.22, 1, .36, 1) both;
-    }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-underline-draw {
-      stroke-dasharray: 100;
-      animation: locus-hero-underline-draw 1100ms 180ms cubic-bezier(.22, 1, .36, 1) both;
     }
   }
 
