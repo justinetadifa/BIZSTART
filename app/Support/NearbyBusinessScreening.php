@@ -65,7 +65,16 @@ final class NearbyBusinessScreening
         }
         $observations = array_intersect_key($input, array_flip(['business_type', 'radius_m', 'reference_lat', 'reference_lng', 'source', 'observed_at', 'coverage']));
         $observations['counts'] = $counts;
-        $supported = in_array($input['business_type'], ['cafe', 'retail', 'office', 'hospitality', 'industrial'], true);
+        $normalizedType = match (true) {
+            in_array($input['business_type'], ['cafe', 'retail', 'office', 'hospitality', 'industrial'], true) => $input['business_type'],
+            str_contains($input['business_type'], 'cafe') || str_contains($input['business_type'], 'food') || str_contains($input['business_type'], 'restaurant') || str_contains($input['business_type'], 'bakery') => 'cafe',
+            str_contains($input['business_type'], 'retail') || str_contains($input['business_type'], 'convenience') || str_contains($input['business_type'], 'shop') || str_contains($input['business_type'], 'store') => 'retail',
+            str_contains($input['business_type'], 'office') || str_contains($input['business_type'], 'service') || str_contains($input['business_type'], 'bpo') => 'office',
+            str_contains($input['business_type'], 'hospitality') || str_contains($input['business_type'], 'hotel') || str_contains($input['business_type'], 'resort') || str_contains($input['business_type'], 'lodging') => 'hospitality',
+            str_contains($input['business_type'], 'industrial') || str_contains($input['business_type'], 'warehouse') || str_contains($input['business_type'], 'logistics') || str_contains($input['business_type'], 'manufacturing') => 'industrial',
+            default => $input['business_type'],
+        };
+        $supported = in_array($normalizedType, ['cafe', 'retail', 'office', 'hospitality', 'industrial'], true);
         $complete = $supported && $input['radius_m'] === self::RADIUS_METERS && $counts['businesses'] > 0;
         $ratings = $complete ? [
             'commercial_activity' => min(100.0, $counts['businesses'] / self::BUSINESS_REFERENCE_COUNT * 100),

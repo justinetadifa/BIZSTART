@@ -1,8 +1,6 @@
 (() => {
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const forms = [...document.querySelectorAll('[data-account-form]')];
-  const flights = new WeakMap(forms.map(form => [form, form.closest('.account-shell')?.querySelector('[data-auth-flight]')]));
-  const restricted = new Map();
   const summary = document.querySelector('[data-validation-summary]');
   const setError = (field, message) => {
     const error = document.getElementById(`${field.id}-error`);
@@ -72,24 +70,6 @@
       button.classList.add('is-loading');
       const label = button.querySelector('[data-submit-label]');
       if (label) { label.dataset.original = label.textContent; label.textContent = button.dataset.loadingLabel; }
-      const shell = form.closest('.account-shell');
-      const flight = flights.get(form);
-      if (flight) {
-        flight.querySelector('[data-auth-flight-label]').textContent = button.dataset.loadingLabel || 'Signing in…';
-        // A body-level portal stays centered even if submitting scrolled the
-        // mobile form underneath its sticky navigation.
-        document.body.append(flight);
-        flight.classList.add('is-portal');
-        flight.hidden = false;
-        shell.dataset.authPending = 'true';
-        for (const child of document.body.children) {
-          if (child === flight || !(child instanceof HTMLElement)) continue;
-          if (!restricted.has(child)) restricted.set(child, child.inert);
-          child.inert = true;
-        }
-        flight.tabIndex = -1;
-        flight.focus({ preventScroll: true });
-      }
     });
   });
   // Reset loading state when the browser restores a form from its back cache.
@@ -102,12 +82,6 @@
     button.classList.remove('is-loading');
     const label = button.querySelector('[data-submit-label]');
     if (label?.dataset.original) label.textContent = label.dataset.original;
-    const shell = form.closest('.account-shell');
-    const flight = flights.get(form);
-    if (flight) flight.hidden = true;
-    if (shell) delete shell.dataset.authPending;
-    restricted.forEach((previous, child) => { child.inert = previous; });
-    restricted.clear();
     if (event.persisted && wasPending) button.focus({ preventScroll: true });
   }));
   const tabs = [document.getElementById('btnAdminSignInTab'), document.getElementById('btnAdminOnboardTab')];

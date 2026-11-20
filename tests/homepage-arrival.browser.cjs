@@ -125,7 +125,7 @@ async function check(browser, mobile, reducedMotion) {
     try {
       await login.goto(`${base}/investor-login.php`, { waitUntil: 'domcontentloaded' });
       assert.equal(await login.locator('html').getAttribute('data-home-motion'), null, 'The homepage choice does not affect account pages');
-      assert.equal(await login.locator('.auth-flight-ring-one').evaluate(node => getComputedStyle(node).animationName), 'none', 'Account animations still honor reduced motion');
+      assert.equal(await login.locator('[data-auth-flight]').count(), 0, 'Account pages have no full-screen loading overlay');
       assert.equal(await login.locator('[data-account-form] [type="submit"]').first().evaluate(node => getComputedStyle(node).transitionDuration), '0s');
       reports.push('Account page: reduced-motion animations and transitions remain immediate. No sign-in requests were sent.');
     } finally { await reducedContext.close(); }

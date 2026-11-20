@@ -191,22 +191,36 @@ function synchronizeInvestorSort(announce = false) {
   }
 }
 
+function listingAssessmentState(property) {
+  const calculation = assessmentCalculation(property);
+  const presentation = assessmentPresentation(property, calculation);
+  const historical = property.assessmentStatus === 'historical_review_required' || property.assessmentMode === 'historical';
+  const state = historical ? 'Reassessment needed'
+    : presentation.state === 'Evidence pending' && calculation.missingCriteria.length ? 'Inputs needed' : presentation.state;
+  const progress = `${calculation.completedCount} of ${calculation.rows.length} criteria recorded`;
+  const detail = historical ? 'Recalculate this historical assessment under the current protocol.'
+    : state === 'Calculation review required' ? `Saved calculations need review before a score can be shown.${property.technical_review_hold ? ` ${presentation.description}` : ''}`
+      : state === 'Technical review required' || calculation.isNotSuitable ? presentation.description
+        : calculation.missingCriteria.length ? `Next: ${calculation.missingCriteria[0]}.`
+          : presentation.provisional ? 'City evidence review pending. Unranked.' : presentation.description;
+  return { ...presentation, calculation, state, progress, detail,
+    isReleased: !historical && calculation.iai !== null,
+    index: historical ? null : presentation.index,
+    provisional: !historical && presentation.provisional };
+}
+
 function card(property, index) {
   const isExpanded = expandedCards.has(property.id);
+  const assessment = listingAssessmentState(property);
 
   if (page === 'city-explorer') {
-    const mceVal = (property.mceScore != null && property.assessmentComplete) ? score(property.mceScore) : 'Assessment incomplete';
-    const iaiVal = (property.iaiScore != null && property.assessmentComplete) ? score(property.iaiScore) : 'Assessment incomplete';
+    const mceVal = assessment.index !== null ? score(assessment.index) : assessment.state;
+    const iaiVal = assessment.index !== null ? `${assessment.provisional ? 'Provisional · ' : ''}${score(assessment.index)}` : assessment.state;
     const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
     const descText = property.description || property.thesis || `Review the listing and verified site information for this ${property.category?.toLowerCase() || 'property'} in ${property.barangay || property.city || 'San Fernando'}.`;
     const locationLabel = `${property.barangay ? `${property.barangay}, ` : ''}${property.city || 'San Fernando'}${property.province ? `, ${property.province}` : ', La Union'}`;
 
-    const assessmentStatus = {
-      historical_review_required: 'Assessment needs review',
-      review_required: 'Assessment needs review',
-      incomplete: 'Assessment incomplete', complete: 'Assessment available',
-      pending: 'Assessment pending',
-    }[property.assessmentStatus] || String(property.assessmentStatus || 'Assessment incomplete').replaceAll('_', ' ');
+    const assessmentStatus = assessment.provisional ? `Provisional IAI · ${number(assessment.index)}/100 · ${assessment.state}` : assessment.state;
     return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}"><div class="city-card-assessment-note">${esc(assessmentStatus)}<span data-investor-advanced> · Comparison group: ${esc(property.comparison_key?.slice(0, 12) || 'Not assigned')}</span></div>
       <!-- Media / Satellite Image Container -->
       <div class="tw-relative tw-h-[220px] sm:tw-h-[235px] tw-w-full tw-overflow-hidden tw-bg-slate-100">
@@ -364,10 +378,10 @@ function card(property, index) {
     Industrial: 'tw-bg-stone-100 tw-text-stone-700 tw-border-stone-200'
   })[property.category] || 'tw-bg-[#fef3c7] tw-text-[#92400e] tw-border-[#fde68a]';
 
-  const mceVal = (property.mceScore != null && property.assessmentComplete) ? `${number(property.mceScore)}/100` : 'Assessment incomplete';
-  const iaiVal = (property.iaiScore != null && property.assessmentComplete) ? `${number(property.iaiScore)}/100` : 'Assessment incomplete';
+  const mceVal = assessment.index !== null ? score(assessment.index) : assessment.state;
+  const iaiVal = assessment.index !== null ? `${assessment.provisional ? 'Provisional · ' : ''}${score(assessment.index)}` : assessment.state;
   const clupVal = property.clupProfile?.zoningClassification || 'Awaiting zoning review';
-  const cityAssessmentVal = property.assessmentComplete ? 'Completed' : 'Pending';
+  const cityAssessmentVal = assessment.state;
   const descText = property.description || property.thesis || `A ${hasArea(property) ? `${number(property.area)}-hectare ` : ''}${property.category?.toLowerCase() || 'property'} parcel in ${property.barangay || property.city || 'San Fernando'}. Review verified site information for your proposed activity.`;
 
   return `<article class="city-property-card locus-property-card tw-group tw-relative tw-bg-white tw-rounded-[26px] sm:tw-rounded-[30px] tw-border tw-border-slate-200/80 tw-shadow-[0_2px_12px_-2px_rgba(17,34,77,0.04)] hover:tw-shadow-[0_16px_36px_-6px_rgba(17,34,77,0.1)] tw-overflow-hidden ${isExpanded ? 'is-expanded' : ''}" data-property-id="${property.id}">
@@ -449,7 +463,7 @@ function card(property, index) {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <div class="tw-min-w-0">
-                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">MCE</span>
+                <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">${assessment.provisional ? 'Provisional calculation' : 'MCE'}</span>
                 <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(mceVal)}</span>
               </div>
             </div>
@@ -550,7 +564,7 @@ function updatePriorityStats() {
   const total = properties.length;
   const review = properties.filter(p => p.approvalState === 'pending_review' || String(p.status).toLowerCase() === 'pending').length;
   const published = properties.filter(p => p.approvalState === 'approved' || String(p.status).toLowerCase() === 'available').length;
-  const needsAssessment = properties.filter(p => (!p.assessmentComplete || (p.iaiScore == null && p.mceScore == null && p.score == null)) && p.approvalState !== 'archived').length;
+  const needsAssessment = properties.filter(p => !listingAssessmentState(p).isReleased && p.approvalState !== 'archived').length;
 
   statTotal.textContent = String(total);
   statReview.textContent = String(review);
@@ -561,13 +575,12 @@ function updatePriorityStats() {
 function priorityListCard(property, idx) {
   const sort = document.getElementById('citySort')?.value || 'iai';
   const rankKey = ['iai', 'mce'].includes(sort) ? sort : null;
-  const scientificRank = rankKey ? property[`${rankKey}Rank`] : null;
-  const isTopRanked = scientificRank === 1 && property.rank_eligible === true;
+  const assessment = listingAssessmentState(property);
+  const scientificRank = rankKey && assessment.isReleased && property.rank_eligible === true ? property[`${rankKey}Rank`] : null;
   const ppsqm = salePricePerSqm(property);
 
-  const effectiveMce = property.mceScore ?? property.mce_score ?? property.effectiveMceScore ?? property.historicalMceScore ?? null;
-  const effectiveIai = property.iaiScore ?? property.iai_score ?? property.effectiveIaiScore ?? property.historicalIaiScore ?? property.score ?? null;
-  const isAssessed = Boolean(property.assessmentComplete && (effectiveIai !== null || effectiveMce !== null));
+  const isAssessed = assessment.isReleased;
+  const hasScore = assessment.index !== null;
 
   // Format location and eliminate duplicate city/province entries
   const locationRaw = [
@@ -622,9 +635,9 @@ function priorityListCard(property, idx) {
         <span>Assessed</span>
       </span>`;
     } else {
-      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80" title="Unranked: assessment incomplete">
+      rankBadge = `<span class="locus-rank-badge tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-bg-slate-100 tw-text-slate-600 tw-border tw-border-slate-200/80" title="${esc(assessment.detail)}">
         <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-slate-400"></span>
-        <span>Unranked · Pending assessment</span>
+        <span>Unranked · ${esc(assessment.provisional ? 'Provisional IAI' : assessment.state)}</span>
       </span>`;
     }
   }
@@ -700,51 +713,15 @@ function priorityListCard(property, idx) {
     <!-- Right Side: IAI Score & Action Controls -->
     <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap xl:tw-flex-col tw-items-stretch sm:tw-items-center xl:tw-items-end tw-justify-between xl:tw-justify-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-pt-3 xl:tw-pt-0 tw-border-t xl:tw-border-t-0 tw-border-slate-100 tw-w-full xl:tw-w-auto">
       
-      <!-- Dual Score Box: MCE & IAI Side by Side (Authoritative when assessed, refined status when pending) -->
-      <div class="tw-w-full sm:tw-w-52 xl:tw-w-56 tw-py-2.5 tw-px-3 tw-rounded-[22px] ${isAssessed ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-via-white tw-to-[#FFF7ED] tw-border tw-border-orange-200/90 tw-shadow-[0_4px_16px_-4px_rgba(234,88,12,0.08)]' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-shrink-0">
-        ${isAssessed ? `
-          <div class="tw-grid tw-grid-cols-2 tw-gap-2 tw-divide-x tw-divide-orange-200/70">
-            <!-- MCE Baseline -->
-            <div class="tw-text-center tw-px-1">
-              <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
-                <span class="tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-slate-600 tw-tracking-wider tw-uppercase">MCE baseline</span>
-                <span class="tw-text-[9px] tw-text-slate-400">/ 100</span>
-              </div>
-              <strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-800 tw-leading-tight tw-mt-0.5 tw-tabular-nums">
-                ${effectiveMce !== null ? number(effectiveMce) : '—'}
-              </strong>
-              <span class="tw-block tw-text-[9px] tw-text-slate-500 tw-font-medium tw-mt-0.5 tw-truncate" title="Multi-Criteria Evaluation baseline">Site baseline</span>
-            </div>
-
-            <!-- IAI Composite -->
-            <div class="tw-text-center tw-px-1">
-              <div class="tw-flex tw-items-center tw-justify-center tw-gap-1">
-                <span class="tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-[#9E1B22] tw-tracking-wider tw-uppercase">IAI composite</span>
-                <span class="tw-text-[9px] tw-text-slate-400">/ 100</span>
-              </div>
-              <strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-0.5 tw-tabular-nums">
-                ${effectiveIai !== null ? number(effectiveIai) : '—'}
-              </strong>
-              <span class="tw-block tw-text-[9px] tw-text-amber-800 tw-font-semibold tw-mt-0.5 tw-truncate" title="Investment Attractiveness Index">Investment index</span>
-            </div>
-          </div>
-          <div class="tw-mt-2 tw-pt-1.5 tw-border-t tw-border-orange-100/80 tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-text-[9px] tw-text-slate-500 tw-font-medium">
-            <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-emerald-500"></span>
-            <span>MCE methodology</span>
-          </div>
-        ` : `
-          <div class="tw-text-center tw-py-1">
-            <div class="tw-flex tw-items-center tw-justify-center tw-gap-1.5 tw-mb-1">
-              <span class="tw-text-[10.5px] tw-font-bold tw-text-slate-500 tw-tracking-wider tw-uppercase">MCE &bull; IAI</span>
-              <span class="tw-text-[9.5px] tw-text-slate-400">/ 100</span>
-            </div>
-            <div class="tw-inline-flex tw-items-center tw-gap-1.5 tw-my-1 tw-px-3 tw-py-0.5 tw-rounded-full tw-bg-white tw-border tw-border-slate-200/80 tw-shadow-2xs">
-              <span class="tw-w-1.5 tw-h-1.5 tw-rounded-full tw-bg-amber-400 tw-animate-pulse"></span>
-              <span class="tw-text-[11px] tw-font-semibold tw-text-slate-700">Awaiting score</span>
-            </div>
-            <span class="tw-block tw-text-[9.5px] tw-text-slate-400 tw-mt-0.5 tw-leading-tight">Assessment incomplete</span>
-          </div>
-        `}
+      <!-- Use the same IAI calculation and release decision as property details. -->
+      <div class="tw-w-full sm:tw-w-52 xl:tw-w-56 tw-py-2.5 tw-px-3 tw-rounded-[22px] ${hasScore ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-via-white tw-to-[#FFF7ED] tw-border tw-border-orange-200/90' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-shrink-0" data-listing-assessment>
+        <div class="tw-text-center tw-py-1">
+          <span class="tw-block tw-text-[10.5px] tw-font-bold tw-text-slate-600 tw-tracking-wider tw-uppercase">${esc(assessment.provisional ? 'Provisional IAI' : isAssessed ? 'IAI composite' : 'IAI assessment')}</span>
+          ${hasScore ? `<strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-1 tw-tabular-nums">${number(assessment.index)} <small class="tw-text-xs tw-font-medium tw-text-slate-400">/ 100</small></strong>` : ''}
+          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-700 tw-mt-1">${esc(assessment.state)}</span>
+          <span class="tw-block tw-text-[10px] tw-text-slate-500 tw-mt-1 tw-leading-tight">${esc(assessment.detail)}</span>
+          <span class="tw-block tw-text-[9.5px] tw-text-slate-400 tw-mt-1">${esc(assessment.progress)} · MCE methodology</span>
+        </div>
       </div>
 
       <!-- Action Buttons -->
@@ -849,16 +826,18 @@ function getFiltered() {
 
   const sort = document.getElementById('citySort')?.value || (page === 'city-ranking' && advancedView() ? 'iai' : 'newest');
   if (sort === 'iai' || sort === 'mce') result.sort((a, b) => {
-    if (a.rank_eligible === true && b.rank_eligible === true) {
+    const assessmentA = listingAssessmentState(a);
+    const assessmentB = listingAssessmentState(b);
+    const rankedA = a.rank_eligible === true && assessmentA.isReleased;
+    const rankedB = b.rank_eligible === true && assessmentB.isReleased;
+    if (rankedA !== rankedB) return rankedA ? -1 : 1;
+    if (rankedA && rankedB) {
       if (a.comparison_key !== b.comparison_key) return String(a.comparison_key).localeCompare(String(b.comparison_key));
       return (b.unrounded_total ?? 0) - (a.unrounded_total ?? 0) || a.id - b.id;
     }
-    const scoreA = sort === 'mce'
-      ? Number(a.mceScore ?? a.mce_score ?? a.effectiveMceScore ?? a.historicalMceScore ?? -1)
-      : Number(a.iaiScore ?? a.iai_score ?? a.effectiveIaiScore ?? a.historicalIaiScore ?? a.score ?? -1);
-    const scoreB = sort === 'mce'
-      ? Number(b.mceScore ?? b.mce_score ?? b.effectiveMceScore ?? b.historicalMceScore ?? -1)
-      : Number(b.iaiScore ?? b.iai_score ?? b.effectiveIaiScore ?? b.historicalIaiScore ?? b.score ?? -1);
+    if (assessmentA.isReleased !== assessmentB.isReleased) return assessmentA.isReleased ? -1 : 1;
+    const scoreA = assessmentA.index ?? -1;
+    const scoreB = assessmentB.index ?? -1;
     if (scoreA !== scoreB) return scoreB - scoreA;
     return a.id - b.id;
   });
@@ -873,8 +852,10 @@ function renderRanking() {
   const root = document.getElementById('cityRankingTable');
   if (!root) return;
   updatePriorityStats();
-  const assessed = filtered.filter(p => Boolean(p.assessmentComplete && (p.iaiScore != null || p.mceScore != null || p.score != null)));
-  const awaiting = filtered.length - assessed.length;
+  const assessments = filtered.map(listingAssessmentState);
+  const assessed = assessments.filter(assessment => assessment.isReleased);
+  const provisional = assessments.filter(assessment => assessment.provisional);
+  const awaiting = filtered.length - assessed.length - provisional.length;
 
   const sort = document.getElementById('citySort')?.value || 'newest';
   const rankKey = ['iai', 'mce'].includes(sort) ? sort : null;
@@ -888,12 +869,13 @@ function renderRanking() {
       <span class="tw-inline-flex tw-items-center tw-gap-2 tw-text-xs tw-text-slate-600 tw-bg-slate-100/90 tw-px-3 tw-py-1.5 tw-rounded-xl tw-border tw-border-slate-200/80" data-investor-advanced>
         <span class="tw-flex tw-items-center tw-gap-1.5 tw-font-semibold ${assessed.length > 0 ? 'tw-text-emerald-700' : 'tw-text-slate-500'}">
           <span class="tw-w-2 tw-h-2 tw-rounded-full ${assessed.length > 0 ? 'tw-bg-emerald-500' : 'tw-bg-slate-400'}"></span>
-          <span>${assessed.length} assessed</span>
+          <span>${assessed.length} released</span>
         </span>
+        ${provisional.length ? `<span class="tw-text-slate-300" aria-hidden="true">|</span><span class="tw-font-medium tw-text-amber-700">${provisional.length} provisional</span>` : ''}
         <span class="tw-text-slate-300" aria-hidden="true">|</span>
         <span class="tw-flex tw-items-center tw-gap-1.5 tw-font-medium tw-text-slate-600">
           <span class="tw-w-2 tw-h-2 tw-rounded-full tw-bg-amber-400"></span>
-          <span>${awaiting} awaiting assessment</span>
+          <span>${awaiting} need assessment or review</span>
         </span>
       </span>
     </div>
@@ -913,7 +895,7 @@ function renderRanking() {
   } else {
     root.innerHTML = headerHtml + `<div class="tw-flex tw-flex-col tw-gap-3.5 sm:tw-gap-4">${filtered.map((property, idx) => priorityListCard(property, idx)).join('')}</div>`;
   }
-  if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks apply only within the same protocol, weights, dataset versions and proposed activity. Different comparison groups are ordered separately; no cross-group rank is assigned.` : 'This listing order is based on the selected sort, not an assessment rank.'} Missing scores remain pending and sort last for assessment order.</p>`);
+  if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks apply only within the same protocol, weights, dataset versions and proposed activity. Different comparison groups are ordered separately; no cross-group rank is assigned.` : 'This listing order is based on the selected sort, not an assessment rank.'} Provisional calculations remain unranked. Missing scores sort last for assessment order.</p>`);
   window.SFCInvestorView?.refresh(root);
 
   const methodNote = document.getElementById('cityAssessmentMethod');

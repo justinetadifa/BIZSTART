@@ -190,6 +190,7 @@ final class AutomaticPropertyAssessment
             'pdo' => $pdo, 'property_id' => $input['property_id'] ?? null, 'proposed_activity' => $input['proposed_activity'] ?? '',
             'zoning_district' => $input['zoning_district'] ?? $details['zoning_compatibility']['raw']['zoning_classification'] ?? '',
             'criteria_details' => $details,
+            'preview_only' => true,
         ]);
         return array_merge($scores, [
             'configuration_version' => $configuration['version'],
@@ -212,6 +213,9 @@ final class AutomaticPropertyAssessment
             // Broad "available" claims never establish a connected, reliable service.
             return $record['connection_status'] ?? $o[$key] ?? null;
         };
+        $nearbyScreeningScore = isset($o['nearby_screening']['score']) && is_numeric($o['nearby_screening']['score'])
+            ? (float) $o['nearby_screening']['score']
+            : null;
         return [
             'spatial_accessibility' => array_intersect_key($o, array_flip(['road_access', 'road_surface_passability', 'carriageway_width', 'distance_to_major_road'])),
             'infrastructure_readiness' => [
@@ -221,7 +225,7 @@ final class AutomaticPropertyAssessment
             ],
             'property_cost_market_competitiveness' => array_merge($o, $financial),
             'economic_viability' => array_merge($o, $financial),
-            'nearby_businesses' => $o['nearby_businesses'] ?? $financial['nearby_businesses_score'] ?? $o['nearby_businesses_score'] ?? [],
+            'nearby_businesses' => $o['nearby_businesses'] ?? $financial['nearby_businesses_score'] ?? $o['nearby_businesses_score'] ?? $nearbyScreeningScore ?? [],
             'risk_constraints' => array_intersect_key($o, array_flip(['flood_susceptibility', 'active_fault', 'landslide_susceptibility', 'storm_surge', 'liquefaction_susceptibility', 'tsunami_exposure'])),
         ];
     }

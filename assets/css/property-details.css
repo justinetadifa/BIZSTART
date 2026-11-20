@@ -1581,3 +1581,223 @@ body[data-page="city-investment-report"] .brief-page {
   .locus-investor-brief[data-assessment-contract] tr { break-inside: avoid; }
   .locus-investor-brief[data-assessment-contract] thead { display: table-header-group; }
 }
+
+/* Investment brief: a print-only editorial identity, independent of the app UI. */
+/* The UI's important font rule lives in this layer; print must override it there. */
+@layer locus-foundation {
+  @media print {
+    #locusInvestorBrief, #locusInvestorBrief * { font-family: 'LOCUS Inter', Arial, sans-serif !important; }
+    #locusInvestorBrief .brief-section-heading h1,
+    #locusInvestorBrief .brief-image-context strong,
+    #locusInvestorBrief .brief-hero-empty strong { font-family: Georgia, 'Times New Roman', serif !important; }
+    #locusInvestorBrief .brief-section-heading h1 { font-weight: 400 !important; line-height: 1.08 !important; letter-spacing: -.8pt !important; }
+    #locusInvestorBrief h2, #locusInvestorBrief h3 { font-weight: 650 !important; line-height: 1.3 !important; letter-spacing: -.25pt !important; }
+    #locusInvestorBrief .brief-image-context strong, #locusInvestorBrief .brief-hero-empty strong { font-weight: 400 !important; }
+    #locusInvestorBrief .brief-brand { font-weight: 750 !important; }
+    #locusInvestorBrief .brief-score { font-weight: 450 !important; }
+    #locusInvestorBrief .brief-iai-value { font-weight: 550 !important; }
+    #locusInvestorBrief .brief-metrics strong { font-weight: 650 !important; }
+    #locusInvestorBrief .brief-evidence pre { font-family: Consolas, monospace !important; }
+  }
+}
+@media print {
+  @page locus-investor {
+    size: A4 portrait;
+    margin: 12mm 14mm 17mm;
+    @top-left { content: ''; }
+    @top-center { content: ''; }
+    @top-right { content: ''; }
+    @bottom-left {
+      content: 'LOCUS—SF  /  PROPERTY INTELLIGENCE';
+      font: 600 6.5pt 'LOCUS Inter', Arial, sans-serif;
+      letter-spacing: .7pt;
+      color: #526776;
+      border-top: .5pt solid #d7dfe2;
+      padding-top: 3mm;
+      vertical-align: top;
+    }
+    @bottom-right {
+      content: counter(page) ' / ' counter(pages);
+      font: 600 7pt 'LOCUS Inter', Arial, sans-serif;
+      color: #142d3e;
+      border-top: .5pt solid #d7dfe2;
+      padding-top: 3mm;
+      vertical-align: top;
+    }
+  }
+
+  #locusInvestorBrief {
+    page: locus-investor;
+    --brief-ink: #142d3e;
+    --brief-muted: #61727b;
+    --brief-accent: #8e353d;
+    font: 9pt/1.5 'LOCUS Inter', Arial, sans-serif !important;
+    color: #142d3e !important;
+  }
+  #locusInvestorBrief, #locusInvestorBrief * {
+    font-family: 'LOCUS Inter', Arial, sans-serif !important;
+    text-transform: none !important;
+    box-sizing: border-box;
+  }
+  #locusInvestorBrief .brief-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: #fff !important;
+  }
+  #locusInvestorBrief p { font-size: 8.5pt; line-height: 1.55; margin: 0 0 2.5mm; }
+  #locusInvestorBrief h2 { font-size: 11pt; font-weight: 650; line-height: 1.3; margin: 0 0 2.5mm; letter-spacing: -.25pt; }
+  #locusInvestorBrief h3 { font-size: 9.5pt; font-weight: 650; line-height: 1.35; }
+  #locusInvestorBrief .brief-eyebrow { font-size: 6.6pt; font-weight: 650; letter-spacing: 1.15pt; text-transform: uppercase !important; }
+
+  #locusInvestorBrief .brief-masthead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 14mm;
+    padding: 0 0 3mm;
+    margin: 0 0 4.5mm;
+    border-bottom: .65pt solid #cbd6dc;
+    position: relative;
+  }
+  #locusInvestorBrief .brief-masthead::after {
+    content: '';
+    position: absolute;
+    bottom: -.65pt;
+    left: 0;
+    width: 24mm;
+    height: 2pt;
+    background: #8e353d;
+  }
+  #locusInvestorBrief .brief-brand-group { display: flex; align-items: center; gap: 2.5mm; text-align: left; }
+  #locusInvestorBrief .brief-brand-mark { width: 12mm; height: 12mm; color: #8e353d; flex: 0 0 12mm; }
+  #locusInvestorBrief .brief-brand { display: block; font-size: 19pt; font-weight: 750; line-height: 1; letter-spacing: -.9pt; color: #142d3e; }
+  #locusInvestorBrief .brief-brand > span { color: #8e353d; padding: 0 .5pt; }
+  #locusInvestorBrief .brief-brand small { display: block; font-size: 5.7pt; font-weight: 550; letter-spacing: 1.15pt; margin-top: 2mm; }
+  #locusInvestorBrief .brief-document-edition { display: flex; flex-direction: column; gap: .7mm; text-align: right; font-size: 7pt; line-height: 1.4; }
+  #locusInvestorBrief .brief-document-edition b { font-size: 6.5pt; font-weight: 650; letter-spacing: 1.35pt; }
+  #locusInvestorBrief .brief-document-edition > span { font-size: 7pt; color: #61727b; }
+  #locusInvestorBrief .brief-document-edition .brief-document-reference { font-size: 6.2pt; letter-spacing: .65pt; color: #8e353d; }
+
+  #locusInvestorBrief .brief-section-heading { position: relative; padding-right: 13mm; margin-bottom: 3mm; break-inside: avoid; }
+  #locusInvestorBrief .brief-section-heading::after { content: attr(data-section); position: absolute; top: -2mm; right: 0; font-size: 38pt; font-weight: 350; line-height: 1; letter-spacing: -2pt; color: #e5e9e9; }
+  #locusInvestorBrief .brief-section-heading > .brief-eyebrow { color: #8e353d; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-section-heading h1 { font-family: Georgia, 'Times New Roman', serif !important; font-size: 26pt; font-weight: 400; line-height: 1.08; letter-spacing: -.8pt; margin: 0 0 2.5mm; color: #142d3e; }
+  #locusInvestorBrief .brief-section-heading > p { font-size: 8pt; line-height: 1.45; color: #61727b !important; margin: 0; }
+  #locusInvestorBrief #locusBriefPage1 .brief-section-heading h1 { font-size: 31pt; letter-spacing: -.9pt; }
+  #locusInvestorBrief .brief-listing-strip { font-size: 7.5pt; padding: 0; margin-bottom: 3mm; gap: 3mm; }
+  #locusInvestorBrief .brief-listing-strip > span:first-child { color: #435a67; }
+  #locusInvestorBrief .brief-pill { font-size: 6.8pt; font-weight: 550; line-height: 1.35; padding: 1.4mm 2.6mm; border-radius: 1.5mm; background: #f6f0e9; color: #7a4934; border: .5pt solid #e2d5c7; }
+
+  #locusInvestorBrief .brief-hero { margin: 0 0 4mm; gap: 0; }
+  #locusInvestorBrief .brief-hero.has-photo { grid-template-columns: 65% 35%; }
+  #locusInvestorBrief .brief-hero img { height: 70mm; width: 100%; padding: 3mm; object-fit: contain; background: #edf0ed; border-radius: 2.5mm 0 0 2.5mm; }
+  #locusInvestorBrief .brief-image-context { position: relative; min-width: 0; padding: 5mm; border-radius: 0 2.5mm 2.5mm 0; border-top: 1.5mm solid #c5ab83; background: #142d3e; }
+  #locusInvestorBrief .brief-location-mark { width: 10mm; height: 10mm; color: #cbb792; margin-bottom: 4mm; }
+  #locusInvestorBrief .brief-image-context .brief-eyebrow { font-size: 6pt; letter-spacing: 1.4pt; color: #cbb792; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-image-context strong { font-family: Georgia, 'Times New Roman', serif !important; font-size: 21pt; font-weight: 400; line-height: 1.1; letter-spacing: -.4pt; color: #fff; }
+  #locusInvestorBrief .brief-image-context p { font-size: 7.8pt; line-height: 1.5; margin: 2mm 0 3mm; }
+  #locusInvestorBrief .brief-image-context small { font-size: 6.8pt; line-height: 1.65; letter-spacing: .15pt; color: #d1dce1; }
+  #locusInvestorBrief .brief-image-context .brief-image-context-note { font-size: 6.5pt; line-height: 1.5; border-top: .5pt solid #49606b; margin: 3mm 0 0; padding-top: 2mm; color: #d1dce1 !important; }
+  #locusInvestorBrief .brief-hero figcaption { font-size: 6.1pt; line-height: 1.4; padding-top: 1.8mm; color: #61727b; }
+  #locusInvestorBrief .brief-hero-empty { min-height: 54mm; padding: 7mm; background: #eef1ee; border: .5pt solid #d7dfdb; border-radius: 2.5mm; border-left: 1.5mm solid #c5ab83; }
+  #locusInvestorBrief .brief-hero-empty strong { font-family: Georgia, 'Times New Roman', serif !important; font-size: 25pt; font-weight: 400; }
+  #locusInvestorBrief .brief-hero-empty p { font-size: 8.5pt; margin-top: 3mm; }
+
+  #locusInvestorBrief .brief-metrics { grid-template-columns: 1.1fr 1fr 1fr; gap: 0; margin: 0 0 5mm; padding: 4.5mm 4mm; background: #f5f4ef; border: .5pt solid #e1e2da; border-radius: 2mm; }
+  #locusInvestorBrief .brief-metrics > div { padding-right: 3mm; min-width: 0; }
+  #locusInvestorBrief .brief-metrics > div + div { padding-left: 4mm; border-left: .5pt solid #d6dcd6; }
+  #locusInvestorBrief .brief-metrics .brief-eyebrow { font-size: 6.2pt; letter-spacing: .8pt; color: #61727b; }
+  #locusInvestorBrief .brief-metrics strong { font-size: 16pt; font-weight: 650; line-height: 1.2; letter-spacing: -.6pt; margin: 2mm 0; color: #142d3e; }
+  #locusInvestorBrief .brief-metrics > div:first-child strong { color: #8e353d; }
+  #locusInvestorBrief .brief-metrics small { font-size: 6.5pt; line-height: 1.5; color: #61727b; }
+  #locusInvestorBrief .brief-description { font-size: 8.8pt; line-height: 1.6; margin-bottom: 3mm !important; }
+  #locusInvestorBrief .brief-facts { gap: 0 6mm; margin-bottom: 3mm; }
+  #locusInvestorBrief .brief-facts > div { padding: 1.7mm 0; border-bottom: .5pt solid #e0e5e5; }
+  #locusInvestorBrief .brief-facts dt { font-size: 6.7pt; line-height: 1.45; color: #61727b; margin-bottom: .8mm; }
+  #locusInvestorBrief .brief-facts dd { font-size: 8pt; line-height: 1.45; font-weight: 550; color: #203d4e; }
+  #locusInvestorBrief .brief-amenities { font-size: 7.3pt; line-height: 1.5; }
+  #locusInvestorBrief .brief-note { padding: 3mm 4mm; margin: 3mm 0; border-left: 2pt solid #8e353d; border-radius: 0 1.5mm 1.5mm 0; background: #f7f2ed; }
+  #locusInvestorBrief .brief-note .brief-eyebrow { font-size: 6.3pt; letter-spacing: .9pt; margin-bottom: 1.3mm; }
+  #locusInvestorBrief .brief-note p { font-size: 7.8pt; line-height: 1.5; margin: 0; }
+  #locusInvestorBrief .brief-note.is-neutral { background: #eff3f2; border-left-color: #80968f; }
+
+  #locusInvestorBrief .brief-score-panel { grid-template-columns: 39% 1fr; gap: 5mm; padding: 4mm; background: #142d3e; border-radius: 2.5mm; border-top: 1.2mm solid #c5ab83; }
+  #locusInvestorBrief .brief-score-panel > div:first-child { padding-right: 4mm; border-color: #49606b; }
+  #locusInvestorBrief .brief-score-panel .brief-eyebrow { color: #d0dce0; font-size: 6.2pt; letter-spacing: .85pt; }
+  #locusInvestorBrief .brief-score { font-size: 43pt; font-weight: 450; line-height: 1.2; letter-spacing: -2pt; margin-top: 3mm; color: #fff; }
+  #locusInvestorBrief .brief-score small { font-size: 11pt; font-weight: 400; letter-spacing: 0; color: #cbb792; }
+  #locusInvestorBrief .brief-score-panel.is-pending .brief-score { font-size: 29pt; letter-spacing: -1pt; }
+  #locusInvestorBrief .brief-iai-value { font-size: 20pt; font-weight: 550; letter-spacing: -.6pt; line-height: 1.25; color: #fff; margin: 2mm 0; }
+  #locusInvestorBrief .brief-score-panel .brief-pill { font-size: 6.3pt; background: #2b4553; border-color: #6a8088; color: #eef3f2; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-score-panel p { font-size: 7.5pt; line-height: 1.5; margin: 0; }
+  #locusInvestorBrief .brief-release-line { font-size: 6.8pt; line-height: 1.5; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-coverage { gap: 0; margin: 0 0 3mm; padding: 3mm 0; border-bottom: .5pt solid #d5dfe2; }
+  #locusInvestorBrief .brief-coverage > div { padding-left: 3.5mm; }
+  #locusInvestorBrief .brief-coverage > div:first-child { padding-left: 0; }
+  #locusInvestorBrief .brief-coverage strong { font-size: 21pt; font-weight: 500; line-height: 1.2; letter-spacing: -.6pt; }
+  #locusInvestorBrief .brief-coverage strong small { font-size: 10pt; letter-spacing: 0; }
+  #locusInvestorBrief .brief-coverage span { font-size: 6.7pt; line-height: 1.4; color: #61727b; }
+
+  #locusInvestorBrief .brief-table { font-size: 8pt; line-height: 1.45; margin-bottom: 3mm; }
+  #locusInvestorBrief .brief-table caption { font-size: 7pt; line-height: 1.5; padding-bottom: 2mm; }
+  #locusInvestorBrief .brief-table th, #locusInvestorBrief .brief-table td { padding: 1.7mm 2mm; border-bottom: .5pt solid #e0e6e5; }
+  #locusInvestorBrief .brief-table thead th { background: #edf1ef; color: #526973; border-bottom: .7pt solid #bbcbd0; font-size: 6pt; font-weight: 650; letter-spacing: .7pt; text-transform: uppercase !important; }
+  #locusInvestorBrief .brief-table th:first-child { padding-left: 2.5mm; width: 47%; }
+  #locusInvestorBrief .brief-table tbody th { font-weight: 550; }
+  #locusInvestorBrief .brief-table tbody tr:nth-child(even) { background: #f8f9f6; }
+  #locusInvestorBrief .brief-table tfoot th, #locusInvestorBrief .brief-table tfoot td { font-size: 8pt; font-weight: 650; border-bottom: .8pt solid #b8c8ce; background: #f2f4f1; padding-top: 2mm; padding-bottom: 2mm; }
+  #locusInvestorBrief .brief-row-index { width: 6mm; color: #8e353d; font-size: 6pt; font-weight: 600; }
+  #locusInvestorBrief .brief-pending { color: #8b614b; font-size: 7pt; }
+  #locusInvestorBrief .brief-formula { padding: 3mm 4mm; margin-bottom: 3mm; background: #f1f4f3; border: .5pt solid #dce3df; border-radius: 1.5mm; }
+  #locusInvestorBrief .brief-formula .brief-eyebrow { font-size: 6.3pt; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-formula p, #locusInvestorBrief .brief-formula strong { font-size: 7.3pt; line-height: 1.5; }
+  #locusInvestorBrief .brief-formula strong { display: block; margin-bottom: 1.5mm; font-weight: 600; }
+  #locusInvestorBrief .brief-formula p:last-child { margin-bottom: 0; }
+  #locusInvestorBrief .brief-two-col { gap: 6mm; margin-bottom: 3mm; }
+  #locusInvestorBrief .brief-two-col p { font-size: 7.8pt; line-height: 1.5; }
+  #locusInvestorBrief .brief-methodology { font-size: 6.5pt !important; line-height: 1.5; padding-top: 2.5mm; margin-top: 2mm !important; color: #61727b !important; }
+  #locusInvestorBrief .brief-scenario-snapshot { font-size: 7pt !important; }
+  /* Leave room for an activity response and its scope notes on the assessment sheet. */
+  #locusInvestorBrief #locusBriefPage2 .brief-score-panel { padding: 3.5mm 4mm; }
+  #locusInvestorBrief #locusBriefPage2 .brief-coverage { padding: 2.5mm 0; margin-bottom: 2.5mm; }
+  #locusInvestorBrief #locusBriefPage2 .brief-table th,
+  #locusInvestorBrief #locusBriefPage2 .brief-table td { padding-top: 1.5mm; padding-bottom: 1.5mm; }
+  #locusInvestorBrief #locusBriefPage2 .brief-formula { padding: 2.5mm 4mm; margin-bottom: 2.5mm; }
+  #locusInvestorBrief #locusBriefPage2 .brief-scenario-snapshot { font-size: 6.6pt !important; line-height: 1.45; margin-bottom: 2mm; }
+
+  #locusInvestorBrief .brief-zoning { padding: 4.5mm; background: #f2f3ee; border: .5pt solid #dde3db; border-radius: 2mm; }
+  #locusInvestorBrief .brief-zoning .brief-eyebrow { font-size: 6.2pt; letter-spacing: 1pt; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-zoning h2 { font-size: 14pt; font-weight: 550; margin-bottom: 2mm; }
+  #locusInvestorBrief .brief-zoning p { font-size: 7pt; line-height: 1.5; margin: 0; }
+  #locusInvestorBrief .brief-heading-row { margin: 4.5mm 0 2mm; }
+  #locusInvestorBrief .brief-heading-row h2 { margin-bottom: 0; }
+  #locusInvestorBrief .brief-hazard-table th:first-child { width: 39%; }
+  #locusInvestorBrief .brief-hazard-table td { text-align: left; }
+  #locusInvestorBrief .brief-hazard-table small { font-size: 6.6pt; line-height: 1.5; margin-top: 1mm; color: #61727b; }
+  #locusInvestorBrief .brief-map-link { font-size: 8pt; line-height: 1.5; padding: 3mm 0; margin-bottom: 2mm; border-color: #d5dfe2; }
+  #locusInvestorBrief .brief-map-link span { font-size: 7pt; }
+  #locusInvestorBrief .brief-small { font-size: 7pt !important; line-height: 1.55; }
+
+  #locusInvestorBrief .brief-places { column-gap: 6mm; margin: 3mm 0 4mm; }
+  #locusInvestorBrief .brief-places > div { padding: 2.5mm 0; font-size: 8pt; line-height: 1.45; }
+  #locusInvestorBrief .brief-places strong { font-size: 7pt; font-weight: 600; color: #61727b; }
+  #locusInvestorBrief .brief-next-title { margin-top: 4mm !important; }
+  #locusInvestorBrief .brief-checklist { margin-bottom: 4mm; }
+  #locusInvestorBrief .brief-checklist li { gap: 3mm; padding: 3mm 0; border-bottom: .5pt solid #e0e6e5; }
+  #locusInvestorBrief .brief-checklist li > span { font-size: 18pt; line-height: 1.2; font-weight: 400; color: #8e353d; flex-basis: 8mm; }
+  #locusInvestorBrief .brief-checklist h3 { font-size: 9pt; margin-bottom: 1mm; }
+  #locusInvestorBrief .brief-checklist p { font-size: 7.5pt; line-height: 1.5; margin: 0; }
+  #locusInvestorBrief .brief-contact { padding: 4mm 5mm; margin-bottom: 4mm; background: #142d3e; border-radius: 2mm; border-left: 1.2mm solid #c5ab83; }
+  #locusInvestorBrief .brief-contact .brief-eyebrow { font-size: 6pt; letter-spacing: 1pt; color: #cbb792; }
+  #locusInvestorBrief .brief-contact strong { font-size: 12pt; font-weight: 550; margin: 2mm 0; color: #fff; }
+  #locusInvestorBrief .brief-contact p { font-size: 7.5pt; line-height: 1.5; margin: 0; }
+  #locusInvestorBrief .brief-source-list { margin-bottom: 3mm; }
+  #locusInvestorBrief .brief-source-list li { font-size: 7pt; line-height: 1.5; padding: 2mm 0; }
+  #locusInvestorBrief .brief-evidence { margin: 0 0 5mm; }
+  #locusInvestorBrief .brief-evidence pre { font-family: Consolas, monospace !important; font-size: 7pt; line-height: 1.55; padding: 4mm; border: .5pt solid #dce3df; border-radius: 1.5mm; }
+}

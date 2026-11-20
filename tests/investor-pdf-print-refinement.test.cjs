@@ -4,17 +4,13 @@ const { pathToFileURL } = require('node:url');
 const { resolve } = require('node:path');
 
 (async () => {
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-
   const {
     assessmentCalculation,
     investorBriefReportMarkup,
     setupPropertyDetailsPrint,
     getPropertyPdfFilename,
     sanitizeFilenamePart,
-  } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  } = await import(pathToFileURL(resolve('assets/js/property-details-view.js')).href);
 
   console.log('=== TEST 1: STANDARDIZED PDF FILENAME & SANITIZATION ===');
   assert.equal(sanitizeFilenamePart('ZAMBRANO BUILDING'), 'ZAMBRANO_BUILDING');

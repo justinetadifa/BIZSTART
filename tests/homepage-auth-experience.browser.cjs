@@ -46,7 +46,9 @@ async function login(page, mobile) {
   const form = page.locator('[data-account-form]').first();
   const submit = form.locator('[type="submit"]');
   await submit.click();
-  assert(await page.locator('[data-auth-flight]').isHidden(), 'Client validation does not start the gateway');
+  assert.equal(await page.locator('[data-auth-flight]').count(), 0, 'Sign-in has no full-screen loading overlay');
+  assert(await form.isVisible());
+  assert(await submit.isEnabled(), 'Client validation keeps the submit button available');
   assert(await form.locator('[aria-invalid="true"]').count() >= 2);
   await form.locator('#login-email').fill('investor@sfcelerate.local');
   await form.locator('#login-password').fill(mobile ? 'Investor123!' : 'WrongPassword!');
@@ -67,14 +69,17 @@ async function login(page, mobile) {
       });
     });
     await submit.click({ noWaitAfter: true });
-    await page.locator('[data-auth-flight]').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('[data-auth-flight-label]').innerText(), 'Signing in…');
+    assert.equal(await page.locator('[data-auth-flight]').count(), 0);
+    assert(await form.isVisible(), 'The form stays visible while sign-in is pending');
+    assert.equal(await submit.locator('[data-submit-label]').innerText(), 'Signing in…');
+    assert(await submit.locator('.account-submit-spinner').isVisible());
+    assert.equal(await page.evaluate(() => document.querySelector('main').inert), false);
     assert.equal(await form.getAttribute('aria-busy'), 'true');
     assert(await submit.isDisabled());
     await form.evaluate(node => node.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     await page.waitForTimeout(170);
     assert.equal(await page.evaluate(() => window.__heldAuthCount), 1, 'Duplicate submit events cannot trigger another navigation');
-    await page.screenshot({ path: path.join(artifacts, `login-gateway-${mobile ? 'mobile' : 'desktop'}.png`) });
+    await page.screenshot({ path: path.join(artifacts, `login-pending-${mobile ? 'mobile' : 'desktop'}.png`) });
     await form.evaluate(node => { setTimeout(() => HTMLFormElement.prototype.submit.call(node), 0); });
   }
   if (!mobile) {
@@ -83,7 +88,8 @@ async function login(page, mobile) {
     await response;
     await page.waitForLoadState('domcontentloaded');
     await page.locator('#login-password-error').waitFor({ state: 'visible' });
-    assert(await page.locator('[data-auth-flight]').isHidden());
+    assert(await form.isVisible());
+    assert(await submit.isEnabled());
     assert.equal(await page.locator('#login-email').inputValue(), 'investor@sfcelerate.local');
     assert.equal(await page.locator('[data-auth-arrival]').count(), 0, 'Rejected credentials never show successful arrival');
     await page.locator('#login-password').fill('Investor123!');
@@ -121,15 +127,17 @@ async function roleAccess(browser, role) {
     const form = page.locator('[data-account-form]').first();
     await form.evaluate(node => node.addEventListener('submit', event => { if (!event.defaultPrevented) event.preventDefault(); }));
     await form.locator('[type="submit"]').click();
-    const flight = page.locator('[data-auth-flight]');
-    assert(await flight.isVisible());
-    assert.equal(await flight.evaluate(node => getComputedStyle(node).animationName), 'none');
-    assert.equal(await flight.locator('.auth-flight-ring-one').evaluate(node => getComputedStyle(node).animationName), 'none');
-    assert.equal(await page.evaluate(() => document.querySelector('main').inert), true);
-    await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
-    assert(await flight.isHidden());
+    const submit = form.locator('[type="submit"]');
+    assert.equal(await page.locator('[data-auth-flight]').count(), 0);
+    assert(await form.isVisible());
+    assert(await submit.isDisabled());
+    assert.equal(await submit.locator('[data-submit-label]').innerText(), 'Signing in…');
     assert.equal(await page.evaluate(() => document.querySelector('main').inert), false);
-    assert(!(await form.locator('[type="submit"]').isDisabled()));
+    await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+    assert.equal(await page.evaluate(() => document.querySelector('main').inert), false);
+    assert(await submit.isEnabled());
+    assert.equal(await submit.locator('[data-submit-label]').innerText(), 'Sign in');
+    assert.equal(await form.getAttribute('aria-busy'), null);
     await page.goto(route);
     await page.locator('#login-email').fill(credentials[0]);
     await page.locator('#login-password').fill(credentials[1]);

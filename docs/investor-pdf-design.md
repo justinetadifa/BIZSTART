@@ -1,6 +1,10 @@
 # Property investment brief
 
-The PDF uses an A4 editorial layout: a property profile with an uncropped listing image, an assessment breakdown, zoning and hazard records, and practical investor next steps. Georgia headings, locally served Inter, restrained navy and burgundy, readable tables and physical page counters replace the former small type and large unused page areas.
+The PDF uses a coordinated A4 editorial layout across the property profile, assessment, zoning and hazards, and investor next steps. Its print identity pairs Georgia titles with locally served Inter, deep navy panels, warm ivory financial summaries, burgundy accents and a muted gold keyline. A parcel mark, document reference, section numerals and ruled page footers give every sheet a consistent identity.
+
+The cover preserves the complete listing image beside its location reference, followed by three financial metrics and a compact facts register. The boundary reminder sits in that register rather than spilling onto a separate sheet. Assessment tables use restrained alternating rows, explicit pending states and a separate release decision. The named `locus-investor` page style supplies actual page counters and replaces browser date, title and URL furniture. These rules apply only to the investment brief; the CAO dossier retains its own styling.
+
+Print typography also overrides the application's layered font rules inside the same CSS layer. This keeps the exported serif titles and numeric hierarchy consistent with the isolated document preview. Content remains in normal flow with no fixed page heights or clipping.
 
 ## Corrections included
 
@@ -24,6 +28,6 @@ node tests/locus-v3-presentation.test.cjs
 php tests/locus-v3-pipeline.test.php
 ```
 
-The browser audit at `.ui-audit/pdf-editorial-review.mjs` generates real Chromium PDFs and extracts their text. It covers the recorded Sevilla property, synthetic complete and held assessments, missing data, a failed image, a long description, the optional appendix and the actual property-details page. Standard fixtures fit four pages. The long fixture retains all 150 marked sentences across extra pages. Audit output is in `.ui-audit/pdf-editorial/`.
+The redesign audit generates real Chromium PDFs and extracts their text. Recorded Pagdalagan, Zambrano and Sevilla briefs, missing details and failed photography fit four A4 pages. A long title and description flow onto additional pages while retaining all 100 marked sentences. The full application was also checked with browser headers enabled and disabled. Review PDFs, page images and measurements are in `.ui-audit/pdf-redesign/`. The earlier editorial audit and its artifacts remain in `.ui-audit/pdf-editorial/`.
 
 The assessment remains provisional. These checks establish presentation and arithmetic consistency; they do not authenticate municipal datasets or validate the suitability model empirically. Source verification states remain visible in the report.

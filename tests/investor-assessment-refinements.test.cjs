@@ -9,12 +9,9 @@ const { resolve } = require('node:path');
   console.log('====================================================================\n');
 
   // Load modules
-  const viewSource = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-
   const {
     assessmentCalculation,
+    assessmentPresentation,
     calculationMarkup,
     propertyDetailsMarkup,
     investorScenarioMarkup,
@@ -22,7 +19,7 @@ const { resolve } = require('node:path');
     parsePesoInput,
     formatPesoInput,
     potentialIncentive,
-  } = await import(`data:text/javascript;base64,${Buffer.from(viewSource).toString('base64')}`);
+  } = await import(pathToFileURL(resolve('assets/js/property-details-view.js')).href);
 
   const vm = require('node:vm');
   const utils = await import(pathToFileURL(resolve('assets/js/utils.js')).href);
@@ -34,6 +31,7 @@ const { resolve } = require('node:path');
   const sandbox = {
     ...utils,
     assessmentCalculation,
+    assessmentPresentation,
     propertyHazardSummary: () => '',
     propertyLocationLabel: () => '',
     setupPropertyGallery: () => {},
@@ -204,7 +202,10 @@ const { resolve } = require('node:path');
     iaiScore: 93.3,
     assessmentStatus: 'complete',
     assessmentComplete: true,
+    rank_eligible: true,
     iaiRank: 1,
+    assessmentCriteria: { spatial_accessibility: 100, infrastructure_readiness: 100, economic_viability: 85,
+      nearby_businesses: 85, zoning_compatibility: 85, risk_constraints: 100 },
     criteriaDetails: {},
   }, 0);
   assert(completedCard.includes('IAI composite'), 'Must label as IAI composite');
@@ -221,7 +222,7 @@ const { resolve } = require('node:path');
     assessmentComplete: false,
     criteriaDetails: {},
   }, 1);
-  assert(incompleteCard.includes('Unranked · Pending assessment'), 'Incomplete property must display Unranked badge');
+  assert(incompleteCard.includes('Unranked · Inputs needed'), 'Incomplete property must display the reason it is unranked');
   assert(!incompleteCard.includes('IAI rank #'), 'Incomplete property must NOT display rank number');
   console.log('✅ PASS: Test 6 Priority Board single IAI and rank integrity');
 

@@ -570,12 +570,6 @@ final class ZoningRulesEngine
             return $aliases[$normalized];
         }
 
-        foreach ($aliases as $needle => $code) {
-            if (str_contains($normalized, $needle)) {
-                return $code;
-            }
-        }
-
         return '';
     }
 
