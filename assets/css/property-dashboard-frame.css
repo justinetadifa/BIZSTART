@@ -1,0 +1,194 @@
+/* The property dashboard shares one grid from the logo through the two card rows. */
+@layer locus-foundation {
+  body[data-page="city-details"] {
+    --desk-shell: #f0f2ee;
+    --desk-surface: #fff;
+    --desk-rule: #dde4de;
+    --desk-accent: #2b5a46;
+    --desk-rail: clamp(3.3rem, 4vw, 4rem);
+    --desk-gap: .65rem;
+    --desk-radius: 1.2rem;
+    --listing-pad: clamp(.9rem, 1.3vw, 1.25rem);
+    --pe-ink: #182820;
+    --pe-muted: #50625a;
+    --pe-line: var(--desk-rule);
+    --pe-accent: var(--desk-accent);
+    background: #e7ece8 !important;
+  }
+  body[data-page="city-details"] .locus-map-backdrop { display: none; }
+  body[data-page="city-details"] main.city-workspace.property-desk {
+    width: min(calc(100% - 2.5rem), 82rem) !important; max-width: none !important;
+    padding: 0 !important; margin: .9rem auto 3rem !important;
+    border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  }
+  .listing-topbar, .listing-dashboard { background: var(--desk-shell); }
+  .listing-topbar {
+    display: grid; grid-template-columns: var(--desk-rail) minmax(0, 1fr) auto; align-items: center;
+    min-height: 3rem; padding: .25rem .7rem .25rem 0; border-radius: var(--desk-radius) var(--desk-radius) 0 0;
+    border-bottom: 1px solid var(--desk-rule);
+    position: relative; z-index: 5; color: var(--pe-ink); box-sizing: border-box;
+  }
+  .listing-brand { justify-self: center; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; }
+  .listing-brand img { width: 2.35rem; height: 2.35rem; object-fit: contain; }
+  .listing-tabs, .listing-topbar-tools { display: flex; align-items: center; gap: .2rem; min-width: 0; }
+  .listing-tabs > :is(a, span) {
+    display: inline-flex; align-items: center; padding: .48rem .8rem; min-height: 2.15rem; box-sizing: border-box;
+    border-radius: .4rem; color: #40564b; text-decoration: none; font-size: .83rem; line-height: 1.35;
+  }
+  .listing-tabs > [aria-current] { background: #fff; color: #16271c; font-weight: 650; }
+  .listing-tabs > a:hover { background: #dfe9e2; color: #16271c; }
+  .listing-topbar-tools { gap: .42rem; }
+  body[data-page="city-details"] .listing-topbar .investor-view-toolbar {
+    min-width: 0; width: auto !important; margin: 0 !important; padding: 0 !important; gap: 0 !important;
+    border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important;
+  }
+  .listing-topbar .investor-view-intro { display: none !important; }
+  body[data-page="city-details"] .listing-topbar .investor-view-control {
+    display: inline-flex; align-items: center; width: auto; min-width: 0; padding: .12rem !important;
+    min-height: 0 !important; height: auto; border: 1px solid #ccdcd2 !important; border-radius: 5rem !important;
+    background: #e2ece5 !important; box-shadow: none !important;
+  }
+  .listing-topbar .investor-view-pill { display: none !important; }
+  body[data-page="city-details"] .listing-topbar .investor-view-control button {
+    width: auto; min-width: 0; min-height: 1.7rem !important; padding: .25rem .63rem !important; margin: 0;
+    border: 0 !important; border-radius: 5rem !important; box-shadow: none !important; text-shadow: none !important;
+    color: #4b6155 !important; background: transparent !important; font-size: .75rem !important;
+  }
+  body[data-page="city-details"] .listing-topbar .investor-view-control button[aria-pressed="true"] {
+    color: #17291e !important; background: #fff !important;
+  }
+  .listing-workspace-menu { position: relative; }
+  .listing-workspace-menu summary {
+    display: grid; place-items: center; width: 2.4rem; height: 2.4rem; cursor: pointer; list-style: none;
+    border-radius: 50%; color: var(--pe-ink); background: #f8faf8;
+  }
+  .listing-workspace-menu summary::-webkit-details-marker { display: none; }
+  .listing-workspace-menu summary:hover, .listing-workspace-menu[open] summary { background: #d7e5dc; }
+  .listing-workspace-menu summary svg { width: 1.2rem; height: 1.2rem; }
+  .listing-workspace-menu > nav {
+    position: absolute; z-index: 8; right: 0; top: calc(100% + .4rem); width: max-content; min-width: 12rem;
+    max-width: min(20rem, 90vw); padding: .42rem; background: #fff; border: 1px solid #d6e1da;
+    border-radius: 1rem; box-shadow: 0 12px 30px #263d3022;
+  }
+  .listing-workspace-menu nav :is(a, button) {
+    display: block; width: 100%; box-sizing: border-box; text-align: left; padding: .55rem .7rem;
+    margin: 0; border: 0; background: transparent; color: #263d30; box-shadow: none; font-size: .87rem;
+    border-radius: .6rem; text-decoration: none; cursor: pointer;
+  }
+  .listing-workspace-menu nav :is(a, button):hover { background: #eef4ef; }
+  .listing-menu-account { border-top: 1px solid var(--pe-line); margin-top: .3rem; padding-top: .3rem; }
+  .listing-dashboard {
+    display: grid; grid-template-columns: var(--desk-rail) minmax(0, 1fr);
+    grid-template-areas: ". header" "rail primary" "rail secondary";
+    gap: var(--desk-gap) 0; padding: 0 var(--desk-gap) var(--desk-gap) 0;
+    border-radius: 0 0 var(--desk-radius) var(--desk-radius);
+  }
+  #cityPropertyDetails .listing-dashboard > .property-heading {
+    grid-area: header; display: flex !important; align-items: center !important; justify-content: space-between;
+    flex-wrap: nowrap !important; min-width: 0; box-sizing: border-box;
+    padding: .9rem .65rem .85rem !important; margin: 0 !important; gap: clamp(.8rem, 1.4vw, 1.4rem) !important;
+  }
+  .listing-dashboard .listing-identity { flex: 1 1 0; min-width: 0; }
+  body[data-page="city-details"] #cityPropertyDetails .listing-dashboard .property-heading h1 {
+    font-size: clamp(1.6rem, 2.6vw, 2.5rem) !important; font-weight: 630 !important; line-height: 1.1 !important;
+    letter-spacing: -.045em !important; margin: 0 0 .28rem !important; text-wrap: pretty; overflow-wrap: anywhere;
+  }
+  body[data-page="city-details"] #cityPropertyDetails .listing-dashboard .property-heading p {
+    font-size: .82rem !important; line-height: 1.4 !important;
+    margin: 0 !important; color: var(--pe-muted);
+  }
+  .listing-dashboard .listing-headline-facts {
+    display: flex; align-items: end; justify-content: end; flex: 0 1 auto; flex-wrap: wrap;
+    gap: .55rem 1rem; min-width: 0; max-width: 53%;
+  }
+  .listing-dashboard .listing-headline-facts > div {
+    display: grid; align-items: center; grid-template: "label label" auto "value badge" auto / auto auto;
+    justify-content: start; gap: .12rem .4rem; min-width: 0; width: auto;
+  }
+  .listing-dashboard .listing-headline-facts > div + div { border-inline-start: 1px solid var(--desk-rule); padding-inline-start: .85rem; }
+  .listing-dashboard .listing-headline-facts strong {
+    grid-area: value; color: var(--pe-ink); font-size: clamp(1.22rem, 2vw, 1.85rem); font-weight: 630;
+    letter-spacing: -.04em; line-height: 1.08; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+  }
+  .listing-dashboard .listing-headline-facts span { grid-area: label; font-size: .75rem; color: var(--pe-muted); }
+  .listing-dashboard .listing-headline-facts small {
+    grid-area: badge; color: var(--pe-muted);
+    font-size: .7rem; font-weight: 500; width: fit-content; line-height: 1.25;
+  }
+  .listing-dashboard .listing-rail {
+    grid-area: rail; display: flex; flex-direction: column; align-items: center; gap: .32rem; padding-bottom: .48rem;
+  }
+  .listing-rail a {
+    display: grid; place-items: center; position: relative; width: 2.55rem; height: 2.55rem; flex: none;
+    border: 0; border-radius: .6rem; background: transparent; color: #385446; text-decoration: none;
+  }
+  .listing-rail a svg { width: 1.1rem; height: 1.1rem; }
+  .listing-rail a:hover { color: #172b20; background: #d8e6dc; }
+  .listing-rail a:last-child { margin-top: auto; }
+  #cityPropertyDetails .listing-rail a[aria-current]:not([aria-current="false"]) {
+    color: #1f4b37 !important; background: #dce8df;
+  }
+  #cityPropertyDetails .listing-rail a svg, #cityPropertyDetails .listing-rail a svg * { color: inherit !important; }
+  .listing-dashboard .listing-primary-grid, .listing-dashboard .listing-secondary-grid {
+    min-width: 0; grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr); gap: var(--desk-gap);
+  }
+  .listing-dashboard .listing-primary-grid { grid-area: primary; }
+  .listing-dashboard .listing-secondary-grid { grid-area: secondary; }
+  .listing-dashboard :is(.listing-primary-grid, .listing-secondary-grid) > * { min-width: 0; box-sizing: border-box; }
+  body[data-page="city-details"] #cityPropertyDetails .listing-dashboard h2 {
+    font-size: clamp(1rem, 1.18vw, 1.2rem) !important; font-weight: 620 !important;
+    line-height: 1.25 !important; letter-spacing: -.035em !important;
+  }
+  #cityPropertyDetails .listing-dashboard + .property-layout { margin-top: .85rem !important; }
+  .property-desk > #cityPropertyDetails > :is(.city-loading, .city-empty) {
+    margin: 0; padding: 3rem 1.5rem; background: var(--desk-shell); border-radius: 0 0 var(--desk-radius) var(--desk-radius);
+  }
+  .property-desk :is(a, summary, button, select):focus-visible { outline: 3px solid #337957; outline-offset: 2px; }
+  @media (max-width: 1050px) {
+    .listing-dashboard .listing-headline-facts { gap: .55rem 1rem; }
+    .listing-dashboard .listing-headline-facts > div { grid-template: "label" "value" "badge"; }
+    .listing-dashboard .listing-primary-grid, .listing-dashboard .listing-secondary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 850px) {
+    .listing-dashboard .listing-primary-grid, .listing-dashboard .listing-secondary-grid {
+      grid-template-columns: minmax(0, 1fr); min-height: 0;
+    }
+    #cityPropertyDetails .listing-dashboard > .property-heading { align-items: start !important; }
+    .listing-dashboard .listing-headline-facts { max-width: 48%; }
+  }
+  @media (max-width: 700px) {
+    body[data-page="city-details"] { background: var(--desk-shell) !important; }
+    body[data-page="city-details"] main.city-workspace.property-desk { width: 100% !important; margin-block: 0 2rem !important; }
+    .listing-topbar { padding: .45rem .65rem 0 .42rem; grid-template-columns: 2.55rem minmax(0,1fr) auto; }
+    .listing-brand { width: 2.5rem; }
+    .listing-brand img { width: 2rem; height: 2rem; }
+    .listing-tabs > :is(a, span) { font-size: .79rem; padding: .45rem .55rem; }
+    .listing-dashboard { grid-template: "header" auto "rail" auto "primary" auto "secondary" auto / minmax(0, 1fr); padding: 0 .62rem .62rem; box-shadow: none; }
+    #cityPropertyDetails .listing-dashboard > .property-heading { flex-direction: column; align-items: stretch !important; padding: 1rem .25rem .35rem !important; }
+    .listing-dashboard .listing-headline-facts { max-width: none; justify-content: start; gap: .65rem; }
+    .listing-dashboard .listing-headline-facts > div { grid-template: "label" "value" "badge"; }
+    .listing-dashboard .listing-headline-facts > div + div { padding-inline-start: .65rem; }
+    .listing-dashboard .listing-rail { flex-direction: row; flex-wrap: wrap; gap: .35rem; padding: .1rem .15rem .3rem; }
+    .listing-rail a { width: 2.75rem; height: 2.75rem; }
+    .listing-rail a:last-child { margin: 0 0 0 auto; }
+    #cityPropertyDetails .listing-dashboard + .property-layout { margin: .6rem .62rem 0 !important; }
+  }
+  @media (max-width: 525px) {
+    .listing-topbar { row-gap: .35rem; }
+    .listing-topbar-tools { display: contents; }
+    .listing-topbar .investor-view-toolbar { grid-column: 1 / -1; grid-row: 2; justify-self: start; margin-left: .22rem !important; }
+    .listing-workspace-menu { grid-column: 3; grid-row: 1; }
+    .listing-dashboard .listing-headline-facts > div { gap: .25rem .4rem; }
+    .listing-dashboard .listing-headline-facts strong { font-size: clamp(1.15rem, 5.2vw, 1.5rem); }
+  }
+  @media (max-width: 365px) {
+    .listing-tabs > :is(a, span) { padding-inline: .4rem; font-size: .72rem; white-space: nowrap; }
+    .listing-dashboard .listing-rail { flex-wrap: nowrap; gap: .12rem; overflow-x: auto; }
+    .listing-rail a { width: 2.5rem; height: 2.5rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .listing-rail a, .listing-tabs > a, .listing-workspace-menu summary { transition: background-color 140ms ease, color 140ms ease; }
+  }
+}

@@ -2064,6 +2064,7 @@ async function renderDetails() {
     const subtabs = assessmentSec.querySelectorAll('[data-assessment-tab]');
     const calcDisclosure = assessmentSec.querySelector('[data-disclosure-calc]');
     const evidenceDisclosure = assessmentSec.querySelector('[data-disclosure-evidence]');
+    const v2Panel = assessmentSec.querySelector('[data-assessment-tab-panel="v2"]');
 
     const setAssessmentTab = tab => {
       subtabs.forEach(btn => {
@@ -2072,12 +2073,15 @@ async function renderDetails() {
         btn.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
       if (tab !== 'overview' && !advancedView()) window.SFCInvestorView?.set('advanced');
+      if (v2Panel) v2Panel.hidden = tab !== 'v2';
       if (tab === 'calculation' && calcDisclosure) {
         calcDisclosure.open = true;
         calcDisclosure.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else if (tab === 'evidence' && evidenceDisclosure) {
         evidenceDisclosure.open = true;
         evidenceDisclosure.scrollIntoView({ behavior: 'auto', block: 'start' });
+      } else if (tab === 'v2' && v2Panel) {
+        v2Panel.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else if (tab === 'overview') {
         assessmentSec.scrollIntoView({ behavior: 'auto', block: 'start' });
       }
@@ -2085,6 +2089,13 @@ async function renderDetails() {
 
     subtabs.forEach(btn => {
       btn.addEventListener('click', () => setAssessmentTab(btn.dataset.assessmentTab));
+    });
+
+    root.querySelector('[data-view-score-details]')?.addEventListener('click', () => {
+      if (!advancedView()) window.SFCInvestorView?.set('advanced');
+      const heading = assessmentSec.querySelector('#propertyAssessmentTitle');
+      heading?.focus({ preventScroll: true });
+      assessmentSec.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     });
 
     assessmentSec.querySelectorAll('[data-open-calculation]').forEach(btn => {
@@ -2106,27 +2117,42 @@ async function renderDetails() {
     };
     const hash = location.hash.slice(1);
     const panel = document.getElementById(legacyPanels[hash] || hash);
+    root.querySelectorAll('.listing-rail a').forEach(link => {
+      if (link.hash.slice(1) === (hash || 'propertyDashboard')) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
     if (!panel || !root.contains(panel)) return;
+    if (panel.closest('[data-investor-advanced]') && !advancedView()) window.SFCInvestorView?.set('advanced');
+    if (panel.id === 'propertyLocationSection') root.querySelector('#tabMapBtn')?.click();
     if (panel.tagName === 'DETAILS') panel.open = true;
     for (let parent = panel.parentElement; parent && parent !== root; parent = parent.parentElement) { if (parent.tagName === 'DETAILS') parent.open = true; }
-    panel.scrollIntoView({ block: 'center' });
+    if (panel.id === 'propertyDashboard') window.scrollTo({ top: 0 });
+    else panel.scrollIntoView({ block: 'start' });
   }
   revealLinkedPanel();
   window.addEventListener('hashchange', revealLinkedPanel);
 }
 
 function setupMediaDock(root, map, property) {
-  const tabBtns = root.querySelectorAll('[data-media-tab]');
+  const tabBtns = Array.from(root.querySelectorAll('[data-media-tab]'));
   const tabPanes = root.querySelectorAll('[data-media-pane]');
   if (!tabBtns.length) return;
 
-  tabBtns.forEach(btn => {
+  tabBtns.forEach((btn, index) => {
+    btn.addEventListener('keydown', event => {
+      const next = { ArrowRight: (index + 1) % tabBtns.length, ArrowLeft: (index + tabBtns.length - 1) % tabBtns.length, Home: 0, End: tabBtns.length - 1 }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      tabBtns[next].focus();
+      tabBtns[next].click();
+    });
     btn.addEventListener('click', () => {
       const target = btn.dataset.mediaTab;
       tabBtns.forEach(b => {
         const active = b === btn;
         b.classList.toggle('is-active', active);
         b.setAttribute('aria-selected', active ? 'true' : 'false');
+        b.tabIndex = active ? 0 : -1;
       });
       tabPanes.forEach(pane => {
         const match = pane.dataset.mediaPane === target;

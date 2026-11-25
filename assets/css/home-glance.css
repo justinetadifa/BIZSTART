@@ -27,21 +27,31 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
 #at-a-glance .glance-property-link:hover { background: #80151c; box-shadow: 0 8px 18px -10px rgb(115 19 27 / 50%); }
 #at-a-glance .glance-property-link:focus-visible { outline: 3px solid var(--glance-ink); outline-offset: 4px; }
 
-/* The image remains original; text occupies reserved space above the glass. */
-#at-a-glance .glance-city-portrait { position: relative; margin: 0; background: none; }
-#at-a-glance .glance-photo-well { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 30px; min-height: clamp(350px, 33vw, 450px); padding: 30px 36px 106px; border: 4px solid #fff; border-radius: 38px; overflow: hidden; background: var(--glance-ink); box-shadow: 0 12px 28px -22px rgb(17 34 77 / 30%); }
-#at-a-glance .glance-city-photo { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; object-position: center bottom; }
-#at-a-glance .glance-photo-well::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg, rgb(8 24 45 / 55%), rgb(8 24 45 / 4%) 68%), linear-gradient(0deg, rgb(8 24 45 / 46%), transparent 72%); pointer-events: none; }
-#at-a-glance .glance-portrait-caption { align-self: end; min-width: 0; color: #fff; }
-#at-a-glance .glance-portrait-caption > span { color: #f4f8ff; font-size: 10px; line-height: 1.5; letter-spacing: .14em; }
-#at-a-glance .glance-portrait-caption h3 { margin: 12px 0 0; color: #fff; }
-#at-a-glance .glance-barangay-badge { align-self: start; display: flex; flex-direction: column; align-items: center; justify-content: center; width: max-content; min-width: 104px; min-height: 104px; max-width: 100%; padding: 15px 18px; border: 1px solid rgb(255 255 255 / 90%); border-radius: 26px; background: linear-gradient(140deg, rgb(255 255 255 / 96%), rgb(244 248 255 / 90%)); color: var(--glance-ink); box-shadow: 0 8px 24px -14px rgb(8 24 45 / 36%), inset 0 1px 0 #fff; -webkit-backdrop-filter: blur(16px) saturate(125%); backdrop-filter: blur(16px) saturate(125%); text-align: center; }
-#at-a-glance .glance-barangay-badge > span { max-width: 100%; color: #485b78; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
-#at-a-glance .glance-barangay-badge > span:last-child { color: #59677c; font-size: 11px; }
-#at-a-glance .glance-barangay-badge strong { max-width: 100%; margin: 2px 0; color: var(--glance-ink); font-size: 40px; font-weight: 600; line-height: 1; letter-spacing: -.065em; overflow-wrap: anywhere; }
+/* The map controls and attribution stay inside the viewport above the indicators. */
+#at-a-glance .glance-map-card { margin: 0; padding: 5px; border: 1px solid #fff; border-radius: 34px; background: #f9fbfe; box-shadow: 0 18px 38px -28px #11224d6b; }
+#at-a-glance .glance-map-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 15px 20px 17px; }
+#at-a-glance .glance-map-icon { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #e0e8f3; border-radius: 15px; background: #edf3fb; color: var(--glance-ink); }
+#at-a-glance .glance-map-icon svg { width: 22px; height: 22px; }
+#at-a-glance .glance-map-heading h3 { margin: 0; color: var(--glance-ink); }
+#at-a-glance .glance-map-heading p { margin: 4px 0 0; color: var(--glance-muted); font-size: 13px; line-height: 1.45; }
+#at-a-glance .glance-map-link { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 9px 15px; border: 1px solid var(--glance-rule); border-radius: 999px; background: #fff; color: var(--glance-ink); font: inherit; font-size: 12px; font-weight: 650; white-space: nowrap; cursor: pointer; }
+#at-a-glance .glance-map-link[hidden] { display: none; }
+#at-a-glance .glance-map-link:hover { background: #edf3fb; border-color: #c7d4e8; }
+#at-a-glance .glance-map-link:focus-visible { outline: 3px solid var(--glance-ink); outline-offset: 3px; }
+#at-a-glance .glance-map-slot { height: clamp(480px, 43vw, 650px); }
+#at-a-glance .glance-map-viewport { position: relative; isolation: isolate; inset: auto; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; overflow: hidden; border-radius: 18px 18px 28px 28px; background: #e3e8e5; }
+#at-a-glance .glance-map-viewport:modal { position: fixed; inset: 0; width: calc(100% - 32px); height: calc(100dvh - 32px); margin: auto; border-radius: 22px; box-shadow: 0 24px 80px #0d193b5c; }
+#at-a-glance .glance-map-viewport::backdrop { background: #11224d80; backdrop-filter: blur(6px); }
+html:has(.glance-map-viewport:modal) { overflow: hidden; }
+#at-a-glance :is(.glance-map-fallback, .glance-map-frame, .glance-city-photo) { position: absolute; inset: 0; width: 100%; height: 100%; }
+#at-a-glance .glance-map-fallback { overflow: hidden; }
+#at-a-glance .glance-city-photo { max-width: none; object-fit: cover; object-position: center 64%; }
+#at-a-glance .glance-map-frame { display: block; border: 0; visibility: hidden; }
+#at-a-glance [data-city-map-state="ready"] .glance-map-frame { visibility: visible; }
+#at-a-glance [data-city-map-state="ready"] .glance-map-fallback { visibility: hidden; }
+#at-a-glance .glance-map-status { position: absolute; top: 16px; left: 16px; max-width: calc(100% - 32px); margin: 0; padding: 9px 13px; border: 1px solid #ffffff35; border-radius: 13px; background: #121d2ef0; color: #f4f8ff; font-size: 13px; }
 
-/* A compact, frosted information sheet floats across the photo's lower rim. */
-#at-a-glance .glance-insight { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr) minmax(0, 1fr); gap: 30px; align-items: center; min-height: 164px; margin: -68px 24px 0; padding: 24px 28px; border: 1px solid #ffffffed; border-radius: 28px; background: linear-gradient(125deg, rgb(255 255 255 / 97%), rgb(247 250 255 / 93%)); color: var(--glance-ink); box-shadow: 0 16px 36px -24px rgb(17 34 77 / 28%), 0 3px 8px -5px rgb(17 34 77 / 14%), inset 0 1px 0 #fff; -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%); }
+#at-a-glance .glance-insight { position: relative; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr) minmax(0, 1fr); gap: 30px; align-items: center; min-height: 164px; margin: 18px 0 0; padding: 24px 28px; border: 1px solid #ffffffed; border-radius: 28px; background: linear-gradient(125deg, rgb(255 255 255 / 97%), rgb(247 250 255 / 93%)); color: var(--glance-ink); box-shadow: 0 16px 36px -24px rgb(17 34 77 / 28%), 0 3px 8px -5px rgb(17 34 77 / 14%), inset 0 1px 0 #fff; -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%); }
 #at-a-glance .glance-insight > div { min-width: 0; }
 #at-a-glance .glance-insight-category { margin: 0 0 6px; color: #5f6d83; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
 #at-a-glance .glance-insight-primary h3 { margin: 0; color: #40516c; }
@@ -101,7 +111,7 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   body[data-page="city-landing"] #at-a-glance .home-glance-panel { width: min(1360px, 100%) !important; max-width: 1360px !important; margin-inline: auto !important; }
   body[data-page="city-landing"] #at-a-glance .glance-profile-header { gap: 0 40px !important; margin-bottom: 30px !important; }
   body[data-page="city-landing"] #at-a-glance .home-glance-title { font-size: clamp(38px, 3.8vw, 54px) !important; font-weight: 600 !important; line-height: 1.05 !important; letter-spacing: -.06em !important; }
-  body[data-page="city-landing"] #at-a-glance .glance-portrait-caption h3 { font-size: clamp(31px, 3.4vw, 47px) !important; font-weight: 500 !important; line-height: 1.05 !important; letter-spacing: -.05em !important; }
+  body[data-page="city-landing"] #at-a-glance .glance-map-heading h3 { font-size: clamp(17px, 2.25vw, 25px) !important; font-weight: 650 !important; line-height: 1.2 !important; letter-spacing: -.035em !important; }
   body[data-page="city-landing"] #at-a-glance .glance-insight-primary h3 { font-size: 14px !important; font-weight: 500 !important; line-height: 1.4 !important; letter-spacing: -.01em !important; }
   body[data-page="city-landing"] #at-a-glance .glance-indicator-heading p { font-weight: 600 !important; }
   body[data-page="city-landing"] #at-a-glance .glance-group-title { font-size: 10px !important; font-weight: 500 !important; line-height: 1.5 !important; letter-spacing: .1em !important; text-transform: uppercase; }
@@ -114,8 +124,7 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   #at-a-glance .glance-profile-header { grid-template-columns: minmax(0, 1fr) auto; }
   #at-a-glance .glance-profile-description { grid-column: 1; grid-row: 3; max-width: 460px; margin-top: 14px; }
   #at-a-glance .glance-profile-meta { grid-column: 2; grid-row: 1 / 4; }
-  #at-a-glance .glance-photo-well { padding-inline: 30px; }
-  #at-a-glance .glance-insight { column-gap: 22px; margin-inline: 20px; padding-inline: 24px; }
+  #at-a-glance .glance-insight { column-gap: 22px; padding-inline: 24px; }
   #at-a-glance .glance-metrics { column-gap: 14px; }
   #at-a-glance .glance-fact { padding-inline: 17px; }
   #at-a-glance .glance-fact--anchor dd { font-size: clamp(39px, 3.9vw, 47px); }
@@ -127,9 +136,7 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
 }
 @media (max-width: 850px) {
   body[data-page="city-landing"] #at-a-glance.home-glance { padding-inline: 20px; }
-  #at-a-glance .glance-photo-well { min-height: 350px; border-radius: 32px; padding-bottom: 102px; }
-  #at-a-glance .glance-city-photo { top: auto; bottom: 0; height: 145%; }
-  #at-a-glance .glance-insight { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 24px; margin-inline: 16px; padding: 22px; border-radius: 26px; }
+  #at-a-glance .glance-insight { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 24px; padding: 22px; border-radius: 26px; }
   #at-a-glance .glance-insight-source { grid-column: 1; }
   #at-a-glance .glance-insight-related { grid-column: 2; grid-row: 1 / 3; padding-left: 22px; }
   #at-a-glance .glance-insight-value strong { font-size: 40px; }
@@ -149,15 +156,17 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   #at-a-glance .glance-profile-meta { grid-column: 1; grid-row: 4; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 20px; padding: 0; }
   #at-a-glance .glance-reporting-period { padding: 5px 9px; font-size: 10px; }
   #at-a-glance .glance-property-link { gap: 16px; padding: 13px 18px; font-size: 12px; }
-  #at-a-glance .glance-photo-well { grid-template-columns: minmax(0, 1fr) auto; gap: 18px; min-height: 334px; padding: 20px 20px 86px; border-width: 3px; border-radius: 29px; }
-  #at-a-glance .glance-city-photo { object-position: 47% bottom; }
-  #at-a-glance .glance-portrait-caption { grid-column: 1 / -1; grid-row: 2; }
-  #at-a-glance .glance-portrait-caption > span { font-size: 9px; }
-  #at-a-glance .glance-barangay-badge { grid-column: 2; grid-row: 1; min-width: 82px; min-height: 82px; padding: 11px 13px; border-radius: 21px; }
-  #at-a-glance .glance-barangay-badge > span { font-size: 8px; }
-  #at-a-glance .glance-barangay-badge > span:last-child { font-size: 10px; }
-  #at-a-glance .glance-barangay-badge strong { font-size: 32px; }
-  #at-a-glance .glance-insight { grid-template-columns: minmax(0, 1fr); gap: 15px; min-height: 0; margin: -54px 10px 0; padding: 20px; border-radius: 24px; }
+  #at-a-glance .glance-map-card { padding: 4px; border-radius: 23px; }
+  #at-a-glance .glance-map-heading { grid-template-columns: minmax(0, 1fr) auto; min-height: 68px; padding: 8px 8px 11px 11px; gap: 8px; }
+  #at-a-glance .glance-map-icon { display: none; }
+  #at-a-glance .glance-map-heading p { margin-top: 3px; font-size: 12px; }
+  #at-a-glance .glance-map-link { width: 44px; padding: 0; border-radius: 13px; background: #edf2f8; }
+  #at-a-glance .glance-map-link-label { display: none; }
+  #at-a-glance .glance-map-link svg { width: 17px; height: 17px; }
+  #at-a-glance .glance-map-slot { height: clamp(405px, 56svh, 505px); }
+  #at-a-glance .glance-map-viewport { border-radius: 14px 14px 19px 19px; }
+  #at-a-glance .glance-map-viewport:modal { width: 100%; height: 100dvh; border-radius: 0; }
+  #at-a-glance .glance-insight { grid-template-columns: minmax(0, 1fr); gap: 15px; min-height: 0; margin-top: 12px; padding: 20px; border-radius: 24px; }
   #at-a-glance .glance-insight-primary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 0 10px; }
   #at-a-glance .glance-insight-category { grid-column: 1; font-size: 9px; }
   #at-a-glance .glance-insight-primary h3 { grid-column: 1; }
@@ -187,9 +196,9 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   #at-a-glance .glance-inline-related:not([hidden]) { display: block; }
   #at-a-glance .glance-sources { margin-inline: 4px; }
   @layer locus-foundation {
+    body[data-page="city-landing"] #at-a-glance .glance-map-heading h3 { font-size: clamp(17px, 4.5vw, 21px) !important; font-weight: 700 !important; text-wrap: balance; }
     body[data-page="city-landing"] #at-a-glance .glance-profile-header { gap: 0 !important; margin-bottom: 24px !important; }
     body[data-page="city-landing"] #at-a-glance .home-glance-title { font-size: clamp(37px, 9.6vw, 48px) !important; }
-    body[data-page="city-landing"] #at-a-glance .glance-portrait-caption h3 { font-size: 31px !important; }
     body[data-page="city-landing"] #at-a-glance .glance-group-title { font-size: 9px !important; }
   }
 }
@@ -209,9 +218,9 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
   #at-a-glance .glance-indicator-graphic { transform: none !important; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  #at-a-glance .glance-insight, #at-a-glance .glance-barangay-badge { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  #at-a-glance .glance-insight { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 @media (forced-colors: active) {
-  #at-a-glance .glance-fact, #at-a-glance .glance-insight { border-color: CanvasText; }
+  #at-a-glance .glance-fact, #at-a-glance .glance-insight, #at-a-glance .glance-map-card { border-color: CanvasText; }
   #at-a-glance[data-glance-ready] .glance-fact.is-selected { outline: 2px solid Highlight; }
 }

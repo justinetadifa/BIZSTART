@@ -1,4 +1,4 @@
-// Read-only browser audit against local supported and pending property assessments.
+// Read-only browser audit with a live supported listing and a reproducible pending state.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -76,7 +76,17 @@ fs.mkdirSync(artifacts, { recursive: true });
     assert.equal(await page.locator('#propertyRecommendationBasis > summary').evaluate(node => node === document.activeElement), true);
     assert((await basis.innerText()).includes(property.businessOpportunities.supportedMatches[0].supportingPlaces[0].name), 'View basis exposes the actual named supporting place');
 
-    await page.goto(`${base}/property-details.php?id=${process.env.LOCUS_PENDING_PROPERTY || 126}`, { waitUntil: 'domcontentloaded' });
+    const pendingId = process.env.LOCUS_PENDING_PROPERTY || '126';
+    if (!process.env.LOCUS_PENDING_PROPERTY) {
+      // Local listings can gain matches as the business directory changes.
+      await page.route(url => url.pathname.endsWith('/api/property.php') && url.searchParams.get('id') === pendingId, async route => {
+        const response = await route.fetch();
+        const payload = await response.json();
+        payload.property.businessOpportunities = { status: 'no_candidates', supportedMatches: [], unavailableReason: 'Recommendations unavailable until there is supporting evidence.' };
+        await route.fulfill({ response, json: payload });
+      });
+    }
+    await page.goto(`${base}/property-details.php?id=${pendingId}`, { waitUntil: 'domcontentloaded' });
     await page.locator('.property-media-intel-bar').waitFor();
     assert.equal(await page.locator('[data-recommendation-id]').count(), 0, 'A pending assessment never invents quick-picks');
     assert(await page.locator('.property-media-intel-bar').innerText().then(text => text.includes('Assessment pending')));

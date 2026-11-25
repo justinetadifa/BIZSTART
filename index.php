@@ -37,35 +37,25 @@ try {
         </div>
       </div>
 
-      <figure class="glance-city-portrait" aria-labelledby="glancePortraitTitle">
-        <div class="glance-photo-well">
-          <img class="glance-city-photo" src="<?= $e($context['assetBase']) ?>/images/sfcatglance.png<?= sfc_asset_version('images/sfcatglance.png') ?>" width="1920" height="1080" alt="Aerial view across San Fernando City's streets, buildings and surrounding hills." loading="lazy" decoding="async">
-          <figcaption class="glance-portrait-caption">
-            <span>LA UNION / PHILIPPINES</span>
-            <h3 id="glancePortraitTitle">One city.<br>Many connections.</h3>
-          </figcaption>
-          <div class="glance-barangay-badge" aria-label="San Fernando City, 59 barangays">
-            <span>San Fernando City</span><strong>59</strong><span>barangays</span>
-          </div>
+      <?php require __DIR__ . '/app/Views/city-map.php'; ?>
+
+      <div class="glance-insight" id="glanceInsight" data-current-key="residents">
+        <div class="glance-insight-primary">
+          <p class="glance-insight-category" data-insight-category>People</p>
+          <h3 data-insight-label>Residents</h3>
+          <p class="glance-insight-value"><strong data-insight-value>128,024</strong><span data-insight-unit></span></p>
         </div>
-        <div class="glance-insight" id="glanceInsight" data-current-key="residents">
-          <div class="glance-insight-primary">
-            <p class="glance-insight-category" data-insight-category>People</p>
-            <h3 data-insight-label>Residents</h3>
-            <p class="glance-insight-value"><strong data-insight-value>128,024</strong><span data-insight-unit></span></p>
-          </div>
-          <div class="glance-insight-source">
-            <span class="glance-insight-caption">Source / 2023&ndash;2024 figures</span>
-            <p data-insight-source>PSA Census</p>
-            <span class="glance-insight-state" data-insight-state>Selected indicator</span>
-          </div>
-          <div class="glance-insight-related">
-            <span class="glance-insight-caption">Also in <span data-insight-related-category>People</span></span>
-            <p><span data-insight-related-label>Households</span><strong><span data-insight-related-value>32,202</span><small data-insight-related-unit></small></strong></p>
-            <span class="glance-insight-related-source" data-insight-related-source>PSA Census &middot; 4.0 people per household</span>
-          </div>
+        <div class="glance-insight-source">
+          <span class="glance-insight-caption">Source / 2023&ndash;2024 figures</span>
+          <p data-insight-source>PSA Census</p>
+          <span class="glance-insight-state" data-insight-state>Selected indicator</span>
         </div>
-      </figure>
+        <div class="glance-insight-related">
+          <span class="glance-insight-caption">Also in <span data-insight-related-category>People</span></span>
+          <p><span data-insight-related-label>Households</span><strong><span data-insight-related-value>32,202</span><small data-insight-related-unit></small></strong></p>
+          <span class="glance-insight-related-source" data-insight-related-source>PSA Census &middot; 4.0 people per household</span>
+        </div>
+      </div>
 
       <div id="locus-civic-metrics"><?= trim((string) file_get_contents(__DIR__ . '/app/Views/civic-metrics.generated.html')) ?></div>
     </div>

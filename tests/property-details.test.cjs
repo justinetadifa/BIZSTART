@@ -1,13 +1,7 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
-const { pathToFileURL } = require('node:url');
-const { resolve } = require('node:path');
 
 (async () => {
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-  const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, floodAndFireAssessmentMarkup } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const { assessmentCalculation, calculationMarkup, propertyDetailsMarkup, setupPropertyDetailsPrint, propertyHazardSummary, propertyLocationLabel, floodAndFireAssessmentMarkup } = await import('../assets/js/property-details-view.js');
   const keys = ['spatial_accessibility', 'infrastructure_readiness', 'economic_viability', 'nearby_businesses', 'zoning_compatibility', 'risk_constraints'];
   const property = {
     id: 10, name: 'A <sample> property', area: .25, price: 5000000, lat: 16.6, lng: 120.3,
@@ -43,6 +37,30 @@ const { resolve } = require('node:path');
 
   const options = { role: 'guest', investor: false, saved: new Set(), compare: [], broker: null, canInquire: false, path: value => `/${value}`, imageUrl: () => '/sample.jpg', printHeaderMarkup: () => '', printFooterMarkup: () => '', printButtonMarkup: () => '', nearbyBusinessesMarkup: () => '', evaluationMarkup: () => '', investorTools: () => '', policy: {} };
   const details = propertyDetailsMarkup(property, options);
+  const directory = [
+    { classification: 'complementary', distanceMeters: 300 },
+    { classification: 'competitor', isAnchor: true, distanceMeters: 0 },
+    { classification: 'commercial_anchor', distanceMeters: 220 },
+    { classification: 'nearby_place', distanceMeters: null },
+  ];
+  const activityCard = listing => propertyDetailsMarkup(listing, options)
+    .match(/<section class="listing-nearby-stats"[\s\S]*?<\/section>/)[0];
+  const activity = activityCard({ ...property, nearbyBusinesses: directory });
+  assert(activity.includes('<dt>Mapped places</dt><dd>4</dd>') && activity.includes('<dt>Commercial anchors</dt><dd>1</dd>'));
+  assert(activity.includes('<dt>Nearest place</dt><dd>0 m</dd>'), 'The nearest recorded distance can be zero and the directory can be unsorted');
+  assert.equal((activity.match(/<b>1<\/b> \(25%\)/g) || []).length, 4, 'Each mapped place belongs to exactly one segment');
+  assert(!activityCard(property).includes('listing-activity-segments'), 'An empty directory does not produce a chart');
+  assert(activityCard(property).includes('<dt>Nearest place</dt><dd>—</dd>'));
+  assert(details.includes('aria-selected="true" id="tabMapBtn"'), 'Listings with coordinates open the existing map by default');
+  const summary = html => html.match(/<section class="listing-score-panel"[\s\S]*?<\/section>/)[0];
+  const summaryHtml = summary(details);
+  assert.equal(details.match(/id="scenarioMainIaiCard"/g).length, 1, 'Each page has one headline score');
+  assert(summaryHtml.includes('data-active-assessment-score><strong>83.3</strong>'));
+  assert(summaryHtml.includes('20%') && summaryHtml.includes('width:50%'), 'Weights and raw criterion ratings are shown separately');
+  const partialSummary = summary(propertyDetailsMarkup(partial, options));
+  assert(partialSummary.includes('data-coverage-value>5/6') && partialSummary.includes('Score pending'));
+  assert(partialSummary.includes('width:0%') && partialSummary.includes('<strong>Pending</strong>'), 'A zero rating and a missing rating have different labels');
+  assert(details.indexOf('id="scenarioMainIaiCard"') < details.indexOf('id="propertyLocationSection"'));
   assert(details.includes('A &lt;sample&gt; property'));
   assert(details.includes('Road inventory') && details.includes('ROAD-01') && details.includes('abc123'));
   assert(details.includes('485.17'));

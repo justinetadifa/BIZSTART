@@ -1,21 +1,15 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
-const { pathToFileURL } = require('node:url');
-const { resolve } = require('node:path');
 
 (async () => {
   console.log('====================================================================');
   console.log('TEST SUITE: PROPERTY DETAILS MCE/IAI ASSESSMENT AUDIT & BUG FIXES');
   console.log('====================================================================\n');
 
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
   const {
     assessmentCalculation,
     calculationMarkup,
     propertyDetailsMarkup,
-  } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  } = await import('../assets/js/property-details-view.js');
 
   const dummyOptions = {
     role: 'investor', investor: true, saved: new Set(), compare: [],

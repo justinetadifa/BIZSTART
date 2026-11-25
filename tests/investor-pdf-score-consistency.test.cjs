@@ -6,10 +6,7 @@ const { pathToFileURL } = require('node:url');
 const vm = require('node:vm');
 
 (async () => {
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-  const { assessmentCalculation, assessmentPresentation, propertyAssessmentMarkup, calculationMarkup, investorBriefReportMarkup: brief } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const { assessmentCalculation, assessmentPresentation, propertyAssessmentMarkup, calculationMarkup, investorBriefReportMarkup: brief } = await import('../assets/js/property-details-view.js');
   const { potentialIncentive } = await import(pathToFileURL(resolve('assets/js/investment-policy.js')).href);
   const fixtures = JSON.parse(execFileSync(process.env.PHP_BINARY || 'C:/xampp/php/php.exe', ['tests/locus-v3-pipeline.test.php', '--json'], { encoding: 'utf8', windowsHide: true }));
   // Reproduce the reported five ratings and a stale "complete" alias alongside a real hold.

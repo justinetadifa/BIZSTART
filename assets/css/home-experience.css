@@ -34,13 +34,57 @@ html[data-home-motion="on"] { scroll-padding-bottom: 96px; }
 .home-journey-next:hover { background: #9e1b22; }
 .home-journey-next svg { transition: transform 200ms var(--locus-motion-ease); }
 .home-journey-next:hover svg { transform: translate(2px, -2px); }
-@media (max-width: 600px) {
-  .home-journey { bottom: max(14px, env(safe-area-inset-bottom)); gap: 10px; min-height: 58px; }
-  .home-journey-steps { display: none; }
-  .home-journey-current { min-width: 80px; font-size: 11px; }
-  .home-journey-next { min-width: 66px; gap: 8px; padding-inline: 13px; }
-  body[data-page="city-landing"].has-home-journey .locus-floating-help-btn {
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+@media (max-width: 640px) {
+  .home-journey { bottom: max(12px, env(safe-area-inset-bottom)); gap: 9px; min-height: 0; padding: 3px; }
+  .home-journey-steps, .home-journey-count { display: none; }
+  .home-journey-current { min-width: 62px; padding-bottom: 4px; font-size: 11px; }
+  .home-journey-next { min-width: 66px; gap: 6px; padding-inline: 12px; }
+
+  body[data-page="city-landing"] .city-header {
+    --nav-control-fill: #edf2f8;
+    --nav-control-hover: #e4ebf5;
+    position: fixed !important;
+    inset-inline: 0;
+  }
+
+  body[data-page="city-landing"] #main-content { padding-top: 70px; }
+
+  body[data-page="city-landing"] .city-header .city-nav::after { display: none; }
+  body[data-page="city-landing"] .city-header .city-brand small { font-size: 10px; }
+
+  body[data-page="city-landing"] .city-header .city-nav > .locus-floating-help-btn {
+    position: static;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin-inline-start: auto;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    color: #344c6c;
+    box-shadow: none;
+    transform: none;
+  }
+
+  body[data-page="city-landing"] .city-header .city-nav > .locus-floating-help-btn:hover { background: #edf2f8; }
+  body[data-page="city-landing"] .city-header .city-nav > .locus-floating-help-btn + .city-menu-button { margin-inline-start: 0; }
+  body[data-page="city-landing"] .city-header .city-nav > .city-menu-button { flex: 0 0 44px; border-radius: 13px; }
+  body[data-page="city-landing"] .city-header .city-nav > :is(.locus-floating-help-btn, .city-menu-button):focus-visible { outline-color: #234d7b; }
+
+  @layer locus-foundation {
+    body[data-page="city-landing"] .city-header { padding: 8px 12px 6px !important; }
+    body[data-page="city-landing"] .city-header .city-nav { gap: 3px !important; min-height: 56px !important; padding: 5px 7px 5px 10px !important; border-radius: 21px !important; }
+    body[data-page="city-landing"] .city-header .city-nav::before {
+      inset-inline: 0 !important;
+      border: 1px solid #fff !important;
+      background: #f9fbfe !important;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      box-shadow: 0 7px 22px #11224d16, 0 0 0 1px #11224d0d !important;
+    }
+    body[data-page="city-landing"] .city-header .city-brand strong { font-size: 18px !important; }
+    body[data-page="city-landing"] .city-header .city-brand-badge,
+    body[data-page="city-landing"] .city-header .city-brand-badge img { width: 31px !important; height: 31px !important; }
   }
 }
 @layer locus-foundation {

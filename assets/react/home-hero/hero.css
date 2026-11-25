@@ -360,27 +360,82 @@
     body[data-page="city-landing"] .city-header { padding: 10px 12px 8px !important; }
     body[data-page="city-landing"] .city-header .city-nav { min-height: 60px !important; padding: 8px 12px !important; }
     body[data-page="city-landing"] .city-header .city-brand strong { font-size: 18px !important; }
-    body[data-page="city-landing"] #locus-react-hero { padding: 8px 12px 24px !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-layout { min-height: 740px; gap: 74px; padding: 52px 22px 24px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-title { font-size: clamp(36px, 9.4vw, 56px) !important; line-height: 1.06 !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-title-top { max-width: 400px; margin-inline: auto; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next { font-size: 1.08em; margin-top: 16px; line-height: 1.07; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-tagline { max-width: 320px !important; font-size: 14px !important; margin-top: 30px !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-bottom { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-explore { grid-column: 1; grid-row: 1; width: 100%; max-width: none; flex-wrap: nowrap; border-radius: 9999px; gap: 12px; padding: 8px 14px 8px 8px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-cta { gap: 8px; padding: 12px 14px; font-size: 12px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-availability { flex: 1 1 90px; max-width: 124px; padding: 0; font-size: 10px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-note { grid-column: 1; grid-row: 2; width: 100%; padding: 18px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-note-mark { display: none !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-note p { font-size: 13px !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-scroll-group { grid-column: 1; grid-row: 3; gap: 10px; }
-  }
-  @media (max-width: 360px) {
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-layout { padding-inline: 18px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-title { font-size: 32px !important; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-explore { flex-wrap: wrap; border-radius: 24px; padding: 10px; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-cta { width: 100%; }
-    body[data-page="city-landing"] #locus-react-hero .ios-hero-availability { flex: 1 1 100%; max-width: none; text-align: center; }
+    body[data-page="city-landing"] #locus-react-hero { padding: 5px 12px 20px !important; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero { border-radius: 24px; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero .ios-hero-scene { inset: -34px -10px; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-photo { object-position: 69% center !important; filter: saturate(.93); }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-light { background: radial-gradient(ellipse at 100% 0, #ffdfae2e, transparent 55%); }
+    body[data-page="city-landing"] #locus-react-hero :is(.ios-hero-arrival-light, .ios-hero-arrival-frame) { display: none; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-vignette {
+      background: linear-gradient(180deg, #07152a08 12%, #0918312e 29%, #091831a3 52%, #0b1830eb 80%, #0b1830 100%);
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-layout {
+      min-height: clamp(408px, 59svh, 535px);
+      grid-template-rows: minmax(0, 1fr) auto;
+      align-content: end;
+      gap: 20px;
+      padding: 92px clamp(18px, 5.6vw, 30px) 22px;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-heading { align-self: end; text-align: left !important; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-title {
+      font-family: 'DM Sans', Inter, sans-serif !important;
+      font-size: clamp(30px, 8.7vw, 50px) !important;
+      line-height: 1.04 !important;
+      text-align: left;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-title-next {
+      margin: 4px 0 0;
+      padding: 0 .12em 0 0;
+      font-size: 1.14em;
+      font-weight: 730 !important;
+      letter-spacing: -.055em;
+      word-spacing: normal;
+      text-transform: lowercase;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-tagline {
+      max-width: 30ch !important;
+      margin: 12px 0 0 !important;
+      color: #edf2fc !important;
+      font-size: 14px !important;
+      line-height: 1.48 !important;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-bottom { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-explore {
+      grid-column: 1;
+      grid-row: 1;
+      display: grid !important;
+      align-items: start;
+      gap: 9px !important;
+      width: auto;
+      padding: 0;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-cta {
+      justify-content: space-between;
+      min-height: 48px;
+      gap: 20px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-availability {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: none;
+      padding: 0 0 0 2px;
+      color: #edf2fc;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-availability::before { content: ''; flex: 0 0 6px; height: 6px; border-radius: 50%; background: #a9e3ce; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-scroll-group { grid-column: 2; grid-row: 1; align-self: end; padding-bottom: 0; }
+    body[data-page="city-landing"] #locus-react-hero .ios-hero-scroll { width: 44px; min-height: 44px; padding: 0; background: #ffffff12 !important; }
+    body[data-page="city-landing"] #locus-react-hero :is(.ios-hero-note, .ios-hero-progress, .ios-hero-scroll-label) { display: none !important; }
   }
   @media (prefers-reduced-transparency: reduce) {
     body[data-page="city-landing"] .city-header .city-nav::before,

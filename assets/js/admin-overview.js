@@ -33,54 +33,21 @@
     const published = items.filter((property) => property.approvalState === 'approved');
     const missingEvidence = items.filter((property) => !property.siteVerifiedAt && property.approvalState !== 'archived');
     
-    // Status Cards: Refined executive municipal metric cards with crisp typography, squircle icons, and subtle micro-accents
     const stats = [
-      {
-        label: 'All properties',
-        value: items.length,
-        symbol: 'properties',
-        iconStyle: 'tw-bg-blue-50 tw-text-blue-600 tw-border tw-border-blue-100/80',
-        meta: '<span class="tw-text-[11px] tw-text-slate-400 font-medium">Across city catalog</span>'
-      },
-      {
-        label: 'Awaiting review',
-        value: pending.length,
-        symbol: 'review',
-        iconStyle: pending.length ? 'tw-bg-amber-50 tw-text-amber-600 tw-border tw-border-amber-200/80' : 'tw-bg-slate-50 tw-text-slate-400 tw-border tw-border-slate-100',
-        meta: pending.length
-          ? '<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-amber-50 tw-border tw-border-amber-200/80 tw-px-2 tw-py-0.5 tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-amber-800"><span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500 tw-animate-pulse"></span>Ready for review</span>'
-          : '<span class="tw-text-[11px] tw-text-slate-400 font-medium">Queue all clear</span>'
-      },
-      {
-        label: 'Published',
-        value: published.length,
-        symbol: 'published',
-        iconStyle: 'tw-bg-emerald-50 tw-text-emerald-600 tw-border tw-border-emerald-100/80',
-        meta: '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-text-[11px] tw-font-medium tw-text-emerald-700"><svg class="tw-h-3 tw-w-3 tw-text-emerald-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>Visible to investors</span>'
-      },
-      {
-        label: 'Needs site evidence',
-        value: missingEvidence.length,
-        symbol: 'evidence',
-        iconStyle: missingEvidence.length ? 'tw-bg-rose-50 tw-text-[#9E1B22] tw-border tw-border-rose-100/80' : 'tw-bg-slate-50 tw-text-slate-400 tw-border tw-border-slate-100',
-        meta: missingEvidence.length
-          ? `<span class="tw-inline-flex tw-items-center tw-gap-1.5 tw-text-[11px] tw-font-semibold tw-text-[#9E1B22]"><span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-[#9E1B22]"></span>${missingEvidence.length} pending audit</span>`
-          : '<span class="tw-text-[11px] tw-text-slate-400 font-medium">Site verification up to date</span>'
-      }
+      { label: 'All properties', value: items.length, symbol: 'properties', tone: 'catalogue', note: 'Across city catalog' },
+      { label: 'Awaiting review', value: pending.length, symbol: 'review', tone: pending.length ? 'review' : 'neutral',
+        note: pending.length ? 'Ready for review' : 'Queue clear' },
+      { label: 'Published', value: published.length, symbol: 'published', tone: 'published', note: 'Visible to investors' },
+      { label: 'Needs site evidence', value: missingEvidence.length, symbol: 'evidence', tone: missingEvidence.length ? 'evidence' : 'neutral',
+        note: missingEvidence.length ? 'Site verification pending' : 'Site verification up to date' },
     ];
-    
+
     root.querySelector('[data-city-stats]').innerHTML = stats.map((stat) => `
-      <article class="tw-flex tw-flex-col tw-justify-between tw-rounded-2xl tw-bg-white tw-border tw-border-slate-200/80 tw-p-4 sm:tw-p-5 tw-shadow-sm hover:tw-shadow-md hover:tw-border-slate-300/80 tw-transition-all tw-group">
-        <div class="tw-flex tw-items-center tw-justify-between tw-gap-2">
-          <span class="tw-block tw-text-[11px] tw-font-bold tw-tracking-wider tw-text-slate-500 tw-font-mono tw-uppercase">${escape(stat.label)}</span>
-          <span class="tw-flex tw-h-9 tw-w-9 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-xl ${stat.iconStyle} tw-shadow-2xs">${icon(stat.symbol, 'tw-h-4.5 tw-w-4.5')}</span>
-        </div>
-        <div class="tw-mt-3">
-          <strong class="tw-block tw-text-3xl sm:tw-text-[34px] tw-font-black tw-leading-none tw-tracking-tight tw-text-slate-900 tw-tabular-nums" data-overview-stat="${stat.symbol}">${number(stat.value)}</strong>
-          <div class="tw-mt-2.5 tw-flex tw-items-center tw-min-h-[20px]">
-            ${stat.meta}
-          </div>
-        </div>
+      <article class="admin-kpi" data-kpi-tone="${stat.tone}">
+        <span class="admin-kpi-label">${escape(stat.label)}</span>
+        <span class="admin-kpi-icon">${icon(stat.symbol, 'admin-kpi-glyph')}</span>
+        <strong class="admin-kpi-number" data-overview-stat="${stat.symbol}">${number(stat.value)}</strong>
+        <span class="admin-kpi-note">${escape(stat.note)}</span>
       </article>`).join('');
 
     const queue = governance ? pending : items.filter((property) => !property.assessmentComplete && property.approvalState !== 'archived');
@@ -97,7 +64,7 @@
               </h3>
               <p class="tw-mb-0 tw-mt-0.5 tw-text-[11px] sm:tw-text-xs tw-text-slate-500">${escape(property.barangay || 'San Fernando')} · ${number(Number(property.area) * 10000)} m²</p>
               <span class="tw-mt-1.5 tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-md tw-bg-amber-50 tw-border tw-border-amber-200/80 tw-px-2 tw-py-0.5 tw-text-[10px] sm:tw-text-[10.5px] tw-font-bold tw-text-amber-800">
-                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500 tw-animate-pulse"></span>
+                <span class="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-amber-500"></span>
                 ${governance ? 'Awaiting review' : 'Source scores pending'}
               </span>
             </div>
@@ -127,7 +94,7 @@
 
     const chart = root.querySelector('[data-assessment-ranking]');
     if (!ranked.length) {
-      chart.innerHTML = '<div class="tw-flex tw-min-h-[180px] tw-flex-col tw-items-center tw-justify-center tw-gap-3 tw-rounded-xl tw-bg-slate-50 tw-border tw-border-slate-100 tw-p-4 tw-text-center"><strong class="tw-text-sm tw-font-semibold tw-text-slate-800">Scores will appear here.</strong><p class="tw-m-0 tw-max-w-xs tw-text-xs tw-leading-relaxed tw-text-slate-500">MCE and IAI appear once all criteria have source-backed scores.</p></div>';
+      chart.innerHTML = '<div class="admin-ranking-empty"><strong>Scores will appear here.</strong><p>MCE and IAI appear once all criteria have source-backed scores.</p></div>';
       return;
     }
     

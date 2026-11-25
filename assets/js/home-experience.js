@@ -6,7 +6,20 @@
   const main = document.getElementById('main-content');
   if (!hero || !main) return;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const phone = matchMedia('(max-width: 640px)');
   const motionForced = document.documentElement.dataset.homeMotion === 'on';
+  const help = document.querySelector('.locus-floating-help-btn');
+  const menu = document.getElementById('cityMenuButton');
+  if (help && menu) {
+    const helpPosition = document.createComment('Floating help position');
+    help.before(helpPosition);
+    const placeHelp = () => {
+      if (phone.matches) menu.before(help);
+      else helpPosition.after(help);
+    };
+    phone.addEventListener('change', placeHelp);
+    placeHelp();
+  }
   const sections = [
     ['locus-react-hero', 'Start'], ['at-a-glance', 'The city'],
     ['incentive-recipients', 'Businesses'], ['why-invest', 'Why invest'],
@@ -58,6 +71,8 @@
   let suspended = document.hidden;
   const photoWell = document.querySelector('.glance-photo-well');
   const photo = document.querySelector('.glance-city-photo');
+  const mapCard = document.querySelector('[data-city-map]');
+  const mapInsight = document.getElementById('glanceInsight');
   const footer = document.querySelector('.city-footer');
   let lastProgress = -1;
   const anchor = item => `${location.pathname}${location.search}#${item.id}`;
@@ -99,12 +114,14 @@
       current.style.setProperty('--home-section-progress', String(roundedProgress));
       lastProgress = roundedProgress;
     }
-    const modalOpen = Boolean(document.querySelector('dialog[open], .city-mobile-nav-open'));
-    const show = heroBounds.bottom < height * .6 && !modalOpen
+    const modalOpen = Boolean(document.querySelector('dialog[open]:not([data-city-map-viewport]), [data-city-map-viewport]:modal, .city-mobile-nav-open'));
+    const mapInFocus = phone.matches && mapCard && mapInsight
+      && mapCard.getBoundingClientRect().top <= height * .29
+      && mapInsight.getBoundingClientRect().bottom > height * .55;
+    const show = heroBounds.bottom < height * .6 && !modalOpen && !mapInFocus
       && (!footer || footer.getBoundingClientRect().top >= height);
-    // A keyboard user can finish navigating this control even near the footer.
+    // Keep the controls available until a keyboard user leaves them.
     journey.hidden = !(show || (!modalOpen && journey.contains(document.activeElement)));
-    document.body.classList.toggle('has-home-journey', !journey.hidden);
     if (reduced.matches && !motionForced) {
       hero.style.removeProperty('--home-hero-depth');
       photo?.style.removeProperty('--home-photo-depth');

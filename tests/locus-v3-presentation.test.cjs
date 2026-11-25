@@ -1,15 +1,11 @@
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
-const { readFileSync } = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const { resolve } = require('node:path');
 
 (async () => {
   const fixture = JSON.parse(execFileSync(process.env.PHP_BINARY || 'C:\\xampp\\php\\php.exe', ['tests/locus-v3-pipeline.test.php', '--json'], { encoding: 'utf8' }));
-  const source = readFileSync('assets/js/property-details-view.js', 'utf8')
-    .replace('./utils.js', pathToFileURL(resolve('assets/js/utils.js')).href)
-    .replace('./business-opportunities.js', pathToFileURL(resolve('assets/js/business-opportunities.js')).href);
-  const view = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const view = await import('../assets/js/property-details-view.js');
   const utils = await import(pathToFileURL(resolve('assets/js/utils.js')).href);
   let checks = 0;
   const check = (condition, message) => { assert.ok(condition, message); checks++; };

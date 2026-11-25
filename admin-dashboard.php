@@ -63,53 +63,30 @@ sfc_render_header($context, 'admin');
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-avatar.css<?= sfc_asset_version('css/broker-avatar.css') ?>">
 <link rel="stylesheet" href="<?= $escape($context['assetBase']) ?>/css/broker-verification.css<?= sfc_asset_version('css/broker-verification.css') ?>">
 <main class="city-workspace tw-min-w-0 tw-max-w-[1320px] tw-px-3 tw-pb-12 tw-pt-5 sm:tw-px-6 sm:tw-pt-7 lg:tw-px-8" data-city-workspace="overview" data-department="<?= $escape($department) ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-broker-reviewer="<?= $brokerReviewer ? 'true' : 'false' ?>">
-  <section class="admin-hero-card tw-relative tw-isolate tw-shadow-2xl" aria-labelledby="cityOverviewTitle">
+  <section class="admin-hero-card" aria-labelledby="cityOverviewTitle">
     <div class="admin-hero-art" aria-hidden="true">
-      <img src="<?= $escape($context['assetBase']) ?>/images/mapArtLineArt.png" class="admin-hero-bg-gis" alt="" fetchpriority="high">
-      <div class="tw-absolute tw-inset-0 tw-bg-gradient-to-r tw-from-[#050d1e]/95 tw-via-[#0a1835]/85 tw-to-transparent tw-pointer-events-none tw-z-[1]"></div>
-      <div class="tw-absolute tw-inset-0 tw-bg-[radial-gradient(circle_at_90%_15%,rgba(59,130,246,0.18)_0%,transparent_50%)] tw-pointer-events-none tw-z-[1]"></div>
+      <img src="<?= $escape($context['assetBase']) ?>/images/mapArtLineArt.png" class="admin-hero-bg-gis" alt="" decoding="async">
     </div>
-    
-    <!-- Sleek Glassmorphic Date & Status Capsule at Top Right -->
+
+    <div class="admin-hero-copy">
+      <span class="admin-department-label"><?= $escape($department) ?></span>
+      <h1 id="cityOverviewTitle"><?= $escape(rtrim($profile['title'], '.')) ?></h1>
+      <p><?= $escape($profile['subtitle']) ?></p>
+    </div>
+
     <div class="admin-hero-capsule" id="adminTodayCapsule">
-      <div class="tw-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-lg tw-bg-amber-400/15 tw-text-amber-400 tw-border tw-border-amber-400/20 tw-shrink-0">
-        <svg class="tw-h-3.5 tw-w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="18" rx="2"/>
-          <path d="M16 2v4M8 2v4M3 10h18"/>
-        </svg>
+      <div class="admin-clock-city"><strong>San Fernando</strong><span>La Union</span></div>
+      <div class="admin-clock-reading">
+        <time class="admin-clock-time" id="adminHeroLiveTime" datetime="<?= $today->format(DATE_ATOM) ?>"><?= $today->format('g:i:s A') ?></time>
+        <span class="admin-clock-zone">Philippine Standard Time</span>
       </div>
-      <div>
-        <div class="tw-flex tw-items-center tw-gap-1.5">
-          <span class="tw-text-[9px] tw-font-extrabold tw-tracking-widest tw-uppercase tw-text-amber-400 font-mono">TODAY</span>
-          <span class="tw-text-white/30">·</span>
-          <time class="tw-text-xs tw-font-bold tw-text-white font-mono" data-overview-date datetime="<?= $today->format('Y-m-d') ?>">
-            <?= $today->format('M j, Y') ?>
-          </time>
-        </div>
-        <span class="tw-block tw-text-[10.5px] tw-font-mono tw-text-slate-300" id="adminHeroLiveTime"></span>
+      <div class="admin-clock-date">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M7 3v4m10-4v4M3 10h18"/></svg>
+        <time data-overview-date datetime="<?= $today->format('Y-m-d') ?>"><?= $today->format('F j, Y') ?></time>
       </div>
     </div>
 
-    <!-- Banner Content & Structured Executive Action Strip -->
-    <div class="tw-relative tw-z-10 tw-flex tw-flex-col tw-justify-between tw-min-h-[210px] sm:tw-min-h-[230px] tw-p-6 sm:tw-p-8 sm:tw-pb-8">
-      <div class="tw-min-w-0 tw-max-w-2xl">
-        <div class="tw-mb-2.5 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
-          <span class="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-border tw-border-white/15 tw-px-3 tw-py-1 tw-text-[10.5px] tw-font-bold tw-tracking-wider tw-text-slate-200 tw-uppercase tw-font-mono tw-backdrop-blur-md">
-            <span class="tw-relative tw-flex tw-h-2 tw-w-2">
-              <span class="tw-animate-ping tw-absolute tw-inline-flex tw-h-full tw-w-full tw-rounded-full tw-bg-emerald-400 tw-opacity-75"></span>
-              <span class="tw-relative tw-inline-flex tw-rounded-full tw-h-2 tw-w-2 tw-bg-emerald-500"></span>
-            </span>
-            SAN FERNANDO MUNICIPAL OPS
-          </span>
-          <span class="tw-text-[11px] tw-font-semibold tw-text-white/40">·</span>
-          <span class="tw-text-[11.5px] tw-font-medium tw-text-slate-300"><?= $escape($department) ?> Department</span>
-        </div>
-        <h1 id="cityOverviewTitle" class="tw-mb-1.5 tw-text-2xl sm:tw-text-3xl lg:tw-text-[34px] tw-font-black tw-leading-tight tw-tracking-tight tw-text-white"><?= $escape(rtrim($profile['title'], '.')) ?></h1>
-        <p class="tw-mb-0 tw-max-w-xl tw-text-xs sm:tw-text-sm tw-leading-relaxed tw-text-slate-300/90"><?= $escape($profile['subtitle']) ?></p>
-      </div>
-
-      <!-- Cohesive, Unified Action Bar (Exact heights, consistent borders, zero clashing buttons) -->
-      <div class="admin-hero-toolbar">
+      <nav class="admin-hero-toolbar" aria-label="Dashboard shortcuts">
         <!-- 1. Featured Action: City Intelligence & Reports -->
         <a href="<?= $escape(sfc_path('/city-intelligence.php')) ?>" class="admin-hero-btn admin-hero-btn-primary">
           <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
@@ -137,13 +114,15 @@ sfc_render_header($context, 'admin');
         <?php endif; ?>
 
         <!-- 5. City Administration -->
-        <a href="#cityStaffPanel" class="admin-hero-btn">
+        <?php if ($technicalAdmin): ?>
+        <a href="<?= $escape(sfc_path('/admin-dashboard.php#cityStaffPanel')) ?>" class="admin-hero-btn">
           <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>City Team</span>
         </a>
+        <?php endif; ?>
 
         <!-- 6. Department Responsibilities Popover -->
-        <div class="tw-relative">
+        <div class="admin-hero-popover">
           <button type="button" id="responsibilitiesDropdownBtn" class="admin-hero-btn" aria-expanded="false" aria-controls="responsibilitiesMenu">
             <svg class="hero-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <span>Responsibilities</span>
@@ -168,12 +147,11 @@ sfc_render_header($context, 'admin');
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </nav>
   </section>
   <p class="city-status tw-mb-0 tw-mt-3 tw-min-h-0 tw-text-xs empty:tw-hidden" data-workspace-status role="status">Loading workspace…</p>
-  <section class="tw-mb-6 tw-mt-5 tw-grid tw-grid-cols-1 tw-gap-3.5 min-[400px]:tw-grid-cols-2 lg:tw-grid-cols-4" aria-label="Overview" data-city-stats></section>
-  <div class="tw-grid tw-min-w-0 tw-gap-6 lg:tw-grid-cols-[1.1fr_1fr]">
+  <section class="admin-overview-metrics" aria-label="Listing totals" data-city-stats></section>
+  <div class="admin-overview-panels tw-grid tw-min-w-0 tw-gap-4 lg:tw-grid-cols-[1.1fr_1fr]">
     <section class="tw-min-w-0 tw-rounded-2xl tw-border tw-border-slate-200/80 tw-bg-white tw-p-5 sm:tw-p-6 tw-shadow-sm hover:tw-border-slate-300/80 tw-transition-all">
       <div class="tw-mb-4 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-3">
         <div>
@@ -259,16 +237,6 @@ sfc_render_header($context, 'admin');
         window.addEventListener('resize', positionMenu);
       }
 
-      // Live time ticker for glassmorphic today capsule
-      const liveTime = document.getElementById('adminHeroLiveTime');
-      function tickClock() {
-        if (liveTime) {
-          const now = new Date();
-          liveTime.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
-        }
-      }
-      tickClock();
-      setInterval(tickClock, 1000);
     })();
   </script>
   <?php if ($brokerReviewer): ?>
@@ -464,7 +432,7 @@ sfc_render_header($context, 'admin');
       default => 'City Information & Communications',
   };
   ?>
-  <section class="city-staff-panel tw-mt-5 tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5">
+  <section class="city-staff-panel tw-mt-5 tw-min-w-0 tw-rounded-xl tw-border tw-border-slate-200 tw-bg-white tw-p-4 sm:tw-p-5" id="cityStaffPanel">
     <div class="tw-mb-5 tw-flex tw-flex-wrap tw-items-start tw-justify-between tw-gap-4"><div><h2 class="tw-m-0 tw-text-base tw-font-semibold tw-text-ink">Active department personnel</h2><p class="tw-mb-0 tw-mt-1 tw-text-xs tw-leading-relaxed tw-text-slate-500">Authorized accounts for your city team.</p></div><div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><div class="city-staff-filter-bar tw-gap-1" role="group" aria-label="Filter staff by department"><button type="button" class="city-staff-filter-btn is-active tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="all">All</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="cicto">CICTO</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="assessor">Assessors</button><button type="button" class="city-staff-filter-btn tw-rounded-lg tw-px-3 tw-py-2 tw-text-[11px]" data-filter="lebdo">LEBDO</button></div><button type="button" data-open-staff-form class="tw-cursor-pointer tw-rounded-lg tw-border-0 tw-bg-[#9e1b22] tw-px-3 tw-py-2.5 tw-text-xs tw-font-semibold tw-text-white hover:tw-bg-[#7f151b]">+ Add personnel</button></div></div>
     <div class="city-staff-table-wrap tw-min-w-0 tw-overflow-x-auto tw-rounded-lg tw-shadow-none">
       <table class="city-staff-table tw-w-full">
@@ -556,9 +524,8 @@ sfc_render_header($context, 'admin');
   <dialog id="mceWeightConfigDialog" class="city-dialog mce-editor" aria-labelledby="mceConfigModalTitle" aria-describedby="mceConfigDescription">
     <header class="mce-dialog-header">
       <div class="mce-header-copy">
-        <span class="mce-eyebrow">Evaluation settings</span>
         <h2 id="mceConfigModalTitle">MCE criteria &amp; weights</h2>
-        <p id="mceConfigDescription">Set what matters most in new property assessments.</p>
+        <p id="mceConfigDescription">Set how the five criteria contribute to new property assessments.</p>
       </div>
       <button type="button" id="closeMceConfigBtn" class="mce-icon-button" aria-label="Close weight settings">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>
@@ -566,22 +533,30 @@ sfc_render_header($context, 'admin');
     </header>
     <div class="mce-dialog-body">
       <section class="mce-allocation" aria-label="Weight allocation">
-        <div class="mce-allocation-top">
-          <div><span id="mceDraftState" class="mce-draft-state">Active configuration</span><p>Five criteria. One clear evaluation.</p></div>
-          <div class="mce-total"><strong id="mceTotalDisplay">100.0%</strong><span id="mceTotalStatusBadge" class="mce-balance-badge is-balanced">Balanced</span></div>
+        <div class="mce-allocation-copy">
+          <h3>Total allocation</h3>
+          <span id="mceDraftState" class="mce-draft-state">Active configuration</span>
         </div>
-        <div id="mceStackedBar" class="mce-allocation-bar" aria-hidden="true"></div>
-        <div class="mce-allocation-meta"><span id="mceStackedBarTotalText">Total allocation · 100% required</span><span>5–60% per criterion</span></div>
+        <div class="mce-allocation-track">
+          <div id="mceStackedBar" class="mce-allocation-bar" aria-hidden="true"></div>
+          <div class="mce-allocation-meta"><span>100% required</span><span>5–60% per criterion</span></div>
+        </div>
+        <div class="mce-total"><strong id="mceTotalDisplay">100.0%</strong><span id="mceTotalStatusBadge" class="mce-balance-badge is-balanced">Balanced</span></div>
       </section>
-      <div class="mce-editor-tools">
-        <label class="mce-auto-balance" for="mceAutoBalance"><input id="mceAutoBalance" type="checkbox" checked /><span><strong>Keep total at 100%</strong><small>Other weights adjust proportionally.</small></span></label>
-        <div class="mce-presets" role="group" aria-label="Weight presets"><button type="button" data-mce-preset="baseline" aria-pressed="false">Baseline</button><button type="button" data-mce-preset="logistics" aria-pressed="false">Logistics</button><button type="button" data-mce-preset="commercial" aria-pressed="false">Commercial</button><button type="button" data-mce-preset="balanced" aria-pressed="false">Equal</button></div>
-      </div>
-      <div id="mceBalanceAssistant" class="mce-balance-help" hidden><p id="mceAssistantHeadline"></p><button type="button" id="mceApplySuggestionBtn" class="mce-button">Balance to 100%</button></div>
-      <div id="mceCriteriaInputs" class="mce-criteria-list"><p class="mce-muted">Loading active criteria…</p></div>
+      <section class="mce-settings" aria-labelledby="mceWeightsTitle">
+        <div class="mce-editor-tools">
+          <div class="mce-tools-heading"><h3 id="mceWeightsTitle">Criterion weights</h3>
+            <label class="mce-auto-balance" for="mceAutoBalance"><input id="mceAutoBalance" type="checkbox" checked aria-describedby="mceAutoBalanceHelp" /><span>Auto-balance</span></label>
+          </div>
+          <p id="mceAutoBalanceHelp" class="mce-auto-balance-help">Other weights adjust proportionally.</p>
+          <div class="mce-presets" role="group" aria-label="Weight presets"><button type="button" data-mce-preset="baseline" aria-pressed="false">Baseline</button><button type="button" data-mce-preset="logistics" aria-pressed="false">Logistics</button><button type="button" data-mce-preset="commercial" aria-pressed="false">Commercial</button><button type="button" data-mce-preset="balanced" aria-pressed="false">Equal</button></div>
+        </div>
+        <div id="mceBalanceAssistant" class="mce-balance-help" hidden><p id="mceAssistantHeadline"></p><button type="button" id="mceApplySuggestionBtn" class="mce-button">Balance to 100%</button></div>
+        <div id="mceCriteriaInputs" class="mce-criteria-list"><p class="mce-muted">Loading active criteria…</p></div>
+      </section>
       <aside class="mce-audit-rail">
         <section class="mce-justification" aria-labelledby="mceJustificationTitle">
-          <div class="mce-section-heading"><h3 id="mceJustificationTitle">Document this change</h3><p>Keep a clear record of why the evaluation changed.</p></div>
+          <div class="mce-section-heading"><h3 id="mceJustificationTitle">Change record</h3><p>Required to apply new weights.</p></div>
           <div class="mce-field"><div class="mce-field-heading"><label for="mceReasonInput">Reason for adjustment <span aria-hidden="true">*</span></label><small id="mceReasonCharCount">0/8 minimum</small></div><textarea id="mceReasonInput" rows="2" maxlength="2000" required minlength="8" placeholder="Explain the priorities behind this adjustment" aria-describedby="mceReasonCharCount mceReasonInlineError"></textarea><p id="mceReasonInlineError" class="mce-field-error" hidden></p></div>
           <div class="mce-field"><label for="mceReferenceInput">Source or consultation reference <span aria-hidden="true">*</span></label><input type="text" id="mceReferenceInput" required minlength="5" maxlength="255" placeholder="e.g., Committee resolution or planning reference" aria-describedby="mceReferenceInlineError" /><p id="mceReferenceInlineError" class="mce-field-error" hidden></p></div>
         </section>
@@ -593,13 +568,13 @@ sfc_render_header($context, 'admin');
     </div>
     <footer class="mce-dialog-footer">
       <div id="mceConfigStatusMessage" class="mce-status" role="status" aria-live="polite" hidden></div>
-      <div class="mce-footer-actions"><button type="button" id="cancelMceConfigBtn" class="mce-button mce-button-quiet">Close</button><div><button type="button" id="previewMceConfigBtn" class="mce-button" disabled>Preview impact</button><button type="button" id="applyMceConfigBtn" class="mce-button mce-button-primary" disabled>Apply weights</button></div></div>
-      <p class="mce-footer-note">Applied weights take effect immediately for new property assessments.</p>
+      <div class="mce-footer-actions"><button type="button" id="cancelMceConfigBtn" class="mce-button mce-button-quiet">Close</button><p class="mce-footer-note">Changes apply immediately to new assessments.</p><div><button type="button" id="previewMceConfigBtn" class="mce-button" disabled>Preview impact</button><button type="button" id="applyMceConfigBtn" class="mce-button mce-button-primary" disabled>Apply weights</button></div></div>
     </footer>
   </dialog>
   <?php endif; ?>
 </main>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-overview.js<?= sfc_asset_version('js/admin-overview.js') ?>" defer></script>
+<script src="<?= $escape($context['assetBase']) ?>/js/admin-dashboard-clock.js<?= sfc_asset_version('js/admin-dashboard-clock.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-workspace.js<?= sfc_asset_version('js/admin-workspace.js') ?>" defer></script>
 <script src="<?= $escape($context['assetBase']) ?>/js/admin-investors.js<?= sfc_asset_version('js/admin-investors.js') ?>" defer></script>
 <?php if ($mceConfigurator): ?>

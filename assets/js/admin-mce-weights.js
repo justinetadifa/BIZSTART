@@ -15,7 +15,7 @@
   const previewContainer = byId('mcePreviewContainer');
   const autoBalance = byId('mceAutoBalance');
   const labels = ['Spatial access', 'Infrastructure', 'Property cost', 'Nearby businesses', 'Risk & safety'];
-  const colors = ['#4075d5', '#1796a3', '#c88a25', '#8064bb', '#bd6086'];
+  const colors = ['#426383', '#40746c', '#937044', '#6f6282', '#925d68'];
   const presets = {
     logistics: [35, 30, 15, 10, 10],
     commercial: [20, 20, 25, 25, 10],
@@ -120,7 +120,6 @@
     const badge = byId('mceTotalStatusBadge');
     badge.textContent = !validation.fieldsValid ? 'Check highlighted weights' : validation.balanced ? 'Balanced' : `${format(Math.abs(diff))}% ${diff > 0 ? 'remaining' : 'over'}`;
     badge.className = `mce-balance-badge${validation.valid ? ' is-balanced' : ' is-invalid'}`;
-    byId('mceStackedBarTotalText').textContent = 'Total allocation · 100% required';
     const total = Math.max(100, validation.total);
     byId('mceStackedBar').innerHTML = model.codes.map((code, index) => {
       const value = Math.max(0, Number.isFinite(draftWeights[code]) ? draftWeights[code] : 0);
@@ -136,7 +135,7 @@
       const value = draftWeights[code];
       const delta = value - Number(configData?.baseline?.[code]);
       const deltaLabel = criteriaContainer.querySelector(`[data-delta-badge="${code}"]`);
-      deltaLabel.textContent = Number.isFinite(delta) ? Math.abs(delta) < .005 ? 'Baseline' : `${delta > 0 ? '+' : ''}${format(delta)} pts from baseline` : '';
+      deltaLabel.textContent = Number.isFinite(delta) && Math.abs(delta) >= .005 ? `${delta > 0 ? '+' : ''}${format(delta)} pts` : '';
       const slider = criteriaContainer.querySelector(`[data-slider-weight="${code}"]`);
       const range = configData.current[code];
       const progress = Number.isFinite(value) ? Math.max(0, Math.min(100, (value - range.rangeMin) / (range.rangeMax - range.rangeMin) * 100)) : 0;
@@ -166,10 +165,11 @@
     criteriaContainer.innerHTML = model.codes.map((code, index) => {
       const item = configData.current[code];
       return `<section class="mce-criterion" style="--mce-color:${colors[index]}" data-criterion-card="${code}">
-        <div class="mce-criterion-heading"><div><label for="mce-weight-${code}"><span class="mce-criterion-dot" aria-hidden="true"></span>${escape(item.label || labels[index])}</label><p id="mce-help-${code}">${escape(item.basis || '')}</p></div>
-        <div class="mce-number-box"><input id="mce-weight-${code}" type="number" inputmode="decimal" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-input-weight="${code}" aria-describedby="mce-help-${code} mce-error-${code}" /><span aria-hidden="true">%</span></div></div>
+        <label for="mce-weight-${code}" class="mce-criterion-name"><span class="mce-criterion-dot" aria-hidden="true"></span>${escape(item.label || labels[index])}</label>
+        <div class="mce-number-box"><input id="mce-weight-${code}" type="number" inputmode="decimal" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-input-weight="${code}" aria-describedby="mce-help-${code} mce-error-${code}" /><span aria-hidden="true">%</span></div>
+        <p class="mce-criterion-basis" id="mce-help-${code}">${escape(item.basis || '')}</p>
         <input type="range" class="mce-slider-input" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-slider-weight="${code}" aria-label="${escape(item.label || labels[index])} weight" />
-        <div class="mce-criterion-meta"><span>${Number(item.rangeMin)}–${Number(item.rangeMax)}% allowed</span><span data-delta-badge="${code}"></span></div><p class="mce-field-error" id="mce-error-${code}" hidden></p></section>`;
+        <span class="mce-criterion-delta" data-delta-badge="${code}" title="Change from methodological baseline"></span><p class="mce-field-error" id="mce-error-${code}" hidden></p></section>`;
     }).join('');
     byId('mceHistoryContainer').innerHTML = configData.history.length ? configData.history.slice(0, 15).map(log => `<article class="mce-history-item"><div><strong>${escape(log.is_baseline ? 'Baseline restored' : 'Weights updated')}</strong><time>${escape(log.timestamp || log.created_at || '')}</time></div><p>${escape(log.reason || '')}</p><small>${escape(log.actor_name || log.user_name || 'Authorized administrator')} · ${escape(log.source_reference || '')}</small><code>${escape(log.version || '')}</code></article>`).join('') : '<p class="mce-muted">No configuration changes recorded yet.</p>';
     syncInputs();

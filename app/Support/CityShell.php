@@ -64,7 +64,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <script src="<?= $e($context['assetBase']) ?>/vendor/leaflet/leaflet.markercluster.js"></script>
   <?php endif; ?>
   <?php if ($user !== null): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/session-guard.css"><?php endif; ?>
-  <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/dm-sans-variable.woff2" as="font" type="font/woff2" crossorigin>
   <?php if ($page === 'city-landing'): ?>
   <link rel="preload" href="<?= $e($context['assetBase']) ?>/fonts/archivo-black.ttf" as="font" type="font/ttf" crossorigin>
   <?php endif; ?>
@@ -102,6 +102,13 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/property-editorial-workspaces.css<?= sfc_asset_version('css/property-editorial-workspaces.css') ?>">
   <?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-interactions.css<?= sfc_asset_version('css/locus-interactions.css') ?>">
+  <?php if ($page === 'city-details'): ?>
+  <?php foreach (['property-details', 'v2-assessment', 'business-opportunities', 'property-presentation'] as $style): ?>
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/<?= $style ?>.css<?= sfc_asset_version('css/' . $style . '.css') ?>">
+  <?php endforeach; ?>
+  <?php foreach (['property-workspace', 'property-score-graphic', 'property-dashboard-frame', 'property-dashboard-cards', 'property-dashboard-map'] as $style): ?>
+  <link rel="stylesheet" media="screen" href="<?= $e($context['assetBase']) ?>/css/<?= $style ?>.css<?= sfc_asset_version('css/' . $style . '.css') ?>">
+  <?php endforeach; endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-experience.css<?= sfc_asset_version('css/home-experience.css') ?>"><?php endif; ?>
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
@@ -134,17 +141,32 @@ function sfc_investor_view_control(array $context): void
     <?php
 }
 
-function sfc_render_header(array $context, string $active = ''): void
+function sfc_navigation_home(string $role): string
 {
-    $user = $context['user'];
-    $role = $user['role'] ?? 'guest';
-    $home = match ($role) { 'admin' => '/admin-dashboard.php', 'seller' => '/seller-dashboard.php', 'investor' => '/investor-dashboard.php', default => '/index.php' };
-    $items = match ($role) {
+    return match ($role) {
+        'admin' => '/admin-dashboard.php',
+        'seller' => '/seller-dashboard.php',
+        'investor' => '/investor-dashboard.php',
+        default => '/index.php',
+    };
+}
+
+function sfc_navigation_items(string $role): array
+{
+    return match ($role) {
         'admin' => [['Overview', '/admin-dashboard.php', 'admin'], ['Listings', '/admin-properties.php', 'admin-properties'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Intelligence & Reports', '/city-intelligence.php', 'intelligence']],
         'seller' => [['My listings', '/seller-dashboard.php', 'seller'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer']],
         'investor' => [['Properties', '/investor-dashboard.php', 'investor'], ['Find Agent', '/investor-dashboard.php?view=agents', 'agents'], ['Priority board', '/property-ranking.php', 'ranking'], ['Map', '/property-explorer.php', 'explorer'], ['Compare', '/compare-decision.php', 'compare'], ['Saved', '/investor-dashboard.php?view=saved', 'saved']],
         default => [['Properties', '/index.php#properties', 'properties'], ['Why San Fernando', '/index.php#why-invest', 'why'], ['About', '/index.php#about', 'about']],
     };
+}
+
+function sfc_render_header(array $context, string $active = ''): void
+{
+    $user = $context['user'];
+    $role = $user['role'] ?? 'guest';
+    $home = sfc_navigation_home($role);
+    $items = sfc_navigation_items($role);
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ?>
   <div class="city-top-accent-line" aria-hidden="true"></div>

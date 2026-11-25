@@ -4,6 +4,14 @@
 @layer locus-foundation;
 
 @font-face {
+  font-family: 'DM Sans';
+  src: url('../fonts/dm-sans-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+
+@font-face {
   font-family: Inter;
   src: url('../fonts/inter-latin.woff2') format('woff2');
   font-style: normal;
@@ -42,6 +50,16 @@
   --locus-section-title-size: clamp(28px, 2.8vw, 40px);
   --locus-text-size: 15px;
   --locus-control-size: 14px;
+}
+
+@media screen {
+  :root {
+    --locus-font-ui: 'DM Sans', 'Segoe UI', Arial, sans-serif;
+    --locus-text-size: 1rem;
+    --locus-title-size: clamp(1.9rem, 3vw, 2.8rem);
+    --locus-heading-gap: clamp(1rem, 1.5vw, 1.5rem);
+    --locus-card-space: clamp(1rem, 1.6vw, 1.5rem);
+  }
 }
 
 @layer locus-foundation {
@@ -88,6 +106,9 @@
   }
 
   @media screen {
+    body[data-page] :where(h2, h3, h4, h5, h6) {
+      font-weight: 620 !important;
+    }
     /* Use the same outer grid for full-bleed sections and application pages. */
     body[data-page] :is(.locus-container, .city-container, .site-shell,
       .profile-page-heading, .profile-main-container, .ia-shell,
@@ -124,7 +145,7 @@
       .agent-directory-heading h1, .ci-title, .account-title,
       .workspace-heading h1, #mapExplorerTitle, #priorityBoardTitle) {
       font-size: var(--locus-title-size) !important;
-      font-weight: 700 !important;
+      font-weight: 565 !important;
       line-height: 1.16 !important;
       letter-spacing: -.03em !important;
       text-transform: none !important;

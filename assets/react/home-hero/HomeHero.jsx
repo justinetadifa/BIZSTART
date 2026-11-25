@@ -47,7 +47,7 @@ function useHeroMotion() {
     const navigation = event => setMenuOpen(Boolean(event.detail?.open));
     let wasDialogOpen = false;
     const modalChange = () => {
-      const open = Boolean(document.querySelector('dialog[open]'));
+      const open = Boolean(document.querySelector('dialog[open]:not([data-city-map-viewport]), [data-city-map-viewport]:modal'));
       setDialogOpen(open);
       // A first-time visitor reads privacy consent over the hero. Replay the
       // visual arrival when it closes so it is seen, even on a fast connection.
@@ -164,9 +164,9 @@ export function HomeHero({ assetBase, availability }) {
           </div>
 
           <div className="ios-hero-scroll-group hr-grid hr-justify-items-center hr-gap-3">
-            <a className="ios-hero-scroll hr-inline-flex hr-items-center hr-justify-center hr-gap-2 hr-rounded-full hr-border hr-border-white/30 hr-bg-white/20 hr-backdrop-blur-lg" href="#at-a-glance" data-locus-press="press">
+            <a className="ios-hero-scroll hr-inline-flex hr-items-center hr-justify-center hr-gap-2 hr-rounded-full hr-border hr-border-white/30 hr-bg-white/20 hr-backdrop-blur-lg" href="#at-a-glance" aria-label="Scroll to the city overview" data-locus-press="press">
               <svg className="ios-hero-scroll-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <span>Scroll</span>
+              <span className="ios-hero-scroll-label">Scroll</span>
             </a>
             <PageProgress />
           </div>

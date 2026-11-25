@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Support\JsonData;
+use App\Support\ListingPresentation;
 use App\Support\PropertyCatalog;
 use App\Support\PropertyAssessment;
 use App\Support\AutomaticPropertyAssessment;
@@ -15,6 +16,7 @@ use PDO;
 use Throwable;
 
 require_once dirname(__DIR__) . '/Support/PropertyCatalog.php';
+require_once dirname(__DIR__) . '/Support/ListingPresentation.php';
 require_once dirname(__DIR__) . '/Support/PropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/AutomaticPropertyAssessment.php';
 require_once dirname(__DIR__) . '/Support/PropertyScreening.php';
@@ -112,6 +114,77 @@ final class PropertyRepository
         $statement->execute($params);
 
         return (int) $statement->fetchColumn();
+    }
+
+    public function publicMapListings(): array
+    {
+        $params = [];
+        $visibility = $this->visibilityCondition(null, $params);
+        $statement = $this->pdo->prepare(
+            'SELECT p.id, p.name, p.city, p.barangay, p.lat, p.lng, p.area, p.parcel_json, p.category, p.subcategory,
+                    p.type, p.status, p.listing_purpose, p.price, p.lease_price, p.lease_period, p.lease_price_unit, p.image_url
+             FROM properties p LEFT JOIN users seller ON seller.id = p.seller_user_id
+             WHERE ' . $visibility . ' ORDER BY p.created_at DESC, p.id DESC'
+        );
+        $statement->execute($params);
+        $rows = $statement->fetchAll();
+        $listings = [];
+
+        foreach ($rows as $row) {
+            $lat = float_or_null($row['lat']);
+            $lng = float_or_null($row['lng']);
+            $hasPoint = PropertyParcel::isInSanFernandoExtent($lat, $lng);
+            $parcel = $this->decodeJson($row['parcel_json'] ?? '{}');
+            try {
+                $boundary = PropertyParcel::boundary($parcel['boundary'] ?? null);
+            } catch (InvalidArgumentException) {
+                $boundary = null;
+            }
+            foreach ($boundary['geometry']['coordinates'][0] ?? [] as [$vertexLng, $vertexLat]) {
+                if (!PropertyParcel::isInSanFernandoExtent($vertexLat, $vertexLng)) {
+                    $boundary = null;
+                    break;
+                }
+            }
+            if (!$hasPoint && $boundary === null) {
+                continue;
+            }
+
+            $purpose = $row['listing_purpose'] ?? 'sale';
+            $prices = ListingPresentation::prices([
+                'listingPurpose' => $purpose,
+                'salePrice' => $row['price'],
+                'leasePrice' => $row['lease_price'],
+                'leasePeriod' => $row['lease_period'],
+                'leasePriceUnit' => $row['lease_price_unit'],
+            ]);
+            $priceText = count($prices) === 1
+                ? reset($prices)
+                : 'Sale: ' . $prices['Sale price'] . ' · Lease: ' . $prices['Lease price'];
+            $area = $this->effectiveAreaHectares($row);
+            $listings[] = [
+                'id' => (int) $row['id'],
+                'title' => (string) $row['name'],
+                'city' => (string) ($row['city'] ?? self::DEFAULT_CITY),
+                'barangay' => string_or_null($row['barangay']),
+                'latitude' => $hasPoint ? $lat : null,
+                'longitude' => $hasPoint ? $lng : null,
+                'boundary' => $boundary,
+                'area_sqm' => $area !== null && is_finite($area) && $area > 0 ? round($area * 10000, 2) : null,
+                'category' => string_or_null($row['category']) ?? $row['type'],
+                'subcategory' => string_or_null($row['subcategory']),
+                'status' => (string) $row['status'],
+                'purpose' => $purpose,
+                'price_text' => $priceText,
+                'image_url' => (string) $row['image_url'],
+            ];
+        }
+
+        return [
+            'listings' => $listings,
+            'publicCount' => count($rows),
+            'unmappedCount' => count($rows) - count($listings),
+        ];
     }
 
     public function find(int $propertyId, ?array $user = null): array

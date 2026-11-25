@@ -13,27 +13,27 @@ const reports = [];
 async function visibleArrival(page, name) {
   const photo = page.locator('.ios-hero-photo-reveal');
   await photo.waitFor({ state: 'visible' });
-  await page.waitForFunction(() => {
-    const photo = document.querySelector('.ios-hero-photo-reveal');
-    return photo?.getAnimations().some(animation => animation.animationName === 'locus-hero-photo-arrival'
-      && animation.playState === 'running' && animation.effect.getComputedTiming().progress < .95);
-  });
-  const sample = await photo.evaluate(node => {
-    const animation = node.getAnimations().find(animation => animation.animationName === 'locus-hero-photo-arrival');
+  const activeFrame = await page.waitForFunction(() => {
+    const node = document.querySelector('.ios-hero-photo-reveal');
+    const animation = node?.getAnimations().find(item => item.animationName === 'locus-hero-photo-arrival');
+    if (animation?.playState !== 'running') return false;
     const timing = animation.effect.getComputedTiming();
+    if (timing.progress === null || timing.progress >= .95) return false;
     const style = getComputedStyle(node);
     const matrix = new DOMMatrix(style.transform);
     const bounds = node.getBoundingClientRect();
     return { duration: timing.duration, progress: timing.progress, transform: style.transform,
       scale: matrix.a, opacity: Number(style.opacity), visibleHeight: Math.min(innerHeight, bounds.bottom) - Math.max(0, bounds.top) };
   });
+  const sample = await activeFrame.jsonValue();
+  await activeFrame.dispose();
   assert(sample.duration >= 1200, 'The arrival lasts long enough to see on a fast connection');
   assert(sample.progress < .95, 'The normal visible page still has an active arrival');
   assert(sample.visibleHeight > 250 && sample.opacity >= .7, 'The photo is visibly animated inside the viewport');
   assert(await page.locator('#heroTitle').isVisible());
   assert.equal(await page.locator('#heroTitle').evaluate(node => getComputedStyle(node).opacity), '1');
   assert(await page.locator('.ios-hero-cta').isVisible());
-  assert.equal(await page.locator('dialog[open]').count(), 0, 'No dialog obscures the measured entrance');
+  assert.equal(await page.locator('dialog:modal').count(), 0, 'No modal obscures the measured entrance');
   await page.waitForTimeout(180);
   const movingScale = await photo.evaluate(node => new DOMMatrix(getComputedStyle(node).transform).a);
   assert(movingScale < sample.scale, 'The image visibly changes scale while the visitor can see it');

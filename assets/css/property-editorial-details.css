@@ -17,9 +17,9 @@
     body:is([data-page="city-details"], [data-page="city-compare"]) main :is(h1, h2, .city-compare-title, .site-compare-property h2) {
       font-family: var(--pe-font, Inter), -apple-system, BlinkMacSystemFont, sans-serif !important;
       font-style: normal !important;
-      font-weight: 650 !important;
+      font-weight: 620 !important;
       letter-spacing: -.045em !important;
-      text-transform: uppercase !important;
+      text-transform: none !important;
       color: var(--pe-ink, #171918) !important;
       text-wrap: pretty;
       overflow-wrap: anywhere;
@@ -27,10 +27,10 @@
     body[data-page="city-details"] #cityPropertyDetails .property-heading h1,
     body[data-page="city-compare"] #propertyResults .city-page-heading h1 {
       font-family: var(--pe-font, Inter), -apple-system, BlinkMacSystemFont, sans-serif !important;
-      font-weight: 650 !important;
+      font-weight: 620 !important;
       font-style: normal !important;
       letter-spacing: -.045em !important;
-      text-transform: uppercase !important;
+      text-transform: none !important;
       color: var(--pe-ink, #171918) !important;
       font-size: clamp(30px, 3.4vw, 48px) !important;
       line-height: 1.08 !important;
@@ -416,7 +416,7 @@
       transform: none !important;
     }
     body[data-page="city-compare"] .city-compare-empty-slot-icon { border-color: var(--pe-line, #deded6) !important; background: #fff !important; box-shadow: none !important; color: var(--pe-muted, #656861) !important; }
-    body[data-page="city-compare"] .city-compare-empty-slot-title { text-transform: uppercase !important; font-family: var(--pe-font, Inter), sans-serif !important; font-size: 21px !important; font-weight: 600 !important; line-height: 1.2 !important; letter-spacing: -.04em !important; }
+    body[data-page="city-compare"] .city-compare-empty-slot-title { text-transform: none !important; font-family: var(--pe-font, Inter), sans-serif !important; font-size: 21px !important; font-weight: 600 !important; line-height: 1.2 !important; letter-spacing: -.04em !important; }
     body[data-page="city-compare"] .city-compare-empty-slot-desc { color: var(--pe-muted, #656861) !important; line-height: 1.8 !important; }
     body[data-page="city-compare"] :is(.site-compare-scroll, .site-compare-method, .site-compare-empty) { border-color: var(--pe-line, #deded6) !important; border-radius: 12px !important; box-shadow: none !important; background: #fff !important; }
     body[data-page="city-compare"] .site-compare-notice { background: #eeede7 !important; border: 1px solid var(--pe-line, #deded6) !important; border-radius: 8px !important; box-shadow: none !important; }

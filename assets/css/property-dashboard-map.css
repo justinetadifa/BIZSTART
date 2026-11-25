@@ -1,0 +1,162 @@
+@media screen {
+  @layer locus-foundation {
+    #cityPropertyDetails .listing-primary-grid > #propertyLocationSection {
+      gap: .48rem;
+      padding: .65rem !important;
+      overflow: visible;
+      min-width: 0;
+    }
+
+    #propertyLocationSection .listing-map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: .35rem .75rem;
+      padding: .25rem .35rem .08rem;
+    }
+
+    #cityPropertyDetails #propertyLocationSection .listing-media-heading {
+      padding: 0;
+    }
+
+    #cityPropertyDetails #propertyLocationSection .property-media-tabs-bar {
+      display: flex !important;
+      width: auto;
+      padding: 0 !important;
+      margin: 0;
+      gap: .15rem !important;
+      border: 0;
+      border-radius: .45rem;
+      background: #f1f4f1 !important;
+    }
+
+    #cityPropertyDetails #propertyLocationSection .property-media-tab-btn {
+      min-height: 1.9rem !important;
+      padding: .2rem .58rem !important;
+      gap: .25rem;
+      border: 1px solid transparent !important;
+      color: #42574c !important;
+      background: transparent !important;
+      font: inherit !important;
+      font-size: .77rem !important;
+      line-height: 1.35 !important;
+      text-transform: none;
+      letter-spacing: 0;
+      border-radius: .38rem !important;
+    }
+
+    #cityPropertyDetails #propertyLocationSection .property-media-tab-btn.is-active {
+      background: #fff !important;
+      border-color: var(--desk-rule) !important;
+      color: #193827 !important;
+    }
+    .listing-map-header .property-media-tab-btn svg { width: .78rem; height: .78rem; }
+
+    #propertyLocationSection .property-media-views-container { min-width: 0; min-height: 0; }
+    #cityPropertyDetails #propertyLocationSection .property-media-view-pane.is-active {
+      display: flex;
+      height: auto;
+      padding: 0 !important;
+      gap: .28rem !important;
+      min-height: 0;
+    }
+
+    #propertyLocationSection .listing-map-frame {
+      position: relative;
+      isolation: isolate;
+      flex: 1 0 auto;
+      min-height: clamp(10rem, 22vh, 13rem);
+      border-radius: .6rem;
+      background: #e7efea;
+    }
+    #cityPropertyDetails #propertyLocationSection #cityPropertyMap {
+      position: absolute;
+      inset: 0;
+      margin: 0 !important;
+      min-height: 0;
+      height: 100% !important;
+      border: 0 !important;
+      border-radius: inherit !important;
+      z-index: 0 !important;
+    }
+    #propertyLocationSection .listing-map-switch {
+      position: absolute;
+      z-index: 1;
+      right: .55rem;
+      top: .5rem;
+      min-height: 1.85rem !important;
+      height: 1.85rem;
+      width: auto !important;
+      max-width: calc(100% - 1rem);
+      padding: .2rem .55rem !important;
+      border: 1px solid #cad8ce !important;
+      border-radius: .45rem !important;
+      background: #f8fcf8 !important;
+      color: #243c30 !important;
+      font: inherit !important;
+      font-size: .75rem !important;
+      cursor: pointer;
+    }
+    #propertyLocationSection [data-site-map-status]:not(:empty) {
+      position: absolute;
+      z-index: 1;
+      bottom: 1.4rem;
+      right: .5rem;
+      max-width: calc(100% - 4.25rem);
+      padding: .25rem .5rem;
+      border-radius: .4rem;
+      background: #f8fcf8;
+      color: #344e40;
+      font-size: .72rem;
+    }
+
+    .listing-map-footer {
+      position: relative;
+      display: flex;
+      justify-content: flex-end;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: .2rem .85rem;
+      padding: 0 .35rem;
+      color: #475e50;
+      font-size: .75rem;
+    }
+    .listing-map-key { display: inline-flex; align-items: center; gap: .3rem; }
+    .listing-map-key::before { content: ""; width: .47rem; height: .47rem; border-radius: 99px; background: #9e1b22; }
+    .listing-map-key.is-parcel::before { background: #9e1b221a; border: 1px solid #9e1b22; }
+    .listing-map-record > summary { cursor: pointer; color: #284733; }
+    .listing-map-record-body {
+      position: absolute;
+      bottom: calc(100% + .35rem);
+      right: .25rem;
+      z-index: 3;
+      display: grid;
+      gap: .35rem;
+      width: min(19rem, calc(100% - .5rem));
+      padding: .85rem 1rem;
+      background: #fff;
+      border: 1px solid #d5e0d7;
+      border-radius: .85rem;
+      box-shadow: 0 6px 20px #142d211c;
+      line-height: 1.4;
+    }
+    .listing-map-record-body > p { margin: 0; }
+    .listing-map-record-body a { display: inline-block; margin-right: .65rem; text-decoration: underline; }
+
+    #propertyLocationSection .property-photo-gallery-wrapper { flex: 1; min-height: 0; }
+    #cityPropertyDetails #propertyLocationSection .property-gallery-stage,
+    #propertyLocationSection .streetview-viewport-box { min-height: 11.5rem; height: auto; }
+    #propertyLocationSection .streetview-viewport-box { flex: 1; box-shadow: none; }
+    #propertyLocationSection .streetview-top-toolbar { flex-wrap: wrap; }
+    #propertyLocationSection .streetview-embedded-frame { position: absolute; inset: 0; }
+    .listing-media-empty { display: grid; place-items: center; flex: 1; min-height: 11.5rem; padding: 1rem; margin: 0; border-radius: .6rem; background: #f0f5f1; color: #486052; }
+
+    @media (max-width: 600px) {
+      #propertyLocationSection .listing-map-header { padding: .3rem .2rem 0; }
+      #cityPropertyDetails #propertyLocationSection .property-media-tab-btn { min-height: 2.5rem !important; }
+      .listing-map-header .property-media-tab-btn svg { display: none; }
+      .listing-map-footer { gap: .25rem .6rem; }
+    }
+  }
+}
