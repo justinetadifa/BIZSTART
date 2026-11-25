@@ -92,7 +92,6 @@ html[data-home-motion="on"] { scroll-padding-bottom: 96px; }
   body[data-page="city-landing"] main > section { scroll-margin-top: 0 !important; }
   @media screen {
     body[data-page="city-landing"] #locus-react-hero .ios-hero-scene { inset: -56px -12px; translate: 0 var(--home-hero-depth, 0px); }
-    body[data-page="city-landing"] .glance-city-photo { scale: 1.08; translate: 0 var(--home-photo-depth, 0px); }
     body[data-page="city-landing"] .home-journey { animation: home-journey-arrive 340ms cubic-bezier(.22, 1, .36, 1) backwards; }
 
     /* Use one transform system so pre-existing card hovers do not double up.

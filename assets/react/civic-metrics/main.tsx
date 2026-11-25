@@ -4,6 +4,8 @@ import { CivicMetrics } from './CivicMetrics';
 
 const element = document.getElementById('locus-civic-metrics');
 if (element && !element.dataset.hydrated) {
-  hydrateRoot(element, <CivicMetrics />, { onRecoverableError(error) { console.error('LOCUS-SF civic widgets:', error); } });
+  hydrateRoot(element, <CivicMetrics assetBase={element.dataset.assetBase || 'assets'} />, {
+    onRecoverableError(error) { console.error('LOCUS-SF civic widgets:', error); },
+  });
   element.dataset.hydrated = 'true';
 }

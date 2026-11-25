@@ -744,8 +744,6 @@ function openListing(property = null) {
   form.elements.id.value = property?.id || '';
   const titleEl = editor.querySelector('#cityEditorTitle');
   if (titleEl) titleEl.textContent = property ? 'Edit listing' : 'Submit listing';
-  const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
-  if (breadcrumb) breadcrumb.textContent = property ? 'Edit listing' : 'Submit listing';
 
   const brokerName = state.profile?.displayName || state.profile?.legalName || user.name || 'Broker';
   const brokerPhone = state.profile?.phone || user.phone || '';

@@ -15,6 +15,10 @@ async function homepage(page, mobile) {
   await page.waitForFunction(() => document.documentElement.dataset.homeExperience === 'ready');
   assert(await page.locator('#heroTitle').isVisible());
   assert.equal(await page.locator('.ios-hero-location, [data-hero-replay]').count(), 0);
+  await page.locator('.glance-map-frame').waitFor({ state: 'attached' });
+  assert.equal(await page.evaluate(() => scrollY), 0, 'The 3D map starts before the visitor scrolls');
+  assert.equal(await page.locator('.glance-map-fallback, .glance-city-photo').count(), 0);
+  assert.equal(await page.getByText('Loading the 3D city map', { exact: false }).count(), 0);
   assert(await page.locator('.home-journey').isHidden());
   await page.mouse.wheel(0, 360);
   await page.waitForFunction(() => parseFloat(document.getElementById('locus-react-hero').style.getPropertyValue('--home-hero-depth')) > 0);
@@ -32,13 +36,12 @@ async function homepage(page, mobile) {
   assert(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches));
   await page.waitForFunction(() => document.querySelector('.ios-hero')?.dataset.motionChoice === 'on');
   assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior), 'smooth');
-  assert(await page.locator('.glance-city-photo').evaluate(node => parseFloat(getComputedStyle(node).scale) > 1), 'The explicit homepage choice retains city photo depth');
   await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
   await page.mouse.wheel(0, 240);
   await page.waitForFunction(() => parseFloat(document.getElementById('locus-react-hero').style.getPropertyValue('--home-hero-depth')) > 0);
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  reports.push(`${mobile ? 'Mobile' : 'Desktop'} homepage: immediate hero, image depth, section navigation/progress, smooth anchors and explicit homepage motion retained under the reduced-motion preference.`);
+  reports.push(`${mobile ? 'Mobile' : 'Desktop'} homepage: immediate hero and map startup, section navigation/progress, smooth anchors and explicit homepage motion retained under the reduced-motion preference.`);
 }
 
 async function login(page, mobile) {

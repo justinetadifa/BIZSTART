@@ -73,26 +73,27 @@ $pwSectionIcons = [
   <form class="pw-form" data-property-form novalidate>
     <header class="pw-header">
       <div class="pw-heading-row">
-        <div>
-          <div class="pw-breadcrumb">Properties <span>/</span> <span data-wizard-breadcrumb>Add property</span></div>
-          <div class="pw-title-badge-row">
-            <h2 id="cityEditorTitle">Start with the essentials</h2>
-          </div>
-          <p class="pw-header-note" id="pwEditorDescription">Build a clear listing, assess the site, and send it for city review.</p>
+        <div class="pw-editor-identity">
+          <img src="<?= $pwEscape($context['assetBase']) ?>/images/logoLocusRedBlue.png" width="34" height="34" alt="">
+          <h2 id="cityEditorTitle">Add property</h2>
+          <p class="pw-header-note pw-sr-only" id="pwEditorDescription">Add listing details, assess the site, and send it for city review.</p>
         </div>
         <div class="pw-header-actions">
           <div class="pw-history-actions" role="group" aria-label="Edit history">
-            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-undo disabled title="Undo last change (Ctrl+Z)"><?= $pwIcon('undo') ?> <span>Undo</span></button>
-            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-redo disabled title="Redo last change (Ctrl+Shift+Z)"><?= $pwIcon('redo') ?> <span>Redo</span></button>
+            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-undo disabled aria-label="Undo" title="Undo last change (Ctrl+Z)"><?= $pwIcon('undo') ?></button>
+            <button class="pw-button pw-button-light pw-button-small" type="button" data-editor-redo disabled aria-label="Redo" title="Redo last change (Ctrl+Shift+Z)"><?= $pwIcon('redo') ?></button>
           </div>
-          <span class="pw-device-draft-status" data-device-draft-status><svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg> <span data-device-draft-text>Draft not saved</span></span>
+          <span class="pw-device-draft-status" data-device-draft-status><span data-device-draft-text>Draft not saved</span></span>
           <button class="pw-button pw-button-light pw-button-small pw-save-close" type="button" data-save-exit title="Save draft and close" aria-label="Save draft and close"><?= $pwIcon('save') ?></button>
           <button class="pw-close" type="button" data-close-dialog aria-label="Close property editor"><?= $pwIcon('close') ?></button>
         </div>
       </div>
       <nav class="pw-steps" aria-label="Property form steps">
-        <?php foreach (['Basic information', 'Location & boundary', 'Assessment', 'Review'] as $pwStep => $pwStepLabel): ?>
-        <button class="pw-step<?= $pwStep === 0 ? ' is-active' : '' ?>" type="button" data-editor-step="<?= $pwStep ?>" aria-label="Step <?= $pwStep + 1 ?>: <?= $pwEscape($pwStepLabel) ?>"<?= $pwStep === 0 ? ' aria-current="step"' : '' ?>><span class="pw-step-number"><span><?= $pwStep + 1 ?></span><?= $pwIcon('check', 'pw-step-check') ?></span><span class="pw-step-copy"><span class="pw-step-label"><?= $pwStepLabel ?></span><small class="pw-step-description"><?= ['Listing, photos & pricing', 'Pin, boundary & land area', 'Evidence & weighted scores', 'Check & submit'][$pwStep] ?></small></span></button>
+        <?php foreach ([['Basic information', 'Details'], ['Location & boundary', 'Location'], ['Assessment', 'Assessment'], ['Review', 'Review']] as $pwStep => [$pwStepLabel, $pwCompactLabel]): ?>
+        <button class="pw-step<?= $pwStep === 0 ? ' is-active' : '' ?>" type="button" data-editor-step="<?= $pwStep ?>" aria-label="Step <?= $pwStep + 1 ?>: <?= $pwEscape($pwStepLabel) ?>"<?= $pwStep === 0 ? ' aria-current="step"' : '' ?>>
+          <span class="pw-step-number"><span><?= $pwStep + 1 ?></span><?= $pwIcon('check', 'pw-step-check') ?></span>
+          <span class="pw-step-copy"><span class="pw-step-label"><?= $pwEscape($pwStepLabel) ?></span><span class="pw-step-label-compact"><?= $pwEscape($pwCompactLabel) ?></span></span>
+        </button>
         <?php endforeach; ?>
       </nav>
     </header>
@@ -719,8 +720,8 @@ $pwSectionIcons = [
       <section class="pw-panel" data-editor-panel="2" hidden>
         <div class="pw-model-context" aria-label="Current assessment weights">
           <div class="pw-model-context-heading">
-            <span class="pw-model-context-icon" aria-hidden="true"><?= $pwIcon('chart') ?></span>
-            <div><span class="pw-page-eyebrow">ASSESSMENT MODEL</span><strong data-mce-active-model-label>Loading current weights&hellip;</strong><p>Saved weights determine each criterion's contribution. Zoning is a separate eligibility check.</p></div>
+            <strong>Assessment weights</strong>
+            <span data-mce-active-model-label>Loading current weights&hellip;</span>
           </div>
           <div class="pw-model-weight-summary">
             <?php foreach (['spatial_accessibility' => 'Access', 'infrastructure_readiness' => 'Utilities', 'economic_viability' => 'Cost', 'nearby_businesses' => 'Nearby', 'risk_constraints' => 'Risk'] as $pwWeightKey => $pwWeightName): ?>
@@ -739,9 +740,9 @@ $pwSectionIcons = [
             <!-- Criterion Navigation: Desktop Tabs + Mobile Accessible Select -->
             <div class="pw-criteria-nav-bar">
               <div class="pw-assessment-nav-heading">
-                <span class="pw-assessment-nav-eyebrow">Evaluation Framework</span>
-                <strong>Decision Criteria</strong>
+                <strong>Assessment criteria</strong>
                 <span data-assessment-position>Criterion 1 of <?= $pwUserRole === 'seller' ? '7' : '6' ?></span>
+                <span class="pw-mobile-criterion-status">Evidence entered</span>
               </div>
               <!-- Mobile Criterion Selector -->
               <div class="pw-criteria-mobile-picker">
@@ -750,13 +751,13 @@ $pwSectionIcons = [
                 <span class="pw-mobile-section-icon" data-mobile-criterion-icon="<?= $pwEscape($pwSectionKey) ?>" aria-hidden="true"<?= $pwSectionKey !== 'spatial_accessibility' ? ' hidden' : '' ?>><?= $pwIcon($pwSectionIcon) ?></span>
                 <?php endforeach; ?>
                 <select id="pwCriteriaMobileSelect" class="pw-criteria-select-mobile" data-criteria-mobile-select>
-                  <option value="spatial_accessibility">1. Roads &amp; access</option>
-                  <option value="infrastructure_readiness">2. Utilities</option>
-                  <option value="economic_viability">3. Cost &amp; market</option>
-                  <option value="nearby_businesses">4. Nearby places</option>
-                  <option value="risk_constraints">5. Risk &amp; hazards</option>
-                  <option value="zoning_compatibility">6. Zoning compatibility</option>
-                  <option value="authority_to_sell" class="pw-broker-only-option" <?= $pwUserRole !== 'seller' ? 'style="display:none;" disabled' : '' ?>>7. Authority to Sell / Lease (Broker req.)</option>
+                  <option value="spatial_accessibility">Roads &amp; access</option>
+                  <option value="infrastructure_readiness">Utilities</option>
+                  <option value="economic_viability">Cost &amp; market</option>
+                  <option value="nearby_businesses">Nearby places</option>
+                  <option value="risk_constraints">Risk &amp; hazards</option>
+                  <option value="zoning_compatibility">Zoning</option>
+                  <option value="authority_to_sell" class="pw-broker-only-option" <?= $pwUserRole !== 'seller' ? 'style="display:none;" disabled' : '' ?>>Authority to sell</option>
                 </select>
               </div>
 
@@ -766,7 +767,7 @@ $pwSectionIcons = [
                   <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('road') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Roads &amp; access</span>
-                    <span class="pw-crit-weight">Getting to the property</span>
+                    <span class="pw-crit-weight">Site access</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionInfrastructure" data-evidence-tab="infrastructure_readiness">
@@ -787,7 +788,7 @@ $pwSectionIcons = [
                   <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('store') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Nearby places</span>
-                    <span class="pw-crit-weight">Businesses around the site</span>
+                    <span class="pw-crit-weight">Local businesses</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionRisks" data-evidence-tab="risk_constraints">
@@ -801,7 +802,7 @@ $pwSectionIcons = [
                   <span class="pw-crit-num" aria-hidden="true"><?= $pwIcon('layers') ?></span>
                   <span class="pw-crit-content">
                     <span class="pw-crit-title">Zoning</span>
-                    <span class="pw-crit-weight">Permitted business activities</span>
+                    <span class="pw-crit-weight">Permitted activities</span>
                   </span>
                 </button>
                 <button class="pw-criterion-tab pw-broker-only-tab" type="button" role="tab" aria-selected="false" aria-controls="pwCriterionAuthority" data-evidence-tab="authority_to_sell" <?= $pwUserRole !== 'seller' ? 'style="display:none;" hidden' : '' ?>>
@@ -821,7 +822,6 @@ $pwSectionIcons = [
                 <span class="pw-badge pw-badge-weight">5 numerical criteria &middot; 100% total weight + Mandatory Zoning Gate</span>
               </div>
               <h3>Assess the property</h3>
-              <p>Missing a detail? Save a draft and finish later.</p>
             </div>
             <div class="pw-evidence-intro-actions">
               <button type="button" class="pw-button pw-button-light pw-button-small pw-evidence-fast-forward-btn" data-skip-enrichment title="Skip site evidence and proceed directly to Review">
@@ -859,8 +859,7 @@ $pwSectionIcons = [
                 <span class="pw-reused-icon"><?= $pwIcon('pin') ?></span>
                 <div class="pw-reused-content">
                   <div class="pw-reused-header-row">
-                    <span class="pw-reused-label">Synced Location &amp; Boundary Context (Step 2)</span>
-                    <span class="pw-reused-verified-pill"><?= $pwIcon('pin') ?> From location details</span>
+                    <span class="pw-reused-label">From Location &amp; boundary</span>
                   </div>
                   <div class="pw-reused-chips">
                     <span class="pw-reused-chip"><span class="pw-reused-chip-lbl">Coordinates:</span> <strong data-reused-coords>Not specified</strong></span>
@@ -1866,26 +1865,10 @@ $pwSectionIcons = [
               <div class="pw-criterion-main">
                 <div class="pw-criterion-title-row">
                   <div>
-                    <h4>Nearby Businesses</h4>
-                    <p class="pw-small pw-muted">Interactive 500-meter straight-line radar &amp; commercial environment context.</p>
+                    <h4><span class="pw-section-heading-icon" aria-hidden="true"><?= $pwIcon('store') ?></span> Nearby places</h4>
+                    <p class="pw-small pw-muted">Explore businesses and roads within 500 m of the reference point.</p>
                   </div>
                   <span class="pw-badge pw-badge-weight" data-mce-weight-label="nearby_businesses" data-mce-weight-label-format="{weight}% of MCE">Current weight &mdash;</span>
-                </div>
-
-                <!-- Proposed Business Type Card (Matching User Mockup) -->
-                <div class="pw-nearby-type-card">
-                  <div class="pw-nearby-type-header">
-                    <span class="pw-nearby-type-label">Proposed Business Type</span>
-                  </div>
-                  <div class="pw-nearby-type-select-shell">
-                    <select name="radar_business_type" id="pwNearbyBusinessType" class="pw-select-prominent">
-                      <option value="cafe">Café &amp; Bakery</option>
-                      <option value="retail">Convenience &amp; General Retail</option>
-                      <option value="office">Commercial Office &amp; Services</option>
-                      <option value="hospitality">Hospitality &amp; Accommodation</option>
-                      <option value="industrial">Light Industrial &amp; Logistics</option>
-                    </select>
-                  </div>
                 </div>
 
                 <!-- 3 Metric Cards Grid (Matching User Mockup) -->
@@ -1907,6 +1890,15 @@ $pwSectionIcons = [
                 <!-- Preserved Interactive 500m Radar Map & Synchronized Drawer -->
                 <div class="pw-nearby-map-wrapper">
                   <div class="pw-radar-view">
+                    <label class="pw-field pw-field-inline pw-radar-business-type">Proposed business type
+                      <select name="radar_business_type" id="pwNearbyBusinessType" class="pw-select-prominent">
+                        <option value="cafe">Café &amp; Bakery</option>
+                        <option value="retail">Convenience &amp; General Retail</option>
+                        <option value="office">Commercial Office &amp; Services</option>
+                        <option value="hospitality">Hospitality &amp; Accommodation</option>
+                        <option value="industrial">Light Industrial &amp; Logistics</option>
+                      </select>
+                    </label>
                     <label class="pw-map-style">Map view 
                       <select data-map-style="radar">
                         <option value="streets">Street map</option>
@@ -2790,13 +2782,6 @@ $pwSectionIcons = [
 
                   <!-- 1. Primary Screening: District & Activity Check -->
                   <div class="pw-screening-card pw-zoning-main-card" id="pwZoningOrdinanceSection">
-                    <div class="pw-card-header">
-                      <div class="pw-card-title-group">
-                        <span class="pw-step-number-circle">1</span>
-                        <h3 class="pw-card-title">Check a business activity</h3>
-                      </div>
-
-                    </div>
                     <div class="pw-card-body">
 
                       <!-- SECTION 1A: Recorded Zoning District -->

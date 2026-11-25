@@ -12,7 +12,9 @@ sfc_render_head('Broker dashboard | LOCUS-SF', $context, ['page' => 'broker-work
 ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/broker-workspace.css<?= htmlspecialchars(sfc_asset_version('css/broker-workspace.css'), ENT_QUOTES, 'UTF-8') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
-<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-wizard.css<?= sfc_asset_version('css/property-wizard.css') ?>">
+<?php foreach (['property-wizard', 'property-wizard-editor', 'property-wizard-assessment'] as $wizardStyle): ?>
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/<?= $wizardStyle ?>.css<?= sfc_asset_version('css/' . $wizardStyle . '.css') ?>">
+<?php endforeach; ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
 <?php sfc_render_header($context, 'seller'); ?>
 <?php

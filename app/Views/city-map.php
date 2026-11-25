@@ -16,9 +16,21 @@ ob_start();
   <link rel="stylesheet" href="<?= $mapAsset('style.css') ?>">
   <link rel="stylesheet" href="<?= $mapAsset('navigation.css') ?>">
   <link rel="stylesheet" href="<?= $mapAsset('properties.css') ?>">
+  <script defer src="<?= $mapAsset('lib/maplibre-gl.js') ?>"></script>
+  <script defer src="<?= $mapAsset('city.js') ?>"></script>
+  <script defer src="<?= $mapAsset('barangays.js') ?>"></script>
+  <script defer src="<?= $mapAsset('map-data.js') ?>"></script>
+  <script defer src="<?= $mapAsset('brands.js') ?>"></script>
+  <script defer src="<?= $mapAsset('landmarks.js') ?>"></script>
+  <script defer src="<?= $mapAsset('living-city.js') ?>"></script>
+  <script defer src="<?= $mapAsset('city-buildings.js') ?>"></script>
+  <script defer src="<?= $mapAsset('integration.js') ?>"></script>
+  <script defer src="<?= $mapAsset('market-scout.js') ?>"></script>
+  <script defer src="<?= $mapAsset('investor-sites.js') ?>"></script>
+  <script defer src="<?= $mapAsset('app.js') ?>"></script>
 </head>
 
-<body>
+<body class="panel-hidden">
   <header>
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 36 36" fill="none" aria-hidden="true">
@@ -455,18 +467,6 @@ ob_start();
     </aside>
   </main>
 
-  <script src="<?= $mapAsset('lib/maplibre-gl.js') ?>"></script>
-  <script src="<?= $mapAsset('city.js') ?>"></script>
-  <script src="<?= $mapAsset('barangays.js') ?>"></script>
-  <script src="<?= $mapAsset('map-data.js') ?>"></script>
-  <script src="<?= $mapAsset('brands.js') ?>"></script>
-  <script src="<?= $mapAsset('landmarks.js') ?>"></script>
-  <script src="<?= $mapAsset('living-city.js') ?>"></script>
-  <script src="<?= $mapAsset('city-buildings.js') ?>"></script>
-  <script src="<?= $mapAsset('integration.js') ?>"></script>
-  <script src="<?= $mapAsset('market-scout.js') ?>"></script>
-  <script src="<?= $mapAsset('investor-sites.js') ?>"></script>
-  <script src="<?= $mapAsset('app.js') ?>"></script>
 </body>
 
 </html>
@@ -484,11 +484,8 @@ ob_start();
     </button>
   </figcaption>
   <div class="glance-map-slot">
-    <dialog class="glance-map-viewport glance-photo-well" id="glanceMapViewport" aria-labelledby="glanceMapTitle" role="region" data-city-map-viewport open>
-      <div class="glance-map-fallback">
-        <img class="glance-city-photo" src="<?= $e($context['assetBase']) ?>/images/sfcatglance.png<?= sfc_asset_version('images/sfcatglance.png') ?>" width="1920" height="1080" alt="Aerial view across San Fernando City's streets, buildings and surrounding hills." loading="lazy" decoding="async" fetchpriority="low">
-        <p class="glance-map-status" role="status" data-city-map-status hidden></p>
-      </div>
+    <dialog class="glance-map-viewport" id="glanceMapViewport" aria-labelledby="glanceMapTitle" role="region" data-city-map-viewport open>
+      <p class="glance-map-status" role="status" data-city-map-status hidden></p>
       <template data-city-map-template>
         <iframe class="glance-map-frame" srcdoc="<?= $e($cityMapDocument) ?>" title="Interactive 3D map of San Fernando City"></iframe>
       </template>

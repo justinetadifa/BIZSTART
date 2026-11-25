@@ -24,7 +24,7 @@ function updateInsight(metric: FullMetric, preview: boolean, announce: boolean) 
   }
 }
 
-export function CivicMetrics() {
+export function CivicMetrics({ assetBase = 'assets' }: { assetBase?: string }) {
   const root = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
   const [selectedId, setSelectedId] = useState<MetricKind>('residents');
@@ -115,10 +115,11 @@ export function CivicMetrics() {
             <div className="civic-stack cw-flex cw-flex-col cw-gap-5">
               {category.metrics.map(metric => <m.div key={metric.id} className="civic-card-motion" data-crowded-badges={crowdedBadgeId === metric.id ? 'true' : 'false'} initial={false} animate={!animate ? { y: 0, scale: 1 } : undefined} whileHover={animate ? { y: -4, scale: 1.01 } : undefined} whileTap={animate ? { y: 0, scale: .985 } : undefined} transition={animate ? { duration: .12, ease: [.22, 1, .36, 1] } : { duration: 0 }}>
                 <button type="button" className={`civic-card civic-card--${metric.theme} cw-relative cw-flex cw-min-w-0 cw-flex-col cw-justify-between cw-overflow-hidden cw-rounded-[24px] cw-p-6 cw-text-left cw-select-none`}
+                title={metric.landmark}
                 data-metric-id={metric.id} data-selected={selectedId === metric.id ? 'true' : 'false'}
                 aria-pressed={selectedId === metric.id} aria-controls="glanceInsight" aria-labelledby={`civic-label-${metric.id} civic-value-${metric.id}`} aria-describedby={`civic-source-${metric.id}${metric.substat ? ` civic-substat-${metric.id}` : ''}${metric.growth ? ` civic-growth-${metric.id}` : ''}`} disabled={!ready}
                 onClick={() => select(metric.id)} onPointerEnter={event => { if (event.pointerType !== 'touch') setPreviewId(metric.id); }} onPointerLeave={() => setPreviewId(null)} onFocus={() => setPreviewId(metric.id)} onBlur={() => setPreviewId(null)} onKeyDown={event => { if (event.key === 'Escape') select('residents'); }}>
-                <MetricArt kind={metric.id} />
+                <MetricArt kind={metric.id} assetBase={assetBase} />
                 <div className="civic-card-top">
                   {metric.growth && <span className="civic-growth" id={`civic-growth-${metric.id}`}>{metric.growth}</span>}
                   <span className="civic-value cw-block cw-text-4xl cw-font-semibold cw-tabular-nums cw-tracking-tight" id={`civic-value-${metric.id}`}>{metric.value}{metric.unit && <span className="civic-unit cw-ml-1 cw-text-lg cw-font-normal cw-opacity-80">{metric.unit}</span>}</span>

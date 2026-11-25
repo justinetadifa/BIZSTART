@@ -999,9 +999,7 @@
     toggleSubcatPopover(false);
     const property = properties.find((item) => item.id === Number(propertyId));
     form.elements.id.value = property?.id || '';
-    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'Start with the essentials';
-    const breadcrumb = editor.querySelector('[data-wizard-breadcrumb]');
-    if (breadcrumb) breadcrumb.textContent = property ? 'Edit property' : 'Add property';
+    editor.querySelector('#cityEditorTitle').textContent = property ? 'Edit property' : 'Add property';
     const noteEl = editor.querySelector('.pw-header-note');
     if (noteEl) noteEl.textContent = property ? 'Review and update property details and evidence.' : 'Add the details investors need to understand the property.';
     form.elements.contactBrokerUserId.innerHTML = '<option value="">City listing desk</option>' + brokers.map((broker) => `<option value="${broker.id}">${escape(broker.name)}${broker.phone ? ` · ${escape(broker.phone)}` : ''}</option>`).join('');

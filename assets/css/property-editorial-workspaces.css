@@ -394,42 +394,6 @@
     min-height: 44px !important;
   }
 
-  /* The shared listing editor is intentionally restyled only on property desks. */
-  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor {
-    --pw-navy: var(--pe-ink, #171918);
-    --pw-muted: var(--pe-muted, #656861);
-    --pw-line: var(--pe-line, #deded6);
-    border-color: var(--pe-line, #deded6) !important;
-    border-radius: 16px !important;
-    background: var(--pe-canvas, #f5f4f0) !important;
-    box-shadow: 0 24px 80px #17191826 !important;
-  }
-
-  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(h2, h3, h4) {
-    font-family: var(--pe-font, Inter), sans-serif !important;
-    font-style: normal !important;
-    font-weight: 620 !important;
-    letter-spacing: -.025em !important;
-    text-transform: none !important;
-    color: var(--pe-ink, #171918) !important;
-    overflow-wrap: anywhere;
-  }
-
-  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(.pw-header, .pw-footer, .pw-card, .pw-section-card) {
-    background: var(--pe-surface, #fff) !important;
-    border-color: var(--pe-line, #deded6) !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor :is(.pw-card, .pw-section-card) { border-radius: 10px !important; }
-  body:is([data-page="broker-workspace"], [data-page="admin-workspace"]:has([data-city-workspace="properties"])) #cityPropertyEditor .pw-button-primary {
-    background: var(--pe-ink, #171918) !important;
-    border-color: var(--pe-ink, #171918) !important;
-    box-shadow: none !important;
-  }
-
   @media (max-width: 1000px) {
     body[data-page="city-investor"] #cityFilters.city-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   }

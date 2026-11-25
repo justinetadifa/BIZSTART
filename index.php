@@ -57,7 +57,7 @@ try {
         </div>
       </div>
 
-      <div id="locus-civic-metrics"><?= trim((string) file_get_contents(__DIR__ . '/app/Views/civic-metrics.generated.html')) ?></div>
+      <div id="locus-civic-metrics" data-asset-base="<?= $e($context['assetBase']) ?>"><?= str_replace('__LOCUS_ASSET_BASE__', $e($context['assetBase']), trim((string) file_get_contents(__DIR__ . '/app/Views/civic-metrics.generated.html'))) ?></div>
     </div>
   </section>
 

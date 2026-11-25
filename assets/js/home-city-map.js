@@ -1,4 +1,4 @@
-/* Load the city map near the viewport and leave the portrait available as a fallback. */
+/* Start the map with the homepage and animate it while it is in view. */
 (() => {
   'use strict';
 
@@ -71,29 +71,20 @@
     });
 
     card.dataset.cityMapState = 'loading';
-    status.hidden = false;
-    status.textContent = 'Loading the 3D city map…';
     loadingTimeout = setTimeout(showUnavailable, 15000);
     viewport.append(frame);
   }
 
   if ('IntersectionObserver' in window) {
-    const preloader = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      preloader.disconnect();
-      mountMap();
-    }, { rootMargin: '160px 0px' });
-    preloader.observe(viewport);
-
     new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       sendMapState();
     }).observe(viewport);
   } else {
     visible = true;
-    mountMap();
   }
 
+  mountMap();
   expand.addEventListener('click', () => setExpanded(true));
   viewport.addEventListener('cancel', event => {
     event.preventDefault();

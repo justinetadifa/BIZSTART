@@ -69,8 +69,6 @@
   let frame = 0;
   let currentIndex = -1;
   let suspended = document.hidden;
-  const photoWell = document.querySelector('.glance-photo-well');
-  const photo = document.querySelector('.glance-city-photo');
   const mapCard = document.querySelector('[data-city-map]');
   const mapInsight = document.getElementById('glanceInsight');
   const footer = document.querySelector('.city-footer');
@@ -124,18 +122,10 @@
     journey.hidden = !(show || (!modalOpen && journey.contains(document.activeElement)));
     if (reduced.matches && !motionForced) {
       hero.style.removeProperty('--home-hero-depth');
-      photo?.style.removeProperty('--home-photo-depth');
       return;
     }
     if (heroBounds.bottom > 0 && heroBounds.top < height) {
       hero.style.setProperty('--home-hero-depth', `${Math.min(45, Math.max(0, -heroBounds.top * .09)).toFixed(2)}px`);
-    }
-    if (photoWell && photo) {
-      const bounds = photoWell.getBoundingClientRect();
-      if (bounds.bottom > 0 && bounds.top < height) {
-        const distance = Math.min(1, Math.max(-1, (height / 2 - bounds.top - bounds.height / 2) / height));
-        photo.style.setProperty('--home-photo-depth', `${(distance * 18).toFixed(2)}px`);
-      }
     }
   }
   const schedule = () => { if (!frame && !suspended) frame = requestAnimationFrame(update); };

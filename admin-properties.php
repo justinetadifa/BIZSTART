@@ -21,7 +21,9 @@ sfc_render_header($context, 'admin-properties');
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-workspace.css<?= sfc_asset_version('css/admin-workspace.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-lifecycle.css<?= sfc_asset_version('css/property-lifecycle.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
-<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/property-wizard.css<?= sfc_asset_version('css/property-wizard.css') ?>">
+<?php foreach (['property-wizard', 'property-wizard-editor', 'property-wizard-assessment'] as $wizardStyle): ?>
+<link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/<?= $wizardStyle ?>.css<?= sfc_asset_version('css/' . $wizardStyle . '.css') ?>">
+<?php endforeach; ?>
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/css/admin-property-list.css<?= sfc_asset_version('css/admin-property-list.css') ?>">
 <link rel="stylesheet" href="<?= htmlspecialchars($context['assetBase'], ENT_QUOTES, 'UTF-8') ?>/vendor/geoman/leaflet-geoman.css">
 <main class="city-workspace" data-city-workspace="properties" data-department="<?= htmlspecialchars($department, ENT_QUOTES, 'UTF-8') ?>" data-listing-reviewer="<?= $governance ? 'true' : 'false' ?>" data-user-id="<?= htmlspecialchars((string) ($context['user']['id'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">

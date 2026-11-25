@@ -43,12 +43,8 @@ body[data-page="city-landing"] #at-a-glance.home-glance {
 #at-a-glance .glance-map-viewport:modal { position: fixed; inset: 0; width: calc(100% - 32px); height: calc(100dvh - 32px); margin: auto; border-radius: 22px; box-shadow: 0 24px 80px #0d193b5c; }
 #at-a-glance .glance-map-viewport::backdrop { background: #11224d80; backdrop-filter: blur(6px); }
 html:has(.glance-map-viewport:modal) { overflow: hidden; }
-#at-a-glance :is(.glance-map-fallback, .glance-map-frame, .glance-city-photo) { position: absolute; inset: 0; width: 100%; height: 100%; }
-#at-a-glance .glance-map-fallback { overflow: hidden; }
-#at-a-glance .glance-city-photo { max-width: none; object-fit: cover; object-position: center 64%; }
-#at-a-glance .glance-map-frame { display: block; border: 0; visibility: hidden; }
-#at-a-glance [data-city-map-state="ready"] .glance-map-frame { visibility: visible; }
-#at-a-glance [data-city-map-state="ready"] .glance-map-fallback { visibility: hidden; }
+#at-a-glance .glance-map-frame { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border: 0; }
+#at-a-glance [data-city-map-state="unavailable"] .glance-map-frame { visibility: hidden; }
 #at-a-glance .glance-map-status { position: absolute; top: 16px; left: 16px; max-width: calc(100% - 32px); margin: 0; padding: 9px 13px; border: 1px solid #ffffff35; border-radius: 13px; background: #121d2ef0; color: #f4f8ff; font-size: 13px; }
 
 #at-a-glance .glance-insight { position: relative; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr) minmax(0, 1fr); gap: 30px; align-items: center; min-height: 164px; margin: 18px 0 0; padding: 24px 28px; border: 1px solid #ffffffed; border-radius: 28px; background: linear-gradient(125deg, rgb(255 255 255 / 97%), rgb(247 250 255 / 93%)); color: var(--glance-ink); box-shadow: 0 16px 36px -24px rgb(17 34 77 / 28%), 0 3px 8px -5px rgb(17 34 77 / 14%), inset 0 1px 0 #fff; -webkit-backdrop-filter: blur(24px) saturate(135%); backdrop-filter: blur(24px) saturate(135%); }

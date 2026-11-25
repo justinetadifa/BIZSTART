@@ -1,0 +1,359 @@
+/* Six assessment views share the same field rhythm and score hierarchy. */
+#cityPropertyEditor [data-editor-panel="2"] {
+  --pw-criterion-padding: clamp(16px, 2vw, 26px);
+  --pw-criterion-good: #255f4d;
+  --pw-criterion-good-bg: #edf5f1;
+  --pw-criterion-good-line: #d0e3da;
+  --pw-criterion-red-bg: #fbf0f1;
+}
+
+#cityPropertyEditor .pw-model-context {
+  display: grid;
+  grid-template-columns: minmax(155px, 1fr) minmax(0, 2fr);
+  gap: 4px 18px;
+  margin-bottom: 14px;
+  padding: 9px 12px;
+  border-color: var(--pw-studio-line);
+  border-radius: 11px;
+}
+
+#cityPropertyEditor .pw-model-context-heading { display: block; color: var(--pw-studio-ink); font-size: 13px; }
+#cityPropertyEditor [data-mce-active-model-label] { margin: 0; color: var(--pw-studio-muted); font-size: 11px; font-weight: 500; }
+#cityPropertyEditor .pw-model-weight-summary { align-items: center; gap: 0; }
+#cityPropertyEditor .pw-model-weight-chip {
+  min-width: 0;
+  gap: 1px;
+  padding: 2px;
+  border: 0;
+  border-inline-start: 1px solid var(--pw-studio-line);
+  border-radius: 0;
+  background: transparent;
+}
+#cityPropertyEditor .pw-model-weight-chip > span { color: var(--pw-studio-muted); font-size: 11px; }
+#cityPropertyEditor .pw-model-weight-chip strong { color: var(--pw-studio-ink); }
+#cityPropertyEditor .pw-model-sync-status { grid-column: 1 / -1; padding: 4px 7px; font-size: 11px; }
+#cityPropertyEditor .pw-model-sync-status[data-state="current"] { display: none; }
+
+#cityPropertyEditor .pw-criterion-pane { isolation: isolate; }
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-card, .pw-infra-card, .pw-econ-card, .pw-risk-criterion-card, .pw-zoning-card, .pw-criterion-main) {
+  min-width: 0;
+  padding: var(--pw-criterion-padding);
+  border: 1px solid var(--pw-studio-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-header, .pw-infra-header, .pw-econ-header, .pw-criterion-title-row) {
+  align-items: flex-start;
+  gap: 10px 16px;
+  margin: 0 0 16px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--pw-studio-line);
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-card, .pw-infra-card) { gap: 12px; }
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-header, .pw-infra-header) { margin-bottom: 0; }
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-title, .pw-infra-title, .pw-econ-title, .pw-criterion-title-row h4) {
+  gap: 9px;
+  color: var(--pw-studio-ink);
+  font-size: clamp(21px, 1.8vw, 26px);
+  font-weight: 670;
+  line-height: 1.22;
+  letter-spacing: -.035em;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-subtitle, .pw-infra-subtitle, .pw-econ-subtitle, .pw-criterion-title-row p) {
+  margin-top: 6px;
+  max-width: 67ch;
+  color: var(--pw-studio-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-eyebrow-row, .pw-infra-eyebrow-row, .pw-spatial-pulse-dot, .pw-infra-pulse-dot) { display: none; }
+#cityPropertyEditor .pw-spatial-card .pw-reused-banner { margin: 0; }
+#cityPropertyEditor .pw-spatial-card .pw-reused-label { color: var(--pw-studio-ink) !important; font-size: 12px !important; letter-spacing: 0 !important; text-transform: none !important; }
+#cityPropertyEditor .pw-spatial-card .pw-reused-chip { border: 0 !important; background: transparent !important; padding: 0 !important; }
+#cityPropertyEditor .pw-spatial-card .pw-reused-chips { gap: 2px 12px !important; }
+#cityPropertyEditor .pw-criterion-pane :is(.pw-section-heading-icon, .pw-spatial-service-badge, .pw-infra-service-badge, .pw-hazard-symbol, .pw-risk-pill-icon, .pw-spatial-bdown-icon, .pw-infra-bdown-icon) {
+  background: var(--pw-studio-well);
+  color: var(--pw-studio-ink);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+  transform: none;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-badge-weight, .pw-sub-weight, .pw-hazard-weight-tag, .pw-infra-tag-pill) {
+  padding: 3px 8px;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  color: var(--pw-studio-muted);
+  background: var(--pw-studio-well);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-badge-calculated, .pw-spatial-pill-status, .pw-infra-pill-status, .pw-spatial-tier-badge.is-tier-a, .pw-infra-tier-badge.is-tier-a, .pw-sub-score.is-complete) {
+  background: var(--pw-criterion-good-bg);
+  border-color: var(--pw-criterion-good-line);
+  color: var(--pw-criterion-good);
+  font-variant-numeric: tabular-nums;
+}
+
+#cityPropertyEditor .pw-criterion-pane .pw-sub-score.is-incomplete { border-color: var(--pw-studio-line); background: var(--pw-studio-well); color: var(--pw-studio-muted); }
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-utility-pill, .pw-infra-utility-pill).is-pending :is(.pw-spatial-pill-status, .pw-infra-pill-status) {
+  background: var(--pw-studio-well);
+  color: var(--pw-studio-muted);
+  border-color: var(--pw-studio-line);
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-select, .pw-infra-select, .pw-spatial-input, .pw-infra-input, .pw-econ-input, .pw-econ-select, .pw-sc-input, .pw-sc-select, .pw-finding-input, .pw-select-prominent, .pw-radar-search) {
+  min-width: 0;
+  min-height: 44px;
+  max-width: 100%;
+  border: 1px solid #cbd5e0;
+  border-radius: 9px;
+  background-color: #fff;
+  color: var(--pw-studio-ink);
+  box-shadow: none;
+  font: inherit;
+}
+
+#cityPropertyEditor .pw-criterion-pane :is(.pw-econ-edit-link, .pw-place-reference, .pw-btn-external-source, .pw-btn-check-location, .pw-pop-chip, .pw-clup-rec-btn, .pw-zoning-cat-btn) {
+  border-radius: 999px;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Roads and utilities. Summary rows and their fields follow the same order. */
+#cityPropertyEditor :is(.pw-spatial-utility-ribbon, .pw-infra-utility-ribbon, .pw-risk-utility-ribbon) {
+  gap: 0;
+  margin: 0 0 15px;
+  padding: 4px;
+  border: 1px solid var(--pw-studio-line);
+  border-radius: 11px;
+  background: var(--pw-studio-well);
+  box-shadow: none;
+}
+
+#cityPropertyEditor :is(.pw-spatial-utility-pill, .pw-infra-utility-pill, .pw-risk-utility-pill) {
+  min-width: 0;
+  padding: 8px;
+  gap: 7px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Override the original spatial tracker skin, which locks in each tile's styles. */
+#cityPropertyEditor .pw-spatial-utility-ribbon {
+  gap: 0 !important;
+  padding: 4px !important;
+  background: var(--pw-studio-well) !important;
+  border-color: var(--pw-studio-line) !important;
+}
+
+#cityPropertyEditor .pw-spatial-utility-pill {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 8px !important;
+  gap: 6px !important;
+}
+
+#cityPropertyEditor .pw-spatial-pill-icon {
+  border: 0 !important;
+  color: var(--pw-studio-muted) !important;
+  background: transparent !important;
+}
+
+#cityPropertyEditor .pw-spatial-pill-name { white-space: normal !important; }
+#cityPropertyEditor :is(.pw-spatial-pill-weight, .pw-spatial-pill-status) { font-family: inherit !important; }
+#cityPropertyEditor .pw-spatial-pill-status {
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  background: var(--pw-criterion-good-bg) !important;
+  border-color: var(--pw-criterion-good-line) !important;
+  color: var(--pw-criterion-good) !important;
+}
+
+#cityPropertyEditor .pw-spatial-utility-pill.is-pending .pw-spatial-pill-status {
+  background: #fff !important;
+  color: var(--pw-studio-muted) !important;
+  border-color: var(--pw-studio-line) !important;
+}
+
+#cityPropertyEditor :is(.pw-spatial-pill-icon, .pw-infra-pill-icon, .pw-risk-pill-icon) {
+  color: var(--pw-studio-muted);
+  background: transparent;
+  border: 0;
+}
+
+#cityPropertyEditor :is(.pw-spatial-pill-meta, .pw-infra-pill-meta, .pw-risk-pill-meta) { min-width: 0; }
+#cityPropertyEditor :is(.pw-spatial-pill-name, .pw-infra-pill-name, .pw-risk-pill-name) { white-space: normal; line-height: 1.25; }
+#cityPropertyEditor :is(.pw-spatial-form-body, .pw-infra-form-body) { gap: 11px; }
+#cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-item, .pw-infra-item) {
+  margin: 0;
+  padding: 14px 15px;
+  gap: 10px;
+  border-color: var(--pw-studio-line);
+  border-radius: 11px;
+  box-shadow: none;
+}
+
+#cityPropertyEditor :is(.pw-spatial-item-header, .pw-infra-item-header) { gap: 8px 12px; }
+#cityPropertyEditor :is(.pw-spatial-item-title-wrap, .pw-infra-item-title-wrap) { gap: 9px; }
+#cityPropertyEditor :is(.pw-spatial-label, .pw-infra-label) { color: var(--pw-studio-ink); font-size: 14px; font-weight: 650; }
+#cityPropertyEditor :is(.pw-spatial-label-desc, .pw-infra-label-desc) { color: var(--pw-studio-muted); font-size: 12px; line-height: 1.45; }
+#cityPropertyEditor .pw-infra-details { margin: 0; border-color: var(--pw-studio-line); background: var(--pw-studio-well); box-shadow: none; }
+#cityPropertyEditor .pw-infra-details summary { min-height: 42px; padding: 7px 11px; gap: 6px 10px; }
+
+/* Results read as one unit, with a typographic distinction between score and contribution. */
+#cityPropertyEditor :is(.pw-spatial-preview-card, .pw-infra-preview-card) {
+  max-width: none;
+  margin: 16px 0 0;
+  padding: 16px;
+  border: 1px solid var(--pw-studio-line);
+  border-radius: 12px;
+  background: var(--pw-studio-well);
+  box-shadow: none;
+}
+
+#cityPropertyEditor :is(.pw-spatial-preview-header, .pw-infra-preview-header) { gap: 8px; margin-bottom: 12px; padding-bottom: 10px; border-color: var(--pw-studio-line); }
+#cityPropertyEditor :is(.pw-spatial-preview-kicker, .pw-infra-preview-kicker) { color: var(--pw-studio-muted); font-size: 10px; font-weight: 700; letter-spacing: .075em; }
+#cityPropertyEditor :is(.pw-spatial-preview-title, .pw-infra-preview-title) { color: var(--pw-studio-ink); font-size: 17px; font-weight: 680; }
+#cityPropertyEditor .pw-spatial-calc-icon { display: none; }
+#cityPropertyEditor :is(.pw-spatial-state-complete, .pw-infra-state-complete) { gap: 9px; }
+#cityPropertyEditor :is(.pw-spatial-score-showcase, .pw-infra-score-showcase) {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 0;
+  margin-bottom: 2px;
+  border: 1px solid var(--pw-studio-line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+#cityPropertyEditor :is(.pw-spatial-score-main, .pw-infra-score-main, .pw-spatial-iai-row, .pw-infra-iai-row) { padding: 13px 15px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+#cityPropertyEditor :is(.pw-spatial-iai-row, .pw-infra-iai-row) { border-inline-start: 1px solid var(--pw-studio-line); }
+#cityPropertyEditor :is(.pw-spatial-iai-title, .pw-infra-iai-title) { color: var(--pw-studio-ink); }
+#cityPropertyEditor :is(.pw-spatial-iai-desc, .pw-infra-iai-desc, .pw-spatial-score-caption, .pw-infra-score-caption) { color: var(--pw-studio-muted); }
+#cityPropertyEditor :is(.pw-spatial-iai-val, .pw-infra-iai-val) { color: var(--pw-studio-red); font-size: clamp(24px, 2.3vw, 34px); font-weight: 680; font-variant-numeric: tabular-nums; }
+#cityPropertyEditor :is(.pw-spatial-score-num, .pw-infra-score-num) { color: var(--pw-studio-ink); font-size: clamp(30px, 3vw, 43px); font-weight: 680; font-variant-numeric: tabular-nums; }
+#cityPropertyEditor :is(.pw-spatial-iai-weight-tag, .pw-infra-iai-weight-tag) { padding: 2px 7px; border-color: var(--pw-studio-line); color: var(--pw-studio-muted); background: var(--pw-studio-well); }
+#cityPropertyEditor :is(.pw-spatial-progress-track, .pw-infra-progress-track) { height: 5px; margin: 9px 0 6px; }
+#cityPropertyEditor :is(.pw-spatial-progress-bar, .pw-infra-progress-bar) { background: var(--pw-studio-red); }
+#cityPropertyEditor :is(.pw-spatial-breakdown-grid, .pw-infra-breakdown-grid) { gap: 3px 9px; margin: 0; }
+#cityPropertyEditor :is(.pw-spatial-pill.pw-spatial-breakdown-card, .pw-infra-breakdown-card) { padding: 7px 0; gap: 6px; border: 0; background: transparent; box-shadow: none; }
+#cityPropertyEditor :is(.pw-spatial-bdown-pts, .pw-infra-bdown-pts) { font-size: 12px; font-variant-numeric: tabular-nums; }
+#cityPropertyEditor :is(.pw-spatial-status-row, .pw-spatial-preview-actions, .pw-infra-actions) { margin: 0; }
+#cityPropertyEditor :is(.pw-spatial-disclaimer, .pw-infra-disclaimer) { padding: 7px 0 0; border: 0; border-top: 1px solid var(--pw-studio-line); border-radius: 0; background: transparent; color: var(--pw-studio-muted); }
+#cityPropertyEditor :is(.pw-info-bullet, .pw-infra-disc-icon) { color: var(--pw-studio-muted); }
+
+/* Cost and market. The numeric result stays next to the comparison on wide screens. */
+#cityPropertyEditor .pw-econ-workspace { gap: 19px; }
+#cityPropertyEditor .pw-econ-main-inputs .pw-econ-section { padding-bottom: 14px; }
+#cityPropertyEditor .pw-econ-main-inputs .pw-econ-section + .pw-econ-section { padding-top: 14px; }
+#cityPropertyEditor .pw-econ-main-inputs .pw-econ-section-header { margin-bottom: 8px; }
+#cityPropertyEditor :is(.pw-econ-main-inputs .pw-fields-two-col, .pw-econ-simple .pw-econ-section-body) { gap: 10px 12px; }
+#cityPropertyEditor .pw-econ-comparable-hint { margin-bottom: 2px; }
+#cityPropertyEditor .pw-econ-workspace .pw-live-result { gap: 12px; padding: 15px; border: 1px solid var(--pw-studio-line); border-top: 3px solid var(--pw-studio-red); border-radius: 11px; background: var(--pw-studio-well); }
+#cityPropertyEditor .pw-econ-workspace .pw-live-result h4 { margin: 5px 0; font-weight: 650; }
+#cityPropertyEditor .pw-econ-workspace .pw-live-result-value strong { font-weight: 680; font-variant-numeric: tabular-nums; }
+#cityPropertyEditor .pw-econ-workspace .pw-live-result-value span { color: var(--pw-studio-red); }
+#cityPropertyEditor :is(.pw-econ-section-number, .pw-zoning-card .pw-step-number-circle, .pw-zoning-card .pw-substep-num) { background: var(--pw-studio-well); color: var(--pw-studio-ink); border-radius: 50%; }
+
+/* Nearby places. Map settings sit above the map and its corresponding results. */
+#cityPropertyEditor .pw-criterion-title-row h4 { display: flex; align-items: center; }
+#cityPropertyEditor .pw-nearby-map-wrapper { margin-bottom: 12px; padding: 10px; border-color: var(--pw-studio-line); border-radius: 12px; background: var(--pw-studio-well); box-shadow: none; }
+#cityPropertyEditor .pw-nearby-map-wrapper .pw-radar-view { justify-content: flex-start; align-items: flex-end; gap: 8px 13px; margin-bottom: 10px; }
+#cityPropertyEditor .pw-radar-view :is(.pw-map-style, .pw-field-inline, .pw-toggle-field) { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; color: var(--pw-studio-muted); font-size: 12px; font-weight: 650; }
+#cityPropertyEditor .pw-radar-view .pw-radar-business-type { flex: 1 1 210px; max-width: 280px; }
+#cityPropertyEditor .pw-radar-view select { width: 100%; height: auto; min-height: 42px; max-width: 100%; border-color: #cbd5e0; border-radius: 9px; color: var(--pw-studio-ink); }
+#cityPropertyEditor .pw-radar-view .pw-toggle-field { min-height: 58px; justify-content: space-between; margin-inline-start: auto; padding: 0 4px 6px; }
+#cityPropertyEditor .pw-surroundings-columns { gap: 10px; }
+#cityPropertyEditor .pw-radar-shell { border-radius: 10px; }
+#cityPropertyEditor .pw-radar-results-card { padding: 12px; border-color: var(--pw-studio-line); border-radius: 10px; background: #fff; }
+#cityPropertyEditor .pw-radar-results-header h4 { color: var(--pw-studio-ink); font-size: 14px; font-weight: 670; }
+#cityPropertyEditor .pw-radar-tabs { flex-wrap: wrap; gap: 3px; padding-bottom: 7px; margin-bottom: 0; border-color: var(--pw-studio-line); }
+#cityPropertyEditor .pw-radar-tabs button { min-height: 28px; border: 0; border-radius: 999px; padding: 5px 8px; color: var(--pw-studio-muted); }
+#cityPropertyEditor .pw-radar-tabs button[aria-selected="true"] { color: var(--pw-studio-red); border: 0; background: var(--pw-criterion-red-bg); }
+#cityPropertyEditor .pw-radar-search-shell { margin: 8px 0 4px; }
+#cityPropertyEditor .pw-radar-results { min-height: 90px; }
+#cityPropertyEditor .pw-radar-row { min-height: 44px; }
+#cityPropertyEditor .pw-radar-row strong { font-size: 12px; }
+#cityPropertyEditor .pw-radar-row small { font-size: 11px; }
+#cityPropertyEditor .pw-radar-notices { margin-top: auto; padding-top: 8px; }
+#cityPropertyEditor .pw-radar-map-pills { flex-wrap: wrap; max-width: calc(100% - 24px); border-radius: 14px; }
+#cityPropertyEditor .pw-radar-map-pills button { min-height: 28px; padding: 4px 7px; }
+#cityPropertyEditor .pw-radar-map-pills button.is-active, #cityPropertyEditor .pw-place-reference.is-active { background: var(--pw-studio-red); border-color: var(--pw-studio-red); color: #fff; }
+#cityPropertyEditor .pw-place-reference.is-active .pw-icon { color: currentColor; }
+#cityPropertyEditor .pw-radar-badge { left: 12px; right: auto; bottom: 54px; max-width: calc(100% - 64px); border-radius: 999px; }
+#cityPropertyEditor .pw-radar-caption { color: var(--pw-studio-muted); padding: 5px 1px 0; line-height: 1.45; }
+
+/* Hazard findings and zoning records. Administrative sources read as metadata. */
+#cityPropertyEditor .pw-findings-table-responsive { border-color: var(--pw-studio-line); border-radius: 10px; box-shadow: none; }
+#cityPropertyEditor .pw-findings-table { min-width: 0; }
+#cityPropertyEditor .pw-findings-table thead tr { background: var(--pw-studio-well); border-color: var(--pw-studio-line); }
+#cityPropertyEditor .pw-findings-table th { padding-block: 9px; color: var(--pw-studio-muted); font-size: 10px; }
+#cityPropertyEditor .pw-risk-findings-card .pw-findings-table td { padding-block: 7px; }
+#cityPropertyEditor .pw-findings-table .pw-hazard-row-compact { border-color: var(--pw-studio-line); }
+#cityPropertyEditor .pw-hazard-identity { gap: 8px; }
+#cityPropertyEditor .pw-hazard-agency-badge { border: 0; border-radius: 999px; background: var(--pw-studio-well); color: var(--pw-studio-muted); }
+#cityPropertyEditor .pw-hazard-sub-hint { color: var(--pw-studio-muted); }
+#cityPropertyEditor :is(.pw-zoning-card, .pw-risk-criterion-card) .pw-screening-grid { gap: 10px; }
+#cityPropertyEditor .pw-zoning-card .pw-zoning-substep { padding-bottom: 11px; }
+#cityPropertyEditor .pw-zoning-card .pw-substep-header { margin-bottom: 8px; gap: 6px; }
+#cityPropertyEditor .pw-zoning-card .pw-substep-header .pw-icon { color: var(--pw-studio-muted); }
+#cityPropertyEditor .pw-zoning-card .pw-fields-two-col { gap: 10px 14px; }
+#cityPropertyEditor .pw-clup-smart-banner { border-color: var(--pw-studio-line); background: var(--pw-studio-well); box-shadow: none; }
+#cityPropertyEditor .pw-zoning-live-result { border-inline-start-width: 3px; border-radius: 9px; }
+#cityPropertyEditor .pw-zoning-live-result[data-rule-status="permitted"] { background: var(--pw-criterion-good-bg); border-color: var(--pw-criterion-good-line); border-inline-start-color: var(--pw-criterion-good); }
+#cityPropertyEditor .pw-zoning-live-result[data-rule-status="conditional"] { background: #fbf5e9; border-color: #eee0c0; border-inline-start-color: #925e1f; }
+#cityPropertyEditor .pw-zoning-live-result[data-rule-status="prohibited"] { background: var(--pw-criterion-red-bg); border-color: #ead2d6; border-inline-start-color: var(--pw-studio-red); }
+#cityPropertyEditor .pw-risk-findings-card :is(.pw-risk-scoring-details, .pw-calm-disclosure) > summary { padding-block: 10px; border-top: 1px solid var(--pw-studio-line); }
+#cityPropertyEditor .pw-criterion-pane .pw-calm-disclosure > summary > .pw-icon { color: var(--pw-studio-muted); }
+
+@media (max-width: 1150px) {
+  #cityPropertyEditor .pw-spatial-utility-ribbon { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  #cityPropertyEditor :is(.pw-infra-utility-ribbon, .pw-spatial-breakdown-grid, .pw-infra-breakdown-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 660px) {
+  #cityPropertyEditor .pw-model-context { grid-template-columns: minmax(0, 1fr); gap: 5px; margin-bottom: 4px; padding: 8px; }
+  #cityPropertyEditor .pw-model-context-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 2px 10px; }
+  #cityPropertyEditor .pw-model-weight-chip:first-child { border-inline-start: 0; }
+  #cityPropertyEditor .pw-model-weight-chip > span { font-size: 10px; }
+  #cityPropertyEditor [data-editor-panel="2"] { --pw-criterion-padding: 13px; }
+  #cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-header, .pw-infra-header, .pw-econ-header, .pw-criterion-title-row) { flex-wrap: wrap; }
+  #cityPropertyEditor .pw-criterion-pane :is(.pw-spatial-select, .pw-infra-select, .pw-spatial-input, .pw-infra-input, .pw-econ-input, .pw-econ-select, .pw-sc-input, .pw-sc-select, .pw-finding-input, .pw-select-prominent, .pw-radar-search),
+  #cityPropertyEditor .pw-radar-view select { font-size: 16px; }
+  #cityPropertyEditor :is(.pw-spatial-item-title-wrap, .pw-infra-item-title-wrap) { flex-basis: 100%; }
+  #cityPropertyEditor .pw-spatial-utility-pill { display: grid !important; grid-template-columns: 22px minmax(0, 1fr); }
+  #cityPropertyEditor .pw-infra-utility-pill { display: grid; grid-template-columns: 22px minmax(0, 1fr); }
+  #cityPropertyEditor :is(.pw-spatial-pill-status, .pw-infra-pill-status) { grid-column: 2; justify-self: start; max-width: 100%; }
+  #cityPropertyEditor .pw-spatial-pill-status { white-space: normal !important; }
+  #cityPropertyEditor :is(.pw-spatial-item-badges, .pw-infra-item-badges) { margin-inline-start: 45px; }
+  #cityPropertyEditor .pw-infra-details summary { flex-wrap: wrap; }
+  #cityPropertyEditor :is(.pw-spatial-score-showcase, .pw-infra-score-showcase) { grid-template-columns: minmax(0, 1fr); }
+  #cityPropertyEditor :is(.pw-spatial-iai-row, .pw-infra-iai-row) { border-inline-start: 0; border-block-start: 1px solid var(--pw-studio-line); }
+  #cityPropertyEditor :is(.pw-spatial-preview-card, .pw-infra-preview-card) { padding: 11px; }
+  #cityPropertyEditor .pw-econ-workspace { gap: 10px; }
+  #cityPropertyEditor .pw-econ-workspace .pw-live-result { display: flex; margin: 0 0 4px; }
+  #cityPropertyEditor .pw-nearby-map-wrapper { padding: 7px; }
+  #cityPropertyEditor .pw-radar-view :is(.pw-map-style, .pw-field-inline) { flex: 1 1 112px; }
+  #cityPropertyEditor .pw-radar-view .pw-radar-business-type { flex-basis: 100%; max-width: none; }
+  #cityPropertyEditor .pw-radar-view .pw-toggle-field { flex-direction: row; align-items: center; justify-content: flex-start; min-height: 30px; margin: 0; padding: 2px; gap: 7px; }
+  #cityPropertyEditor .pw-radar-map { height: 340px; }
+  #cityPropertyEditor .pw-radar-map-pills { top: 50px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; border-radius: 999px; }
+  #cityPropertyEditor .pw-radar-map-pills button { flex: none; min-height: 34px; padding-inline: 5px; font-size: 10px; }
+  #cityPropertyEditor .pw-radar-legend { max-width: calc(100% - 56px); }
+  #cityPropertyEditor .pw-risk-findings-card .pw-findings-table td { padding-block: 0; }
+  #cityPropertyEditor .pw-risk-findings-card .pw-findings-table td:nth-child(2) { padding-block-start: 7px; }
+}

@@ -1,0 +1,36 @@
+San Fernando City, La Union — Civic Metrics Card Photography
+============================================================
+
+1. residents.jpg — San Fernando City Plaza & Saint William the Hermit Cathedral
+   Source: Local project archive (assets/images/cityfountain.png)
+
+2. households.jpg — Aerial view of San Fernando City neighborhoods & bay
+   Source: Local project archive (assets/images/sfcView.png)
+
+3. businesses.jpg — Downtown San Fernando City Center along Manila North Road & Town Plaza
+   Source: Wikimedia Commons — File:CSFLU city center - Manila North Road, town plaza (San Fernando, La Union)(2018-11-25).jpg
+   Author: patrickroque01
+   License: CC BY-SA 4.0
+
+4. finance.jpg — LandBank branch, City Proper, San Fernando, La Union
+   Source: Wikimedia Commons — File:2231City Proper San Fernando, La Union 70.jpg
+   Author: Judgefloro
+   License: CC0 1.0 Public Domain
+
+5. education.jpg — Don Mariano Marcos Memorial State University — Mid La Union Campus (DMMMSU-MLUC), Catbangen, San Fernando, La Union
+   Source: Wikimedia Commons — File:4099Barangays of San Fernando City, La Union 10.jpg
+   Author: Judgefloro
+   License: CC0 1.0 Public Domain
+
+6. health.jpg — Lorma Medical Center, Carlatan, San Fernando, La Union
+   Source: Wikimedia Commons — File:4264Barangays of San Fernando City, La Union 12.jpg
+   Author: Judgefloro
+   License: CC0 1.0 Public Domain
+
+7. land.jpg — Poro Point peninsula, coastal port, and hillside barangays of San Fernando, La Union
+   Source: Wikimedia Commons — File:Poro Point (San Fernando, La Union)(2018-11-25).jpg
+   Author: patrickroque01
+   License: CC BY-SA 4.0
+
+8. roads.jpg — MacArthur Highway & downtown pedestrian overpass, San Fernando, La Union
+   Source: Local project archive (assets/images/sfcpanoramicView1.png)

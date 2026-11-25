@@ -3394,17 +3394,6 @@
         }
       });
 
-      const mobileSelect = $('[data-criteria-mobile-select]');
-      if (mobileSelect) {
-        Array.from(mobileSelect.options).forEach(opt => {
-          const key = opt.value;
-          if (statusMap[key] !== undefined) {
-            const baseText = opt.dataset.baseText || opt.textContent.replace(/ [✓•]/g, '').trim();
-            opt.dataset.baseText = baseText;
-            opt.textContent = `${baseText}${statusMap[key] ? ' · Evidence entered' : ''}`;
-          }
-        });
-      }
     }
 
     function calculateWizardCompositeMce(criteriaScores) {
@@ -5934,8 +5923,10 @@
       const isRelated = role === 'related';
       const isCompl = role === 'complementary';
       const iconClass = isRoad ? 'is-road' : isComp ? 'is-competitor' : isRelated ? 'is-related' : isCompl ? 'is-complementary' : 'is-unclassified';
-      const iconChar = isRoad ? '↗' : isComp ? '🏪' : isRelated ? '🍽️' : isCompl ? '🏬' : '📍';
-      return `<span class="pw-radar-place-icon ${iconClass}" aria-hidden="true">${iconChar}</span>`;
+      const glyph = isRoad
+        ? '<path d="m7 3-3 18m13-18 3 18M12 3v3m0 4v4m0 4v3"/>'
+        : '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/>';
+      return `<span class="pw-radar-place-icon ${iconClass}" aria-hidden="true"><svg class="pw-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg></span>`;
     }
     function walkingEstimate() { return ''; }
     function createRadarPopup(p, role, distM, isRoad, featId) {
@@ -6753,7 +6744,7 @@
       all('[data-authority-tab-title]').forEach(el => { el.textContent = authLabel; });
       all('[data-authority-pane-title]').forEach(el => { el.textContent = authLabel; });
       const opt = form.querySelector('.pw-broker-only-option');
-      if (opt) opt.textContent = `7. ${authLabel} (Broker req.)`;
+      if (opt) opt.textContent = authLabel;
       const authTypeSelect = field('authority_type') || $('#pwAuthorityType');
       if (authTypeSelect && !authTypeSelect.dataset.userChanged) {
         authTypeSelect.value = docTypeVal;
@@ -6799,9 +6790,6 @@
       }
       [pricing,comparable].forEach((section,index)=>{const n=section?.querySelector('.pw-econ-section-number');if(n)n.textContent=index+1;});
     }
-    const nearbyMapWrapper = $('#pwCriterionNearby .pw-nearby-map-wrapper');
-    const nearbyResults = $('[data-nearby-assessment-card]');
-    if(nearbyMapWrapper && nearbyResults)nearbyMapWrapper.before(nearbyResults);
     for (const tier of ['checks','readiness']) {
       const card = $(`[data-review-tier="${tier}"]`);
       const title = card?.querySelector('.pw-review-card-title')?.textContent?.trim();

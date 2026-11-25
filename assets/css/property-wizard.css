@@ -9169,20 +9169,20 @@
 
 .property-wizard .pw-step.is-active .pw-step-number,
 .property-wizard .pw-step[aria-current="step"] .pw-step-number {
-  background: linear-gradient(135deg, #11224d 0%, #1e3a8a 100%) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 0 3px rgba(17, 34, 77, 0.14), 0 3px 8px rgba(17, 34, 77, 0.25) !important;
+  background: #11224d;
+  color: #fff;
+  box-shadow: none;
 }
 
 .property-wizard .pw-step.is-active .pw-step-label,
 .property-wizard .pw-step[aria-current="step"] .pw-step-label {
-  color: #0f172a !important;
-  font-weight: 700 !important;
+  color: #0f172a;
+  font-weight: 700;
 }
 
 .property-wizard .pw-step.is-complete .pw-step-number {
-  background: #059669 !important;
-  color: #ffffff !important;
+  background: #059669;
+  color: #fff;
 }
 
 .property-wizard .pw-step:not(:last-child)::after {
