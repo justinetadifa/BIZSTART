@@ -31,6 +31,16 @@ export function setupHomeDiscovery() {
     });
   }
 
+  function setExpanded(targetCard, expanded) {
+    const targetBtn = targetCard.querySelector('[data-why-toggle]');
+    const targetDetails = targetCard.querySelector('.city-why-details');
+    if (!targetBtn || !targetDetails) return;
+    targetCard.classList.toggle('is-expanded', expanded);
+    targetBtn.setAttribute('aria-expanded', String(expanded));
+    targetDetails.setAttribute('aria-hidden', String(!expanded));
+    targetDetails.inert = !expanded;
+  }
+
   cards.forEach((card, index) => {
     const button = card.querySelector('[data-why-toggle]');
     const details = card.querySelector('.city-why-details');
@@ -49,15 +59,35 @@ export function setupHomeDiscovery() {
     button.setAttribute('aria-controls', details.id);
     details.inert = !card.classList.contains('is-expanded');
     button.addEventListener('click', () => {
-      const expanded = card.classList.toggle('is-expanded');
-      button.setAttribute('aria-expanded', String(expanded));
-      details.setAttribute('aria-hidden', String(!expanded));
-      details.inert = !expanded;
-      if (expanded && !visited.has(index)) {
+      const willExpand = !card.classList.contains('is-expanded');
+      let closedAbove = false;
+      if (willExpand) {
+        cards.forEach((other, otherIndex) => {
+          if (other !== card && other.classList.contains('is-expanded')) {
+            if (otherIndex < index) closedAbove = true;
+            setExpanded(other, false);
+          }
+        });
+      }
+      setExpanded(card, willExpand);
+      if (willExpand && !visited.has(index)) {
         visited.add(index);
         try { sessionStorage.setItem(storageKey, JSON.stringify([...visited])); } catch { /* Optional persistence. */ }
         renderProgress();
       }
+      if (willExpand && closedAbove) {
+        requestAnimationFrame(() => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top < 88 || rect.top > window.innerHeight * 0.72) {
+            card.scrollIntoView({ behavior: reduceMotion() ? 'instant' : 'smooth', block: 'start' });
+          }
+        });
+      }
+    });
+    card.addEventListener('click', event => {
+      if (window.getSelection?.().toString()) return;
+      if (event.target.closest('button, a, select, input, label, .city-why-details')) return;
+      button.click();
     });
   });
   renderProgress();

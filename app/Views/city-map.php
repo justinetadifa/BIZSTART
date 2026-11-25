@@ -16,6 +16,7 @@ ob_start();
   <link rel="stylesheet" href="<?= $mapAsset('style.css') ?>">
   <link rel="stylesheet" href="<?= $mapAsset('navigation.css') ?>">
   <link rel="stylesheet" href="<?= $mapAsset('properties.css') ?>">
+  <link rel="stylesheet" href="<?= $mapAsset('city-explorer.css') ?>">
   <script defer src="<?= $mapAsset('lib/maplibre-gl.js') ?>"></script>
   <script defer src="<?= $mapAsset('city.js') ?>"></script>
   <script defer src="<?= $mapAsset('barangays.js') ?>"></script>
@@ -28,6 +29,7 @@ ob_start();
   <script defer src="<?= $mapAsset('market-scout.js') ?>"></script>
   <script defer src="<?= $mapAsset('investor-sites.js') ?>"></script>
   <script defer src="<?= $mapAsset('app.js') ?>"></script>
+  <script defer src="<?= $mapAsset('city-explorer.js') ?>"></script>
 </head>
 
 <body class="panel-hidden">

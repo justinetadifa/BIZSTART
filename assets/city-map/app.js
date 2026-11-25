@@ -1026,6 +1026,7 @@ function clearInspection() {
       if (resEl) resEl.scrollTop = savedResultsScrollTop;
     });
   }
+  updateSheetSummary();
 }
 const investorSites = InvestorSites.create({
   map, scout, selectBusiness: selectRecord, clearInspection, isSourceVisible: businessSourceVisible,
@@ -1149,17 +1150,30 @@ function setStatus(msg) {
   byId('status').textContent = msg || '';
 }
 
+function isInspectorSheetOpen() {
+  if (document.body.classList.contains('panel-hidden')) return false;
+  if (document.body.classList.contains('map-fullscreen') && !document.body.classList.contains('fs-show-panel')) return false;
+  if (window.innerWidth <= 760 && mobileSheetState === 'collapsed') return false;
+  return true;
+}
+
 function showPopup(lng, lat, title, subtitle, offset = 10, showOpenDetails = false) {
-  if (activePopup) activePopup.remove();
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+  // On compact viewports, avoid stacking a duplicate callout over the 3D landmark
+  // when the bottom details sheet is already visibly open for that selection.
+  if (window.innerWidth <= 760 && isInspectorSheetOpen()) return;
   const wrap = document.createElement('div');
   wrap.append(el('div', title, 'popup-title'));
   if (subtitle) wrap.append(el('div', subtitle, 'popup-sub'));
-  const compactMode = document.body.classList.contains('panel-hidden') ||
-    (document.body.classList.contains('map-fullscreen') && !document.body.classList.contains('fs-show-panel'));
+  const compactMode = !isInspectorSheetOpen();
   if (showOpenDetails && compactMode) {
-    const btn = el('button', 'Open details →', 'popup-detail-btn');
+    const btn = el('button', 'View details →', 'popup-detail-btn');
     btn.type = 'button';
-    btn.onclick = () => setPanelHidden(false);
+    btn.onclick = () => {
+      if (activePopup) { activePopup.remove(); activePopup = null; }
+      setPanelHidden(false);
+      map.easeTo({ center: [lng, lat], padding: getMobileMapPadding(), duration: 360, easing: SMOOTH_EASE });
+    };
     wrap.append(btn);
   }
   activePopup = new maplibregl.Popup({ offset })
@@ -1375,6 +1389,7 @@ function setLightingMode(mode, { immediate = false } = {}) {
     fsTheme.classList.toggle('active', isG || isN);
     fsTheme.setAttribute('aria-label', `${fsThemeLbl.textContent} lighting. Cycle map lighting`);
   }
+  window.dispatchEvent(new CustomEvent('locus:lighting-changed', { detail: { mode: lightingMode } }));
   setStatus(
     isN ? 'Architectural Night Mode active (lit windows, glowing streetlamps & headlights).' :
     (isG ? 'La Union Golden Hour lighting active (western afternoon sun).' : 'Sunlit coastal Day Mode active.')
@@ -1861,8 +1876,7 @@ async function selectLandmark(lm) {
   detail.replaceChildren();
   const badges = el('div', '', 'detail-badges');
   badges.append(
-    el('span', 'Mapped landmark', 'badge badge-landmark'),
-    el('span', 'Illustrative 3D form', 'badge badge-building')
+    el('span', 'City landmark', 'badge badge-landmark')
   );
   const dl = el('dl', '', 'meta-grid');
   const bgy = cityBuildings3DLayer.findOfficialBarangayAt(lm.lng, lm.lat);
@@ -1898,7 +1912,8 @@ async function selectLandmark(lm) {
     duration: 850,
     easing: SMOOTH_EASE
   });
-  showPopup(lm.lng, lm.lat, lm.name, 'Mapped landmark · Illustrative 3D form', [0, -64], true);
+  showPopup(lm.lng, lm.lat, lm.name, lm.category || 'Verified city landmark', [0, -56], true);
+  window.dispatchEvent(new CustomEvent('locus:landmark-selected', { detail: lm }));
 }
 
 // =========================================================================
@@ -2050,6 +2065,7 @@ function revealInspection(kicker) {
   const kEl = byId('inspection-kicker');
   if (kEl && kicker) kEl.textContent = kicker;
   if (window.innerWidth <= 760) setMobileSheetState('mid');
+  updateSheetSummary();
   const body = byId('panel-body');
   if (body) body.scrollTop = 0;
 }
@@ -2062,6 +2078,9 @@ function updateSheetSummary() {
     const prog = scout.getProgress();
     const catTxt = st.category ? ` · ${st.category} (${st.radiusM} m)` : '';
     elSum.textContent = `Market Scout · Step ${prog.currentStep}/4${catTxt}`;
+  } else if (byId('explore-panel')?.classList.contains('detail-open')) {
+    const kickerTxt = byId('inspection-kicker')?.textContent?.trim();
+    elSum.textContent = kickerTxt || 'Place details';
   } else {
     const s = registry.getSummary();
     elSum.textContent = `Directory · ${(s.officialTotal + s.communityCount).toLocaleString()} places`;
@@ -3681,6 +3700,10 @@ function scheduleMapResizeSync() {
 function setPanelHidden(hidden) {
   const next = Boolean(hidden);
   if (!next && window.innerWidth <= 940) investorSites.closeLivePanel();
+  if (!next && window.innerWidth <= 760 && activePopup) {
+    activePopup.remove();
+    activePopup = null;
+  }
   if (isFullscreenMap) {
     document.body.classList.toggle('fs-show-panel', !next);
     isPanelHidden = next;
@@ -3692,8 +3715,12 @@ function setPanelHidden(hidden) {
     if (next) setMobileSheetState('collapsed');
     else if (mobileSheetState === 'collapsed') setMobileSheetState('mid');
   }
+  if (window.innerWidth <= 760 && map && typeof map.easeTo === 'function') {
+    map.easeTo({ padding: getMobileMapPadding(), duration: 300, easing: SMOOTH_EASE });
+  }
   syncViewButtonsUI();
   updateScoutBadge();
+  window.dispatchEvent(new CustomEvent('locus:panel-visibility', { detail: { hidden: next } }));
   setStatus(next ? 'Directory panel hidden for open map viewing.' : 'Directory panel shown.');
 }
 

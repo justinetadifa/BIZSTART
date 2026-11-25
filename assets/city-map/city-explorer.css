@@ -1,0 +1,870 @@
+/* LOCUS-SF 3D City Explorer: Tactile Apple Maps Passport, Guided Tour, Sun Dial & Barangay Compass. */
+
+.explorer-dock,
+.explorer-passport,
+.explorer-tour-card,
+.explorer-toast,
+.explorer-barangay-chip {
+  font-family: var(--map-ui-font, -apple-system, BlinkMacSystemFont, "SF Pro Text", "DM Sans", sans-serif);
+  box-sizing: border-box;
+}
+.explorer-dock *,
+.explorer-passport *,
+.explorer-tour-card *,
+.explorer-toast *,
+.explorer-barangay-chip * {
+  box-sizing: border-box;
+}
+
+/* Tactile click ripple feedback on the 3D map canvas */
+.explorer-ripple {
+  position: fixed;
+  z-index: 4;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid var(--map-nav-brand, #9e1b22);
+  background: rgb(158 27 34 / 16%);
+  pointer-events: none;
+  animation: explorer-ripple-out 560ms cubic-bezier(.16, 1, .3, 1) forwards;
+}
+body.theme-night .explorer-ripple {
+  border-color: #f5c556;
+  background: rgb(245 197 86 / 20%);
+}
+@keyframes explorer-ripple-out {
+  0%   { transform: scale(0.5); opacity: 0.92; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+
+/* 3D-projected landmark arrival beacon (briefly pulses over target roof during flyover) */
+.explorer-beacon {
+  position: absolute;
+  z-index: 6;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+.explorer-beacon.is-active { opacity: 1; }
+.explorer-beacon::before,
+.explorer-beacon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--map-nav-brand, #9e1b22);
+}
+.explorer-beacon::before {
+  background: rgb(158 27 34 / 18%);
+  animation: explorer-beacon-ring 1.5s cubic-bezier(.16, 1, .3, 1) infinite;
+}
+.explorer-beacon::after {
+  inset: 7px;
+  border: 2px solid #ffffff;
+  background: var(--map-nav-brand, #9e1b22);
+  box-shadow: 0 2px 10px rgb(158 27 34 / 45%);
+}
+body.theme-night .explorer-beacon::before {
+  border-color: #f5c556;
+  background: rgb(245 197 86 / 22%);
+}
+body.theme-night .explorer-beacon::after {
+  background: #f5c556;
+  border-color: #1c1e24;
+  box-shadow: 0 2px 12px rgb(245 197 86 / 55%);
+}
+@keyframes explorer-beacon-ring {
+  0%   { transform: scale(0.75); opacity: 0.9; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* Bottom-center frosted Apple Maps Explorer Dock */
+.explorer-dock {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--map-nav-glass, rgb(255 255 255 / 88%));
+  color: var(--map-nav-ink, #1d1d1f);
+  box-shadow: inset 0 0 0 0.5px var(--map-nav-sheen, rgb(255 255 255 / 84%)), var(--map-nav-shadow, 0 6px 22px rgb(0 0 0 / 14%));
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  transition: opacity 220ms ease, transform 240ms cubic-bezier(.22, 1, .36, 1);
+}
+.explorer-dock.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 14px);
+}
+
+.explorer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--map-nav-ink, #1d1d1f);
+  font: 600 12px/1 var(--map-ui-font, inherit);
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, transform 140ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.explorer-btn:hover { background: var(--map-nav-field, #f2f2f7); }
+.explorer-btn:active { transform: scale(.97); }
+.explorer-btn:focus-visible { outline: 2px solid var(--map-nav-brand, #9e1b22); outline-offset: -2px; }
+.explorer-btn svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.explorer-passport-btn {
+  padding-inline: 10px 11px;
+}
+.explorer-passport-btn[aria-expanded="true"] {
+  background: var(--map-nav-field, #f2f2f7);
+}
+.explorer-passport-btn svg { color: var(--map-nav-brand, #9e1b22); }
+.explorer-stamp-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--map-nav-ink, #1d1d1f);
+}
+.explorer-mini-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.5px;
+  margin-left: 2px;
+}
+.explorer-mini-pips i {
+  display: block;
+  width: 4.5px;
+  height: 4.5px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 16%);
+  transition: background-color 220ms ease, transform 220ms ease;
+}
+body.theme-night .explorer-mini-pips i { background: rgb(255 255 255 / 22%); }
+.explorer-mini-pips i.is-stamped {
+  background: var(--map-nav-brand, #9e1b22);
+  transform: scale(1.1);
+}
+
+.explorer-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--map-nav-rule, rgb(0 0 0 / 10%));
+  flex: none;
+}
+
+.explorer-tour-btn.is-active {
+  background: var(--map-nav-brand, #9e1b22);
+  color: #ffffff;
+}
+.explorer-tour-btn.is-active:hover { background: #84151c; }
+
+.explorer-next-btn {
+  position: relative;
+  background: var(--map-nav-ink, #1d1d1f);
+  color: var(--map-nav-surface, #ffffff);
+  padding-inline: 12px;
+}
+.explorer-next-btn:hover {
+  background: var(--map-nav-brand, #9e1b22);
+  color: #ffffff;
+}
+.explorer-next-btn.is-inviting::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 1.5px solid var(--map-nav-brand, #9e1b22);
+  opacity: 0;
+  pointer-events: none;
+  animation: explorer-invite-pulse 2.6s ease-out infinite;
+}
+@keyframes explorer-invite-pulse {
+  0%   { transform: scale(0.98); opacity: 0.55; }
+  70%  { transform: scale(1.08, 1.24); opacity: 0; }
+  100% { transform: scale(1.08, 1.24); opacity: 0; }
+}
+
+/* 3-way Time-of-Day Sun Dial (Day / Golden Hour / Night) */
+.explorer-sun-dial {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--map-nav-field, #f2f2f7);
+}
+.explorer-sun-opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--map-nav-muted, #6e6e73);
+  font: 600 11px/1 var(--map-ui-font, inherit);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+.explorer-sun-opt svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.explorer-sun-opt:hover { color: var(--map-nav-ink, #1d1d1f); }
+.explorer-sun-opt.is-active {
+  background: var(--map-nav-selected, #ffffff);
+  color: var(--map-nav-ink, #1d1d1f);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 12%);
+}
+.explorer-sun-opt[data-mode="golden"].is-active svg { color: #c87b16; }
+.explorer-sun-opt[data-mode="day"].is-active svg { color: #d98200; }
+.explorer-sun-opt[data-mode="night"].is-active svg { color: #7db4ff; }
+
+/* Live Barangay Compass Chip (cleanly seated above Layers & legend on desktop & mobile) */
+.explorer-barangay-chip {
+  position: absolute;
+  z-index: 11;
+  left: 14px;
+  bottom: 90px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: min(240px, calc(100vw - 120px));
+  height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--map-nav-glass, rgb(255 255 255 / 86%));
+  color: var(--map-nav-ink, #1d1d1f);
+  box-shadow: inset 0 0 0 0.5px var(--map-nav-sheen, rgb(255 255 255 / 82%)), 0 3px 12px rgb(0 0 0 / 10%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  font: 600 11.5px/1 var(--map-ui-font, inherit);
+  cursor: pointer;
+  transition: transform 200ms cubic-bezier(.22, 1, .36, 1), background-color 160ms ease, opacity 180ms ease;
+}
+#map:has(.map-legend:not(.collapsed)) .explorer-barangay-chip,
+#map:has(.explorer-tour-card.is-active) .explorer-barangay-chip {
+  opacity: 0;
+  pointer-events: none;
+}
+.explorer-barangay-chip:hover { background: var(--map-nav-surface, #ffffff); }
+.explorer-barangay-chip.is-pop { transform: scale(1.06); }
+.explorer-barangay-chip.is-hidden { opacity: 0; pointer-events: none; }
+.explorer-barangay-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--map-nav-brand, #9e1b22);
+  box-shadow: 0 0 0 3px rgb(158 27 34 / 16%);
+}
+.explorer-barangay-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.explorer-barangay-tally {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--map-nav-field, #f2f2f7);
+  color: var(--map-nav-muted, #6e6e73);
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dynamic-Island Discovery Stamp Toast */
+.explorer-toast {
+  position: absolute;
+  z-index: 26;
+  top: 12px;
+  left: 50%;
+  transform: translate(-50%, -14px) scale(.96);
+  opacity: 0;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(400px, calc(100% - 24px));
+  padding: 7px 14px 7px 9px;
+  border-radius: 999px;
+  background: rgb(24 27 34 / 93%);
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 26%), inset 0 0 0 0.5px rgb(255 255 255 / 16%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  transition: opacity 240ms ease, transform 280ms cubic-bezier(.22, 1, .36, 1);
+}
+.explorer-toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.explorer-toast-seal {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #c81e2b;
+  color: #ffffff;
+}
+.explorer-toast-seal svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.explorer-toast.is-rank .explorer-toast-seal {
+  background: #d9971e;
+  color: #1d1d1f;
+}
+.explorer-toast.is-rank .explorer-toast-seal svg {
+  fill: currentColor;
+  stroke: none;
+}
+.explorer-toast-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.explorer-toast-title {
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.explorer-toast-sub {
+  font-size: 10.5px;
+  color: rgb(255 255 255 / 72%);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* San Fernando Passport Popover Sheet (Apple Wallet / Field Guide style) */
+.explorer-passport {
+  position: absolute;
+  z-index: 24;
+  left: 50%;
+  bottom: 62px;
+  transform: translate(-50%, 8px) scale(.98);
+  width: min(448px, calc(100% - 20px));
+  max-height: min(468px, calc(100% - 118px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background: var(--map-nav-glass, rgb(255 255 255 / 93%));
+  color: var(--map-nav-ink, #1d1d1f);
+  box-shadow: inset 0 0 0 0.5px var(--map-nav-sheen, rgb(255 255 255 / 86%)), 0 18px 46px rgb(0 0 0 / 22%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(.22, 1, .36, 1);
+}
+.explorer-passport.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
+}
+.explorer-passport-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex: none;
+  padding: 12px 13px 10px 15px;
+  border-bottom: 1px solid var(--map-nav-rule, rgb(0 0 0 / 8%));
+}
+.explorer-passport-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.explorer-passport-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.explorer-passport-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.2;
+  color: var(--map-nav-ink, #1d1d1f);
+}
+.explorer-rank-pill {
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: rgb(158 27 34 / 11%);
+  color: var(--map-nav-brand, #9e1b22);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+body.theme-night .explorer-rank-pill { background: rgb(255 174 180 / 16%); }
+.explorer-passport-sub {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--map-nav-muted, #6e6e73);
+}
+.explorer-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  align-self: flex-start;
+}
+.explorer-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--map-nav-field, #f2f2f7);
+  color: var(--map-nav-muted, #6e6e73);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.explorer-icon-btn:hover { background: var(--map-nav-hover, #e5e5ea); color: var(--map-nav-ink, #1d1d1f); }
+.explorer-icon-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.explorer-passport-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 13px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+}
+
+/* Progress + quick controls bar inside Passport */
+.explorer-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.explorer-stat-box {
+  padding: 8px 10px;
+  border-radius: 13px;
+  background: var(--map-nav-field, #f2f2f7);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.explorer-stat-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--map-nav-muted, #6e6e73);
+  font-weight: 500;
+}
+.explorer-stat-top span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.explorer-stat-top strong {
+  flex: none;
+  white-space: nowrap;
+  color: var(--map-nav-ink, #1d1d1f);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.explorer-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 10%);
+  overflow: hidden;
+}
+body.theme-night .explorer-bar { background: rgb(255 255 255 / 14%); }
+.explorer-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--map-nav-brand, #9e1b22);
+  transition: width 320ms cubic-bezier(.22, 1, .36, 1);
+}
+.explorer-bar--bgy > i { background: #11224d; }
+body.theme-night .explorer-bar--bgy > i { background: #7db4ff; }
+
+.explorer-quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.explorer-surprise-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--map-nav-ink, #1d1d1f);
+  color: var(--map-nav-surface, #ffffff);
+  font: 600 11.5px/1 var(--map-ui-font, inherit);
+  cursor: pointer;
+  transition: background-color 160ms ease, transform 140ms ease;
+}
+.explorer-surprise-btn svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  fill: currentColor;
+  stroke: none;
+}
+.explorer-surprise-btn:hover { background: var(--map-nav-brand, #9e1b22); color: #ffffff; }
+.explorer-surprise-btn:active { transform: scale(.97); }
+
+/* 4 Chapter Stamp Groups */
+.explorer-chapters-root {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.explorer-chapter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.explorer-chapter-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-inline: 2px;
+}
+.explorer-chapter-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--map-nav-muted, #6e6e73);
+}
+.explorer-chapter-tally {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--map-nav-muted, #6e6e73);
+}
+.explorer-chapter-tally.is-complete {
+  color: var(--map-nav-brand, #9e1b22);
+}
+.explorer-stamps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.explorer-stamp {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--map-nav-rule, rgb(0 0 0 / 8%));
+  border-radius: 12px;
+  background: var(--map-nav-surface, #ffffff);
+  color: var(--map-nav-ink, #1d1d1f);
+  text-align: left;
+  font: 600 11px/1.2 var(--map-ui-font, inherit);
+  cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 140ms ease;
+}
+.explorer-stamp:hover {
+  border-color: var(--map-nav-brand, #9e1b22);
+  background: var(--map-nav-field, #f2f2f7);
+}
+.explorer-stamp:active { transform: scale(.97); }
+.explorer-stamp-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1.5px dashed rgb(0 0 0 / 22%);
+  color: transparent;
+  transition: all 220ms ease;
+}
+.explorer-stamp-mark svg {
+  width: 11px;
+  height: 11px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform: scale(.65);
+  transition: opacity 180ms ease, transform 200ms cubic-bezier(.22, 1, .36, 1);
+}
+body.theme-night .explorer-stamp-mark { border-color: rgb(255 255 255 / 26%); }
+.explorer-stamp.is-stamped {
+  border-color: rgb(158 27 34 / 26%);
+  background: rgb(158 27 34 / 4.5%);
+}
+body.theme-night .explorer-stamp.is-stamped {
+  border-color: rgb(255 174 180 / 32%);
+  background: rgb(255 174 180 / 10%);
+}
+.explorer-stamp.is-stamped .explorer-stamp-mark {
+  border-style: solid;
+  border-color: var(--map-nav-brand, #9e1b22);
+  background: var(--map-nav-brand, #9e1b22);
+  color: #ffffff;
+}
+.explorer-stamp.is-stamped .explorer-stamp-mark svg {
+  opacity: 1;
+  transform: scale(1);
+}
+.explorer-stamp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Guided 3D Helicopter Tour Floating Story Bar */
+.explorer-tour-card {
+  position: absolute;
+  z-index: 23;
+  left: 50%;
+  bottom: 14px;
+  transform: translate(-50%, 14px);
+  width: min(460px, calc(100% - 24px));
+  padding: 12px 14px 10px;
+  border-radius: 20px;
+  background: var(--map-nav-glass, rgb(255 255 255 / 93%));
+  color: var(--map-nav-ink, #1d1d1f);
+  box-shadow: inset 0 0 0 0.5px var(--map-nav-sheen, rgb(255 255 255 / 86%)), 0 14px 38px rgb(0 0 0 / 20%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 260ms cubic-bezier(.22, 1, .36, 1);
+}
+.explorer-tour-card.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.explorer-tour-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.explorer-tour-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .065em;
+  text-transform: uppercase;
+  color: var(--map-nav-brand, #9e1b22);
+}
+.explorer-tour-title {
+  margin: 2px 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--map-nav-ink, #1d1d1f);
+}
+.explorer-tour-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--map-nav-muted, #6e6e73);
+}
+.explorer-tour-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.explorer-tour-progress {
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 9%);
+  overflow: hidden;
+}
+body.theme-night .explorer-tour-progress { background: rgb(255 255 255 / 14%); }
+.explorer-tour-progress > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: var(--map-nav-brand, #9e1b22);
+}
+
+/* Celebratory micro-confetti canvas */
+.explorer-confetti {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* Prevent tour story card from colliding with Layers pill on medium & small widths */
+@media (max-width: 960px) {
+  #map:has(.explorer-tour-card.is-active) .map-legend {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Responsive compactness so desktop medium widths & mobile never collide with controls */
+@media (max-width: 1120px) {
+  .explorer-mini-pips { display: none; }
+}
+@media (max-width: 860px) {
+  .explorer-dock .explorer-sun-dial,
+  .explorer-dock .explorer-sep--sun { display: none; }
+}
+@media (max-width: 640px) {
+  .explorer-dock {
+    left: auto;
+    right: 46px;
+    bottom: 10px;
+    transform: none;
+    padding: 3px;
+    gap: 2px;
+  }
+  .explorer-dock.is-hidden {
+    transform: translateY(14px);
+  }
+  .explorer-btn {
+    height: 32px;
+    padding: 0 9px;
+    font-size: 11.5px;
+    gap: 5px;
+  }
+  .explorer-passport-label,
+  .explorer-tour-label { display: none; }
+  .explorer-next-btn { padding-inline: 10px; }
+  .explorer-barangay-chip {
+    left: 10px;
+    bottom: 54px;
+    height: 28px;
+    padding: 0 9px;
+    font-size: 10.5px;
+    max-width: calc(100vw - 110px);
+  }
+  #map:has(.explorer-passport.is-open) .explorer-barangay-chip {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .explorer-toast {
+    top: 56px;
+    padding: 6px 11px 6px 8px;
+  }
+  #map:has(.explorer-passport.is-open) .explorer-toast {
+    top: 10px;
+  }
+  .explorer-passport {
+    bottom: 52px;
+    max-height: min(344px, calc(100% - 112px));
+    border-radius: 20px;
+  }
+  .explorer-passport-head {
+    padding: 11px 11px 9px 13px;
+  }
+  .explorer-passport-title { font-size: 14px; }
+  .explorer-stamps-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .explorer-tour-card {
+    bottom: 10px;
+    padding: 10px 12px 9px;
+  }
+}
+
+/* Hide explorer overlay gracefully when inspector sheet or live properties panel is open on mobile */
+body:not(.panel-hidden) .explorer-barangay-chip { opacity: 0; pointer-events: none; }
+@media (max-width: 760px) {
+  body:not(.panel-hidden) .explorer-dock,
+  body:not(.panel-hidden) .explorer-passport { opacity: 0; pointer-events: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .explorer-ripple,
+  .explorer-beacon,
+  .explorer-beacon::before,
+  .explorer-next-btn.is-inviting::after,
+  .explorer-dock,
+  .explorer-toast,
+  .explorer-passport,
+  .explorer-tour-card,
+  .explorer-barangay-chip { transition: none !important; animation: none !important; }
+}

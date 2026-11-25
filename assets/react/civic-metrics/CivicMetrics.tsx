@@ -94,43 +94,45 @@ export function CivicMetrics({ assetBase = 'assets' }: { assetBase?: string }) {
   const animate = ready && motionEnabled && !reducedMotion;
 
   return <LazyMotion features={domMax} strict>
-    <section ref={root} className="civic-canvas cw-bg-[#F6F4EF] cw-px-8 cw-py-10 cw-text-zinc-900" aria-labelledby="civicTitle" data-art-motion={animate ? 'on' : 'off'} data-art-running={animate && inView && visible ? 'true' : 'false'} data-civic-ready={ready ? 'true' : 'false'}>
-      <header className="civic-header cw-flex cw-flex-wrap cw-items-center cw-justify-between cw-gap-5">
-        <div className="civic-title-row cw-flex cw-flex-wrap cw-items-center cw-gap-3">
-          <h3 id="civicTitle" className="cw-text-3xl cw-font-semibold cw-tracking-tight">Get to know the city.</h3>
-          <span className="civic-overview cw-rounded-full cw-bg-black/5 cw-px-3 cw-py-1 cw-text-xs cw-font-medium">Overview</span>
+    <section ref={root} className="civic-canvas" aria-labelledby="civicTitle" data-art-motion={animate ? 'on' : 'off'} data-art-running={animate && inView && visible ? 'true' : 'false'} data-civic-ready={ready ? 'true' : 'false'}>
+      <header className="civic-header">
+        <div className="civic-title-row">
+          <h3 id="civicTitle">Get to know the city.</h3>
+          <span className="civic-overview">Overview</span>
         </div>
-        <div className="civic-settings cw-flex cw-items-center cw-gap-3">
-          <button className="civic-switch" type="button" role="switch" aria-checked={animate} aria-label="Animate illustrations" title={reducedMotion ? 'Animation follows your reduced-motion preference' : 'Animate illustrations'} disabled={!ready || reducedMotion} onClick={() => setMotionEnabled(value => !value)}>
+        <div className="civic-settings">
+          <button className="civic-switch" type="button" role="switch" aria-checked={animate} aria-label="Animate cards" title={reducedMotion ? 'Animation follows your reduced-motion preference' : 'Animate cards'} disabled={!ready || reducedMotion} onClick={() => setMotionEnabled(value => !value)}>
             <m.span className="civic-switch-thumb" initial={false} animate={{ x: animate ? 18 : 0 }} transition={animate ? { duration: .12, ease: [.22, 1, .36, 1] } : { duration: 0 }} />
           </button>
-          <span className="civic-date cw-text-sm cw-font-medium cw-text-zinc-700">2023–2024 Figures</span>
+          <span className="civic-date">2023–2024 Figures</span>
         </div>
       </header>
 
       <LayoutGroup id="civic-metrics">
-        <div className="civic-grid cw-grid cw-grid-cols-1 sm:cw-grid-cols-2 lg:cw-grid-cols-4 cw-gap-5">
-          {civicCategories.map(category => <section key={category.id} className="civic-column cw-min-w-0" aria-labelledby={`civic-category-${category.id}`}>
-            <h4 id={`civic-category-${category.id}`} className="civic-category cw-mb-2 cw-text-[11px] cw-font-semibold cw-uppercase cw-tracking-wider cw-text-zinc-600">{category.title}</h4>
-            <div className="civic-stack cw-flex cw-flex-col cw-gap-5">
-              {category.metrics.map(metric => <m.div key={metric.id} className="civic-card-motion" data-crowded-badges={crowdedBadgeId === metric.id ? 'true' : 'false'} initial={false} animate={!animate ? { y: 0, scale: 1 } : undefined} whileHover={animate ? { y: -4, scale: 1.01 } : undefined} whileTap={animate ? { y: 0, scale: .985 } : undefined} transition={animate ? { duration: .12, ease: [.22, 1, .36, 1] } : { duration: 0 }}>
-                <button type="button" className={`civic-card civic-card--${metric.theme} cw-relative cw-flex cw-min-w-0 cw-flex-col cw-justify-between cw-overflow-hidden cw-rounded-[24px] cw-p-6 cw-text-left cw-select-none`}
+        <div className="civic-grid">
+          {civicCategories.map(category => <section key={category.id} className="civic-column" aria-labelledby={`civic-category-${category.id}`}>
+            <h4 id={`civic-category-${category.id}`} className="civic-category">{category.title}</h4>
+            <div className="civic-stack">
+              {category.metrics.map(metric => <m.div key={metric.id} className="civic-card-motion" data-crowded-badges={crowdedBadgeId === metric.id ? 'true' : 'false'} initial={false} animate={!animate ? { y: 0, scale: 1 } : undefined} whileHover={animate ? { y: -2, scale: 1.005 } : undefined} whileTap={animate ? { y: 0, scale: .985 } : undefined} transition={animate ? { duration: .16, ease: [.22, 1, .36, 1] } : { duration: 0 }}>
+                <button type="button" className={`civic-card civic-card--${metric.theme}`}
                 title={metric.landmark}
                 data-metric-id={metric.id} data-selected={selectedId === metric.id ? 'true' : 'false'}
                 aria-pressed={selectedId === metric.id} aria-controls="glanceInsight" aria-labelledby={`civic-label-${metric.id} civic-value-${metric.id}`} aria-describedby={`civic-source-${metric.id}${metric.substat ? ` civic-substat-${metric.id}` : ''}${metric.growth ? ` civic-growth-${metric.id}` : ''}`} disabled={!ready}
                 onClick={() => select(metric.id)} onPointerEnter={event => { if (event.pointerType !== 'touch') setPreviewId(metric.id); }} onPointerLeave={() => setPreviewId(null)} onFocus={() => setPreviewId(metric.id)} onBlur={() => setPreviewId(null)} onKeyDown={event => { if (event.key === 'Escape') select('residents'); }}>
                 <MetricArt kind={metric.id} assetBase={assetBase} />
-                <div className="civic-card-top">
-                  {metric.growth && <span className="civic-growth" id={`civic-growth-${metric.id}`}>{metric.growth}</span>}
-                  <span className="civic-value cw-block cw-text-4xl cw-font-semibold cw-tabular-nums cw-tracking-tight" id={`civic-value-${metric.id}`}>{metric.value}{metric.unit && <span className="civic-unit cw-ml-1 cw-text-lg cw-font-normal cw-opacity-80">{metric.unit}</span>}</span>
-                  {metric.substat && <span className="civic-substat" id={`civic-substat-${metric.id}`}>{metric.substat}</span>}
-                </div>
-                <span className="civic-card-footer">
-                  <span className="civic-label cw-block cw-text-base cw-font-medium cw-leading-snug" id={`civic-label-${metric.id}`}>{metric.label}</span>
-                  <span className="civic-source cw-block cw-text-xs cw-opacity-75" id={`civic-source-${metric.id}`}>{metric.caption}</span>
+                <span className="civic-card-body">
+                  <span className="civic-card-top">
+                    <span className="civic-value" id={`civic-value-${metric.id}`}>{metric.value}{metric.unit && <span className="civic-unit">{metric.unit}</span>}</span>
+                    {metric.growth && <span className="civic-growth" id={`civic-growth-${metric.id}`}>{metric.growth}</span>}
+                  </span>
+                  <span className="civic-card-footer">
+                    <span className="civic-label" id={`civic-label-${metric.id}`}>{metric.label}</span>
+                    {metric.substat && <span className="civic-substat" id={`civic-substat-${metric.id}`}>{metric.substat}</span>}
+                    <span className="civic-source" id={`civic-source-${metric.id}`}>{metric.caption}</span>
+                  </span>
                 </span>
                 </button>
-                {selectedId === metric.id && <m.span aria-hidden="true" className="civic-selected cw-rounded-full cw-bg-black/25 cw-px-2.5 cw-py-1 cw-text-xs cw-text-white cw-backdrop-blur-md" layoutId="selectedBadge" transition={animate ? { type: 'spring', stiffness: 380, damping: 28 } : { duration: 0 }}>
+                {selectedId === metric.id && <m.span aria-hidden="true" className="civic-selected" layoutId="selectedBadge" transition={animate ? { type: 'spring', stiffness: 420, damping: 32 } : { duration: 0 }}>
                   Selected <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="m2.5 6 2.2 2.2L9.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </m.span>}
               </m.div>)}
@@ -139,7 +141,7 @@ export function CivicMetrics({ assetBase = 'assets' }: { assetBase?: string }) {
         </div>
       </LayoutGroup>
 
-      <p className="civic-credit cw-mt-6 cw-text-xs cw-text-zinc-500">Source: City government and agency figures, 2023–2024.</p>
+      <p className="civic-credit">Source: City government and agency figures, 2023–2024.</p>
       <p className="civic-announcement" role="status" aria-live="polite" aria-atomic="true" data-civic-announcement />
     </section>
   </LazyMotion>;
