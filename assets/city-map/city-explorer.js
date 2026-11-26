@@ -760,6 +760,10 @@
       recordStamp(lm.id);
     }
   });
+  window.addEventListener('locus:beacon-point', e => {
+    const pt = e.detail;
+    if (pt && Number.isFinite(pt.lng) && Number.isFinite(pt.lat)) pulseBeaconAt(pt, 3600);
+  });
   window.addEventListener('locus:lighting-changed', e => {
     if (e.detail?.mode) {
       state.lighting = e.detail.mode;

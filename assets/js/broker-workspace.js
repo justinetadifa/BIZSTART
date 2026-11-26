@@ -273,7 +273,17 @@ function renderStats() {
 function score(property, key) {
   const value = property[`${key}Score`];
   const rank = property[`${key}Rank`];
-  return `<span class="broker-score-pill" title="${key === 'mce' ? 'Multi-Criteria Evaluation' : 'Investment Attractiveness Index'}">${key.toUpperCase()} <strong>${value === null || value === undefined ? 'Pending' : `${number(value)}/100`}</strong>${rank ? ` · #${number(rank)}` : ''}</span>`;
+  const hasVal = value !== null && value !== undefined && Number.isFinite(Number(value));
+  const frac = hasVal ? Math.max(0, Math.min(1, Number(value) / 100)) : 0;
+  const svg = typeof window !== 'undefined' && window.LocusScoreGauge
+    ? window.LocusScoreGauge.buildSvgMarkup(frac)
+    : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>';
+  return `<span class="broker-score-pill broker-score-arch-item" title="${key === 'mce' ? 'Multi-Criteria Evaluation' : 'Investment Attractiveness Index'}">
+    <span class="locus-seg-gauge is-micro" data-score-arch data-score-fraction="${frac}" style="--score-fraction:${frac}" data-pending="${!hasVal}">
+      <span class="locus-seg-arch-stage">${svg}<span class="locus-seg-center"><strong class="locus-seg-center-val">${hasVal ? `<span data-score-count>${number(value)}</span>` : '—'}</strong></span></span>
+      <span class="locus-seg-meta"><span class="locus-seg-label">${key.toUpperCase()}${rank ? ` · #${number(rank)}` : ''}</span></span>
+    </span>
+  </span>`;
 }
 
 function renderListings() {

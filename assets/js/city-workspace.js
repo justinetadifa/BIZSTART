@@ -282,16 +282,15 @@ function card(property, index) {
         <div class="locus-card-drawer-inner tw-min-h-0 tw-min-w-0">
           <div class="tw-p-3 tw-pt-2 tw-bg-white">
             <!-- 4-Column Horizontal Metric Strip -->
-            <div data-investor-advanced class="tw-bg-slate-50/90 tw-rounded-xl tw-py-2 tw-px-1 tw-border tw-border-slate-100 tw-grid tw-grid-cols-4 tw-divide-x tw-divide-slate-200/60 tw-text-center">
+            <div data-investor-advanced class="tw-bg-slate-50/90 tw-rounded-xl tw-py-2 tw-px-1 tw-border tw-border-slate-100 tw-grid tw-grid-cols-4 tw-divide-x tw-divide-slate-200/60 tw-text-center tw-items-center">
               <!-- MCE -->
               <div class="tw-px-1">
                 <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">MCE</span>
                 <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-text-slate-700 tw-mt-0.5">${esc(mceVal)}</span>
               </div>
               <!-- IAI -->
-              <div class="tw-px-1">
-                <span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">IAI</span>
-                <span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-text-slate-700 tw-mt-0.5">${esc(iaiVal)}</span>
+              <div class="tw-px-1 city-card-arch-box">
+                ${assessment.index !== null ? `<div class="locus-seg-gauge is-micro" data-score-arch data-score-fraction="${Math.max(0, Math.min(1, Number(assessment.index) / 100))}" style="--score-fraction:${Math.max(0, Math.min(1, Number(assessment.index) / 100))}" data-pending="false"><div class="locus-seg-arch-stage">${typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge ? globalThis.LocusScoreGauge.buildSvgMarkup(Number(assessment.index) / 100) : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>'}<div class="locus-seg-center"><strong class="locus-seg-center-val"><span data-score-count>${number(assessment.index)}</span></strong></div></div><div class="locus-seg-meta"><span class="locus-seg-label">${assessment.provisional ? 'Provisional · IAI' : 'IAI'}</span></div></div>` : `<div><span class="tw-block tw-text-[10px] tw-font-bold tw-text-slate-400 tw-uppercase">IAI</span><span class="tw-block tw-text-[11px] sm:tw-text-xs tw-font-bold tw-text-slate-700 tw-mt-0.5">${esc(iaiVal)}</span></div>`}
               </div>
               <!-- CLUP -->
               <div class="tw-px-0.5">
@@ -469,14 +468,14 @@ function card(property, index) {
             </div>
 
             <!-- IAI -->
-            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-start tw-gap-2.5 tw-border tw-border-slate-100/90">
-              <svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <div class="tw-bg-slate-50 tw-rounded-xl tw-p-2.5 tw-flex tw-items-center tw-justify-center tw-gap-2 tw-border tw-border-slate-100/90">
+              ${assessment.index !== null ? `<div class="locus-seg-gauge is-micro" data-score-arch data-score-fraction="${Math.max(0, Math.min(1, Number(assessment.index) / 100))}" style="--score-fraction:${Math.max(0, Math.min(1, Number(assessment.index) / 100))}" data-pending="false"><div class="locus-seg-arch-stage">${typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge ? globalThis.LocusScoreGauge.buildSvgMarkup(Number(assessment.index) / 100) : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>'}<div class="locus-seg-center"><strong class="locus-seg-center-val"><span data-score-count>${number(assessment.index)}</span><small>/100</small></strong></div></div><div class="locus-seg-meta"><span class="locus-seg-label">${assessment.provisional ? 'Provisional · IAI' : 'IAI'}</span></div></div>` : `<svg class="tw-w-4 tw-h-4 tw-text-slate-500 tw-flex-shrink-0 tw-mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
               <div class="tw-min-w-0">
                 <span class="tw-block tw-text-xs tw-font-bold tw-text-slate-800">IAI</span>
                 <span class="tw-block tw-text-[11px] tw-text-slate-400 tw-font-medium tw-truncate">${esc(iaiVal)}</span>
-              </div>
+              </div>`}
             </div>
 
             <!-- CLUP Compatibility -->
@@ -714,14 +713,20 @@ function priorityListCard(property, idx) {
     <div class="tw-flex tw-flex-wrap sm:tw-flex-nowrap xl:tw-flex-col tw-items-stretch sm:tw-items-center xl:tw-items-end tw-justify-between xl:tw-justify-center tw-gap-3 sm:tw-gap-4 tw-shrink-0 tw-pt-3 xl:tw-pt-0 tw-border-t xl:tw-border-t-0 tw-border-slate-100 tw-w-full xl:tw-w-auto">
       
       <!-- Use the same IAI calculation and release decision as property details. -->
-      <div class="tw-w-full sm:tw-w-52 xl:tw-w-56 tw-py-2.5 tw-px-3 tw-rounded-[22px] ${hasScore ? 'tw-bg-gradient-to-br tw-from-[#FFFDF7] tw-via-white tw-to-[#FFF7ED] tw-border tw-border-orange-200/90' : 'tw-bg-slate-50/90 tw-border tw-border-slate-200/80'} tw-shrink-0" data-listing-assessment>
-        <div class="tw-text-center tw-py-1">
-          <span class="tw-block tw-text-[10.5px] tw-font-bold tw-text-slate-600 tw-tracking-wider tw-uppercase">${esc(assessment.provisional ? 'Provisional IAI' : isAssessed ? 'IAI composite' : 'IAI assessment')}</span>
-          ${hasScore ? `<strong class="tw-block tw-text-xl sm:tw-text-[22px] tw-font-black tw-text-slate-900 tw-leading-tight tw-mt-1 tw-tabular-nums">${number(assessment.index)} <small class="tw-text-xs tw-font-medium tw-text-slate-400">/ 100</small></strong>` : ''}
-          <span class="tw-block tw-text-[11px] tw-font-semibold tw-text-slate-700 tw-mt-1">${esc(assessment.state)}</span>
-          <span class="tw-block tw-text-[10px] tw-text-slate-500 tw-mt-1 tw-leading-tight">${esc(assessment.detail)}</span>
-          <span class="tw-block tw-text-[9.5px] tw-text-slate-400 tw-mt-1">${esc(assessment.progress)} · MCE methodology</span>
+      <div class="tw-w-full sm:tw-w-52 xl:tw-w-56 priority-score-box ${hasScore ? '' : 'is-pending'} tw-shrink-0" data-listing-assessment>
+        <div class="locus-seg-gauge is-sm" data-score-arch data-score-fraction="${hasScore ? Math.max(0, Math.min(1, Number(assessment.index) / 100)) : 0}" style="--score-fraction:${hasScore ? Math.max(0, Math.min(1, Number(assessment.index) / 100)) : 0}" data-pending="${!hasScore}">
+          <div class="locus-seg-arch-stage">
+            ${typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge ? globalThis.LocusScoreGauge.buildSvgMarkup(hasScore ? Number(assessment.index) / 100 : 0) : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>'}
+            <div class="locus-seg-center">
+              <strong class="locus-seg-center-val">${hasScore ? `<span data-score-count>${number(assessment.index)}</span><small>/100</small>` : '&mdash;'}</strong>
+            </div>
+          </div>
+          <div class="locus-seg-meta">
+            <span class="locus-seg-label">${esc(assessment.provisional ? 'Provisional IAI' : isAssessed ? 'IAI composite' : 'IAI assessment')}</span>
+            <span class="locus-seg-pill">${esc(assessment.state)}</span>
+          </div>
         </div>
+        <span class="priority-score-meta-note">${esc(assessment.progress)} · MCE methodology</span>
       </div>
 
       <!-- Action Buttons -->
@@ -897,6 +902,7 @@ function renderRanking() {
   }
   if (advancedView()) root.insertAdjacentHTML('beforeend', `<p class="city-assessment-note">${rankKey ? `${esc(rankKey.toUpperCase())} ranks apply only within the same protocol, weights, dataset versions and proposed activity. Different comparison groups are ordered separately; no cross-group rank is assigned.` : 'This listing order is based on the selected sort, not an assessment rank.'} Provisional calculations remain unranked. Missing scores sort last for assessment order.</p>`);
   window.SFCInvestorView?.refresh(root);
+  window.LocusScoreGauge?.pulseAndReveal(root, 200);
 
   const methodNote = document.getElementById('cityAssessmentMethod');
   if (methodNote) methodNote.textContent = properties.find(p => p.assessmentMethod)?.assessmentMethod || 'All required criteria must be assessed before a score or rank is shown.';
@@ -954,8 +960,14 @@ function renderCompare() {
     const purposeLabel = property.listingPurpose === 'lease' ? 'FOR LEASE' : 'FOR SALE';
     const brokerName = property.brokerContact?.name || property.sellerName || 'City Investment Desk';
     const brokerPhone = property.brokerContact?.phone || property.phone || '+63 72 682 9100';
+    const compareFrac = presentation.index !== null
+      ? Math.max(0, Math.min(1, Number(presentation.index) / 100))
+      : (calculation.rows.length ? calculation.completedCount / calculation.rows.length : 0);
+    const compareArchSvg = typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge
+      ? globalThis.LocusScoreGauge.buildSvgMarkup(compareFrac)
+      : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>';
 
-    return `<article class="city-compare-column"><div class="city-compare-media"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy"><span class="city-compare-badge">${esc(purposeLabel)}</span><button type="button" class="city-compare-remove-icon" data-compare="${property.id}" aria-label="Remove ${esc(property.name)} from comparison" title="Remove from comparison">×</button></div><div class="city-compare-body"><div class="city-compare-header"><span class="city-compare-kicker">${esc(property.subcategory || property.category || 'Commercial')}</span><h3 class="city-compare-title"><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3></div><dl class="city-compare-specs">${rows(facts)}${rows(assessments, true)}</dl></div><div class="city-compare-footer"><div class="city-compare-contact-panel"><div class="city-compare-contact-meta"><span class="city-compare-contact-label">Contact person:</span><strong class="city-compare-contact-name">${esc(brokerName)}</strong></div><a class="city-compare-contact-phone" href="tel:${esc(brokerPhone.replace(/[^0-9+]/g, ''))}">${esc(brokerPhone)}</a></div><div class="city-card-actions"><a class="city-button city-button-primary city-compare-cta" href="${path(`property-details.php?id=${property.id}#propertyLocationSection`)}">View map & contact</a><button type="button" class="city-compare-btn-remove" data-compare="${property.id}">Remove</button></div></div></article>`;
+    return `<article class="city-compare-column"><div class="city-compare-media"><img src="${esc(imageUrl(property))}" alt="${esc(property.name)}" loading="lazy"><span class="city-compare-badge">${esc(purposeLabel)}</span><button type="button" class="city-compare-remove-icon" data-compare="${property.id}" aria-label="Remove ${esc(property.name)} from comparison" title="Remove from comparison">×</button></div><div class="city-compare-body"><div class="city-compare-header"><span class="city-compare-kicker">${esc(property.subcategory || property.category || 'Commercial')}</span><h3 class="city-compare-title"><a href="${path(`property-details.php?id=${property.id}`)}">${esc(property.name)}</a></h3></div><div class="city-compare-arch-wrap" data-investor-advanced><div class="locus-seg-gauge is-sm" data-score-arch data-score-fraction="${compareFrac}" style="--score-fraction:${compareFrac}" data-pending="${presentation.index === null}"><div class="locus-seg-arch-stage">${compareArchSvg}<div class="locus-seg-center"><strong class="locus-seg-center-val">${presentation.index !== null ? `<span data-score-count>${number(presentation.index)}</span><small>/100</small>` : `${calculation.completedCount}/${calculation.rows.length}`}</strong></div></div><div class="locus-seg-meta"><span class="locus-seg-label">${esc(presentation.indexLabel)}</span><span class="locus-seg-pill">${esc(presentation.state)}</span></div></div></div><dl class="city-compare-specs">${rows(facts)}${rows(assessments, true)}</dl></div><div class="city-compare-footer"><div class="city-compare-contact-panel"><div class="city-compare-contact-meta"><span class="city-compare-contact-label">Contact person:</span><strong class="city-compare-contact-name">${esc(brokerName)}</strong></div><a class="city-compare-contact-phone" href="tel:${esc(brokerPhone.replace(/[^0-9+]/g, ''))}">${esc(brokerPhone)}</a></div><div class="city-card-actions"><a class="city-button city-button-primary city-compare-cta" href="${path(`property-details.php?id=${property.id}#propertyLocationSection`)}">View map & contact</a><button type="button" class="city-compare-btn-remove" data-compare="${property.id}">Remove</button></div></div></article>`;
   }).join('');
 
   const emptySlotsCount = Math.max(0, 3 - selected.length);
@@ -1286,12 +1298,17 @@ function createPopupContent(property) {
           <strong>Hazards & environment:</strong> ${esc(propertyHazardSummary(property))}
         </div>
         ${advancedView() && iaiVal != null ? `
-          <div class="locus-popup-metrics" data-investor-advanced>
-            <div class="locus-metric-row">
-              <span class="locus-metric-label"><i class="pin-dot ${tier.class}"></i> IAI Attractiveness</span>
-              <strong class="locus-metric-value">${iaiVal}<small>/100</small></strong>
+          <div class="locus-popup-metrics locus-popup-arch-row" data-investor-advanced>
+            <div class="locus-seg-gauge is-micro" data-score-arch data-score-fraction="${Math.max(0, Math.min(1, iaiVal / 100))}" style="--score-fraction:${Math.max(0, Math.min(1, iaiVal / 100))}">
+              <div class="locus-seg-arch-stage">
+                ${typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge ? globalThis.LocusScoreGauge.buildSvgMarkup(iaiVal / 100) : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>'}
+                <div class="locus-seg-center"><strong class="locus-seg-center-val"><span data-score-count>${iaiVal}</span></strong></div>
+              </div>
             </div>
-            <div class="locus-metric-bar"><div class="locus-metric-fill ${tier.class}" style="width:${Math.min(iaiVal, 100)}%"></div></div>
+            <div class="locus-popup-arch-copy">
+              <strong>IAI Attractiveness</strong>
+              <span>${iaiVal}/100 · MCE score</span>
+            </div>
           </div>
         ` : ''}
         <div class="locus-popup-footer">
@@ -1949,71 +1966,10 @@ async function renderDetails() {
   const printState = setupPropertyDetailsPrint(root, property);
 
   filtered = [property];
-  setupMap();
-  if (map && property.parcel?.boundary && window.L) {
-    const boundary = L.geoJSON(property.parcel.boundary, { style: { color: '#9e1b22', weight: 2, fillColor: '#9e1b22', fillOpacity: 0.1 } }).addTo(map);
-    if (boundary.getBounds().isValid()) map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
-  }
+  const detail3DMap = mountDetail3DMap(root, property);
   setupInvestmentEvaluation(property, config.policy || {});
   initBusinessOpportunities(root, property);
   setupInvestorScenario(root, property);
-
-  // Add nearby business markers to map if map is initialized
-  if (map && window.L && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length) {
-    const bizGroup = L.layerGroup();
-    property.nearbyBusinesses.forEach(biz => {
-      if (!hasCoordinates(biz)) return;
-      const isAnchor = biz.classification === 'commercial_anchor' || biz.isAnchor || biz.categoryKey === 'mall' || biz.categoryKey === 'shopping_mall';
-      if (biz.footprint && typeof L.geoJSON === 'function') {
-        const polyLayer = L.geoJSON(biz.footprint, {
-          style: {
-            color: isAnchor ? '#7c3aed' : '#2563eb',
-            weight: 2,
-            dashArray: '4 4',
-            fillColor: isAnchor ? '#a78bfa' : '#60a5fa',
-            fillOpacity: 0.2
-          }
-        });
-        bizGroup.addLayer(polyLayer);
-      }
-      const marker = L.circleMarker([biz.lat, biz.lng], {
-        radius: isAnchor ? 8 : 6,
-        color: isAnchor ? '#7c3aed' : '#ffffff',
-        weight: isAnchor ? 2.5 : 2,
-        fillColor: isAnchor ? '#8b5cf6' : (biz.categoryColor === 'amber' ? '#f59e0b' : (biz.categoryColor === 'blue' ? '#2563eb' : (biz.categoryColor === 'emerald' ? '#10b981' : (biz.categoryColor === 'purple' ? '#9333ea' : '#475569')))),
-        fillOpacity: 0.95
-      });
-      const badgeHtml = isAnchor
-        ? '<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#f3e8ff;color:#6b21a8;padding:2px 6px;border-radius:4px;display:inline-block;">Commercial Activity Anchor</span></div>'
-        : (biz.classification === 'competitor'
-          ? '<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#ffe4e6;color:#9f1239;padding:2px 6px;border-radius:4px;display:inline-block;">Direct Competitor</span></div>'
-          : (biz.classificationLabel ? `<div style="margin-bottom:4px;"><span style="font-size:9.5px;font-weight:700;background:#f1f5f9;color:#334155;padding:2px 6px;border-radius:4px;display:inline-block;">${esc(biz.classificationLabel)}</span></div>` : ''));
-      marker.bindPopup(`
-        <div class="city-popup" style="font-family:sans-serif;min-width:180px;">
-          ${badgeHtml}
-          <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(biz.name)}</strong>
-          <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(biz.category)}</span>
-          <span style="font-size:10px;font-weight:700;background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#334155;">${esc(biz.distanceFormatted)} &middot; ${esc(biz.walkingFormatted || '')}</span>
-          <div style="margin-top:4px;font-size:9.5px;color:#64748b;">Source: ${esc(biz.source || 'Verified Directory')}</div>
-          <div style="margin-top:6px;">
-            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${biz.lat},${biz.lng}`)}" target="_blank" rel="noopener" style="font-size:10.5px;color:#2563eb;text-decoration:none;font-weight:600;">Open in Google Maps &nearr;</a>
-          </div>
-        </div>
-      `);
-      marker.on('click', () => {
-        map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
-          animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
-          duration: 1.0,
-          easeLinearity: 0.25
-        });
-        marker.openPopup();
-      });
-      biz._marker = marker;
-      bizGroup.addLayer(marker);
-    });
-    detailsBusinessLayer = bizGroup;
-    if (advancedView()) bizGroup.addTo(map);
-  }
 
   // Wire Print buttons
   root.querySelectorAll('.city-print-trigger-btn').forEach(btn => {
@@ -2023,7 +1979,7 @@ async function renderDetails() {
     });
   });
 
-  // Wire Map Locate buttons
+  // Wire Map Locate buttons to our interactive 3D city map
   root.querySelectorAll('[data-locate-biz]').forEach(btn => {
     btn.addEventListener('click', () => {
       const tabMapBtn = root.querySelector('#tabMapBtn');
@@ -2032,18 +1988,19 @@ async function renderDetails() {
       }
       const idx = Number(btn.dataset.locateBiz);
       const biz = property.nearbyBusinesses?.[idx];
-      if (map && hasCoordinates(biz)) {
+      if (hasCoordinates(biz)) {
         setTimeout(() => {
-          map.flyTo([biz.lat, biz.lng], Math.max(map.getZoom(), 16), {
-            animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
-            duration: 1.0,
-            easeLinearity: 0.25
+          detail3DMap?.flyToPoint({
+            lat: Number(biz.lat),
+            lng: Number(biz.lng),
+            name: biz.name,
+            category: biz.category,
+            distance: [biz.distanceFormatted, biz.walkingFormatted].filter(Boolean).join(' · '),
+            kicker: biz.isAnchor ? 'Commercial activity anchor' : 'Nearby business',
+            kind: 'business'
           });
-          if (biz._marker) {
-            biz._marker.openPopup();
-          }
-          document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
-        }, 150);
+          document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 140);
       }
     });
   });
@@ -2082,6 +2039,7 @@ async function renderDetails() {
         evidenceDisclosure.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else if (tab === 'v2' && v2Panel) {
         v2Panel.scrollIntoView({ behavior: 'auto', block: 'start' });
+        window.LocusScoreGauge?.pulseAndReveal(v2Panel, 240);
       } else if (tab === 'overview') {
         assessmentSec.scrollIntoView({ behavior: 'auto', block: 'start' });
       }
@@ -2096,6 +2054,7 @@ async function renderDetails() {
       const heading = assessmentSec.querySelector('#propertyAssessmentTitle');
       heading?.focus({ preventScroll: true });
       assessmentSec.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+      window.LocusScoreGauge?.pulseAndReveal(assessmentSec, 220);
     });
 
     assessmentSec.querySelectorAll('[data-open-calculation]').forEach(btn => {
@@ -2103,11 +2062,11 @@ async function renderDetails() {
     });
   }
 
-  setupMediaDock(root, map, property);
-  setupTransportationInteractions(root, property, map);
+  setupMediaDock(root, detail3DMap, property);
+  setupTransportationInteractions(root, property, detail3DMap);
   setupLocalMarketIntelligence(root, property);
   setupPriceScoreExplanation(root);
-  setupClimateRiskInteractions(root, property, map);
+  setupClimateRiskInteractions(root, property, detail3DMap);
 
   function revealLinkedPanel() {
     const legacyPanels = {
@@ -2133,7 +2092,132 @@ async function renderDetails() {
   window.addEventListener('hashchange', revealLinkedPanel);
 }
 
-function setupMediaDock(root, map, property) {
+function mountDetail3DMap(root, property) {
+  const host = root.querySelector('#cityPropertyMap');
+  if (!host || !hasCoordinates(property)) return null;
+  const lat = Number(property.lat);
+  const lng = Number(property.lng);
+  const viewport = root.querySelector('[data-detail-3d-map-viewport]');
+  const expandBtn = root.querySelector('[data-detail-3d-expand]');
+  const statusEl = root.querySelector('[data-site-map-status]');
+  const origin = window.location.origin;
+
+  const src = path(`city-map-embed.php?embed=1&mode=property&propertyId=${encodeURIComponent(property.id)}&lat=${encodeURIComponent(lat.toFixed(6))}&lng=${encodeURIComponent(lng.toFixed(6))}`);
+  const iframe = document.createElement('iframe');
+  iframe.className = 'locus-3d-detail-map-frame';
+  iframe.src = src;
+  iframe.title = `Interactive 3D San Fernando map for ${property.name || 'Property'}`;
+  iframe.allowFullscreen = true;
+  host.replaceChildren(iframe);
+
+  let ready = false;
+  let expanded = false;
+  const queue = [];
+
+  const areaSqm = Number(property.parcel?.surveyAreaSqm) > 0
+    ? Number(property.parcel.surveyAreaSqm)
+    : (Number(property.area) > 0 ? Math.round(Number(property.area) * 10000) : null);
+  const subjectPayload = {
+    id: property.id,
+    name: property.name,
+    latitude: lat,
+    longitude: lng,
+    boundary: property.parcel?.boundary || null,
+    barangay: property.barangay || null,
+    city: property.city || 'San Fernando, La Union',
+    area_sqm: areaSqm,
+    status: property.status || 'Available',
+    purpose: property.listingPurpose || 'sale',
+    price_text: listingPriceLabel(property),
+    approximate: propertyLocationLabel(property) === 'Approximate location',
+    source: 'LOCUS-SF'
+  };
+
+  function post(message) {
+    if (!iframe.contentWindow) return;
+    if (!ready) {
+      queue.push(message);
+      return;
+    }
+    iframe.contentWindow.postMessage(message, origin);
+  }
+
+  function flushQueue() {
+    while (queue.length && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(queue.shift(), origin);
+    }
+  }
+
+  function setExpanded(next) {
+    if (!viewport || expanded === next) return;
+    expanded = next;
+    try { viewport.close(); } catch {}
+    if (expanded) {
+      viewport.classList.add('is-expanded');
+      if (typeof viewport.showModal === 'function') viewport.showModal();
+      else viewport.setAttribute('open', '');
+    } else {
+      viewport.classList.remove('is-expanded');
+      if (typeof viewport.show === 'function') viewport.show();
+      else viewport.setAttribute('open', '');
+    }
+    post({ type: 'locus:city-map-expanded', expanded });
+    setTimeout(() => post({ type: 'locus:resize' }), 140);
+  }
+
+  const onMessage = event => {
+    if (event.origin !== origin || event.source !== iframe.contentWindow) return;
+    const type = event.data?.type;
+    if (type === 'locus:city-map-ready') {
+      ready = true;
+      if (statusEl) statusEl.textContent = '';
+      iframe.contentWindow.postMessage({ type: 'locus:city-map-visibility', visible: true }, origin);
+      iframe.contentWindow.postMessage({ type: 'locus:focus-property', property: subjectPayload }, origin);
+      flushQueue();
+    } else if (type === 'locus:city-map-expand') {
+      setExpanded(true);
+    } else if (type === 'locus:city-map-collapse') {
+      setExpanded(false);
+    } else if (type === 'locus:flood-layer-state') {
+      const btn = root.querySelector('[data-toggle-flood-overlay]');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = event.data.error
+          ? 'Overlay unavailable'
+          : (event.data.active ? 'Hide flood layer \u2715' : 'View recorded flood layer \u2197');
+      }
+    }
+  };
+  window.addEventListener('message', onMessage);
+  expandBtn?.addEventListener('click', () => setExpanded(true));
+  viewport?.addEventListener('cancel', event => {
+    event.preventDefault();
+    setExpanded(false);
+  });
+
+  if (statusEl) statusEl.textContent = 'Loading 3D San Fernando map\u2026';
+  iframe.addEventListener('load', () => {
+    setTimeout(() => {
+      if (!ready && iframe.contentWindow) {
+        ready = true;
+        if (statusEl) statusEl.textContent = '';
+        iframe.contentWindow.postMessage({ type: 'locus:city-map-visibility', visible: true }, origin);
+        iframe.contentWindow.postMessage({ type: 'locus:focus-property', property: subjectPayload }, origin);
+        flushQueue();
+      }
+    }, 900);
+  });
+
+  return {
+    resize: () => post({ type: 'locus:resize' }),
+    focusSubject: () => post({ type: 'locus:focus-property', property: subjectPayload }),
+    flyToPoint: payload => post({ type: 'locus:fly-to-point', ...payload }),
+    toggleFloodLayer: () => post({ type: 'locus:toggle-flood-layer' }),
+    setExpanded,
+  };
+}
+
+function setupMediaDock(root, detailMap, property) {
   const tabBtns = Array.from(root.querySelectorAll('[data-media-tab]'));
   const tabPanes = root.querySelectorAll('[data-media-pane]');
   if (!tabBtns.length) return;
@@ -2163,34 +2247,22 @@ function setupMediaDock(root, map, property) {
           pane.setAttribute('hidden', '');
         }
       });
-      if (target === 'map' && map) {
+      if (target === 'map' && detailMap) {
         setTimeout(() => {
-          map.invalidateSize();
-          if (property?.parcel?.boundary && window.L) {
-            try {
-              const boundary = L.geoJSON(property.parcel.boundary);
-              if (boundary.getBounds().isValid()) {
-                map.fitBounds(boundary.getBounds(), { padding: [28, 28], maxZoom: 18 });
-              }
-            } catch (_) {}
-          } else if (property?.lat && property?.lng) {
-            const pLat = Number(property.lat), pLng = Number(property.lng);
-            if (Number.isFinite(pLat) && Number.isFinite(pLng)) {
-              map.setView([pLat, pLng], Math.max(map.getZoom(), 15));
-            }
-          }
+          if (typeof detailMap.resize === 'function') detailMap.resize();
+          else if (typeof detailMap.invalidateSize === 'function') detailMap.invalidateSize();
         }, 120);
       }
     });
   });
 }
 
-function setupTransportationInteractions(root, property, map) {
+function setupTransportationInteractions(root, property, detailMap) {
   const termBtn = root.querySelector('[data-terminal-view-map]');
   if (!termBtn) return;
   termBtn.addEventListener('click', () => {
     const term = property.transportationAccessibility?.nearest_terminal;
-    if (!term || !map) return;
+    if (!term || !detailMap) return;
     const tabMapBtn = root.querySelector('#tabMapBtn');
     if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
       tabMapBtn.click();
@@ -2198,87 +2270,38 @@ function setupTransportationInteractions(root, property, map) {
     const tLat = Number(term.lat);
     const tLng = Number(term.lng);
     if (Number.isFinite(tLat) && Number.isFinite(tLng)) {
-      map.flyTo([tLat, tLng], 17, {
-        animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
-        duration: 1.2
-      });
-      if (window.L) {
-        L.popup()
-          .setLatLng([tLat, tLng])
-          .setContent(`
-            <div class="city-popup" style="font-family:sans-serif;min-width:180px;">
-              <span style="font-size:9.5px;font-weight:700;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">NEAREST PUBLIC TRANSIT</span>
-              <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(term.name)}</strong>
-              <span style="font-size:11px;color:#64748b;display:block;margin-bottom:4px;">${esc(term.type)} &middot; ${esc(term.distance_formatted)}</span>
-              <a href="https://www.google.com/maps/search/?api=1&query=${tLat},${tLng}" target="_blank" rel="noopener" style="font-size:10.5px;color:#2563eb;text-decoration:none;font-weight:600;">Open in Google Maps &nearr;</a>
-            </div>
-          `)
-          .openOn(map);
+      if (typeof detailMap.flyToPoint === 'function') {
+        setTimeout(() => {
+          detailMap.flyToPoint({
+            lat: tLat,
+            lng: tLng,
+            name: term.name,
+            category: term.type,
+            distance: term.distance_formatted || '',
+            kicker: 'Nearest public transit',
+            kind: 'terminal'
+          });
+        }, 120);
       }
-      document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
+      document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 }
 
-let floodOverlayLayer = null;
-function setupClimateRiskInteractions(root, property, map) {
+function setupClimateRiskInteractions(root, property, detailMap) {
   const toggleBtn = root.querySelector('[data-toggle-flood-overlay]');
   if (!toggleBtn) return;
 
-  toggleBtn.addEventListener('click', async () => {
-    if (!map || !window.L) return;
+  toggleBtn.addEventListener('click', () => {
+    if (!detailMap || typeof detailMap.toggleFloodLayer !== 'function') return;
     const tabMapBtn = root.querySelector('#tabMapBtn');
     if (tabMapBtn && !tabMapBtn.classList.contains('is-active')) {
       tabMapBtn.click();
     }
-    document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'auto', block: 'center' });
-
-    if (floodOverlayLayer) {
-      if (map.hasLayer(floodOverlayLayer)) {
-        map.removeLayer(floodOverlayLayer);
-        toggleBtn.textContent = 'View recorded flood layer ↗';
-      } else {
-        map.addLayer(floodOverlayLayer);
-        toggleBtn.textContent = 'Hide flood layer ✕';
-      }
-      return;
-    }
-
-    try {
-      toggleBtn.disabled = true;
-      toggleBtn.textContent = 'Loading overlay...';
-      const res = await fetch(path('data/assessment/hazards.geojson'));
-      if (!res.ok) throw new Error('Hazard geojson unavailable');
-      const geo = await res.json();
-      floodOverlayLayer = L.geoJSON(geo, {
-        filter: feat => feat.properties?.hazard_type === 'flood' || feat.properties?.type === 'flood',
-        style: {
-          color: '#0284c7',
-          weight: 2,
-          fillColor: '#38bdf8',
-          fillOpacity: 0.35,
-          dashArray: '3 3'
-        },
-        onEachFeature: (feature, layer) => {
-          const p = feature.properties || {};
-          layer.bindPopup(`
-            <div class="city-popup" style="font-family:sans-serif;min-width:200px;">
-              <span style="font-size:9.5px;font-weight:700;background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;">RECORDED FLOOD LAYER</span>
-              <strong style="font-size:12px;display:block;margin-bottom:2px;color:#0f172a;">${esc(p.name || 'Flood Hazard Zone')}</strong>
-              <p style="font-size:11px;color:#475569;margin:4px 0;">${esc(p.description || 'Monsoon inundation risk')}</p>
-              <div style="font-size:9.5px;color:#64748b;">Source: ${esc(p.source || 'Source not recorded')}</div>
-            </div>
-          `);
-        }
-      });
-      floodOverlayLayer.addTo(map);
-      toggleBtn.textContent = 'Hide flood layer ✕';
-    } catch (err) {
-      console.warn('Could not load flood overlay:', err);
-      toggleBtn.textContent = 'Overlay unavailable';
-    } finally {
-      toggleBtn.disabled = false;
-    }
+    document.getElementById('cityPropertyMap')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toggleBtn.disabled = true;
+    toggleBtn.textContent = 'Updating flood layer\u2026';
+    detailMap.toggleFloodLayer();
   });
 }
 

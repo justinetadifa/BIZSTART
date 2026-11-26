@@ -16,24 +16,28 @@
     background: #e7ece8 !important;
   }
   body[data-page="city-details"] .locus-map-backdrop { display: none; }
+  body[data-page="city-details"] .city-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
   body[data-page="city-details"] main.city-workspace.property-desk {
     width: min(calc(100% - 2.5rem), 82rem) !important; max-width: none !important;
-    padding: 0 !important; margin: .9rem auto 3rem !important;
+    padding: 0 !important; margin: .35rem auto 3rem !important;
     border: 0; border-radius: 0; background: transparent; box-shadow: none;
   }
   .listing-topbar, .listing-dashboard { background: var(--desk-shell); }
   .listing-topbar {
-    display: grid; grid-template-columns: var(--desk-rail) minmax(0, 1fr) auto; align-items: center;
-    min-height: 3rem; padding: .25rem .7rem .25rem 0; border-radius: var(--desk-radius) var(--desk-radius) 0 0;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem;
+    min-height: 2.85rem; padding: .35rem .85rem .35rem var(--desk-rail); border-radius: var(--desk-radius) var(--desk-radius) 0 0;
     border-bottom: 1px solid var(--desk-rule);
     position: relative; z-index: 5; color: var(--pe-ink); box-sizing: border-box;
   }
-  .listing-brand { justify-self: center; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; }
-  .listing-brand img { width: 2.35rem; height: 2.35rem; object-fit: contain; }
-  .listing-tabs, .listing-topbar-tools { display: flex; align-items: center; gap: .2rem; min-width: 0; }
-  .listing-tabs > :is(a, span) {
-    display: inline-flex; align-items: center; padding: .48rem .8rem; min-height: 2.15rem; box-sizing: border-box;
-    border-radius: .4rem; color: #40564b; text-decoration: none; font-size: .83rem; line-height: 1.35;
+  .listing-tabs, .listing-topbar-tools { display: flex; align-items: center; gap: .3rem; min-width: 0; }
+  .listing-tabs-sep { color: #8c9f93; font-size: .8rem; user-select: none; }
+  .listing-tabs > :is(a, span:not(.listing-tabs-sep)) {
+    display: inline-flex; align-items: center; gap: .3rem; padding: .4rem .72rem; min-height: 2rem; box-sizing: border-box;
+    border-radius: .45rem; color: #40564b; text-decoration: none; font-size: .82rem; line-height: 1.35;
   }
   .listing-tabs > [aria-current] { background: #fff; color: #16271c; font-weight: 650; }
   .listing-tabs > a:hover { background: #dfe9e2; color: #16271c; }
@@ -160,11 +164,9 @@
   }
   @media (max-width: 700px) {
     body[data-page="city-details"] { background: var(--desk-shell) !important; }
-    body[data-page="city-details"] main.city-workspace.property-desk { width: 100% !important; margin-block: 0 2rem !important; }
-    .listing-topbar { padding: .45rem .65rem 0 .42rem; grid-template-columns: 2.55rem minmax(0,1fr) auto; }
-    .listing-brand { width: 2.5rem; }
-    .listing-brand img { width: 2rem; height: 2rem; }
-    .listing-tabs > :is(a, span) { font-size: .79rem; padding: .45rem .55rem; }
+    body[data-page="city-details"] main.city-workspace.property-desk { width: 100% !important; margin-block: .25rem 2rem !important; }
+    .listing-topbar { padding: .4rem .65rem; border-radius: 0; }
+    .listing-tabs > :is(a, span:not(.listing-tabs-sep)) { font-size: .79rem; padding: .38rem .55rem; }
     .listing-dashboard { grid-template: "header" auto "rail" auto "primary" auto "secondary" auto / minmax(0, 1fr); padding: 0 .62rem .62rem; box-shadow: none; }
     #cityPropertyDetails .listing-dashboard > .property-heading { flex-direction: column; align-items: stretch !important; padding: 1rem .25rem .35rem !important; }
     .listing-dashboard .listing-headline-facts { max-width: none; justify-content: start; gap: .65rem; }
@@ -176,15 +178,12 @@
     #cityPropertyDetails .listing-dashboard + .property-layout { margin: .6rem .62rem 0 !important; }
   }
   @media (max-width: 525px) {
-    .listing-topbar { row-gap: .35rem; }
-    .listing-topbar-tools { display: contents; }
-    .listing-topbar .investor-view-toolbar { grid-column: 1 / -1; grid-row: 2; justify-self: start; margin-left: .22rem !important; }
-    .listing-workspace-menu { grid-column: 3; grid-row: 1; }
+    .listing-topbar { gap: .4rem .6rem; }
     .listing-dashboard .listing-headline-facts > div { gap: .25rem .4rem; }
     .listing-dashboard .listing-headline-facts strong { font-size: clamp(1.15rem, 5.2vw, 1.5rem); }
   }
   @media (max-width: 365px) {
-    .listing-tabs > :is(a, span) { padding-inline: .4rem; font-size: .72rem; white-space: nowrap; }
+    .listing-tabs > :is(a, span:not(.listing-tabs-sep)) { padding-inline: .4rem; font-size: .72rem; white-space: nowrap; }
     .listing-dashboard .listing-rail { flex-wrap: nowrap; gap: .12rem; overflow-x: auto; }
     .listing-rail a { width: 2.5rem; height: 2.5rem; }
   }

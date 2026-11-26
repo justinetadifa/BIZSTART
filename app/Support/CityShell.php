@@ -75,6 +75,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-foundation.css<?= sfc_asset_version('css/locus-foundation.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-minimal.css<?= sfc_asset_version('css/city-minimal.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-navbar-ios.css<?= sfc_asset_version('css/city-navbar-ios.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/city-footer.css<?= sfc_asset_version('css/city-footer.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/workspace-polish.css<?= sfc_asset_version('css/workspace-polish.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-presentation.css<?= sfc_asset_version('css/locus-presentation.css') ?>">
   <?php if (in_array($page, ['city-account-welcome', 'investor-login', 'seller-login', 'admin-login'], true)): ?>
@@ -87,6 +88,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/help-center.css<?= sfc_asset_version('css/help-center.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/sound-system.css<?= sfc_asset_version('css/sound-system.css') ?>">
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-hud.css<?= sfc_asset_version('css/locus-hud.css') ?>">
+  <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-score-gauge.css<?= sfc_asset_version('css/locus-score-gauge.css') ?>">
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-discovery.css<?= sfc_asset_version('css/home-discovery.css') ?>"><?php endif; ?>
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-hero.css<?= sfc_asset_version('css/home-hero.css') ?>"><?php endif; ?>
   <link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/locus-motion.css<?= sfc_asset_version('css/locus-motion.css') ?>">
@@ -112,6 +114,7 @@ function sfc_render_head(string $title, array $context, array $bodyData = []): v
   <?php if ($page === 'city-landing'): ?><link rel="stylesheet" href="<?= $e($context['assetBase']) ?>/css/home-experience.css<?= sfc_asset_version('css/home-experience.css') ?>"><?php endif; ?>
   <script defer src="<?= $e($context['assetBase']) ?>/js/sound-manager.js<?= sfc_asset_version('js/sound-manager.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/locus-hud.js<?= sfc_asset_version('js/locus-hud.js') ?>"></script>
+  <script defer src="<?= $e($context['assetBase']) ?>/js/locus-score-gauge.js<?= sfc_asset_version('js/locus-score-gauge.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/password-visibility.js<?= sfc_asset_version('js/password-visibility.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/help-center.js<?= sfc_asset_version('js/help-center.js') ?>"></script>
   <script defer src="<?= $e($context['assetBase']) ?>/js/city-shell.js<?= sfc_asset_version('js/city-shell.js') ?>"></script>
@@ -197,25 +200,96 @@ function sfc_render_header(array $context, string $active = ''): void
 
 function sfc_render_footer(array $context): void
 {
+    $user = $context['user'] ?? null;
+    $role = $user['role'] ?? 'guest';
+    $home = sfc_navigation_home($role);
+    $year = date('Y');
     $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     ?>
-  <footer class="city-footer">
-    <div class="city-container city-footer-inner">
-      <div class="city-footer-brand">
-        <strong class="city-footer-logo">LOCUS-SF</strong>
-        <span class="city-footer-location">San Fernando, La Union</span>
+  <footer class="city-footer" role="contentinfo">
+    <div class="city-container city-footer-shell">
+      <div class="city-footer-grid">
+        <div class="city-footer-col city-footer-brand-col">
+          <div class="city-footer-brand-row">
+            <a class="city-footer-brand" href="<?= $e(sfc_path($home)) ?>">
+              <span class="city-footer-mark"><img src="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png" alt="LOCUS-SF" width="34" height="34" loading="lazy"></span>
+              <span class="city-footer-brand-text">
+                <strong class="city-footer-logo">LOCUS<span>-SF</span></strong>
+                <span class="city-footer-location">San Fernando, La Union</span>
+              </span>
+            </a>
+            <button type="button" class="city-footer-mobile-top" onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;" aria-label="Back to top">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+            </button>
+          </div>
+          <p class="city-footer-summary">Location intelligence and multi-criteria site evaluation for investments in the City of San Fernando, La Union.</p>
+          <p class="city-footer-partners">In collaboration with <strong>LEBDO</strong> &middot; <strong>City Assessor&rsquo;s Office</strong> &middot; <strong>CICTO</strong></p>
+        </div>
+
+        <div class="city-footer-col city-footer-acc-col">
+          <button type="button" class="city-footer-heading city-footer-acc-trigger" data-footer-acc-trigger aria-expanded="false" aria-controls="cityFooterExploreNav">
+            <span>Explore</span>
+            <svg class="city-footer-acc-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="city-footer-acc-panel" id="cityFooterExploreNav">
+            <nav class="city-footer-nav" aria-label="Explore LOCUS-SF">
+              <a href="<?= $e(sfc_path('/property-explorer.php')) ?>">Property explorer</a>
+              <a href="<?= $e(sfc_path('/property-ranking.php')) ?>">Priority board</a>
+              <a href="<?= $e(sfc_path('/index.php#properties')) ?>">Featured properties</a>
+              <a href="<?= $e(sfc_path('/index.php#why-invest')) ?>">Why San Fernando</a>
+              <a href="<?= $e(sfc_path('/index.php#about')) ?>">About LOCUS-SF</a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="city-footer-col city-footer-acc-col">
+          <button type="button" class="city-footer-heading city-footer-acc-trigger" data-footer-acc-trigger aria-expanded="false" aria-controls="cityFooterPortalsNav">
+            <span>Portals &amp; Tools</span>
+            <svg class="city-footer-acc-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="city-footer-acc-panel" id="cityFooterPortalsNav">
+            <nav class="city-footer-nav" aria-label="Portals and system tools">
+              <?php if ($user !== null): ?>
+              <a href="<?= $e(sfc_path($home)) ?>">My dashboard</a>
+              <a href="<?= $e(sfc_path('/profile.php')) ?>">Account profile</a>
+              <?php else: ?>
+              <a href="<?= $e(sfc_path('/investor-login.php')) ?>">Investor login</a>
+              <?php endif; ?>
+              <a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a>
+              <a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a>
+              <button type="button" class="city-footer-link" onclick="window.openLocusHelp ? window.openLocusHelp() : null; return false;">Help &amp; FAQ</button>
+              <button type="button" class="city-footer-link" id="cityFooterSoundBtn" onclick="window.openLocusHelp ? window.openLocusHelp('sounds') : null; return false;">Sound settings</button>
+            </nav>
+          </div>
+        </div>
+
+        <div class="city-footer-col city-footer-office-col">
+          <h2 class="city-footer-heading">Investment Office</h2>
+          <div class="city-footer-concierge-meta">
+            <p class="city-footer-concierge-venue">Permanent Business One Stop Shop Building<span>City of San Fernando, La Union</span></p>
+            <p class="city-footer-office-hours">Mon&ndash;Fri &middot; 8:00 AM &ndash; 5:00 PM</p>
+            <div class="city-footer-contact-actions">
+              <a class="city-footer-phone-pill" href="tel:+63726197170" aria-label="Call City Investment Trunkline (072) 619 - 7170">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <span>(072) 619 - 7170</span>
+              </a>
+              <a class="city-footer-portal-link" href="https://www.sanfernandocity.gov.ph/business-in-the-city/" target="_blank" rel="noopener noreferrer">Official city portal <span aria-hidden="true">&nearr;</span></a>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="city-footer-concierge-meta">
-        <span class="city-footer-concierge-venue">Permanent Business One Stop Shop Building, City of San Fernando, La Union</span>
-        <span class="city-footer-concierge-sep">&bull;</span>
-        <span class="city-footer-concierge-phone">Queries: <a href="tel:+63726197170">(072) 619 - 7170</a></span>
+
+      <div class="city-footer-bottom">
+        <div class="city-footer-legal">
+          <span>&copy; <?= $e($year) ?> LOCUS-SF &middot; City Government of San Fernando, La Union</span>
+          <span class="city-footer-dot" aria-hidden="true">&middot;</span>
+          <span class="city-footer-statute">Decision-support platform &middot; RA 10173 compliant</span>
+        </div>
+        <nav class="city-footer-links" aria-label="Footer navigation">
+          <a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy notice</a>
+          <button type="button" class="city-footer-top-btn" onclick="window.scrollTo({ top: 0, behavior: 'smooth' }); return false;" aria-label="Back to top">Back to top <span aria-hidden="true">&uarr;</span></button>
+        </nav>
       </div>
-      <nav class="city-footer-links" aria-label="Footer navigation">
-        <a href="<?= $e(sfc_path('/privacy.php')) ?>">Privacy</a>
-        <a href="<?= $e(sfc_path('/seller-login.php')) ?>">Broker access</a>
-        <a href="<?= $e(sfc_path('/admin-login.php')) ?>">City access</a>
-        <button type="button" class="city-footer-link" id="cityFooterSoundBtn" onclick="window.openLocusHelp ? window.openLocusHelp('sounds') : null; return false;">Sound settings</button>
-      </nav>
     </div>
   </footer>
   <?php if (!empty($context['user'])): ?>

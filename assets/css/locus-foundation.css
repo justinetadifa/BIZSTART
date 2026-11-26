@@ -308,29 +308,7 @@
       min-width: 0;
     }
 
-    body[data-page] .city-footer {
-      margin-top: 0 !important;
-    }
-
-    body[data-page] .city-footer-inner {
-      padding-block: var(--locus-space-6) !important;
-      padding-inline: 0 !important;
-      gap: var(--locus-space-5) !important;
-      flex-wrap: wrap;
-    }
-
-    body[data-page] .city-footer-concierge-meta {
-      min-width: 0;
-      flex: 1 1 340px;
-      flex-wrap: wrap;
-      overflow-wrap: break-word;
-    }
-
-    body[data-page] .city-footer-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--locus-space-4);
-    }
+    /* Global footer layout is managed by assets/css/city-footer.css */
 
     body[data-page] .account-auth {
       padding-inline: var(--locus-gutter) !important;
@@ -399,14 +377,7 @@
         gap: var(--locus-space-4) !important;
       }
 
-      body[data-page] .city-footer-inner {
-        align-items: flex-start !important;
-      }
-
-      body[data-page] .city-footer-concierge-meta {
-        flex-basis: auto;
-        gap: var(--locus-space-2) !important;
-      }
+      /* Footer mobile rules live in assets/css/city-footer.css */
 
       /* Keep all media views and recommendations reachable on small screens. */
       body[data-page] .property-media-tabs-bar {

@@ -27,7 +27,7 @@ api_handle(function (array $container): array {
             'messageSummary' => $container['messages']->propertySummaryMap([$propertyId])[$propertyId] ?? [],
         ]);
         $decorated = $container['clup']->decorateProperty($property, string_or_null($_GET['investmentType'] ?? null));
-        $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 12, 2500.0);
+        $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 60, 2500.0);
         $oppRadius = isset($_GET['opportunitiesRadius']) ? (float) $_GET['opportunitiesRadius'] : \App\Support\BusinessOpportunities::DEFAULT_RADIUS_METERS;
         $decorated['businessOpportunities'] = \App\Support\BusinessOpportunities::evaluate($decorated, $oppRadius);
         $decorated['transportationAccessibility'] = \App\Support\TransportationAccessibilityService::evaluate($decorated);

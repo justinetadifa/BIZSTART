@@ -72,6 +72,34 @@ final class NearbyBusinesses
         'furniture' => ['name' => 'Home & Furniture', 'group' => 'retail', 'color' => 'amber', 'icon' => 'store'],
         'telecommunication' => ['name' => 'Telecommunications & Mobile', 'group' => 'services', 'color' => 'blue', 'icon' => 'phone'],
         'travel_agency' => ['name' => 'Travel & Logistics', 'group' => 'services', 'color' => 'cyan', 'icon' => 'globe'],
+        'company' => ['name' => 'Commercial Enterprise', 'group' => 'services', 'color' => 'slate', 'icon' => 'briefcase'],
+        'courier' => ['name' => 'Courier & Logistics', 'group' => 'services', 'color' => 'cyan', 'icon' => 'briefcase'],
+        'logistics' => ['name' => 'Logistics & Distribution', 'group' => 'trade', 'color' => 'cyan', 'icon' => 'briefcase'],
+        'mobile_phone' => ['name' => 'Mobile & Tech Retail', 'group' => 'retail', 'color' => 'blue', 'icon' => 'monitor'],
+        'insurance' => ['name' => 'Insurance & Financial', 'group' => 'financial', 'color' => 'blue', 'icon' => 'landmark'],
+        'university' => ['name' => 'University & Higher Education', 'group' => 'education', 'color' => 'indigo', 'icon' => 'graduation-cap'],
+        'educational_institution' => ['name' => 'Educational Institution', 'group' => 'education', 'color' => 'indigo', 'icon' => 'graduation-cap'],
+        'government' => ['name' => 'Government & Civic Office', 'group' => 'civic', 'color' => 'slate', 'icon' => 'landmark'],
+        'community_centre' => ['name' => 'Civic Plaza & Community Hall', 'group' => 'civic', 'color' => 'slate', 'icon' => 'landmark'],
+        'bar' => ['name' => 'Bar & Lounge', 'group' => 'dining', 'color' => 'amber', 'icon' => 'utensils'],
+        'food_court' => ['name' => 'Food Court & Dining', 'group' => 'dining', 'color' => 'amber', 'icon' => 'utensils'],
+        'ice_cream' => ['name' => 'Dessert & Café', 'group' => 'dining', 'color' => 'amber', 'icon' => 'coffee'],
+        'confectionery' => ['name' => 'Confectionery & Sweets', 'group' => 'dining', 'color' => 'amber', 'icon' => 'coffee'],
+        'kiosk' => ['name' => 'Kiosk & Convenience', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
+        'general' => ['name' => 'General Merchandise', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
+        'variety_store' => ['name' => 'Variety & General Retail', 'group' => 'retail', 'color' => 'purple', 'icon' => 'shopping-bag'],
+        'wholesale' => ['name' => 'Wholesale & Trading', 'group' => 'trade', 'color' => 'slate', 'icon' => 'store'],
+        'cosmetics' => ['name' => 'Cosmetics & Personal Care', 'group' => 'services', 'color' => 'rose', 'icon' => 'sparkles'],
+        'cinema' => ['name' => 'Cinema & Entertainment', 'group' => 'hospitality', 'color' => 'purple', 'icon' => 'building'],
+        'veterinary' => ['name' => 'Veterinary Clinic', 'group' => 'healthcare', 'color' => 'emerald', 'icon' => 'cross'],
+        'car' => ['name' => 'Automotive Showroom & Sales', 'group' => 'automotive', 'color' => 'slate', 'icon' => 'wrench'],
+        'motorcycle' => ['name' => 'Motorcycle Dealership', 'group' => 'automotive', 'color' => 'slate', 'icon' => 'wrench'],
+        'florist' => ['name' => 'Florist & Gift Shop', 'group' => 'retail', 'color' => 'rose', 'icon' => 'shopping-bag'],
+        'jewelry' => ['name' => 'Jewelry & Watch Retail', 'group' => 'retail', 'color' => 'amber', 'icon' => 'shopping-bag'],
+        'resort' => ['name' => 'Resort & Coastal Hospitality', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
+        'guest_house' => ['name' => 'Guest House & Lodging', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
+        'motel' => ['name' => 'Inn & Lodging', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
+        'tourism' => ['name' => 'Tourism & Cultural Landmark', 'group' => 'hospitality', 'color' => 'cyan', 'icon' => 'building'],
     ];
 
     /**
@@ -336,6 +364,77 @@ final class NearbyBusinesses
                         'note' => $props['note'] ?? null,
                         'source' => $props['source'] ?? 'Mapped place record',
                     ];
+                }
+            }
+        }
+
+        // 4. Load city-wide packaged San Fernando OSM & landmark directory (ensures all 59 barangays stay populated offline)
+        $citySnapshotFile = $dataDir . '/city-map-directory.json';
+        if (is_file($citySnapshotFile)) {
+            $raw = @file_get_contents($citySnapshotFile);
+            if ($raw !== false) {
+                $snapData = json_decode($raw, true);
+                if (is_array($snapData) && isset($snapData['features']) && is_array($snapData['features'])) {
+                    foreach ($snapData['features'] as $feature) {
+                        $props = $feature['properties'] ?? [];
+                        $name = trim((string) ($props['name'] ?? ''));
+                        $coords = self::representativePoint($feature);
+                        if ($name === '' || $coords === null || self::isClosed($props)) {
+                            continue;
+                        }
+                        $lng = (float) $coords[0];
+                        $lat = (float) $coords[1];
+                        if (!is_finite($lat) || !is_finite($lng) || abs($lat) > 90 || abs($lng) > 180) {
+                            continue;
+                        }
+                        $rawCat = strtolower(trim((string) ($props['categoryKey'] ?? $props['category'] ?? $props['businessType'] ?? 'commercial')));
+                        if (in_array($rawCat, $excludedCategories, true)) {
+                            continue;
+                        }
+                        $alreadyCovered = false;
+                        $normalizedName = self::normalizedName($name);
+                        foreach ($directory as $existingKey => $existing) {
+                            if (abs($lat - $existing['lat']) > 0.0005) {
+                                continue;
+                            }
+                            $existingName = $normalizedDirectoryNames[$existingKey]
+                                ??= self::normalizedName($existing['name']);
+                            if (min(strlen($normalizedName), strlen($existingName)) >= 3
+                                && (str_contains($normalizedName, $existingName) || str_contains($existingName, $normalizedName))
+                                && self::distance($lat, $lng, $existing['lat'], $existing['lng']) <= 45.0
+                            ) {
+                                $alreadyCovered = true;
+                                break;
+                            }
+                        }
+                        if ($alreadyCovered) {
+                            continue;
+                        }
+                        $key = strtolower($name) . '|' . round($lat, 4) . '|' . round($lng, 4);
+                        if (!isset($directory[$key])) {
+                            $meta = self::CATEGORY_MAP[$rawCat] ?? [
+                                'name' => ucwords(str_replace('_', ' ', $rawCat ?: 'Commercial Establishment')),
+                                'group' => 'commercial',
+                                'color' => 'slate',
+                                'icon' => 'store',
+                            ];
+                            $directory[$key] = [
+                                'id' => $props['id'] ?? $feature['id'] ?? ('sf-' . md5($key)),
+                                'name' => $name,
+                                'category' => $meta['name'],
+                                'categoryKey' => $rawCat,
+                                'categoryGroup' => $meta['group'],
+                                'categoryColor' => $meta['color'],
+                                'icon' => $meta['icon'],
+                                'lat' => $lat,
+                                'lng' => $lng,
+                                'status' => self::status($props),
+                                'verified' => (bool) ($props['verified'] ?? false),
+                                'note' => $props['note'] ?? null,
+                                'source' => $props['source'] ?? 'OpenStreetMap San Fernando snapshot',
+                            ];
+                        }
+                    }
                 }
             }
         }
@@ -626,6 +725,6 @@ final class NearbyBusinesses
 
         usort($matches, static fn (array $a, array $b): int => $a['distanceMeters'] <=> $b['distanceMeters']);
 
-        return array_slice($matches, 0, max(1, min(50, $limit)));
+        return array_slice($matches, 0, max(1, min(100, $limit)));
     }
 }

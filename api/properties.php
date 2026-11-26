@@ -6,6 +6,8 @@ require_once __DIR__ . '/_listing-policy.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyNearby.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyEvidenceFiles.php';
 require_once dirname(__DIR__) . '/app/Support/PropertyMediaSelection.php';
+require_once dirname(__DIR__) . '/app/Support/NearbyBusinesses.php';
+require_once dirname(__DIR__) . '/app/Support/BusinessOpportunities.php';
 
 api_handle(function (array $container): array {
     $method = request_method();
@@ -80,7 +82,10 @@ api_handle(function (array $container): array {
             throw $error;
         }
         $container['line']->onListingCreated($property, $user);
-        return [201, ['property' => $container['decisionEngine']->decorateProperty($property)]];
+        $decorated = $container['clup']->decorateProperty($container['decisionEngine']->decorateProperty($property));
+        $decorated['nearbyBusinesses'] = \App\Support\NearbyBusinesses::find($decorated, null, 60, 2500.0);
+        $decorated['businessOpportunities'] = \App\Support\BusinessOpportunities::evaluate($decorated, \App\Support\BusinessOpportunities::DEFAULT_RADIUS_METERS);
+        return [201, ['property' => $decorated]];
     }
     return [405, ['error' => 'Method not allowed.']];
 });

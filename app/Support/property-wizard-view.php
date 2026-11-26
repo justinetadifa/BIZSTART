@@ -1054,13 +1054,18 @@ $pwSectionIcons = [
                   <div class="pw-spatial-state-complete" data-spatial-state-complete hidden>
                     <div class="pw-spatial-score-showcase">
                       <div class="pw-spatial-score-main">
-                        <div class="pw-spatial-score-row">
-                          <span class="pw-spatial-score-num"><strong data-spatial-total-score>&mdash;</strong> <small>/ 100 pts</small></span>
-                          <span class="pw-spatial-tier-badge" data-spatial-tier-badge>Awaiting inputs</span>
+                        <div class="locus-seg-gauge is-sm pw-criterion-score-arch" data-score-arch data-spatial-score-dial data-score-fraction="0" style="--score-fraction: 0" data-pending="true">
+                          <div class="locus-seg-arch-stage">
+                            <svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true" focusable="false"></svg>
+                            <div class="locus-seg-center">
+                              <span class="pw-spatial-score-num locus-seg-center-val"><strong data-spatial-total-score data-score-count>&mdash;</strong><small>/100</small></span>
+                            </div>
+                          </div>
+                          <div class="locus-seg-meta">
+                            <span class="pw-spatial-tier-badge" data-spatial-tier-badge>Awaiting inputs</span>
+                          </div>
                         </div>
-
-                        <!-- Burgundy Progress Bar matching Infrastructure -->
-                        <div class="pw-spatial-progress-track">
+                        <div class="pw-spatial-progress-track" hidden>
                           <div class="pw-spatial-progress-bar" data-spatial-progress-bar style="width: 0%;"></div>
                         </div>
                         <span class="pw-spatial-score-caption">Spatial Accessibility component score before criterion weighting</span>
@@ -1480,13 +1485,18 @@ $pwSectionIcons = [
                   <div class="pw-infra-state-complete" data-infra-state-complete hidden>
                     <div class="pw-infra-score-showcase">
                       <div class="pw-infra-score-main">
-                        <div class="pw-infra-score-row">
-                          <span class="pw-infra-score-num"><strong data-infra-total-score>&mdash;</strong> <small>/ 100 pts</small></span>
-                          <span class="pw-infra-tier-badge" data-infra-tier-badge>Awaiting inputs</span>
+                        <div class="locus-seg-gauge is-sm pw-criterion-score-arch" data-score-arch data-infra-score-dial data-score-fraction="0" style="--score-fraction: 0" data-pending="true">
+                          <div class="locus-seg-arch-stage">
+                            <svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true" focusable="false"></svg>
+                            <div class="locus-seg-center">
+                              <span class="pw-infra-score-num locus-seg-center-val"><strong data-infra-total-score data-score-count>&mdash;</strong><small>/100</small></span>
+                            </div>
+                          </div>
+                          <div class="locus-seg-meta">
+                            <span class="pw-infra-tier-badge" data-infra-tier-badge>Awaiting inputs</span>
+                          </div>
                         </div>
-
-                        <!-- Burgundy Progress Bar matching Screenshot -->
-                        <div class="pw-infra-progress-track">
+                        <div class="pw-infra-progress-track" hidden>
                           <div class="pw-infra-progress-bar" data-infra-progress-bar style="width: 0%;"></div>
                         </div>
                         <span class="pw-infra-score-caption">Infrastructure Readiness component score before criterion weighting</span>
@@ -1604,7 +1614,17 @@ $pwSectionIcons = [
             <div class="pw-econ-card pw-econ-simple">
               <div class="pw-live-result" data-economic-live-result aria-live="polite">
                 <div><span class="pw-result-eyebrow">YOUR RESULT · PROVISIONAL</span><h4 data-economic-live-title>Add a comparison</h4><p data-economic-live-equation>We compare both properties using the same price per m².</p></div>
-                <div class="pw-live-result-value"><strong data-economic-live-score>—</strong><span data-economic-live-contribution>Complete the price comparison</span></div>
+                <div class="pw-live-result-value pw-econ-live-arch">
+                  <div class="locus-seg-gauge is-sm" data-score-arch data-economic-score-dial data-score-fraction="0" style="--score-fraction:0" data-pending="true">
+                    <div class="locus-seg-arch-stage">
+                      <svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>
+                      <div class="locus-seg-center">
+                        <strong class="locus-seg-center-val" data-economic-live-score data-score-count>—</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <span data-economic-live-contribution>Complete the price comparison</span>
+                </div>
                 <p class="pw-result-next" data-economic-live-next>Add the missing inputs below to see the comparison.</p>
                 <button type="button" class="pw-button pw-button-light pw-button-small" data-economic-fix hidden>Review inputs</button>
               </div>
@@ -2248,6 +2268,39 @@ $pwSectionIcons = [
                       </div>
 
                       <div class="pw-hazard-grid-6 pw-findings-table-responsive">
+                        <?php
+                          $pwHazardPicker = static function (string $key, string $name, string $ariaLabel, bool $hasCritical = false): string {
+                            $critOpt = $hasCritical ? '<option value="critical">Active fault corridor conflict</option>' : '';
+                            $critChip = $hasCritical
+                              ? '<button type="button" class="locus-hmeter-chip is-critical" data-hazard-choice="critical" aria-pressed="false">5m fault corridor conflict</button>'
+                              : '';
+                            return '<select name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" class="pw-finding-input pw-finding-select-sr" data-finding-hazard="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '" aria-label="' . htmlspecialchars($ariaLabel, ENT_QUOTES, 'UTF-8') . '" tabindex="-1">'
+                              . '<option value="">Choose source finding</option>'
+                              . '<option value="none">No mapped exposure</option>'
+                              . '<option value="low">Low susceptibility</option>'
+                              . '<option value="moderate">Moderate susceptibility</option>'
+                              . '<option value="high">High susceptibility</option>'
+                              . '<option value="very_high">Very high susceptibility</option>'
+                              . $critOpt
+                              . '<option value="unknown">Unknown / not assessed</option>'
+                              . '</select>'
+                              . '<div class="locus-hmeter is-picker" data-hazard-picker="' . htmlspecialchars($key, ENT_QUOTES, 'UTF-8') . '" data-hlevel="0">'
+                              . '<span class="locus-hmeter-label" data-hazard-picker-label>Choose susceptibility</span>'
+                              . '<div class="locus-hmeter-track" role="group" aria-label="' . htmlspecialchars($ariaLabel, ENT_QUOTES, 'UTF-8') . ' level">'
+                              . '<button type="button" class="locus-hmeter-seg" data-seg="1" data-hazard-choice="none" style="--hseg-idx:0" title="No mapped exposure (100/100)" aria-label="No mapped exposure" aria-pressed="false"></button>'
+                              . '<button type="button" class="locus-hmeter-seg" data-seg="2" data-hazard-choice="low" style="--hseg-idx:1" title="Low susceptibility (85/100)" aria-label="Low susceptibility" aria-pressed="false"></button>'
+                              . '<button type="button" class="locus-hmeter-seg" data-seg="3" data-hazard-choice="moderate" style="--hseg-idx:2" title="Moderate susceptibility (60/100)" aria-label="Moderate susceptibility" aria-pressed="false"></button>'
+                              . '<button type="button" class="locus-hmeter-seg" data-seg="4" data-hazard-choice="high" style="--hseg-idx:3" title="High susceptibility (25/100)" aria-label="High susceptibility" aria-pressed="false"></button>'
+                              . '<button type="button" class="locus-hmeter-seg" data-seg="5" data-hazard-choice="very_high" style="--hseg-idx:4" title="Very high susceptibility (0/100)" aria-label="Very high susceptibility" aria-pressed="false"></button>'
+                              . '</div>'
+                              . '<div class="locus-hmeter-ticks" aria-hidden="true"><span>None</span><span>Low</span><span>Mod</span><span>High</span><span>V. High</span></div>'
+                              . '<div class="locus-hmeter-extras">'
+                              . $critChip
+                              . '<button type="button" class="locus-hmeter-chip" data-hazard-choice="unknown" aria-pressed="false">Unknown / not assessed</button>'
+                              . '</div>'
+                              . '</div>';
+                          };
+                        ?>
                         <table class="pw-findings-table" id="pwRiskFindingsTable">
                           <thead>
                             <tr>
@@ -2274,8 +2327,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-flood-desc style="display:none;">Pluvial and riverine inundation susceptibility during extreme precipitation events.</span>
                                 <span data-hazard-flood-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_flood" class="pw-finding-input" data-finding-hazard="flood" aria-label="flood source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('flood', 'hazard_finding_flood', 'flood source finding') ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2302,8 +2355,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-landslide-desc style="display:none;">Slope stability and mass-movement hazard in upland and bluff terrains.</span>
                                 <span data-hazard-landslide-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_landslide" class="pw-finding-input" data-finding-hazard="landslide" aria-label="landslide source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('landslide', 'hazard_finding_landslide', 'landslide source finding') ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2330,8 +2383,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-fault-desc style="display:none;">Active fault trace proximity and recommended 5-meter structural setback corridor.</span>
                                 <span data-hazard-fault-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_fault" class="pw-finding-input" data-finding-hazard="faults" aria-label="faults source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="critical">Active fault corridor conflict</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('faults', 'hazard_finding_fault', 'faults source finding', true) ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2358,8 +2411,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-storm-surge-desc style="display:none;">Coastal storm surge inundation risk during severe tropical cyclones.</span>
                                 <span data-hazard-storm-surge-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_surge" class="pw-finding-input" data-finding-hazard="storm_surge" aria-label="storm surge source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('storm_surge', 'hazard_finding_surge', 'storm surge source finding') ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2386,8 +2439,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-liquefaction-desc style="display:none;">Soil strength loss under cyclic seismic shaking in saturated alluvial deposits.</span>
                                 <span data-hazard-liquefaction-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_liquefaction" class="pw-finding-input" data-finding-hazard="liquefaction" aria-label="liquefaction source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('liquefaction', 'hazard_finding_liquefaction', 'liquefaction source finding') ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2414,8 +2467,8 @@ $pwSectionIcons = [
                                 <span class="pw-hazard-inline-desc" data-hazard-tsunami-desc style="display:none;">Seismogenic coastal tsunami run-up and inundation vulnerability zone.</span>
                                 <span data-hazard-tsunami-score style="display:none;">—</span>
                               </td>
-                              <td>
-                                <select name="hazard_finding_tsunami" class="pw-finding-input" data-finding-hazard="tsunami" aria-label="tsunami source finding"><option value="">Choose source finding</option><option value="none">No mapped exposure</option><option value="low">Low susceptibility</option><option value="moderate">Moderate susceptibility</option><option value="high">High susceptibility</option><option value="very_high">Very high susceptibility</option><option value="unknown">Unknown / not assessed</option></select>
+                              <td class="pw-finding-meter-cell">
+                                <?= $pwHazardPicker('tsunami', 'hazard_finding_tsunami', 'tsunami source finding') ?>
                               </td>
                               <td class="pw-evidence-col-cell">
                                 <div class="pw-hazard-rating-stack">
@@ -2464,9 +2517,18 @@ $pwSectionIcons = [
                         </div>
 
                         <div class="pw-risk-score-hero">
-                          <div class="pw-risk-score-display">
-                            <span class="pw-risk-score-number"><strong data-risk-total-score>—</strong><small>/ 100</small></span>
-                            <span class="pw-risk-score-label">Suitability Index</span>
+                          <div class="pw-risk-score-display pw-risk-score-arch">
+                            <div class="locus-seg-gauge is-sm" data-score-arch data-risk-score-dial data-score-fraction="0" style="--score-fraction:0" data-pending="true">
+                              <div class="locus-seg-arch-stage">
+                                <svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>
+                                <div class="locus-seg-center">
+                                  <span class="pw-risk-score-number locus-seg-center-val"><strong data-risk-total-score data-score-count>—</strong><small>/100</small></span>
+                                </div>
+                              </div>
+                              <div class="locus-seg-meta">
+                                <span class="pw-risk-score-label locus-seg-label">Suitability Index</span>
+                              </div>
+                            </div>
                           </div>
                           <div class="pw-risk-score-meta">
                             <div class="pw-risk-contribution-pill">
@@ -3451,17 +3513,28 @@ $pwSectionIcons = [
           <!-- Composite IAI Indicator Card -->
           <div class="pw-review-composite-card">
             <div class="pw-composite-score-row">
-              <div class="pw-composite-main-stat">
-                <span class="pw-composite-label">Assessment result · provisional</span>
-                <div class="pw-composite-val" data-review-composite-iai>&mdash; <small>/ 100</small></div>
-                <div class="pw-composite-meta" style="font-size:0.8rem;color:#64748b;margin-top:4px;">
-                  Scenario: <strong data-review-scenario>Commercial Use</strong> &middot; Model: <strong data-review-model-version>LOCUS-SF MCE v3.0</strong>
+              <div class="pw-composite-dial locus-seg-gauge is-md" data-score-arch data-review-composite-dial data-score-fraction="0" style="--score-fraction: 0" data-pending="true">
+                <div class="locus-seg-arch-stage">
+                  <svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true" focusable="false"></svg>
+                  <div class="locus-seg-center">
+                    <div class="pw-composite-val locus-seg-center-val" data-review-composite-iai><strong data-score-count>&mdash;</strong><small>/100</small></div>
+                  </div>
+                </div>
+                <div class="locus-seg-meta">
+                  <span class="pw-composite-label locus-seg-label" data-review-composite-sublabel>Provisional fit</span>
+                  <span class="pw-composite-dial-pill locus-seg-pill" data-review-composite-pill>0 of 5 criteria ready</span>
                 </div>
               </div>
-              <div class="pw-composite-badge-group">
-                <span class="pw-badge pw-badge-amber" data-review-composite-status>Complete the remaining criteria</span>
-                <small class="pw-muted" data-review-composite-weights>5 Criteria &middot; 100% Weight</small>
-                <button type="button" class="pw-button pw-button-primary pw-button-small" data-calculate-assessment-btn style="margin-top: 6px;">
+              <div class="pw-composite-main-stat">
+                <span class="pw-composite-kicker">Assessment result &middot; provisional</span>
+                <div class="pw-composite-meta">
+                  Scenario: <strong data-review-scenario>Commercial Use</strong> &middot; Model: <strong data-review-model-version>LOCUS-SF MCE v3.0</strong>
+                </div>
+                <div class="pw-composite-badge-group">
+                  <span class="pw-badge pw-badge-amber" data-review-composite-status>Complete the remaining criteria</span>
+                  <small class="pw-muted" data-review-composite-weights>5 Criteria &middot; 100% Weight</small>
+                </div>
+                <button type="button" class="pw-button pw-button-primary pw-button-small" data-calculate-assessment-btn>
                   <span class="pw-btn-spinner locus-spinner" hidden aria-hidden="true" style="margin-right: 6px;"></span>
                   <span data-calc-btn-label>Calculate assessment</span>
                 </button>

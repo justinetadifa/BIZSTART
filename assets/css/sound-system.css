@@ -417,18 +417,16 @@
 .city-footer-link {
   background: none;
   border: none;
-  color: #ffffff;
+  color: inherit;
   font: inherit;
-  font-size: 12px;
   cursor: pointer;
   padding: 0;
   text-decoration: none;
-  transition: opacity 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 .city-footer-link:hover {
-  text-decoration: underline;
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 /* ==========================================================================

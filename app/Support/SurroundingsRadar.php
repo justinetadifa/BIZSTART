@@ -20,7 +20,7 @@ final class SurroundingsRadar
         'https://overpass.kumi.systems/api/interpreter',
         'https://overpass.private.coffee/api/interpreter',
     ];
-    private const LIVE_TIMEOUT_MS = 3500;
+    private const LIVE_TIMEOUT_MS = 5500;
 
     /**
      * Compute Haversine distance in meters between two lat/lng coordinates.
@@ -428,8 +428,8 @@ final class SurroundingsRadar
                     ],
                     'properties' => array_merge($biz, [
                         'source' => $biz['source'] ?? 'Verified Commercial Directory',
-                        'verified' => true,
-                        'operating_status' => $biz['status'] ?? 'operating',
+                        'verified' => (bool) ($biz['verified'] ?? (($biz['status'] ?? '') === 'operating')),
+                        'operating_status' => $biz['status'] ?? 'unknown',
                         'businessType' => $biz['categoryKey'] ?? $biz['category'] ?? 'commercial',
                     ]),
                 ];

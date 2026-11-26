@@ -74,8 +74,25 @@ export function comparisonMarkup(properties, { path = value => value, imageUrl =
       <tr class="site-compare-group"><th colspan="${sites.length + 1}">Recorded assessment <small>Ratings / 100 · higher is more favorable under the configured rubric</small></th></tr>
       ${row('Calculated IAI', sites.map(({ property, calc }) => {
         const presentation = assessmentPresentation(property, calc);
-        return presentation.index === null ? `<span class="site-compare-withheld">Pending</span><small>${esc(presentation.state)}</small>`
-          : `<strong class="site-compare-total">${presentation.index.toFixed(1)}<small> / 100</small></strong><small>${presentation.provisional ? 'Provisional · review pending' : !comparable ? 'Not a comparative rank' : 'Released assessment'}</small>`;
+        const frac = presentation.index === null ? (calc.rows.length ? calc.completedCount / calc.rows.length : 0) : Math.max(0, Math.min(1, presentation.index / 100));
+        const svg = typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge
+          ? globalThis.LocusScoreGauge.buildSvgMarkup(frac)
+          : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>';
+        return `<div class="site-compare-gauge-cell">
+          <div class="locus-seg-gauge is-sm" data-score-arch data-score-fraction="${frac}" style="--score-fraction:${frac}" data-pending="${presentation.index === null}">
+            <div class="locus-seg-arch-stage">
+              ${svg}
+              <div class="locus-seg-center">
+                ${presentation.index === null
+                  ? '<span class="site-compare-withheld locus-seg-center-val">Pending</span>'
+                  : `<strong class="site-compare-total locus-seg-center-val"><span data-score-count>${presentation.index.toFixed(1)}</span><small>/100</small></strong>`}
+              </div>
+            </div>
+            <div class="locus-seg-meta">
+              <span class="locus-seg-sublabel">${presentation.index === null ? esc(presentation.state) : (presentation.provisional ? 'Provisional · review pending' : !comparable ? 'Not a comparative rank' : 'Released assessment')}</span>
+            </div>
+          </div>
+        </div>`;
       }))}
       ${row('Official IAI release', sites.map(({ property, calc }) => { const presentation = assessmentPresentation(property, calc); return `${esc(presentation.releaseStatus)}<small>${esc(presentation.state)}</small>`; }))}
       ${row('Rating coverage', sites.map(({ calc }) => `${calc.completedCount} of ${calc.rows.length} criteria rated`))}

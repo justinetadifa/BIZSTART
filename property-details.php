@@ -5,41 +5,24 @@ require_once __DIR__ . '/app/Support/ZoningRulesEngine.php';
 $context = sfc_web_context();
 $user = $context['user'];
 $role = $user['role'] ?? 'guest';
-$navigation = sfc_navigation_items($role);
 $e = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 sfc_render_head('Property Details | LOCUS-SF', $context, ['page' => 'city-details', 'role' => $role]);
+sfc_render_header($context, $role === 'guest' ? 'properties' : 'explorer');
 ?>
 <main class="city-container city-workspace property-desk">
-    <header class="listing-topbar no-print print:tw-hidden">
-        <a class="listing-brand" href="<?= $e(sfc_path(sfc_navigation_home($role))) ?>" aria-label="LOCUS-SF home">
-            <img src="<?= $e($context['assetBase']) ?>/images/logoLocusRedBlue.png" alt="" width="38" height="38">
-        </a>
+    <div class="listing-topbar no-print print:tw-hidden">
         <nav class="listing-tabs" aria-label="Property navigation">
-            <a href="<?= $e(sfc_path('/property-explorer.php')) ?>">Property explorer</a>
+            <a href="<?= $e(sfc_path('/property-explorer.php')) ?>">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                <span>Property explorer</span>
+            </a>
+            <span class="listing-tabs-sep" aria-hidden="true">/</span>
             <span aria-current="page">Property details</span>
         </nav>
         <div class="listing-topbar-tools">
             <?php sfc_investor_view_control($context); ?>
-            <details class="listing-workspace-menu" id="listingWorkspaceMenu">
-                <summary aria-label="Workspace and account menu" title="Workspace and account menu"><?= sfc_icon('menu') ?></summary>
-                <nav aria-label="Workspace and account">
-                    <?php foreach ($navigation as [$label, $href]): ?>
-                    <a href="<?= $e(sfc_path($href)) ?>"><?= $e($label) ?></a>
-                    <?php endforeach; ?>
-                    <div class="listing-menu-account">
-                        <?php if ($user !== null): ?>
-                        <button type="button" id="cityUpdatesButton" class="city-updates-button" aria-haspopup="dialog" aria-controls="cityUpdatesDialog">Updates <span id="cityUpdatesCount" hidden></span></button>
-                        <a href="<?= $e(sfc_path('/profile.php')) ?>">Profile</a>
-                        <a href="<?= $e(sfc_path('/logout.php')) ?>">Sign out</a>
-                        <?php else: ?>
-                        <a href="<?= $e(sfc_path('/investor-login.php')) ?>">Log in</a>
-                        <a href="<?= $e(sfc_path('/investor-login.php?mode=register')) ?>">Create account</a>
-                        <?php endif; ?>
-                    </div>
-                </nav>
-            </details>
         </div>
-    </header>
+    </div>
     <div id="cityPropertyDetails" aria-live="polite"><div class="city-loading">Loading property…</div></div>
 </main>
 <script id="locusZoningEngineData" type="application/json">

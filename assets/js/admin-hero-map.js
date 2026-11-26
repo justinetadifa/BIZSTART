@@ -211,11 +211,16 @@
         }).addTo(parcelsLayer);
 
         // Rich White Mode Executive Popup
+        const numericScore = Number(score);
+        const hasScoreNum = Number.isFinite(numericScore) && numericScore > 0;
+        const popupArchSvg = hasScoreNum && typeof window !== 'undefined' && window.LocusScoreGauge
+          ? window.LocusScoreGauge.buildSvgMarkup(numericScore / 100)
+          : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>';
         const popupContent = `
           <div class="adm-gis-glass-popup">
             <div class="popup-top">
               <span class="popup-pill-tag">${escapeHtml(property.corridor || 'San Fernando Corridor')}</span>
-              <span class="popup-score-badge">${score} SCORE</span>
+              ${hasScoreNum ? `<div class="locus-seg-gauge is-micro" data-score-arch data-score-fraction="${Math.max(0, Math.min(1, numericScore / 100))}" style="--score-fraction:${Math.max(0, Math.min(1, numericScore / 100))}"><div class="locus-seg-arch-stage">${popupArchSvg}<div class="locus-seg-center"><strong class="locus-seg-center-val"><span data-score-count>${numericScore}</span></strong></div></div></div>` : `<span class="popup-score-badge">${score} SCORE</span>`}
             </div>
             <strong class="popup-title">${escapeHtml(property.name)}</strong>
             <p class="popup-meta">${escapeHtml(property.barangay || property.city || 'Location provided')} &bull; ${escapeHtml(Number(property.area) > 0 ? `${property.area} ha` : 'Area not provided')}</p>

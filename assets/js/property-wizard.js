@@ -1251,10 +1251,14 @@
           setText('[data-spatial-p-width]', `${res.width.weighted.toFixed(1)} pts`);
           setText('[data-spatial-p-dist]', `${res.distance.weighted.toFixed(1)} pts`);
 
-          // Update Progress Bar
+          // Update Progress Bar & Segmented Radial Score Arch
           const bar = $('[data-spatial-progress-bar]');
           if (bar) {
             bar.style.width = `${Math.min(100, Math.max(0, res.totalScore))}%`;
+          }
+          const spatialDial = $('[data-spatial-score-dial]');
+          if (spatialDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+            window.LocusScoreGauge.update(spatialDial, { score: res.totalScore, pending: false, animate: true });
           }
 
           // Update Tier Badge
@@ -1531,6 +1535,10 @@
           const pBar = $('[data-infra-progress-bar]');
           if (pBar) {
             pBar.style.width = `${Math.min(100, Math.max(0, res.totalScore))}%`;
+          }
+          const infraDial = $('[data-infra-score-dial]');
+          if (infraDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+            window.LocusScoreGauge.update(infraDial, { score: res.totalScore, pending: false, animate: true });
           }
         }
       }
@@ -2095,6 +2103,15 @@
         ? `(${currency(activeRate)} ÷ ${currency(res.activeBenchmark)} − 1) × 100 = ${res.activeDiffPct.toFixed(2)}%`
         : activeRate !== null ? `Your rate is ${currency(activeRate)}/m²${activeRateIsLease ? '/month' : ''}.` : 'Your rate and a similar property’s rate are needed.');
       setText('[data-economic-live-score]', res.score !== null ? `${number(res.score)}/100` : '—');
+      const econDial = $('[data-economic-score-dial]');
+      if (econDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(econDial, {
+          score: res.score !== null ? res.score : 0,
+          pending: res.score === null,
+          animate: res.score !== null,
+          animateNumber: false
+        });
+      }
       setText('[data-economic-live-contribution]', res.iaiContribution !== null ? `+${res.iaiContribution.toFixed(2)} of ${number(mceWeight('economic_viability'))} points` : `Up to ${number(mceWeight('economic_viability'))} points`);
       setText('[data-economic-live-next]', blocker?.message || 'Included in your provisional assessment. City verification is separate.');
       const fix = $('[data-economic-live-result] [data-economic-fix]');
@@ -3266,6 +3283,10 @@
         pill.classList.toggle('is-active', pill.dataset.criteriaPill === selected);
       });
       updateFooterNextLabel();
+      const activePanel = $(`[data-evidence-panel="${selected}"]`);
+      if (activePanel && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.pulseAndReveal(activePanel, 220);
+      }
 
       // Reset scroll position to top of workspace so criterion header and first input are cleanly visible
       const scrollParent = form.closest('.pw-content') || document.querySelector('#cityPropertyEditor .pw-content');
@@ -3543,11 +3564,29 @@
       const compositeIaiEl = $('[data-review-composite-iai]');
       const compositeStatusEl = $('[data-review-composite-status]');
       const compositeDescEl = $('[data-review-composite-desc]');
+      const compositeDialEl = $('[data-review-composite-dial]');
+      const compositeSublabelEl = $('[data-review-composite-sublabel]');
+      const compositePillEl = $('[data-review-composite-pill]');
+      const setCompositeDial = (fraction, pending, sublabel, pillText) => {
+        if (compositeDialEl) {
+          const f = Math.max(0, Math.min(1, Number(fraction) || 0));
+          compositeDialEl.style.setProperty('--score-fraction', String(f));
+          compositeDialEl.setAttribute('data-score-fraction', String(f));
+          compositeDialEl.setAttribute('data-pending', String(Boolean(pending)));
+          if (typeof window !== 'undefined' && window.LocusScoreGauge) {
+            window.LocusScoreGauge.update(compositeDialEl, { fraction: f, pending: Boolean(pending), loading: false, animate: true });
+          }
+        }
+        if (compositeSublabelEl) compositeSublabelEl.textContent = sublabel;
+        if (compositePillEl) compositePillEl.textContent = pillText;
+      };
       setText('[data-review-scenario]', zoningRes?.useLabel || 'Business activity not selected');
       setText('[data-review-model-version]', mceModel.version || 'LOCUS-SF v3.0 · Five-Criterion MCE');
 
+      const completedCount = Number(composite.completedCount || 0);
       if (isZoningProhibited) {
-        if (compositeIaiEl) compositeIaiEl.textContent = 'Zoning review';
+        if (compositeIaiEl) compositeIaiEl.textContent = 'Zoning';
+        setCompositeDial(0, true, 'Restriction flagged', 'CPDO check needed');
         if (compositeStatusEl) {
           compositeStatusEl.textContent = 'Reference restriction flagged';
           compositeStatusEl.className = 'pw-badge pw-badge-amber';
@@ -3556,15 +3595,23 @@
           compositeDescEl.textContent = 'The coded reference matrix restricts this district/activity combination. Confirm the applicable rule and parcel with CPDO before using an overall assessment. This is not an official prohibited-use determination.';
         }
       } else if (composite.technicalReviewHold) {
-        if (compositeIaiEl) compositeIaiEl.textContent = 'Technical review';
+        if (compositeIaiEl) compositeIaiEl.textContent = 'On hold';
+        setCompositeDial(completedCount / 5, true, 'Technical review', 'Hazard hold active');
         if (compositeStatusEl) { compositeStatusEl.textContent = 'Hazard review required'; compositeStatusEl.className = 'pw-badge pw-badge-amber'; }
         if (compositeDescEl) compositeDescEl.textContent = 'High or critical hazard findings require technical review before an overall result can be used. Individual criterion calculations remain visible below.';
       } else if (!withinCityCoverage(point())) {
-        if (compositeIaiEl) compositeIaiEl.textContent = 'Location needed';
+        if (compositeIaiEl) compositeIaiEl.textContent = 'Pin';
+        setCompositeDial(completedCount / 5, true, 'Location needed', 'Confirm city bounds');
         if (compositeStatusEl) { compositeStatusEl.textContent = 'Confirm city coverage'; compositeStatusEl.className = 'pw-badge pw-badge-amber'; }
         if (compositeDescEl) compositeDescEl.textContent = 'Confirm coordinates within San Fernando City to calculate a location-specific assessment.';
       } else if (composite.provisionalScore !== null) {
-        if (compositeIaiEl) compositeIaiEl.innerHTML = `${composite.provisionalScore.toFixed(1)} <small>/ 100</small>`;
+        if (compositeIaiEl) compositeIaiEl.innerHTML = `<strong data-score-count>${composite.provisionalScore.toFixed(1)}</strong><small>/100</small>`;
+        setCompositeDial(
+          composite.provisionalScore / 100,
+          false,
+          'Provisional fit',
+          composite.isComplete ? `${completedCount} of 5 criteria ready` : `${completedCount} of 5 · zoning open`
+        );
         if (compositeStatusEl) {
           compositeStatusEl.textContent = composite.isComplete ? 'Evidence review pending' : 'Zoning check needed';
           compositeStatusEl.className = 'pw-badge pw-badge-sky';
@@ -3573,7 +3620,8 @@
           compositeDescEl.textContent = `All five criteria use the current ${Object.values(mceModel.weights).map(weight => `${number(weight)}%`).join(' + ')} weights.${composite.isComplete ? '' : ' Confirm the CLUP zone and proposed activity.'} Saving recalculates with the current server model. Final IAI and ranking require city evidence verification.`;
         }
       } else {
-        if (compositeIaiEl) compositeIaiEl.innerHTML = '— <small>/ 100</small>';
+        if (compositeIaiEl) compositeIaiEl.innerHTML = '&mdash;<small>/100</small>';
+        setCompositeDial(completedCount / 5, true, 'Preliminary fit', `${completedCount} of 5 criteria ready`);
         if (compositeStatusEl) {
           compositeStatusEl.textContent = 'Final IAI unavailable';
           compositeStatusEl.className = 'pw-badge pw-badge-amber';
@@ -3952,9 +4000,13 @@
             spinner.setAttribute('aria-hidden', 'false');
           }
           label.textContent = 'Calculating assessment...';
+          const dial = $('[data-review-composite-dial]');
+          if (dial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+            window.LocusScoreGauge.update(dial, { loading: true });
+          }
 
-          // Allow DOM to render the indeterminate spinner without artificial delay
-          await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 150)));
+          // Allow segmented arch wave to sweep visibly while recalculating
+          await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 420)));
 
           updateReviewStatus(located, entered);
 
@@ -4407,6 +4459,7 @@
       if (typeof syncSpatialAccessibility === 'function') syncSpatialAccessibility();
       queueMicrotask(recordEditorHistory);
       assessHazards();
+      if (typeof scheduleBackgroundRadarSync === 'function') scheduleBackgroundRadarSync();
       preview();
       ready();
       updateCoordinateDetailsSummary();
@@ -4490,7 +4543,7 @@
       all('[data-boundary-action="edit"],[data-boundary-action="reset"]').forEach(button => {button.disabled=!boundary;});
       const undo = $('[data-boundary-action="undo"]');if (undo) undo.disabled=!history.length;
       syncAreaEquivalents();
-      preview();assessHazards();ready();
+      preview();assessHazards();if (typeof scheduleBackgroundRadarSync === 'function') scheduleBackgroundRadarSync();ready();
     }
     $('[data-map-tool="pin"]')?.addEventListener('click', () => {
       selectLocationMethod('pin', false);
@@ -5395,13 +5448,102 @@
       const warningsBox = $('[data-risk-warnings-box]');
       const warningsList = $('[data-risk-warnings-list]');
 
-      // Attach real-time input listeners to finding text boxes
+      // Attach real-time input listeners to finding controls & 5-segment hazard pill pickers
+      const HAZARD_PICKER_META = {
+        '': { level: 0, label: 'Choose susceptibility' },
+        none: { level: 1, label: 'No mapped exposure' },
+        low: { level: 2, label: 'Low susceptibility' },
+        moderate: { level: 3, label: 'Moderate susceptibility' },
+        high: { level: 4, label: 'High susceptibility' },
+        very_high: { level: 5, label: 'Very high susceptibility' },
+        critical: { level: 5, label: 'Active fault corridor conflict' },
+        unknown: { level: 0, label: 'Unknown / not assessed' }
+      };
+      const normalizeHazardPickerKey = val => {
+        const v = String(val || '').trim().toLowerCase();
+        if (!v) return '';
+        if (['safe', 'none', 'clear', 'no_exposure', 'outside_mapped', 'outside_buffer', 'outside_fault_zone', 'confirmed_none', 'not_susceptible', 'negligible'].includes(v)) return 'none';
+        if (['low', 'low_susceptibility', 'low_exposure', 'minor', 'stable'].includes(v)) return 'low';
+        if (['moderate', 'mod', 'medium', 'moderate_susceptibility'].includes(v)) return 'moderate';
+        if (['high', 'high_susceptibility', 'elevated'].includes(v)) return 'high';
+        if (['critical', 'conflict', 'intersects', 'trace_conflict'].includes(v)) return 'critical';
+        if (['very_high'].includes(v)) return 'very_high';
+        if (['unknown', 'not_assessed', 'pending'].includes(v)) return 'unknown';
+        return '';
+      };
+      const syncHazardPickerUI = (key, rawValue, animate = false) => {
+        const picker = $(`[data-hazard-picker="${key}"]`);
+        if (!picker || typeof picker.setAttribute !== 'function' || typeof picker.querySelectorAll !== 'function') return;
+        const norm = normalizeHazardPickerKey(rawValue);
+        const meta = HAZARD_PICKER_META[norm] || HAZARD_PICKER_META[''];
+        picker.setAttribute('data-hlevel', String(meta.level));
+        picker.removeAttribute('data-hpreview');
+        const labelEl = picker.querySelector('[data-hazard-picker-label]');
+        if (labelEl) labelEl.textContent = meta.label;
+        picker.querySelectorAll('.locus-hmeter-seg').forEach(btn => {
+          const segIdx = Number(btn.getAttribute('data-seg') || 0);
+          const choice = btn.getAttribute('data-hazard-choice');
+          const active = segIdx > 0 && segIdx <= meta.level;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-pressed', String(choice === norm));
+        });
+        picker.querySelectorAll('.locus-hmeter-chip').forEach(chip => {
+          const choice = chip.getAttribute('data-hazard-choice');
+          const pressed = choice === norm;
+          chip.classList.toggle('is-active', pressed);
+          chip.setAttribute('aria-pressed', String(pressed));
+        });
+        if (animate && meta.level > 0) {
+          picker.classList.remove('is-revealing');
+          void picker.offsetWidth;
+          picker.classList.add('is-revealing');
+        }
+      };
+
       all('.pw-finding-input').forEach(input => {
         if (input._hasRiskInputListener) return;
         input._hasRiskInputListener = true;
         input.addEventListener('input', () => {
           assessHazards();
           updateReviewStatus(point(), enteredAreaSqm() || estimatedArea);
+        });
+        input.addEventListener('change', () => {
+          assessHazards();
+          updateReviewStatus(point(), enteredAreaSqm() || estimatedArea);
+        });
+      });
+
+      all('[data-hazard-picker]').forEach(picker => {
+        if (picker._hasHazardPickerBound) return;
+        picker._hasHazardPickerBound = true;
+        const hazardKey = picker.getAttribute('data-hazard-picker');
+        const labelEl = picker.querySelector('[data-hazard-picker-label]');
+        const commitChoice = (choice) => {
+          const select = $(`[data-finding-hazard="${hazardKey}"]`);
+          if (!select) return;
+          const nextVal = select.value === choice ? '' : choice;
+          select.value = nextVal;
+          syncHazardPickerUI(hazardKey, nextVal, true);
+          select.dispatchEvent(new Event('input', { bubbles: true }));
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        picker.querySelectorAll('[data-hazard-choice]').forEach(btn => {
+          btn.addEventListener('click', () => commitChoice(btn.getAttribute('data-hazard-choice') || ''));
+          if (btn.classList.contains('locus-hmeter-seg')) {
+            btn.addEventListener('mouseenter', () => {
+              const choice = btn.getAttribute('data-hazard-choice') || '';
+              const meta = HAZARD_PICKER_META[choice];
+              if (!meta) return;
+              picker.setAttribute('data-hpreview', String(meta.level));
+              if (labelEl) labelEl.textContent = meta.label;
+            });
+          }
+        });
+        picker.addEventListener('mouseleave', () => {
+          picker.removeAttribute('data-hpreview');
+          const select = $(`[data-finding-hazard="${hazardKey}"]`);
+          const norm = normalizeHazardPickerKey(select?.value || '');
+          if (labelEl) labelEl.textContent = (HAZARD_PICKER_META[norm] || HAZARD_PICKER_META['']).label;
         });
       });
 
@@ -5574,6 +5716,7 @@
           pill.textContent = score !== null ? statusText : manualVal ? 'Not assessed' : 'Choose finding';
           pill.className = `pw-pill pw-pill--${statusColor === 'green' ? 'teal' : statusColor}`;
         }
+        syncHazardPickerUI(item.key, manualVal || (score !== null ? (hasCriticalFault && item.key === 'faults' ? 'critical' : score >= 95 ? 'none' : score >= 75 ? 'low' : score >= 50 ? 'moderate' : score > 0 ? 'high' : 'very_high') : ''), false);
         if (scoreEl) scoreEl.textContent = score !== null ? `${score.toFixed(0)}` : '—';
         if (descEl) descEl.textContent = descText;
         if (ptsEl) ptsEl.textContent = score !== null ? `${((score * item.weight) / 100).toFixed(2)}` : '—';
@@ -5644,6 +5787,15 @@
       const missingHazards = HAZARD_CONFIG.filter(item => !Number.isFinite(Number($('['+item.scoreAttr+']')?.textContent)) || $('['+item.scoreAttr+']')?.textContent === '—').map(item => item.label);
       setText('[data-risk-next-action]', missingHazards.length ? 'Still needed: '+missingHazards.join(', ')+'. Unknown findings are not treated as no exposure.' : 'Weighted suitability = flood × 25% + active fault × 25% + landslide × 15% + storm surge × 15% + liquefaction × 10% + tsunami × 10%. '+(hasCriticalFault ? 'Active fault conflict requires specialist review regardless of the total.' : 'Preliminary source findings; city verification is separate.'));
       setText('[data-risk-total-score]', compositeScore !== null ? compositeScore.toFixed(1) : '—');
+      const riskDial = $('[data-risk-score-dial]');
+      if (riskDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(riskDial, {
+          score: compositeScore !== null ? compositeScore : 0,
+          pending: compositeScore === null,
+          animate: compositeScore !== null,
+          animateNumber: false
+        });
+      }
       setText('[data-risk-iai-pts]', iaiPts !== null ? iaiPts.toFixed(2) : '—');
 
       const suppliedCount = all('[data-finding-hazard]').filter(i => i.value.trim() !== '' && i.value !== 'unknown').length;
@@ -5718,7 +5870,10 @@
       context=results[0].status==='fulfilled' ? results[0].value.context : null;
       const details=$('[data-map-layers]');
       if(details){const body=details.querySelector('[data-layer-sources]');if(body)body.innerHTML=['flood','faults','roads'].map(key=>{const layer=context?.[key];return `<p><strong>${key==='faults'?'Active faults':key==='flood'?'Flood zones':'Road inventory'}</strong><br>${escape(layer?.source || 'No authoritative source configured')}${layer?.date?` · ${escape(layer.date)}`:''}<br><span>${escape(layer?.status || 'Not assessed')}</span></p>`;}).join('');}
-      assessHazards();renderLayers();if(step===2 && activeEvidenceCriterion==='nearby_businesses')syncRadar();ready();
+      assessHazards();renderLayers();
+      if (step === 2 && activeEvidenceCriterion === 'nearby_businesses') syncRadar();
+      else if (typeof scheduleBackgroundRadarSync === 'function') scheduleBackgroundRadarSync();
+      ready();
     }
     function setReference(coordinates) {
       if(value('reference_label')==='center' && boundary && window.turf){const center=turf.centerOfMass(boundary).geometry.coordinates;coordinates=[center[1],center[0]];}
@@ -5786,6 +5941,27 @@
       if (tags.some(tag => relatedTags.includes(tag))) return 'related';
       if (tags.some(tag => compTags.includes(tag))) return 'complementary';
       return 'unclassified';
+    }
+    let backgroundRadarTimer = null;
+    function scheduleBackgroundRadarSync(force = false) {
+      if (!dialog?.open || !$('[data-radar-toggle]')?.checked) return;
+      if (value('reference_label') === 'location' && point()) { dirtyReference = false; setReference(point()); }
+      else if (value('reference_label') === 'center' && boundary && window.turf) setReference(point());
+      if (!point('reference_lat', 'reference_lng') && point() && !placingReference) {
+        if (field('reference_label')) field('reference_label').value = boundary ? 'center' : 'location';
+        setReference(point());
+      }
+      const reference = nearbyReferencePoint() || point('reference_lat', 'reference_lng') || point();
+      if (!reference || !withinCityCoverage(reference)) return;
+      if (!force && radarContextIsCurrent() && radarState === 'success') return;
+      clearTimeout(backgroundRadarTimer);
+      backgroundRadarTimer = setTimeout(() => {
+        if (!dialog?.open || !$('[data-radar-toggle]')?.checked) return;
+        const latest = nearbyReferencePoint() || point('reference_lat', 'reference_lng') || point();
+        if (!latest || !withinCityCoverage(latest)) return;
+        if (step === 2 && activeEvidenceCriterion === 'nearby_businesses') syncRadar();
+        else fetchRadar(latest, value('radar_business_type') || 'cafe', force);
+      }, 180);
     }
     function syncRadar() {
       // Location/center modes follow the current property; only an entrance is independently placed.
@@ -6438,7 +6614,10 @@
       radarSearchQuery=event.target.value.trim().toLowerCase();
       renderRadarList();
     });
-    field('radar_business_type')?.addEventListener('change',()=>{if(point('reference_lat','reference_lng'))syncRadar();});
+    field('radar_business_type')?.addEventListener('change',()=>{
+      if(step===2 && activeEvidenceCriterion==='nearby_businesses') syncRadar();
+      else scheduleBackgroundRadarSync();
+    });
     field('reference_label')?.addEventListener('change',()=>{
       if(value('reference_label')==='location'){
         setReference(point());placingReference=false;syncRadar();
@@ -6860,6 +7039,7 @@
         updateCoordinateDetailsSummary();preview();ready();
         if(step===1)syncLocation(false);
         if(step===2 && activeEvidenceCriterion==='nearby_businesses')syncRadar();
+        else if (typeof scheduleBackgroundRadarSync === 'function') scheduleBackgroundRadarSync();
         queueAutosave();notify(direction==='undo'?'Change undone.':'Change restored.');
         editHistory.replaceCurrent(historyState());
       } finally { restoringHistory=false;syncHistoryButtons(); }

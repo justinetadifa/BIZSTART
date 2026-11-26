@@ -340,23 +340,33 @@
             <span class="city-listing-score-label">MCE EVALUATION</span>
             <span class="city-listing-score-status">${assessment.kind === 'verified' ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' : ''}<span>${escape(assessment.status)}</span></span>
           </span>
-          <div class="city-assessment-hero">
-            <div class="city-assessment-score-lockup">
-              <span class="city-score-tier is-${scoreRank.tone}">
-                <span class="city-tier-dot" aria-hidden="true"></span>
-                <span>${scoreRank.tier}</span>
-              </span>
-              <span class="city-listing-score-value">
-                ${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}
-                <small class="city-score-denom">${assessment.score === null ? '/ 5 evaluated' : '/ 100'}</small>
-              </span>
-            </div>
-            <div class="city-score-seal-wrap" aria-hidden="true">
-              <div class="city-score-seal is-${scoreRank.tone}">
-                <span class="city-seal-grade is-${scoreRank.tone}">${scoreRank.grade}</span>
-                <span class="city-seal-label">${scoreRank.label}</span>
-              </div>
-            </div>
+          <div class="city-assessment-hero city-assessment-hero-arch">
+            ${(() => {
+              const frac = assessment.score === null
+                ? Math.max(0, Math.min(1, Number(assessment.count || 0) / 5))
+                : Math.max(0, Math.min(1, Number(assessment.score) / 100));
+              const isPending = assessment.score === null;
+              const svg = typeof window !== 'undefined' && window.LocusScoreGauge
+                ? window.LocusScoreGauge.buildSvgMarkup(frac)
+                : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>';
+              return `<div class="locus-seg-gauge is-sm" data-score-arch data-score-fraction="${frac}" style="--score-fraction:${frac}" data-pending="${isPending}">
+                <div class="locus-seg-arch-stage">
+                  ${svg}
+                  <div class="locus-seg-center">
+                    <span class="city-listing-score-value locus-seg-center-val">
+                      <strong data-score-count>${assessment.score === null ? assessment.count : assessment.score.toFixed(1)}</strong>
+                      <small class="city-score-denom">${assessment.score === null ? '/5' : '/100'}</small>
+                    </span>
+                  </div>
+                </div>
+                <div class="locus-seg-meta">
+                  <span class="city-score-tier is-${scoreRank.tone}">
+                    <span class="city-tier-dot" aria-hidden="true"></span>
+                    <span>${scoreRank.tier}</span>
+                  </span>
+                </div>
+              </div>`;
+            })()}
           </div>
           <div class="city-hud-matrix">
             <div class="city-hud-progress-header">

@@ -2,10 +2,11 @@
 // The complete map interface is rendered by the homepage from this template.
 // Its data, renderer and styling are stored locally in assets/city-map.
 $mapAsset = static fn (string $file): string => $e($context['assetBase'] . '/city-map/' . $file . sfc_asset_version('city-map/' . $file));
+$mapModeAttr = !empty($mode) ? ' data-map-mode="' . $e((string) $mode) . '"' : '';
 ob_start();
 ?>
 <!doctype html>
-<html lang="en" data-embedded data-listings-url="<?= $e($context['apiBase']) ?>/city-map-listings.php">
+<html lang="en" data-embedded<?= $mapModeAttr ?> data-listings-url="<?= $e($context['apiBase']) ?>/city-map-listings.php" data-api-base="<?= $e($context['apiBase']) ?>">
 
 <head>
   <meta charset="utf-8">
@@ -472,7 +473,13 @@ ob_start();
 </body>
 
 </html>
-<?php $cityMapDocument = (string) ob_get_clean(); ?>
+<?php
+$cityMapDocument = (string) ob_get_clean();
+if (!empty($cityMapDocumentOnly)) {
+    echo $cityMapDocument;
+    return;
+}
+?>
 <figure class="glance-map-card" aria-labelledby="glanceMapTitle" data-city-map>
   <figcaption class="glance-map-heading">
     <span class="glance-map-icon" aria-hidden="true"><?= sfc_icon('map') ?></span>

@@ -366,14 +366,16 @@
   }
 
   body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-assessment {
-    border-radius: 8px !important;
-    border-color: var(--pe-line, #deded6) !important;
-    background: #f5f4ef !important;
+    border-radius: 10px !important;
+    border-left-color: var(--pe-line, #deded6) !important;
+    border-right-color: var(--pe-line, #deded6) !important;
+    border-bottom-color: var(--pe-line, #deded6) !important;
+    background: #f6f5f0 !important;
     box-shadow: none !important;
   }
 
   body[data-page="broker-workspace"] .broker-listing-photo,
-  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-photo { border-radius: 8px !important; box-shadow: none !important; }
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-photo { border-radius: 10px !important; box-shadow: none !important; }
 
   body[data-page="broker-workspace"] :is(.broker-btn-submit, .broker-button-primary),
   body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(.city-btn-pill-add, .city-listing-action.is-primary) {
@@ -385,9 +387,9 @@
   }
 
   body[data-page="broker-workspace"] :is(.broker-btn-profile, .broker-button),
-  body[data-page="admin-workspace"] [data-city-workspace="properties"] .city-listing-action:not(.is-primary) {
+  body[data-page="admin-workspace"] [data-city-workspace="properties"] :is(.city-listing-action:not(.is-primary), .city-listing-menu > summary) {
     border-color: var(--pe-line, #deded6) !important;
-    border-radius: 7px !important;
+    border-radius: 8px !important;
     background: #fff !important;
     color: var(--pe-ink, #171918) !important;
     box-shadow: none !important;

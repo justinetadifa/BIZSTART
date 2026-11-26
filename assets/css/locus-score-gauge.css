@@ -1,0 +1,954 @@
+/* ==========================================================================
+   LOCUS-SF Universal 20-Segment Radial Score Arch
+   Crisp architectural dial with staggered tick reveal & calm loading wave
+   ========================================================================== */
+
+.locus-seg-gauge {
+  --seg-size: 196px;
+  --seg-empty: #e8ecef;
+  --seg-pending: #93a6b7;
+  --seg-ink: #13221c;
+  --seg-muted: #55685f;
+  --seg-pill-bg: #eef5ef;
+  --seg-pill-ink: #365445;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: var(--seg-size);
+  margin-inline: auto;
+  text-align: center;
+  color: var(--seg-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--locus-font-ui, "DM Sans"), "Inter", system-ui, sans-serif;
+}
+
+.locus-seg-gauge.is-hero  { --seg-size: 204px; }
+.locus-seg-gauge.is-md    { --seg-size: 184px; }
+.locus-seg-gauge.is-sm    { --seg-size: 146px; }
+.locus-seg-gauge.is-xs    { --seg-size: 98px; }
+.locus-seg-gauge.is-micro { --seg-size: 76px; }
+
+/* Ensure Property Details main arch hides coverage ratio when scored and index when pending */
+.listing-gauge-value[data-pending="true"] .listing-index-value,
+.listing-gauge-value[data-pending="false"] .listing-coverage-value {
+  display: none !important;
+}
+
+.locus-seg-arch-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 200 / 116;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.locus-seg-arch-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.locus-seg-tick {
+  fill: var(--seg-empty);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill 240ms ease, opacity 240ms ease;
+}
+
+.locus-seg-tick.is-filled {
+  fill: var(--tick-color, #2f995f);
+}
+
+.locus-seg-gauge[data-pending="true"] .locus-seg-tick.is-filled,
+.locus-seg-gauge:has([data-pending="true"]) .locus-seg-tick.is-filled {
+  fill: var(--seg-pending);
+}
+
+/* Staggered tick-by-tick sweep-up reveal when entering view or updating */
+.locus-seg-gauge.is-primed .locus-seg-tick.is-filled {
+  fill: var(--seg-empty);
+  opacity: 0.55;
+}
+
+.locus-seg-gauge.is-revealing .locus-seg-tick.is-filled {
+  fill: var(--tick-color, #2f995f);
+  opacity: 0.14;
+  animation: locusSegTickReveal 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--tick-idx, 0) * 26ms);
+}
+
+.locus-seg-gauge.is-revealing[data-pending="true"] .locus-seg-tick.is-filled,
+.locus-seg-gauge.is-revealing:has([data-pending="true"]) .locus-seg-tick.is-filled {
+  fill: var(--seg-pending);
+}
+
+@keyframes locusSegTickReveal {
+  0% {
+    opacity: 0.14;
+    transform: scale(0.86);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Calm rhythmic wave while computing / loading scores (GPU-composited opacity + scale, visible on frame 1) */
+.locus-seg-gauge[data-loading="true"] .locus-seg-tick {
+  fill: var(--tick-color, #2f995f);
+  opacity: 0.15;
+  animation: locusSegLoadWave 1180ms ease-in-out infinite;
+  animation-delay: calc(var(--tick-idx, 0) * 52ms - 520ms);
+}
+
+.locus-seg-gauge[data-loading="true"] .locus-seg-center-val {
+  opacity: 0.45;
+  transition: opacity 180ms ease;
+}
+
+@keyframes locusSegLoadWave {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(0.94);
+  }
+  26% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  48% {
+    opacity: 0.84;
+    transform: scale(1.02);
+  }
+  72% {
+    opacity: 0.15;
+    transform: scale(0.94);
+  }
+}
+
+/* Centered score readout sitting cleanly inside the arch mouth */
+.locus-seg-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 24px 3px;
+  min-width: 0;
+}
+
+.locus-seg-center-val {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  color: var(--seg-ink);
+  font-size: clamp(1.75rem, 2.5vw, 2.35rem);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.locus-seg-gauge.is-md .locus-seg-center-val {
+  font-size: 1.9rem;
+}
+
+.locus-seg-gauge.is-sm .locus-seg-center-val {
+  font-size: 1.42rem;
+}
+
+.locus-seg-gauge.is-xs .locus-seg-center-val {
+  font-size: 1.05rem;
+}
+
+.locus-seg-gauge.is-micro .locus-seg-center {
+  padding: 0 10px 1px;
+}
+
+.locus-seg-gauge.is-micro .locus-seg-center-val {
+  font-size: 0.88rem;
+}
+
+.locus-seg-gauge.is-micro .locus-seg-meta {
+  margin-top: 2px;
+  gap: 1px;
+}
+
+.locus-seg-gauge.is-micro .locus-seg-label {
+  font-size: 0.6rem;
+  font-weight: 620;
+  color: var(--seg-muted);
+}
+
+.locus-seg-center-val small,
+.locus-seg-unit {
+  color: var(--seg-muted);
+  font-size: 0.42em;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+}
+
+.locus-seg-gauge[data-pending="true"] .locus-seg-center-val,
+.locus-seg-gauge:has([data-pending="true"]) .locus-seg-center-val {
+  color: #4a5c54;
+}
+
+/* Clean captions & status pill directly beneath the arch */
+.locus-seg-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.locus-seg-label {
+  color: var(--seg-ink);
+  font-size: 0.78rem;
+  font-weight: 620;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.locus-seg-gauge.is-sm .locus-seg-label {
+  font-size: 0.71rem;
+}
+
+.locus-seg-gauge.is-xs .locus-seg-label {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: var(--seg-muted);
+}
+
+.locus-seg-sublabel {
+  color: var(--seg-muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.locus-seg-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5px 10px;
+  border-radius: 999px;
+  background: var(--seg-pill-bg);
+  color: var(--seg-pill-ink);
+  font-size: 0.69rem;
+  font-weight: 580;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.locus-seg-gauge[data-pending="true"] .locus-seg-pill,
+.locus-seg-gauge:has([data-pending="true"]) .locus-seg-pill {
+  background: #f1f3f2;
+  color: #5a6963;
+}
+
+/* Interface Transition / Loading Stage using the pulsing segmented arch */
+.locus-seg-loader-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.locus-seg-loader-shell .locus-seg-gauge {
+  --seg-size: 132px;
+}
+
+.locus-seg-loader-caption {
+  margin: 0;
+  color: #4f6159;
+  font-size: 0.84rem;
+  font-weight: 540;
+  letter-spacing: -0.005em;
+}
+
+/* Comparison table cell alignment */
+.site-compare-gauge-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.site-compare-gauge-cell .locus-seg-gauge {
+  margin-inline: 0;
+}
+
+/* Priority board integration */
+.priority-score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(20, 35, 63, 0.09);
+  background: #ffffff;
+}
+
+.priority-score-box.is-pending {
+  background: #f8fafc;
+}
+
+.priority-score-meta-note {
+  margin-top: 5px;
+  font-size: 10.5px;
+  color: #64748b;
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* Business Opportunity mini arch */
+.opportunity-fit-arch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  flex-shrink: 0;
+}
+
+.opportunity-fit-arch .locus-seg-gauge.is-xs {
+  --seg-size: 82px;
+}
+
+.opportunity-fit-arch .locus-seg-center {
+  padding: 0 12px 1px;
+}
+
+.opportunity-fit-arch .locus-seg-center-val {
+  font-size: 0.96rem;
+}
+
+.opportunity-fit-arch .locus-seg-meta {
+  margin-top: 2px;
+  gap: 0;
+}
+
+@media (max-width: 640px) {
+  .opportunity-fit-arch {
+    min-width: 72px;
+  }
+  .opportunity-fit-arch .locus-seg-gauge.is-xs {
+    --seg-size: 72px;
+  }
+}
+
+/* Property Details: Business Fit Comparison inline segmented arch */
+.listing-fit-arch-cell {
+  display: flex;
+  justify-content: flex-start;
+  padding: 2px 0;
+}
+
+.listing-fit-arch-cell .locus-seg-gauge.is-xs {
+  --seg-size: 86px;
+  margin-inline: 0;
+}
+
+.listing-fit-arch-cell .locus-seg-center {
+  padding: 0 12px 1px;
+}
+
+.listing-fit-arch-cell .locus-seg-center-val {
+  font-size: 0.94rem;
+}
+
+/* Property Details: Transportation & Accessibility mobility arches */
+.transport-arch-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0 4px;
+}
+
+.transport-arch-stage .locus-seg-gauge.is-sm {
+  --seg-size: 134px;
+}
+
+.transport-arch-stage .locus-seg-center-val {
+  font-size: 1.38rem;
+}
+
+.transport-arch-stage .transport-rating-pill {
+  margin-top: 2px;
+}
+
+/* Property Details: Scenario IAI arch inside KPI card */
+.scenario-iai-arch-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 4px 0 2px;
+}
+
+.scenario-iai-arch-wrap .locus-seg-gauge.is-xs {
+  --seg-size: 112px;
+}
+
+.scenario-iai-arch-wrap .locus-seg-center-val {
+  font-size: 1.02rem;
+}
+
+/* Explorer / Priority Grid drawer & Compare Matrix arches */
+.city-card-arch-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.city-compare-arch-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 10px 8px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+  background: #f8faf9;
+  border: 1px solid rgba(15, 35, 28, 0.08);
+}
+
+.locus-popup-arch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  border-radius: 12px;
+  background: #f8faf9;
+  border: 1px solid rgba(15, 35, 28, 0.08);
+}
+
+.locus-popup-arch-row .locus-seg-gauge {
+  margin-inline: 0;
+  flex-shrink: 0;
+}
+
+.locus-popup-arch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.locus-popup-arch-copy strong {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #13221c;
+}
+
+.locus-popup-arch-copy span {
+  font-size: 10.5px;
+  color: #55685f;
+}
+
+/* Broker listing score arches */
+.broker-score-arches {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.broker-score-arch-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px 5px;
+  border-radius: 12px;
+  background: #f8faf9;
+  border: 1px solid rgba(15, 35, 28, 0.08);
+}
+
+/* Investment Assistant compact arch row */
+.ia-score-arch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  background: #f8faf9;
+  border: 1px solid rgba(15, 35, 28, 0.07);
+}
+
+.ia-score-arch-row .locus-seg-gauge {
+  margin-inline: 0;
+  flex-shrink: 0;
+}
+
+/* Property Editor Step 3 Cost & Risk score arches */
+.pw-econ-live-arch,
+.pw-risk-score-arch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pw-econ-live-arch .locus-seg-gauge.is-sm,
+.pw-risk-score-arch .locus-seg-gauge.is-sm {
+  --seg-size: 138px;
+}
+
+.pw-econ-live-arch .locus-seg-center-val {
+  font-size: 1.24rem;
+}
+
+/* Interface Navigation Transition Loader (shown when proceeding to scoring workspaces) */
+.locus-route-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 249, 0.86);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.locus-route-loader.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.locus-route-loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 32px 22px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(19, 34, 28, 0.09);
+  box-shadow: 0 18px 42px -18px rgba(17, 34, 51, 0.16);
+}
+
+.locus-route-loader-card .locus-seg-gauge {
+  --seg-size: 136px;
+}
+
+.locus-route-loader-title {
+  margin: 0;
+  color: #13221c;
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.locus-route-loader-sub {
+  margin: 0;
+  color: #55685f;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-seg-gauge.is-revealing .locus-seg-tick.is-filled,
+  .locus-seg-gauge[data-loading="true"] .locus-seg-tick {
+    animation: none !important;
+    transform: none !important;
+  }
+  .locus-seg-gauge[data-loading="true"] .locus-seg-tick {
+    opacity: 0.78;
+  }
+  .locus-seg-gauge.is-primed .locus-seg-tick.is-filled,
+  .locus-seg-gauge.is-revealing .locus-seg-tick.is-filled {
+    fill: var(--tick-color, #2f995f);
+    opacity: 1;
+  }
+  .locus-seg-gauge[data-pending="true"] .locus-seg-tick.is-filled,
+  .locus-seg-gauge:has([data-pending="true"]) .locus-seg-tick.is-filled {
+    fill: var(--seg-pending);
+  }
+  .locus-route-loader {
+    transition: none;
+  }
+}
+
+/* ==========================================================================
+   LOCUS-SF 5-Segment Hazard Susceptibility Pill Meter (Display & Interactive)
+   Crisp capsule-end 5-block severity scale with reassuring botanical green
+   for No Exposure / Low Susceptibility and warm amber -> orange -> crimson
+   for Moderate / High / Very High & Critical Fault conflicts.
+   ========================================================================== */
+.locus-hmeter {
+  --hm-height: 28px;
+  --hm-gap: 3px;
+  --hm-empty: #eef0f2;
+  --hm-empty-hover: #e3e7ec;
+  --hm-label-color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 268px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--locus-font-ui, "DM Sans"), "Inter", system-ui, sans-serif;
+}
+
+.locus-hmeter.is-hero {
+  --hm-height: 24px;
+  max-width: 248px;
+  align-items: stretch;
+  margin: 8px 0 12px;
+}
+
+.locus-hmeter.is-compact {
+  --hm-height: 20px;
+  --hm-gap: 2.5px;
+  max-width: 100%;
+  gap: 5px;
+  margin: 4px 0 2px;
+}
+
+.locus-hmeter.is-picker {
+  --hm-height: 30px;
+  --hm-gap: 3px;
+  max-width: 278px;
+  margin-inline: auto;
+  gap: 6px;
+}
+
+.locus-hmeter-label {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 0.79rem;
+  font-weight: 660;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--hm-label-color);
+  transition: color 180ms ease;
+  min-height: 1.25em;
+}
+
+.locus-hmeter.is-compact .locus-hmeter-label {
+  font-size: 0.74rem;
+  font-weight: 650;
+}
+
+/* High-contrast, hazard-accurate label colors (Low & None read crisp green, never washed yellow) */
+.locus-hmeter[data-hlevel="1"] { --hm-label-color: #157a52; }
+.locus-hmeter[data-hlevel="2"] { --hm-label-color: #1d8348; }
+.locus-hmeter[data-hlevel="3"] { --hm-label-color: #b45309; }
+.locus-hmeter[data-hlevel="4"] { --hm-label-color: #c2410c; }
+.locus-hmeter[data-hlevel="5"] { --hm-label-color: #b91c1c; }
+.locus-hmeter[data-hlevel="0"] { --hm-label-color: #64748b; }
+
+.locus-hmeter-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--hm-gap);
+  width: 100%;
+}
+
+.locus-hmeter-seg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--hm-height);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--hm-empty);
+  transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+}
+
+.locus-hmeter-seg:first-child {
+  border-radius: 999px 3px 3px 999px;
+}
+
+.locus-hmeter-seg:last-child {
+  border-radius: 3px 999px 999px 3px;
+}
+
+/* Interactive button behaviors for Add Property wizard */
+button.locus-hmeter-seg {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+}
+
+button.locus-hmeter-seg:focus-visible {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #1d4ed8;
+  z-index: 2;
+}
+
+button.locus-hmeter-seg:hover {
+  filter: brightness(0.97);
+}
+
+button.locus-hmeter-seg:active {
+  transform: scaleY(0.92);
+}
+
+/* Stepped palette per active level:
+   Level 1 (No mapped exposure): single crisp emerald endcap
+   Level 2 (Low susceptibility): 2-segment calm botanical emerald -> fresh leaf green
+   Level 3 (Moderate): 3-segment sunlit gold -> amber -> warm orange
+   Level 4 (High): 4-segment gold -> amber -> orange -> deep burnt orange
+   Level 5 (Very High / Critical): 5-segment full spectrum to urgent vermilion-crimson */
+.locus-hmeter[data-hlevel="1"] .locus-hmeter-seg[data-seg="1"] { background: #1f9d6c; }
+
+.locus-hmeter[data-hlevel="2"] .locus-hmeter-seg[data-seg="1"] { background: #2eb374; }
+.locus-hmeter[data-hlevel="2"] .locus-hmeter-seg[data-seg="2"] { background: #64c468; }
+
+.locus-hmeter[data-hlevel="3"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hlevel="3"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hlevel="3"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+
+.locus-hmeter[data-hlevel="4"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hlevel="4"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hlevel="4"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+.locus-hmeter[data-hlevel="4"] .locus-hmeter-seg[data-seg="4"] { background: #eb661d; }
+
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-seg[data-seg="4"] { background: #eb661d; }
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-seg[data-seg="5"] { background: #df3a1f; }
+
+/* Hover preview state overrides cleanly before commit */
+.locus-hmeter[data-hpreview="1"] { --hm-label-color: #157a52; }
+.locus-hmeter[data-hpreview="2"] { --hm-label-color: #1d8348; }
+.locus-hmeter[data-hpreview="3"] { --hm-label-color: #b45309; }
+.locus-hmeter[data-hpreview="4"] { --hm-label-color: #c2410c; }
+.locus-hmeter[data-hpreview="5"] { --hm-label-color: #b91c1c; }
+
+.locus-hmeter[data-hpreview] .locus-hmeter-seg { background: var(--hm-empty); }
+.locus-hmeter[data-hpreview="1"] .locus-hmeter-seg[data-seg="1"] { background: #1f9d6c; }
+.locus-hmeter[data-hpreview="2"] .locus-hmeter-seg[data-seg="1"] { background: #2eb374; }
+.locus-hmeter[data-hpreview="2"] .locus-hmeter-seg[data-seg="2"] { background: #64c468; }
+.locus-hmeter[data-hpreview="3"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hpreview="3"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hpreview="3"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+.locus-hmeter[data-hpreview="4"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hpreview="4"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hpreview="4"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+.locus-hmeter[data-hpreview="4"] .locus-hmeter-seg[data-seg="4"] { background: #eb661d; }
+.locus-hmeter[data-hpreview="5"] .locus-hmeter-seg[data-seg="1"] { background: #f8d448; }
+.locus-hmeter[data-hpreview="5"] .locus-hmeter-seg[data-seg="2"] { background: #f7ac2c; }
+.locus-hmeter[data-hpreview="5"] .locus-hmeter-seg[data-seg="3"] { background: #f28824; }
+.locus-hmeter[data-hpreview="5"] .locus-hmeter-seg[data-seg="4"] { background: #eb661d; }
+.locus-hmeter[data-hpreview="5"] .locus-hmeter-seg[data-seg="5"] { background: #df3a1f; }
+
+/* Staggered left-to-right entrance pop on filled segments */
+.locus-hmeter.is-revealing .locus-hmeter-seg.is-active {
+  animation: locusHsegPop 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--hseg-idx, 0) * 42ms);
+}
+
+@keyframes locusHsegPop {
+  0% {
+    opacity: 0.25;
+    transform: scaleY(0.76);
+  }
+  65% {
+    opacity: 1;
+    transform: scaleY(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* Micro scale captions under the 5 segments in Add Property picker */
+.locus-hmeter-ticks {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--hm-gap);
+  width: 100%;
+}
+
+.locus-hmeter-ticks span {
+  text-align: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #8a97a6;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  user-select: none;
+}
+
+.locus-hmeter[data-hlevel="1"] .locus-hmeter-ticks span:nth-child(1) { color: #157a52; font-weight: 700; }
+.locus-hmeter[data-hlevel="2"] .locus-hmeter-ticks span:nth-child(2) { color: #1d8348; font-weight: 700; }
+.locus-hmeter[data-hlevel="3"] .locus-hmeter-ticks span:nth-child(3) { color: #b45309; font-weight: 700; }
+.locus-hmeter[data-hlevel="4"] .locus-hmeter-ticks span:nth-child(4) { color: #c2410c; font-weight: 700; }
+.locus-hmeter[data-hlevel="5"] .locus-hmeter-ticks span:nth-child(5) { color: #b91c1c; font-weight: 700; }
+
+/* Subtle utility chips below interactive picker (Unknown / 5m Fault Conflict / Clear) */
+.locus-hmeter-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+#cityPropertyEditor button.locus-hmeter-seg,
+button.locus-hmeter-seg {
+  min-height: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+#cityPropertyEditor button.locus-hmeter-chip,
+.locus-hmeter-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid #d8e0e8;
+  background: #ffffff;
+  color: #5b6b7c;
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.3;
+  letter-spacing: 0;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+#cityPropertyEditor button.locus-hmeter-chip:hover,
+.locus-hmeter-chip:hover {
+  background: #f4f6f9;
+  border-color: #b7c4d3;
+  color: #1f2e3d;
+}
+
+#cityPropertyEditor button.locus-hmeter-chip.is-active,
+.locus-hmeter-chip.is-active {
+  background: #eef2f6;
+  border-color: #64748b;
+  color: #1e293b;
+  font-weight: 640;
+}
+
+#cityPropertyEditor button.locus-hmeter-chip.is-critical,
+.locus-hmeter-chip.is-critical {
+  border-color: #f3c4c4;
+  color: #9e1b22;
+  background: #fff7f7;
+}
+
+#cityPropertyEditor button.locus-hmeter-chip.is-critical:hover,
+#cityPropertyEditor button.locus-hmeter-chip.is-critical.is-active,
+.locus-hmeter-chip.is-critical:hover,
+.locus-hmeter-chip.is-critical.is-active {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+}
+
+/* Visually keep native <select> accessible for form data & tests without duplicating UI */
+.pw-finding-select-sr {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  pointer-events: none !important;
+}
+
+#cityPropertyEditor .pw-risk-findings-card .pw-findings-table td.pw-finding-meter-cell {
+  position: relative;
+  min-width: 248px;
+  padding-block: 11px;
+  vertical-align: middle;
+}
+
+/* Property Details: Six-Hazard Register card integration */
+.site-hazard-grid > div.site-hazard-card {
+  gap: 8px;
+}
+
+.site-hazard-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.site-hazard-card-head > span {
+  margin-bottom: 0 !important;
+}
+
+.site-hazard-grid .locus-hmeter .locus-hmeter-label {
+  display: block;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  font-size: 0.84rem;
+  font-weight: 660;
+  color: var(--hm-label-color);
+  margin-bottom: 0;
+}
+
+.site-hazard-grid .locus-hmeter .locus-hmeter-seg {
+  margin-bottom: 0;
+}
+
+.site-hazard-grid > div.site-hazard-card small {
+  margin-top: 2px;
+}
+
+@media (max-width: 660px) {
+  #cityPropertyEditor .pw-risk-findings-card .pw-findings-table td.pw-finding-meter-cell {
+    min-width: 0;
+    width: 100%;
+    padding-block: 10px 6px;
+  }
+  .locus-hmeter.is-picker {
+    --hm-height: 34px;
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locus-hmeter.is-revealing .locus-hmeter-seg.is-active {
+    animation: none !important;
+  }
+}

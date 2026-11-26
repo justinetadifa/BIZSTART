@@ -150,3 +150,28 @@
   syncScroll();
   resetSelection();
 })();
+
+/* Mobile exclusive accordion for compact iOS-style global footer */
+(() => {
+  const triggers = [...document.querySelectorAll('.city-footer [data-footer-acc-trigger]')];
+  if (!triggers.length) return;
+  const mobileFooter = window.matchMedia('(max-width: 640px)');
+
+  const setOpen = (btn, open) => {
+    const col = btn.closest('.city-footer-acc-col');
+    btn.setAttribute('aria-expanded', String(open));
+    col?.classList.toggle('is-open', open);
+  };
+
+  triggers.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!mobileFooter.matches) return;
+      const willOpen = btn.getAttribute('aria-expanded') !== 'true';
+      triggers.forEach(other => setOpen(other, other === btn && willOpen));
+    });
+  });
+
+  mobileFooter.addEventListener('change', () => {
+    if (!mobileFooter.matches) triggers.forEach(btn => setOpen(btn, false));
+  });
+})();

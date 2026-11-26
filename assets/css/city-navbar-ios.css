@@ -1787,27 +1787,7 @@
   box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
 }
 
-/* Footer Concierge styling */
-.city-footer-concierge-meta {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.85);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.city-footer-concierge-phone a {
-  color: #FDE047 !important;
-  font-weight: 700;
-  text-decoration: underline;
-}
-
-@media (max-width: 900px) {
-  .city-footer-concierge-meta {
-    display: none !important;
-  }
-}
+/* Footer Concierge styling moved to assets/css/city-footer.css */
 
 /* ==========================================================================
    WHY SAN FERNANDO SECTION & CARDS
@@ -2693,167 +2673,12 @@
   }
 }
 
-/* General Footer - Dark Red #88050B, compact on mobile */
-.city-footer {
-  border-top: 0 !important;
-  border-bottom: 0 !important;
-  border-left: 0 !important;
-  border-right: 0 !important;
-  background-color: #88050B !important;
-  background: #88050B !important;
-  color: #ffffff !important;
-  margin-top: 48px !important;
-  padding: 0 !important;
-  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.city-footer-inner {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  min-height: 60px !important;
-  padding: 16px 0 !important;
-  gap: 20px !important;
-  width: min(1240px, calc(100% - 64px)) !important;
-  margin-inline: auto !important;
-}
-
-.city-footer-brand {
-  display: flex !important;
-  align-items: baseline !important;
-  gap: 8px !important;
-  color: #ffffff !important;
-}
-
-.city-footer-logo {
-  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 14px !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.01em !important;
-  color: #ffffff !important;
-}
-
-.city-footer-location {
-  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 12.5px !important;
-  font-weight: 400 !important;
-  color: rgba(255, 255, 255, 0.88) !important;
-}
-
-.city-footer-links {
-  display: flex !important;
-  align-items: center !important;
-  gap: 24px !important;
-}
-
-.city-footer-links a {
-  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 12.5px !important;
-  font-weight: 500 !important;
-  color: rgba(255, 255, 255, 0.88) !important;
-  text-decoration: none !important;
-  transition: color 0.15s ease, opacity 0.15s ease !important;
-}
-
-.city-footer-links a:hover {
-  color: #ffffff !important;
-  opacity: 1 !important;
-  text-decoration: underline !important;
-  text-underline-offset: 3px !important;
-}
-
-.city-footer-links button,
-.city-footer-link {
-  font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  font-size: 12.5px !important;
-  font-weight: 500 !important;
-  color: rgba(255, 255, 255, 0.88) !important;
-  text-decoration: none !important;
-  background: transparent !important;
-  border: 0 !important;
-  padding: 0 !important;
-  cursor: pointer !important;
-  transition: color 0.15s ease, opacity 0.15s ease !important;
-}
-
-.city-footer-links button:hover,
-.city-footer-link:hover {
-  color: #ffffff !important;
-  opacity: 1 !important;
-  text-decoration: underline !important;
-  text-underline-offset: 3px !important;
-}
+/* Global footer styles live in assets/css/city-footer.css */
 
 @media (max-width: 850px) {
   .city-about {
     grid-template-columns: 1fr !important;
     gap: 36px !important;
-  }
-}
-
-@media (max-width: 640px) {
-  .city-footer {
-    margin-top: 24px !important;
-    background-color: #88050B !important;
-    background: #88050B !important;
-    padding: 16px 0 calc(28px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-  .city-footer-inner {
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-    padding: 0 16px !important;
-    min-height: auto !important;
-    width: 100% !important;
-    text-align: center !important;
-  }
-  .city-footer-brand {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-  }
-  .city-footer-location {
-    display: inline !important;
-    font-size: 11px !important;
-    color: rgba(255, 255, 255, 0.78) !important;
-  }
-  .city-footer-logo {
-    font-size: 12.5px !important;
-    font-weight: 800 !important;
-    color: #ffffff !important;
-  }
-  .city-footer-links {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px 14px !important;
-    width: 100% !important;
-    padding-right: 0 !important;
-  }
-  .city-footer-links a,
-  .city-footer-links button,
-  .city-footer-link {
-    font-family: "Inter", "Poppins", -apple-system, BlinkMacSystemFont, sans-serif !important;
-    font-size: 11.5px !important;
-    font-weight: 500 !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-    background: transparent !important;
-    border: 0 !important;
-    padding: 4px 6px !important;
-    white-space: nowrap !important;
-    cursor: pointer !important;
-    touch-action: manipulation !important;
-    text-decoration: none !important;
-  }
-  .city-footer-links a:hover,
-  .city-footer-links button:hover,
-  .city-footer-link:hover {
-    color: #ffffff !important;
-    text-decoration: underline !important;
   }
 }
 

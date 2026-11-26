@@ -1420,7 +1420,6 @@ export function renderOpportunityCard(item, property = null) {
               : (item.zoningOutcome === 'conditional'
                 ? '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-amber-50 tw-text-amber-800 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-border tw-border-amber-200">Conditional Use</span>'
                 : (item.zoningOutcome === 'unverified' ? '<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-slate-100 tw-text-slate-700 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold">Unverified Zoning</span>' : ''))}
-            ${item.businessFitScore ? `<span class="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-blue-50 tw-text-blue-800 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-bold tw-border tw-border-blue-200" title="Screening fit score (separate from property MCE/IAI)">Fit: ${item.businessFitScore}/100</span>` : ''}
           </div>
 
           <h3 class="opportunity-blue-title">${esc(item.label)}</h3>
@@ -1441,8 +1440,19 @@ export function renderOpportunityCard(item, property = null) {
           </div>
         </div>
 
-        <!-- Action buttons: Quick simulate & circular details toggle -->
+        <!-- Business Fit mini segmented arch + action controls -->
         <div class="opportunity-card-actions no-print">
+          ${item.businessFitScore != null && Number.isFinite(Number(item.businessFitScore)) ? `
+            <div class="opportunity-fit-arch" title="Business fit screening index (${Math.round(Number(item.businessFitScore))}/100)">
+              <div class="locus-seg-gauge is-xs" data-score-arch data-score-fraction="${Math.max(0, Math.min(1, Number(item.businessFitScore) / 100))}" style="--score-fraction:${Math.max(0, Math.min(1, Number(item.businessFitScore) / 100))}">
+                <div class="locus-seg-arch-stage">
+                  ${typeof globalThis !== 'undefined' && globalThis.LocusScoreGauge ? globalThis.LocusScoreGauge.buildSvgMarkup(Number(item.businessFitScore) / 100) : '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true"></svg>'}
+                  <div class="locus-seg-center"><strong class="locus-seg-center-val" data-score-count>${Math.round(Number(item.businessFitScore))}</strong></div>
+                </div>
+                <div class="locus-seg-meta"><span class="locus-seg-label">Fit</span></div>
+              </div>
+            </div>
+          ` : ''}
           <button type="button" class="opportunity-quick-simulate-btn" data-simulate-activity="${esc(simInfo.activityCode)}" data-simulate-label="${esc(item.label)}" data-simulate-capital="${simInfo.capital}" title="Simulate ${esc(item.label)} on this property">
             <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span>Simulate</span>

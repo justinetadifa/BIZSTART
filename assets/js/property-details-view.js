@@ -458,21 +458,28 @@ export function setupPropertyGallery(container = document) {
   const galleries = container.querySelectorAll('[data-property-gallery]');
   galleries.forEach(gallery => {
     const mainImg = gallery.querySelector('[data-gallery-main]');
+    const backdropImg = gallery.querySelector('[data-gallery-backdrop]');
     const counter = gallery.querySelector('[data-gallery-counter]');
     const thumbs = Array.from(gallery.querySelectorAll('[data-gallery-target]'));
     const prevBtn = gallery.querySelector('[data-gallery-prev]');
     const nextBtn = gallery.querySelector('[data-gallery-next]');
-    if (!mainImg || thumbs.length <= 1) return;
+    const expandBtn = gallery.querySelector('[data-gallery-expand]');
+    if (!mainImg) return;
 
+    const sources = thumbs.length
+      ? thumbs.map(t => t.querySelector('img')?.getAttribute('src') || mainImg.src).filter(Boolean)
+      : [mainImg.getAttribute('src')].filter(Boolean);
+    const captionText = gallery.querySelector('[data-gallery-caption]')?.textContent?.trim() || mainImg.alt || 'Property photo';
     let currentIndex = 0;
-    const count = thumbs.length;
+    const count = sources.length;
 
     function goTo(index) {
+      if (!count) return;
       currentIndex = (index + count) % count;
-      const targetThumb = thumbs[currentIndex];
-      const targetImg = targetThumb?.querySelector('img');
-      if (targetImg && targetImg.src) {
-        mainImg.src = targetImg.src;
+      const src = sources[currentIndex];
+      if (src) {
+        mainImg.src = src;
+        if (backdropImg) backdropImg.src = src;
       }
       thumbs.forEach((t, i) => {
         const active = i === currentIndex;
@@ -482,19 +489,70 @@ export function setupPropertyGallery(container = document) {
       if (counter) {
         counter.textContent = `${currentIndex + 1} / ${count}`;
       }
-      targetThumb?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+      thumbs[currentIndex]?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+      syncLightbox();
     }
 
-    prevBtn?.addEventListener('click', e => { e.preventDefault(); goTo(currentIndex - 1); });
-    nextBtn?.addEventListener('click', e => { e.preventDefault(); goTo(currentIndex + 1); });
+    let lightbox = null;
+    function syncLightbox() {
+      if (!lightbox || !lightbox.open) return;
+      const lbImg = lightbox.querySelector('[data-lb-img]');
+      const lbCounter = lightbox.querySelector('[data-lb-counter]');
+      if (lbImg && sources[currentIndex]) lbImg.src = sources[currentIndex];
+      if (lbCounter) lbCounter.textContent = count > 1 ? `${currentIndex + 1} / ${count}` : '';
+    }
+    function openLightbox() {
+      if (typeof document === 'undefined' || !sources.length) return;
+      if (!lightbox) {
+        lightbox = document.createElement('dialog');
+        lightbox.className = 'property-photo-lightbox';
+        lightbox.setAttribute('aria-label', 'Full property photograph');
+        lightbox.innerHTML = `
+          <div class="property-lightbox-frame">
+            <div class="property-lightbox-bar">
+              <span class="property-lightbox-caption">${esc(captionText)}</span>
+              <div class="property-lightbox-controls">
+                <span class="property-lightbox-counter" data-lb-counter></span>
+                <button type="button" class="property-lightbox-close" data-lb-close aria-label="Close full view">&times;</button>
+              </div>
+            </div>
+            <div class="property-lightbox-body">
+              ${count > 1 ? '<button type="button" class="property-lightbox-nav is-prev" data-lb-prev aria-label="Previous photo">&lsaquo;</button>' : ''}
+              <img data-lb-img alt="${esc(mainImg.alt || 'Property photo')}">
+              ${count > 1 ? '<button type="button" class="property-lightbox-nav is-next" data-lb-next aria-label="Next photo">&rsaquo;</button>' : ''}
+            </div>
+          </div>
+        `;
+        document.body.appendChild(lightbox);
+        lightbox.querySelector('[data-lb-close]')?.addEventListener('click', () => lightbox.close());
+        lightbox.querySelector('[data-lb-prev]')?.addEventListener('click', () => goTo(currentIndex - 1));
+        lightbox.querySelector('[data-lb-next]')?.addEventListener('click', () => goTo(currentIndex + 1));
+        lightbox.addEventListener('click', e => {
+          if (e.target === lightbox || e.target.classList.contains('property-lightbox-body')) lightbox.close();
+        });
+        lightbox.addEventListener('keydown', e => {
+          if (e.key === 'ArrowLeft' && count > 1) { e.preventDefault(); goTo(currentIndex - 1); }
+          else if (e.key === 'ArrowRight' && count > 1) { e.preventDefault(); goTo(currentIndex + 1); }
+        });
+      }
+      if (typeof lightbox.showModal === 'function') lightbox.showModal();
+      else lightbox.setAttribute('open', '');
+      syncLightbox();
+    }
 
-    thumbs.forEach(thumb => {
-      thumb.addEventListener('click', e => {
-        e.preventDefault();
-        const idx = Number(thumb.dataset.galleryTarget);
-        if (!isNaN(idx)) goTo(idx);
+    if (thumbs.length > 1) {
+      prevBtn?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); goTo(currentIndex - 1); });
+      nextBtn?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); goTo(currentIndex + 1); });
+      thumbs.forEach(thumb => {
+        thumb.addEventListener('click', e => {
+          e.preventDefault();
+          const idx = Number(thumb.dataset.galleryTarget);
+          if (!isNaN(idx)) goTo(idx);
+        });
       });
-    });
+    }
+    expandBtn?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openLightbox(); });
+    mainImg.addEventListener('click', openLightbox);
   });
 
   const quickMoreBtn = container.querySelector('#propertyQuickMoreBizBtn');
@@ -1295,6 +1353,14 @@ function compactCriterionRatings(calc) {
   </li>`).join('');
 }
 
+function scoreArchSvgMarkup(fraction, loading = false) {
+  const engine = typeof globalThis !== 'undefined' ? globalThis.LocusScoreGauge : null;
+  if (engine && typeof engine.buildSvgMarkup === 'function') {
+    return engine.buildSvgMarkup(fraction, { loading });
+  }
+  return '<svg class="locus-seg-arch-svg" viewBox="0 0 200 116" aria-hidden="true" focusable="false"></svg>';
+}
+
 function propertyScoreSummaryMarkup(property, calc) {
   const presentation = assessmentPresentation(property, calc);
   const gauge = listingGaugeState(presentation, calc);
@@ -1306,14 +1372,19 @@ function propertyScoreSummaryMarkup(property, calc) {
     </header>
     <p class="listing-score-scenario" data-score-scenario hidden></p>
     <div class="listing-score-body">
-      <div class="listing-gauge" style="--score-fraction:${gauge.fraction}">
-        <div class="listing-gauge-value" data-pending="${gauge.pending}">
-          <small data-score-caption>${gauge.caption}</small>
-          <div class="listing-index-value" title="Investment Attractiveness Index or recorded weighted total"><span data-active-assessment-score><strong>${presentation.headline}</strong></span><span class="listing-gauge-unit">/100</span></div>
-          <strong class="listing-coverage-value" data-coverage-value>${gauge.rated}/${gauge.count}</strong>
+      <div class="listing-gauge locus-seg-gauge is-hero" data-score-arch data-score-fraction="${gauge.fraction}" style="--score-fraction:${gauge.fraction}" data-pending="${gauge.pending}">
+        <div class="locus-seg-arch-stage">
+          ${scoreArchSvgMarkup(gauge.fraction)}
+          <div class="locus-seg-center listing-gauge-value" data-pending="${gauge.pending}">
+            <div class="listing-index-value locus-seg-center-val" title="Investment Attractiveness Index or recorded weighted total"><span data-active-assessment-score><strong>${presentation.headline}</strong></span><span class="listing-gauge-unit">/100</span></div>
+            <strong class="listing-coverage-value locus-seg-center-val" data-coverage-value>${gauge.rated}/${gauge.count}</strong>
+          </div>
+        </div>
+        <div class="locus-seg-meta">
+          <small class="locus-seg-label" data-score-caption>${gauge.caption}</small>
+          <span class="locus-seg-pill listing-gauge-pill" data-score-coverage>${gauge.pending ? 'Score pending' : `${gauge.rated} of ${gauge.count} rated`}</span>
         </div>
         <div class="listing-score-track" aria-hidden="true"></div>
-        <span data-score-coverage>${gauge.pending ? 'Score pending' : `${gauge.rated} of ${gauge.count} rated`}</span>
       </div>
       <ul class="score-legend" id="listingCriterionLegend" data-score-criteria aria-label="Assessment criteria">${compactCriterionRatings(calc)}</ul>
     </div>
@@ -1379,6 +1450,28 @@ export function propertyAssessmentMarkup(property, calc = assessmentCalculation(
   </section>`;
 }
 
+function hazardMeterLevel(raw, assessed) {
+  if (!assessed) return 0;
+  const r = String(raw || '').trim().toLowerCase();
+  if (['none', 'outside_mapped', 'clear', 'safe', 'no_exposure'].includes(r)) return 1;
+  if (['low', 'low_susceptibility', 'minor'].includes(r)) return 2;
+  if (['moderate', 'mod', 'medium', 'moderate_susceptibility'].includes(r)) return 3;
+  if (['high', 'high_susceptibility', 'elevated'].includes(r)) return 4;
+  if (['very_high', 'critical', 'conflict', 'intersects'].includes(r)) return 5;
+  return 0;
+}
+
+function hazardMeterMarkup(findingLabel, raw, assessed, sizeClass = 'is-compact', showLabel = true) {
+  const level = hazardMeterLevel(raw, assessed);
+  const segs = [1, 2, 3, 4, 5].map((n, idx) =>
+    `<span class="locus-hmeter-seg${n <= level ? ' is-active' : ''}" data-seg="${n}" style="--hseg-idx:${idx}"></span>`
+  ).join('');
+  return `<div class="locus-hmeter ${sizeClass}" data-hazard-meter data-hlevel="${level}" role="img" aria-label="${esc(findingLabel)} (severity ${level} of 5)">
+    ${showLabel ? `<span class="locus-hmeter-label">${esc(findingLabel)}</span>` : ''}
+    <div class="locus-hmeter-track" aria-hidden="true">${segs}</div>
+  </div>`;
+}
+
 export function siteSafetyGridMarkup(property) {
   const definitions = [
     ['flood_susceptibility', 'Flood Susceptibility'],
@@ -1393,14 +1486,14 @@ export function siteSafetyGridMarkup(property) {
     const entry = subcriteria[key] || {};
     const result = hazardFinding(property, key);
     const verification = result.authenticated ? 'authenticated' : result.assessed ? 'reported_unverified' : 'not_assessed';
-    return { key, label, finding: result.finding, verification, entry, assessed: result.assessed };
+    return { key, label, finding: result.finding, raw: result.raw, verification, entry, assessed: result.assessed };
   });
   const count = rows.filter(row => row.assessed).length;
   const assessedLayers = rows.filter(r => r.assessed);
   const unassessedLayers = rows.filter(r => !r.assessed);
   const records = recordedSafety(property);
   return `
-    <div class="site-hazard-grid">${rows.map(row => `<div><span>${esc(row.label)}</span><strong>${esc(row.finding)}</strong><small>${esc(row.verification.replaceAll('_', ' '))}</small></div>`).join('')}</div>
+    <div class="site-hazard-grid">${rows.map(row => `<div class="site-hazard-card"><div class="site-hazard-card-head"><span>${esc(row.label)}</span></div>${hazardMeterMarkup(row.finding, row.raw, row.assessed, 'is-compact')}<small>${esc(row.verification.replaceAll('_', ' '))}</small></div>`).join('')}</div>
     ${unassessedLayers.length ? `
       <div class="partial-hazard-banner" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid #64748B; border-radius: 8px; padding: 12px 16px; margin: 16px 0; display: flex; gap: 12px;">
         <span style="font-size: 16px; line-height: 1; color: #64748B;">ℹ</span>
@@ -1589,7 +1682,7 @@ function propertyUseSummaryMarkup(property) {
     const count = numeric(match.supportingCount) ?? (Array.isArray(match.supportingPlaces) ? places.length : null);
     const zoning = match.zoningOutcomeLabel || match.zoningStatus || 'Unverified';
     const tone = match.zoningOutcome === 'permitted' ? 'permitted' : match.zoningOutcome === 'conditional' ? 'conditional' : 'unverified';
-    return { match, score: score === null ? '—' : `${fmt(score, 1)}/100`, count: count === null ? '—' : fmt(count, 0),
+    return { match, scoreNum: score, score: score === null ? '—' : `${fmt(score, 1)}/100`, count: count === null ? '—' : fmt(count, 0),
       nearest: nearest === null ? match.nearestAnchorFormatted || '—' : `${fmt(nearest, 0)} m`, zoning, tone };
   });
   const count = columns.length;
@@ -1599,7 +1692,11 @@ function propertyUseSummaryMarkup(property) {
     </header>
     ${count ? `<div class="property-intel-grid"><div class="listing-matrix-scroll property-intel-recommendations" tabindex="0" role="region" aria-label="Business fit comparison table">
       <table class="listing-use-matrix" style="--matrix-columns:${count}"><thead><tr><td></td>${columns.map(({match}, index) => `<th scope="col">${recommendationButtonMarkup(match, currentActivity, 'listing-matrix-pick', index === 0)}</th>`).join('')}</tr></thead>
-      <tbody><tr><th scope="row">Business fit</th>${columns.map(column => `<td>${column.score}</td>`).join('')}</tr>
+      <tbody><tr><th scope="row">Business fit</th>${columns.map(column => {
+        if (column.scoreNum === null) return `<td>${column.score}</td>`;
+        const frac = Math.max(0, Math.min(1, column.scoreNum / 100));
+        return `<td><div class="listing-fit-arch-cell"><div class="locus-seg-gauge is-xs" data-score-arch data-score-fraction="${frac}" style="--score-fraction:${frac}"><div class="locus-seg-arch-stage">${scoreArchSvgMarkup(frac)}<div class="locus-seg-center"><strong class="locus-seg-center-val"><span data-score-count>${fmt(column.scoreNum, 1)}</span><small>/100</small></strong></div></div></div></div></td>`;
+      }).join('')}</tr>
       <tr><th scope="row">Supporting places</th>${columns.map(column => `<td>${column.count}</td>`).join('')}</tr>
       <tr><th scope="row">Nearest support</th>${columns.map(column => `<td>${esc(column.nearest)}</td>`).join('')}</tr>
       <tr><th scope="row">Zoning screen</th>${columns.map(column => `<td><span class="listing-zoning-status is-${column.tone}">${esc(column.zoning)}</span></td>`).join('')}</tr></tbody></table>
@@ -1659,7 +1756,12 @@ export function propertyMediaDockMarkup(property, imageUrl, path, includeUses = 
         <div class="property-media-view-pane ${isPhotosActive ? 'is-active' : ''}" data-media-pane="photos" id="propertyMediaPhotosPane" role="tabpanel" aria-labelledby="tabPhotosBtn" ${isPhotosActive ? '' : 'hidden'}>
           ${hasPhotos ? `<div class="property-photo-gallery-wrapper" data-property-gallery>
             <div class="property-gallery-stage">
-              <img class="property-gallery-main-img" data-gallery-main src="${esc(images[0])}" alt="${esc(property.name)}">
+              <img class="property-gallery-backdrop" data-gallery-backdrop src="${esc(images[0])}" alt="" aria-hidden="true">
+              <img class="property-gallery-main-img" data-gallery-main src="${esc(images[0])}" alt="${esc(property.name)}" title="Click to view full photograph">
+              <button type="button" class="property-gallery-expand-btn" data-gallery-expand aria-label="View full photograph" title="View full photograph">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                <span>Full view</span>
+              </button>
               ${images.length > 1 ? `
                 <button type="button" class="property-gallery-nav is-prev" data-gallery-prev aria-label="Previous photo">‹</button>
                 <button type="button" class="property-gallery-nav is-next" data-gallery-next aria-label="Next photo">›</button>
@@ -1679,20 +1781,19 @@ export function propertyMediaDockMarkup(property, imageUrl, path, includeUses = 
           </div>` : '<p class="listing-media-empty">No listing photos recorded.</p>'}
         </div>
 
-        <!-- VIEW 2: MAP -->
+        <!-- VIEW 2: MAP (LOCUS-SF 3D Interactive San Fernando City Map) -->
         <div class="property-media-view-pane ${isMapActive ? 'is-active' : ''}" data-media-pane="map" id="propertyMediaMapPane" role="tabpanel" aria-labelledby="tabMapBtn" ${isMapActive ? '' : 'hidden'}>
           ${hasLocation ? `
-            <div class="listing-map-frame">
-              <div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Property location map"></div>
-              <select id="cityMapLayer" class="listing-map-switch" aria-label="Map style">
-                <option value="satellite">Satellite</option>
-                <option value="streets">Street map</option>
-              </select>
+            <div class="listing-map-frame listing-map-frame--3d" data-detail-3d-map-slot>
+              <dialog class="detail-map-dialog" data-detail-3d-map-viewport open>
+                <div class="city-map-canvas" id="cityPropertyMap" role="region" aria-label="Interactive 3D San Fernando property location map"></div>
+              </dialog>
               <span data-site-map-status role="status"></span>
             </div>
             <div class="listing-map-footer">
               <span class="listing-map-key">${approximate ? 'Approximate pin' : 'Subject property'}</span>
               ${parcel.boundary ? '<span class="listing-map-key is-parcel">Parcel outline</span>' : ''}
+              <button type="button" class="listing-map-expand-btn" data-detail-3d-expand>Expand 3D map</button>
               <details class="listing-map-record">
                 <summary>Map details</summary>
                 <div class="listing-map-record-body">
@@ -1764,6 +1865,23 @@ export function transportationAccessibilityMarkup(property) {
   const driveTier = tier(drive.score ?? 80);
   const transitTier = tier(transit.score ?? 30);
   const bikeTier = tier(bike.score ?? 20);
+  const mobilityGaugeMarkup = (modeScore, fallbackLabel, tierClass, prefix = '') => {
+    const hasNum = modeScore !== null && modeScore !== undefined && Number.isFinite(Number(modeScore));
+    const frac = hasNum ? Math.max(0, Math.min(1, Number(modeScore) / 100)) : 0;
+    return `<div class="transport-arch-stage">
+      <div class="locus-seg-gauge is-sm" data-score-arch data-score-fraction="${frac}" style="--score-fraction:${frac}" data-pending="${!hasNum}">
+        <div class="locus-seg-arch-stage">
+          ${scoreArchSvgMarkup(frac)}
+          <div class="locus-seg-center">
+            <span class="locus-seg-center-val">${hasNum ? `<strong data-score-count>${Math.round(Number(modeScore))}</strong><small>/100</small>` : '<strong>—</strong>'}</span>
+          </div>
+        </div>
+        <div class="locus-seg-meta">
+          <span class="transport-rating-pill ${tierClass}">${prefix}${esc(fallbackLabel)}</span>
+        </div>
+      </div>
+    </div>`;
+  };
 
   return `
     <section class="property-panel property-transport-section" id="propertyTransportSection" data-investor-advanced aria-labelledby="propertyTransportTitle">
@@ -1784,16 +1902,10 @@ export function transportationAccessibilityMarkup(property) {
               </span>
               <span class="transport-mode-name">Pedestrian</span>
             </span>
-            <span class="transport-card-score ${walkTier}">
-              ${walk.score !== null ? `<strong>${walk.score}</strong><small>/100</small>` : 'Not Assessed'}
-            </span>
           </div>
 
           <div class="transport-card-middle">
-            <span class="transport-rating-pill ${walkTier}">${esc(walk.label || 'Walkability')}</span>
-            <div class="transport-score-meter">
-              <div class="transport-meter-fill ${walkTier}" style="width: ${walk.score ?? 50}%;"></div>
-            </div>
+            ${mobilityGaugeMarkup(walk.score, walk.label || 'Walkability', walkTier)}
           </div>
 
           <p class="transport-card-desc">${esc(walk.description || 'Pedestrian connectivity')}</p>
@@ -1811,16 +1923,10 @@ export function transportationAccessibilityMarkup(property) {
               </span>
               <span class="transport-mode-name">Vehicular</span>
             </span>
-            <span class="transport-card-score ${driveTier}">
-              ${drive.score !== null ? `<strong>${drive.score}</strong><small>/100</small>` : 'Not Assessed'}
-            </span>
           </div>
 
           <div class="transport-card-middle">
-            <span class="transport-rating-pill ${driveTier}">${esc(drive.label || 'Drivability')}</span>
-            <div class="transport-score-meter">
-              <div class="transport-meter-fill ${driveTier}" style="width: ${drive.score ?? 80}%;"></div>
-            </div>
+            ${mobilityGaugeMarkup(drive.score, drive.label || 'Drivability', driveTier)}
           </div>
 
           <p class="transport-card-desc">${esc(drive.description || 'Road-network accessibility')}</p>
@@ -1838,16 +1944,10 @@ export function transportationAccessibilityMarkup(property) {
               </span>
               <span class="transport-mode-name">Public Transit</span>
             </span>
-            <span class="transport-card-score ${transitTier}">
-              ${transit.score !== null ? `<strong>${transit.score}</strong><small>/100</small>` : 'Not Assessed'}
-            </span>
           </div>
 
           <div class="transport-card-middle">
-            <span class="transport-rating-pill ${transitTier}">✓ ${esc(transit.label || 'Public transit')}</span>
-            <div class="transport-score-meter">
-              <div class="transport-meter-fill ${transitTier}" style="width: ${transit.score ?? 30}%;"></div>
-            </div>
+            ${mobilityGaugeMarkup(transit.score, transit.label || 'Public transit', transitTier, '✓ ')}
           </div>
 
           <p class="transport-card-desc">${esc(transit.description || 'Proximity to transit terminals')}</p>
@@ -1865,16 +1965,10 @@ export function transportationAccessibilityMarkup(property) {
               </span>
               <span class="transport-mode-name">Cycling</span>
             </span>
-            <span class="transport-card-score ${bikeTier}">
-              ${bike.score !== null ? `<strong>${bike.score}</strong><small>/100</small>` : 'Not Assessed'}
-            </span>
           </div>
 
           <div class="transport-card-middle">
-            <span class="transport-rating-pill ${bikeTier}">${esc(bike.label || 'Bikeability')}</span>
-            <div class="transport-score-meter">
-              <div class="transport-meter-fill ${bikeTier}" style="width: ${bike.score ?? 20}%;"></div>
-            </div>
+            ${mobilityGaugeMarkup(bike.score, bike.label || 'Bikeability', bikeTier)}
           </div>
 
           <p class="transport-card-desc">${esc(bike.description || 'Cycling infrastructure and terrain')}</p>
@@ -2324,6 +2418,7 @@ export function floodAndFireAssessmentMarkup(property) {
     <div class="climate-factors-grid" data-investor-advanced>
       <article class="risk-context-card ${riskClass}">
         <span class="risk-card-kicker">FLOOD SUSCEPTIBILITY</span><h3 class="risk-finding-value">${esc(flood.finding)}</h3>
+        ${hazardMeterMarkup(flood.finding, flood.raw, flood.assessed, 'is-hero', false)}
         <span class="risk-evidence-badge ${flood.authenticated ? 'is-authenticated' : flood.assessed ? 'is-reported' : 'is-unrecorded'}">${flood.authenticated ? 'Authenticated finding' : flood.assessed ? 'Reported · source verification pending' : 'Evidence not recorded'}</span>
         <p>The flood finding comes from the Risk Constraints assessment. ${critical ? 'This finding requires technical review before the IAI can be released.' : 'Confirm the source and its coverage for the whole parcel.'}</p>
         <dl class="risk-source-facts"><div><dt>Recorded source</dt><dd>${esc(source || 'No source attachment recorded')}</dd></div><div><dt>Evidence date</dt><dd>${date ? esc(dateLabel(date)) : 'Not recorded'}</dd></div></dl>
@@ -2802,7 +2897,16 @@ export function investorScenarioMarkup(property) {
         </div>
         <div class="property-scenario-kpi-card" data-kpi="iai">
           <span class="property-scenario-kpi-label">Simulated Scenario IAI (100%)</span>
-          <strong data-scenario-total-iai class="property-scenario-kpi-val">— / 100</strong>
+          <div class="scenario-iai-arch-wrap">
+            <div class="locus-seg-gauge is-xs" data-score-arch data-scenario-iai-dial data-score-fraction="0" style="--score-fraction:0" data-pending="true">
+              <div class="locus-seg-arch-stage">
+                ${scoreArchSvgMarkup(0)}
+                <div class="locus-seg-center">
+                  <strong data-scenario-total-iai class="property-scenario-kpi-val locus-seg-center-val">— / 100</strong>
+                </div>
+              </div>
+            </div>
+          </div>
           <small data-scenario-iai-note class="property-scenario-kpi-caption">Select planned use</small>
         </div>
         <div class="property-scenario-kpi-card" data-kpi="nearby">
@@ -2861,8 +2965,28 @@ export function setupInvestorScenario(root, property, policyInput) {
       if (heroScoreEl) heroScoreEl.innerHTML = `<strong>${presentation.headline}</strong>`;
       const gaugeState = listingGaugeState(presentation, result);
       const gauge = root.querySelector('.listing-gauge');
+      const scenarioDial = container.querySelector('[data-scenario-iai-dial]');
       gauge?.style?.setProperty?.('--score-fraction', String(gaugeState.fraction));
+      gauge?.setAttribute?.('data-score-fraction', String(gaugeState.fraction));
+      gauge?.setAttribute?.('data-pending', String(presentation.total === null));
       root.querySelector('.listing-gauge-value')?.setAttribute?.('data-pending', String(presentation.total === null));
+      if (gauge && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(gauge, {
+          fraction: gaugeState.fraction,
+          pending: presentation.total === null,
+          loading: Boolean(assessment?._loading),
+          animate: !assessment?._loading
+        });
+      }
+      if (scenarioDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(scenarioDial, {
+          fraction: presentation.index !== null ? presentation.index / 100 : 0,
+          pending: presentation.index === null,
+          loading: Boolean(assessment?._loading),
+          animate: !assessment?._loading,
+          animateNumber: false
+        });
+      }
       text(root.querySelector('[data-score-caption]'), gaugeState.caption);
       text(root.querySelector('[data-coverage-value]'), `${gaugeState.rated}/${gaugeState.count}`);
       const summaryRows = root.querySelector('[data-score-criteria]');
@@ -3036,7 +3160,15 @@ export function setupInvestorScenario(root, property, policyInput) {
     const evaluate = async () => {
       const version = ++requestVersion;
       const activity = select?.value || '';
-      render(withheld(activity, 'Checking the selected activity. Its current score is pending until the server responds.'));
+      const gauge = root.querySelector('.listing-gauge');
+      const scenarioDial = container.querySelector('[data-scenario-iai-dial]');
+      if (gauge && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(gauge, { loading: true });
+      }
+      if (scenarioDial && typeof window !== 'undefined' && window.LocusScoreGauge) {
+        window.LocusScoreGauge.update(scenarioDial, { loading: true });
+      }
+      render({ ...withheld(activity, 'Checking the selected activity. Its current score is pending until the server responds.'), _loading: true });
       try {
         const apiBase = window.SFC_APP_CONFIG?.apiBase || 'api';
         const response = await fetch(`${apiBase}/property-assessment.php?id=${encodeURIComponent(property.id || property.property_id)}&activity=${encodeURIComponent(activity)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -3175,6 +3307,12 @@ export function v2AssessmentPanelMarkup(property) {
     return `<tr><th scope="row">${esc(domainLabel)}</th><td>${scored ? fmt(data.score, 1) : '—'}</td><td>${data.weight != null ? fmt(data.weight) + '%' : '—'}</td><td>${weighted ? fmt(data.weighted_score, 2) : '—'}</td><td class="v2-evidence-cell">${data.evidence_count != null ? data.evidence_count + ' fact(s)' : '—'}</td></tr>`;
   }).filter(Boolean);
 
+  const v2PassedChecks = checks.filter(check => check.result === 'passed').length;
+  const v2Fraction = iai !== null ? Math.max(0, Math.min(100, Number(iai))) / 100 : (checks.length ? v2PassedChecks / checks.length : 0);
+  const v2GatePill = checks.length
+    ? `${v2PassedChecks} of ${checks.length} gates ready`
+    : (iai !== null ? `${fmt(covPct, 0)}% evidence coverage` : 'Awaiting evidence');
+
   return `
     <div class="v2-assessment-panel">
       <div class="v2-draft-notice" role="note">
@@ -3195,10 +3333,20 @@ export function v2AssessmentPanelMarkup(property) {
       ${checks.length ? `<div class="v2-eligibility-checks"><h4>Eligibility Gate Checks</h4><ul class="v2-checks-list">${checks.map(check => `<li class="v2-check-item v2-check-${esc(check.result || 'unknown')}"><span class="v2-check-icon" aria-hidden="true">${check.result === 'passed' ? '✓' : check.result === 'failed' ? '✕' : check.result === 'conditional' ? '⚠' : '?'}</span><span class="v2-check-label">${esc(check.label)}</span>${check.detail ? `<span class="v2-check-detail">${esc(check.detail)}</span>` : ''}</li>`).join('')}</ul></div>` : ''}
 
       <div class="v2-kpi-grid">
-        <div class="v2-kpi-card ${iai === null ? 'is-withheld' : ''}">
-          <span class="v2-kpi-label">IAI Score (V2)</span>
-          <strong class="v2-kpi-value">${iai !== null ? fmt(iai, 1) + ' / 100' : '—'}</strong>
-          <small class="v2-kpi-note">${iai !== null ? 'Draft composite score' : status === 'does_not_meet_requirements' ? 'Withheld — eligibility failed' : 'Awaiting evidence'}</small>
+        <div class="v2-kpi-card v2-kpi-dial-card ${iai === null ? 'is-withheld' : ''}">
+          <div class="locus-seg-gauge is-md" data-score-arch data-score-fraction="${v2Fraction}" style="--score-fraction:${v2Fraction}" data-pending="${iai === null}">
+            <div class="locus-seg-arch-stage">
+              ${scoreArchSvgMarkup(v2Fraction)}
+              <div class="locus-seg-center">
+                <strong class="v2-kpi-value locus-seg-center-val" data-score-count>${iai !== null ? `${fmt(iai, 0)}%` : '—'}</strong>
+              </div>
+            </div>
+            <div class="locus-seg-meta">
+              <span class="v2-kpi-label locus-seg-label">${iai !== null ? 'Preliminary fit' : status === 'does_not_meet_requirements' ? 'Not eligible' : 'Awaiting fit'}</span>
+              <span class="locus-seg-pill">${esc(v2GatePill)}</span>
+            </div>
+          </div>
+          <small class="v2-kpi-note">${iai !== null ? `Draft V2 IAI · ${fmt(iai, 1)} / 100` : status === 'does_not_meet_requirements' ? 'Withheld — eligibility failed' : 'Complete evidence to compute score'}</small>
         </div>
         <div class="v2-kpi-card">
           <span class="v2-kpi-label">Evidence Coverage</span>

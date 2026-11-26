@@ -64,7 +64,7 @@ let selectedLandmarkId = null;
 try {
   const parsed = JSON.parse(localStorage.getItem(storeKey) || '[]');
   if (Array.isArray(parsed)) stops = parsed;
-} catch {}
+} catch { }
 
 // Initialize Registry (keeps Community OpenStreetMap snapshot strictly distinct from Official thesis records)
 const registry = LocusRegistry.createRegistry({
@@ -946,23 +946,33 @@ const style = {
 const cityHall = VERIFIED_LANDMARKS.find(landmark => landmark.id === 'sf-city-hall');
 const initialView = cityMapEmbed.enabled
   ? {
-      center: [cityHall.lng, cityHall.lat],
-      zoom: window.innerWidth > 760 ? 18.1 : cityHall.zoom,
-      pitch: cityHall.pitch,
-      bearing: cityHall.bearing
-    }
+    center: [cityHall.lng, cityHall.lat],
+    zoom: window.innerWidth > 760 ? 18.1 : cityHall.zoom,
+    pitch: cityHall.pitch,
+    bearing: cityHall.bearing
+  }
   : DOWNTOWN_VIEW;
+
+const mapUrlParams = new URLSearchParams(location.search);
+const mapUrlLat = Number(mapUrlParams.get('lat'));
+const mapUrlLng = Number(mapUrlParams.get('lng'));
+const hasUrlCoords = mapUrlParams.has('lat') && mapUrlParams.has('lng')
+  && Number.isFinite(mapUrlLat) && Number.isFinite(mapUrlLng)
+  && Math.abs(mapUrlLat) <= 90 && Math.abs(mapUrlLng) <= 180
+  && !(mapUrlLat === 0 && mapUrlLng === 0);
+const isPropertyDetailEmbed = document.documentElement.dataset.mapMode === 'property' || mapUrlParams.get('mode') === 'property';
+if (isPropertyDetailEmbed) document.documentElement.dataset.mapMode = 'property';
 
 const map = new maplibregl.Map({
   container: 'map',
   antialias: true,
   style,
-  ...initialView,
+  ...(hasUrlCoords ? { center: [mapUrlLng, mapUrlLat], zoom: 17.4, pitch: 58, bearing: -24 } : initialView),
   minZoom: 10,
   maxZoom: 19,
   maxPitch: 60,
   maxBounds: [[120.245, 16.52], [120.46, 16.70]],
-  cooperativeGestures: cityMapEmbed.enabled,
+  cooperativeGestures: cityMapEmbed.enabled && !isPropertyDetailEmbed,
   attributionControl: { compact: true }
 });
 
@@ -1392,7 +1402,7 @@ function setLightingMode(mode, { immediate = false } = {}) {
   window.dispatchEvent(new CustomEvent('locus:lighting-changed', { detail: { mode: lightingMode } }));
   setStatus(
     isN ? 'Architectural Night Mode active (lit windows, glowing streetlamps & headlights).' :
-    (isG ? 'La Union Golden Hour lighting active (western afternoon sun).' : 'Sunlit coastal Day Mode active.')
+      (isG ? 'La Union Golden Hour lighting active (western afternoon sun).' : 'Sunlit coastal Day Mode active.')
   );
 
   if (lightingAnimRaf) cancelAnimationFrame(lightingAnimRaf);
@@ -3724,6 +3734,8 @@ function setPanelHidden(hidden) {
   setStatus(next ? 'Directory panel hidden for open map viewing.' : 'Directory panel shown.');
 }
 
+let syncCompactControls = () => { };
+
 async function setFullscreenMap(enable, options = {}) {
   const next = Boolean(enable);
   if (cityMapEmbed.hasParent && !options.fromParent) {
@@ -3745,17 +3757,18 @@ async function setFullscreenMap(enable, options = {}) {
   if (!options.fromBrowserEvent && !options.fromParent) {
     if (next && !document.fullscreenElement) {
       if (document.fullscreenEnabled && document.documentElement.requestFullscreen) {
-        try { await document.documentElement.requestFullscreen(); } catch {}
+        try { await document.documentElement.requestFullscreen(); } catch { }
       }
     } else if (!next && document.fullscreenElement && document.exitFullscreen) {
-      try { await document.exitFullscreen(); } catch {}
+      try { await document.exitFullscreen(); } catch { }
     }
   }
 
   if (cityMapEmbed.enabled) {
     if (next) map.cooperativeGestures.disable();
-    else map.cooperativeGestures.enable();
+    else if (!isPropertyDetailEmbed) map.cooperativeGestures.enable();
   }
+  syncCompactControls();
   syncViewButtonsUI();
   updateScoutBadge();
   scheduleMapResizeSync();
@@ -3823,14 +3836,16 @@ if (cityMapEmbed.enabled && mapMoreToggle) {
 
   function arrangeMapControls() {
     setMapMoreOpen(false);
-    document.documentElement.classList.toggle('map-compact', compactMap.matches);
-    byId('jump-btn').setAttribute('aria-label', compactMap.matches ? 'Search landmarks and barangays' : 'Jump to landmark or barangay');
+    const useCompact = compactMap.matches && !(isPropertyDetailEmbed && !isFullscreenMap);
+    document.documentElement.classList.toggle('map-compact', useCompact);
+    byId('jump-btn').setAttribute('aria-label', useCompact ? 'Search landmarks and barangays' : 'Jump to landmark or barangay');
     for (const { control, container, before, parent, next } of mobileControls) {
-      if (compactMap.matches) container.insertBefore(control, before ?? null);
+      if (useCompact) container.insertBefore(control, before ?? null);
       else parent.insertBefore(control, next);
     }
   }
 
+  syncCompactControls = arrangeMapControls;
   arrangeMapControls();
   compactMap.addEventListener('change', arrangeMapControls);
   mapMoreToggle.addEventListener('click', () => setMapMoreOpen(mapMorePanel.hidden));
@@ -4125,7 +4140,7 @@ if (cityMapEmbed.enabled) {
   const streetMotionKey = 'locus.city-map.street-motion';
   let frameVisible = !cityMapEmbed.hasParent;
 
-  try { streetMotion.checked = localStorage.getItem(streetMotionKey) !== 'off'; } catch {}
+  try { streetMotion.checked = localStorage.getItem(streetMotionKey) !== 'off'; } catch { }
 
   function syncMapAnimation() {
     const visible = (frameVisible || isFullscreenMap) && !document.hidden;
@@ -4133,17 +4148,153 @@ if (cityMapEmbed.enabled) {
     if (!visible && autoOrbitRaf) stopAutoOrbit();
   }
   streetMotion.addEventListener('change', () => {
-    try { localStorage.setItem(streetMotionKey, streetMotion.checked ? 'on' : 'off'); } catch {}
+    try { localStorage.setItem(streetMotionKey, streetMotion.checked ? 'on' : 'off'); } catch { }
     syncMapAnimation();
   });
   document.addEventListener('visibilitychange', syncMapAnimation);
   document.addEventListener('fullscreenchange', syncMapAnimation);
+  let pendingSubjectProperty = null;
+  let subjectPropertyRecord = null;
+  let floodLayerVisible = false;
+  let floodLayerLoaded = false;
+
+  function applySubjectProperty(raw) {
+    if (!raw) return;
+    subjectPropertyRecord = raw;
+    if (!map.loaded()) {
+      pendingSubjectProperty = raw;
+      return;
+    }
+    pendingSubjectProperty = null;
+    investorSites.focusSubjectProperty(raw, { instant: true, showPopup: !isPropertyDetailEmbed || isFullscreenMap });
+    if (isPropertyDetailEmbed) ensurePropertyQuickBar();
+  }
+
+  function ensurePropertyQuickBar() {
+    if (document.getElementById('property-mode-bar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'property-mode-bar';
+    bar.className = 'property-mode-bar';
+    bar.setAttribute('role', 'toolbar');
+    bar.setAttribute('aria-label', 'Subject property map shortcuts');
+    bar.innerHTML = `
+      <button type="button" class="property-mode-btn" id="pm-recenter" title="Re-center on subject property">
+        <span class="pm-dot" aria-hidden="true"></span>
+        <span class="pm-label-full">Subject property</span>
+        <span class="pm-label-short">Site</span>
+      </button>
+      <button type="button" class="property-mode-btn" id="pm-nearby" aria-pressed="false" title="Show 500 m nearby businesses around this property">
+        <span class="pm-label-full">500m nearby</span>
+        <span class="pm-label-short">500m</span>
+      </button>
+      <button type="button" class="property-mode-btn" id="pm-tilt" aria-pressed="true" title="Toggle 3D perspective or top-down view">
+        <span>3D</span>
+      </button>
+    `;
+    document.getElementById('map')?.appendChild(bar);
+    bar.querySelector('#pm-recenter')?.addEventListener('click', () => {
+      if (subjectPropertyRecord) investorSites.focusSubjectProperty(subjectPropertyRecord, { instant: false, showPopup: false, showNearby: bar.querySelector('#pm-nearby')?.getAttribute('aria-pressed') === 'true' });
+    });
+    bar.querySelector('#pm-nearby')?.addEventListener('click', ev => {
+      const btn = ev.currentTarget;
+      const on = investorSites.setNearby();
+      if (typeof on === 'boolean') {
+        btn.classList.toggle('is-active', on);
+        btn.setAttribute('aria-pressed', String(on));
+      }
+    });
+    bar.querySelector('#pm-tilt')?.addEventListener('click', ev => {
+      const btn = ev.currentTarget;
+      const is3D = map.getPitch() > 5;
+      map.easeTo({ pitch: is3D ? 0 : 58, bearing: is3D ? 0 : -24, duration: 550, easing: SMOOTH_EASE });
+      btn.setAttribute('aria-pressed', String(!is3D));
+      btn.textContent = is3D ? '2D' : '3D';
+    });
+  }
+
+  async function toggleDetailFloodLayer() {
+    try {
+      if (!floodLayerLoaded) {
+        const apiBase = document.documentElement.dataset.apiBase || '../../api';
+        const res = await fetch(new URL(apiBase.replace(/\/$/, '') + '/hazards.php?layer=flood', document.baseURI), { credentials: 'same-origin' });
+        if (!res.ok) throw new Error('Flood data unavailable');
+        const geo = await res.json();
+        if (!map.getSource('detailFloodHazards')) {
+          map.addSource('detailFloodHazards', { type: 'geojson', data: geo });
+        }
+        if (!map.getLayer('detail-flood-fill')) {
+          map.addLayer({
+            id: 'detail-flood-fill',
+            type: 'fill',
+            source: 'detailFloodHazards',
+            paint: { 'fill-color': '#38bdf8', 'fill-opacity': 0.32 }
+          }, 'property-fill');
+          map.addLayer({
+            id: 'detail-flood-line',
+            type: 'line',
+            source: 'detailFloodHazards',
+            paint: { 'line-color': '#0284c7', 'line-width': 2, 'line-dasharray': [3, 2] }
+          }, 'property-fill');
+        }
+        floodLayerLoaded = true;
+      }
+      floodLayerVisible = !floodLayerVisible;
+      const vis = floodLayerVisible ? 'visible' : 'none';
+      if (map.getLayer('detail-flood-fill')) map.setLayoutProperty('detail-flood-fill', 'visibility', vis);
+      if (map.getLayer('detail-flood-line')) map.setLayoutProperty('detail-flood-line', 'visibility', vis);
+      if (cityMapEmbed.hasParent) {
+        window.parent.postMessage({ type: 'locus:flood-layer-state', active: floodLayerVisible }, window.origin);
+      }
+    } catch {
+      if (cityMapEmbed.hasParent) {
+        window.parent.postMessage({ type: 'locus:flood-layer-state', active: false, error: true }, window.origin);
+      }
+    }
+  }
+
+  map.once('load', () => {
+    if (isPropertyDetailEmbed) ensurePropertyQuickBar();
+    if (pendingSubjectProperty) applySubjectProperty(pendingSubjectProperty);
+  });
+
   window.addEventListener('message', event => {
     if (!cityMapEmbed.accepts(event)) return;
-    if (event.data?.type === 'locus:city-map-visibility' && typeof event.data.visible === 'boolean') {
-      frameVisible = event.data.visible;
-    } else if (event.data?.type === 'locus:city-map-expanded' && typeof event.data.expanded === 'boolean') {
-      setFullscreenMap(event.data.expanded, { fromParent: true });
+    const msg = event.data;
+    if (msg?.type === 'locus:city-map-visibility' && typeof msg.visible === 'boolean') {
+      frameVisible = msg.visible;
+    } else if (msg?.type === 'locus:city-map-expanded' && typeof msg.expanded === 'boolean') {
+      setFullscreenMap(msg.expanded, { fromParent: true });
+    } else if (msg?.type === 'locus:focus-property' && msg.property) {
+      applySubjectProperty(msg.property);
+    } else if (msg?.type === 'locus:fly-to-point' && Number.isFinite(Number(msg.lat)) && Number.isFinite(Number(msg.lng))) {
+      const lng = Number(msg.lng), lat = Number(msg.lat);
+      map.flyTo({ center: [lng, lat], zoom: Math.max(17.2, map.getZoom()), pitch: 58, duration: 850, essential: true });
+      activePopup?.remove();
+      const wrap = document.createElement('div');
+      wrap.className = 'live-property-popup';
+      const kicker = document.createElement('span');
+      kicker.className = 'live-property-popup-kicker';
+      kicker.textContent = msg.kicker || (msg.kind === 'terminal' ? 'Nearest public transit' : 'Nearby business');
+      const title = document.createElement('strong');
+      title.className = 'live-property-popup-title';
+      title.textContent = msg.name || 'Mapped place';
+      wrap.append(kicker, title);
+      const metaText = [msg.category, msg.distance].filter(Boolean).join(' \u00b7 ');
+      if (metaText) {
+        const meta = document.createElement('span');
+        meta.className = 'live-property-popup-meta';
+        meta.textContent = metaText;
+        wrap.append(meta);
+      }
+      activePopup = new maplibregl.Popup({ closeButton: true, maxWidth: '250px', offset: 12 })
+        .setLngLat([lng, lat])
+        .setDOMContent(wrap)
+        .addTo(map);
+      window.dispatchEvent(new CustomEvent('locus:beacon-point', { detail: { lng, lat } }));
+    } else if (msg?.type === 'locus:toggle-flood-layer') {
+      toggleDetailFloodLayer();
+    } else if (msg?.type === 'locus:resize') {
+      map.resize();
     }
     syncMapAnimation();
   });

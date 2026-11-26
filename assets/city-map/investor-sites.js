@@ -606,16 +606,47 @@
       }
       return site;
     }
-    function setNearby() {
+    function setNearby(explicitState) {
       if (!site?.reference) return;
       if (business) clearInspection();
-      nearby = !nearby;
+      nearby = typeof explicitState === 'boolean' ? explicitState : !nearby;
       refresh();
       if (nearby) {
         const bounds = new maplibregl.LngLatBounds();
         for (const xy of LocusMarketScout.makeCirclePolygon(...site.reference, radiusM).coordinates[0]) bounds.extend(xy);
         map.fitBounds(bounds, { padding: getMobileMapPadding(), pitch: map.getPitch(), bearing: map.getBearing(), maxZoom: 16.5, duration: 450 });
       }
+      return nearby;
+    }
+    function focusSubjectProperty(raw, options = {}) {
+      if (!raw || typeof raw !== 'object') return null;
+      const item = normalize(raw, new Map(), raw.source || 'LOCUS-SF', true);
+      if (!item.reference && !item.geometry) return null;
+      item.available = true;
+      liveProperties.set(item.mapId, item);
+      clearInspection();
+      site = item;
+      business = null;
+      nearby = Boolean(options.showNearby);
+      refresh();
+      syncLiveSelection(item);
+      const anchor = item.reference || (item.geometry.type === 'Polygon' ? item.geometry.coordinates[0][0] : item.geometry.coordinates[0][0][0]);
+      if (item.geometry) {
+        const bounds = new maplibregl.LngLatBounds();
+        extendPropertyBounds(bounds, item);
+        map.fitBounds(bounds, { padding: { top: 44, right: 44, bottom: 44, left: 44 }, maxZoom: 18, pitch: 56, bearing: -24, duration: options.instant ? 0 : 520 });
+      } else if (anchor) {
+        map.easeTo({ center: anchor, zoom: 17.4, pitch: 58, bearing: -24, duration: options.instant ? 0 : 520 });
+      }
+      if (options.showPopup !== false && anchor) {
+        const popup = el('div', '', 'live-property-popup');
+        popup.append(el('span', raw.approximate ? 'Approximate location' : 'Subject property', 'live-property-popup-kicker'), el('strong', item.name, 'live-property-popup-title'));
+        const meta = listingMeta(item);
+        if (meta) popup.append(el('span', meta, 'live-property-popup-meta'));
+        if (item.price) popup.append(el('span', item.price, 'live-property-popup-price'));
+        showLivePopup(anchor, popup, Boolean(item.reference), false);
+      }
+      return item;
     }
     function refresh() {
       if (business && lookupRecord(business.uid) !== business) clearInspection();
@@ -745,6 +776,7 @@
       fitLive();
     };
     return { load, loadLive, goTo, refresh, markBusiness, hit, render, openLivePanel, closeLivePanel,
+      focusSubjectProperty, setNearby, getSite: () => site,
       isSelectedSite: id => site?.mapId === String(id), nearbyRecords: () => matches.map(m => m.record) };
   }
   global.InvestorSites = { sources, groundLayers, pinLayers, registerIcons, create, groupFor, icons };

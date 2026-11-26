@@ -857,6 +857,129 @@ body:not(.panel-hidden) .explorer-barangay-chip { opacity: 0; pointer-events: no
   body:not(.panel-hidden) .explorer-passport { opacity: 0; pointer-events: none; }
 }
 
+/* Property-details compact 3D embed mode: focused subject-property HUD inside the card;
+ * expanding to full screen restores the complete gamified City Explorer HUD. */
+.property-mode-bar {
+  position: absolute;
+  z-index: 12;
+  left: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--map-nav-glass, rgb(255 255 255 / 88%));
+  box-shadow: inset 0 0 0 0.5px var(--map-nav-sheen, rgb(255 255 255 / 84%)), 0 4px 16px rgb(0 0 0 / 14%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+}
+.property-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--map-nav-ink, #1d1d1f);
+  font: 600 11.5px/1 var(--map-ui-font, -apple-system, BlinkMacSystemFont, "DM Sans", sans-serif);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.property-mode-btn:hover { background: var(--map-nav-field, #f2f2f7); }
+.property-mode-btn.is-active {
+  background: var(--map-nav-brand, #9e1b22);
+  color: #ffffff;
+}
+.property-mode-btn .pm-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--map-nav-brand, #9e1b22);
+  box-shadow: 0 0 0 2.5px rgb(158 27 34 / 20%);
+  flex: none;
+}
+.property-mode-btn .pm-label-short { display: none; }
+
+html[data-map-mode="property"] body:not(.map-fullscreen) .map-top-left,
+html[data-map-mode="property"] body:not(.map-fullscreen) .explorer-dock,
+html[data-map-mode="property"] body:not(.map-fullscreen) .explorer-barangay-chip,
+html[data-map-mode="property"] body:not(.map-fullscreen) .explorer-passport,
+html[data-map-mode="property"] body:not(.map-fullscreen) #map-position,
+html[data-map-mode="property"] body:not(.map-fullscreen) #fs-show-panel-btn,
+html[data-map-mode="property"] body:not(.map-fullscreen) #orbit-tour,
+html[data-map-mode="property"] body:not(.map-fullscreen) .map-orbit-dock {
+  display: none !important;
+}
+html[data-map-mode="property"] body.map-fullscreen .property-mode-bar {
+  display: none;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar {
+  position: absolute !important;
+  top: 10px !important;
+  right: 52px !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  padding: 3px !important;
+  gap: 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar #fs-theme-btn,
+html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar #fs-exit-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  height: 28px !important;
+  padding: 0 9px !important;
+  font-size: 11.5px !important;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) .maplibregl-ctrl-top-right {
+  top: 10px !important;
+  right: 10px !important;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) .map-legend {
+  left: 10px !important;
+  bottom: 10px !important;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) .map-legend-label-detail {
+  display: none;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) .maplibregl-ctrl-bottom-right {
+  right: 10px !important;
+  bottom: 10px !important;
+}
+html[data-map-mode="property"] body:not(.map-fullscreen) .maplibregl-ctrl-bottom-left {
+  display: none !important;
+}
+@media (max-width: 560px) {
+  html[data-map-mode="property"] body:not(.map-fullscreen) .property-mode-btn {
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  html[data-map-mode="property"] body:not(.map-fullscreen) .property-mode-btn .pm-label-full {
+    display: none;
+  }
+  html[data-map-mode="property"] body:not(.map-fullscreen) .property-mode-btn .pm-label-short {
+    display: inline;
+  }
+  html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar {
+    right: 46px !important;
+  }
+  html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar .dock-btn span {
+    display: none !important;
+  }
+  html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar #fs-theme-btn,
+  html[data-map-mode="property"] body:not(.map-fullscreen) #map-floating-bar #fs-exit-btn {
+    padding: 0 7px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .explorer-ripple,
   .explorer-beacon,

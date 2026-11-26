@@ -1,4 +1,4 @@
-﻿@media screen {
+@media screen {
   @layer locus-foundation {
     #scenarioMainIaiCard {
       --weight-display: inline;
@@ -26,34 +26,26 @@
     #scenarioMainIaiCard .score-legend-control select:hover { background: var(--desk-shell) !important; }
 
     .listing-score-body {
-      flex: 1; display: grid; grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr);
-      align-items: center; gap: clamp(.8rem, 1.7vw, 1.4rem); margin: .85rem 0 .7rem;
+      flex: 1; display: grid; grid-template-columns: minmax(172px, .92fr) minmax(0, 1.08fr);
+      align-items: center; gap: clamp(.85rem, 1.7vw, 1.45rem); margin: .7rem 0 .65rem;
     }
-    .listing-gauge {
-      display: grid; min-width: 0; padding: .9rem;
-      border-radius: .65rem; background: #eff4ef; color: #213d30;
+
+    #scenarioMainIaiCard .listing-gauge {
+      padding: .2rem .1rem;
+      background: transparent;
     }
-    .listing-gauge-value { display: grid; gap: .3rem; }
-    .listing-index-value { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem; }
-    .listing-gauge-value strong {
-      font-size: clamp(2.25rem, 3.65vw, 3.25rem); font-weight: 630; line-height: .98;
-      letter-spacing: -.065em; font-variant-numeric: tabular-nums;
+
+    #scenarioMainIaiCard .listing-gauge-unit {
+      color: var(--pe-muted);
+      font-size: .72rem;
+      font-weight: 550;
     }
-    .listing-gauge-unit { color: var(--pe-muted); font-size: .76rem; font-weight: 530; }
-    .listing-gauge-value small { color: #315645; font-size: .76rem; font-weight: 630; line-height: 1.3; }
-    .listing-gauge:has([data-pending="true"]) { background: #f3f4f1; color: var(--pe-muted); }
-    .listing-score-track {
-      height: 4px; margin: .78rem 0 .43rem; border-radius: 4px; overflow: hidden; background: #d6e3db;
-    }
-    .listing-score-track::before {
-      display: block; content: ""; width: calc(var(--score-fraction) * 100%); height: 100%;
-      border-radius: inherit; background: var(--desk-accent);
-    }
-    #scenarioMainIaiCard [data-score-coverage] { color: var(--pe-muted); font-size: .72rem; line-height: 1.3; }
+
+    #scenarioMainIaiCard .listing-score-track { display: none; }
 
     #scenarioMainIaiCard .score-legend { display: grid; list-style: none; margin: 0; padding: 0; min-width: 0; }
     .score-legend-row {
-      display: flex; align-items: baseline; gap: .35rem; min-width: 0; padding: .34rem 0;
+      display: flex; align-items: baseline; gap: .35rem; min-width: 0; padding: .36rem 0;
       border-bottom: 1px solid var(--desk-rule); font-size: .79rem; line-height: 1.35;
     }
     .score-legend-row:first-child { padding-top: 0; }
@@ -80,23 +72,18 @@
     #scenarioMainIaiCard .listing-text-button:hover { color: var(--pe-ink); }
 
     @media (max-width: 600px) {
-      .listing-score-body { grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr); gap: .72rem; }
-      .listing-gauge { padding: .65rem; }
-      .listing-gauge-value strong { font-size: clamp(1.75rem, 8.8vw, 2.5rem); }
-      .score-legend-row { padding-block: .32rem; font-size: .72rem; }
-      .score-legend-row strong { font-size: .72rem; }
+      .listing-score-body { grid-template-columns: minmax(150px, .86fr) minmax(0, 1.14fr); gap: .75rem; }
+      #scenarioMainIaiCard .listing-gauge { --seg-size: 162px; }
+      #scenarioMainIaiCard .locus-seg-center-val { font-size: 1.68rem; }
+      .score-legend-row { padding-block: .32rem; font-size: .73rem; }
+      .score-legend-row strong { font-size: .73rem; }
       #scenarioMainIaiCard .listing-text-button { min-height: 2.25rem; }
     }
 
-    @media (max-width: 360px) {
-      .listing-score-body { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: .58rem; }
-      .listing-gauge { padding: .58rem; }
-    }
-
-    @media (max-width: 300px) {
-      .listing-score-body { grid-template-columns: minmax(0, 1fr); }
-      .listing-gauge { grid-template-columns: 1fr auto; gap: .35rem .7rem; align-items: end; }
-      .listing-score-track { grid-area: 2 / 1 / 3 / -1; margin: .15rem 0 0; }
+    @media (max-width: 460px) {
+      .listing-score-body { grid-template-columns: minmax(0, 1fr); gap: .95rem; margin: .55rem 0 .7rem; }
+      #scenarioMainIaiCard .listing-gauge { --seg-size: 192px; }
+      #scenarioMainIaiCard .locus-seg-center-val { font-size: 2.05rem; }
     }
   }
 }
