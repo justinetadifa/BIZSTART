@@ -980,6 +980,109 @@ html[data-map-mode="property"] body:not(.map-fullscreen) .maplibregl-ctrl-bottom
   }
 }
 
+html[data-map-context="opportunities"] body:not(.map-fullscreen) .map-legend {
+  display: none !important;
+}
+html[data-map-context="opportunities"] body:not(.map-fullscreen) #map-floating-bar #fs-exit-btn span {
+  display: inline !important;
+}
+@media (max-width: 390px) {
+  html[data-map-context="opportunities"] body:not(.map-fullscreen) #map-floating-bar #fs-exit-btn span {
+    display: none !important;
+  }
+}
+
+/* Rich 3D Business, Building & Property Detail Popups */
+.locus-rich-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 196px;
+}
+.locus-rich-popup.is-compact {
+  gap: 3px;
+}
+.locus-rich-popup.is-compact .live-property-popup-title {
+  font-size: 13.5px;
+  line-height: 1.18;
+}
+.locus-rich-popup.is-compact .live-property-popup-price {
+  font-size: 12px;
+  margin-top: 0;
+}
+.locus-popup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-right: 18px;
+}
+.locus-popup-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--map-nav-field, rgb(17 34 77 / 8%));
+  color: var(--map-nav-ink, #1d1d1f);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+body.theme-night .locus-popup-pill {
+  background: rgb(255 255 255 / 14%);
+  color: #e6f0ff;
+}
+.locus-popup-meta-line {
+  font-size: 11px;
+  line-height: 1.32;
+  color: var(--map-nav-muted, #475569);
+}
+body.theme-night .locus-popup-meta-line {
+  color: #c9d8ec;
+}
+.locus-popup-stat {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 1px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(37 99 235 / 10%);
+  border: 1px solid rgb(37 99 235 / 22%);
+  color: #1d4ed8;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+body.theme-night .locus-popup-stat {
+  background: rgb(56 189 248 / 16%);
+  border-color: rgb(56 189 248 / 30%);
+  color: #bae6fd;
+}
+.locus-popup-action {
+  margin-top: 4px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 0;
+  background: #14171d;
+  color: #ffffff;
+  font: 600 11px/1 var(--map-ui-font, inherit);
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+.locus-popup-action:hover {
+  background: #2b313d;
+}
+body.theme-night .locus-popup-action {
+  background: #e5f0ff;
+  color: #0e1624;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .explorer-ripple,
   .explorer-beacon,

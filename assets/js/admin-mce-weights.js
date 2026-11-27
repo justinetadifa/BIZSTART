@@ -15,7 +15,14 @@
   const previewContainer = byId('mcePreviewContainer');
   const autoBalance = byId('mceAutoBalance');
   const labels = ['Spatial access', 'Infrastructure', 'Property cost', 'Nearby businesses', 'Risk & safety'];
-  const colors = ['#426383', '#40746c', '#937044', '#6f6282', '#925d68'];
+  const themes = [
+    { key: 'spatial', color: '#5f9cff', glow: '#7bb5ff' },
+    { key: 'infra',   color: '#a3e635', glow: '#d2ff63' },
+    { key: 'cost',    color: '#f5a623', glow: '#ffd06b' },
+    { key: 'biz',     color: '#c074ff', glow: '#dea6ff' },
+    { key: 'risk',    color: '#fb5b75', glow: '#ff8298' }
+  ];
+  const colors = themes.map(item => item.color);
   const presets = {
     logistics: [35, 30, 15, 10, 10],
     commercial: [20, 20, 25, 25, 10],
@@ -123,7 +130,8 @@
     const total = Math.max(100, validation.total);
     byId('mceStackedBar').innerHTML = model.codes.map((code, index) => {
       const value = Math.max(0, Number.isFinite(draftWeights[code]) ? draftWeights[code] : 0);
-      return `<span style="width:${Math.min(100, value / total * 100)}%;background:${colors[index]}" title="${escape(labels[index])}: ${format(value)}%"></span>`;
+      const t = themes[index];
+      return `<span style="width:${Math.min(100, value / total * 100)}%;--seg-color:${t.color};--seg-glow:${t.glow};background:${t.color}" title="${escape(labels[index])}: ${format(value)}%"></span>`;
     }).join('');
     model.codes.forEach(code => {
       const input = criteriaContainer.querySelector(`[data-input-weight="${code}"]`);
@@ -135,12 +143,25 @@
       const value = draftWeights[code];
       const delta = value - Number(configData?.baseline?.[code]);
       const deltaLabel = criteriaContainer.querySelector(`[data-delta-badge="${code}"]`);
-      deltaLabel.textContent = Number.isFinite(delta) && Math.abs(delta) >= .005 ? `${delta > 0 ? '+' : ''}${format(delta)} pts` : '';
+      if (deltaLabel) {
+        const hasDelta = Number.isFinite(delta) && Math.abs(delta) >= .005;
+        deltaLabel.textContent = hasDelta ? `${delta > 0 ? '+' : ''}${format(delta)} pts` : '';
+        deltaLabel.classList.toggle('is-visible', hasDelta);
+        deltaLabel.classList.toggle('is-positive', hasDelta && delta > 0);
+        deltaLabel.classList.toggle('is-negative', hasDelta && delta < 0);
+      }
       const slider = criteriaContainer.querySelector(`[data-slider-weight="${code}"]`);
       const range = configData.current[code];
       const progress = Number.isFinite(value) ? Math.max(0, Math.min(100, (value - range.rangeMin) / (range.rangeMax - range.rangeMin) * 100)) : 0;
+      const ratio = progress / 100;
       slider.style.setProperty('--mce-progress', `${progress}%`);
       slider.setAttribute('aria-valuetext', `${format(value)} percent`);
+      const card = criteriaContainer.querySelector(`[data-criterion-card="${code}"]`);
+      if (card?.style?.setProperty) {
+        card.style.setProperty('--mce-progress', `${progress}%`);
+        card.style.setProperty('--mce-ratio', ratio.toFixed(4));
+        card.style.setProperty('--mce-bloom', (0.42 + ratio * 0.52).toFixed(3));
+      }
     });
     const suggestion = validation.fieldsValid && !validation.balanced ? model.rebalance(draftWeights, lastAdjusted, configData?.current) : null;
     byId('mceBalanceAssistant').hidden = validation.valid || !configData;
@@ -164,12 +185,30 @@
     byId('mceDiscrepancyBanner').textContent = configData.discrepancy;
     criteriaContainer.innerHTML = model.codes.map((code, index) => {
       const item = configData.current[code];
-      return `<section class="mce-criterion" style="--mce-color:${colors[index]}" data-criterion-card="${code}">
-        <label for="mce-weight-${code}" class="mce-criterion-name"><span class="mce-criterion-dot" aria-hidden="true"></span>${escape(item.label || labels[index])}</label>
-        <div class="mce-number-box"><input id="mce-weight-${code}" type="number" inputmode="decimal" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-input-weight="${code}" aria-describedby="mce-help-${code} mce-error-${code}" /><span aria-hidden="true">%</span></div>
-        <p class="mce-criterion-basis" id="mce-help-${code}">${escape(item.basis || '')}</p>
-        <input type="range" class="mce-slider-input" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-slider-weight="${code}" aria-label="${escape(item.label || labels[index])} weight" />
-        <span class="mce-criterion-delta" data-delta-badge="${code}" title="Change from methodological baseline"></span><p class="mce-field-error" id="mce-error-${code}" hidden></p></section>`;
+      const theme = themes[index];
+      return `<section class="mce-criterion mce-theme-${theme.key}" style="--mce-color:${theme.color};--mce-glow:${theme.glow}" data-criterion-card="${code}">
+        <div class="mce-criterion-ambient" aria-hidden="true"></div>
+        <div class="mce-criterion-head">
+          <div class="mce-criterion-copy">
+            <label for="mce-weight-${code}" class="mce-criterion-name"><span class="mce-criterion-dot" aria-hidden="true"></span><span>${escape(item.label || labels[index])}</span></label>
+            <p class="mce-criterion-basis" id="mce-help-${code}">${escape(item.basis || '')}</p>
+          </div>
+          <div class="mce-criterion-metrics">
+            <div class="mce-number-box"><input id="mce-weight-${code}" type="number" inputmode="decimal" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-input-weight="${code}" aria-describedby="mce-help-${code} mce-error-${code}" /><span aria-hidden="true">%</span></div>
+            <span class="mce-criterion-delta" data-delta-badge="${code}" title="Change from methodological baseline"></span>
+          </div>
+        </div>
+        <div class="mce-plasma-slider">
+          <div class="mce-plasma-track" aria-hidden="true">
+            <span class="mce-plasma-rail"></span>
+            <span class="mce-plasma-flare"></span>
+            <span class="mce-plasma-beam"></span>
+            <span class="mce-plasma-thumb"></span>
+          </div>
+          <input type="range" class="mce-slider-input" min="${Number(item.rangeMin)}" max="${Number(item.rangeMax)}" step="0.01" data-slider-weight="${code}" aria-label="${escape(item.label || labels[index])} weight" />
+        </div>
+        <p class="mce-field-error" id="mce-error-${code}" hidden></p>
+      </section>`;
     }).join('');
     byId('mceHistoryContainer').innerHTML = configData.history.length ? configData.history.slice(0, 15).map(log => `<article class="mce-history-item"><div><strong>${escape(log.is_baseline ? 'Baseline restored' : 'Weights updated')}</strong><time>${escape(log.timestamp || log.created_at || '')}</time></div><p>${escape(log.reason || '')}</p><small>${escape(log.actor_name || log.user_name || 'Authorized administrator')} · ${escape(log.source_reference || '')}</small><code>${escape(log.version || '')}</code></article>`).join('') : '<p class="mce-muted">No configuration changes recorded yet.</p>';
     syncInputs();
@@ -243,7 +282,8 @@
       const simulations = data.preview?.simulations || [];
       byId('mcePreviewContent').innerHTML = `<p class="mce-muted">Illustrative profiles compared with the methodological baseline. Changing a weight clears this preview.</p><div class="mce-table-scroll"><table><thead><tr><th>Sample profile</th><th>Baseline</th><th>Proposed</th><th>Change</th></tr></thead><tbody>${simulations.map(item => {
         const difference = Number(item.proposedScore) - Number(item.baselineScore);
-        return `<tr><td>${escape(item.profile)}</td><td>${format(Number(item.baselineScore))}</td><td><strong>${format(Number(item.proposedScore))}</strong></td><td>${difference > 0 ? '+' : ''}${format(difference)}</td></tr>`;
+        const deltaClass = Math.abs(difference) < 0.005 ? 'is-neutral' : (difference > 0 ? 'is-positive' : 'is-negative');
+        return `<tr><td>${escape(item.profile)}</td><td>${format(Number(item.baselineScore))}</td><td><strong>${format(Number(item.proposedScore))}</strong></td><td><span class="mce-preview-delta ${deltaClass}">${difference > 0 ? '+' : ''}${format(difference)}</span></td></tr>`;
       }).join('')}</tbody></table></div><p class="mce-muted">Existing assessments keep their recorded scores. New assessments use the configuration active when they are saved.</p>`;
       previewContainer.hidden = false;
       previewContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -288,7 +328,6 @@
   async function save(restore = false) {
     if (busy || !configData) return;
     if (!restore && (!isDirty() || !model.validate(draftWeights, configData.current).valid || !validateReason())) return;
-    if (restore && !window.confirm('Restore the methodological baseline for new property assessments? This change will be recorded in the audit history.')) return;
     const payload = restore ? { action: 'restore_baseline', reason: 'Restored methodological baseline via MCE settings' } : { action: 'apply', weights: { ...draftWeights }, reason: reasonInput.value.trim(), source_reference: referenceInput.value.trim() };
     payload.expected_version = configData.version;
     busy = 'save';
@@ -314,7 +353,6 @@
 
   function closeDialog() {
     if (busy === 'save') return;
-    if (isDirty() && !window.confirm('Discard your unsaved weight changes?')) return;
     loadId += 1;
     invalidatePreview();
     modal.close();
@@ -355,6 +393,6 @@
   byId('cancelMceConfigBtn').addEventListener('click', closeDialog);
   modal.addEventListener('cancel', event => { event.preventDefault(); closeDialog(); });
   modal.addEventListener('click', event => { if (event.target === modal) closeDialog(); });
-  window.addEventListener('beforeunload', event => { if (busy === 'save' || (modal.open && isDirty())) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('beforeunload', event => { if (busy === 'save') { event.preventDefault(); event.returnValue = ''; } });
   updateControls();
 })();

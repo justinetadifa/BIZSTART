@@ -470,6 +470,10 @@ function sfc_touch_session(): bool
     $lastActivityAt = (int) ($_SESSION['sfc_last_activity_at'] ?? $now);
 
     if (($now - $lastActivityAt) > $timeout) {
+        if (isset($_SESSION['sfc_user']) && is_array($_SESSION['sfc_user'])) {
+            $GLOBALS['sfc_session_timed_out'] = true;
+            $GLOBALS['sfc_session_timed_out_role'] = $role;
+        }
         sfc_logout();
         return false;
     }
@@ -499,6 +503,10 @@ function sfc_current_user(): ?array
     $timeout = sfc_inactivity_timeout_seconds($sessionRole);
 
     if (($now - $lastActivityAt) > $timeout || ($now - $authenticatedAt) > 43200) {
+        if (isset($_SESSION['sfc_user']) && is_array($_SESSION['sfc_user'])) {
+            $GLOBALS['sfc_session_timed_out'] = true;
+            $GLOBALS['sfc_session_timed_out_role'] = $sessionRole ?: 'guest';
+        }
         sfc_logout();
         return null;
     }

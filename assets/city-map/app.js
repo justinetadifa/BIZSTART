@@ -960,14 +960,22 @@ const hasUrlCoords = mapUrlParams.has('lat') && mapUrlParams.has('lng')
   && Number.isFinite(mapUrlLat) && Number.isFinite(mapUrlLng)
   && Math.abs(mapUrlLat) <= 90 && Math.abs(mapUrlLng) <= 180
   && !(mapUrlLat === 0 && mapUrlLng === 0);
-const isPropertyDetailEmbed = document.documentElement.dataset.mapMode === 'property' || mapUrlParams.get('mode') === 'property';
+const isOpportunitiesEmbed = document.documentElement.dataset.mapMode === 'opportunities' || mapUrlParams.get('mode') === 'opportunities';
+const isPropertyDetailEmbed = isOpportunitiesEmbed || document.documentElement.dataset.mapMode === 'property' || mapUrlParams.get('mode') === 'property';
+const initialEmbedRadius = Number(mapUrlParams.get('radius')) || 500;
+if (isOpportunitiesEmbed) document.documentElement.dataset.mapContext = 'opportunities';
 if (isPropertyDetailEmbed) document.documentElement.dataset.mapMode = 'property';
 
+const oppInitialZoom = initialEmbedRadius <= 350 ? 16.4 : initialEmbedRadius <= 650 ? 15.8 : 14.9;
 const map = new maplibregl.Map({
   container: 'map',
   antialias: true,
   style,
-  ...(hasUrlCoords ? { center: [mapUrlLng, mapUrlLat], zoom: 17.4, pitch: 58, bearing: -24 } : initialView),
+  ...(hasUrlCoords
+    ? (isOpportunitiesEmbed
+      ? { center: [mapUrlLng, mapUrlLat], zoom: oppInitialZoom, pitch: 50, bearing: -20 }
+      : { center: [mapUrlLng, mapUrlLat], zoom: 17.4, pitch: 58, bearing: -24 })
+    : initialView),
   minZoom: 10,
   maxZoom: 19,
   maxPitch: 60,
@@ -977,6 +985,7 @@ const map = new maplibregl.Map({
 });
 
 if (cityMapEmbed.enabled) {
+  if (isPropertyDetailEmbed) map.once('style.load', cityMapEmbed.ready);
   map.once('load', cityMapEmbed.ready);
   map.once('webglcontextlost', cityMapEmbed.unavailable);
 }
@@ -1052,10 +1061,11 @@ const investorSites = InvestorSites.create({
   },
   showLivePopup: (anchor, content, hasPin, moveFocus) => {
     activePopup?.remove();
+    const compactH = map.getContainer().clientHeight < 460;
     activePopup = new maplibregl.Popup({
-      className: 'live-property-map-popup', maxWidth: 'min(274px, calc(100vw - 30px))',
-      anchor: map.getContainer().clientWidth <= 940 ? 'top' : undefined,
-      offset: hasPin ? 24 : 10, focusAfterOpen: moveFocus
+      className: 'live-property-map-popup', maxWidth: compactH ? 'min(256px, calc(100vw - 24px))' : 'min(274px, calc(100vw - 30px))',
+      anchor: compactH ? 'bottom' : (map.getContainer().clientWidth <= 940 ? 'top' : undefined),
+      offset: compactH ? (hasPin ? 28 : 12) : (hasPin ? 24 : 10), focusAfterOpen: moveFocus
     }).setLngLat(anchor).setDOMContent(content).addTo(map);
     if (moveFocus) activePopup.once('close', () => {
       if (document.activeElement === document.body) byId('live-properties-toggle').focus({ preventScroll: true });
@@ -1167,6 +1177,52 @@ function isInspectorSheetOpen() {
   return true;
 }
 
+let openPanelOnFullscreen = false;
+
+function openInspectorFromPopup(lng, lat) {
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+  if (isPropertyDetailEmbed && !isFullscreenMap && cityMapEmbed.hasParent) {
+    openPanelOnFullscreen = true;
+    setFullscreenMap(true);
+    return;
+  }
+  setPanelHidden(false);
+  if (Number.isFinite(lng) && Number.isFinite(lat)) {
+    map.easeTo({ center: [lng, lat], padding: getMobileMapPadding(), duration: 360, easing: SMOOTH_EASE });
+  }
+}
+
+function showRichCardPopup(lng, lat, { kicker = '', badge = '', title = '', subtitle = '', metaLines = [], statText = '', actionLabel = '', onAction = null, offset = 16 } = {}) {
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+  if (window.innerWidth <= 760 && isInspectorSheetOpen()) return;
+  const compactH = map.getContainer().clientHeight < 460;
+  const wrap = el('div', '', 'live-property-popup locus-rich-popup' + (compactH ? ' is-compact' : ''));
+  if (kicker || badge) {
+    const head = el('div', '', 'locus-popup-head');
+    if (kicker) head.append(el('span', kicker, 'live-property-popup-kicker'));
+    if (badge) head.append(el('span', badge, 'locus-popup-pill'));
+    wrap.append(head);
+  }
+  if (title) wrap.append(el('strong', title, 'live-property-popup-title'));
+  if (subtitle) wrap.append(el('span', subtitle, 'live-property-popup-meta'));
+  for (const line of metaLines) {
+    if (line) wrap.append(el('span', line, 'locus-popup-meta-line'));
+  }
+  if (statText) wrap.append(el('span', statText, 'locus-popup-stat'));
+  if (actionLabel && typeof onAction === 'function') {
+    const btn = el('button', actionLabel, 'popup-detail-btn locus-popup-action');
+    btn.type = 'button';
+    btn.onclick = onAction;
+    wrap.append(btn);
+  }
+  activePopup = new maplibregl.Popup({
+    className: 'live-property-map-popup',
+    maxWidth: compactH ? 'min(256px, calc(100vw - 24px))' : 'min(268px, calc(100vw - 26px))',
+    anchor: compactH ? 'bottom' : undefined,
+    offset: compactH ? Math.min(18, offset) : offset
+  }).setLngLat([lng, lat]).setDOMContent(wrap).addTo(map);
+}
+
 function showPopup(lng, lat, title, subtitle, offset = 10, showOpenDetails = false) {
   if (activePopup) { activePopup.remove(); activePopup = null; }
   // On compact viewports, avoid stacking a duplicate callout over the 3D landmark
@@ -1177,13 +1233,9 @@ function showPopup(lng, lat, title, subtitle, offset = 10, showOpenDetails = fal
   if (subtitle) wrap.append(el('div', subtitle, 'popup-sub'));
   const compactMode = !isInspectorSheetOpen();
   if (showOpenDetails && compactMode) {
-    const btn = el('button', 'View details →', 'popup-detail-btn');
+    const btn = el('button', isPropertyDetailEmbed && !isFullscreenMap ? 'Full 3D details →' : 'View details →', 'popup-detail-btn');
     btn.type = 'button';
-    btn.onclick = () => {
-      if (activePopup) { activePopup.remove(); activePopup = null; }
-      setPanelHidden(false);
-      map.easeTo({ center: [lng, lat], padding: getMobileMapPadding(), duration: 360, easing: SMOOTH_EASE });
-    };
+    btn.onclick = () => openInspectorFromPopup(lng, lat);
     wrap.append(btn);
   }
   activePopup = new maplibregl.Popup({ offset })
@@ -1350,6 +1402,8 @@ function applyLightingFrame(w, n = currentNight) {
     setPaint('property-available-badge', 'text-halo-color', isDarkText ? '#0b1424' : '#fffefa');
     setPaint('business-selection-label', 'text-color', isDarkText ? '#ffffff' : '#11224D');
     setPaint('business-selection-label', 'text-halo-color', isDarkText ? '#0b1424' : '#fffefa');
+    setPaint('nearby-business-markers', 'text-color', isDarkText ? '#e8f1ff' : '#13273d');
+    setPaint('nearby-business-markers', 'text-halo-color', isDarkText ? 'rgba(10,18,32,0.95)' : 'rgba(255,254,250,0.96)');
     setPaint('scout-match-labels', 'text-color', isDarkText ? '#fde7aa' : '#0f2a44');
     setPaint('scout-match-labels', 'text-halo-color', isDarkText ? '#0b1424' : '#fff6db');
     setPaint('scout-connector-label', 'text-color', isDarkText
@@ -1639,6 +1693,42 @@ function selectBuilding(buildingMeta, options = {}) {
   activePopup?.remove();
   revealInspection('Building footprint');
 
+  if (!isInspectorSheetOpen() && Array.isArray(buildingMeta.centerLL)) {
+    const linked = registry.getEstablishmentsForBuilding(buildingMeta.id);
+    const allLinked = [...linked.official, ...linked.community];
+    const lm = buildingMeta.landmarkId ? VERIFIED_LANDMARKS.find(item => item.id === buildingMeta.landmarkId) : null;
+    const specs = [
+      `${buildingMeta.areaM2.toLocaleString()} m² footprint`,
+      `~${buildingMeta.height} m`,
+      buildingMeta.mappedLevels ? `${buildingMeta.mappedLevels} levels` : ''
+    ].filter(Boolean).join(' · ');
+    const brgy = buildingMeta.officialBarangay?.name || '';
+    const tenantNames = allLinked.slice(0, 3).map(r => r.name);
+    const extraCount = Math.max(0, allLinked.length - tenantNames.length);
+    const metaLines = [specs];
+    if (tenantNames.length) {
+      metaLines.push(`Places inside: ${tenantNames.join(', ')}${extraCount > 0 ? ` +${extraCount} more` : ''}`);
+    }
+    if (map.getContainer().clientHeight < 460) {
+      map.easeTo({
+        center: buildingMeta.centerLL,
+        offset: [0, 62],
+        duration: 420,
+        easing: SMOOTH_EASE
+      });
+    }
+    showRichCardPopup(buildingMeta.centerLL[0], buildingMeta.centerLL[1], {
+      kicker: lm ? 'Verified landmark' : '3D Building',
+      badge: brgy,
+      title: displayName,
+      subtitle: buildingMeta.mappedUse || (allLinked.length ? `${allLinked.length} mapped place${allLinked.length === 1 ? '' : 's'} linked` : 'Mapped footprint'),
+      metaLines,
+      actionLabel: isPropertyDetailEmbed && !isFullscreenMap ? 'Full 3D details →' : 'Inspect building →',
+      onAction: () => openInspectorFromPopup(buildingMeta.centerLL[0], buildingMeta.centerLL[1]),
+      offset: 14
+    });
+  }
+
   if (options.easeTo) {
     map.easeTo({
       center: buildingMeta.centerLL,
@@ -1823,7 +1913,16 @@ async function selectRecord(record) {
     updateSelectedPoint(null, null);
 
     const visible = map.getBounds().contains([record.lng, record.lat]);
-    if (distance == null || distance > 500 || !visible) map.easeTo({
+    const compactEmbedPopup = !isInspectorSheetOpen() && map.getContainer().clientHeight < 460;
+    if (compactEmbedPopup) {
+      map.easeTo({
+        center: [record.lng, record.lat],
+        zoom: Math.max(16.2, map.getZoom()),
+        offset: [0, 62],
+        duration: 460,
+        easing: SMOOTH_EASE
+      });
+    } else if (distance == null || distance > 500 || !visible) map.easeTo({
       center: [record.lng, record.lat],
       zoom: Math.max(16.8, map.getZoom()),
       padding: getMobileMapPadding(),
@@ -1839,13 +1938,38 @@ async function selectRecord(record) {
       : record.buildingMatchType === 'verified_link'
         ? 'Verified building link'
         : record.buildingMatchType === 'map_based'
-          ? 'Map-based footprint match'
-          : (record.sourceType === 'official' ? `${record.coordinateSource} (${record.verifiedAt})` : record.category);
+          ? 'Mapped to 3D footprint'
+          : (record.sourceType === 'official' ? `${record.coordinateSource} (${record.verifiedAt})` : '');
     const sub = record.sourceType === 'official'
-      ? `Official · ${matchTxt}`
-      : (bInfo ? `${bInfo.statusLabel} · ${matchTxt}` : `${matchTxt} · Community (OSM)`);
-    if (distance == null) showPopup(record.lng, record.lat, record.name, sub, 24, true);
-    else activePopup?.remove();
+      ? `Official · ${matchTxt || record.category}`
+      : (bInfo ? `${bInfo.statusLabel} · ${matchTxt || record.category}` : `${matchTxt ? matchTxt + ' · ' : ''}Community (OSM)`);
+    if (!isInspectorSheetOpen()) {
+      const walkMin = distance != null ? Math.max(1, Math.round(distance / 80)) : null;
+      const group = registry.getBuildingGroup(record);
+      const totalInBuilding = group.official.length + group.community.length;
+      const metaLines = [];
+      const addr = [record.unit, record.address].filter(Boolean).join(' · ');
+      if (addr) metaLines.push(addr);
+      else if (bInfo?.auditNote) metaLines.push(bInfo.auditNote);
+      else if (matchTxt) metaLines.push(matchTxt);
+      if (record.linkedBuildingId && totalInBuilding > 1) {
+        metaLines.push(`${totalInBuilding} mapped places in this 3D building`);
+      }
+      showRichCardPopup(record.lng, record.lat, {
+        kicker: record.sourceType === 'official' ? 'Official LOCUS SF' : (bInfo?.status === 'verified_open' ? 'Verified active' : 'Community (OSM)'),
+        badge: distance != null ? `${distance} m · ~${walkMin} min walk` : '',
+        title: record.name,
+        subtitle: [record.category, record.barangay].filter(Boolean).join(' · '),
+        metaLines,
+        actionLabel: isPropertyDetailEmbed && !isFullscreenMap ? 'Full 3D details →' : 'View full profile →',
+        onAction: () => openInspectorFromPopup(record.lng, record.lat),
+        offset: 20
+      });
+    } else if (distance == null) {
+      showPopup(record.lng, record.lat, record.name, sub, 24, true);
+    } else {
+      activePopup?.remove();
+    }
     setStatus('');
 
     // Market Scout Step 2 deduplicated inspection tracking
@@ -3771,7 +3895,12 @@ async function setFullscreenMap(enable, options = {}) {
   syncCompactControls();
   syncViewButtonsUI();
   updateScoutBadge();
+  investorSites.syncGeometry();
   scheduleMapResizeSync();
+  if (next && openPanelOnFullscreen) {
+    openPanelOnFullscreen = false;
+    setPanelHidden(false);
+  }
   if (next && options.fromParent) byId('fs-exit-btn').focus({ preventScroll: true });
   setStatus(next
     ? 'Full-screen map view active — press F or Esc to return.'
@@ -4158,16 +4287,40 @@ if (cityMapEmbed.enabled) {
   let floodLayerVisible = false;
   let floodLayerLoaded = false;
 
-  function applySubjectProperty(raw) {
+  function syncNearbyButtonLabel(radiusVal, activeState) {
+    const btn = document.getElementById('pm-nearby');
+    if (!btn) return;
+    const label = radiusVal >= 1000 ? `${radiusVal / 1000}km` : `${Math.round(radiusVal)}m`;
+    const fullEl = btn.querySelector('.pm-label-full');
+    const shortEl = btn.querySelector('.pm-label-short');
+    if (fullEl) fullEl.textContent = `${label} nearby`;
+    if (shortEl) shortEl.textContent = label;
+    if (typeof activeState === 'boolean') {
+      btn.classList.toggle('is-active', activeState);
+      btn.setAttribute('aria-pressed', String(activeState));
+    }
+  }
+
+  function applySubjectProperty(raw, opts = {}) {
     if (!raw) return;
     subjectPropertyRecord = raw;
-    if (!map.loaded()) {
-      pendingSubjectProperty = raw;
+    const showNearby = typeof opts.showNearby === 'boolean' ? opts.showNearby : isOpportunitiesEmbed;
+    const radius = Number.isFinite(Number(opts.radius)) && Number(opts.radius) >= 50 ? Number(opts.radius) : initialEmbedRadius;
+    if (!map.getSource('propertyPins')) {
+      pendingSubjectProperty = { raw, opts: { showNearby, radius } };
       return;
     }
     pendingSubjectProperty = null;
-    investorSites.focusSubjectProperty(raw, { instant: true, showPopup: !isPropertyDetailEmbed || isFullscreenMap });
-    if (isPropertyDetailEmbed) ensurePropertyQuickBar();
+    investorSites.focusSubjectProperty(raw, {
+      instant: opts.instant !== false,
+      showPopup: !isPropertyDetailEmbed || isFullscreenMap,
+      showNearby,
+      radius
+    });
+    if (isPropertyDetailEmbed) {
+      ensurePropertyQuickBar();
+      syncNearbyButtonLabel(radius, showNearby);
+    }
   }
 
   function ensurePropertyQuickBar() {
@@ -4178,22 +4331,30 @@ if (cityMapEmbed.enabled) {
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', 'Subject property map shortcuts');
     bar.innerHTML = `
-      <button type="button" class="property-mode-btn" id="pm-recenter" title="Re-center on subject property">
+      <button type="button" class="property-mode-btn" id="pm-recenter" title="Re-center on subject property and show details">
         <span class="pm-dot" aria-hidden="true"></span>
-        <span class="pm-label-full">Subject property</span>
+        <span class="pm-label-full">${isOpportunitiesEmbed ? 'Site' : 'Subject property'}</span>
         <span class="pm-label-short">Site</span>
       </button>
-      <button type="button" class="property-mode-btn" id="pm-nearby" aria-pressed="false" title="Show 500 m nearby businesses around this property">
+      ${isOpportunitiesEmbed ? '' : `<button type="button" class="property-mode-btn" id="pm-nearby" aria-pressed="false" title="Show 500 m nearby businesses around this property">
         <span class="pm-label-full">500m nearby</span>
         <span class="pm-label-short">500m</span>
-      </button>
+      </button>`}
       <button type="button" class="property-mode-btn" id="pm-tilt" aria-pressed="true" title="Toggle 3D perspective or top-down view">
         <span>3D</span>
       </button>
     `;
     document.getElementById('map')?.appendChild(bar);
     bar.querySelector('#pm-recenter')?.addEventListener('click', () => {
-      if (subjectPropertyRecord) investorSites.focusSubjectProperty(subjectPropertyRecord, { instant: false, showPopup: false, showNearby: bar.querySelector('#pm-nearby')?.getAttribute('aria-pressed') === 'true' });
+      if (subjectPropertyRecord) {
+        const showNearby = isOpportunitiesEmbed ? true : (bar.querySelector('#pm-nearby')?.getAttribute('aria-pressed') === 'true');
+        investorSites.focusSubjectProperty(subjectPropertyRecord, {
+          instant: false,
+          showPopup: isOpportunitiesEmbed,
+          showNearby,
+          radius: investorSites.getRadius()
+        });
+      }
     });
     bar.querySelector('#pm-nearby')?.addEventListener('click', ev => {
       const btn = ev.currentTarget;
@@ -4252,10 +4413,13 @@ if (cityMapEmbed.enabled) {
     }
   }
 
-  map.once('load', () => {
+  if (isPropertyDetailEmbed) ensurePropertyQuickBar();
+  const applyPendingSubject = () => {
     if (isPropertyDetailEmbed) ensurePropertyQuickBar();
-    if (pendingSubjectProperty) applySubjectProperty(pendingSubjectProperty);
-  });
+    if (pendingSubjectProperty) applySubjectProperty(pendingSubjectProperty.raw || pendingSubjectProperty, pendingSubjectProperty.opts || {});
+  };
+  map.once('style.load', applyPendingSubject);
+  map.once('load', applyPendingSubject);
 
   window.addEventListener('message', event => {
     if (!cityMapEmbed.accepts(event)) return;
@@ -4265,32 +4429,57 @@ if (cityMapEmbed.enabled) {
     } else if (msg?.type === 'locus:city-map-expanded' && typeof msg.expanded === 'boolean') {
       setFullscreenMap(msg.expanded, { fromParent: true });
     } else if (msg?.type === 'locus:focus-property' && msg.property) {
-      applySubjectProperty(msg.property);
+      applySubjectProperty(msg.property, { showNearby: msg.showNearby, radius: msg.radius, instant: msg.instant });
+    } else if (msg?.type === 'locus:set-screening-radius' && Number.isFinite(Number(msg.radius))) {
+      const nextRadius = investorSites.setRadius(Number(msg.radius), { showNearby: msg.showNearby !== false, fit: msg.fit !== false });
+      syncNearbyButtonLabel(nextRadius, msg.showNearby !== false);
+    } else if (msg?.type === 'locus:set-lighting' && (msg.mode === 'day' || msg.mode === 'night')) {
+      setLightingMode(msg.mode);
+    } else if (msg?.type === 'locus:toggle-tilt') {
+      const is3D = map.getPitch() > 5;
+      map.easeTo({ pitch: is3D ? 0 : 58, bearing: is3D ? 0 : -24, duration: 550, easing: SMOOTH_EASE });
+      const tiltBtn = document.getElementById('pm-tilt');
+      if (tiltBtn) {
+        tiltBtn.setAttribute('aria-pressed', String(!is3D));
+        tiltBtn.textContent = is3D ? '2D' : '3D';
+      }
     } else if (msg?.type === 'locus:fly-to-point' && Number.isFinite(Number(msg.lat)) && Number.isFinite(Number(msg.lng))) {
       const lng = Number(msg.lng), lat = Number(msg.lat);
-      map.flyTo({ center: [lng, lat], zoom: Math.max(17.2, map.getZoom()), pitch: 58, duration: 850, essential: true });
-      activePopup?.remove();
-      const wrap = document.createElement('div');
-      wrap.className = 'live-property-popup';
-      const kicker = document.createElement('span');
-      kicker.className = 'live-property-popup-kicker';
-      kicker.textContent = msg.kicker || (msg.kind === 'terminal' ? 'Nearest public transit' : 'Nearby business');
-      const title = document.createElement('strong');
-      title.className = 'live-property-popup-title';
-      title.textContent = msg.name || 'Mapped place';
-      wrap.append(kicker, title);
-      const metaText = [msg.category, msg.distance].filter(Boolean).join(' \u00b7 ');
-      if (metaText) {
-        const meta = document.createElement('span');
-        meta.className = 'live-property-popup-meta';
-        meta.textContent = metaText;
-        wrap.append(meta);
+      const needle = String(msg.name || '').trim().toLowerCase();
+      let matchedRecord = null;
+      let bestDist = Infinity;
+      for (const rec of [...registry.getMappedOfficialRecords(), ...registry.getCommunityRecords()]) {
+        if (!rec.hasValidCoords || !businessSourceVisible(rec)) continue;
+        const d = LocusMarketScout.haversineM(lng, lat, rec.lng, rec.lat);
+        const recName = String(rec.name || '').trim().toLowerCase();
+        const nameMatch = Boolean(needle && recName && (recName === needle || recName.includes(needle) || needle.includes(recName)));
+        if (nameMatch && d <= 220 && d < bestDist) {
+          matchedRecord = rec;
+          bestDist = d;
+        } else if (!matchedRecord && d <= 28 && d < bestDist) {
+          matchedRecord = rec;
+          bestDist = d;
+        }
       }
-      activePopup = new maplibregl.Popup({ closeButton: true, maxWidth: '250px', offset: 12 })
-        .setLngLat([lng, lat])
-        .setDOMContent(wrap)
-        .addTo(map);
-      window.dispatchEvent(new CustomEvent('locus:beacon-point', { detail: { lng, lat } }));
+      const compactOffset = map.getContainer().clientHeight < 460 ? [0, 62] : [0, 0];
+      if (matchedRecord) {
+        selectRecord(matchedRecord).then(() => {
+          map.flyTo({ center: [matchedRecord.lng, matchedRecord.lat], zoom: Math.max(17.3, map.getZoom()), pitch: 54, offset: compactOffset, duration: 760, essential: true });
+          window.dispatchEvent(new CustomEvent('locus:beacon-point', { detail: { lng: matchedRecord.lng, lat: matchedRecord.lat } }));
+        });
+      } else {
+        map.flyTo({ center: [lng, lat], zoom: Math.max(17.3, map.getZoom()), pitch: 54, offset: compactOffset, duration: 760, essential: true });
+        showRichCardPopup(lng, lat, {
+          kicker: msg.kicker || (msg.kind === 'terminal' ? 'Nearest public transit' : 'Nearby business'),
+          badge: msg.distance || '',
+          title: msg.name || 'Mapped place',
+          subtitle: msg.category || 'Activity center',
+          actionLabel: isPropertyDetailEmbed && !isFullscreenMap ? 'Explore in full 3D →' : '',
+          onAction: isPropertyDetailEmbed && !isFullscreenMap ? () => setFullscreenMap(true) : null,
+          offset: 14
+        });
+        window.dispatchEvent(new CustomEvent('locus:beacon-point', { detail: { lng, lat } }));
+      }
     } else if (msg?.type === 'locus:toggle-flood-layer') {
       toggleDetailFloodLayer();
     } else if (msg?.type === 'locus:resize') {

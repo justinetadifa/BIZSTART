@@ -160,53 +160,80 @@
     background: #fff !important;
   }
 
-  /* The map retains its own touch, wheel, zoom and internal scrolling. */
+  /* Polished editorial map container, floating glass HUD, and layer dock. */
   body[data-page="city-explorer"] #propertyResults .city-map-panel {
-    border: 1px solid var(--pe-line, #deded6) !important;
-    border-radius: var(--pe-radius, 12px) !important;
-    box-shadow: 0 3px 16px #25292306 !important;
+    border: 1px solid rgba(15, 23, 42, 0.10) !important;
+    border-radius: 22px !important;
+    background: #ffffff !important;
+    box-shadow: 0 20px 44px -14px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+    overflow: hidden !important;
   }
 
-  body[data-page="city-explorer"] #propertyResults :is(.city-map-controls, .city-map-options) {
-    background: var(--pe-surface, #fff) !important;
-    border-color: var(--pe-line, #deded6) !important;
-    color: var(--pe-muted, #656861) !important;
+  body[data-page="city-explorer"] #propertyResults .city-map-controls {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 14px !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-options {
+    background: #fcfcfb !important;
+    border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
+    color: #475569 !important;
   }
 
   body[data-page="city-explorer"] #propertyResults .city-map-segmented {
-    background: #eeeee8 !important;
-    border-color: var(--pe-line, #deded6) !important;
-    border-radius: 8px !important;
-    flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
+    border-radius: 999px !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.13), 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(18px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+    flex-wrap: nowrap;
   }
 
   body[data-page="city-explorer"] #propertyResults .city-map-segmented button {
-    min-height: 38px !important;
-    border-radius: 5px !important;
-    color: var(--pe-muted, #656861) !important;
+    min-height: 32px !important;
+    padding: 6px 13px !important;
+    border-radius: 999px !important;
+    color: #475569 !important;
     box-shadow: none !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-segmented button:hover {
+    color: #0f172a !important;
+    background: rgba(15, 23, 42, 0.05) !important;
   }
 
   body[data-page="city-explorer"] #propertyResults .city-map-segmented button.is-active {
-    background: var(--pe-ink, #171918) !important;
-    color: #fff !important;
+    background: #131722 !important;
+    color: #ffffff !important;
+    box-shadow: 0 3px 10px rgba(19, 23, 34, 0.24) !important;
   }
 
   body[data-page="city-explorer"] #propertyResults .city-map-btn {
-    min-height: 38px !important;
-    border-radius: 6px !important;
-    color: var(--pe-ink, #171918) !important;
-    box-shadow: none !important;
-    border-color: var(--pe-line, #deded6) !important;
+    min-height: 36px !important;
+    padding: 6px 13px !important;
+    border-radius: 999px !important;
+    color: #111827 !important;
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(255, 255, 255, 0.85) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.13), 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(18px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(180%) !important;
+  }
+
+  body[data-page="city-explorer"] #propertyResults .city-map-btn:hover {
+    background: #ffffff !important;
+    color: #111827 !important;
   }
 
   body[data-page="city-explorer"] #propertyResults .locus-popup-title {
     font-family: var(--pe-font, Inter), sans-serif !important;
     font-style: normal !important;
-    font-weight: 620 !important;
+    font-weight: 680 !important;
     letter-spacing: -.025em !important;
     text-transform: none !important;
-    color: var(--pe-ink, #171918) !important;
+    color: #0f172a !important;
     overflow-wrap: anywhere;
   }
 

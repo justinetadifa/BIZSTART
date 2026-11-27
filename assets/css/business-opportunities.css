@@ -1696,3 +1696,1011 @@
   color: #94A3B8;
   line-height: 1.35;
 }
+
+/* ==========================================================================
+   TACTILE MATTE-GRAY & VOLT-LIME / PERIWINKLE SMART-BENTO THEME
+   ========================================================================== */
+.opp-bento-stage {
+  background: #e2e5eb;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 30px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.opp-bento-stage .opportunities-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1.08fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* --- LEFT COLUMN: Volt-Lime Pill Header + White Suggestions Analytics Card --- */
+.opp-bento-stage .opportunities-cards-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.opp-volt-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.opp-volt-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111317;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+
+.opp-volt-pill {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #dcff1e;
+  color: #111317;
+  border-radius: 999px;
+  padding: 11px 20px 11px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 6px 18px -6px rgba(132, 204, 22, 0.38);
+}
+
+.opp-volt-pill-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opp-volt-dots {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  flex-shrink: 0;
+  padding-left: 4px;
+}
+
+.opp-volt-dots i {
+  display: block;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #111317;
+}
+
+/* Pure-White Analytics Card */
+.opp-analytics-card {
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 22px 20px 20px;
+  box-shadow: 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.opp-analytics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.opp-analytics-head-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+}
+
+.opp-analytics-glyph {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111317;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.opp-analytics-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opp-bento-stage .opportunities-kicker-banner {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  color: #7c8390;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.opp-analytics-launch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111317;
+  color: #ffffff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease;
+}
+
+.opp-analytics-launch:hover {
+  background: #272b34;
+  transform: translateY(-1px) scale(1.04);
+}
+
+/* Soft Recessed Pill Opportunity Rows (matching AI Power Analytics rows) */
+.opp-bento-stage .opportunities-blue-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opp-bento-stage .opportunity-blue-card {
+  background: #f4f6f9;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  border-radius: 22px;
+  padding: 13px 15px;
+  box-shadow: none;
+  gap: 10px;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.opp-bento-stage .opportunity-blue-card:hover {
+  background: #edf0f6;
+  border-color: rgba(15, 23, 42, 0.09);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.12);
+}
+
+.opp-bento-stage .opportunity-blue-card.is-drawer-open {
+  background: #f6f8fc;
+  border-color: #92b4ff;
+  box-shadow: 0 8px 22px -8px rgba(79, 130, 246, 0.2);
+}
+
+.opp-bento-stage .opportunity-blue-main-row {
+  padding: 0;
+  gap: 13px;
+  align-items: center;
+}
+
+.opp-bento-stage .opportunity-blue-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  color: #111317;
+}
+
+.opp-bento-stage .opportunity-blue-icon-box svg {
+  width: 21px;
+  height: 21px;
+}
+
+.opp-bento-stage .opportunity-card-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.opp-bento-stage .opportunity-preliminary-tag {
+  background: #e3ecff;
+  color: #1d4ed8;
+  border: none;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  margin-bottom: 0;
+}
+
+.opp-bento-stage .opportunity-blue-desc {
+  margin: 2px 0 6px !important;
+  color: #6b7280 !important;
+  font-size: 11.75px !important;
+  line-height: 1.42 !important;
+}
+
+.opp-bento-stage .opportunity-highlights-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.opp-bento-stage .opportunity-lime-pill {
+  background: #edf9c5;
+  color: #2f4b0c;
+  border: 1px solid rgba(101, 163, 13, 0.22);
+  font-size: 10.5px;
+  padding: 2.5px 9px;
+  margin-bottom: 0;
+}
+
+.opp-bento-stage .opportunity-red-warning {
+  background: #fffbeb;
+  color: #854d0e;
+  border: 1px solid rgba(217, 119, 6, 0.16);
+  border-radius: 10px;
+  padding: 5px 9px;
+  font-size: 10.75px;
+  line-height: 1.38;
+}
+
+.opp-bento-stage .opportunity-card-actions {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-items: end;
+  gap: 6px;
+  align-self: center;
+}
+
+.opp-bento-stage .opportunity-fit-arch {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.opp-bento-stage .opportunity-quick-simulate-btn {
+  background: #111317;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.opp-bento-stage .opportunity-quick-simulate-btn:hover {
+  background: #272b34;
+  box-shadow: 0 4px 12px rgba(17, 19, 23, 0.2);
+}
+
+.opp-bento-stage .opportunity-circle-action-btn {
+  width: 34px;
+  height: 34px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  color: #111317;
+}
+
+.opp-bento-stage .opportunity-circle-action-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: #111317;
+}
+
+.opp-bento-stage .opportunity-circle-action-btn:hover,
+.opp-bento-stage .opportunity-blue-card.is-drawer-open .opportunity-circle-action-btn {
+  background: #111317;
+  border-color: #111317;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.opp-bento-stage .opportunity-circle-action-btn:hover svg,
+.opp-bento-stage .opportunity-blue-card.is-drawer-open .opportunity-circle-action-btn svg {
+  stroke: #ffffff;
+}
+
+.opp-bento-stage .opportunities-empty-state {
+  background: #f4f6f9;
+  border-radius: 18px;
+  padding: 20px 18px;
+  text-align: left;
+  color: #6b7280 !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+/* --- RIGHT COLUMN: White Map Widget + Recessed Sector Bento Tray --- */
+.opp-right-bento-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.opp-bento-stage .opportunities-lime-card {
+  background: #ffffff;
+  border: none;
+  border-radius: 28px;
+  padding: 20px 22px;
+  gap: 13px;
+  box-shadow: 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+}
+
+.opp-map-widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.opp-map-widget-titles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.opp-map-widget-glyph {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111317;
+  flex-shrink: 0;
+}
+
+.opp-map-widget-sub {
+  font-size: 11.5px;
+  color: #7c8390;
+  margin: 1px 0 0;
+}
+
+/* Tactile Pill Radius Toggle (mirroring On/Power pill in reference) */
+.opp-bento-stage .opportunities-map-radius-selector {
+  position: static;
+  top: auto;
+  right: auto;
+  background: #f1f3f6;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: none;
+  padding: 3.5px;
+  gap: 2px;
+  border-radius: 999px;
+}
+
+.opp-bento-stage .opp-radius-btn {
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5b6370;
+  border-radius: 999px;
+}
+
+.opp-bento-stage .opp-radius-btn:hover {
+  color: #111317;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.opp-bento-stage .opp-radius-btn.is-active {
+  background: #111317;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(17, 19, 23, 0.22);
+}
+
+/* Signature Periwinkle Pill Metadata Row (mirroring 2h pill in reference) */
+.opp-map-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.opp-radius-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #92b4ff;
+  color: #0f1f4b;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.opp-map-meta-note {
+  font-size: 11.5px;
+  color: #7c8390;
+  font-weight: 500;
+}
+
+.opp-bento-stage .opportunities-map-box {
+  height: 256px;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04), 0 4px 14px -8px rgba(15, 23, 42, 0.12);
+  background: #edf1f6;
+}
+
+/* Latest 3D MapLibre City Map Embed inside Screening Radius Map */
+.opp-bento-stage .opportunities-map-box.is-3d-city-map {
+  height: 316px;
+  background: #dce5f0;
+  overflow: hidden;
+}
+
+.opp-bento-stage .opportunities-map-box.is-3d-city-map #oppRecenterBtn,
+.opp-bento-stage .opportunities-map-box.is-3d-city-map #oppLayerToggleBtn,
+.opp-bento-stage .opportunities-map-box.is-3d-city-map #opportunitiesLeafletCanvas,
+.opp-bento-stage .opportunities-map-box.is-3d-city-map #opportunitiesMapStaticFallback,
+.opp-bento-stage .opportunities-map-box.is-3d-city-map #opportunitiesMapFootChip {
+  display: none !important;
+}
+
+.opp-3d-map-viewport {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+  border-radius: 19px;
+}
+
+.opp-3d-map-viewport.is-expanded {
+  position: fixed;
+  inset: 16px;
+  width: calc(100vw - 32px);
+  height: calc(100dvh - 32px);
+  max-width: none;
+  max-height: none;
+  border-radius: 24px;
+  z-index: 99999;
+  background: #0f172a;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.48);
+}
+
+.opp-3d-map-viewport.is-expanded::backdrop {
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.opp-3d-map-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: #dce5f0;
+}
+
+@media (max-width: 640px) {
+  .opp-bento-stage .opportunities-map-box.is-3d-city-map {
+    height: 290px;
+  }
+  .opp-3d-map-viewport.is-expanded {
+    inset: 8px;
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    border-radius: 18px;
+  }
+}
+
+/* Calm, editorial cartography filter on Street tiles (disabled in Satellite view) */
+.opp-bento-stage .opportunities-map-box:not(.is-satellite) .leaflet-tile-pane {
+  filter: saturate(0.42) contrast(0.95) brightness(1.03);
+}
+
+.opp-bento-stage .opportunities-leaflet-canvas {
+  border-radius: 19px;
+  background: #edf1f6;
+}
+
+/* Frosted tactile map controls matching the smart-bento palette */
+.opp-bento-stage .opportunities-map-recenter-btn {
+  top: 12px;
+  left: 12px;
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  color: #111317;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.opp-bento-stage .opportunities-map-recenter-btn:hover {
+  background: #111317;
+  color: #ffffff;
+  border-color: #111317;
+  transform: scale(1.05);
+}
+
+.opp-bento-stage .opportunities-map-layer-btn {
+  bottom: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  color: #111317;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+}
+
+.opp-bento-stage .opportunities-map-layer-btn:hover {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.opp-bento-stage .opportunities-map-layer-btn.is-active {
+  background: #111317;
+  color: #ffffff;
+  border-color: #111317;
+  box-shadow: 0 4px 14px rgba(17, 19, 23, 0.28);
+}
+
+.opp-bento-stage .opportunities-leaflet-canvas .leaflet-control-zoom {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.09) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+  margin-bottom: 46px !important;
+  margin-right: 12px !important;
+}
+
+.opp-bento-stage .opportunities-leaflet-canvas .leaflet-control-zoom a {
+  background: transparent !important;
+  color: #111317 !important;
+  width: 30px !important;
+  height: 29px !important;
+  line-height: 29px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.07) !important;
+}
+
+.opp-bento-stage .opportunities-leaflet-canvas .leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.opp-bento-stage .opportunities-leaflet-canvas .leaflet-control-zoom a:hover {
+  background: rgba(15, 23, 42, 0.06) !important;
+  color: #111317 !important;
+}
+
+/* Refined Floating Radius Callout Pill */
+.opp-bento-stage .opp-gmap-radius-pill,
+.opp-bento-stage .opp-radius-tag-badge {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(59, 109, 246, 0.34);
+  color: #1e3a8a;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 10px;
+  letter-spacing: 0.01em;
+  box-shadow: 0 3px 10px rgba(30, 58, 138, 0.14);
+}
+
+/* Two-Tier Cartographic Marker System inside Smart-Bento Map */
+/* Tier 1 (Featured Landmarks): sleek 24px circular badges with crisp white halo & refined tip */
+.opp-bento-stage .opp-gmap-poi-pin.is-featured {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-featured .opp-gmap-poi-circle {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 9px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-featured .opp-gmap-poi-circle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-featured .opp-gmap-poi-tip {
+  bottom: 4px;
+  border-left-width: 4px;
+  border-right-width: 4px;
+  border-top-width: 5px;
+}
+
+/* Tier 2 (Ambient Context Places): serene 10px true-coordinate micro-dots — zero clutter! */
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient .opp-gmap-poi-circle {
+  width: 10px;
+  height: 10px;
+  border: 1.75px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.28);
+  opacity: 0.82;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.18s ease, height 0.18s ease, opacity 0.18s ease;
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient .opp-gmap-poi-circle svg,
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient .opp-gmap-poi-tip {
+  display: none;
+}
+
+/* Hovering an ambient dot, filtering by its sector, or hovering a card promotes it cleanly! */
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient:hover {
+  transform: none;
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient:hover .opp-gmap-poi-circle {
+  transform: scale(1.65);
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 3px 10px rgba(15, 23, 42, 0.35);
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient.is-matched .opp-gmap-poi-circle,
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient.is-card-target .opp-gmap-poi-circle {
+  width: 24px;
+  height: 24px;
+  opacity: 1;
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.28);
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient.is-matched .opp-gmap-poi-circle svg,
+.opp-bento-stage .opp-gmap-poi-pin.is-ambient.is-card-target .opp-gmap-poi-circle svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
+/* Markers outside the selected screening radius recede gently */
+.opp-bento-stage .opp-gmap-poi-pin.is-outside-radius {
+  opacity: 0.22 !important;
+  filter: grayscale(70%);
+  transform: scale(0.82);
+}
+
+.opp-bento-stage .opp-gmap-poi-pin.is-dimmed {
+  opacity: 0.26;
+  filter: grayscale(55%);
+}
+
+.opp-bento-stage .opportunities-map-foot-chip {
+  left: 12px;
+  bottom: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #334155;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.opp-bento-stage .opportunities-amenity-chip {
+  background: #f4f6f9;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: none;
+  padding: 6px 12px;
+  font-size: 11.5px;
+}
+
+.opp-bento-stage .opportunities-amenity-chip:hover {
+  background: #e9edf4;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+.opp-bento-stage .opportunities-amenity-chip.is-active {
+  background: #111317;
+  border-color: #111317;
+  color: #ffffff;
+}
+
+/* --- Recessed Frosted-Gray Sector Bento Tray (Morning/Night Scene Grammar) --- */
+.opp-bento-stage .opp-scenes-tray.opportunities-bottom-filter-row {
+  margin-top: 0;
+  padding: 12px;
+  background: #edf0f5;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 28px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.opp-bento-stage .opp-sector-bento-grid.opportunities-filter-pills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.opp-bento-stage .opp-sector-tile.opportunities-filter-pill {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.04);
+  border-radius: 22px;
+  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  color: #111317;
+  box-shadow: 0 4px 14px -8px rgba(15, 23, 42, 0.08);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.opp-bento-stage .opp-sector-tile.opportunities-filter-pill:hover {
+  background: #fafbfd;
+  border-color: rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(15, 23, 42, 0.12);
+}
+
+.opp-bento-stage .opp-sector-tile.opportunities-filter-pill.is-active {
+  background: #92b4ff;
+  border-color: rgba(37, 99, 235, 0.14);
+  color: #0e1d42;
+  box-shadow: 0 10px 22px -10px rgba(79, 130, 246, 0.55);
+}
+
+.opp-sector-tile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.opp-sector-tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #dcff1e;
+  color: #111317;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease;
+}
+
+.opp-bento-stage .opp-sector-tile.is-active .opp-sector-tile-icon {
+  background: #ffffff;
+  color: #111317;
+}
+
+.opp-sector-tile-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding-top: 4px;
+}
+
+.opp-sector-tile-dots i {
+  display: block;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: #111317;
+  opacity: 0.72;
+}
+
+.opp-sector-tile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.opp-sector-tile-copy strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: inherit;
+  letter-spacing: -0.015em;
+}
+
+.opp-sector-tile-copy small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #7c8390;
+  line-height: 1.3;
+}
+
+.opp-bento-stage .opp-sector-tile.is-active .opp-sector-tile-copy small {
+  color: rgba(14, 29, 66, 0.72);
+}
+
+/* Full-Pill White Catalog Bar underneath sector tiles (matching See All bar in reference) */
+.opp-bento-stage .opp-catalog-bar.opportunities-explore-link-wrap {
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 8px 9px 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 4px 12px -6px rgba(15, 23, 42, 0.07);
+}
+
+.opp-catalog-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.opp-catalog-plus {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #f2f4f7;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.opp-catalog-bar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.opp-catalog-bar-copy strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #111317;
+  line-height: 1.25;
+}
+
+.opp-catalog-bar-copy span {
+  font-size: 11px;
+  color: #7c8390;
+  line-height: 1.25;
+}
+
+.opp-bento-stage .opp-catalog-see-all.opportunities-explore-more-btn {
+  background: #111317;
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.opp-bento-stage .opp-catalog-see-all.opportunities-explore-more-btn:hover {
+  background: #272b34;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Bottom Provenance Disclaimer Strip inside stage */
+.opp-bento-stage .opportunities-disclaimer-strip {
+  margin-top: 0;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  padding: 10px 18px;
+  font-size: 11.5px;
+}
+
+.opp-bento-stage .opportunities-disclaimer-left {
+  color: #525965;
+}
+
+.opp-bento-stage .opportunities-disclaimer-right {
+  color: #9e1b22;
+}
+
+/* Responsive adjustments */
+@media (max-width: 980px) {
+  .opp-bento-stage .opportunities-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .opp-bento-stage {
+    padding: 14px;
+    border-radius: 24px;
+    gap: 14px;
+  }
+  .opp-volt-avatar {
+    width: 46px;
+    height: 46px;
+  }
+  .opp-volt-pill {
+    border-radius: 22px;
+    padding: 12px 15px;
+  }
+  .opp-analytics-card,
+  .opp-bento-stage .opportunities-lime-card,
+  .opp-bento-stage .opp-scenes-tray.opportunities-bottom-filter-row {
+    border-radius: 22px;
+  }
+  .opp-analytics-card {
+    padding: 16px 14px;
+  }
+  .opp-bento-stage .opportunities-lime-card {
+    padding: 16px 14px;
+  }
+  .opp-bento-stage .opportunity-blue-main-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .opp-bento-stage .opportunity-card-actions {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid rgba(15, 23, 42, 0.06);
+  }
+  .opp-bento-stage .opportunity-fit-arch {
+    margin-right: auto;
+  }
+  .opp-bento-stage .opp-sector-tile.opportunities-filter-pill {
+    padding: 12px;
+    gap: 12px;
+  }
+  .opp-bento-stage .opp-catalog-bar.opportunities-explore-link-wrap {
+    border-radius: 20px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+  .opp-bento-stage .opp-catalog-see-all.opportunities-explore-more-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

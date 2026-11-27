@@ -33,7 +33,24 @@
     } }
   ];
   const pinLayers = [
-    { id: 'nearby-business-markers', source: 'nearbyBusinesses', type: 'symbol', layout: { 'icon-image': ['get', 'icon'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.60, 18, 0.9], 'icon-padding': 2, 'symbol-sort-key': ['get', 'distance'] } },
+    { id: 'nearby-business-markers', source: 'nearbyBusinesses', type: 'symbol', layout: {
+      'icon-image': ['get', 'icon'],
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 14, 0.66, 16, 0.84, 18, 0.96],
+      'icon-padding': 2,
+      'symbol-sort-key': ['get', 'distance'],
+      'text-field': ['step', ['zoom'], '', 15.4, ['get', 'name']],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 15.4, 10.2, 17.5, 11.4],
+      'text-anchor': 'top',
+      'text-offset': [0, 1.15],
+      'text-max-width': 10,
+      'text-padding': 4,
+      'text-optional': true
+    }, paint: {
+      'text-color': '#13273d',
+      'text-halo-color': 'rgba(255,254,250,0.96)',
+      'text-halo-width': 2.0
+    } },
     { id: 'property-live-halo', source: 'propertyPins', type: 'circle', filter: isLive, paint: {
       'circle-radius': ['case', active, 22, 19], 'circle-color': livePink, 'circle-opacity': ['case', active, 0.35, 0.18],
       'circle-stroke-color': livePink, 'circle-stroke-width': 1.2, 'circle-stroke-opacity': 0.6,
@@ -292,6 +309,7 @@
     let unmappedCount = 0;
     let site = null;
     let nearby = false;
+    let activeRadiusM = radiusM;
     let business = null;
     let open = false;
     let matches = [];
@@ -305,7 +323,11 @@
     }
     function syncGeometry() {
       const shapes = [], pins = [], labels = [];
-      for (const item of [...properties.values(), ...liveProperties.values()]) {
+      const focusOnly = document.documentElement.dataset.mapContext === 'opportunities'
+        && !document.body.classList.contains('map-fullscreen')
+        && Boolean(site);
+      const items = focusOnly ? [site] : [...properties.values(), ...liveProperties.values()];
+      for (const item of items) {
         const props = {
           id: item.mapId, active: item === site, available: item.available, live: item.live,
           sublabel: item.area ? `${item.name} · ${item.area}` : item.name
@@ -319,7 +341,7 @@
       writeSource('propertyShapes', shapes);
       writeSource('propertyPins', pins);
       writeSource('propertyLabels', labels);
-      writeSource('propertyRadius', site?.reference && nearby ? [feature(LocusMarketScout.makeCirclePolygon(...site.reference, radiusM), {})] : []);
+      writeSource('propertyRadius', site?.reference && nearby ? [feature(LocusMarketScout.makeCirclePolygon(...site.reference, activeRadiusM), {})] : []);
       writeSource('propertyReference', site?.reference && site.geometry && nearby ? [point(site.reference, { id: site.mapId })] : []);
       const activeUid = business?.hasValidCoords ? business.uid : null;
       writeSource('activeBusiness', activeUid ?
@@ -480,11 +502,17 @@
           const item = normalize(raw, new Map(), 'LOCUS-SF', true);
           if (item.available && (item.reference || item.geometry)) next.set(item.mapId, item);
         }
+        const preservedSubject = site?.isFocusedSubject ? site : null;
+        if (preservedSubject && !next.has(preservedSubject.mapId)) {
+          next.set(preservedSubject.mapId, preservedSubject);
+        }
         liveProperties = next;
         unmappedCount = Number.isSafeInteger(payload.unmappedCount) && payload.unmappedCount >= 0 ? payload.unmappedCount : 0;
         publicCount = next.size + unmappedCount;
         liveState = 'ready';
-        if (site?.live) site = liveProperties.get(site.mapId) || null;
+        if (site?.live) {
+          site = liveProperties.get(site.mapId) || preservedSubject || null;
+        }
         syncGeometry();
         renderLive();
         if (isLivePanelOpen() && !isNarrowMap()) fitLive();
@@ -550,30 +578,43 @@
       onLiveOpen();
       const closeSheet = isNarrowMap() && isLivePanelOpen();
       if (closeSheet) closeLivePanel();
+      const keepingNearby = Boolean(next === site && nearby);
       clearInspection();
       site = next;
       business = null;
-      nearby = false;
+      nearby = keepingNearby;
       refresh();
       syncLiveSelection(next);
       const padding = livePadding(true);
       const anchor = next.reference || (next.geometry.type === 'Polygon' ? next.geometry.coordinates[0][0] : next.geometry.coordinates[0][0][0]);
       const zoom = map.getZoom();
-      if (next.geometry) {
-        const bounds = new maplibregl.LngLatBounds();
-        extendPropertyBounds(bounds, next);
-        map.fitBounds(bounds, { padding, maxZoom: 18, pitch: map.getPitch(), bearing: map.getBearing(), duration: 520 });
-      } else {
-        const offset = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
-        map.easeTo({ center: anchor, zoom: Math.max(17.2, zoom), offset, duration: 520 });
+      if (!keepingNearby) {
+        if (next.geometry) {
+          const bounds = new maplibregl.LngLatBounds();
+          extendPropertyBounds(bounds, next);
+          map.fitBounds(bounds, { padding, maxZoom: 18, pitch: map.getPitch(), bearing: map.getBearing(), duration: 520 });
+        } else {
+          const offset = [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2];
+          map.easeTo({ center: anchor, zoom: Math.max(17.2, zoom), offset, duration: 520 });
+        }
+      } else if (anchor) {
+        const compactOffset = map.getContainer().clientHeight < 460 ? [0, 62] : [0, 0];
+        map.easeTo({ center: anchor, zoom: Math.max(16.0, zoom), offset: compactOffset, duration: 420 });
       }
-      const popup = el('div', '', 'live-property-popup');
-      popup.append(el('span', 'Available property', 'live-property-popup-kicker'), el('strong', next.name, 'live-property-popup-title'));
+      const popup = el('div', '', 'live-property-popup locus-rich-popup');
+      popup.append(
+        el('span', keepingNearby ? 'Subject property' : 'Available property', 'live-property-popup-kicker'),
+        el('strong', next.name, 'live-property-popup-title')
+      );
       const meta = listingMeta(next);
       if (meta) popup.append(el('span', meta, 'live-property-popup-meta'));
       if (next.price) popup.append(el('span', next.price, 'live-property-popup-price'));
+      if (keepingNearby) {
+        const radTxt = activeRadiusM >= 1000 ? `${activeRadiusM / 1000} km` : `${activeRadiusM} m`;
+        popup.append(el('span', `${matches.length} mapped business${matches.length === 1 ? '' : 'es'} within ${radTxt}`, 'locus-popup-stat'));
+      }
       const link = listingLink(next);
-      if (link) popup.append(link);
+      if (link && !keepingNearby) popup.append(link);
       showLivePopup(anchor, popup, Boolean(next.reference), closeSheet && fromList);
       return site;
     }
@@ -606,15 +647,43 @@
       }
       return site;
     }
+    function fitRadiusBounds(instant = false, withPopupOffset = false) {
+      if (!site?.reference) return;
+      const h = map.getContainer().clientHeight;
+      const tall = h >= 520;
+      const zoom = activeRadiusM <= 350
+        ? (tall ? 16.9 : 16.4)
+        : activeRadiusM <= 650
+          ? (tall ? 16.3 : 15.8)
+          : (tall ? 15.4 : 14.9);
+      const curPitch = map.getPitch();
+      const pitch = curPitch > 5 ? Math.min(54, Math.max(46, curPitch)) : 50;
+      const bearing = curPitch > 5 ? map.getBearing() : -20;
+      const offset = withPopupOffset && h < 460 ? [0, 62] : [0, 0];
+      const camera = { center: site.reference, zoom, pitch, bearing, offset };
+      if (instant) map.jumpTo(camera);
+      else map.easeTo({ ...camera, duration: 520 });
+    }
+    function setRadius(meters, options = {}) {
+      const next = Number(meters);
+      if (!Number.isFinite(next) || next < 50 || next > 5000) return activeRadiusM;
+      activeRadiusM = Math.round(next);
+      if (typeof options.showNearby === 'boolean') nearby = options.showNearby;
+      if (site?.reference && nearby) {
+        refresh();
+        if (options.fit !== false) fitRadiusBounds(Boolean(options.instant));
+      } else {
+        syncGeometry();
+      }
+      return activeRadiusM;
+    }
     function setNearby(explicitState) {
       if (!site?.reference) return;
       if (business) clearInspection();
       nearby = typeof explicitState === 'boolean' ? explicitState : !nearby;
       refresh();
       if (nearby) {
-        const bounds = new maplibregl.LngLatBounds();
-        for (const xy of LocusMarketScout.makeCirclePolygon(...site.reference, radiusM).coordinates[0]) bounds.extend(xy);
-        map.fitBounds(bounds, { padding: getMobileMapPadding(), pitch: map.getPitch(), bearing: map.getBearing(), maxZoom: 16.5, duration: 450 });
+        fitRadiusBounds(false);
       }
       return nearby;
     }
@@ -623,15 +692,21 @@
       const item = normalize(raw, new Map(), raw.source || 'LOCUS-SF', true);
       if (!item.reference && !item.geometry) return null;
       item.available = true;
+      item.isFocusedSubject = true;
       liveProperties.set(item.mapId, item);
       clearInspection();
       site = item;
       business = null;
+      if (Number.isFinite(Number(options.radius)) && Number(options.radius) >= 50) {
+        activeRadiusM = Math.round(Number(options.radius));
+      }
       nearby = Boolean(options.showNearby);
       refresh();
       syncLiveSelection(item);
       const anchor = item.reference || (item.geometry.type === 'Polygon' ? item.geometry.coordinates[0][0] : item.geometry.coordinates[0][0][0]);
-      if (item.geometry) {
+      if (nearby && item.reference) {
+        fitRadiusBounds(Boolean(options.instant), options.showPopup !== false);
+      } else if (item.geometry) {
         const bounds = new maplibregl.LngLatBounds();
         extendPropertyBounds(bounds, item);
         map.fitBounds(bounds, { padding: { top: 44, right: 44, bottom: 44, left: 44 }, maxZoom: 18, pitch: 56, bearing: -24, duration: options.instant ? 0 : 520 });
@@ -639,11 +714,15 @@
         map.easeTo({ center: anchor, zoom: 17.4, pitch: 58, bearing: -24, duration: options.instant ? 0 : 520 });
       }
       if (options.showPopup !== false && anchor) {
-        const popup = el('div', '', 'live-property-popup');
+        const popup = el('div', '', 'live-property-popup locus-rich-popup');
         popup.append(el('span', raw.approximate ? 'Approximate location' : 'Subject property', 'live-property-popup-kicker'), el('strong', item.name, 'live-property-popup-title'));
         const meta = listingMeta(item);
         if (meta) popup.append(el('span', meta, 'live-property-popup-meta'));
         if (item.price) popup.append(el('span', item.price, 'live-property-popup-price'));
+        if (nearby) {
+          const radTxt = activeRadiusM >= 1000 ? `${activeRadiusM / 1000} km` : `${activeRadiusM} m`;
+          popup.append(el('span', `${matches.length} mapped business${matches.length === 1 ? '' : 'es'} within ${radTxt}`, 'locus-popup-stat'));
+        }
         showLivePopup(anchor, popup, Boolean(item.reference), false);
       }
       return item;
@@ -653,12 +732,16 @@
       matches = [];
       if (nearby && site?.reference) {
         const [lng, lat] = site.reference;
-        const results = scout.evaluateSite({ lng, lat }, '', [], radiusM, record => isBusiness(record) && isSourceVisible(record));
+        const results = scout.evaluateSite({ lng, lat }, '', [], activeRadiusM, record => isBusiness(record) && isSourceVisible(record));
         matches = results.allRecords
           .map(record => ({ record, distance: results.distByUid.get(record.uid) })).sort((a, b) => a.distance - b.distance || a.record.name.localeCompare(b.record.name));
       }
       writeSource('nearbyBusinesses', matches.map(({ record, distance }) => point([record.lng, record.lat], {
-        uid: record.uid, icon: 'investor-' + groupFor(record), distance
+        uid: record.uid,
+        name: record.name || '',
+        category: record.category || '',
+        icon: 'investor-' + groupFor(record),
+        distance
       })));
       for (const id of ['community-cluster-circles', 'community-cluster-count', 'business-singles']) {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', nearby ? 'none' : 'visible');
@@ -747,7 +830,7 @@
         toggle.onclick = setNearby;
         body.append(toggle);
         if (nearby) {
-          body.append(el('p', matches.length + ' mapped businesses within 500 m · Straight-line distance', 'panel-note'));
+          body.append(el('p', matches.length + ' mapped businesses within ' + (activeRadiusM >= 1000 ? (activeRadiusM / 1000) + ' km' : activeRadiusM + ' m') + ' · Straight-line distance', 'panel-note'));
           const list = el('div', '', 'nearby-list');
           for (const { record, distance } of matches) {
             const row = el('button', '', 'nearby-row tenant-btn');
@@ -775,8 +858,9 @@
       if (isNarrowMap()) closeLivePanel(true);
       fitLive();
     };
-    return { load, loadLive, goTo, refresh, markBusiness, hit, render, openLivePanel, closeLivePanel,
-      focusSubjectProperty, setNearby, getSite: () => site,
+    return { load, loadLive, goTo, refresh, syncGeometry, markBusiness, hit, render, openLivePanel, closeLivePanel,
+      focusSubjectProperty, setNearby, setRadius, getRadius: () => activeRadiusM, getSite: () => site,
+      getMatchesCount: () => matches.length,
       isSelectedSite: id => site?.mapId === String(id), nearbyRecords: () => matches.map(m => m.record) };
   }
   global.InvestorSites = { sources, groundLayers, pinLayers, registerIcons, create, groupFor, icons };

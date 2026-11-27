@@ -1211,7 +1211,7 @@ const markerMap = new Map();
 let currentMapLayer = 'canvas';
 
 function getIaiTier(scoreNum) {
-  if (scoreNum == null) return { key: 'pending', label: 'Awaiting assessment', class: 'tw-bg-slate-300' };
+  if (scoreNum == null) return { key: 'pending', label: 'Awaiting assessment', class: 'tier-pending' };
   const s = Number(scoreNum) || 0;
   if (s >= 90) return { key: 'prime', label: 'Prime', class: 'tier-prime' };
   if (s >= 80) return { key: 'strong', label: 'Strong', class: 'tier-strong' };
@@ -1220,22 +1220,23 @@ function getIaiTier(scoreNum) {
 
 function createPillIcon(property, isHovered = false, isActive = false) {
   const tier = getIaiTier(property.iaiScore);
-  const priceLabel = esc(listingPriceLabel(property, { compact: true }));
+  const rawPrice = listingPriceLabel(property, { compact: true });
+  const priceLabel = esc(rawPrice === 'Price on request' ? 'On request' : rawPrice);
   const iaiScore = property.iaiScore != null ? Math.round(property.iaiScore) : null;
-  const classes = ['locus-pin', isHovered ? 'is-hover' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
+  const classes = ['locus-pin', `is-tier-${tier.key}`, isHovered ? 'is-hover' : '', isActive ? 'is-active' : ''].filter(Boolean).join(' ');
 
   return L.divIcon({
     className: classes,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
-    popupAnchor: [0, -32],
+    popupAnchor: [0, -36],
     html: `
       <div class="pin-anchor" data-id="${property.id}">
         <div class="pin-drop">
           <div class="pin-body">
             ${advancedView() ? `<span class="pin-dot ${tier.class}" title="${property.iaiScore == null ? 'Awaiting assessment' : `${tier.label} tier (${property.iaiScore}/100)`}"></span>` : ''}
             <span class="pin-price">${priceLabel}</span>
-            ${advancedView() && iaiScore != null ? `<span class="pin-iai-badge">${iaiScore}</span>` : ''}
+            ${advancedView() && iaiScore != null ? `<span class="pin-iai-badge ${tier.class}">${iaiScore}</span>` : ''}
             ${propertyLocationLabel(property) === 'Approximate location' ? '<span class="pin-location-note" title="Approximate location">≈</span>' : ''}
           </div>
           <span class="pin-caret"></span>
@@ -1395,8 +1396,7 @@ function setupMap() {
       btn.role = 'button';
       btn.title = 'Fit all properties';
       btn.setAttribute('aria-label', 'Fit all properties');
-      btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:30px;height:30px;background:#fff;text-decoration:none;color:#1e293b;';
-      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></svg>`;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></svg>`;
       L.DomEvent.disableClickPropagation(container);
       L.DomEvent.on(btn, 'click', function(e) {
         L.DomEvent.preventDefault(e);
@@ -1462,11 +1462,11 @@ function setupMap() {
               : (props.categoryColor === 'purple' ? '#9333ea'
               : (props.categoryColor === 'indigo' ? '#4f46e5' : '#475569'))));
             return L.circleMarker(latlng, {
-              radius: 7,
+              radius: 5,
               color: '#ffffff',
-              weight: 2,
+              weight: 1.5,
               fillColor: col,
-              fillOpacity: 0.95
+              fillOpacity: 0.90
             });
           },
           onEachFeature: (feature, layer) => {
@@ -1612,50 +1612,57 @@ function setMapLayer(layer) {
   clearTimeout(detailsTileTimer);
   if (tileLayer) map.removeLayer(tileLayer);
   currentMapLayer = layer;
+  const mapEl = document.getElementById('cityPropertyMap');
+  if (mapEl) mapEl.dataset.mapBasemap = layer;
 
   if (layer === 'satellite') {
-    tileLayer = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 18,
-        maxZoom: 19,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        attribution: 'Tiles © Esri, Maxar'
-      }),
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 16,
-        maxZoom: 19,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        opacity: 0.85
-      })
-    ]);
-  } else if (layer === 'streets') {
-    tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxNativeZoom: 19,
-      maxZoom: 19,
+    // High-resolution Google Hybrid Satellite with automatic Esri imagery fallback
+    const hybrid = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+      maxNativeZoom: 20,
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
       updateWhenIdle: true,
       updateWhenZooming: false,
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; Google Imagery'
     });
+    hybrid.on('tileerror', () => {
+      if (hybrid._fallbackActive) return;
+      hybrid._fallbackActive = true;
+      hybrid.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+    });
+    tileLayer = hybrid;
+  } else if (layer === 'streets') {
+    // Google Physical Terrain (coastal elevation, hills, roads & labels) with OSM fallback
+    const terrain = L.tileLayer('https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+      maxNativeZoom: 20,
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      attribution: '&copy; Google Terrain'
+    });
+    terrain.on('tileerror', () => {
+      if (terrain._fallbackActive) return;
+      terrain._fallbackActive = true;
+      terrain.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    });
+    tileLayer = terrain;
   } else {
-    // Default: Clean, modern Light Gray Canvas (Crexi / commercial real estate SaaS aesthetic, no watermark)
-    tileLayer = L.layerGroup([
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 16,
-        maxZoom: 19,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        attribution: '© Esri, HERE, Garmin, © OpenStreetMap contributors'
-      }),
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {
-        maxNativeZoom: 16,
-        maxZoom: 19,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        opacity: 0.95
-      })
-    ]);
+    // Default: Crisp Google Street map styled with restrained coastal editorial palette (zero API key watermark)
+    const cleanMap = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+      maxNativeZoom: 20,
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      attribution: '&copy; Google Maps'
+    });
+    cleanMap.on('tileerror', () => {
+      if (cleanMap._fallbackActive) return;
+      cleanMap._fallbackActive = true;
+      cleanMap.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}');
+    });
+    tileLayer = cleanMap;
   }
 
   if (page === 'city-details') {
@@ -1713,11 +1720,24 @@ function renderMarkers() {
     marker.bindPopup(() => createPopupContent(marker.propertyData), {
       className: 'locus-popup',
       maxWidth: 320,
-      minWidth: 260
+      minWidth: 260,
+      autoPanPaddingTopLeft: L.point(24, 68),
+      autoPanPaddingBottomRight: L.point(24, 24)
     });
 
     marker.on('click', () => {
       flyToPropertyMarker(marker.propertyData, marker, true);
+    });
+
+    marker.on('popupopen', () => {
+      if (activeMarker && activeMarker !== marker && activeMarker.propertyData) {
+        activeMarker.setIcon(createPillIcon(activeMarker.propertyData, false, false));
+        if (typeof activeMarker.setZIndexOffset === 'function') activeMarker.setZIndexOffset(0);
+      }
+      activeMarker = marker;
+      const el = marker.getElement?.();
+      if (el) el.classList.add('is-active');
+      if (typeof marker.setZIndexOffset === 'function') marker.setZIndexOffset(1000);
     });
 
     marker.on('popupclose', () => {
@@ -1805,7 +1825,11 @@ function fitMap() {
     if (layers && layers.length) {
       const bounds = markers.getBounds();
       if (bounds && bounds.isValid && bounds.isValid()) {
-        map.fitBounds(bounds.pad(0.18), { maxZoom: 16 });
+        map.fitBounds(bounds.pad(0.16), {
+          maxZoom: 16,
+          paddingTopLeft: [28, 66],
+          paddingBottomRight: [28, 28]
+        });
       }
     }
   } catch (err) {
@@ -1950,8 +1974,12 @@ async function renderDetails() {
     investor ? api.getMessages(id).catch(() => null) : Promise.resolve(null),
   ]);
   if (shortlist) saved = new Set(shortlist.propertyIds || []);
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Property is unavailable. Log in to access the full catalogue.');
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(result.error || 'Property is unavailable. Log in to access the full catalogue.');
+    err.status = response.status;
+    throw err;
+  }
   const property = result.property;
   if (!properties.some(item => item.id === id)) properties.push(property);
   const broker = role !== 'guest' ? property.brokerContact : null;
@@ -2721,11 +2749,67 @@ window.addEventListener('sfc:investor-view-change', () => {
   }
 });
 
+function renderWorkspaceErrorMarkup(rootId, error) {
+  const msg = (error instanceof Error ? error.message : String(error)) || 'Unable to load properties.';
+  const sessionSec = config.sessionSecurity || {};
+  const sessionExpired = Boolean(sessionSec.expired);
+  const expiredRole = sessionSec.expiredRole || '';
+  const expiredRoleLabel = expiredRole === 'admin' ? 'City Staff' : expiredRole === 'seller' ? 'Broker' : 'Investor';
+  const expiredLoginUrl = sessionSec.expiredLoginUrl || path('investor-login.php?reason=timeout');
+  const explorerUrl = path('property-explorer.php');
+
+  if (rootId === 'cityPropertyDetails') {
+    if (sessionExpired) {
+      return `
+        <div class="city-error city-error-recovery" role="alert">
+          <div class="city-error-recovery-head">
+            <span class="city-error-recovery-badge">Session expired</span>
+            <h2>Your ${esc(expiredRoleLabel)} session timed out.</h2>
+            <p>You were signed out after a period of inactivity. Sign back in to continue viewing unpublished or staff-only listings, or browse publicly available properties.</p>
+          </div>
+          <div class="city-error-recovery-actions">
+            <a class="city-button city-button-small" href="${esc(expiredLoginUrl)}">Sign in to ${esc(expiredRoleLabel)} portal</a>
+            <a class="city-button city-button-secondary city-button-small" href="${esc(explorerUrl)}">Browse available properties</a>
+            <button class="city-button city-button-secondary city-button-small" type="button" onclick="location.reload()">Try again</button>
+          </div>
+        </div>`;
+    }
+    if (error?.status === 404 && role === 'guest') {
+      return `
+        <div class="city-error city-error-recovery" role="alert">
+          <div class="city-error-recovery-head">
+            <span class="city-error-recovery-badge">Listing unavailable</span>
+            <h2>${esc(msg)}</h2>
+            <p>This listing is not publicly visible right now — it may be awaiting city review, archived, or require an authorized account. If your session expired, sign in again to access it.</p>
+          </div>
+          <div class="city-error-recovery-actions">
+            <a class="city-button city-button-small" href="${esc(explorerUrl)}">Browse available properties</a>
+            <a class="city-button city-button-secondary city-button-small" href="${esc(path('admin-login.php'))}">City staff sign in</a>
+            <a class="city-button city-button-secondary city-button-small" href="${esc(path('investor-login.php'))}">Investor login</a>
+            <button class="city-button city-button-secondary city-button-small" type="button" onclick="location.reload()">Try again</button>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="city-error city-error-recovery" role="alert">
+        <div class="city-error-recovery-head">
+          <h2>${esc(msg)}</h2>
+          <p>The listing could not be loaded. You can return to the property explorer or try loading this page again.</p>
+        </div>
+        <div class="city-error-recovery-actions">
+          <a class="city-button city-button-small" href="${esc(explorerUrl)}">Browse available properties</a>
+          <button class="city-button city-button-secondary city-button-small" type="button" onclick="location.reload()">Try again</button>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="city-error" role="alert">${esc(msg)} <button class="city-button city-button-secondary city-button-small" type="button" onclick="location.reload()">Try again</button></div>`;
+}
+
 initialize().catch(error => {
   console.error('INITIALIZE CAUGHT ERROR:', error);
-  const msg = (error instanceof Error ? error.message : String(error)) || 'Unable to load properties.';
   for (const id of ['cityPropertyGrid', 'cityRankingTable', 'cityCompareMatrix', 'cityPropertyDetails']) {
     const root = document.getElementById(id);
-    if (root) root.innerHTML = `<div class="city-error" role="alert">${esc(msg)} <button class="city-button city-button-secondary city-button-small" type="button" onclick="location.reload()">Try again</button></div>`;
+    if (root) root.innerHTML = renderWorkspaceErrorMarkup(id, error);
   }
 });

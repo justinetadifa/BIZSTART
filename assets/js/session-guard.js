@@ -16,11 +16,15 @@
   const LOGOUT_URL = config.logoutUrl || 'logout.php';
   const LOGIN_URL = config.loginUrl || 'index.php?reason=timeout';
   const STORAGE_KEY = 'locus_sf_session_last_activity';
+  const PING_STORAGE_KEY = 'locus_sf_session_last_ping';
+  const PING_INTERVAL_MS = Math.min(180000, Math.max(60000, Math.floor((TIMEOUT_SEC * 1000) / 4)));
 
   let warningActive = false;
   let countdownInterval = null;
   let checkInterval = null;
   let lastActiveTimestamp = Date.now();
+  let lastServerPingAt = Date.now();
+  let pingInFlight = false;
 
   // Initialize cross-tab activity tracker
   try {
@@ -30,6 +34,7 @@
     } else {
       lastActiveTimestamp = stored;
     }
+    localStorage.setItem(PING_STORAGE_KEY, String(lastServerPingAt));
   } catch {
     // LocalStorage fallback
   }
@@ -44,6 +49,23 @@
     return lastActiveTimestamp;
   }
 
+  function getLatestServerPing() {
+    try {
+      const stored = Number(localStorage.getItem(PING_STORAGE_KEY));
+      if (stored && Number.isFinite(stored)) {
+        return Math.max(lastServerPingAt, stored);
+      }
+    } catch {}
+    return lastServerPingAt;
+  }
+
+  function markServerPing(timestamp = Date.now()) {
+    lastServerPingAt = timestamp;
+    try {
+      localStorage.setItem(PING_STORAGE_KEY, String(timestamp));
+    } catch {}
+  }
+
   function recordActivity(syncServer = false) {
     const now = Date.now();
     // Throttle local activity updates to once every 4 seconds
@@ -56,11 +78,14 @@
       localStorage.setItem(STORAGE_KEY, String(now));
     } catch {}
 
+    const shouldPingServer = syncServer || warningActive || (now - getLatestServerPing() >= PING_INTERVAL_MS);
+
     if (warningActive) {
       dismissWarningModal();
-      if (syncServer) {
-        pingSession();
-      }
+    }
+
+    if (shouldPingServer) {
+      pingSession();
     }
   }
 
@@ -74,6 +99,23 @@
           dismissWarningModal();
         }
       }
+    } else if (event.key === PING_STORAGE_KEY && event.newValue) {
+      const remotePing = Number(event.newValue);
+      if (remotePing > lastServerPingAt) {
+        lastServerPingAt = remotePing;
+      }
+    }
+  });
+
+  // Re-verify server session whenever the user returns to this tab after switching apps/tabs
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') {
+      return;
+    }
+    runSessionCheck();
+    const now = Date.now();
+    if (!warningActive && (now - getLatestServerPing() >= PING_INTERVAL_MS)) {
+      pingSession();
     }
   });
 
@@ -102,24 +144,36 @@
 
   // Ping backend to renew server-side activity timestamp
   async function pingSession() {
+    if (pingInFlight) {
+      return false;
+    }
+    pingInFlight = true;
     try {
       const res = await fetch(PING_URL, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
           'X-CSRF-TOKEN': window.SFC_APP_CONFIG?.csrfToken || '',
         },
       });
-      const data = await res.json();
-      if (data && data.ok) {
-        recordActivity(false);
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && data.ok) {
+        const now = Date.now();
+        markServerPing(now);
+        lastActiveTimestamp = now;
+        try {
+          localStorage.setItem(STORAGE_KEY, String(now));
+        } catch {}
         return true;
       }
-      if (data && data.expired) {
+      if (res.status === 401 || (data && data.expired)) {
         terminateSession();
       }
     } catch (e) {
-      // Fallback
+      // Network hiccup: allow next activity or visibility check to retry
+    } finally {
+      pingInFlight = false;
     }
     return false;
   }

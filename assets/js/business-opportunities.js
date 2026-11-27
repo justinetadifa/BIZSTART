@@ -1702,6 +1702,30 @@ export function businessOpportunitiesMarkup(property, options = {}) {
     ? rawMatches.map((m, idx) => formatOpportunityDisplayItem(m, idx))
     : (demo ? DEMO_MATCHES : []);
 
+  // Compute truthful per-sector match counts for the 4 tactile sector bento tiles
+  const sectorCountFor = sectorKey => {
+    if (!observed.hasCoords && !demo) return 0;
+    if (observed.hasCoords && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length > 0) {
+      const evaluated = evaluateBusinessOpportunities(property, radius, sectorKey);
+      return Array.isArray(evaluated?.supportedMatches) ? evaluated.supportedMatches.length : 0;
+    }
+    if (rawMatches.length) {
+      if (sectorKey === 'all') return rawMatches.length;
+      return rawMatches.filter(m => m.sector === sectorKey).length;
+    }
+    if (demo) {
+      return (SECTOR_DEMO_MATCHES[sectorKey] || DEMO_MATCHES).length;
+    }
+    return 0;
+  };
+  const sectorMetaText = (sectorKey, fallbackLabel) => {
+    if (sectorKey === 'all') return `${BUSINESS_CATALOG.length} catalog profiles`;
+    const count = sectorCountFor(sectorKey);
+    if (!observed.hasCoords && !demo) return fallbackLabel;
+    return count === 1 ? '1 suggestion' : `${count} suggestions`;
+  };
+  const radiusLabel = radius >= 1000 ? `${radius / 1000} km` : `${Math.round(radius)} m`;
+
   return `
     <section class="property-panel property-opportunities" id="propertyOpportunitiesSection" aria-labelledby="propertyOpportunitiesTitle">
       <!-- Embedded Spatial & Anchor Data for Leaflet Interactive Initialization -->
@@ -1720,192 +1744,292 @@ export function businessOpportunitiesMarkup(property, options = {}) {
         })}
       </script>
 
-      <!-- Picture 2 Split Screen Interface -->
-      <div class="opportunities-split-layout">
-        <!-- LEFT COLUMN: Lime Green Accent Box -->
-        <div class="opportunities-lime-card">
-          <div class="opportunities-lime-header">
-            <h2 id="propertyOpportunitiesTitle" class="opportunities-main-title">Business opportunities to explore</h2>
-            <p class="opportunities-subtitle">
-              Based on nearby places, property requirements and available evidence.
-              <span class="sr-only">Suggestions based on nearby establishments, property characteristics, infrastructure and available zoning information.</span>
-            </p>
-          </div>
-
-          <!-- Stylized Map Box with Real Leaflet Canvas, Interactive Overlays & Static Fallback -->
-          <div class="opportunities-map-box" id="opportunitiesInteractiveMap" data-lat="${lat ?? ''}" data-lng="${lng ?? ''}" data-demo="${demo}" data-radius="${radius}" data-property-name="${esc(property.name || 'Subject Property')}">
-            <!-- Map Recenter Button -->
-            <button type="button" class="opportunities-map-recenter-btn" id="oppRecenterBtn" title="Recenter to property location" aria-label="Recenter map to property location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="2" x2="12" y2="6"></line>
-                <line x1="12" y1="18" x2="12" y2="22"></line>
-                <line x1="2" y1="12" x2="6" y2="12"></line>
-                <line x1="18" y1="12" x2="22" y2="12"></line>
-              </svg>
-            </button>
-
-            <!-- Map Radius Switcher Pills: 300m, 500m, 1km -->
-            <div class="opportunities-map-radius-selector" role="group" aria-label="Screening radius selector">
-              <button type="button" class="opp-radius-btn" data-radius-val="300">300 m</button>
-              <button type="button" class="opp-radius-btn is-active" data-radius-val="500">500 m</button>
-              <button type="button" class="opp-radius-btn" data-radius-val="1000">1 km</button>
-            </div>
-
-            <!-- Real Interactive Leaflet Map Canvas (Activated via JS) -->
-            <div class="opportunities-leaflet-canvas" id="opportunitiesLeafletCanvas" role="region" aria-label="Interactive Screening Radius Map" style="display:none;width:100%;height:100%;position:absolute;top:0;left:0;border-radius:14px;z-index:2;"></div>
-
-            <!-- Map Layer Switcher Button (Street / Sat) -->
-            <button type="button" class="opportunities-map-layer-btn" id="oppLayerToggleBtn" title="Toggle Satellite / Street view" aria-label="Toggle map view">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-              </svg>
-              <span id="oppLayerBtnText">Sat</span>
-            </button>
-
-            <!-- Fallback Vector Map Canvas (Displayed for SSR & headless test runners) -->
-            <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback" ${demo ? '' : 'hidden'}>
-              ${demo ? `
-              <svg class="opportunities-map-svg" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-                <!-- Google Maps Land Base -->
-                <rect width="100%" height="100%" fill="#F1EFE8"/>
-                <!-- Water Bay -->
-                <path d="M 0,210 C 50,195 80,245 130,285 L 130,300 L 0,300 Z" fill="#C4E0E5"/>
-                <path d="M 0,210 C 50,195 80,245 130,285" stroke="#A7D5DE" stroke-width="6" fill="none" opacity="0.7"/>
-                
-                <!-- Google Maps Urban Parcels & Vegetation -->
-                <rect x="25" y="30" width="65" height="48" rx="4" fill="#E8E6DF"/>
-                <rect x="105" y="25" width="80" height="58" rx="4" fill="#E8E6DF"/>
-                <rect x="220" y="35" width="60" height="38" rx="4" fill="#D2E3C6"/>
-                <rect x="310" y="28" width="75" height="48" rx="4" fill="#E8E6DF"/>
-                <rect x="400" y="42" width="50" height="52" rx="4" fill="#E8E6DF"/>
-                
-                <rect x="30" y="98" width="58" height="45" rx="4" fill="#E8E6DF"/>
-                <rect x="110" y="102" width="55" height="52" rx="4" fill="#E8E6DF"/>
-                <rect x="290" y="95" width="70" height="55" rx="4" fill="#D2E3C6"/>
-                <rect x="380" y="108" width="70" height="60" rx="4" fill="#E8E6DF"/>
-                
-                <rect x="35" y="165" width="50" height="40" rx="4" fill="#E8E6DF"/>
-                <rect x="300" y="170" width="55" height="45" rx="4" fill="#E8E6DF"/>
-                <rect x="375" y="188" width="70" height="52" rx="4" fill="#D2E3C6"/>
-                <rect x="200" y="240" width="90" height="45" rx="4" fill="#E8E6DF"/>
-                <rect x="310" y="248" width="65" height="40" rx="4" fill="#E8E6DF"/>
-
-                <path d="M 370,175 Q 425,155 450,205 L 450,275 Q 395,265 370,215 Z" fill="#D2E3C6"/>
-
-                <!-- Google Maps Arterials & Streets -->
-                <path d="M 0,88 L 460,88 M 0,158 L 460,158 M 0,228 L 460,228" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
-                <path d="M 95,0 L 95,300 M 180,0 L 180,300 M 275,0 L 275,300 M 365,0 L 365,300" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
-                <path d="M 20,0 L 250,230" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
-                <path d="M 180,40 L 440,300" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
-
-                <!-- Google Maps Geofence Radius Circle -->
-                <circle cx="215" cy="145" r="90" fill="#1A73E8" fill-opacity="0.08" stroke="#1A73E8" stroke-width="2" stroke-dasharray="6 4"/>
-                <line x1="285" y1="100" x2="310" y2="92" stroke="#1A73E8" stroke-width="1.5"/>
-              </svg>
-
-              <!-- Callout bubble: 500 m -->
-              <div class="opportunities-map-radius-tag-bubble" id="opportunitiesMapRadiusTagBubble">
-                <span>500 m</span>
-              </div>
-
-              <!-- Subject property center pin (Google Maps Red Pin) -->
-              <div class="opportunities-map-center-pin" title="Subject Property Location">
-                <svg viewBox="0 0 27 41" width="24" height="36" fill="none" aria-hidden="true">
-                  <path fill="#EA4335" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 10.12 13.5 27.5 13.5 27.5S27 23.62 27 13.5C27 6.04 20.96 0 13.5 0z"/>
-                  <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5"/>
+      <!-- Tactile Matte-Gray Smart-Bento Stage -->
+      <div class="opp-bento-stage">
+        <div class="opportunities-split-layout">
+          <!-- LEFT COLUMN: Volt-Lime Pill Header + White Suggestions Analytics Card -->
+          <div class="opportunities-cards-column">
+            <div class="opp-volt-header-row">
+              <div class="opp-volt-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
                 </svg>
               </div>
-
-              <!-- Map POI Marker 1 -->
-              <div class="opportunities-map-poi poi-hospital">
-                <span class="poi-icon-circle bg-red" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                </span>
-                <span class="poi-label">${esc(amenityChips[0]?.name || 'Hospital')}</span>
+              <div class="opp-volt-pill">
+                <div class="opp-volt-pill-copy">
+                  <h2 id="propertyOpportunitiesTitle" class="opportunities-main-title">Business opportunities to explore</h2>
+                  <p class="opportunities-subtitle">
+                    Based on nearby places, property requirements and available evidence.
+                    <span class="sr-only">Suggestions based on nearby establishments, property characteristics, infrastructure and available zoning information.</span>
+                  </p>
+                </div>
+                <span class="opp-volt-dots" aria-hidden="true"><i></i><i></i><i></i></span>
               </div>
-
-              <!-- Map POI Marker 2 -->
-              <div class="opportunities-map-poi poi-school">
-                <span class="poi-icon-circle bg-blue" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
-                    <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
-                  </svg>
-                </span>
-                <span class="poi-label">${esc(amenityChips[1]?.name || 'School')}</span>
-              </div>
-
-              <!-- Map POI Marker 3 -->
-              <div class="opportunities-map-poi poi-cityhall">
-                <span class="poi-icon-circle bg-navy" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
-                    <path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/>
-                  </svg>
-                </span>
-                <span class="poi-label">${esc(amenityChips[2]?.name || 'City hall')}</span>
-              </div>
-              ` : ''}
             </div>
 
-            <!-- Map bottom-left tag overlay -->
-            <div class="opportunities-map-foot-chip" id="opportunitiesMapFootChip" style="z-index: 5;">
-              <span>${observed.hasCoords ? `${radius} m straight-line screening radius · Partial mapped inventory` : 'Exact property location needed · Nearby inventory unknown'}</span>
+            <div class="opp-analytics-card">
+              <div class="opp-analytics-head">
+                <div class="opp-analytics-head-left">
+                  <span class="opp-analytics-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </span>
+                  <div class="opp-analytics-titles">
+                    <h3 class="opp-analytics-title">Suggested Business Uses</h3>
+                    <div class="opportunities-kicker-banner">
+                      <span>${demo ? 'DEMO SCENARIO - Illustrative places and suggestions' : 'Draft suggestions · Partial mapped inventory'}</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" class="opp-analytics-launch" data-open-opportunities-catalog title="Browse all ${BUSINESS_CATALOG.length} business profiles" aria-label="Browse all ${BUSINESS_CATALOG.length} business profiles">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="7" y1="17" x2="17" y2="7"></line>
+                    <polyline points="8 7 17 7 17 16"></polyline>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="opportunities-blue-stack" id="opportunitiesCardsStack">
+                ${displayCards.length ? displayCards.map(item => renderOpportunityCard(item, property)).join('') : '<p class="opportunities-empty-state">No suggestions are supported by the recorded nearby places. Inventory completeness and operating business density remain unknown.</p>'}
+              </div>
             </div>
           </div>
 
-          <!-- Dynamic Amenity Pill Chips below map with walking times -->
-          <div class="opportunities-amenities-row">
-            ${amenityChips.map(c => `
-              <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" data-anchor-name="${esc(c.name)}" data-anchor-lat="${c.lat}" data-anchor-lng="${c.lng}" title="Click to focus ${esc(c.name)} on map">
-                ${c.iconHtml}
-                <span>${esc(c.name)}</span>
-                <span class="amenity-walk-badge">~${c.walkMinutes} min walk</span>
-              </button>
-            `).join('')}
+          <!-- RIGHT COLUMN: White Screening Map Widget + Recessed Sector Bento Tray -->
+          <div class="opp-right-bento-col">
+            <div class="opportunities-lime-card">
+              <div class="opp-map-widget-head">
+                <div class="opp-map-widget-titles">
+                  <span class="opp-map-widget-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9"></circle>
+                      <circle cx="12" cy="12" r="4"></circle>
+                      <line x1="12" y1="3" x2="12" y2="5"></line>
+                      <line x1="12" y1="19" x2="12" y2="21"></line>
+                      <line x1="3" y1="12" x2="5" y2="12"></line>
+                      <line x1="19" y1="12" x2="21" y2="12"></line>
+                    </svg>
+                  </span>
+                  <div>
+                    <h3 class="opp-map-widget-title">Screening Radius Map</h3>
+                    <p class="opp-map-widget-sub" id="oppMapSubtitle">${observed.hasCoords ? `${realAnchors.length} mapped nearby ${realAnchors.length === 1 ? 'place' : 'places'} in context` : 'Exact property location needed'}</p>
+                  </div>
+                </div>
+
+                <!-- Tactile Pill Radius Switcher: 300m, 500m, 1km -->
+                <div class="opportunities-map-radius-selector" role="group" aria-label="Screening radius selector">
+                  <button type="button" class="opp-radius-btn${radius === 300 ? ' is-active' : ''}" data-radius-val="300">300 m</button>
+                  <button type="button" class="opp-radius-btn${radius !== 300 && radius !== 1000 ? ' is-active' : ''}" data-radius-val="500">500 m</button>
+                  <button type="button" class="opp-radius-btn${radius === 1000 ? ' is-active' : ''}" data-radius-val="1000">1 km</button>
+                </div>
+              </div>
+
+              <div class="opp-map-meta-row">
+                <span class="opp-radius-pill-badge">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <polyline points="12 7 12 12 15 14"></polyline>
+                  </svg>
+                  <span id="oppRadiusBadgeText">${esc(radiusLabel)}</span>
+                </span>
+                <span class="opp-map-meta-note">${observed.hasCoords ? 'Straight-line radial screening · Partial inventory' : 'Add coordinates to enable radial map'}</span>
+              </div>
+
+              <!-- Stylized Map Box with Real Leaflet Canvas, Interactive Overlays & Static Fallback -->
+              <div class="opportunities-map-box" id="opportunitiesInteractiveMap" data-lat="${lat ?? ''}" data-lng="${lng ?? ''}" data-demo="${demo}" data-radius="${radius}" data-property-name="${esc(property.name || 'Subject Property')}">
+                <!-- Map Recenter Button -->
+                <button type="button" class="opportunities-map-recenter-btn" id="oppRecenterBtn" title="Recenter to property location" aria-label="Recenter map to property location">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                  </svg>
+                </button>
+
+                <!-- Real Interactive Leaflet Map Canvas (Activated via JS) -->
+                <div class="opportunities-leaflet-canvas" id="opportunitiesLeafletCanvas" role="region" aria-label="Interactive Screening Radius Map" style="display:none;width:100%;height:100%;position:absolute;top:0;left:0;border-radius:18px;z-index:2;"></div>
+
+                <!-- Map Layer Switcher Button (Street / Sat) -->
+                <button type="button" class="opportunities-map-layer-btn" id="oppLayerToggleBtn" title="Toggle Satellite / Street view" aria-label="Toggle map view">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                  </svg>
+                  <span id="oppLayerBtnText">Sat</span>
+                </button>
+
+                <!-- Fallback Vector Map Canvas (Displayed for SSR & headless test runners) -->
+                <div class="opportunities-map-static-fallback" id="opportunitiesMapStaticFallback" ${demo ? '' : 'hidden'}>
+                  ${demo ? `
+                  <svg class="opportunities-map-svg" viewBox="0 0 460 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                    <rect width="100%" height="100%" fill="#F1EFE8"/>
+                    <path d="M 0,210 C 50,195 80,245 130,285 L 130,300 L 0,300 Z" fill="#C4E0E5"/>
+                    <path d="M 0,210 C 50,195 80,245 130,285" stroke="#A7D5DE" stroke-width="6" fill="none" opacity="0.7"/>
+                    <rect x="25" y="30" width="65" height="48" rx="4" fill="#E8E6DF"/>
+                    <rect x="105" y="25" width="80" height="58" rx="4" fill="#E8E6DF"/>
+                    <rect x="220" y="35" width="60" height="38" rx="4" fill="#D2E3C6"/>
+                    <rect x="310" y="28" width="75" height="48" rx="4" fill="#E8E6DF"/>
+                    <rect x="400" y="42" width="50" height="52" rx="4" fill="#E8E6DF"/>
+                    <rect x="30" y="98" width="58" height="45" rx="4" fill="#E8E6DF"/>
+                    <rect x="110" y="102" width="55" height="52" rx="4" fill="#E8E6DF"/>
+                    <rect x="290" y="95" width="70" height="55" rx="4" fill="#D2E3C6"/>
+                    <rect x="380" y="108" width="70" height="60" rx="4" fill="#E8E6DF"/>
+                    <rect x="35" y="165" width="50" height="40" rx="4" fill="#E8E6DF"/>
+                    <rect x="300" y="170" width="55" height="45" rx="4" fill="#E8E6DF"/>
+                    <rect x="375" y="188" width="70" height="52" rx="4" fill="#D2E3C6"/>
+                    <rect x="200" y="240" width="90" height="45" rx="4" fill="#E8E6DF"/>
+                    <rect x="310" y="248" width="65" height="40" rx="4" fill="#E8E6DF"/>
+                    <path d="M 370,175 Q 425,155 450,205 L 450,275 Q 395,265 370,215 Z" fill="#D2E3C6"/>
+                    <path d="M 0,88 L 460,88 M 0,158 L 460,158 M 0,228 L 460,228" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+                    <path d="M 95,0 L 95,300 M 180,0 L 180,300 M 275,0 L 275,300 M 365,0 L 365,300" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+                    <path d="M 20,0 L 250,230" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+                    <path d="M 180,40 L 440,300" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+                    <circle cx="215" cy="145" r="90" fill="#1A73E8" fill-opacity="0.08" stroke="#1A73E8" stroke-width="2" stroke-dasharray="6 4"/>
+                    <line x1="285" y1="100" x2="310" y2="92" stroke="#1A73E8" stroke-width="1.5"/>
+                  </svg>
+                  <div class="opportunities-map-radius-tag-bubble" id="opportunitiesMapRadiusTagBubble">
+                    <span>500 m</span>
+                  </div>
+                  <div class="opportunities-map-center-pin" title="Subject Property Location">
+                    <svg viewBox="0 0 27 41" width="24" height="36" fill="none" aria-hidden="true">
+                      <path fill="#EA4335" d="M13.5 0C6.04 0 0 6.04 0 13.5c0 10.12 13.5 27.5 13.5 27.5S27 23.62 27 13.5C27 6.04 20.96 0 13.5 0z"/>
+                      <circle fill="#FFFFFF" cx="13.5" cy="13.5" r="5"/>
+                    </svg>
+                  </div>
+                  <div class="opportunities-map-poi poi-hospital">
+                    <span class="poi-icon-circle bg-red" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </span>
+                    <span class="poi-label">${esc(amenityChips[0]?.name || 'Hospital')}</span>
+                  </div>
+                  <div class="opportunities-map-poi poi-school">
+                    <span class="poi-icon-circle bg-blue" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
+                        <path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+                      </svg>
+                    </span>
+                    <span class="poi-label">${esc(amenityChips[1]?.name || 'School')}</span>
+                  </div>
+                  <div class="opportunities-map-poi poi-cityhall">
+                    <span class="poi-icon-circle bg-navy" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="#FFFFFF">
+                        <path d="M12 2L2 7v2h20V7L12 2zm-8 8v9h3v-9H4zm5 0v9h3v-9H9zm5 0v9h3v-9h-3zm5 0v9h3v-9h-3zM2 20v2h20v-2H2z"/>
+                      </svg>
+                    </span>
+                    <span class="poi-label">${esc(amenityChips[2]?.name || 'City hall')}</span>
+                  </div>
+                  ` : ''}
+                </div>
+
+                <!-- Map bottom-left tag overlay -->
+                <div class="opportunities-map-foot-chip" id="opportunitiesMapFootChip" style="z-index: 5;">
+                  <span>${observed.hasCoords ? `${radius} m straight-line screening radius · Partial mapped inventory` : 'Exact property location needed · Nearby inventory unknown'}</span>
+                </div>
+              </div>
+
+              <!-- Dynamic Amenity Pill Chips below map with walking times -->
+              <div class="opportunities-amenities-row">
+                ${amenityChips.map(c => `
+                  <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" data-anchor-name="${esc(c.name)}" data-anchor-lat="${c.lat}" data-anchor-lng="${c.lng}" title="Click to focus ${esc(c.name)} on map">
+                    ${c.iconHtml}
+                    <span>${esc(c.name)}</span>
+                    <span class="amenity-walk-badge">~${c.walkMinutes} min walk</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Recessed Sector Bento Tray (Morning/Night Scene + Bottom Action Bar Grammar) -->
+            <div class="opp-scenes-tray opportunities-bottom-filter-row">
+              <div class="opportunities-filter-pills opp-sector-bento-grid" role="tablist" aria-label="Business categories">
+                <button type="button" class="opportunities-filter-pill opp-sector-tile is-active" data-cat-filter="everyday_services" role="tab" aria-selected="true">
+                  <span class="opp-sector-tile-top">
+                    <span class="opp-sector-tile-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                    </span>
+                    <span class="opp-sector-tile-dots" aria-hidden="true"><i></i><i></i></span>
+                  </span>
+                  <span class="opp-sector-tile-copy">
+                    <strong>Everyday services</strong>
+                    <small>${esc(sectorMetaText('everyday_services', 'Clinics & offices'))}</small>
+                  </span>
+                </button>
+
+                <button type="button" class="opportunities-filter-pill opp-sector-tile" data-cat-filter="food_retail" role="tab" aria-selected="false">
+                  <span class="opp-sector-tile-top">
+                    <span class="opp-sector-tile-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    </span>
+                    <span class="opp-sector-tile-dots" aria-hidden="true"><i></i><i></i></span>
+                  </span>
+                  <span class="opp-sector-tile-copy">
+                    <strong>Food &amp; retail</strong>
+                    <small>${esc(sectorMetaText('food_retail', 'Cafes & retail'))}</small>
+                  </span>
+                </button>
+
+                <button type="button" class="opportunities-filter-pill opp-sector-tile" data-cat-filter="tourism_recreation" role="tab" aria-selected="false">
+                  <span class="opp-sector-tile-top">
+                    <span class="opp-sector-tile-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                    </span>
+                    <span class="opp-sector-tile-dots" aria-hidden="true"><i></i><i></i></span>
+                  </span>
+                  <span class="opp-sector-tile-copy">
+                    <strong>Tourism &amp; recreation</strong>
+                    <small>${esc(sectorMetaText('tourism_recreation', 'Wellness & stays'))}</small>
+                  </span>
+                </button>
+
+                <button type="button" class="opportunities-filter-pill opp-sector-tile" data-cat-filter="all" role="tab" aria-selected="false">
+                  <span class="opp-sector-tile-top">
+                    <span class="opp-sector-tile-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                    </span>
+                    <span class="opp-sector-tile-dots" aria-hidden="true"><i></i><i></i></span>
+                  </span>
+                  <span class="opp-sector-tile-copy">
+                    <strong>Other business types</strong>
+                    <small>${esc(sectorMetaText('all', 'All 17 profiles'))}</small>
+                  </span>
+                </button>
+              </div>
+
+              <div class="opp-catalog-bar opportunities-explore-link-wrap">
+                <div class="opp-catalog-bar-left">
+                  <span class="opp-catalog-plus" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  </span>
+                  <div class="opp-catalog-bar-copy">
+                    <strong>Explore other business types</strong>
+                    <span>${BUSINESS_CATALOG.length} draft profiles across ${Object.keys(BUSINESS_SECTORS).length} sectors</span>
+                  </div>
+                </div>
+                <button type="button" class="opportunities-explore-more-btn opp-catalog-see-all" data-open-opportunities-catalog id="openOpportunitiesCatalogBtn">
+                  <span>See All</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- RIGHT COLUMN: Demo Scenario & Dynamic Cards Stack -->
-        <div class="opportunities-cards-column">
-          <div class="opportunities-kicker-banner">
-            <span>${demo ? 'DEMO SCENARIO - Illustrative places and suggestions' : 'Draft suggestions · Partial mapped inventory'}</span>
+        <!-- Bottom Disclaimer Bar -->
+        <div class="opportunities-disclaimer-strip">
+          <div class="opportunities-disclaimer-left">
+            <span class="disclaimer-info-icon" aria-hidden="true">&#9432;</span>
+            <span>Zoning: Not verified &middot; Market demand: Not measured &middot; Map coverage: Unknown</span>
           </div>
-
-          <div class="opportunities-blue-stack" id="opportunitiesCardsStack">
-            ${displayCards.length ? displayCards.map(item => renderOpportunityCard(item, property)).join('') : '<p class="opportunities-empty-state">No suggestions are supported by the recorded nearby places. Inventory completeness and operating business density remain unknown.</p>'}
+          <div class="opportunities-disclaimer-right">
+            <span>Preliminary suggestions, not a profitability forecast.</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Bottom Category Filter Row -->
-      <div class="opportunities-bottom-filter-row">
-        <div class="opportunities-filter-pills" role="tablist" aria-label="Business categories">
-          <button type="button" class="opportunities-filter-pill is-active" data-cat-filter="everyday_services">Everyday services</button>
-          <button type="button" class="opportunities-filter-pill" data-cat-filter="food_retail">Food &amp; retail</button>
-          <button type="button" class="opportunities-filter-pill" data-cat-filter="tourism_recreation">Tourism &amp; recreation</button>
-          <button type="button" class="opportunities-filter-pill" data-cat-filter="all">Other business types</button>
-        </div>
-
-        <div class="opportunities-explore-link-wrap">
-          <button type="button" class="opportunities-explore-more-btn" data-open-opportunities-catalog id="openOpportunitiesCatalogBtn">
-            <span>Explore other business types &rarr;</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Bottom Disclaimer Bar -->
-      <div class="opportunities-disclaimer-strip">
-        <div class="opportunities-disclaimer-left">
-          <span class="disclaimer-info-icon" aria-hidden="true">&#9432;</span>
-          <span>Zoning: Not verified &middot; Market demand: Not measured &middot; Map coverage: Unknown</span>
-        </div>
-        <div class="opportunities-disclaimer-right">
-          <span>Preliminary suggestions, not a profitability forecast.</span>
         </div>
       </div>
 
@@ -2217,7 +2341,27 @@ export function initBusinessOpportunities(root = document, property = null) {
   const recordedMapLat = recordedCoordinate(mapBox?.getAttribute('data-lat'), 90);
   const recordedMapLng = recordedCoordinate(mapBox?.getAttribute('data-lng'), 180);
   const demoMode = mapBox?.getAttribute('data-demo') === 'true';
-  if (mapBox && leafletCanvas && recordedMapLat !== null && recordedMapLng !== null && window.L && typeof window.L.map === 'function') {
+
+  // Helper to update sector tile suggestion counts when screening radius changes
+  function syncSectorTileCounts(newRadius) {
+    if (property && Array.isArray(property.nearbyBusinesses) && property.nearbyBusinesses.length > 0) {
+      root.querySelectorAll('.opp-sector-tile[data-cat-filter]').forEach(tile => {
+        const key = tile.getAttribute('data-cat-filter');
+        if (!key || key === 'all') return;
+        const count = evaluateBusinessOpportunities(property, newRadius, key)?.supportedMatches?.length || 0;
+        const metaEl = tile.querySelector('.opp-sector-tile-copy small');
+        if (metaEl) metaEl.textContent = count === 1 ? '1 suggestion' : `${count} suggestions`;
+      });
+    }
+  }
+
+  const useLatest3DMap = Boolean(
+    mapBox && recordedMapLat !== null && recordedMapLng !== null && !demoMode
+    && typeof window !== 'undefined' && window.SFC_APP_CONFIG && typeof window.SFC_APP_CONFIG.basePath === 'string'
+  );
+
+  function initLeafletMap() {
+    if (!(mapBox && leafletCanvas && recordedMapLat !== null && recordedMapLng !== null && window.L && typeof window.L.map === 'function')) return;
     try {
       const lat = recordedMapLat;
       const lng = recordedMapLng;
@@ -2273,14 +2417,14 @@ export function initBusinessOpportunities(root = document, property = null) {
           attribution: '&copy; Google Maps'
         });
 
-        // Google Maps Proximity Geofence Radius Circle (Google Blue)
+        // Refined Periwinkle-Cobalt Proximity Geofence Radius Circle
         radiusCircle = L.circle([lat, lng], {
           radius: currentRadius,
-          color: '#1A73E8',
-          weight: 2,
-          dashArray: '6, 5',
-          fillColor: '#1A73E8',
-          fillOpacity: 0.08
+          color: '#3B6DF6',
+          weight: 1.75,
+          dashArray: '5, 6',
+          fillColor: '#6E9BFF',
+          fillOpacity: 0.10
         }).addTo(oppMap);
 
         // Subject Property Pin (Google Maps Iconic Red Teardrop with Home Glyph & Pulsing Radar Ring)
@@ -2323,101 +2467,99 @@ export function initBusinessOpportunities(root = document, property = null) {
             iconSize: [88, 24],
             iconAnchor: [44, 12]
           });
-          calloutMarker = L.marker([calloutLat, calloutLng], { icon: calloutIcon, interactive: false }).addTo(oppMap);
+          calloutMarker = L.marker([calloutLat, calloutLng], { icon: calloutIcon, interactive: false, zIndexOffset: 6500 }).addTo(oppMap);
         }
         updateRadiusTag(currentRadius);
 
-        // Smart Spatial Dispersal for Nearby Establishments (prevents stacking along same street corridor)
+        // Build clean two-tier spatial hierarchy:
+        // Tier 1 (up to 9 spatially & categorically diverse key landmarks) render as crisp icon badges;
+        // Tier 2 (remaining mapped places) render at their TRUE coordinates as subtle contextual micro-dots
+        // that stay hoverable/clickable and automatically promote when hovering cards or filtering sectors.
         const cosLat = Math.cos(lat * Math.PI / 180);
-        const validAnchors = anchors.map((a, idx) => ({
-          data: a,
-          originalIndex: idx,
-          rawLat: parseFloat(a.lat),
-          rawLng: parseFloat(a.lng),
-          dispLat: parseFloat(a.lat),
-          dispLng: parseFloat(a.lng),
-          name: a.name || `Anchor ${idx + 1}`
-        })).filter(a => recordedCoordinate(a.rawLat, 90) !== null && recordedCoordinate(a.rawLng, 180) !== null && !closedPlace(a.data));
+        const validAnchors = anchors.map((a, idx) => {
+          const rawLat = parseFloat(a.lat);
+          const rawLng = parseFloat(a.lng);
+          const distM = typeof a.distanceMeters === 'number' && Number.isFinite(a.distanceMeters)
+            ? a.distanceMeters
+            : (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : Math.round(haversineMeters(lat, lng, rawLat, rawLng)));
+          const iconInfo = getAnchorIconInfo(a);
+          return {
+            data: a,
+            originalIndex: idx,
+            rawLat,
+            rawLng,
+            dispLat: rawLat,
+            dispLng: rawLng,
+            distM: Number.isFinite(distM) ? distM : 180,
+            iconInfo,
+            name: a.name || `Anchor ${idx + 1}`,
+            isFeatured: false
+          };
+        }).filter(a => recordedCoordinate(a.rawLat, 90) !== null && recordedCoordinate(a.rawLng, 180) !== null && !closedPlace(a.data));
 
-        // NOTE: Actual de-overlap layout runs in screen-pixel space (layoutPinsInPixelSpace below),
-        // because a fixed degree offset (~30 m) is only ~6 px at zoom 15 — far smaller than a 28 px pin.
-        // This degree-based pre-pass only applies when the map projection is unavailable (e.g. headless tests).
+        // Select up to 9 high-signal featured anchors (diverse categories + closest landmarks)
+        const PRIORITY_CATS = new Set(['hospital', 'healthcare', 'education', 'civic', 'worship', 'hotel', 'finance', 'mall', 'market', 'grocery', 'cafe']);
+        const MAX_FEATURED = validAnchors.length <= 10 ? validAnchors.length : 9;
+        const featuredSet = new Set();
+        const usedFeaturedCats = new Set();
+
+        // Pass 1: closest distinct high-signal categories + top 3 amenity chip anchors
+        const rankedForFeatured = [...validAnchors].sort((a, b) => {
+          const aPri = (a.originalIndex < 3 ? 0 : PRIORITY_CATS.has(a.iconInfo.catKey) ? 1 : 2);
+          const bPri = (b.originalIndex < 3 ? 0 : PRIORITY_CATS.has(b.iconInfo.catKey) ? 1 : 2);
+          if (aPri !== bPri) return aPri - bPri;
+          return a.distM - b.distM;
+        });
+
+        for (const cand of rankedForFeatured) {
+          if (featuredSet.size >= MAX_FEATURED) break;
+          if (!usedFeaturedCats.has(cand.iconInfo.catKey) || cand.originalIndex < 3) {
+            featuredSet.add(cand);
+            usedFeaturedCats.add(cand.iconInfo.catKey);
+            cand.isFeatured = true;
+          }
+        }
+        // Pass 2: fill remaining featured slots with well-spaced closest landmarks
+        for (const cand of rankedForFeatured) {
+          if (featuredSet.size >= MAX_FEATURED) break;
+          if (featuredSet.has(cand)) continue;
+          const tooCloseToFeatured = [...featuredSet].some(f => {
+            const dLat = f.rawLat - cand.rawLat;
+            const dLng = (f.rawLng - cand.rawLng) * cosLat;
+            return Math.sqrt(dLat * dLat + dLng * dLng) < 0.00075;
+          });
+          if (!tooCloseToFeatured) {
+            featuredSet.add(cand);
+            cand.isFeatured = true;
+          }
+        }
+
+        // Degree-based nudge only for featured pins when projection is unavailable (headless tests)
         const minCenterDistDeg = 0.00030;
-        validAnchors.forEach(a => {
+        validAnchors.filter(a => a.isFeatured).forEach((a, idx) => {
           const dLat = a.dispLat - lat;
           const dLng = (a.dispLng - lng) * cosLat;
           const dist = Math.sqrt(dLat * dLat + dLng * dLng);
           if (dist < minCenterDistDeg) {
-            const angle = dist > 0.00002 ? Math.atan2(dLat, dLng) : (Math.PI / 3);
+            const angle = dist > 0.00002 ? Math.atan2(dLat, dLng) : (Math.PI / 3 + idx * 0.9);
             const pushDist = 0.00038;
             a.dispLat = lat + Math.sin(angle) * pushDist;
             a.dispLng = lng + (Math.cos(angle) * pushDist) / cosLat;
           }
         });
 
-        // Step 2: Cluster detection & radial dispersal among nearby pins
-        const clusters = [];
-        const visited = new Set();
-        const clusterDistThreshold = 0.00032; // ~35 meters
-
-        for (let i = 0; i < validAnchors.length; i++) {
-          if (visited.has(i)) continue;
-          const cluster = [validAnchors[i]];
-          visited.add(i);
-
-          for (let j = i + 1; j < validAnchors.length; j++) {
-            if (visited.has(j)) continue;
-            const canJoin = cluster.some(item => {
-              const dLat = item.dispLat - validAnchors[j].dispLat;
-              const dLng = (item.dispLng - validAnchors[j].dispLng) * cosLat;
-              return Math.sqrt(dLat * dLat + dLng * dLng) < clusterDistThreshold;
-            });
-
-            if (canJoin) {
-              cluster.push(validAnchors[j]);
-              visited.add(j);
-            }
-          }
-          clusters.push(cluster);
-        }
-
-        // Radially fan out clusters with 2 or more pins around their centroid
-        clusters.forEach(cluster => {
-          if (cluster.length <= 1) return;
-
-          let sumLat = 0;
-          let sumLng = 0;
-          cluster.forEach(pt => {
-            sumLat += pt.dispLat;
-            sumLng += pt.dispLng;
-          });
-          const cLat = sumLat / cluster.length;
-          const cLng = sumLng / cluster.length;
-
-          const count = cluster.length;
-          const disperseR = count > 4 ? 0.00035 : 0.00028;
-          const angleStep = (2 * Math.PI) / count;
-          const startAngle = Math.PI / count;
-
-          cluster.forEach((pt, k) => {
-            const angle = startAngle + k * angleStep;
-            pt.dispLat = cLat + Math.sin(angle) * disperseR;
-            pt.dispLng = cLng + (Math.cos(angle) * disperseR) / cosLat;
-          });
-        });
-
-        // Add Google Maps-style compact circular POI markers for each nearby place
+        // Add refined two-tier markers: crisp curated icon pins (Tier 1) + true-position micro-dots (Tier 2)
         const anchorMarkers = [];
         validAnchors.forEach(a => {
-          const iconInfo = getAnchorIconInfo(a.data);
+          const iconInfo = a.iconInfo;
           const badgeColor = iconInfo.badgeColor;
           const catKey = iconInfo.catKey;
           const svgIcon = iconInfo.svgIcon;
+          const tierClass = a.isFeatured ? 'is-featured' : 'is-ambient';
 
-          // Compact Google Maps circular badge with downward pointer tip (Zero Overlap, 28x34)
           const aIcon = L.divIcon({
             className: 'opp-gmap-poi-divicon locus-opp-poi-marker',
-            html: `<div class="opp-gmap-poi-pin opp-poi-pin" style="--poi-color: ${badgeColor};" title="${esc(a.data.name)}" data-cat="${catKey}" data-sector="${iconInfo.sector}">
+            html: `<div class="opp-gmap-poi-pin opp-poi-pin ${tierClass}" style="--poi-color: ${badgeColor};" title="${esc(a.data.name)}" data-cat="${catKey}" data-sector="${iconInfo.sector}">
               <div class="opp-gmap-poi-circle">
                 ${svgIcon}
               </div>
@@ -2427,11 +2569,11 @@ export function initBusinessOpportunities(root = document, property = null) {
             iconAnchor: [14, 34]
           });
 
-          const m = L.marker([a.dispLat, a.dispLng], { icon: aIcon, zIndexOffset: 100 }).addTo(oppMap);
-          const distM = a.data.distanceMeters || (a.data.distanceFormatted ? parseInt(a.data.distanceFormatted, 10) : 180);
+          const m = L.marker([a.dispLat, a.dispLng], { icon: aIcon, zIndexOffset: a.isFeatured ? 320 : 60 }).addTo(oppMap);
+          const distM = a.distM;
           const walkMin = Math.max(1, Math.round((distM || 180) / 80));
 
-          // Google Maps-style Hover Tooltip
+          // Editorial Hover Tooltip
           m.bindTooltip(`
             <div class="opp-gmap-tooltip-content">
               <strong>${esc(a.data.name)}</strong>
@@ -2439,12 +2581,12 @@ export function initBusinessOpportunities(root = document, property = null) {
             </div>
           `, {
             direction: 'top',
-            offset: [0, -32],
+            offset: a.isFeatured ? [0, -28] : [0, -16],
             className: 'opp-gmap-tooltip-box',
             opacity: 1
           });
 
-          // Google Maps-style Rich Click Popup
+          // Rich Click Popup
           m.bindPopup(`
             <div class="opp-gmap-popup-card opp-leaflet-popup">
               <div class="opp-gmap-popup-badge" style="background: ${badgeColor}18; color: ${badgeColor}; border: 1px solid ${badgeColor}35;">
@@ -2452,61 +2594,77 @@ export function initBusinessOpportunities(root = document, property = null) {
               </div>
               <strong class="opp-gmap-popup-title">${esc(a.data.name)}</strong>
               <div class="opp-gmap-popup-meta">
-                <span>📍 ${esc(a.data.distanceFormatted || (distM + ' m'))}</span>
-                <span>🚶 ~${walkMin} min walk</span>
+                <span>${esc(a.data.distanceFormatted || (distM + ' m'))}</span>
+                <span>&middot;</span>
+                <span>~${walkMin} min walk</span>
               </div>
-              <span class="opp-gmap-popup-sub">Mapped place · ${esc(recordedStatus(a.data) === 'operating' ? 'Operating status recorded' : 'Operating status unverified')}</span>
+              <span class="opp-gmap-popup-sub">Mapped place &middot; ${esc(recordedStatus(a.data) === 'operating' ? 'Operating status recorded' : 'Operating status unverified')}</span>
             </div>
           `, { className: 'opp-gmap-popup-wrapper' });
 
           anchorMarkers.push({
             data: a.data,
+            rawLat: a.rawLat,
+            rawLng: a.rawLng,
             dispLat: a.dispLat,
             dispLng: a.dispLng,
+            distM,
+            isFeatured: a.isFeatured,
             index: a.originalIndex,
             iconInfo,
             marker: m
           });
         });
 
-        // Pixel-space de-overlap: iteratively push pins apart so no two 28px badges collide,
-        // and keep a clear zone around the Subject Property pin. Re-runs on every zoom.
+        // Pixel-space de-overlap ONLY for prominent Tier-1 featured landmarks (never explodes ambient dots into a wall!).
+        // Also softly fades markers outside the active screening radius when switching 300 m / 500 m / 1 km.
+        function syncRadiusMarkerVisibility(r) {
+          anchorMarkers.forEach(am => {
+            const pinEl = (typeof am.marker.getElement === 'function' && am.marker.getElement())
+              ? am.marker.getElement().querySelector('.opp-gmap-poi-pin')
+              : null;
+            if (!pinEl) return;
+            const outOfRadius = Number.isFinite(am.distM) && am.distM > r + 15;
+            pinEl.classList.toggle('is-outside-radius', outOfRadius);
+          });
+        }
+
         function layoutPinsInPixelSpace() {
           if (typeof oppMap.latLngToContainerPoint !== 'function' || typeof oppMap.containerPointToLatLng !== 'function') return;
-          const MIN_GAP = 30;     // px between POI anchor points (pin is 28px wide)
-          const CENTER_GAP = 34;  // px clear zone around the subject pin
+          const MIN_GAP = 29;     // px between prominent Tier-1 icon pins
+          const CENTER_GAP = 36;  // px clear breathing ring around Subject Property pin
           const center = oppMap.latLngToContainerPoint([lat, lng]);
-          const pts = anchorMarkers.map(am => {
-            const p = oppMap.latLngToContainerPoint([parseFloat(am.data.lat), parseFloat(am.data.lng)]);
+
+          // Keep Tier-2 ambient micro-dots anchored at their true geographic street positions
+          const featuredPts = anchorMarkers.filter(am => am.isFeatured).map(am => {
+            const p = oppMap.latLngToContainerPoint([am.rawLat, am.rawLng]);
             return { am, x: p.x, y: p.y };
           });
 
-          for (let iter = 0; iter < 60; iter++) {
+          for (let iter = 0; iter < 50; iter++) {
             let moved = false;
-            for (let i = 0; i < pts.length; i++) {
-              // Keep clear of the subject property pin
-              let dx = pts[i].x - center.x;
-              let dy = pts[i].y - center.y;
+            for (let i = 0; i < featuredPts.length; i++) {
+              let dx = featuredPts[i].x - center.x;
+              let dy = featuredPts[i].y - center.y;
               let d = Math.sqrt(dx * dx + dy * dy);
               if (d < CENTER_GAP) {
                 if (d < 0.5) { dx = Math.cos(i * 2.399); dy = Math.sin(i * 2.399); d = 1; }
                 const push = CENTER_GAP - d;
-                pts[i].x += (dx / d) * push;
-                pts[i].y += (dy / d) * push;
+                featuredPts[i].x += (dx / d) * push;
+                featuredPts[i].y += (dy / d) * push;
                 moved = true;
               }
-              for (let j = i + 1; j < pts.length; j++) {
-                dx = pts[j].x - pts[i].x;
-                dy = pts[j].y - pts[i].y;
+              for (let j = i + 1; j < featuredPts.length; j++) {
+                dx = featuredPts[j].x - featuredPts[i].x;
+                dy = featuredPts[j].y - featuredPts[i].y;
                 d = Math.sqrt(dx * dx + dy * dy);
                 if (d < MIN_GAP) {
-                  // Golden-angle fallback for exactly coincident points
                   if (d < 0.5) { dx = Math.cos((i + j) * 2.399); dy = Math.sin((i + j) * 2.399); d = 1; }
                   const push = (MIN_GAP - d) / 2;
                   const ux = dx / d;
                   const uy = dy / d;
-                  pts[i].x -= ux * push; pts[i].y -= uy * push;
-                  pts[j].x += ux * push; pts[j].y += uy * push;
+                  featuredPts[i].x -= ux * push; featuredPts[i].y -= uy * push;
+                  featuredPts[j].x += ux * push; featuredPts[j].y += uy * push;
                   moved = true;
                 }
               }
@@ -2514,12 +2672,13 @@ export function initBusinessOpportunities(root = document, property = null) {
             if (!moved) break;
           }
 
-          pts.forEach(p => {
+          featuredPts.forEach(p => {
             const ll = oppMap.containerPointToLatLng([p.x, p.y]);
             p.am.dispLat = ll.lat;
             p.am.dispLng = ll.lng;
             if (typeof p.am.marker.setLatLng === 'function') p.am.marker.setLatLng(ll);
           });
+          syncRadiusMarkerVisibility(currentRadius);
         }
         if (typeof oppMap.on === 'function') oppMap.on('zoomend', layoutPinsInPixelSpace);
 
@@ -2673,7 +2832,7 @@ export function initBusinessOpportunities(root = document, property = null) {
 
         setTimeout(() => {
           oppMap.invalidateSize();
-          oppMap.fitBounds(radiusCircle.getBounds(), { padding: [22, 22] });
+          oppMap.fitBounds(radiusCircle.getBounds(), { padding: [30, 30] });
           layoutPinsInPixelSpace();
         }, 100);
 
@@ -2681,7 +2840,7 @@ export function initBusinessOpportunities(root = document, property = null) {
           if (e.detail?.mode === 'advanced') {
             setTimeout(() => {
               oppMap.invalidateSize();
-              oppMap.fitBounds(radiusCircle.getBounds(), { padding: [22, 22] });
+              oppMap.fitBounds(radiusCircle.getBounds(), { padding: [30, 30] });
             }, 80);
           }
         });
@@ -2707,12 +2866,14 @@ export function initBusinessOpportunities(root = document, property = null) {
               satLayer.addTo(oppMap);
               currentLayerType = 'satellite';
               layerToggleBtn.classList.add('is-active');
+              mapBox.classList.add('is-satellite');
               if (layerBtnText) layerBtnText.textContent = 'Street';
             } else {
               oppMap.removeLayer(satLayer);
               streetLayer.addTo(oppMap);
               currentLayerType = 'street';
               layerToggleBtn.classList.remove('is-active');
+              mapBox.classList.remove('is-satellite');
               if (layerBtnText) layerBtnText.textContent = 'Sat';
             }
           });
@@ -2731,18 +2892,22 @@ export function initBusinessOpportunities(root = document, property = null) {
 
             radiusCircle.setRadius(newRadius);
             updateRadiusTag(newRadius);
-            oppMap.fitBounds(radiusCircle.getBounds(), { padding: [22, 22] });
+            oppMap.fitBounds(radiusCircle.getBounds(), { padding: [30, 30] });
+            syncRadiusMarkerVisibility(newRadius);
 
             // Update text labels
             const rText = newRadius >= 1000 ? (newRadius / 1000) + ' km' : Math.round(newRadius) + ' m';
             const footChip = root.querySelector('#opportunitiesMapFootChip span');
             if (footChip) footChip.textContent = `${rText} straight-line screening radius · Partial mapped inventory`;
+            const radiusBadgeText = root.querySelector('#oppRadiusBadgeText');
+            if (radiusBadgeText) radiusBadgeText.textContent = rText;
 
             const staticBubble = root.querySelector('#opportunitiesMapRadiusTagBubble span');
             if (staticBubble) staticBubble.textContent = rText;
 
-            // Dynamically re-evaluate and update cards
+            // Dynamically re-evaluate and update cards and sector tile counts
             updateCardsStack(currentSector, newRadius);
+            syncSectorTileCounts(newRadius);
           });
         });
       }
@@ -2750,6 +2915,246 @@ export function initBusinessOpportunities(root = document, property = null) {
       console.warn('Leaflet map initialization skipped or unsupported in environment:', err);
       if (fallbackSvg && demoMode) fallbackSvg.style.display = 'block';
     }
+  }
+
+  // Mount the latest interactive 3D MapLibre City Map (3D buildings, brand logos, landmark photo cards,
+  // clickable business directory & subject property parcel) in live browser sessions.
+  if (useLatest3DMap) {
+    const lat = recordedMapLat;
+    const lng = recordedMapLng;
+    const basePath = window.SFC_APP_CONFIG.basePath || '';
+    const origin = window.location.origin;
+    const propName = property?.name || mapBox.getAttribute('data-property-name') || 'Subject Property';
+    const propId = property?.id || property?.property_id || 0;
+
+    let anchors = [];
+    const storeEl = root.querySelector('#oppDataStore');
+    if (storeEl) {
+      try {
+        const stored = JSON.parse(storeEl.textContent);
+        anchors = stored.anchors || [];
+      } catch (_) {}
+    }
+    if (!anchors.length && property && Array.isArray(property.nearbyBusinesses)) {
+      anchors = observedBusinessContext(property, currentRadius).nearbyPlaces;
+    }
+
+    const areaSqm = Number(property?.parcel?.surveyAreaSqm) > 0
+      ? Number(property.parcel.surveyAreaSqm)
+      : (Number(property?.area) > 0 ? Math.round(Number(property.area) * 10000) : null);
+    const priceVal = property?.listingPurpose === 'lease' ? property?.leasePrice : property?.price;
+    const priceText = Number(priceVal) > 0
+      ? `PHP ${Number(priceVal).toLocaleString('en-PH')}${property?.listingPurpose === 'lease' ? ` / ${property?.leasePriceUnit === 'sqm' ? 'm² / ' : ''}${property?.leasePeriod || 'month'}` : ''}`
+      : '';
+
+    const subjectPayload = {
+      id: propId || `site-${lat.toFixed(5)}-${lng.toFixed(5)}`,
+      name: propName,
+      latitude: lat,
+      longitude: lng,
+      boundary: property?.parcel?.boundary || null,
+      barangay: property?.barangay || null,
+      city: property?.city || 'San Fernando, La Union',
+      area_sqm: areaSqm,
+      status: property?.status || 'Available',
+      purpose: property?.listingPurpose || 'sale',
+      price_text: priceText,
+      approximate: property?.hasExactLocation === false,
+      source: 'LOCUS-SF'
+    };
+
+    const viewport = document.createElement('dialog');
+    viewport.className = 'opp-3d-map-viewport';
+    viewport.setAttribute('open', '');
+    const iframe = document.createElement('iframe');
+    iframe.className = 'opp-3d-map-frame';
+    iframe.src = `${basePath}/city-map-embed.php?embed=1&mode=opportunities&propertyId=${encodeURIComponent(String(propId))}&lat=${encodeURIComponent(lat.toFixed(6))}&lng=${encodeURIComponent(lng.toFixed(6))}&radius=${encodeURIComponent(String(Math.round(currentRadius)))}`;
+    iframe.title = `Interactive 3D San Fernando screening map for ${propName}`;
+    iframe.allowFullscreen = true;
+    viewport.appendChild(iframe);
+    mapBox.classList.add('is-3d-city-map');
+    mapBox.appendChild(viewport);
+
+    let ready = false;
+    let expanded = false;
+    let fellBack = false;
+    const queue = [];
+
+    function post3D(message) {
+      if (fellBack || !iframe.contentWindow) return;
+      if (!ready) {
+        queue.push(message);
+        return;
+      }
+      iframe.contentWindow.postMessage(message, origin);
+    }
+
+    function flush3D() {
+      while (queue.length && iframe.contentWindow) {
+        iframe.contentWindow.postMessage(queue.shift(), origin);
+      }
+    }
+
+    function setExpanded3D(next) {
+      if (expanded === next) return;
+      expanded = next;
+      try { viewport.close(); } catch {}
+      if (expanded) {
+        viewport.classList.add('is-expanded');
+        if (typeof viewport.showModal === 'function') viewport.showModal();
+        else viewport.setAttribute('open', '');
+      } else {
+        viewport.classList.remove('is-expanded');
+        if (typeof viewport.show === 'function') viewport.show();
+        else viewport.setAttribute('open', '');
+      }
+      post3D({ type: 'locus:city-map-expanded', expanded });
+      setTimeout(() => post3D({ type: 'locus:resize' }), 150);
+    }
+
+    viewport.addEventListener('cancel', event => {
+      event.preventDefault();
+      setExpanded3D(false);
+    });
+
+    const on3DMessage = event => {
+      if (event.origin !== origin || event.source !== iframe.contentWindow) return;
+      const type = event.data?.type;
+      if (type === 'locus:city-map-ready') {
+        ready = true;
+        iframe.contentWindow.postMessage({ type: 'locus:city-map-visibility', visible: true }, origin);
+        iframe.contentWindow.postMessage({ type: 'locus:focus-property', property: subjectPayload, showNearby: true, radius: currentRadius, instant: true }, origin);
+        flush3D();
+      } else if (type === 'locus:city-map-expand') {
+        setExpanded3D(true);
+      } else if (type === 'locus:city-map-collapse') {
+        setExpanded3D(false);
+      } else if (type === 'locus:city-map-unavailable' && !fellBack) {
+        fellBack = true;
+        mapBox.classList.remove('is-3d-city-map');
+        viewport.remove();
+        window.removeEventListener('message', on3DMessage);
+        initLeafletMap();
+      }
+    };
+    window.addEventListener('message', on3DMessage);
+
+    iframe.addEventListener('load', () => {
+      setTimeout(() => {
+        if (!ready && !fellBack && iframe.contentWindow) {
+          ready = true;
+          iframe.contentWindow.postMessage({ type: 'locus:city-map-visibility', visible: true }, origin);
+          iframe.contentWindow.postMessage({ type: 'locus:focus-property', property: subjectPayload, showNearby: true, radius: currentRadius, instant: true }, origin);
+          flush3D();
+        }
+      }, 950);
+    });
+
+    if (typeof IntersectionObserver === 'function') {
+      const obs = new IntersectionObserver(entries => {
+        const entry = entries[0];
+        if (entry) post3D({ type: 'locus:city-map-visibility', visible: entry.isIntersecting });
+      }, { threshold: 0.05 });
+      obs.observe(mapBox);
+    }
+
+    window.addEventListener('sfc:investor-view-change', e => {
+      if (e.detail?.mode === 'advanced') {
+        setTimeout(() => post3D({ type: 'locus:resize' }), 100);
+      }
+    });
+
+    // Wire radius buttons (300 m / 500 m / 1 km) directly to the 3D screening ring + cards
+    root.querySelectorAll('[data-radius-val]').forEach(rBtn => {
+      rBtn.addEventListener('click', e => {
+        e.preventDefault();
+        const newRadius = parseFloat(rBtn.getAttribute('data-radius-val')) || 500;
+        currentRadius = newRadius;
+
+        root.querySelectorAll('[data-radius-val]').forEach(b => {
+          b.classList.toggle('is-active', b === rBtn);
+        });
+
+        post3D({ type: 'locus:set-screening-radius', radius: newRadius, showNearby: true, fit: true });
+
+        const rText = newRadius >= 1000 ? (newRadius / 1000) + ' km' : Math.round(newRadius) + ' m';
+        const footChip = root.querySelector('#opportunitiesMapFootChip span');
+        if (footChip) footChip.textContent = `${rText} straight-line screening radius · Partial mapped inventory`;
+        const radiusBadgeText = root.querySelector('#oppRadiusBadgeText');
+        if (radiusBadgeText) radiusBadgeText.textContent = rText;
+
+        updateCardsStack(currentSector, newRadius);
+        syncSectorTileCounts(newRadius);
+      });
+    });
+
+    // Wire anchor chips below the 3D map to glide the 3D camera + open rich place popup
+    function bindAmenityChips3D() {
+      root.querySelectorAll('.opportunities-amenities-row [data-anchor-name], .opportunities-amenities-row [data-anchor-index]').forEach(chip => {
+        chip.addEventListener('click', e => {
+          e.preventDefault();
+          const chipName = chip.getAttribute('data-anchor-name') || '';
+          const chipLat = parseFloat(chip.getAttribute('data-anchor-lat'));
+          const chipLng = parseFloat(chip.getAttribute('data-anchor-lng'));
+          root.querySelectorAll('.opportunities-amenities-row .opportunities-amenity-chip').forEach(c => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
+
+          const matchedAnchor = anchors.find(a => (a.name || '').toLowerCase() === chipName.toLowerCase());
+          const targetLat = Number.isFinite(chipLat) ? chipLat : parseFloat(matchedAnchor?.lat);
+          const targetLng = Number.isFinite(chipLng) ? chipLng : parseFloat(matchedAnchor?.lng);
+          if (Number.isFinite(targetLat) && Number.isFinite(targetLng)) {
+            const distM = matchedAnchor?.distanceMeters || (matchedAnchor?.distanceFormatted ? parseInt(matchedAnchor.distanceFormatted, 10) : null);
+            const walkMin = Number.isFinite(distM) ? Math.max(1, Math.round(distM / 80)) : null;
+            post3D({
+              type: 'locus:fly-to-point',
+              lat: targetLat,
+              lng: targetLng,
+              name: chipName || matchedAnchor?.name || 'Nearby place',
+              category: matchedAnchor?.category || 'Activity center',
+              distance: [matchedAnchor?.distanceFormatted || (Number.isFinite(distM) ? `${distM} m` : ''), walkMin ? `~${walkMin} min walk` : ''].filter(Boolean).join(' · '),
+              kicker: 'Nearby business',
+              kind: 'business'
+            });
+          } else {
+            post3D({ type: 'locus:focus-property', property: subjectPayload, showNearby: true, radius: currentRadius, instant: false });
+          }
+        });
+      });
+    }
+    bindAmenityChips3D();
+
+    updateAmenityChipsForSector = function(sectorKey) {
+      const row = root.querySelector('.opportunities-amenities-row');
+      if (!row) return;
+      let filteredAnchors = anchors;
+      if (sectorKey && sectorKey !== 'all') {
+        const matching = anchors.filter(a => getAnchorIconInfo(a).sector === sectorKey);
+        if (matching.length >= 2) filteredAnchors = matching;
+      }
+      const chipsToDisplay = filteredAnchors.slice(0, 3).map((a, idx) => {
+        const iconInfo = getAnchorIconInfo(a);
+        const distM = a.distanceMeters || (a.distanceFormatted ? parseInt(a.distanceFormatted, 10) : 180);
+        const walkMinutes = Math.max(1, Math.round((distM || 180) / 80));
+        return {
+          index: idx,
+          iconHtml: `<span class="amenity-icon ${iconInfo.textClass}" aria-hidden="true">${iconInfo.svgIcon}</span>`,
+          walkMinutes,
+          lat: a.lat,
+          lng: a.lng,
+          name: a.name
+        };
+      });
+      row.innerHTML = chipsToDisplay.map(c => `
+        <button type="button" class="opportunities-amenity-chip" data-anchor-index="${c.index}" data-anchor-name="${esc(c.name)}" data-anchor-lat="${c.lat}" data-anchor-lng="${c.lng}" title="Click to focus ${esc(c.name)} on 3D map">
+          ${c.iconHtml}
+          <span>${esc(c.name)}</span>
+          <span class="amenity-walk-badge">~${c.walkMinutes} min walk</span>
+        </button>
+      `).join('');
+      bindAmenityChips3D();
+    };
+  } else {
+    initLeafletMap();
   }
 
   // Helper to dynamically re-render the 3 opportunity cards with smooth fade
@@ -2876,7 +3281,9 @@ export function initBusinessOpportunities(root = document, property = null) {
       currentSector = cat;
 
       root.querySelectorAll('[data-cat-filter]').forEach(p => {
-        p.classList.toggle('is-active', p === pill);
+        const active = p === pill;
+        p.classList.toggle('is-active', active);
+        if (typeof p.setAttribute === 'function') p.setAttribute('aria-selected', String(active));
       });
 
       updateCardsStack(cat, currentRadius);

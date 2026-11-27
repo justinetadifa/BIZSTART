@@ -364,6 +364,22 @@
         meter.dataset.hmeterRevealed = '1';
       }
     });
+
+    const dotRings = root.matches && root.matches('[data-dot-ring]')
+      ? [root]
+      : Array.from(root.querySelectorAll('[data-dot-ring]'));
+    dotRings.forEach((ring) => {
+      if (ring.dataset.dotRingRevealed === '1' || prefersReducedMotion()) {
+        ring.dataset.dotRingRevealed = '1';
+        return;
+      }
+      if (isElementVisible(ring)) {
+        ring.classList.remove('is-revealing');
+        void ring.offsetWidth;
+        ring.classList.add('is-revealing');
+        ring.dataset.dotRingRevealed = '1';
+      }
+    });
   }
 
   // Re-trigger sweeps when dialogs/tabs/steps/drawers unhide

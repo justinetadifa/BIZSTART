@@ -1239,7 +1239,7 @@ export function propertyCostExplanationModel(property, calculation = assessmentC
 export function propertyCostExplanationMarkup(property, calculation = assessmentCalculation(property)) {
   const model = propertyCostExplanationModel(property, calculation);
   if (!model) return '';
-  const { row, analysis, asking, comparable, difference, band, bands, lease } = model;
+  const { row, asking, comparable, difference, band, bands, lease } = model;
   const unit = lease ? ' / m² / month' : ' / m²';
   const amount = value => value === null ? 'Not recorded' : `₱${fmt(value, 2)}`;
   const pricingBasis = model.totalPrice !== null && model.area !== null
@@ -1250,16 +1250,89 @@ export function propertyCostExplanationMarkup(property, calculation = assessment
   const explanation = difference === null
     ? (model.compatible ? 'The asking unit price and a comparable rate are needed to explain this rating.' : 'The price and comparable need compatible currency, area units and rent periods before they can be compared.')
     : `The asking rate is ${relative} the entered comparable. ${band ? `That falls in the “${band.range_label}” band, which gives ${fmt(band.score)} / 100.` : 'The scoring bands for this record are not attached.'}`;
+
+  // Split-capsule positions strictly derived from the real pricing comparison inputs (clamped visually to 16%–84% so both pill halves stay balanced).
+  const clampSplit = pct => Math.max(16, Math.min(84, Number(pct.toFixed(1))));
+  const hasPair = asking !== null && comparable !== null && (asking + comparable) > 0;
+  const askingSplit = hasPair ? clampSplit((asking / (asking + comparable)) * 100) : (asking !== null ? 50 : null);
+  const comparableSplit = hasPair ? clampSplit((comparable / (asking + comparable)) * 100) : (comparable !== null ? 50 : null);
+  const diffSplit = difference !== null ? clampSplit(((difference + 30) / 70) * 100) : null;
+
+  const splitCapsule = (tone, splitPct, leftLabel, rightLabel, ariaLabel) => {
+    const empty = splitPct === null;
+    const pos = empty ? 50 : splitPct;
+    return `<div class="price-cap-meter is-${tone}${empty ? ' is-empty' : ''}" role="img" aria-label="${esc(ariaLabel)}">
+      <div class="price-cap-scale">
+        <span>${esc(leftLabel)}</span>
+        <span class="price-cap-caret" style="left:${pos}%" aria-hidden="true"></span>
+        <span>${esc(rightLabel)}</span>
+      </div>
+      <div class="price-cap-track" style="--cap-split:${pos}%">
+        <span class="price-cap-seg price-cap-seg-left"></span>
+        <span class="price-cap-divider" aria-hidden="true"></span>
+        <span class="price-cap-seg price-cap-seg-right"></span>
+      </div>
+    </div>`;
+  };
+
+  const askingStr = amount(asking);
+  const comparableStr = amount(comparable);
+  const valueSizeClass = text => text.length >= 14 ? ' is-compact-val' : text.length >= 10 ? ' is-medium-val' : '';
+  const scoreFillPct = row.score !== null && Number.isFinite(Number(row.score)) ? Math.max(0, Math.min(100, Number(row.score))) : 0;
+
   return `<section class="price-score-explainer" id="propertyCostExplanation" aria-labelledby="propertyCostExplanationTitle">
-    <div class="price-explainer-heading"><div><span class="site-eyebrow">PROPERTY COST &amp; MARKET COMPETITIVENESS</span><h3 id="propertyCostExplanationTitle">Why this price gets its score</h3></div><span class="price-evidence-status">${model.authenticated ? 'Authenticated evidence' : 'Reported comparison · verification pending'}</span></div>
-    <div class="price-comparison-metrics">
-      <div><span>${lease ? 'Monthly asking rent' : 'Asking unit price'}</span><strong>${amount(asking)}${asking !== null ? `<small>${unit}</small>` : ''}</strong><p>${esc(pricingBasis)}</p></div>
-      <div><span>Entered comparable rate</span><strong>${amount(comparable)}${comparable !== null ? `<small>${unit}</small>` : ''}</strong><p>${esc(model.source || 'Comparable source not recorded')}</p></div>
-      <div><span>Price difference</span><strong>${differenceText}</strong><p>${difference === null ? 'Compatible price and area units required' : 'Relative to the entered comparable rate'}</p></div>
+    <div class="price-explainer-heading">
+      <div class="price-explainer-title-group">
+        <span class="site-eyebrow price-explainer-eyebrow">PROPERTY COST &amp; MARKET COMPETITIVENESS</span>
+        <h3 id="propertyCostExplanationTitle">Why this price gets its score</h3>
+      </div>
+      <span class="price-evidence-status${model.authenticated ? ' is-verified' : ''}">${model.authenticated ? 'Authenticated evidence' : 'Reported comparison · verification pending'}</span>
     </div>
-    <p class="price-comparison-summary">${esc(explanation)}</p>
-    ${model.mismatch ? `<p class="price-comparison-review">The recorded rating is ${fmt(row.score)} / 100, but these price inputs map to ${fmt(band.score)} / 100. Review the assessment before using the total.</p>` : ''}
-    ${model.validContribution ? `<div class="price-weight-formula"><span>What it adds to the total</span><strong>${fmt(row.score)} <small>rating ×</small> ${fmt(row.weight)}% <small>weight =</small> ${fmt(row.contribution, 4)} <small>points</small></strong><span>Maximum contribution: ${fmt(row.weight)} points out of the overall 100.</span></div>` : `<p class="price-comparison-review">${row.score === null ? 'The recorded criterion is still pending. A comparison preview does not release an IAI score.' : 'The recorded contribution does not match the rating and weight. Review the calculation.'}</p>`}
+
+    <div class="price-comparison-metrics">
+      <div class="price-cap-col">
+        ${splitCapsule('coral', askingSplit, 'Below ref', 'Above ref', `${lease ? 'Monthly asking rent' : 'Asking unit price'}: ${askingStr}${asking !== null ? unit : ''}`)}
+        <div class="price-cap-figure">
+          <strong class="price-cap-value${valueSizeClass(askingStr)}">${askingStr}${asking !== null ? `<small>${unit}</small>` : ''}</strong>
+          <span class="price-cap-label">${lease ? 'Monthly asking rent' : 'Asking unit price'}</span>
+          <p class="price-cap-desc">${esc(pricingBasis)}</p>
+        </div>
+      </div>
+
+      <div class="price-cap-col">
+        ${splitCapsule('meadow', comparableSplit, 'Lower', 'Higher', `Entered comparable rate: ${comparableStr}${comparable !== null ? unit : ''}`)}
+        <div class="price-cap-figure">
+          <strong class="price-cap-value${valueSizeClass(comparableStr)}">${comparableStr}${comparable !== null ? `<small>${unit}</small>` : ''}</strong>
+          <span class="price-cap-label">Entered comparable rate</span>
+          <p class="price-cap-desc">${esc(model.source || 'Comparable source not recorded')}</p>
+        </div>
+      </div>
+
+      <div class="price-cap-col">
+        ${splitCapsule('azure', diffSplit, '−30%', '+40%', `Price difference: ${differenceText}`)}
+        <div class="price-cap-figure">
+          <strong class="price-cap-value${valueSizeClass(differenceText)}">${differenceText}</strong>
+          <span class="price-cap-label">Price difference</span>
+          <p class="price-cap-desc">${difference === null ? 'Compatible price and area units required' : 'Relative to the entered comparable rate'}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="price-explainer-verdict">
+      <p class="price-comparison-summary">${esc(explanation)}</p>
+      ${model.mismatch ? `<p class="price-comparison-review">The recorded rating is ${fmt(row.score)} / 100, but these price inputs map to ${fmt(band.score)} / 100. Review the assessment before using the total.</p>` : ''}
+      ${model.validContribution ? `<div class="price-weight-formula">
+        <div class="price-weight-meta">
+          <span class="price-weight-title">What it adds to the total</span>
+          <span class="price-weight-max">Maximum contribution: ${fmt(row.weight)} points out of the overall 100.</span>
+        </div>
+        <div class="price-weight-eq-wrap">
+          <strong>${fmt(row.score)} <small>rating ×</small> ${fmt(row.weight)}% <small>weight =</small> ${fmt(row.contribution, 4)} <small>points</small></strong>
+          <span class="price-weight-bar" aria-hidden="true"><i style="width:${scoreFillPct}%"></i></span>
+        </div>
+      </div>` : `<p class="price-comparison-review">${row.score === null ? 'The recorded criterion is still pending. A comparison preview does not release an IAI score.' : 'The recorded contribution does not match the rating and weight. Review the calculation.'}</p>`}
+    </div>
+
     <details class="price-score-details" data-price-score-details><summary>See the formula and scoring bands</summary>
       <div class="price-score-details-body"><p><strong>Price difference</strong> = (asking rate − comparable rate) ÷ comparable rate × 100.</p>
       ${difference !== null ? `<p class="price-difference-formula">(${amount(asking)} − ${amount(comparable)}) ÷ ${amount(comparable)} × 100 = ${differenceText}</p>` : ''}
@@ -1283,18 +1356,140 @@ export function setupPriceScoreExplanation(root) {
   });
 }
 
-export function criterionBarsMarkup(calculation) {
-  return `<div class="site-rating-chart" aria-label="Criterion ratings on a scale of zero to 100">
-    <div class="site-chart-axis" aria-hidden="true"><span>Criterion</span><div><span>0</span><span>50</span><span>100</span></div><span>Points added</span></div>
-    <ul class="property-criterion-ratings-list site-rating-list">${calculation.rows.map(row => {
-      const scoreNum = Number(row.score);
-      const scoreClass = row.score === null ? '' : scoreNum >= 80 ? 'is-high' : scoreNum >= 60 ? 'is-good' : 'is-moderate';
-      return `<li class="property-criterion-rating-item site-rating-row" data-criterion="${esc(row.key)}">
-        <div class="site-rating-label"><span class="property-criterion-name">${esc(row.label.split(' / ')[0])}</span><small>${fmt(row.weight)}% weight</small>${['property_cost_market_competitiveness', 'economic_viability'].includes(row.key) ? '<a class="site-rating-help" href="#propertyCostExplanation" data-explain-price-score>Explain this score <span aria-hidden="true">↗</span></a>' : ''}</div>
-        <div class="site-rating-visual"><div class="site-rating-track ${row.score === null ? 'is-pending' : ''}" aria-hidden="true">${row.score === null ? '<span>Awaiting rating</span>' : `<i class="property-criterion-bar-fill ${scoreClass}" style="width:${Math.max(0, Math.min(100, row.score))}%"></i>`}</div><strong class="site-rating-value">${row.score === null ? 'Pending' : `${rating(row.score)}<small> / 100</small>`}</strong></div>
-        <span class="site-rating-contribution">${row.contribution === null ? 'Points pending' : `${fmt(row.contribution, 4)} weighted pts`}<small>Maximum ${fmt(row.weight)} pts</small></span>
-      </li>`;
-    }).join('')}</ul><p class="site-chart-note">Ratings before weighting. A pending value is missing evidence, not a score of zero.</p></div>`;
+const assessBotanicalShades = ['#4d7c3f', '#659850', '#82b366', '#a7cd8d', '#cde3bc', '#3d6632', '#b8d9a1'];
+
+export function criterionBarsMarkup(calculation, presentationInput = null) {
+  const rows = Array.isArray(calculation?.rows) ? calculation.rows : [];
+  const count = rows.length || 5;
+  const totalWeight = rows.reduce((sum, row) => sum + (Number(row.weight) || 0), 0);
+  const overallScore = presentationInput?.total ?? calculation?.iai ?? calculation?.recordedTotal ?? null;
+  const overallLabel = presentationInput?.provisional
+    ? 'Provisional IAI'
+    : calculation?.iai !== null
+      ? 'Overall Score'
+      : overallScore !== null
+        ? 'Recorded MCE'
+        : 'Score Pending';
+
+  // Build SVG weighted contribution ring donut (100-pt full circle, botanical shades + pale headroom)
+  const cx = 140;
+  const cy = 128;
+  const r = 74;
+  const circumference = 2 * Math.PI * r;
+  let accPts = 0;
+  const segments = [];
+  const callouts = [];
+
+  rows.forEach((row, idx) => {
+    const pts = row.contribution !== null && Number.isFinite(Number(row.contribution)) ? Math.max(0, Number(row.contribution)) : 0;
+    const shade = assessBotanicalShades[idx % assessBotanicalShades.length];
+    const shortName = (criterionShortNames[row.key] || row.label.split(' / ')[0]).replace('Property Cost & Market Competitiveness', 'Cost & market');
+    if (pts > 0) {
+      const startFrac = accPts / 100;
+      const frac = Math.min(1 - startFrac, pts / 100);
+      const midAngleDeg = (startFrac + frac / 2) * 360 - 90;
+      const dash = frac * circumference;
+      const gap = Math.max(0, circumference - dash);
+      const offset = startFrac * circumference;
+      segments.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${shade}" stroke-width="26" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>`);
+      callouts.push({ pts, score: row.score, midAngleDeg, shortName, shade });
+      accPts += pts;
+    }
+  });
+
+  // Position up to 5 floating white callout tags cleanly around the ring with collision separation
+  const calloutCoords = [];
+  callouts.forEach(item => {
+    const rad = (item.midAngleDeg * Math.PI) / 180;
+    let x = cx + Math.cos(rad) * 102;
+    let y = cy + Math.sin(rad) * 98;
+    // Gently nudge vertical position if too close to a previous pill
+    for (const prev of calloutCoords) {
+      if (Math.abs(x - prev.x) < 54 && Math.abs(y - prev.y) < 28) {
+        y += y >= prev.y ? 26 : -26;
+      }
+    }
+    x = Math.max(32, Math.min(248, x));
+    y = Math.max(22, Math.min(234, y));
+    calloutCoords.push({ ...item, x, y });
+  });
+
+  const calloutHtml = calloutCoords.map(c => {
+    const pctLeft = ((c.x / 280) * 100).toFixed(1);
+    const pctTop = ((c.y / 256) * 100).toFixed(1);
+    return `<span class="assess-donut-callout" style="left:${pctLeft}%;top:${pctTop}%;" title="${esc(c.shortName)}: ${fmt(c.pts, 2)} weighted pts (${rating(c.score)}/100)">${fmt(c.pts, 1)}<small>pts</small></span>`;
+  }).join('');
+
+  return `<div class="site-rating-chart assess-lower-grid" aria-label="Criterion ratings and weighted contribution breakdown">
+    <!-- Left Signature Card: Botanical Green Precision-Ruler Rating Bars -->
+    <article class="assess-ruler-card">
+      <header class="assess-card-head is-light">
+        <div>
+          <h3>Where the ratings come from</h3>
+          <p>Recorded ratings on a 0–100 scale · ${calculation.isLegacy ? 'Legacy record · ' : ''}${count} criteria · ${fmt(totalWeight)}% total weight</p>
+        </div>
+        <span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span>
+      </header>
+
+      <ul class="property-criterion-ratings-list assess-ruler-list">${rows.map(row => {
+        const hasScore = row.score !== null && Number.isFinite(Number(row.score));
+        const pct = hasScore ? Math.max(0, Math.min(100, Number(row.score))) : 0;
+        const isPrice = ['property_cost_market_competitiveness', 'economic_viability'].includes(row.key);
+        return `<li class="property-criterion-rating-item assess-ruler-item" data-criterion="${esc(row.key)}">
+          <div class="assess-ruler-stage ${hasScore ? '' : 'is-pending'}" aria-hidden="true">
+            ${hasScore
+              ? `<div class="assess-ruler-fill" style="width:${pct}%"><span class="assess-ruler-needle"></span></div>`
+              : `<div class="assess-ruler-pending-bar"><span>Awaiting rating</span></div>`}
+            <div class="assess-ruler-ticks"></div>
+          </div>
+          <div class="assess-ruler-meta">
+            <div class="assess-ruler-label">
+              <span class="property-criterion-name">${esc(row.label.split(' / ')[0])}</span>
+              <span class="assess-ruler-weight">${fmt(row.weight)}%</span>
+              ${isPrice ? '<a class="site-rating-help assess-ruler-link" href="#propertyCostExplanation" data-explain-price-score>Explain this score <span aria-hidden="true">↗</span></a>' : ''}
+            </div>
+            <div class="assess-ruler-nums">
+              <strong class="assess-ruler-score">${hasScore ? `${rating(row.score)}<small>/100</small>` : 'Pending'}</strong>
+              <span class="assess-ruler-pts">${row.contribution === null ? 'Points pending' : `${fmt(row.contribution, 2)} / ${fmt(row.weight)} pts`}</span>
+            </div>
+          </div>
+        </li>`;
+      }).join('')}</ul>
+
+      <p class="assess-ruler-note">Ratings before weighting. A pending value is missing evidence, not a score of zero.</p>
+    </article>
+
+    <!-- Right Signature Card: Weighted Contribution Ring Donut -->
+    <article class="assess-donut-card">
+      <header class="assess-card-head">
+        <div>
+          <h3>Weighted Contribution</h3>
+          <p>Points added toward composite 100-pt IAI</p>
+        </div>
+        <span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span>
+      </header>
+
+      <div class="assess-donut-stage">
+        <svg class="assess-donut-svg" viewBox="0 0 280 256" role="img" aria-label="Weighted contribution donut chart. ${overallScore !== null ? `${overallLabel}: ${fixed(overallScore)} out of 100.` : 'Composite score pending.'}">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e9ecef" stroke-width="26"/>
+          ${segments.join('')}
+        </svg>
+        <div class="assess-donut-center">
+          <span class="assess-donut-kicker">${esc(overallLabel)}</span>
+          <strong class="assess-donut-val">${overallScore !== null ? `${fixed(overallScore)}<small>/100</small>` : 'Pending'}</strong>
+        </div>
+        <div class="assess-donut-callouts" aria-hidden="true">${calloutHtml}</div>
+      </div>
+
+      <ul class="assess-donut-legend" aria-label="Weighted criteria legend">
+        ${rows.map((row, idx) => {
+          const shade = assessBotanicalShades[idx % assessBotanicalShades.length];
+          const shortName = (criterionShortNames[row.key] || row.label.split(' / ')[0]).replace('Spatial accessibility', 'Spatial').replace('Infrastructure readiness', 'Infra').replace('Nearby businesses', 'Nearby').replace('Risk constraints', 'Risk');
+          return `<li><i style="background:${shade}" aria-hidden="true"></i><span>${esc(shortName)}</span><small>${fmt(row.weight)}%</small></li>`;
+        }).join('')}
+      </ul>
+    </article>
+  </div>`;
 }
 
 export function assessmentPresentation(property, calc = assessmentCalculation(property)) {
@@ -1395,25 +1590,93 @@ function propertyScoreSummaryMarkup(property, calc) {
 
 export function propertyAssessmentMarkup(property, calc = assessmentCalculation(property), includeSummary = true) {
   const count = calc.rows.length;
+  const rated = calc.rows.filter(row => row.score !== null).length;
   const verified = calc.rows.filter(row => property.evidence_verification?.[row.key]?.status === 'authenticated').length;
+  const totalWeight = calc.rows.reduce((sum, row) => sum + (Number(row.weight) || 0), 0);
   const presentation = assessmentPresentation(property, calc);
+  const ratedFillPct = count ? Math.max(36, Math.min(64, Math.round((rated / count) * 64))) : 40;
+  const spectrumScore = presentation.total !== null ? Math.max(0, Math.min(100, Number(presentation.total))) : null;
   return `<section class="property-panel property-assessment site-assessment" id="propertyAssessmentSection" data-investor-advanced aria-labelledby="propertyAssessmentTitle">
     <header class="property-assessment-header-bar"><h2 id="propertyAssessmentTitle" tabindex="-1">The assessment, at a glance</h2><span class="property-status ${calc.complete ? '' : 'is-pending'}">${calc.complete && !calc.isConditional ? `All ${count === 5 ? 'five' : count === 6 ? 'six' : 'seven'} criteria rated` : esc(presentation.state)}</span></header>
     ${includeSummary ? propertyScoreSummaryMarkup(property, calc) : ''}
-    <div class="listing-assessment-stats">
-      <div><span>Recorded MCE</span><strong data-active-mce-score>${presentation.recorded}</strong></div>
-      <div><span>Official IAI release</span><strong data-active-iai-composite-pill>${presentation.releaseStatus}</strong></div>
-      <div><span>Authenticated criteria</span><strong data-score-authentication>${property.protocol_version ? `${verified} / ${count}` : 'Not recorded'}</strong></div>
+
+    <div class="assess-bento-shell">
+      <!-- Top Split Progress Capsule + Action Pill -->
+      <div class="assess-top-bar">
+        <div class="assess-progress-capsule" role="group" aria-label="Assessment completion and evidence verification">
+          <div class="assess-capsule-fill" style="width:${ratedFillPct}%">
+            <span>Criteria Rated</span>
+            <strong data-assess-rated-count>${rated}/${count}</strong>
+          </div>
+          <div class="assess-capsule-pending">
+            <span>${verified === count && count > 0 ? 'Evidence Authenticated' : 'Evidence Pending'}</span>
+            <strong data-assess-verified-count>${property.protocol_version ? `${verified}/${count}` : `${count - rated}`}</strong>
+          </div>
+        </div>
+        <button type="button" class="assess-brief-cta no-print" data-scenario-report-btn>
+          <span class="assess-brief-icon" aria-hidden="true">↗</span>
+          <span>Download brief</span>
+        </button>
+      </div>
+
+      <!-- Upper Bento Row: 2x2 Mini KPI Cards + Striped Score Spectrum Card -->
+      <div class="assess-upper-grid">
+        <div class="assess-kpi-grid listing-assessment-stats">
+          <div class="assess-kpi-card">
+            <div class="assess-kpi-top"><span>Recorded MCE</span><span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span></div>
+            <strong class="assess-kpi-val" data-active-mce-score>${presentation.recorded}</strong>
+          </div>
+          <div class="assess-kpi-card">
+            <div class="assess-kpi-top"><span>Official IAI release</span><span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span></div>
+            <strong class="assess-kpi-val is-status" data-active-iai-composite-pill>${presentation.releaseStatus}</strong>
+          </div>
+          <div class="assess-kpi-card">
+            <div class="assess-kpi-top"><span>Authenticated criteria</span><span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span></div>
+            <strong class="assess-kpi-val" data-score-authentication>${property.protocol_version ? `${verified} / ${count}` : 'Not recorded'}</strong>
+          </div>
+          <div class="assess-kpi-card">
+            <div class="assess-kpi-top"><span>Model weight</span><span class="assess-dots-motif" aria-hidden="true"><i></i><i></i></span></div>
+            <strong class="assess-kpi-val">${fmt(totalWeight)}% <small>${count} criteria</small></strong>
+          </div>
+        </div>
+
+        <article class="assess-spectrum-card">
+          <div class="assess-spectrum-head">
+            <div>
+              <h3>Assessment Overview</h3>
+              <span class="assess-spectrum-sub">${esc(presentation.indexLabel)}</span>
+            </div>
+            <ul class="assess-telemetry-stack" aria-label="Assessment metadata">
+              <li><span>Status</span><strong>${esc(presentation.state)}</strong></li>
+              <li><span>Coverage</span><strong>${rated} of ${count} rated</strong></li>
+              <li><span>Weight</span><strong>${fmt(totalWeight)}%</strong></li>
+            </ul>
+          </div>
+
+          <div class="assess-spectrum-hero">
+            <strong class="assess-spectrum-num" data-assess-spectrum-val>${spectrumScore !== null ? `${fixed(spectrumScore)}<small>/100</small>` : 'Pending'}</strong>
+            <div class="assess-spectrum-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+            <div class="assess-striped-track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${spectrumScore !== null ? fixed(spectrumScore) : 0}" aria-label="Recorded MCE score spectrum">
+              <div class="assess-striped-half is-low"></div>
+              <div class="assess-striped-half is-high"></div>
+              <span class="assess-spectrum-pin" data-assess-spectrum-pin style="left:${spectrumScore !== null ? spectrumScore : 0}%;${spectrumScore === null ? 'display:none;' : ''}"></span>
+            </div>
+          </div>
+
+          <div class="listing-score-notes assess-notes-strip">
+            <span class="site-visually-hidden" data-assessment-total-label>${presentation.label}</span>
+            <p data-active-iai-desc>${esc(presentation.description)}</p>
+            <p data-recorded-total-note ${calc.iai !== null || calc.recordedTotal === null ? 'hidden' : ''}>${esc(presentation.scoreNote)}</p>
+            <p class="site-physical-note" ${calc.hasPhysicalBaseline && calc.recordedTotal === null && calc.iai === null ? '' : 'hidden'}>Physical subtotal: ${fmt(calc.physicalSubtotal, 4)} / ${count === 5 ? '100' : '85'} pts. Composite IAI release is pending.</p>
+            <p data-scenario-comparison-banner hidden></p>
+          </div>
+        </article>
+      </div>
+
+      <!-- Lower Bento Row: Botanical Precision-Ruler Card + Weighted Contribution Donut -->
+      <div data-site-rating-chart>${criterionBarsMarkup(calc, presentation)}</div>
     </div>
-    <div class="listing-score-notes">
-      <span class="site-visually-hidden" data-assessment-total-label>${presentation.label}</span>
-      <p data-active-iai-desc>${esc(presentation.description)}</p>
-      <p data-recorded-total-note ${calc.iai !== null || calc.recordedTotal === null ? 'hidden' : ''}>${esc(presentation.scoreNote)}</p>
-      <p class="site-physical-note" ${calc.hasPhysicalBaseline && calc.recordedTotal === null && calc.iai === null ? '' : 'hidden'}>Physical subtotal: ${fmt(calc.physicalSubtotal, 4)} / ${count === 5 ? '100' : '85'} pts. Composite IAI release is pending.</p>
-      <p data-scenario-comparison-banner hidden></p>
-    </div>
-    <div class="site-chart-heading"><div><h3>Where the ratings come from</h3><p>Recorded ratings on a 0–100 scale.</p></div><span>${calc.isLegacy ? 'Legacy record · ' : ''}${count} criteria · ${fmt(calc.rows.reduce((sum, row) => sum + row.weight, 0))}% total weight</span></div>
-    <div data-site-rating-chart>${criterionBarsMarkup(calc)}</div>
+
     <div data-site-price-explanation>${propertyCostExplanationMarkup(property, calc)}</div>
     <nav class="property-assessment-subnav site-assessment-links" aria-label="Explore the assessment"><button type="button" class="property-assessment-tab-link is-active" data-assessment-tab="overview" aria-pressed="true">Overview</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="calculation" aria-pressed="false">Calculation</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="evidence" aria-pressed="false">Evidence &amp; sources</button><button type="button" class="property-assessment-tab-link" data-assessment-tab="v2" aria-pressed="false">V2 Evidence-Backed <span class="v2-version-pill v2-pill-new">NEW</span></button><button type="button" class="property-score-card-action" data-scenario-report-btn>Download brief <span aria-hidden="true">↗</span></button></nav>
     <div class="property-assessment-disclosures">
@@ -2073,6 +2336,25 @@ function marketMetricMarkup(metric, kind) {
   `;
 }
 
+function demographicDotRingMarkup({ pct, valueText, notchText = '', tone = 'dark', size = 'md', ariaLabel = '' }) {
+  const safePct = Math.max(0, Math.min(100, Number(pct) || 0));
+  const dotCount = size === 'sm' ? 18 : 24;
+  const startDeg = size === 'sm' ? -140 : -142;
+  const sweepDeg = Math.abs(startDeg) * 2;
+  const stepDeg = sweepDeg / (dotCount - 1);
+  const filledCount = safePct > 0 ? Math.max(1, Math.min(dotCount, Math.round((safePct / 100) * dotCount))) : 0;
+  const dots = Array.from({ length: dotCount }, (_, i) => {
+    const angle = (startDeg + i * stepDeg).toFixed(2);
+    const active = i < filledCount ? ' is-filled' : '';
+    return `<i class="demo-ring-dot${active}" style="--dot-angle:${angle}deg;--dot-idx:${i}"></i>`;
+  }).join('');
+  return `<div class="demo-dot-ring is-${tone} is-${size}" data-dot-ring role="img" aria-label="${esc(ariaLabel || `${valueText}`)}">
+    <span class="demo-dot-ring-halo" aria-hidden="true">${dots}</span>
+    <span class="demo-dot-ring-core"><strong>${esc(valueText)}</strong></span>
+    ${notchText ? `<span class="demo-dot-ring-notch">${esc(notchText)}</span>` : ''}
+  </div>`;
+}
+
 function demographicProfileMarkup(data) {
   if (!data?.population?.available || !data?.income?.available || !data?.spending?.available) {
     return '';
@@ -2115,191 +2397,197 @@ function demographicProfileMarkup(data) {
   const scopeName = String(data.default_scope_name || '');
   const isBarangay = !/city|province|region/i.test(scopeName) && pop < 20000;
   const isCity = /city/i.test(scopeName);
-  
+
   const catchmentText = isBarangay
     ? `The ${fmt(pop, 0)} figure measures permanent nighttime residents within ${esc(scopeName)}&#39;s administrative boundary. However, as an active urban corridor in San Fernando City, daytime consumer footfall is significantly multiplied by civil service workers, commercial banking clients, daily shoppers, and commuters across the capital.`
     : isCity
       ? `San Fernando City functions as the provincial capital and northern commercial gateway. Daytime commercial activity draws extensive daily commuter traffic, government employees, and shoppers from surrounding coastal and inland municipalities.`
       : `Macro-level demographic context illustrating the broader trade region, addressable consumer households, and aggregate purchasing power across northern Luzon.`;
 
+  const expenditureRows = [
+    {
+      name: 'Food & Dining',
+      detail: 'Groceries, F&B, dining out',
+      pct: 41.8,
+      annual: foodAnnual,
+      monthly: foodMonthly,
+      tone: 'dark',
+    },
+    {
+      name: 'Discretionary & Services',
+      detail: 'Retail, health, education, leisure',
+      pct: 28.3,
+      annual: miscAnnual,
+      monthly: miscMonthly,
+      tone: 'amber',
+    },
+    {
+      name: 'Housing & Utilities',
+      detail: 'Rent, electricity, water, gas',
+      pct: 22.3,
+      annual: housingAnnual,
+      monthly: housingMonthly,
+      tone: 'gold',
+    },
+    {
+      name: 'Transport & Mobility',
+      detail: 'Fuel, fares, commuting',
+      pct: 7.6,
+      annual: transportAnnual,
+      monthly: transportMonthly,
+      tone: 'slate',
+    },
+  ];
+
   return `
-    <div class="demographic-extended-panel" id="demographicExtendedPanel">
-      <div class="demographic-extended-header">
-        <div>
-          <h3 class="demographic-extended-title">Demographic Structure &amp; Consumer Profile</h3>
-          <p class="demographic-extended-subtitle">Detailed population age cohorts, household economics, and consumer spending distribution</p>
-        </div>
-        <span class="demographic-profile-badge">PSA CPH &amp; FIES Profile</span>
-      </div>
+    <div class="demographic-extended-panel demographic-bento-shell" id="demographicExtendedPanel">
+      <div class="demographic-bento-layout">
+        <!-- LEFT BENTO CARD: Interlocking 2x2 Grey/Charcoal Household Economics Grid + Catchment Note -->
+        <section class="demo-bento-card demo-bento-primary" aria-labelledby="demoExtendedHeading">
+          <header class="demo-bento-head">
+            <div class="demo-bento-head-copy">
+              <h3 class="demographic-extended-title" id="demoExtendedHeading">Demographic Structure &amp; Consumer Profile</h3>
+              <p class="demographic-extended-subtitle">Detailed population age cohorts, household economics, and consumer spending distribution</p>
+            </div>
+            <div class="demo-hero-arc-badge" style="--arc-pct:${workShare}" title="64.8% Productive Age · Working-age population share (15–64 years)">
+              <span class="demo-hero-arc-ring" aria-hidden="true"></span>
+              <span class="demo-hero-arc-text"><strong>${workShare}%</strong><small>Prod.</small></span>
+            </div>
+          </header>
 
-      <!-- Quick KPI Strip -->
-      <div class="demographic-kpi-strip">
-        <div class="demographic-kpi-item">
-          <span class="demographic-kpi-label">Avg. Household Size</span>
-          <span class="demographic-kpi-value">4.1 <small>persons</small></span>
-          <span class="demographic-kpi-sub">PSA CPH baseline</span>
-        </div>
-        <div class="demographic-kpi-item">
-          <span class="demographic-kpi-label">Est. Households</span>
-          <span class="demographic-kpi-value">${fmt(estHh, 0)}</span>
-          <span class="demographic-kpi-sub">Residential consumer units</span>
-        </div>
-        <div class="demographic-kpi-item">
-          <span class="demographic-kpi-label">Annual Family Savings Margin</span>
-          <span class="demographic-kpi-value">₱${fmt(savingsBuffer, 0)}</span>
-          <span class="demographic-kpi-sub">${savingsPct}% savings &amp; discretionary capacity</span>
-        </div>
-        <div class="demographic-kpi-item">
-          <span class="demographic-kpi-label">Gender Distribution</span>
-          <span class="demographic-kpi-value">50.2% M · 49.8% F</span>
-          <span class="demographic-kpi-sub">1.84 active workers per dependent</span>
-        </div>
-      </div>
-
-      <!-- Two-Column Visual Distribution Grid -->
-      <div class="demographic-visual-grid">
-        <!-- Age Structure Card -->
-        <div class="demographic-visual-card">
-          <div class="demographic-visual-card-head">
-            <h4 class="demographic-visual-card-title">Population Age Distribution</h4>
-            <span class="demographic-share-badge is-work">64.8% Productive Age</span>
-          </div>
-          <p class="demographic-visual-card-desc">Working-age share drives daytime retail footfall, office commuting, and consumer spending.</p>
-          
-          <!-- Stacked Bar (CSS only, no SVG) -->
-          <div class="demographic-stacked-bar" role="meter" aria-label="Age cohort distribution">
-            <div class="demographic-bar-segment is-youth" style="width: 26.4%;" title="Youth (0–14): 26.4%"></div>
-            <div class="demographic-bar-segment is-work" style="width: 64.8%;" title="Working Age (15–64): 64.8%"></div>
-            <div class="demographic-bar-segment is-senior" style="width: 8.8%;" title="Seniors (65+): 8.8%"></div>
-          </div>
-
-          <div class="demographic-breakdown-list">
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-youth"></span>
-                <div>
-                  <span class="demographic-row-name">Youth (0–14 years)</span>
-                  <span class="demographic-row-detail">Dependents &amp; school-age</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">26.4%</span>
-                <span class="demographic-row-count">~${fmt(youthCount, 0)} people</span>
+          <!-- Signature 2x2 Interlocking Grey / Obsidian Bento Matrix -->
+          <div class="demo-kpi-matrix" role="list" aria-label="Household economics summary">
+            <div class="demo-kpi-tile is-soft-a" role="listitem">
+              <span class="demo-kpi-label">Avg. Household Size</span>
+              <div class="demo-kpi-body">
+                <strong class="demo-kpi-value">4.1 <small>persons</small></strong>
+                <span class="demo-kpi-sub">PSA CPH baseline</span>
               </div>
             </div>
-
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-work"></span>
-                <div>
-                  <span class="demographic-row-name">Working Age (15–64 years)</span>
-                  <span class="demographic-row-detail">Core labor force &amp; consumers</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">64.8%</span>
-                <span class="demographic-row-count">~${fmt(workCount, 0)} people</span>
+            <div class="demo-kpi-tile is-soft-b" role="listitem">
+              <span class="demo-kpi-label">Est. Households</span>
+              <div class="demo-kpi-body">
+                <strong class="demo-kpi-value">${fmt(estHh, 0)}</strong>
+                <span class="demo-kpi-sub">Residential consumer units</span>
               </div>
             </div>
-
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-senior"></span>
-                <div>
-                  <span class="demographic-row-name">Seniors (65+ years)</span>
-                  <span class="demographic-row-detail">Retirees &amp; elder demographic</span>
-                </div>
+            <div class="demo-kpi-tile is-obsidian" role="listitem">
+              <span class="demo-kpi-label">Annual Family Savings Margin</span>
+              <div class="demo-kpi-body">
+                <strong class="demo-kpi-value">₱${fmt(savingsBuffer, 0)}</strong>
+                <span class="demo-kpi-sub">${savingsPct}% savings &amp; discretionary capacity</span>
               </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">8.8%</span>
-                <span class="demographic-row-count">~${fmt(seniorCount, 0)} people</span>
+            </div>
+            <div class="demo-kpi-tile is-alabaster" role="listitem">
+              <span class="demo-kpi-label">Gender Distribution</span>
+              <div class="demo-kpi-body">
+                <strong class="demo-kpi-value is-compact-val">50.2% M · 49.8% F</strong>
+                <span class="demo-kpi-sub">1.84 active workers per dependent</span>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Consumer Expenditure Allocation Card -->
-        <div class="demographic-visual-card">
-          <div class="demographic-visual-card-head">
-            <h4 class="demographic-visual-card-title">Family Expenditure Allocation</h4>
-            <span class="demographic-share-badge is-spend">PSA FIES Basket</span>
-          </div>
-          <p class="demographic-visual-card-desc">Breakdown of ₱${fmt(spending, 0)}/yr mean family expenditure into core commercial categories.</p>
-          
-          <!-- Stacked Bar (CSS only, no SVG) -->
-          <div class="demographic-stacked-bar" role="meter" aria-label="Consumer spending allocation">
-            <div class="demographic-bar-segment is-food" style="width: 41.8%;" title="Food &amp; Dining: 41.8%"></div>
-            <div class="demographic-bar-segment is-housing" style="width: 22.3%;" title="Housing &amp; Utilities: 22.3%"></div>
-            <div class="demographic-bar-segment is-transport" style="width: 7.6%;" title="Transport: 7.6%"></div>
-            <div class="demographic-bar-segment is-misc" style="width: 28.3%;" title="Discretionary &amp; Services: 28.3%"></div>
-          </div>
-
-          <div class="demographic-breakdown-list">
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-food"></span>
-                <div>
-                  <span class="demographic-row-name">Food &amp; Dining</span>
-                  <span class="demographic-row-detail">Groceries, F&amp;B, dining out</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">41.8%</span>
-                <span class="demographic-row-count">₱${fmt(foodAnnual, 0)}/yr (₱${fmt(foodMonthly, 0)}/mo)</span>
-              </div>
-            </div>
-
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-housing"></span>
-                <div>
-                  <span class="demographic-row-name">Housing &amp; Utilities</span>
-                  <span class="demographic-row-detail">Rent, electricity, water, gas</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">22.3%</span>
-                <span class="demographic-row-count">₱${fmt(housingAnnual, 0)}/yr (₱${fmt(housingMonthly, 0)}/mo)</span>
-              </div>
-            </div>
-
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-transport"></span>
-                <div>
-                  <span class="demographic-row-name">Transport &amp; Mobility</span>
-                  <span class="demographic-row-detail">Fuel, fares, commuting</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">7.6%</span>
-                <span class="demographic-row-count">₱${fmt(transportAnnual, 0)}/yr (₱${fmt(transportMonthly, 0)}/mo)</span>
-              </div>
-            </div>
-
-            <div class="demographic-breakdown-row">
-              <div class="demographic-row-indicator">
-                <span class="demographic-color-chip is-misc"></span>
-                <div>
-                  <span class="demographic-row-name">Discretionary &amp; Services</span>
-                  <span class="demographic-row-detail">Retail, health, education, leisure</span>
-                </div>
-              </div>
-              <div class="demographic-row-nums">
-                <span class="demographic-row-pct">28.3%</span>
-                <span class="demographic-row-count">₱${fmt(miscAnnual, 0)}/yr (₱${fmt(miscMonthly, 0)}/mo)</span>
-              </div>
+          <!-- Inline Info Callout matching hardware dashboard info row -->
+          <div class="demo-catchment-note">
+            <span class="demo-info-dot" aria-hidden="true">i</span>
+            <div class="demo-catchment-copy">
+              <strong class="demographic-catchment-title">Commercial Catchment &amp; Daytime Footfall Dynamics</strong>
+              <p class="demographic-catchment-text">${catchmentText}</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Daytime Catchment Insight Callout -->
-      <div class="demographic-catchment-callout">
-        <div class="demographic-catchment-icon" aria-hidden="true">📍</div>
-        <div class="demographic-catchment-content">
-          <h4 class="demographic-catchment-title">Commercial Catchment &amp; Daytime Footfall Dynamics</h4>
-          <p class="demographic-catchment-text">${catchmentText}</p>
+          <div class="demo-bento-footer-pill">
+            <span class="demographic-profile-badge">PSA CPH &amp; FIES Profile</span>
+            <span class="demo-footer-meta">${esc(scopeName || 'San Fernando')} · ${fmt(pop, 0)} permanent residents</span>
+          </div>
+        </section>
+
+        <!-- RIGHT BENTO STACK: Expenditure Allocation (compact list w/ dotted rings) + Age Distribution (3-up dotted rings) -->
+        <div class="demo-bento-stack">
+          <!-- Card 2: Family Expenditure Allocation -->
+          <section class="demo-bento-card demo-bento-expenditure" aria-labelledby="demoSpendHeading">
+            <header class="demo-bento-subhead">
+              <div>
+                <h4 class="demographic-visual-card-title" id="demoSpendHeading">Family Expenditure Allocation</h4>
+                <p class="demographic-visual-card-desc">Breakdown of ₱${fmt(spending, 0)}/yr mean family expenditure into core commercial categories.</p>
+              </div>
+              <span class="demo-bento-tag">PSA FIES Basket</span>
+            </header>
+
+            <div class="demo-spend-list">
+              ${expenditureRows.map(item => `
+                <div class="demo-spend-row">
+                  ${demographicDotRingMarkup({
+                    pct: item.pct,
+                    valueText: `${item.pct}%`,
+                    tone: item.tone,
+                    size: 'sm',
+                    ariaLabel: `${item.name}: ${item.pct}% of mean family expenditure`
+                  })}
+                  <div class="demo-spend-info">
+                    <span class="demo-spend-name">${esc(item.name)}</span>
+                    <span class="demo-spend-detail">${esc(item.detail)}</span>
+                  </div>
+                  <div class="demo-spend-amounts">
+                    <strong>₱${fmt(item.annual, 0)}<span>/yr</span></strong>
+                    <small>₱${fmt(item.monthly, 0)}/mo</small>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </section>
+
+          <!-- Card 3: Population Age Distribution (Signature 3-Up Dotted-Ring Gauges) -->
+          <section class="demo-bento-card demo-bento-cohorts" aria-labelledby="demoAgeHeading">
+            <header class="demo-bento-subhead">
+              <div>
+                <h4 class="demographic-visual-card-title" id="demoAgeHeading">Population Age Distribution</h4>
+                <p class="demographic-visual-card-desc">Working-age share drives daytime retail footfall, office commuting, and consumer spending.</p>
+              </div>
+              <span class="demo-bento-tag is-dark">64.8% Productive Age</span>
+            </header>
+
+            <div class="demo-cohort-rings-grid">
+              <div class="demo-cohort-item">
+                ${demographicDotRingMarkup({
+                  pct: workShare,
+                  valueText: `${workShare}%`,
+                  notchText: `~${fmt(workCount, 0)}`,
+                  tone: 'dark',
+                  size: 'md',
+                  ariaLabel: `Working Age (15–64 years): ${workShare}%, approximately ${fmt(workCount, 0)} people`
+                })}
+                <strong class="demo-cohort-name">Working Age (15–64 years)</strong>
+                <span class="demo-cohort-detail">Core labor force &amp; consumers</span>
+              </div>
+
+              <div class="demo-cohort-item">
+                ${demographicDotRingMarkup({
+                  pct: youthShare,
+                  valueText: `${youthShare}%`,
+                  notchText: `~${fmt(youthCount, 0)}`,
+                  tone: 'amber',
+                  size: 'md',
+                  ariaLabel: `Youth (0–14 years): ${youthShare}%, approximately ${fmt(youthCount, 0)} people`
+                })}
+                <strong class="demo-cohort-name">Youth (0–14 years)</strong>
+                <span class="demo-cohort-detail">Dependents &amp; school-age</span>
+              </div>
+
+              <div class="demo-cohort-item">
+                ${demographicDotRingMarkup({
+                  pct: seniorShare,
+                  valueText: `${seniorShare}%`,
+                  notchText: `~${fmt(seniorCount, 0)}`,
+                  tone: 'gold',
+                  size: 'md',
+                  ariaLabel: `Seniors (65+ years): ${seniorShare}%, approximately ${fmt(seniorCount, 0)} people`
+                })}
+                <strong class="demo-cohort-name">Seniors (65+ years)</strong>
+                <span class="demo-cohort-detail">Retirees &amp; elder demographic</span>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>
@@ -3000,7 +3288,18 @@ export function setupInvestorScenario(root, property, policyInput) {
       const recordedNote = root.querySelector('[data-recorded-total-note]');
       if (recordedNote) { recordedNote.hidden = result.iai !== null || result.recordedTotal === null; recordedNote.textContent = presentation.scoreNote; }
       const chart = root.querySelector('[data-site-rating-chart]');
-      if (chart) chart.innerHTML = criterionBarsMarkup(result);
+      if (chart) chart.innerHTML = criterionBarsMarkup(result, presentation);
+      const specVal = root.querySelector('[data-assess-spectrum-val]');
+      const specPin = root.querySelector('[data-assess-spectrum-pin]');
+      const specNum = presentation.total !== null ? Math.max(0, Math.min(100, Number(presentation.total))) : null;
+      if (specVal) specVal.innerHTML = specNum !== null ? `${fixed(specNum)}<small>/100</small>` : 'Pending';
+      if (specPin) {
+        specPin.style.left = `${specNum !== null ? specNum : 0}%`;
+        specPin.style.display = specNum === null ? 'none' : '';
+      }
+      text(root.querySelector('[data-assess-rated-count]'), `${gaugeState.rated}/${gaugeState.count}`);
+      const verifiedLive = result.rows.filter(row => combined.evidence_verification?.[row.key]?.status === 'authenticated').length;
+      text(root.querySelector('[data-assess-verified-count]'), combined.protocol_version ? `${verifiedLive}/${result.rows.length}` : `${gaugeState.count - gaugeState.rated}`);
       const priceExplanation = root.querySelector('[data-site-price-explanation]');
       if (priceExplanation) priceExplanation.innerHTML = propertyCostExplanationMarkup(combined, result);
       const calculation = root.querySelector('[data-site-calculation]');

@@ -382,49 +382,48 @@ function sfc_render_city_workspace(array $context, string $heading, string $desc
   <div class="city-map-layout">
     <div class="city-property-grid" id="cityPropertyGrid" aria-live="polite"><div class="city-loading">Loading properties…</div></div>
     <section class="city-map-panel tw-static lg:tw-sticky" aria-label="Property map">
-      <div class="city-map-controls tw-flex-wrap">
-        <div class="city-map-segmented" role="group" aria-label="Map style switcher">
-          <button type="button" class="is-active" data-layer-btn="canvas">Canvas</button>
-          <button type="button" data-layer-btn="streets">Strands</button>
-          <button type="button" data-layer-btn="satellite">Satellite</button>
+      <div class="city-map-stage">
+        <div class="city-map-controls">
+          <div class="city-map-segmented" role="group" aria-label="Map style switcher">
+            <button type="button" class="is-active" data-layer-btn="canvas">Map</button>
+            <button type="button" data-layer-btn="streets">Terrain</button>
+            <button type="button" data-layer-btn="satellite">Satellite</button>
+          </div>
+          <div class="city-map-ctrl-actions">
+            <button type="button" id="cityMapFit" class="city-map-btn" title="Fit all properties">
+              <svg width="13.5" height="13.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg>
+              <span>Fit view</span>
+            </button>
+          </div>
         </div>
-        <div class="city-map-ctrl-actions">
-          <button type="button" id="cityMapFit" class="city-map-btn" title="Fit all properties">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg>
-            <span>Fit view</span>
-          </button>
-        </div>
+        <div class="city-map-canvas tw-h-[clamp(240px,65vh,640px)]" id="cityPropertyMap"></div>
       </div>
-      <div class="city-map-canvas tw-h-[clamp(240px,65vh,640px)]" id="cityPropertyMap"></div>
-      <div class="city-map-options tw-flex-wrap">
-        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2.5 tw-cursor-pointer" data-investor-advanced>
-          <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
-            <input type="checkbox" id="cityNearbyBusinesses" class="tw-sr-only tw-peer">
-            <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-[#9E1B22]"></div>
-          </div>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Nearby businesses</span>
-          <span class="tw-text-xs tw-text-slate-400" title="Toggle local competitor and partner points">ⓘ</span>
-        </label>
-        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer">
-          <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
-            <input type="checkbox" id="cityMapFloodOverlay" class="tw-sr-only tw-peer">
-            <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-blue-600"></div>
-          </div>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Flood susceptibility</span>
-        </label>
-        <label class="city-map-toggle-switch tw-inline-flex tw-items-center tw-gap-2 tw-cursor-pointer">
-          <div class="tw-relative tw-inline-block tw-w-9 tw-h-5">
-            <input type="checkbox" id="cityMapFaultOverlay" class="tw-sr-only tw-peer">
-            <div class="tw-w-9 tw-h-5 tw-bg-slate-200 peer-focus:tw-outline-none tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-slate-300 after:tw-border after:tw-rounded-full after:tw-h-4 after:tw-w-4 after:tw-transition-all peer-checked:tw-bg-rose-600"></div>
-          </div>
-          <span class="tw-text-xs tw-font-semibold tw-text-slate-700">Fault lines</span>
-        </label>
-        <div class="city-map-legend" data-investor-advanced aria-label="IAI assessment tiers">
-          <span><i class="dot-prime"></i> Prime 90+</span>
-          <span><i class="dot-strong"></i> Strong 80–89</span>
-          <span><i class="dot-emerging"></i> Emerging below 80</span>
+      <div class="city-map-options">
+        <div class="city-map-layer-chips">
+          <label class="city-map-layer-chip is-biz" data-investor-advanced title="Toggle local competitor and partner points">
+            <input type="checkbox" id="cityNearbyBusinesses" class="tw-sr-only">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 20v-6h6v6"/></svg>
+            <span>Nearby businesses</span>
+          </label>
+          <label class="city-map-layer-chip is-flood" title="Toggle mapped flood susceptibility zones">
+            <input type="checkbox" id="cityMapFloodOverlay" class="tw-sr-only">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 15c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M2 19c2-1.5 4-1.5 6 0s4 1.5 6 0 4-1.5 6 0"/><path d="M12 3l4.5 6.5a4.5 4.5 0 1 1-9 0L12 3z"/></svg>
+            <span>Flood susceptibility</span>
+          </label>
+          <label class="city-map-layer-chip is-fault" title="Toggle PHIVOLCS active fault lines">
+            <input type="checkbox" id="cityMapFaultOverlay" class="tw-sr-only">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="2 12 7 12 10 5 14 19 17 12 22 12"/></svg>
+            <span>Fault lines</span>
+          </label>
         </div>
-        <span id="cityMapContext" role="status"></span>
+        <div class="city-map-dock-meta">
+          <div class="city-map-legend" data-investor-advanced aria-label="IAI assessment tiers">
+            <span><i class="dot-prime"></i> Prime 90+</span>
+            <span><i class="dot-strong"></i> Strong 80–89</span>
+            <span><i class="dot-emerging"></i> Emerging &lt;80</span>
+          </div>
+          <span id="cityMapContext" role="status"></span>
+        </div>
       </div>
     </section>
   </div>
